@@ -73,9 +73,8 @@ const available = (publicId: string): number =>
     ) ?? 0;
 const quarantineBlocked = computed(
     () =>
-        isSplit.value &&
-        (toThousandths(props.line.quarantineAvailable ?? '0') ?? 0) <
-            returned.value,
+        props.line.quarantineAvailable !== null &&
+        (toThousandths(props.line.quarantineAvailable) ?? 0) < returned.value,
 );
 const placed = computed(() =>
     Object.values(shares.value).reduce(
@@ -149,11 +148,18 @@ const sharesToSend = computed(() =>
         }))
         .filter((share) => (toThousandths(share.quantity) ?? 0) > 0),
 );
+// Typing in a box clears only the batch messages, never the location or a server alert.
 watch(
     shares,
     () => {
         splitErrors.value = {};
-        form.clearErrors();
+        const batchKeys = Object.keys(form.errors).filter((key) =>
+            key.startsWith('batches'),
+        );
+
+        if (batchKeys.length > 0) {
+            form.clearErrors(...(batchKeys as (keyof typeof form.data)[]));
+        }
     },
     { deep: true },
 );
@@ -187,6 +193,7 @@ const locationName = computed(
 const dialogBatches = computed(() =>
     isSplit.value
         ? sharesToSend.value.map((share) => ({
+              publicId: share.batch_public_id,
               label:
                   props.line.batches.find(
                       (b) => b.publicId === share.batch_public_id,
@@ -195,7 +202,11 @@ const dialogBatches = computed(() =>
           }))
         : props.line.batches
               .filter((b) => b.publicId === form.batch_public_id)
-              .map((b) => ({ label: b.label, quantity: props.row.quantity })),
+              .map((b) => ({
+                  publicId: b.publicId,
+                  label: b.label,
+                  quantity: props.row.quantity,
+              })),
 );
 const dialog = computed(() => {
     if (form.outcome === 'quarantine') {
@@ -297,12 +308,16 @@ const openConfirm = async () => {
     }
 
     await nextTick();
-    document
-        .getElementById(id('panel'))
-        ?.querySelector<HTMLElement>(
+    const root = document.getElementById(id('panel'));
+    // A total or "nothing entered" message has no box of its own, so the first open box takes focus.
+    (
+        root?.querySelector<HTMLElement>(
             '[aria-invalid="true"], input[aria-invalid]',
+        ) ??
+        root?.querySelector<HTMLElement>(
+            'input[data-field="check-share"]:not(:disabled)',
         )
-        ?.focus();
+    )?.focus();
 };
 
 const submit = () => {
@@ -578,6 +593,13 @@ const serverAlert = computed(() => {
                     >
                 </div>
             </fieldset>
+            <span
+                v-if="!isSplit && form.errors.batch_public_id"
+                :id="id('batch-error')"
+                role="alert"
+                class="text-xs text-destructive"
+                >{{ form.errors.batch_public_id }}</span
+            >
         </template>
 
         <template v-if="form.outcome === 'refuse'">
@@ -728,7 +750,7 @@ const serverAlert = computed(() => {
                     <ul class="mt-1 list-disc pl-5">
                         <li
                             v-for="b in dialogBatches"
-                            :key="b.label"
+                            :key="b.publicId"
                             class="[overflow-wrap:anywhere]"
                         >
                             {{ b.label }} — {{ b.quantity }} {{ line.unit }}

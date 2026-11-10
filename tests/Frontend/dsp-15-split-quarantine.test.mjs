@@ -140,3 +140,24 @@ test('quarantine is disabled with a reason when the batches cannot take the retu
         ),
     );
 });
+
+test('review fixes: batch errors still show, typing clears only batch messages, focus goes to a box', () => {
+    // A server refusal on batch_public_id is shown on a one-batch line.
+    assert.ok(panel.includes('v-if="!isSplit && form.errors.batch_public_id"'));
+    // Typing in a box never wipes the location message or a server alert.
+    assert.ok(panel.includes("key.startsWith('batches')"));
+    assert.equal(
+        /watch\(\s*shares,\s*\(\) => \{\s*splitErrors\.value = \{\};\s*form\.clearErrors\(\);/.test(
+            panel,
+        ),
+        false,
+    );
+    // A total message focuses the first open box.
+    assert.ok(
+        panel.includes(`'input[data-field="check-share"]:not(:disabled)'`),
+    );
+    // The dialog list is keyed by batch, not by its label.
+    assert.ok(panel.includes(':key="b.publicId"'));
+    // A one-batch line is blocked with a reason too.
+    assert.ok(panel.includes('props.line.quarantineAvailable !== null &&'));
+});

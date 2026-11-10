@@ -443,6 +443,8 @@ final class DispensaryReturnService
         $skus = InventorySku::query()->whereIn('id', $chosen->pluck('inventory_sku_id')->unique())->where('organisation_id', $actor->organisation_id)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
         $batches = InventoryBatch::query()->whereIn('id', $chosen->pluck('inventory_batch_id')->unique())->where('organisation_id', $actor->organisation_id)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
         $result = [];
+        // Credit in batch id order, the same order the batches were locked in.
+        uksort($shares, fn (string $a, string $b): int => (int) $byPublicId->get($a)?->inventory_batch_id <=> (int) $byPublicId->get($b)?->inventory_batch_id);
         foreach ($shares as $publicId => $scaled) {
             $allocation = $byPublicId->get($publicId);
             $sku = $skus->get($allocation->inventory_sku_id);

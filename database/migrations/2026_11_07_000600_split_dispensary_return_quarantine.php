@@ -17,6 +17,49 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
+    /** DSP-7's insert check, verbatim from 2026_11_07_000500, for down(). */
+    private const DSP7_CHECK_FUNCTION = <<<'SQL'
+CREATE OR REPLACE FUNCTION validate_dispensary_return_check_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+    ret dispensary_returns%ROWTYPE;
+    controlled boolean;
+    mv stock_movements%ROWTYPE;
+BEGIN
+    SELECT * INTO ret FROM dispensary_returns WHERE id = NEW.dispensary_return_id;
+    IF ret.id IS NULL OR ret.organisation_id <> NEW.organisation_id OR ret.branch_id <> NEW.branch_id
+       OR NOT EXISTS (SELECT 1 FROM users u WHERE u.id = NEW.checked_by_user_id AND u.organisation_id = NEW.organisation_id) THEN
+        RAISE EXCEPTION 'Invalid dispensary return check source' USING ERRCODE = '23514';
+    END IF;
+    IF ret.recorded_by_user_id = NEW.checked_by_user_id THEN
+        RAISE EXCEPTION 'A dispensary return must be checked by someone other than its recorder' USING ERRCODE = '23514';
+    END IF;
+    controlled := COALESCE((SELECT m.is_controlled
+        FROM dispensary_items i JOIN medicine_catalogue_items m ON m.id = i.medicine_catalogue_item_id
+        WHERE i.id = ret.dispensary_item_id), false);
+    IF NEW.outcome = 'quarantine' THEN
+        IF controlled THEN
+            RAISE EXCEPTION 'A returned controlled medicine is never quarantined' USING ERRCODE = '23514';
+        END IF;
+        SELECT * INTO mv FROM stock_movements WHERE id = NEW.stock_movement_id;
+        IF mv.id IS NULL OR mv.movement_type IS DISTINCT FROM 'dispensary_return' OR mv.reference_type IS DISTINCT FROM 'dispensary_return_check'
+           OR mv.reference_public_id IS DISTINCT FROM NEW.public_id OR mv.organisation_id IS DISTINCT FROM NEW.organisation_id
+           OR mv.destination_location_id IS DISTINCT FROM NEW.inventory_location_id OR mv.inventory_batch_id IS DISTINCT FROM NEW.inventory_batch_id
+           OR mv.quantity IS DISTINCT FROM ret.quantity OR mv.actor_user_id IS DISTINCT FROM NEW.checked_by_user_id
+           OR NOT EXISTS (SELECT 1 FROM inventory_locations l WHERE l.id = NEW.inventory_location_id AND l.branch_id = NEW.branch_id AND l.type = 'dispensary_returns')
+           OR NOT EXISTS (SELECT 1 FROM dispensary_item_batch_allocations a WHERE a.dispensary_item_id = ret.dispensary_item_id AND a.inventory_batch_id = NEW.inventory_batch_id) THEN
+            RAISE EXCEPTION 'A quarantine check must pair with its own dispensary_return movement' USING ERRCODE = '23514';
+        END IF;
+        -- Never quarantine more of one batch than this line was dispensed from it.
+        IF ret.quantity + COALESCE((SELECT SUM(r2.quantity) FROM dispensary_return_checks k2 JOIN dispensary_returns r2 ON r2.id = k2.dispensary_return_id
+                WHERE r2.dispensary_item_id = ret.dispensary_item_id AND k2.outcome = 'quarantine' AND k2.inventory_batch_id = NEW.inventory_batch_id), 0)
+           > (SELECT SUM(a.quantity) FROM dispensary_item_batch_allocations a WHERE a.dispensary_item_id = ret.dispensary_item_id AND a.inventory_batch_id = NEW.inventory_batch_id) THEN
+            RAISE EXCEPTION 'More of this batch would be quarantined than the line dispensed from it' USING ERRCODE = '23514';
+        END IF;
+    END IF;
+    RETURN NEW;
+END; $$;
+SQL;
+
     /** The DSP-7 insert check, now counting DSP-15 shares in the per-batch limit and allowing a split check. */
     private const CHECK_FUNCTION = <<<'SQL'
 CREATE OR REPLACE FUNCTION validate_dispensary_return_check_insert() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -120,6 +163,10 @@ BEGIN
        > (SELECT SUM(a.quantity) FROM dispensary_item_batch_allocations a WHERE a.dispensary_item_id = ret.dispensary_item_id AND a.inventory_batch_id = NEW.inventory_batch_id) THEN
         RAISE EXCEPTION 'More of this batch would be quarantined than the line dispensed from it' USING ERRCODE = '23514';
     END IF;
+    -- Shares never add up to more than the return, so a committed split can never be grown later.
+    IF NEW.quantity + COALESCE((SELECT SUM(b.quantity) FROM dispensary_return_check_batches b WHERE b.dispensary_return_check_id = chk.id), 0) > ret.quantity THEN
+        RAISE EXCEPTION 'Batch shares would add up to more than the returned quantity' USING ERRCODE = '23514';
+    END IF;
     RETURN NEW;
 END; $$;
 CREATE TRIGGER dispensary_return_check_batches_source BEFORE INSERT ON dispensary_return_check_batches FOR EACH ROW EXECUTE FUNCTION validate_dispensary_return_check_batch_insert();
@@ -183,12 +230,8 @@ SQL);
                 AND ((refuse_reason = 'other') = (refuse_note_encrypted IS NOT NULL))
                 AND inventory_location_id IS NULL AND inventory_batch_id IS NULL AND stock_movement_id IS NULL)
         )");
-        // Back to DSP-7's insert check, which counts single-batch quarantines only. Built from two literal constants.
-        DB::unprepared(str_replace( // @phpstan-ignore argument.type
-            'dispensary_return_quarantined_from_batch(ret.dispensary_item_id, NEW.inventory_batch_id)',
-            "COALESCE((SELECT SUM(r2.quantity) FROM dispensary_return_checks k2 JOIN dispensary_returns r2 ON r2.id = k2.dispensary_return_id WHERE r2.dispensary_item_id = ret.dispensary_item_id AND k2.outcome = 'quarantine' AND k2.inventory_batch_id = NEW.inventory_batch_id), 0)",
-            self::CHECK_FUNCTION,
-        ));
+        // Back to DSP-7's insert check exactly as 2026_11_07_000500 created it.
+        DB::unprepared(self::DSP7_CHECK_FUNCTION);
         DB::unprepared('DROP FUNCTION IF EXISTS dispensary_return_quarantined_from_batch(bigint, bigint)');
     }
 };

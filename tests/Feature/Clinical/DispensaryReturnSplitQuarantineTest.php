@@ -16,10 +16,12 @@ use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Models\User;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use LogicException;
+use RuntimeException;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\OtcDispensaryFixtures;
 use Tests\Support\ReturnsLocationFixture;
@@ -34,11 +36,11 @@ class DispensaryReturnSplitQuarantineTest extends VisitTestCase
     use OtcDispensaryFixtures;
 
     /**
-     * A line of 5 dispensed as 3 from an earlier batch and 2 from a later one.
+     * A line of 5 dispensed as 3 from an earlier batch and 2 from a later one (with $spare, 1 more from a third batch).
      *
-     * @return array{f: array<string, mixed>, case: DispensaryCase, item: string, later: InventoryBatch, supervisor: User, location: InventoryLocation}
+     * @return array{f: array<string, mixed>, case: DispensaryCase, item: string, later: InventoryBatch, spare: InventoryBatch|null, supervisor: User, location: InventoryLocation}
      */
-    private function twoBatchLine(): array
+    private function twoBatchLine(bool $spare = false, bool $controlled = false): array
     {
         $f = $this->fixture();
         $supervisor = $this->actor('ca_supervisor');
@@ -46,19 +48,32 @@ class DispensaryReturnSplitQuarantineTest extends VisitTestCase
         $later = new InventoryBatch;
         $later->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['batch']->organisation_id, 'inventory_sku_id' => $f['sku']->id, 'batch_number' => 'SYN-LATER-'.Str::upper(Str::random(4)), 'expiry_date' => now()->setTimezone($f['visit']->branch->timezone)->addYears(3)->toDateString(), 'received_at' => now()->subDay()->toDateString(), 'status' => InventoryBatch::STATUS_AVAILABLE])->save();
         app(InventoryMovementService::class)->openingBalance($supervisor, ['expected_branch_id' => $f['visit']->branch_id, 'location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id, 'batch_public_id' => $later->public_id, 'quantity' => '10.000']);
+        $third = null;
+        if ($spare) {
+            $third = new InventoryBatch;
+            $third->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['batch']->organisation_id, 'inventory_sku_id' => $f['sku']->id, 'batch_number' => 'SYN-SPARE-'.Str::upper(Str::random(4)), 'expiry_date' => now()->setTimezone($f['visit']->branch->timezone)->addYears(4)->toDateString(), 'received_at' => now()->subDay()->toDateString(), 'status' => InventoryBatch::STATUS_AVAILABLE])->save();
+            app(InventoryMovementService::class)->openingBalance($supervisor, ['expected_branch_id' => $f['visit']->branch_id, 'location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id, 'batch_public_id' => $third->public_id, 'quantity' => '10.000']);
+        }
+        if ($controlled) {
+            DB::table('medicine_catalogue_items')->where('id', $f['medicine']->id)->update(['is_controlled' => true]);
+        }
         $this->selectBranch($f['ca'], $f['visit']->branch);
         $case = $this->open($f);
-        app(DispensaryService::class)->addItem($f['ca'], $case, $this->addPayload($f, $case, '5.000', ['allocations' => [
+        $allocations = [
             ['location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id, 'batch_public_id' => $f['batch']->public_id, 'quantity' => '3.000'],
             ['location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id, 'batch_public_id' => $later->public_id, 'quantity' => '2.000', 'fefo_exception_reason' => 'earlier_batch_insufficient'],
-        ]]));
+        ];
+        if ($third !== null) {
+            $allocations[] = ['location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id, 'batch_public_id' => $third->public_id, 'quantity' => '1.000', 'fefo_exception_reason' => 'earlier_batch_insufficient'];
+        }
+        app(DispensaryService::class)->addItem($f['ca'], $case, $this->addPayload($f, $case, $third === null ? '5.000' : '6.000', ['allocations' => $allocations]));
         $this->confirmAllergy($f, $case->refresh());
         $case = $this->complete($f, $case)->refresh();
         $item = $case->handoffs()->sole()->items()->sole()->public_id;
         $location = ReturnsLocationFixture::create($supervisor, $f['visit']->branch);
         $this->actingAs($supervisor);
 
-        return ['f' => $f, 'case' => $case, 'item' => $item, 'later' => $later, 'supervisor' => $supervisor, 'location' => $location];
+        return ['f' => $f, 'case' => $case, 'item' => $item, 'later' => $later, 'spare' => $third, 'supervisor' => $supervisor, 'location' => $location];
     }
 
     /** @param array<string, mixed> $w */
@@ -206,7 +221,7 @@ class DispensaryReturnSplitQuarantineTest extends VisitTestCase
 
     public function test_postgres_repeats_the_split_rules_and_shares_are_append_only(): void
     {
-        $w = $this->twoBatchLine();
+        $w = $this->twoBatchLine(spare: true);
         $return = $this->record($w, '2');
         $check = $this->check($w, $return, $this->payload($w, [['batch_public_id' => $w['f']['batch']->public_id, 'quantity' => '1'], ['batch_public_id' => $w['later']->public_id, 'quantity' => '1']]));
         $share = DispensaryReturnCheckBatch::query()->where('dispensary_return_check_id', $check->id)->firstOrFail();
@@ -238,11 +253,22 @@ class DispensaryReturnSplitQuarantineTest extends VisitTestCase
             $this->assertStringContainsString('two or more batch shares', $e->getMessage());
         }
 
-        // A share must pair with its own movement.
+        // A share must pair with its own movement (the third batch has room, so only the pairing can refuse it).
         try {
-            DB::transaction(fn () => DB::table('dispensary_return_check_batches')->insert(['organisation_id' => $share->organisation_id, 'dispensary_return_check_id' => $check->id, 'inventory_batch_id' => $w['later']->id, 'quantity' => '1.000', 'stock_movement_id' => $share->stock_movement_id]));
+            DB::transaction(fn () => DB::table('dispensary_return_check_batches')->insert(['organisation_id' => $share->organisation_id, 'dispensary_return_check_id' => $check->id, 'inventory_batch_id' => $w['spare']->id, 'quantity' => '1.000', 'stock_movement_id' => $share->stock_movement_id]));
             $this->fail('PostgreSQL must refuse a share reusing a movement.');
-        } catch (QueryException) {
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('pair with its own', $e->getMessage());
+        }
+        // A committed split can never grow: a third share with its own movement is refused.
+        try {
+            DB::transaction(function () use ($w, $check, $share): void {
+                $movementId = DB::table('stock_movements')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $w['location']->organisation_id, 'inventory_sku_id' => $w['f']['sku']->id, 'inventory_batch_id' => $w['spare']->id, 'source_location_id' => null, 'destination_location_id' => $w['location']->id, 'quantity' => '1.000', 'movement_type' => 'dispensary_return', 'reference_type' => 'dispensary_return_check', 'reference_public_id' => $check->public_id, 'actor_user_id' => $w['supervisor']->id, 'occurred_at' => now()->utc(), 'created_at' => now()->utc(), 'updated_at' => now()->utc()]);
+                DB::table('dispensary_return_check_batches')->insert(['organisation_id' => $share->organisation_id, 'dispensary_return_check_id' => $check->id, 'inventory_batch_id' => $w['spare']->id, 'quantity' => '1.000', 'stock_movement_id' => $movementId]);
+            });
+            $this->fail('PostgreSQL must refuse shares adding up to more than the return.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('more than the returned quantity', $e->getMessage());
         }
         // A share never belongs to a single-batch check.
         $single = $this->check($w, $other, $this->payload($w, null, $w['f']['batch']->public_id));
@@ -252,5 +278,55 @@ class DispensaryReturnSplitQuarantineTest extends VisitTestCase
         } catch (QueryException $e) {
             $this->assertStringContainsString('split quarantine check', $e->getMessage());
         }
+    }
+
+    public function test_a_retry_replays_the_same_split_and_a_changed_split_is_refused(): void
+    {
+        $w = $this->twoBatchLine();
+        $return = $this->record($w, '4');
+        $payload = $this->payload($w, [['batch_public_id' => $w['f']['batch']->public_id, 'quantity' => '2.5'], ['batch_public_id' => $w['later']->public_id, 'quantity' => '1.5']]);
+        $first = $this->check($w, $return, $payload);
+        $this->assertSame($first->id, $this->check($w, $return, $payload)->id);
+        $this->assertSame(['1.500', '2.500'], DispensaryReturnCheckBatch::query()->orderBy('quantity')->pluck('quantity')->map(fn ($q): string => (string) $q)->all());
+        try {
+            $this->check($w, $return, [...$payload, 'batches' => [['batch_public_id' => $w['f']['batch']->public_id, 'quantity' => '3'], ['batch_public_id' => $w['later']->public_id, 'quantity' => '1']]]);
+            $this->fail('The same retry key with different shares must be refused.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('retry_key', $e->errors());
+        }
+        $this->assertSame(1, DispensaryReturnCheck::query()->count());
+        $this->assertSame(2, DispensaryReturnCheckBatch::query()->count());
+    }
+
+    public function test_a_controlled_medicine_is_never_split_into_quarantine(): void
+    {
+        $w = $this->twoBatchLine(controlled: true);
+        $return = $this->record($w, '4');
+        try {
+            $this->check($w, $return, $this->payload($w, [['batch_public_id' => $w['f']['batch']->public_id, 'quantity' => '2'], ['batch_public_id' => $w['later']->public_id, 'quantity' => '2']]));
+            $this->fail('A controlled medicine is always disposed.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('outcome', $e->errors());
+        }
+        $this->assertSame(0, DispensaryReturnCheck::query()->count());
+    }
+
+    public function test_the_migration_rolls_back_only_while_no_split_exists(): void
+    {
+        $migration = require database_path('migrations/2026_11_07_000600_split_dispensary_return_quarantine.php');
+        $migration->down();
+        $this->assertFalse(Schema::hasTable('dispensary_return_check_batches'));
+        $migration->up();
+        $this->assertTrue(Schema::hasTable('dispensary_return_check_batches'));
+
+        $w = $this->twoBatchLine();
+        $this->check($w, $this->record($w, '2'), $this->payload($w, [['batch_public_id' => $w['f']['batch']->public_id, 'quantity' => '1'], ['batch_public_id' => $w['later']->public_id, 'quantity' => '1']]));
+        try {
+            $migration->down();
+            $this->fail('Rolling back must be refused once split evidence exists.');
+        } catch (RuntimeException $e) {
+            $this->assertStringContainsString('cannot be rolled back', $e->getMessage());
+        }
+        $this->assertTrue(Schema::hasTable('dispensary_return_check_batches'));
     }
 }
