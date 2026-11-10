@@ -2,7 +2,7 @@
 // HR-14 /hr/messages: which channels KPOne may use to tell you about your own leave, roster, payslip and claims
 // (everyone), each channel's switch, price and monthly cap, and the messages sent (Director, HR Manager). HR-PLAN 15.3.
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -124,8 +124,13 @@ for (const s of props.messages.settings ?? []) {
     };
 }
 
+// Errors show inside the card that was saved, next to their field.
+const lastSaved = ref('');
+const errorFor = (channel: string, key: 'enabled' | 'price' | 'monthly_cap') =>
+    lastSaved.value === channel ? errors.value[key] : undefined;
 const save = (s: ChannelSettings) => {
     const f = forms[s.channel];
+    lastSaved.value = s.channel;
     f.processing = true;
     router.post(
         `/hr/messages/channels/${s.channel}`,
@@ -327,19 +332,32 @@ const tone = (status: string) =>
                 </p>
                 <form
                     v-if="forms[s.channel]"
-                    class="grid gap-3 sm:grid-cols-[auto_10rem_10rem_auto] sm:items-end"
+                    class="grid gap-3 sm:grid-cols-[minmax(0,1fr)_12rem_10rem_auto] sm:items-start"
                     @submit.prevent="save(s)"
                 >
-                    <label class="flex min-h-11 items-center gap-3 text-sm">
-                        <input
-                            v-model="forms[s.channel].enabled"
-                            type="checkbox"
-                            class="size-5"
-                            :disabled="!s.connected"
-                            :data-test="`enabled-${s.channel}`"
+                    <!-- Centred on the fields beside it: their label (20 px) and gap (6 px) sit above them. -->
+                    <div class="flex flex-col gap-1 sm:pt-[1.375rem]">
+                        <label class="flex min-h-11 items-center gap-3 text-sm">
+                            <input
+                                v-model="forms[s.channel].enabled"
+                                type="checkbox"
+                                class="size-5"
+                                :disabled="!s.connected"
+                                :aria-invalid="
+                                    errorFor(s.channel, 'enabled')
+                                        ? 'true'
+                                        : undefined
+                                "
+                                :aria-describedby="`enabled-${s.channel}-error`"
+                                :data-test="`enabled-${s.channel}`"
+                            />
+                            Switched on
+                        </label>
+                        <InputError
+                            :id="`enabled-${s.channel}-error`"
+                            :message="errorFor(s.channel, 'enabled')"
                         />
-                        Switched on
-                    </label>
+                    </div>
                     <div class="flex flex-col gap-1.5">
                         <Label :for="`price-${s.channel}`"
                             >Price per message (RM)</Label
@@ -350,6 +368,16 @@ const tone = (status: string) =>
                             inputmode="decimal"
                             placeholder="Not set"
                             class="max-lg:min-h-11"
+                            :aria-invalid="
+                                errorFor(s.channel, 'price')
+                                    ? 'true'
+                                    : undefined
+                            "
+                            :aria-describedby="`price-${s.channel}-error`"
+                        />
+                        <InputError
+                            :id="`price-${s.channel}-error`"
+                            :message="errorFor(s.channel, 'price')"
                         />
                     </div>
                     <div class="flex flex-col gap-1.5">
@@ -360,20 +388,27 @@ const tone = (status: string) =>
                             inputmode="numeric"
                             placeholder="Not set"
                             class="max-lg:min-h-11"
+                            :aria-invalid="
+                                errorFor(s.channel, 'monthly_cap')
+                                    ? 'true'
+                                    : undefined
+                            "
+                            :aria-describedby="`cap-${s.channel}-error`"
+                        />
+                        <InputError
+                            :id="`cap-${s.channel}-error`"
+                            :message="errorFor(s.channel, 'monthly_cap')"
                         />
                     </div>
                     <Button
                         type="submit"
-                        class="max-lg:min-h-11"
+                        class="max-lg:min-h-11 sm:mt-[1.625rem]"
                         :disabled="forms[s.channel].processing"
                         :data-test="`save-${s.channel}`"
                         >Save</Button
                     >
                 </form>
             </article>
-            <InputError :message="errors.enabled" />
-            <InputError :message="errors.monthly_cap" />
-            <InputError :message="errors.price" />
         </section>
 
         <!-- Sent -->

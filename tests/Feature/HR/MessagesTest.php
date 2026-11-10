@@ -239,6 +239,30 @@ class MessagesTest extends VisitTestCase
         $this->assertSame(['failed', 'send_failed', 'claim_decided', (int) $ca->id], [$row->status, $row->error_code, $row->template, (int) $row->user_id]);
     }
 
+    public function test_a_mail_service_that_fails_is_not_tried_again_for_the_rest_of_the_same_action(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $nurse = $this->actor('ca_supervisor');
+        $this->switchOnEmail($hr, 10);
+        $this->choose($ca, 'email', true, 0)->assertSessionHasNoErrors();
+        $this->choose($nurse, 'email', true, 0)->assertSessionHasNoErrors();
+
+        // One action sending to two people (as a payroll lock does): the mail service is asked once, not once per person.
+        Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('smtp down'));
+        DB::transaction(function () use ($ca, $nurse): void {
+            $messenger = app(StaffMessenger::class);
+            $messenger->notify($ca->organisation_id, $ca->id, 'roster_ready', ['week' => '9 Nov 2026'], ['roster_version_id' => 1]);
+            $messenger->notify($nurse->organisation_id, $nurse->id, 'roster_ready', ['week' => '9 Nov 2026'], ['roster_version_id' => 1]);
+        });
+
+        $this->assertSame([['failed', 'send_failed'], ['failed', 'send_skipped']], DB::table('hr_message_deliveries')->orderBy('id')->get()
+            ->map(fn (object $r): array => [$r->status, $r->error_code])->all());
+        $this->selectBranch($hr);
+        $this->get(route('hr.messages.index', ['tab' => 'sent']))->assertInertia(fn (Assert $page) => $page
+            ->where('messages.sent.rows.0.error', 'Not tried: the mail service failed earlier in the same action'));
+    }
+
     private function switchOnEmail(User $hr, int $cap): void
     {
         config(['hr-messages.email.connected' => true]);

@@ -133,6 +133,7 @@ final class MessagesPageService
                 'error' => match ($r->error_code) {
                     'no_address' => 'No email address on the account',
                     'not_connected' => 'Channel not connected',
+                    'send_skipped' => 'Not tried: the mail service failed earlier in the same action',
                     null => null,
                     default => 'The mail service refused it',
                 },

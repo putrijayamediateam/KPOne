@@ -22,6 +22,9 @@ final class MessageDelivery
 {
     public const CHANNELS = ['email', 'sms', 'whatsapp'];
 
+    /** @var array<string, true> channels whose mail service failed earlier in this same action (Suresh, HR-14) */
+    private array $broken = [];
+
     public function channel(string $channel): StaffChannel
     {
         return $channel === 'email' ? app(EmailChannel::class) : app(UnconnectedChannel::class);
@@ -49,7 +52,14 @@ final class MessageDelivery
                 if ($deliveryId === null) {
                     continue;
                 }
-                $this->send($deliveryId, $driver, $user, $message);
+                if (isset($this->broken[$channel])) {
+                    // The channel failed earlier in this same action (a payroll lock sends one message per person):
+                    // record the rest as not tried instead of waiting on a mail service that is down (Suresh, HR-14).
+                    DB::table('hr_message_deliveries')->where('id', $deliveryId)->update(['status' => 'failed', 'error_code' => 'send_skipped', 'updated_at' => now()->utc()]);
+
+                    continue;
+                }
+                $this->send($deliveryId, $driver, $user, $message, $channel);
             }
         } catch (\Throwable $e) {
             // Never thrown back into HR: the HR change has already committed.
@@ -101,13 +111,16 @@ final class MessageDelivery
     }
 
     /** @param array{subject:string, body:string} $message */
-    private function send(int $deliveryId, StaffChannel $driver, User $user, array $message): void
+    private function send(int $deliveryId, StaffChannel $driver, User $user, array $message, string $channel): void
     {
         try {
             $providerId = $driver->send($user, $message['subject'], $message['body']);
             DB::table('hr_message_deliveries')->where('id', $deliveryId)->update(['status' => 'sent', 'provider_message_id' => $providerId, 'updated_at' => now()->utc()]);
         } catch (\Throwable $e) {
             $code = in_array($e->getMessage(), ['no_address', 'not_connected'], true) ? $e->getMessage() : 'send_failed';
+            if ($code === 'send_failed') {
+                $this->broken[$channel] = true;
+            }
             DB::table('hr_message_deliveries')->where('id', $deliveryId)->update(['status' => 'failed', 'error_code' => $code, 'updated_at' => now()->utc()]);
             Log::warning('HR staff message failed', ['delivery_id' => $deliveryId, 'error_code' => $code, 'error' => $e::class]);
         }
