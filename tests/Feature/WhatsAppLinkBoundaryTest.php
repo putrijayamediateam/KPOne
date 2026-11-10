@@ -45,6 +45,13 @@ class WhatsAppLinkBoundaryTest extends VisitTestCase
             $this->assertDoesNotMatchRegularExpression('/whatsapp|wa[._-]01/i', $permission);
         }
         foreach (glob(database_path('migrations/*.php')) ?: [] as $migration) {
+            // HR-14 (owner, 2026-11-10: "Keep SMS/WhatsApp unconnected", then "Narrow the test"): a staff-only channel name,
+            // with no provider or sending.
+            if (basename($migration) === '2026_11_10_003200_create_hr_message_tables.php') {
+                $this->assertDoesNotMatchRegularExpression('/wa[._-]01|wa\.me/i', file_get_contents($migration));
+
+                continue;
+            }
             $this->assertDoesNotMatchRegularExpression('/whatsapp|wa[._-]01|wa\.me/i', basename($migration).' '.file_get_contents($migration));
         }
         foreach (['app', 'routes'] as $directory) {
