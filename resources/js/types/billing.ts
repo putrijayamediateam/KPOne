@@ -185,7 +185,7 @@ export type BillingPage = {
             amountSen: number;
             method: string;
             status: string;
-        }>;
+        }> | null;
     }>;
     issuedCopies?: IssuedCopy[] | null;
     methods: Array<{ code: string; name: string; requiresReference: boolean }>;

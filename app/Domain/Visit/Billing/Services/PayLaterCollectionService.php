@@ -49,6 +49,9 @@ final class PayLaterCollectionService
                 // BIL-17: money due after a receipt correction (BIL-16) is paid before pay-later, so the list says so. Kept
                 // beside the rows (visit number => sen, only when above zero) so each row keeps its fields.
                 'dueNow' => (function () use ($rows): array {
+                    if ($rows->isEmpty()) {
+                        return [];
+                    }
                     $states = $this->ledger->states(Invoice::query()->whereIn('id', $rows->pluck('invoice_id'))->get());
 
                     return $rows->mapWithKeys(fn (object $row): array => [(string) $row->visit_number => (int) ($states[(int) $row->invoice_id]['due_now'] ?? 0)])

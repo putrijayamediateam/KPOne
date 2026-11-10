@@ -478,17 +478,24 @@ const reverse = (receipt: Receipt) =>
                         <p class="text-xs text-muted-foreground">
                             {{ voided.voidedAt }} by {{ voided.voidedBy }}
                         </p>
-                        <p
-                            v-for="r in voided.receipts"
-                            :key="r.number"
-                            class="text-xs tabular-nums"
+                        <ul
+                            class="mt-1 space-y-0.5"
+                            :aria-label="`Receipts of ${voided.number}`"
                         >
-                            {{ r.number }} · {{ r.method }} ·
-                            {{ myr(r.amountSen) }} ·
-                            {{
-                                r.status === 'reversed' ? 'Reversed' : r.status
-                            }}
-                        </p>
+                            <li
+                                v-for="r in voided.receipts"
+                                :key="r.number"
+                                class="text-xs tabular-nums"
+                            >
+                                {{ r.number }} · {{ r.method }} ·
+                                {{ myr(r.amountSen) }} ·
+                                {{
+                                    r.status === 'reversed'
+                                        ? 'Reversed'
+                                        : 'Received'
+                                }}
+                            </li>
+                        </ul>
                     </div>
                 </section>
                 <ReceiptRefunds

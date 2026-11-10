@@ -38,6 +38,11 @@ class BillingDisplayFixesTest extends BillingTestCase
             ->where('billing.voidedInvoices.0.totalSen', 4000)
             ->where('billing.voidedInvoices.0.voidedBy', $finance->name)
             ->where('billing.voidedInvoices.0.receipts', [['number' => $payment->receipt_number, 'amountSen' => 4000, 'method' => 'Synthetic cash', 'status' => 'reversed']]));
+
+        // A summary-only viewer (Panel Officer) gets exactly these fields, never the reason.
+        $this->selectBranch($this->actor('panel_officer'));
+        $this->get(route('billing.show', $visit))->assertOk()->assertDontSee('SYNTHETIC-PRIVATE-VOID-REASON')->assertInertia(fn (Assert $page) => $page
+            ->where('billing.voidedInvoices.0', fn ($row) => array_keys(collect($row)->all()) === ['number', 'totalSen', 'voidedAt', 'voidedBy', 'receipts']));
     }
 
     public function test_a_visit_without_a_void_lists_none_and_a_settled_pay_later_reads_as_settled(): void
