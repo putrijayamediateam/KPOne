@@ -9,7 +9,7 @@ stored-data change.
 1. **The pay-later collection list is cards below `lg`.** The 7-column table had a 960 px minimum width, so on a phone
    it scrolled sideways inside its box. Below 1024 px each bill is a card (one column on phones, two from `md`),
    following the Price history pattern. The table is unchanged from `lg` up. Card order:
-   - the amount still to collect, with the past-due chip on the same line;
+   - "Still to collect" and the amount, with the past-due chip on the same line;
    - the due-now note under it ("RM X is also due now. A payment pays that first.");
    - the patient name, KP number and merge note;
    - due date, visit date, visit, invoice and approved amount;

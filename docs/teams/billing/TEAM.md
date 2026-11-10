@@ -281,7 +281,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   Registration board; it shows patient name and KP number only. Payments are still recorded on each patient's
   Billing page.
 - Pay-later list on phones (BIL-18): the past-due chip still reads "N day(s) past due" (an existing assertion pins it;
-  a plural waits for the owner's OK), and "1 records" comes from the shared pagination component.
+  a plural waits for the owner's OK), and "1 records" comes from the shared pagination component. "Return to
+  Workspace" is title case (sentence case per the UI guide); it is a shared string, logged for its owner, not fixed here.
 - The pay-later collection list (BIL-3) shows approved pay later only, not everything a patient owes. If a payment
   that paid off part of a pay-later debt is reversed, that amount moves back into the invoice's due now (pay later
   never grows back), so it shows on the Billing page but not on this list. The page says so.

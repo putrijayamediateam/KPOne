@@ -132,13 +132,15 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                 class="grid min-w-0 grid-cols-1 gap-2 rounded-xl border bg-card p-4"
                 data-testid="pay-later-card"
             >
-                <div
-                    class="flex flex-wrap items-baseline justify-between gap-2"
-                >
-                    <p class="text-xl font-semibold tabular-nums">
-                        {{ myr(row.remainingSen) }}
-                        <span class="sr-only">still to collect</span>
-                    </p>
+                <div class="flex flex-wrap items-end justify-between gap-2">
+                    <div>
+                        <p class="text-xs text-muted-foreground">
+                            Still to collect
+                        </p>
+                        <p class="text-xl font-semibold tabular-nums">
+                            {{ myr(row.remainingSen) }}
+                        </p>
+                    </div>
                     <span
                         v-if="row.daysOverdue > 0"
                         class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
