@@ -17,7 +17,7 @@ const props = defineProps<{ history: VisitHistoryPage }>();
 
 const page = usePage();
 const tab = ref('all');
-// BIL-5b: billing prints are recorded; the old print address is only a PREVIEW.
+// BIL-5b: billing prints are recorded; the old print address only redirects to Issued copies (BIL-14).
 const issueUrl = (url: string) => url.replace(/\/print$/, '/issue');
 const tabs = computed(() => [
     { value: 'all', label: 'All' },

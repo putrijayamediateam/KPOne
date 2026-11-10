@@ -111,6 +111,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-11 | Each service line keeps its clinical service's category as priced (frozen at finalisation), so a later rename never moves money between the printed category rows or revises the copy. Invoices finalised before BIL-11 keep reading the live category (owner decision). Additive nullable column; no screen, amount or permission change. Design note: `BIL-11-DESIGN.md` | PR #404 |
 | BIL-12 | Insights provider tables (Sales and Today) take each approved refund credit off its invoice's doctor, or the OTC row, on the approval day, so the rows add up to the headline net sales (owner decision). No permission, migration or screen change. Design note: `BIL-12-DESIGN.md` | PR #405 |
 | BIL-13 | PostgreSQL race tests for refunds after completion: two refunds at once on one receipt never exceed it (one recorded, the other refused on the amount), and two that fit together are both recorded. The race test cleanup also removes invoice credits. Test only | PR #399 |
+| BIL-14 | The old live invoice and receipt print addresses (PREVIEW pages) redirect to the visit's Billing page at Issued copies with "Print from here so the copy is recorded."; opening an old link prints and records nothing. Same permission and branch checks (owner decision). Tests that read the old page now read the recorded copy (15 checks, each approved by the owner 2026-11-10). No permission, migration or layout change. Design note: `BIL-14-DESIGN.md` | PR #406 |
 | BIL-15 | Cash closing start date per branch: a Director or Finance Officer sets the first day the monthly cash closing (BIL-7) expects daily counts, on the cash closing month page; without one the start stays the first count. Append-only revisions, audited; a start date moved later is announced on the page and never hides counts already made. New permission `payments.cash_closing.start_date.manage.branch` (finance_officer, director; additive migration `2026_11_12_200100`). No change to counts, approvals or amounts | PR #408 |
 
 ## 6. Owner decisions already made (never ask again)
@@ -233,6 +234,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     Finance Officer, on the cash closing month page; no date set means the start is the branch's first count. Moving the
     date later is allowed and audited, and the month page says "Start date changed on X (was Y)". There is no "clear"
     back to the first count: a date set by mistake is corrected by setting the first-count date by hand.
+35. BIL-14 retire the PREVIEW print pages (2026-11-07 and 2026-11-10, the owner in the Billing session): the old
+    addresses redirect to Issued copies on the Billing page with a note; the tests move to the recorded copy (items
+    a to o approved one by one).
 
 ## 7. Open items and known limits
 
@@ -321,7 +325,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Invoice and receipt layout (BIL-9): see `BIL-9-DESIGN.md` section 7. In short: a service category rename revises
   the next print of an invoice issued in the new layout; the category match is English and exact ("Procedure(s)" and "Investigation(s)", CAT-11's fixed names, included; any
   other or older free-text category counts as Service); the old live
-  `/print` preview keeps the D03 layout; copies issued before keep theirs; IC/passport and phone on paper are a PDPA
+  `/print` preview is retired (BIL-14: it redirects to Issued copies); copies issued before keep theirs; IC/passport and phone on paper are a PDPA
   point before real use.
 - Refunds after completion (BIL-10): see `BIL-10-DESIGN.md` section 9 (Insights Provider table nets credits since BIL-12;
   one invoice per refunded receipt; the race test is BIL-13).
