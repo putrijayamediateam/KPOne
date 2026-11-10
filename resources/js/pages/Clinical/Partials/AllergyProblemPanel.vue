@@ -6,7 +6,7 @@ import ClinicalSafetyConfirmDialog from '@/components/clinical/ClinicalSafetyCon
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
-import { formatDateTime } from '@/lib/presentation';
+import { formatDate, formatDateTime } from '@/lib/presentation';
 import type {
     ClinicalAllergyRecord,
     ClinicalAllergySafety,
@@ -541,7 +541,11 @@ const saveProblem = () => {
                                     {{ record.conditionCode }} ·
                                 </span>
                                 Onset:
-                                {{ record.onsetDate ?? 'Not recorded' }}
+                                {{
+                                    record.onsetDate
+                                        ? formatDate(record.onsetDate)
+                                        : 'Not recorded'
+                                }}
                             </div>
                         </div>
                         <div
@@ -666,7 +670,9 @@ const saveProblem = () => {
                                     ><span class="text-foreground">Active</span
                                     ><template v-if="record.onsetDate">
                                         · Onset:
-                                        {{ record.onsetDate }}</template
+                                        {{
+                                            formatDate(record.onsetDate)
+                                        }}</template
                                     ></template
                                 >
                                 <template v-else

@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { OperationalSelect } from '@/components/ui/select';
+import { formatDate } from '@/lib/presentation';
 import type { InsightRankingItem, TodayInsightsReport } from '@/types/insights';
 
 defineOptions({
@@ -164,7 +165,7 @@ onUnmounted(() => {
                 <p
                     class="text-xs font-medium tracking-[0.12em] text-muted-foreground uppercase"
                 >
-                    Insights · {{ report.date }}
+                    Insights · {{ formatDate(report.date) }}
                 </p>
                 <h1 class="mt-1 text-2xl font-semibold tracking-tight">
                     Today
