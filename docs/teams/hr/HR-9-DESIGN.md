@@ -1,6 +1,6 @@
 # HR-9 design note: the HR dashboard
 
-Status: DRAFT for the HR team (Liyana, Suresh) to check against HR's data. Nothing is built. Written by the Agent platform team (Irfan) on the coordinator's request, 2026-11-10. Source: HR-PLAN section "HR-9", TEAM.md section 9 item 9.
+Status: BUILT on branch `feature/hr-9-dashboard` (the owner's own "ship it HR-9", 2026-11-10); the HR team (Liyana, Suresh) is still asked to check section 6 against HR's data, and any change they ask for is a follow-up edit. Written by the Agent platform team (Irfan) on the coordinator's request, 2026-11-10. Source: HR-PLAN section "HR-9", TEAM.md section 9 item 9.
 
 ## 1. What it is
 
@@ -44,18 +44,22 @@ Director and HR Manager hold all three today, so the result is the same as the p
 
 - "Rostered now": shifts of the current approved roster version whose local start is at or before now and whose end is after now. A person on approved leave for the day is shown as on leave, not rostered.
 - "Clocked in": an open clock session today at that branch.
-- "Short": for the current session, rostered and not on leave is below the branch's minimum for any of the three roles. "No doctor": zero Resident Doctors rostered now. Both are shown in words and with an icon, never by colour alone.
+- "Enough" or "Short" uses **the Planner's own rule for today** (`RosterPageService::shortfalls`, made public, so this page cannot disagree with the Planner's warning): a role below the branch's minimum in a session that has shifts today. It does not wait for the session's hours. It says "No shifts today" when nobody is rostered, and "Minimum staffing not set" when the branch has no minimum. "No Resident Doctor rostered now" shows only when someone else is rostered now and no doctor is (a closed or quiet branch is not alarmed). Both are words in a badge, never colour alone.
 - Month figures reuse the HR-3a flag rules and the HR-3b approved minutes, so this page cannot disagree with Review and Summary there. The flags stay hidden until HR has saved attendance settings, as on Review.
 - Performance: one query per section per branch group, no per-person loop. Capped at 200 names on "Today".
 
 ## 7. Questions for HR (Liyana, Suresh)
 
-1. Does "Enough or Short" use the current session only, or the whole day?
+1. "Enough or Short" now uses the Planner's rule for the whole day, as built. Do you want it to follow the current session instead?
 2. Should "late" count only flags after a saved grace period (as Review does)? We assume yes.
 3. Is leave days taken a single figure, or do you want sick versus annual in the monthly summary? We assume a single figure (no leave type on a dashboard).
 4. Reuse of the three existing permissions, or the new `hr.dashboard.view.organisation`?
 5. Turnover and compliance: leave for HR-9b?
 
-## 8. Build plan
+## 8. Found while building
+
+`AttendanceDays::leaveDays` and `::rows` merged an empty list of sessions with the day's shifts through an Eloquent collection and failed ("Call to a member function getKey() on string") on any day with a shift and nobody clocked in yet. This would also break Review. Fixed with `toBase()` in three places; `DashboardTest` has a regression test. No other HR file changed.
+
+## 9. Build plan
 
 Read-only domain service `app/Domain/HR/Dashboard/` (one service per section, no models, no migration), one controller and page, one Clinic management row ("KPOne HR dashboard", under Staff & branches, which adds one line to the exact destination map in `ClinicManagementTest`: needs approval). Tests: per-role section visibility, every number against a hand-built fixture, branch-local midnight, no write of any kind (table counts before and after), no person-level cost or reason in the payload, and a payload key list. Then the usual flow: Shalini reviews, Daniel looks at the screens, gate, ship-it, PR.

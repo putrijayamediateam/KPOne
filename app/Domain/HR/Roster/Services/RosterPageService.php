@@ -327,7 +327,7 @@ final class RosterPageService
      * @param  Collection<int, User>  $people
      * @return list<array{date:string, day:string, message:string}>
      */
-    private function shortfalls(Branch $branch, CarbonImmutable $weekStart, Collection $shifts, Collection $people): array
+    public function shortfalls(Branch $branch, CarbonImmutable $weekStart, Collection $shifts, Collection $people): array
     {
         $minimums = $this->minimums->minimums($branch);
         $out = [];
