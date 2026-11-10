@@ -10,7 +10,6 @@ use App\Domain\HR\Messages\Services\StaffMessenger;
 use App\Mail\StaffMessageMail;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
@@ -68,7 +67,7 @@ class MessagesTest extends VisitTestCase
         $this->assertDoesNotMatchRegularExpression($banned, MessageTemplates::FOOTER);
         $this->assertSame(['leave_decided', 'roster_ready', 'payslip_ready', 'claim_decided'], array_keys(MessageTemplates::TEMPLATES));
 
-        // A value that is not a date, a month, a claim number or a decision word is refused before anything is queued.
+        // A value that is not a date, a month, a claim number or a decision word is refused before anything is sent.
         foreach ([
             ['claim_decided', ['claim' => 'SC-000001', 'decision' => 'approved for RM 50.00']],
             ['leave_decided', ['from' => 'Typhoid', 'to' => '9 Mar 2026', 'decision' => 'approved']],
@@ -194,7 +193,7 @@ class MessagesTest extends VisitTestCase
         $this->assertNotNull($failed);
         $this->assertSame(['failed', 'send_failed'], [$failed->status, $failed->error_code]);
 
-        // A bad template call is logged and never queued.
+        // A bad template call is logged and never sent.
         $messenger->notify($ca->organisation_id, $ca->id, 'payslip_ready', ['month' => 'RM 99'], []);
         $this->assertSame(4, DB::table('hr_message_deliveries')->count());
 
@@ -220,7 +219,7 @@ class MessagesTest extends VisitTestCase
         $this->assertSame(0, DB::table('hr_message_deliveries')->count());
     }
 
-    public function test_a_failed_queue_write_never_turns_a_saved_hr_change_into_an_error(): void
+    public function test_a_mail_failure_neither_rolls_back_nor_errors_the_hr_action(): void
     {
         $director = $this->actor('director');
         $hr = $this->actor('hr_manager');
@@ -231,14 +230,13 @@ class MessagesTest extends VisitTestCase
         $this->sendClaim($ca, $category)->assertSessionHasNoErrors();
         $claim = DB::table('hr_staff_claims')->sole();
 
-        $bus = \Mockery::mock(Dispatcher::class);
-        $bus->shouldReceive('dispatch')->andThrow(new \RuntimeException('jobs table unavailable'));
-        $this->app->instance(Dispatcher::class, $bus);
-
+        // Sent directly after the commit, no queue (owner, 2026-11-10): the mail service refusing must not reach the Director.
+        Mail::shouldReceive('to')->andThrow(new \RuntimeException('smtp down'));
         $this->decide($director, $claim, 'approve')->assertRedirect()->assertSessionHasNoErrors();
+
         $this->assertSame('approved', DB::table('hr_staff_claims')->where('id', $claim->id)->value('status'));
-        Mail::assertNothingSent();
-        $this->assertSame(0, DB::table('hr_message_deliveries')->count());
+        $row = DB::table('hr_message_deliveries')->sole();
+        $this->assertSame(['failed', 'send_failed', 'claim_decided', (int) $ca->id], [$row->status, $row->error_code, $row->template, (int) $row->user_id]);
     }
 
     private function switchOnEmail(User $hr, int $cap): void
