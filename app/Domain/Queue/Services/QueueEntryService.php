@@ -224,7 +224,7 @@ class QueueEntryService
             $hasActiveConsultation = ConsultationLocks::doctorBusy($lockedDoctor);
             if ($hasActiveConsultation) {
                 throw ValidationException::withMessages([
-                    'queue' => 'The doctor is already in another consultation. Put it On Hold or complete it first.',
+                    'queue' => 'The doctor is already in another consultation. Put that consultation On Hold or complete it first.',
                 ]);
             }
 

@@ -70,7 +70,7 @@ const destinations: Record<
     registrationReview: {
         key: 'registrationReview',
         label: 'QR Intake',
-        description: 'Review QR intake and add the patient to the queue.',
+        description: 'Review patients who checked in by QR before they join the queue.',
         href: '/registration-review',
         icon: 'clipboard',
     },

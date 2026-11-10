@@ -85,7 +85,7 @@ class PilotConsultationTest extends ClinicalTestCase
             $this->fail('Cross-branch double consultation was allowed.');
         } catch (ValidationException $error) {
             $message = implode(' ', $error->errors()['queue']);
-            $this->assertSame('The doctor is already in another consultation. Put it On Hold or complete it first.', $message);
+            $this->assertSame('The doctor is already in another consultation. Put that consultation On Hold or complete it first.', $message);
             foreach ([$first->patient->full_name, $first->patient->patient_number, $first->visit_number] as $private) {
                 $this->assertStringNotContainsString($private, $message);
             }

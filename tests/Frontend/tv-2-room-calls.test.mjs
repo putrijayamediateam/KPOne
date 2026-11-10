@@ -53,10 +53,10 @@ test('a call without a room names the place for its service', () => {
     assert.ok(screen.includes('roomLabel(current.room, current.service)'));
 });
 
-test('dispensary staff call the patient with Call and pick a room only when there are several', () => {
+test('dispensary staff call the patient with Call patient and pick a room only when there are several', () => {
     assert.ok(dispensary.includes('dispensary.tvCall?.canCall'));
     assert.ok(dispensary.includes('/call`'));
-    assert.ok(dispensary.includes('Call'));
+    assert.ok(dispensary.includes('Call patient'));
     assert.ok(dispensary.includes('dispensary.tvCall.rooms.length > 1'));
     assert.match(
         dispensary,

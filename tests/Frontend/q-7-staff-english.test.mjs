@@ -10,7 +10,7 @@ const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
 const malay =
-    /\b(panggil|dipanggil|bilik|rawatan|pesakit|tahun|penjaga|tujuan|aduan|duplikasi|semakan|semak|pendaftaran|cawangan|sila|waktu operasi|pagi|setiap hari|doktor sudah|doktor sedang|selesaikan|konsultasi|kaunter|farmasi|dahulu|dinyatakan|tiada)\b/i;
+    /\b(panggil|dipanggil|bilik|rawatan|pesakit|tahun|penjaga|tujuan|aduan|duplikasi|semakan|semak|pendaftaran|cawangan|sila|waktu operasi|pagi|setiap hari|doktor sudah|doktor sedang|selesaikan|konsultasi|kaunter|farmasi|dahulu|dinyatakan|tiada|mempunyai|sambung|menahan|ditahan)\b/i;
 
 const staffFiles = [
     'resources/js/pages/Clinical/Show.vue',
@@ -50,6 +50,6 @@ test('the consultation page and Dispensary use the English call labels', () => {
     );
     assert.match(
         read('resources/js/pages/Dispensary/Show.vue'),
-        /<Megaphone class="size-4" \/>Call<\/Button/,
+        /<Megaphone class="size-4" \/>Call patient<\/Button/,
     );
 });
