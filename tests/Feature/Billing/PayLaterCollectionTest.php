@@ -86,7 +86,7 @@ class PayLaterCollectionTest extends BillingTestCase
         $this->get(route('billing.show', $f['partial']))->assertInertia(fn (Assert $page) => $page->where('billing.payLaterCollectionsUrl', null));
         $this->selectBranch($this->ca);
         $invoice = Invoice::query()->where('visit_id', $f['partial']->id)->sole();
-        $this->get(route('billing.print', [$f['partial'], $invoice]))->assertOk()->assertInertia(fn (Assert $page) => $page->where('billing.payLaterCollectionsUrl', null));
+        $this->issuedInvoicePage($f['partial'], $invoice)->assertOk()->assertInertia(fn (Assert $page) => $page->missing('billing.payLaterCollectionsUrl'));
     }
 
     public function test_a_completed_visit_is_listed_and_a_voided_invoice_is_replaced_by_its_reissue_exactly_once(): void

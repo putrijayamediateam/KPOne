@@ -83,9 +83,9 @@ class ReceiptRecordedByTest extends BillingTestCase
         // A different person prints, so the recorder's name can only come from the receipt payload.
         $this->selectBranch($this->actor('ca_supervisor'));
 
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertDontSee('Synthetic Print Sentinel Name')
+        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertDontSee('Synthetic Print Sentinel Name')
             ->assertInertia(fn (Assert $page) => $page->missing('billing.payments.0.recordedBy'));
-        $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertOk()->assertDontSee('Synthetic Print Sentinel Name')
+        $this->issuedReceiptPage($visit, $invoice, $payment)->assertOk()->assertDontSee('Synthetic Print Sentinel Name')
             ->assertInertia(fn (Assert $page) => $page->missing('receipt.recordedBy')->missing('billing.payments.0.recordedBy'));
         // The screen still shows it.
         $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page->where('billing.payments.0.recordedBy', 'Synthetic Print Sentinel Name'));

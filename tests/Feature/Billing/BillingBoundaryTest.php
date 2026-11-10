@@ -131,8 +131,10 @@ class BillingBoundaryTest extends BillingTestCase
         $this->assertSame(0, $debt->refresh()->remaining_sen);
         $this->assertDatabaseHas('payment_allocations', ['payment_id' => $payment->id, 'patient_receivable_id' => $debt->id, 'deferment_applied_sen' => 4000]);
         $before = [$invoice->refresh()->attributesToArray(), $payment->refresh()->attributesToArray(), DB::table('audit_logs')->count()];
-        $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertOk()->assertInertia(fn (Assert $page) => $page->where('receipt.amountSen', 4000)->where('billing.can.complete', false));
+        $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertRedirect(route('billing.show', $visit).'#issued-copies');
         $this->assertSame($before, [$invoice->fresh()->attributesToArray(), $payment->fresh()->attributesToArray(), DB::table('audit_logs')->count()]);
+        $this->issuedReceiptPage($visit, $invoice, $payment)->assertOk()->assertInertia(fn (Assert $page) => $page->where('receipt.amountSen', 4000)->missing('billing.can'));
+        $this->assertSame($history, $visit->fresh()->attributesToArray()); // Issuing the receipt copy leaves the completed visit as it was.
         $this->assertDatabaseCount('stock_movements', 0);
     }
 

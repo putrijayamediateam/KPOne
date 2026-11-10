@@ -11,7 +11,6 @@ use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Domain\Visit\Billing\Services\BillingDirectoryService;
 use App\Domain\Visit\Billing\Services\CompleteVisitationService;
 use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
-use App\Domain\Visit\Billing\Services\InvoiceBillToService;
 use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\IssuedBillingDocumentService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
@@ -185,27 +184,32 @@ class BillingController extends Controller
         return to_route('billing.show', $visit);
     }
 
-    public function printInvoice(Request $request, Visit $visit, Invoice $invoice, BillingDirectoryService $directory): Response
+    /**
+     * BIL-14 (owner decisions 2026-11-07): the old live print addresses no longer show a PREVIEW. They go to the
+     * visit's Billing page at Issued copies, where printing records a copy. Opening an old link prints nothing.
+     * The route names stay: the Invoices page builds its recorded-print links from them (BIL-5b).
+     */
+    public function printInvoice(Request $request, Visit $visit, Invoice $invoice, BillingDirectoryService $directory): RedirectResponse
     {
-        $data = $directory->detail($request->user(), $visit, $invoice, true);
+        $data = $directory->detail($request->user(), $visit, $invoice, true); // Same permission and branch checks as before.
         abort_if($data['invoice']['status'] === 'draft', 404);
 
-        return Inertia::render('Billing/Print', ['billing' => $data, 'receipt' => null, 'billTo' => app(InvoiceBillToService::class)->forPrint($request->user(), $visit, $invoice, $invoice->branch_id), 'letterhead' => app(BranchLetterheadService::class)->forInvoice($request->user(), $visit, $invoice)->toArray()]);
+        return $this->toIssuedCopies($visit);
     }
 
-    public function printReceipt(Request $request, Visit $visit, Invoice $invoice, Payment $payment, BillingDirectoryService $directory): Response
+    public function printReceipt(Request $request, Visit $visit, Invoice $invoice, Payment $payment, BillingDirectoryService $directory): RedirectResponse
     {
         $data = $directory->detail($request->user(), $visit, $invoice, true);
-        $receipt = null;
-        foreach ($data['payments'] as $candidate) {
-            if ($candidate['publicId'] === $payment->public_id) {
-                $receipt = $candidate;
-                break;
-            }
-        }
-        abort_unless($receipt, 404);
+        abort_unless(in_array($payment->public_id, array_column($data['payments'], 'publicId'), true), 404);
 
-        return Inertia::render('Billing/Print', ['billing' => $data, 'receipt' => $receipt, 'letterhead' => app(BranchLetterheadService::class)->forInvoice($request->user(), $visit, $invoice)->toArray()]);
+        return $this->toIssuedCopies($visit);
+    }
+
+    private function toIssuedCopies(Visit $visit): RedirectResponse
+    {
+        Inertia::flash('toast', ['type' => 'info', 'message' => 'Print from here so the copy is recorded.']);
+
+        return redirect(route('billing.show', $visit).'#issued-copies');
     }
 
     public function letterheadLogo(Request $request, Visit $visit, Invoice $invoice, string $asset, BranchLetterheadService $letterheads): BinaryFileResponse

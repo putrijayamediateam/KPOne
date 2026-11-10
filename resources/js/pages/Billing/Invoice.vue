@@ -15,7 +15,7 @@ import type { CompletedInvoicePage } from '@/types/completedInvoice';
 
 const props = defineProps<{ invoice: CompletedInvoicePage }>();
 const tab = ref('all');
-// BIL-5: billing prints are recorded; the old print address is only a PREVIEW.
+// BIL-5: billing prints are recorded; the old print address only redirects to Issued copies (BIL-14).
 const billingPrint = /\/billing\/[^/]+\/(?:receipts\/[^/]+\/)?print$/;
 const isBillingPrint = (url: string) => billingPrint.test(url);
 const issueUrl = (url: string) => url.replace(/\/print$/, '/issue');
