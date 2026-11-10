@@ -336,7 +336,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   that pays more than one invoice, cannot be corrected. The replacement receipt carries the correction date, so the
   original shows as reversed on its own day and the replacement on the day of the correction. Before completion
   the existing reversal still applies. Money left due after a correction is collected on the completed visit (paid before any
-  pay-later) and shows in outstanding bills, not in the pay-later collection list.
+  pay-later) and shows in outstanding bills, not in the pay-later collection list. On such an invoice the pay-later list
+  shows only the pay-later balance, while a payment pays the due money first (the Billing page shows both). The
+  "Use amount due" shortcut is not offered on a completed visit, so staff type the amount. A refund after completion
+  (BIL-10) can still be recorded on the replacement receipt while money is due; the amount due does not change.
 
 ## 8. Rules (every task)
 
