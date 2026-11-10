@@ -179,6 +179,38 @@ test('the public form has three steps, checks each before Next and uses the shar
         Object.keys(lib.validateApplicationStep(3, blank, null, '2026-11-10')),
         ['privacy_accepted'],
     );
+    // A number box hands over a number, not a string (found in the screenshot run).
+    assert.ok(
+        !(
+            'years_experience' in
+            lib.validateApplicationStep(
+                2,
+                { ...blank, years_experience: 2 },
+                'ca',
+                '2026-11-10',
+            )
+        ),
+    );
+    assert.ok(
+        'years_experience' in
+            lib.validateApplicationStep(
+                2,
+                { ...blank, years_experience: 51 },
+                'ca',
+                '2026-11-10',
+            ),
+    );
+    assert.ok(
+        !(
+            'apc_year' in
+            lib.validateApplicationStep(
+                2,
+                { ...blank, apc_year: 2026 },
+                'resident_doctor',
+                '2026-11-10',
+            )
+        ),
+    );
     assert.equal(lib.stepOf('mmc_number'), 2);
     assert.equal(lib.stepOf('cv'), 3);
 });

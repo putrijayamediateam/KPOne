@@ -11,7 +11,8 @@ export type ApplicationValues = {
     preferred_branch: string;
     start_date: string;
     education: string;
-    years_experience: string;
+    // A number box gives v-model a number once typed, so these may be numbers.
+    years_experience: string | number;
     languages: string[];
     institution: string;
     programme: string;
@@ -19,7 +20,7 @@ export type ApplicationValues = {
     intern_to: string;
     availability: string;
     mmc_number: string;
-    apc_year: string;
+    apc_year: string | number;
     apc_expiry: string;
     message: string;
     privacy_accepted: boolean;
@@ -125,10 +126,11 @@ export const validateApplicationStep = (
                 'Choose your highest education. / Pilih pendidikan tertinggi anda.';
         }
 
-        const years = Number(v.years_experience);
+        const yearsText = String(v.years_experience ?? '').trim();
+        const years = Number(yearsText);
 
         if (
-            v.years_experience.trim() === '' ||
+            yearsText === '' ||
             !Number.isInteger(years) ||
             years < 0 ||
             years > 50
@@ -179,7 +181,8 @@ export const validateApplicationStep = (
                     'Enter your MMC registration number (digits only). / Masukkan nombor pendaftaran MMC anda (nombor sahaja).';
             }
 
-            const year = Number(v.apc_year);
+            const yearText = String(v.apc_year ?? '').trim();
+            const year = yearText === '' ? NaN : Number(yearText);
             const thisYear = Number(today.slice(0, 4));
 
             if (
