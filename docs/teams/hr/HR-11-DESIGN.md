@@ -201,3 +201,33 @@ test that nothing here sends a message; a frontend test per screen for names, er
   warn if the clinic sets the cut-off time.
 - A checklist version cannot be changed after audits use it; a mistake means a new version.
 - Not load-tested: Overview reads every licence, fridge month and open task of the branches a person may see.
+
+## 15. HR-11c design check: questions for the owner (2026-11-10)
+
+HR-11a (licences, #426) and HR-11b (fridge log, #432) are merged. HR-11c is the monthly audit and supervisor tasks
+(sections 7 to 9). Nothing is built. Each question has a recommendation; the build starts after the owner's answers.
+
+1. **Two new permissions.** `compliance.checklists.manage.organisation` (Director, Administrator: manage the checklist
+   and its versions, see every audit) and `compliance.audits.perform.branch` (CA Supervisor, Director, Administrator:
+   run and submit an audit, and work or verify its tasks, at an assigned branch). Additive migration only; Technical
+   Admin, CA, Resident Doctor, Finance, Panel, Marketing and the TV account get none. *Recommendation: approve both as
+   written.* Question: should the CA be able to work a task (mark it done) but not run an audit? *Recommendation: no,
+   keep it to the CA Supervisor in v1; a CA can be added later by one more permission.*
+2. **Who verifies a done task.** *Recommendation: a done task is verified by someone other than the person who marked it
+   done, with a Settings switch, default on.* In a one-supervisor branch the Director or Administrator verifies. If the
+   owner prefers a small clinic rule (the same person may verify), the switch is turned off in Settings.
+3. **How long photos are kept.** *Recommendation: kept until the clinic enters a number of days in Settings (none
+   shipped), then a daily `compliance-photos:purge` removes the files and keeps the rows.* This needs the scheduler,
+   like `hr-leave-evidence:purge`. Question: does the owner want a number now? A photo can show a person or a document
+   by accident; the form will say not to photograph patients or papers.
+4. **The checklist items.** *Recommendation: the clinic types its own sections and items, each with an optional help
+   line and a "photo required when it fails" switch. KPOne ships no items.* Question: where does the clinic's own
+   monthly checklist come from, and who types it in?
+5. **One audit per branch and month, final once submitted.** *Recommendation: yes.* An amendment is a new line on the
+   submitted audit, never an edit. Question: is a calendar month right, or does the clinic audit on its own cycle?
+6. **No messages.** *Recommendation: the "no audit for last month" reminder and the open-task count show only on the
+   Overview when the page is opened, nothing is sent, nothing is stored.* This matches HR-11a and HR-11b.
+7. **Cancelling a task.** *Recommendation: a fixed reason list (done elsewhere, duplicate, not needed, other), by the
+   person with the perform permission; the task stays readable.*
+
+Known limits unchanged from section 14. This slice also adds a daily scheduled command, so the scheduler must run.
