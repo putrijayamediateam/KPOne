@@ -60,7 +60,7 @@ final class ClinicManagementNavigation
             [$actor->can('billing.approval_limits.manage.organisation'), 'Billing Approval Limits', 'Manage the existing Panel and pay-later approval limits.', 'billing-approval-limits.index'],
             [$branch && $actor->can('visits.view.branch'), 'Registration', 'Open the existing branch registration board.', 'registration.index'],
             [$branch && ($actor->can('queue.view.own') || $actor->can('queue.view.branch')), 'Consultation', 'Open your authorized consultation queue.', 'queue.index'],
-            [$branch && $actor->can('public_intakes.review.branch'), 'Pendaftaran QR', 'Semak pendaftaran QR sebelum penerimaan oleh staf.', 'registration-review.index'],
+            [$branch && $actor->can('public_intakes.review.branch'), 'QR Intake', 'Review QR intake before staff accept it.', 'registration-review.index'],
         ]);
         $add('Inventory & services', 'inventory', [
             [$actor->can('medicines.manage.organisation'), 'Medicine Catalogue', 'Manage medicines and their catalogue details.', 'medicines.index'],

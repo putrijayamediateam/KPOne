@@ -50,7 +50,7 @@ const mainNavItems = computed<NavItem[]>(() => [
     can('public_checkin_links.manage.branch')
         ? [
               {
-                  title: 'QR Cawangan',
+                  title: 'Branch QR',
                   href: '/public-checkin-links',
                   icon: QrCode,
               },

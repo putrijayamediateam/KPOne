@@ -418,9 +418,9 @@ const printQr = (link: LinkRow) => {
                         v-else-if="link.requiresRotation"
                         class="rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900"
                     >
-                        QR lama ini tidak boleh dipaparkan semula kerana ia
-                        dicipta sebelum fungsi simpanan selamat diperkenalkan.
-                        Sila rotate sekali untuk menghasilkan QR baharu.
+                        This older QR cannot be shown again because it was
+                        created before secure storage was added. Rotate it once
+                        to make a new QR.
                     </p>
                     <p v-else class="text-xs text-muted-foreground">
                         Historical link retained for audit. It cannot be used.

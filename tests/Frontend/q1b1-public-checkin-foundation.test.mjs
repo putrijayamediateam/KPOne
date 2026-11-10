@@ -15,7 +15,7 @@ test('admin surface supports lifecycle and securely recoverable active QR contro
     assert.match(admin, /Revoke/);
     assert.match(admin, /remains available to/);
     assert.match(admin, /requiresRotation/);
-    assert.match(admin, /Sila rotate sekali/);
+    assert.match(admin, /Rotate it once/);
     assert.match(admin, /navigator\.clipboard\.writeText/);
     assert.match(admin, /downloadQr/);
     assert.match(admin, /printQr/);

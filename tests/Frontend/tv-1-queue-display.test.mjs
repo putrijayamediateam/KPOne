@@ -184,7 +184,7 @@ test('calls are read aloud in Malay when the TV has a Malay voice, otherwise in 
     );
     assert.equal(
         announcementText({ number: '003', room: ' ' }, 'ms'),
-        'kosong, kosong, tiga. Kaunter.',
+        'kosong, kosong, tiga. Counter.',
     );
 });
 
@@ -258,10 +258,10 @@ test('a patient being served can be called again from the queue board, and the T
     assert.ok(screen.includes("'Recall'"));
 });
 
-test('the consultation page offers Panggil semula and returns to the consultation', () => {
+test('the consultation page offers Call again and returns to the consultation', () => {
     const consultation = read('resources/js/pages/Clinical/Show.vue');
     assert.ok(consultation.includes('v-if="clinical.queue.canRecall"'));
-    assert.ok(consultation.includes('Panggil semula'));
+    assert.ok(consultation.includes('Call again'));
     assert.ok(consultation.includes("from: 'consultation'"));
     assert.ok(consultation.includes('/queue/recall'));
 });
