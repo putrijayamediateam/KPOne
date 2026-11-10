@@ -41,7 +41,6 @@ test('the form asks each position type its own questions, in both languages', ()
         'mmc_number',
         'apc_year',
         'apc_expiry',
-        'talent_pool_consent',
     ]) {
         assert.match(source.apply, new RegExp(`\\b${key}:`), key);
     }
@@ -51,7 +50,6 @@ test('the form asks each position type its own questions, in both languages', ()
     assert.match(template('apply'), /positionType === 'locum'/);
     assert.match(template('apply'), /Tentang anda/);
     assert.match(template('apply'), /Mana-mana cawangan/);
-    assert.match(template('apply'), /simpanan\s+bakat/);
     // Nothing about pay or identity is asked: neither the fields sent nor the page mention them.
     const fields = source.apply.slice(
         source.apply.indexOf('useForm({'),
@@ -65,8 +63,8 @@ test('the form asks each position type its own questions, in both languages', ()
         );
     }
 
-    // The talent pool is optional: it is never a condition of applying.
-    assert.match(template('apply'), /Optional: keep my details/);
+    // No talent pool until HR-17e: the form neither asks nor promises one (Suresh, HR-17a).
+    assert.doesNotMatch(template('apply'), /talent pool|simpanan\s+bakat/i);
 });
 
 test('HR records the phone call with the checklist, a 1 to 5 rating and pass or reject', () => {

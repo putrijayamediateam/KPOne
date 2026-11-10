@@ -20,7 +20,7 @@ class JobApplicationController extends Controller
     public function submit(Request $request, JobApplicationIntake $intake): RedirectResponse
     {
         try {
-            $intake->submit($request->only(['form_token', 'position', 'name', 'phone', 'email', 'message', 'privacy_accepted', 'talent_pool_consent', 'preferred_branch', 'start_date', 'education', 'years_experience', 'languages', 'institution', 'programme', 'intern_from', 'intern_to', 'availability', 'mmc_number', 'apc_year', 'apc_expiry', JobApplicationIntake::HONEYPOT]), $request->file('cv'));
+            $intake->submit($request->only(['form_token', 'position', 'name', 'phone', 'email', 'message', 'privacy_accepted', 'preferred_branch', 'start_date', 'education', 'years_experience', 'languages', 'institution', 'programme', 'intern_from', 'intern_to', 'availability', 'mmc_number', 'apc_year', 'apc_expiry', JobApplicationIntake::HONEYPOT]), $request->file('cv'));
         } catch (ValidationException $e) {
             // Errors only, never the input: nothing the applicant typed goes into the session (Suresh, HR-13 M3). The
             // page keeps the typed fields in the browser; the CV is chosen again.

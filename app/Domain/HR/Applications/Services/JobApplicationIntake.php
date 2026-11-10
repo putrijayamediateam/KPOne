@@ -246,7 +246,9 @@ final class JobApplicationIntake
         }
 
         return ['position' => $position, 'name' => $name, 'phone' => $phone, 'email' => mb_strtolower($email), 'message' => $raw === '' ? null : $raw,
-            'details' => $details, 'talent_pool_consent' => filter_var($input['talent_pool_consent'] ?? false, FILTER_VALIDATE_BOOL)];
+            // No talent pool yet: the form does not ask, and nothing sent is taken as consent until HR-17e builds the
+            // pool and a way to withdraw (Suresh, HR-17a).
+            'details' => $details, 'talent_pool_consent' => false];
     }
 
     /**

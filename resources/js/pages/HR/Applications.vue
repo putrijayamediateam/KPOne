@@ -765,16 +765,6 @@ const saveRetention = () => {
                             <dd class="break-words">{{ d.value }}</dd>
                         </div>
                         <div>
-                            <dt class="text-muted-foreground">Talent pool</dt>
-                            <dd>
-                                {{
-                                    viewing.talentPoolConsent
-                                        ? 'Agreed to be kept for other positions'
-                                        : 'Not agreed'
-                                }}
-                            </dd>
-                        </div>
-                        <div>
                             <dt class="text-muted-foreground">
                                 Privacy notice
                             </dt>

@@ -46,7 +46,6 @@ const form = useForm({
     mmc_number: '',
     apc_year: '',
     apc_expiry: '',
-    talent_pool_consent: false,
     privacy_accepted: false,
     website: '',
     cv: null as File | null,
@@ -789,8 +788,7 @@ const field =
                             consider your application for this position, and may
                             email you about it. Only the clinic's HR team can
                             see it. It is never used for marketing. Your details
-                            and CV are deleted after the period the clinic sets,
-                            unless you choose below to stay in our talent pool.
+                            and CV are deleted after the period the clinic sets.
                         </p>
                         <p lang="ms" class="text-zinc-600 dark:text-zinc-400">
                             {{ clinicName }} menggunakan maklumat yang anda
@@ -799,9 +797,7 @@ const field =
                             kepada anda tentangnya. Hanya pasukan HR klinik
                             boleh melihatnya. Ia tidak sekali-kali digunakan
                             untuk pemasaran. Maklumat dan CV anda dipadam
-                            selepas tempoh yang ditetapkan oleh klinik, kecuali
-                            anda memilih di bawah untuk kekal dalam simpanan
-                            bakat kami.
+                            selepas tempoh yang ditetapkan oleh klinik.
                         </p>
                         <p class="text-xs text-zinc-600 dark:text-zinc-400">
                             Notice version / Versi notis
@@ -839,27 +835,6 @@ const field =
                         >
                             {{ form.errors.privacy_accepted }}
                         </p>
-                        <label class="flex items-start gap-3 pt-1">
-                            <input
-                                v-model="form.talent_pool_consent"
-                                type="checkbox"
-                                class="mt-0.5 size-5 accent-pink-600"
-                                data-test="apply-talent-pool"
-                            />
-                            <span
-                                >Optional: keep my details in the clinic's
-                                talent pool, so HR may contact me about other
-                                positions later.
-                                <span
-                                    lang="ms"
-                                    class="block text-zinc-600 dark:text-zinc-400"
-                                    >Pilihan: simpan maklumat saya dalam
-                                    simpanan bakat klinik, supaya HR boleh
-                                    menghubungi saya tentang jawatan lain
-                                    kemudian.</span
-                                ></span
-                            >
-                        </label>
                     </section>
 
                     <button

@@ -58,7 +58,8 @@ class HiringStagesTest extends VisitTestCase
         $this->apply($doctor, ['mmc_number' => '54321', 'apc_year' => '2026', 'apc_expiry' => '2026-12-31', 'preferred_branch' => 'CHERAS',
             'talent_pool_consent' => '1', 'salary' => '9000', 'ic_number' => '900101-14-5678'])->assertRedirect(route('hr-applications.thanks'));
         $row = DB::table('hr_job_applications')->sole();
-        $this->assertTrue((bool) $row->talent_pool_consent);
+        // No talent pool yet (HR-17e): a consent sent anyway is not recorded.
+        $this->assertFalse((bool) $row->talent_pool_consent);
         $this->assertStringNotContainsString('54321', (string) $row->details_encrypted);
         $details = json_decode(Crypt::decryptString((string) $row->details_encrypted), true);
         $this->assertSame(['type', 'preferred_branch', 'start_date', 'education', 'years_experience', 'languages', 'mmc_number', 'apc_year', 'apc_expiry'], array_keys($details));
@@ -72,7 +73,7 @@ class HiringStagesTest extends VisitTestCase
         $this->selectBranch($hr);
         $this->get(route('hr.applications.index'))->assertInertia(fn (Assert $page) => $page
             ->where('applications.applications.rows.0.type', 'resident_doctor')
-            ->where('applications.applications.rows.0.talentPoolConsent', true)
+            ->where('applications.applications.rows.0.talentPoolConsent', false)
             ->where('applications.applications.rows.0.details.0', ['label' => 'Preferred branch', 'value' => 'Cheras'])
             ->where('applications.applications.rows.0.details.5', ['label' => 'MMC number (as stated)', 'value' => '54321'])
             ->where('applications.applications.rows.0.screening', null));
