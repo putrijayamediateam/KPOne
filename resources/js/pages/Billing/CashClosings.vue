@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
+import { formatDate } from '@/lib/presentation';
 import { myr } from '@/types/billing';
 
 type Closing = {
@@ -202,7 +203,10 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                 data-testid="cash-expected"
             >
                 <p class="text-xs text-muted-foreground">
-                    Expected cash for {{ day.businessDate }}
+                    Expected cash for
+                    <span class="whitespace-nowrap">{{
+                        formatDate(day.businessDate)
+                    }}</span>
                 </p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(day.expected.cashSen) }}
