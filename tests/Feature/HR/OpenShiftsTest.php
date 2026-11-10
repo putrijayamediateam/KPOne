@@ -174,6 +174,24 @@ class OpenShiftsTest extends VisitTestCase
         $ask = ['open_shift_id' => $row->id, 'organisation_id' => $row->organisation_id, 'status' => 'asked', 'asked_at' => now(), 'lock_version' => 1,
             'created_at' => now(), 'updated_at' => now()];
         $this->refused('23514', fn () => DB::table('hr_open_shift_requests')->insert([...$ask, 'public_id' => (string) Str::uuid(), 'locum_user_id' => $unlinked->id]));
+        // ... assigned to the branch on that day, and before the shift starts (Suresh, m4).
+        $otherBranch = DB::table('branches')->where('organisation_id', $row->organisation_id)->where('id', '<>', $row->branch_id)->value('id');
+        $elsewhere = DB::table('hr_open_shifts')->insertGetId([...$base, 'public_id' => (string) Str::uuid(), 'branch_id' => $otherBranch, 'posted_by_user_id' => $this->hr->id]);
+        $started = DB::table('hr_open_shifts')->insertGetId([...$base, 'public_id' => (string) Str::uuid(), 'posted_by_user_id' => $this->hr->id,
+            'starts_at' => now()->subHours(2), 'ends_at' => now()->addHours(2)]);
+        foreach ([$elsewhere, $started] as $shiftId) {
+            $this->refused('23514', fn () => DB::table('hr_open_shift_requests')->insert([...$ask, 'open_shift_id' => $shiftId, 'public_id' => (string) Str::uuid(),
+                'locum_user_id' => $locum->id]));
+        }
+        $this->selectBranch($locum);
+        $this->get(route('hr.open-shifts.index'))->assertInertia(fn (Assert $page) => $page->has('openShifts.available', 1)
+            ->where('openShifts.available.0.id', $shift)); // neither the other branch's shift nor the started one
+        // An assignment that starts after the shift's day hides it too (Suresh, m3).
+        $profileId = DB::table('staff_profiles')->where('user_id', $locum->id)->value('id');
+        $from = DB::table('staff_branch_assignments')->where('staff_profile_id', $profileId)->value('valid_from');
+        DB::table('staff_branch_assignments')->where('staff_profile_id', $profileId)->update(['valid_from' => '2026-11-20']);
+        $this->get(route('hr.open-shifts.index'))->assertInertia(fn (Assert $page) => $page->where('openShifts.available', []));
+        DB::table('staff_branch_assignments')->where('staff_profile_id', $profileId)->update(['valid_from' => $from]);
         $this->selectBranch($locum);
         $this->post(route('hr.open-shifts.ask', $shift), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $request = DB::table('hr_open_shift_requests')->sole();

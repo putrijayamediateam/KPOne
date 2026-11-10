@@ -5,10 +5,12 @@ namespace App\Domain\HR\OpenShifts\Services;
 use App\Domain\HR\OpenShifts\OpenShiftPermissions;
 use App\Domain\HR\Records\Services\LocumSignIns;
 use App\Domain\HR\Roster\Services\RosterRules;
+use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -47,10 +49,12 @@ final class OpenShiftsPageService
             'today' => CarbonImmutable::now((string) ($branches->first()->timezone ?? 'UTC'))->toDateString()];
 
         if ($canAsk && $props['linked']) {
-            $assigned = $this->assignedBranches($actor);
+            $assignments = $this->assignments($actor);
             $asked = DB::table('hr_open_shift_requests')->where('locum_user_id', $actor->id)->pluck('open_shift_id')->all();
+            // Only shifts whose every day the locum is assigned to that branch, as ask() requires (Suresh, m3).
             $props['available'] = array_values(DB::table('hr_open_shifts')->where('organisation_id', $actor->organisation_id)->where('status', 'open')
-                ->where('starts_at', '>', $now)->whereIn('branch_id', $assigned)->whereNotIn('id', $asked)->orderBy('starts_at')->limit(100)->get()
+                ->where('starts_at', '>', $now)->whereIn('branch_id', $assignments->pluck('branch_id')->unique()->all())->whereNotIn('id', $asked)
+                ->orderBy('starts_at')->limit(300)->get()->filter(fn (\stdClass $s): bool => $this->covered($assignments, $s))->take(100)
                 ->map($row)->all());
             $props['mine'] = array_values(DB::table('hr_open_shift_requests as r')->join('hr_open_shifts as s', 's.id', '=', 'r.open_shift_id')
                 ->where('r.locum_user_id', $actor->id)->orderByDesc('s.starts_at')->limit(100)
@@ -77,17 +81,32 @@ final class OpenShiftsPageService
         return $props;
     }
 
-    /** @return list<int> branches with an assignment for the locum that has not ended */
-    private function assignedBranches(User $actor): array
+    /** @return Collection<int, StaffBranchAssignment> the locum's assignments that have not ended */
+    private function assignments(User $actor): Collection
     {
         $profile = StaffProfile::query()->where('user_id', $actor->id)->first();
         if ($profile === null) {
-            return [];
+            return new Collection;
         }
-        $today = CarbonImmutable::now('UTC')->toDateString();
+        $today = CarbonImmutable::now('UTC')->subDay()->toDateString(); // the branch-local date may lag UTC; covered() decides
 
-        return array_values(array_map('intval', $profile->branchAssignments()->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', $today))
-            ->pluck('branch_id')->unique()->values()->all()));
+        return $profile->branchAssignments()->where(fn ($q) => $q->whereNull('valid_until')->orWhere('valid_until', '>=', $today))->get();
+    }
+
+    /** @param Collection<int, StaffBranchAssignment> $assignments */
+    private function covered(Collection $assignments, \stdClass $s): bool
+    {
+        $first = CarbonImmutable::parse((string) $s->starts_at, 'UTC')->setTimezone((string) $s->timezone)->startOfDay();
+        $last = CarbonImmutable::parse((string) $s->ends_at, 'UTC')->subSecond()->setTimezone((string) $s->timezone)->startOfDay();
+        for ($d = $first; $d->lessThanOrEqualTo($last); $d = $d->addDay()) {
+            $date = $d->toDateString();
+            if (! $assignments->contains(fn (StaffBranchAssignment $a): bool => (int) $a->branch_id === (int) $s->branch_id
+                && $a->valid_from->toDateString() <= $date && ($a->valid_until === null || $a->valid_until->toDateString() >= $date))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private function when(\stdClass $s): string

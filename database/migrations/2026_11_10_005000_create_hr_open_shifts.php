@@ -108,7 +108,14 @@ BEGIN
 END $$;
 CREATE TRIGGER hr_open_shifts_guard BEFORE INSERT OR UPDATE ON hr_open_shifts FOR EACH ROW EXECUTE FUNCTION guard_hr_open_shift();
 
--- An ask is made by a linked locum sign-in, while the shift is open. It is confirmed, declined or withdrawn once; only
+-- Whether a person has a branch assignment covering a branch-local date (the rule RosterRules::assertAssigned checks).
+CREATE OR REPLACE FUNCTION hr_open_shift_assigned(p_user bigint, p_branch bigint, p_date date) RETURNS boolean LANGUAGE sql STABLE AS $$
+ SELECT EXISTS (SELECT 1 FROM staff_branch_assignments a JOIN staff_profiles p ON p.id = a.staff_profile_id
+  WHERE p.user_id = p_user AND a.branch_id = p_branch AND a.valid_from <= p_date AND (a.valid_until IS NULL OR a.valid_until >= p_date))
+$$;
+
+-- An ask is made by a linked locum sign-in, assigned to the branch on the shift's first and last day, while the shift is
+-- open and before it starts. It is confirmed, declined or withdrawn once; only
 -- someone who handles open shifts, never the locum, confirms or declines it; a confirm points at a roster shift of the
 -- locum at the same branch and time.
 CREATE OR REPLACE FUNCTION guard_hr_open_shift_request() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -116,10 +123,12 @@ DECLARE s record;
 BEGIN
  SELECT * INTO s FROM hr_open_shifts WHERE id = NEW.open_shift_id;
  IF TG_OP = 'INSERT' THEN
-  IF NEW.status <> 'asked' OR NEW.lock_version <> 1 OR s.status <> 'open'
+  IF NEW.status <> 'asked' OR NEW.lock_version <> 1 OR s.status <> 'open' OR s.starts_at <= clock_timestamp()
+    OR NOT hr_open_shift_assigned(NEW.locum_user_id, s.branch_id, (s.starts_at AT TIME ZONE s.timezone)::date)
+    OR NOT hr_open_shift_assigned(NEW.locum_user_id, s.branch_id, ((s.ends_at - interval '1 second') AT TIME ZONE s.timezone)::date)
     OR NOT EXISTS (SELECT 1 FROM hr_locum_sign_ins l WHERE l.linked_user_id = NEW.locum_user_id AND l.status = 'done')
     OR NOT hr_user_holds(NEW.locum_user_id, 'hr.open_shifts.request.own') THEN
-   RAISE EXCEPTION 'A linked locum asks for an open shift while it is open' USING ERRCODE = '23514';
+   RAISE EXCEPTION 'A linked locum assigned to the branch asks for an open shift before it starts' USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
  END IF;

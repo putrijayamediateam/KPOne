@@ -258,6 +258,8 @@ final class OpenShiftService
     private function nextDraft(User $actor, Branch $branch, CarbonImmutable $starts): RosterVersion
     {
         $weekStart = $this->rules->weekStart($branch, $starts->toDateString());
+        // Two confirms into one branch week take turns here, so the second uses the draft the first started (Suresh, m1).
+        DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['hr_open_shift_week:'.$branch->organisation_id.':'.$branch->id.':'.$weekStart->toDateString()]);
         $week = RosterWeek::query()->where('branch_id', $branch->id)->whereDate('week_start', $weekStart->toDateString())->first();
         $versions = $week === null ? collect() : RosterVersion::query()->where('roster_week_id', $week->id)->get();
         $open = $versions->first(fn (RosterVersion $v): bool => $v->isOpen());
