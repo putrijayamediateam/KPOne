@@ -11,12 +11,14 @@ import {
     useTemplateRef,
     watch,
 } from 'vue';
+import LocationCheckSettings from '@/components/hr/attendance/LocationCheckSettings.vue';
 import MyOvertimeSection from '@/components/hr/attendance/MyOvertime.vue';
 import OvertimeAskSheet from '@/components/hr/attendance/OvertimeAskSheet.vue';
 import OvertimeSettingsForm from '@/components/hr/attendance/OvertimeSettingsForm.vue';
 import OvertimeTab from '@/components/hr/attendance/OvertimeTab.vue';
 import SummaryTab from '@/components/hr/attendance/SummaryTab.vue';
 import type {
+    LocationCheckCard,
     MyOvertime,
     OvertimeChoice,
     OvertimeOptions,
@@ -74,6 +76,12 @@ type Row = {
     needsClockOut: boolean;
     overtimeChoice?: OvertimeChoice | null;
     week?: WeekHours | null;
+    /** HR-16a: each press's location result in plain words; never a position. */
+    location?: {
+        in: string | null;
+        out: string | null;
+        outside: boolean;
+    } | null;
 };
 type Correction = {
     publicId: string;
@@ -124,6 +132,12 @@ const props = defineProps<{
             correctionDays: number | null;
             corrections: Correction[];
             overtime: MyOvertime;
+            /** HR-16a: on at the branch the next press goes to. */
+            location: {
+                consentNeeded: boolean;
+                consentEn: string | null;
+                consentBm: string | null;
+            } | null;
         } | null;
         review: {
             branches: { id: number; name: string }[];
@@ -159,6 +173,7 @@ const props = defineProps<{
                 by: string;
             }[];
             overtime: OvertimeSettingsCard;
+            location: LocationCheckCard | null;
         } | null;
         overtime: OvertimeTabData | null;
         summary: SummaryTabData | null;
@@ -298,13 +313,79 @@ watch(
 );
 
 // ---- Clock in and out ----
-const clock = reactive({ processing: false, confirmOut: false, key: '' });
+const clock = reactive({
+    processing: false,
+    confirmOut: false,
+    key: '',
+    locating: false,
+    consentFor: null as 'in' | 'out' | null,
+});
+// HR-16a: where the branch checks location, the browser reads it once, at the press, and never before or after. A
+// refusal, a failure or "without location" still records the press.
 const press = (kind: 'in' | 'out') => {
+    const location = props.attendance.my?.location;
+
+    if (!location) {
+        send(kind, {});
+
+        return;
+    }
+
+    if (location.consentNeeded) {
+        clock.confirmOut = false;
+        clock.consentFor = kind;
+
+        return;
+    }
+
+    locate(kind, false);
+};
+const locate = (kind: 'in' | 'out', consent: boolean) => {
+    clock.consentFor = null;
+    const extra: Record<string, unknown> = consent
+        ? { location_consent: true }
+        : {};
+
+    if (!('geolocation' in navigator)) {
+        send(kind, { ...extra, location_unavailable: 'failed' });
+
+        return;
+    }
+
+    clock.locating = true;
+    clock.processing = true;
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            clock.locating = false;
+            send(kind, {
+                ...extra,
+                clock_position: {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                },
+            });
+        },
+        (error) => {
+            clock.locating = false;
+            send(kind, {
+                ...extra,
+                location_unavailable: error.code === 1 ? 'denied' : 'failed',
+            });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+    );
+};
+const withoutLocation = (kind: 'in' | 'out') => {
+    clock.consentFor = null;
+    send(kind, { location_unavailable: 'declined' });
+};
+const send = (kind: 'in' | 'out', extra: Record<string, unknown>) => {
     clock.key = clock.key || crypto.randomUUID();
     clock.processing = true;
     router.post(
         kind === 'in' ? '/hr/attendance/clock-in' : '/hr/attendance/clock-out',
-        { idempotency_key: clock.key },
+        { idempotency_key: clock.key, ...extra },
         {
             preserveScroll: true,
             onSuccess: () => {
@@ -703,7 +784,13 @@ const correctionStatusTone = (
                         @click="press('in')"
                     >
                         <Clock class="size-5" />
-                        {{ clock.processing ? 'Clocking in…' : 'Clock in' }}
+                        {{
+                            clock.locating
+                                ? 'Checking location…'
+                                : clock.processing
+                                  ? 'Clocking in…'
+                                  : 'Clock in'
+                        }}
                     </Button>
                     <Button
                         v-else-if="attendance.my.state === 'in'"
@@ -713,9 +800,24 @@ const correctionStatusTone = (
                         @click="clock.confirmOut = true"
                     >
                         <Clock class="size-5" />
-                        {{ clock.processing ? 'Clocking out…' : 'Clock out' }}
+                        {{
+                            clock.locating
+                                ? 'Checking location…'
+                                : clock.processing
+                                  ? 'Clocking out…'
+                                  : 'Clock out'
+                        }}
                     </Button>
                     <InputError :message="errors.clock" />
+                    <p
+                        v-if="attendance.my.location"
+                        class="text-sm text-muted-foreground"
+                        data-test="location-note"
+                    >
+                        This branch checks your location when you press. Only
+                        inside, outside or not available is kept, never where
+                        you are.
+                    </p>
                     <p
                         v-if="
                             attendance.my.state === 'out' &&
@@ -737,6 +839,7 @@ const correctionStatusTone = (
                         No approved shift today.
                     </p>
                     <p
+                        v-if="!attendance.my.location"
                         class="text-xs text-muted-foreground"
                         data-test="privacy-line"
                     >
@@ -1138,9 +1241,23 @@ const correctionStatusTone = (
                                     <td>{{ r.shift?.label ?? 'No shift' }}</td>
                                     <td class="tabular-nums">
                                         {{ r.session?.in ?? '–' }}
+                                        <p
+                                            v-if="r.location?.in"
+                                            class="text-xs text-muted-foreground"
+                                            data-test="review-location-in"
+                                        >
+                                            {{ r.location.in }}
+                                        </p>
                                     </td>
                                     <td class="tabular-nums">
                                         {{ r.session?.out ?? '–' }}
+                                        <p
+                                            v-if="r.location?.out"
+                                            class="text-xs text-muted-foreground"
+                                            data-test="review-location-out"
+                                        >
+                                            {{ r.location.out }}
+                                        </p>
                                     </td>
                                     <td class="tabular-nums">
                                         {{ r.worked ?? '–' }}
@@ -1221,6 +1338,18 @@ const correctionStatusTone = (
                                 }}<span v-if="r.worked">
                                     · Worked {{ r.worked }}</span
                                 >
+                            </p>
+                            <p
+                                v-if="r.location?.in"
+                                class="text-xs text-muted-foreground"
+                            >
+                                Clock in: {{ r.location.in }}
+                            </p>
+                            <p
+                                v-if="r.location?.out"
+                                class="text-xs text-muted-foreground"
+                            >
+                                Clock out: {{ r.location.out }}
                             </p>
                             <div
                                 v-if="r.flags.length > 0 || r.correctionWaiting"
@@ -1483,6 +1612,10 @@ const correctionStatusTone = (
                 :card="attendance.settings.overtime"
                 :today="attendance.settings.today"
             />
+            <LocationCheckSettings
+                v-if="attendance.settings.location"
+                :card="attendance.settings.location"
+            />
         </section>
 
         <!-- Clock out confirm (Daniel: only Clock out asks) -->
@@ -1499,6 +1632,60 @@ const correctionStatusTone = (
                 <Clock class="size-5" />
             </template>
         </OperationalConfirmDialog>
+
+        <!-- HR-16a: consent once per version, before the first press at this branch -->
+        <Sheet
+            :open="clock.consentFor !== null"
+            @update:open="(open: boolean) => !open && (clock.consentFor = null)"
+        >
+            <SheetContent
+                side="bottom"
+                class="max-h-[90dvh] overflow-y-auto sm:mx-auto sm:max-w-xl sm:rounded-t-xl"
+                data-test="location-consent"
+            >
+                <SheetHeader>
+                    <SheetTitle>Location check at this branch</SheetTitle>
+                    <SheetDescription>
+                        Read this once. You can clock
+                        {{ clock.consentFor === 'out' ? 'out' : 'in' }} without
+                        it.
+                    </SheetDescription>
+                </SheetHeader>
+                <div class="flex flex-col gap-4 px-4 pb-4 text-sm">
+                    <section class="flex flex-col gap-1">
+                        <h3 class="font-medium">English</h3>
+                        <p class="whitespace-pre-line">
+                            {{ attendance.my?.location?.consentEn }}
+                        </p>
+                    </section>
+                    <section class="flex flex-col gap-1" lang="ms">
+                        <h3 class="font-medium">Bahasa Melayu</h3>
+                        <p class="whitespace-pre-line">
+                            {{ attendance.my?.location?.consentBm }}
+                        </p>
+                    </section>
+                    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                        <Button
+                            variant="outline"
+                            class="min-h-11"
+                            data-test="location-without"
+                            @click="withoutLocation(clock.consentFor ?? 'in')"
+                        >
+                            Clock
+                            {{ clock.consentFor === 'out' ? 'out' : 'in' }}
+                            without location
+                        </Button>
+                        <Button
+                            class="min-h-11"
+                            data-test="location-agree"
+                            @click="locate(clock.consentFor ?? 'in', true)"
+                        >
+                            I understand, check my location
+                        </Button>
+                    </div>
+                </div>
+            </SheetContent>
+        </Sheet>
 
         <!-- Decision -->
         <OperationalConfirmDialog
