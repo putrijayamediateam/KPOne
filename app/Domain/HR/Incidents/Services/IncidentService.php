@@ -100,6 +100,11 @@ final class IncidentService
         if ($directorOnly && $category !== 'staff_conduct') {
             throw ValidationException::withMessages(['director_only' => 'Only a staff-conduct report can go to the Director only.']);
         }
+        if ($directorOnly && $actor->hasRole('director') && ! User::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)
+            ->whereKeyNot($actor->id)->whereHas('roles', fn ($q) => $q->where('name', 'director'))->exists()) {
+            // Nobody could ever handle it: a Director never handles their own report.
+            throw ValidationException::withMessages(['director_only' => "You are the only Director, so nobody else could handle this. Send it without 'Director only', or raise it outside KPOne."]);
+        }
         $branch = is_string($input['branch_id'] ?? null) ? Branch::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)
             ->where('code', $input['branch_id'])->first() : null;
         if (! $branch instanceof Branch) {

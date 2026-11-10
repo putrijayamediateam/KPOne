@@ -171,6 +171,7 @@ class IncidentsTest extends VisitTestCase
 
         $director = $this->actor('director');
         $this->selectBranch($director);
+        $this->report(['category' => 'staff_conduct', 'director_only' => '1'])->assertSessionHasErrors('director_only'); // nobody else could handle it
         $this->get(route('hr.incidents.index', ['tab' => 'open']))->assertInertia(fn (Assert $page) => $page->where('incidents.counts.open', 1)
             ->where('incidents.reports.0.directorOnly', true));
         $this->get(route('hr.incidents.show', $incident->public_id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('incident.directorOnly', true));
