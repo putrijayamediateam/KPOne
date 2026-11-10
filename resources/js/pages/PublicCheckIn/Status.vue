@@ -205,6 +205,7 @@ onBeforeUnmount(() => {
     /></Head>
     <main
         class="mx-auto grid min-h-svh max-w-xl grid-cols-1 place-items-center px-4 py-8"
+        lang="ms"
     >
         <section
             class="w-full min-w-0 space-y-6 rounded-3xl border bg-white p-6 shadow-xl sm:p-9 dark:bg-zinc-900"
@@ -323,7 +324,12 @@ onBeforeUnmount(() => {
                 class="grid grid-cols-4 gap-2 text-center text-xs"
                 aria-label="Kemajuan pendaftaran"
             >
-                <li v-for="(label, i) in steps" :key="label" class="space-y-1">
+                <li
+                    v-for="(label, i) in steps"
+                    :key="label"
+                    class="space-y-1"
+                    :aria-current="i === currentStep ? 'step' : undefined"
+                >
                     <span
                         class="mx-auto block h-1.5 rounded-full"
                         :class="
@@ -338,7 +344,10 @@ onBeforeUnmount(() => {
                                 ? 'font-semibold text-zinc-900 dark:text-zinc-100'
                                 : 'text-zinc-500'
                         "
-                        >{{ label }}</span
+                        >{{ label
+                        }}<span v-if="i < currentStep" class="sr-only">
+                            (selesai)</span
+                        ></span
                     >
                 </li>
             </ol>
@@ -431,6 +440,7 @@ onBeforeUnmount(() => {
                             <a
                                 v-if="branch.mapUrl"
                                 :href="branch.mapUrl"
+                                :aria-label="`Buka peta ${branch.name} (tab baharu)`"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 class="text-xs font-medium text-pink-700 underline"
