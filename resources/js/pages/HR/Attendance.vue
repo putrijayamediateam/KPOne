@@ -1649,7 +1649,7 @@ const correctionStatusTone = (
         >
             <SheetContent
                 side="bottom"
-                class="max-h-[90dvh] overflow-y-auto sm:mx-auto sm:max-w-xl sm:rounded-t-xl"
+                class="flex max-h-[90dvh] flex-col sm:mx-auto sm:max-w-xl sm:rounded-t-xl"
                 data-test="location-consent"
             >
                 <SheetHeader>
@@ -1667,7 +1667,11 @@ const correctionStatusTone = (
                         data only.
                     </p>
                 </SheetHeader>
-                <div class="flex flex-col gap-4 px-4 pb-4 text-sm">
+                <!-- Closing with X records nothing and gives no consent; the sheet opens again at the next press (Daniel). -->
+                <div
+                    class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 text-sm"
+                    data-test="location-consent-text"
+                >
                     <section class="flex flex-col gap-1">
                         <h3 class="font-medium">English</h3>
                         <p class="whitespace-pre-line">
@@ -1680,25 +1684,30 @@ const correctionStatusTone = (
                             {{ attendance.my?.location?.consentBm }}
                         </p>
                     </section>
-                    <div class="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                        <Button
-                            variant="outline"
-                            class="min-h-11"
-                            data-test="location-without"
-                            @click="withoutLocation(clock.consentFor ?? 'in')"
-                        >
-                            Clock
-                            {{ clock.consentFor === 'out' ? 'out' : 'in' }}
-                            without location
-                        </Button>
-                        <Button
-                            class="min-h-11"
-                            data-test="location-agree"
-                            @click="locate(clock.consentFor ?? 'in', true)"
-                        >
-                            I understand, check my location
-                        </Button>
-                    </div>
+                </div>
+                <!-- Pinned below the text; two equal choices, neither preselected (Daniel). -->
+                <div
+                    class="grid shrink-0 gap-2 border-t p-4 sm:grid-cols-2"
+                    data-test="location-consent-actions"
+                >
+                    <Button
+                        variant="outline"
+                        class="min-h-11"
+                        data-test="location-without"
+                        @click="withoutLocation(clock.consentFor ?? 'in')"
+                    >
+                        Clock
+                        {{ clock.consentFor === 'out' ? 'out' : 'in' }}
+                        without location
+                    </Button>
+                    <Button
+                        variant="outline"
+                        class="min-h-11"
+                        data-test="location-agree"
+                        @click="locate(clock.consentFor ?? 'in', true)"
+                    >
+                        I understand, check my location
+                    </Button>
                 </div>
             </SheetContent>
         </Sheet>

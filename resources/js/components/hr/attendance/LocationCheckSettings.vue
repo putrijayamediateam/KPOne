@@ -104,13 +104,13 @@ const put = (enabled: boolean) => {
             a draft for that review with the Data Protection Officer.
         </p>
         <ul
-            class="flex flex-col gap-1 text-sm"
+            class="flex max-w-xl flex-col text-sm"
             data-test="location-check-status"
         >
             <li
                 v-for="b in card.branches"
                 :key="b.id"
-                class="flex flex-wrap items-center gap-2"
+                class="flex items-center justify-between gap-2 border-b py-2 last:border-b-0 sm:justify-start"
             >
                 <span>{{ b.name }}</span>
                 <StatusBadge
@@ -200,7 +200,7 @@ const put = (enabled: boolean) => {
                 <Textarea
                     id="location-check-consent-en"
                     v-model="form.consentEn"
-                    rows="6"
+                    rows="11"
                     maxlength="2000"
                 />
                 <InputError :message="errors.consent_en" />
@@ -212,7 +212,7 @@ const put = (enabled: boolean) => {
                 <Textarea
                     id="location-check-consent-bm"
                     v-model="form.consentBm"
-                    rows="6"
+                    rows="11"
                     maxlength="2000"
                     lang="ms"
                 />

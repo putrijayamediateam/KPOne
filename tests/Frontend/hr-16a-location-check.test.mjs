@@ -43,6 +43,20 @@ test('consent is shown once, in English and Bahasa Melayu, and clocking in witho
         /data-test="location-without"[\s\S]{0,200}withoutLocation\(/,
     );
     assert.match(page, /location_unavailable: 'declined'/);
+    // Two equal choices, pinned below the scrolling text (Daniel).
+    assert.match(
+        page,
+        /variant="outline"\s+class="min-h-11"\s+data-test="location-without"/,
+    );
+    assert.match(
+        page,
+        /variant="outline"\s+class="min-h-11"\s+data-test="location-agree"/,
+    );
+    assert.match(
+        page,
+        /overflow-y-auto[^"]*"\s+data-test="location-consent-text"/,
+    );
+    assert.match(page, /shrink-0[^"]*"\s+data-test="location-consent-actions"/);
     assert.match(
         page,
         /data-test="location-agree"[\s\S]{0,200}locate\(clock\.consentFor \?\? 'in', true\)/,
