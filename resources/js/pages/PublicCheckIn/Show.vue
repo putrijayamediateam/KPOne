@@ -612,10 +612,10 @@ onBeforeUnmount(() => {
                             <label class="grid gap-1.5" for="dob"
                                 ><span class="text-sm font-medium"
                                     >Tarikh lahir *</span
-                                ><input
+                                ><DateField
                                     id="dob"
                                     v-model="form.date_of_birth"
-                                    type="date"
+                                    
                                     class="min-h-12 rounded-xl border px-3"
                                     :aria-invalid="!!errorFor('date_of_birth')"
                                 /><span

@@ -231,9 +231,9 @@ watch(
                                 class="h-11 min-w-0 rounded border bg-background px-3"
                         /></label>
                         <label class="grid gap-1 text-sm"
-                            >Real expiry date<input
+                            >Real expiry date<DateField
                                 v-model="entry.expiry_date"
-                                type="date"
+                                
                                 required
                                 class="h-11 min-w-0 rounded border bg-background px-3"
                         /></label>

@@ -986,9 +986,9 @@ const eventTitle = (type: string) =>
                         </label>
                         <label class="block space-y-1 text-sm">
                             <span>Date received</span>
-                            <input
+                            <DateField
                                 v-model="remittanceDate"
-                                type="date"
+                                
                                 required
                                 class="w-full rounded-md border bg-background px-3 py-2"
                             />

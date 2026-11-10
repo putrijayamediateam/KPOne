@@ -123,10 +123,10 @@ const download = async (kind: Kind) => {
                 <div class="flex flex-col gap-2 border-t pt-3">
                     <div class="grid gap-1.5">
                         <Label for="outside-export-month">Month</Label>
-                        <Input
+                        <DateField
                             id="outside-export-month"
                             v-model="month"
-                            type="month"
+                            
                             class="w-44 max-lg:h-11"
                             aria-describedby="outside-export-month-help"
                             :aria-invalid="!!monthError"

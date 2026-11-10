@@ -96,9 +96,9 @@ const periods = [
                             @click="visit({ date: data.prevDate })"
                             >‹</Button
                         >
-                        <Input
+                        <DateField
                             id="summary-date"
-                            type="date"
+                            
                             class="min-h-11 w-40 sm:min-h-9"
                             :model-value="data.date ?? ''"
                             @change="

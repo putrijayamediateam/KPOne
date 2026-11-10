@@ -326,10 +326,10 @@ const clearFilters = () => {
                     <label for="movement-date-from" class="text-xs font-medium">
                         Date from
                     </label>
-                    <Input
+                    <DateField
                         id="movement-date-from"
                         v-model="dateFrom"
-                        type="date"
+                        
                         :max="dateTo || undefined"
                     />
                 </div>
@@ -337,10 +337,10 @@ const clearFilters = () => {
                     <label for="movement-date-to" class="text-xs font-medium">
                         Date to
                     </label>
-                    <Input
+                    <DateField
                         id="movement-date-to"
                         v-model="dateTo"
-                        type="date"
+                        
                         :min="dateFrom || undefined"
                     />
                 </div>

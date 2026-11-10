@@ -435,9 +435,9 @@ const inputClass =
                                 v-for="key in page.dateFields"
                                 :key="key"
                                 class="block text-sm"
-                                >{{ label(key) }} (YYYY-MM-DD)<input
+                                >{{ label(key) }} (YYYY-MM-DD)<DateField
                                     :value="String(form.content[key] ?? '')"
-                                    type="date"
+                                    
                                     :class="inputClass"
                                     @input="
                                         form.content[key] = (

@@ -593,18 +593,18 @@ const visitTypeLabel = (value: string) =>
                 </Button>
                 <template v-if="work.filters.range === 'custom'">
                     <label class="sr-only" for="claims-from">From</label>
-                    <input
+                    <DateField
                         id="claims-from"
                         v-model="draft.from"
-                        type="date"
+                        
                         class="h-9 rounded-md border bg-background px-2 text-sm"
                         @change="go({ claims_page: null })"
                     />
                     <label class="sr-only" for="claims-to">To</label>
-                    <input
+                    <DateField
                         id="claims-to"
                         v-model="draft.to"
-                        type="date"
+                        
                         class="h-9 rounded-md border bg-background px-2 text-sm"
                         @change="go({ claims_page: null })"
                     />
@@ -794,15 +794,15 @@ const visitTypeLabel = (value: string) =>
                     <label class="text-xs font-medium text-muted-foreground">
                         Visit date
                         <span class="mt-1 flex flex-wrap items-center gap-1">
-                            <input
+                            <DateField
                                 v-model="draft.visitFrom"
-                                type="date"
+                                
                                 aria-label="Visit date from"
                                 class="h-9 rounded-md border bg-background px-2 text-sm"
                             />
-                            <input
+                            <DateField
                                 v-model="draft.visitTo"
-                                type="date"
+                                
                                 aria-label="Visit date to"
                                 class="h-9 rounded-md border bg-background px-2 text-sm"
                             />
@@ -811,15 +811,15 @@ const visitTypeLabel = (value: string) =>
                     <label class="text-xs font-medium text-muted-foreground">
                         Due date
                         <span class="mt-1 flex flex-wrap items-center gap-1">
-                            <input
+                            <DateField
                                 v-model="draft.dueFrom"
-                                type="date"
+                                
                                 aria-label="Due date from"
                                 class="h-9 rounded-md border bg-background px-2 text-sm"
                             />
-                            <input
+                            <DateField
                                 v-model="draft.dueTo"
-                                type="date"
+                                
                                 aria-label="Due date to"
                                 class="h-9 rounded-md border bg-background px-2 text-sm"
                             />
@@ -942,9 +942,9 @@ const visitTypeLabel = (value: string) =>
                             class="text-xs font-medium text-muted-foreground"
                         >
                             Submitted date
-                            <input
+                            <DateField
                                 v-model="bulk.submittedDate"
-                                type="date"
+                                
                                 :min="minSubmittedDate || undefined"
                                 :max="work.branch.today"
                                 class="mt-1 block h-9 rounded-md border bg-background px-2 text-sm"

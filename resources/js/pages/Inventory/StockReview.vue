@@ -282,9 +282,9 @@ watch(
                         </select></label
                     ><InputError :message="form.errors.outcome" /><label
                         class="block"
-                        >Review by<input
+                        >Review by<DateField
                             v-model="form.review_by"
-                            type="date"
+                            
                             :min="review.today"
                             class="mt-1 min-h-11 w-full rounded border bg-background px-2"
                     /></label>

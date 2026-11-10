@@ -290,9 +290,9 @@ const description = computed(() => {
                     >‹</Button
                 >
                 <Label for="overtime-month" class="sr-only">Month</Label>
-                <Input
+                <DateField
                     id="overtime-month"
-                    type="month"
+                    
                     class="min-h-11 w-44 sm:min-h-9"
                     :model-value="data.month"
                     @change="

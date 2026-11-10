@@ -177,10 +177,10 @@ const save = () => {
             </div>
             <div class="grid gap-1">
                 <Label for="overtime-effective-from">Applies from *</Label>
-                <Input
+                <DateField
                     id="overtime-effective-from"
                     v-model="form.effective_from"
-                    type="date"
+                    
                     class="min-h-11 w-48 sm:min-h-9"
                     aria-describedby="overtime-effective-help"
                 />

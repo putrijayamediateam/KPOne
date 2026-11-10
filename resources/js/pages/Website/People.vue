@@ -396,9 +396,9 @@ const inputClass =
                                         </option>
                                     </select></label
                                 ><label class="block text-sm"
-                                    >Closing date (optional)<input
+                                    >Closing date (optional)<DateField
                                         v-model="form.content.closing_date"
-                                        type="date"
+                                        
                                         :class="inputClass" /></label
                             ></template>
                             <fieldset class="space-y-2">

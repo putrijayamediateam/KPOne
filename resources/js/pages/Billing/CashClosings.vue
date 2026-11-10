@@ -172,10 +172,10 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
             <form class="flex items-end gap-2" @submit.prevent="loadDate">
                 <label class="grid gap-1 text-sm font-medium" for="cash-date">
                     Business date
-                    <Input
+                    <DateField
                         id="cash-date"
                         v-model="selectedDate.value"
-                        type="date"
+                        
                         :max="day.today"
                     />
                 </label>

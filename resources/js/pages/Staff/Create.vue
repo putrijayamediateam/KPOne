@@ -361,10 +361,10 @@ const submit = () => form.post('/staff');
                                         :for="`staff-assignment-${index}-from`"
                                         class="text-xs font-medium"
                                         >Valid from</label
-                                    ><input
+                                    ><DateField
                                         :id="`staff-assignment-${index}-from`"
                                         v-model="assignment.valid_from"
-                                        type="date"
+                                        
                                         class="h-9 rounded-md border bg-background px-3 text-sm"
                                     /><InputError
                                         :message="
@@ -379,10 +379,10 @@ const submit = () => form.post('/staff');
                                         :for="`staff-assignment-${index}-until`"
                                         class="text-xs font-medium"
                                         >Valid through (inclusive)</label
-                                    ><input
+                                    ><DateField
                                         :id="`staff-assignment-${index}-until`"
                                         v-model="assignment.valid_until"
-                                        type="date"
+                                        
                                         class="h-9 rounded-md border bg-background px-3 text-sm"
                                     /><InputError
                                         :message="

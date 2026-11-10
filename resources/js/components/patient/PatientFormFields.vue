@@ -63,13 +63,13 @@ const genderOptions = [
                                 : ''
                         }}</span
                     >
-                    <input
+                    <DateField
                         v-model="fields.date_of_birth"
                         :required="
                             newPatient && requirements?.requireDateOfBirth
                         "
                         :aria-invalid="!!errors.date_of_birth"
-                        type="date"
+                        
                         class="h-10 rounded-md border bg-background px-3 text-sm"
                     />
                     <InputError :message="errors.date_of_birth" />

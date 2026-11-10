@@ -135,10 +135,10 @@ const endAssignment = () =>
                             class="text-sm font-medium"
                             for="branch-assignment-valid-from"
                             >Valid from</label
-                        ><input
+                        ><DateField
                             id="branch-assignment-valid-from"
                             v-model="form.valid_from"
-                            type="date"
+                            
                             class="h-9 rounded-md border bg-background px-3 text-sm"
                         /><InputError :message="form.errors.valid_from" />
                     </div>
@@ -147,10 +147,10 @@ const endAssignment = () =>
                             class="text-sm font-medium"
                             for="branch-assignment-valid-through"
                             >Valid through (inclusive)</label
-                        ><input
+                        ><DateField
                             id="branch-assignment-valid-through"
                             v-model="form.valid_until"
-                            type="date"
+                            
                             class="h-9 rounded-md border bg-background px-3 text-sm"
                         /><InputError :message="form.errors.valid_until" />
                     </div>
@@ -184,9 +184,9 @@ const endAssignment = () =>
                 </div>
                 <div class="flex items-end gap-2">
                     <label class="grid flex-1 gap-1 text-xs font-medium"
-                        >Access valid through (inclusive)<input
+                        >Access valid through (inclusive)<DateField
                             v-model="endForm.valid_until"
-                            type="date"
+                            
                             class="h-9 rounded-md border bg-background px-3 text-sm" /></label
                     ><Button
                         variant="destructive"

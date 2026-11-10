@@ -151,10 +151,10 @@ const send = () => {
                     </div>
                     <div v-if="form.health === 'done'" class="grid gap-1.5">
                         <Label for="credential-issued">Date done *</Label>
-                        <Input
+                        <DateField
                             id="credential-issued"
                             v-model="form.issuedOn"
-                            type="date"
+                            
                             class="max-lg:h-11"
                             :aria-invalid="!!errors.issued_on"
                         />
@@ -164,10 +164,10 @@ const send = () => {
                 <template v-else>
                     <div class="grid gap-1.5">
                         <Label for="credential-issued">Issue date *</Label>
-                        <Input
+                        <DateField
                             id="credential-issued"
                             v-model="form.issuedOn"
-                            type="date"
+                            
                             class="max-lg:h-11"
                             :aria-invalid="!!errors.issued_on"
                         />
@@ -175,10 +175,10 @@ const send = () => {
                     </div>
                     <div v-if="type.expires" class="grid gap-1.5">
                         <Label for="credential-expires">Expiry date *</Label>
-                        <Input
+                        <DateField
                             id="credential-expires"
                             v-model="form.expiresOn"
-                            type="date"
+                            
                             class="max-lg:h-11"
                             :aria-invalid="!!errors.expires_on"
                         />

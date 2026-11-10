@@ -259,11 +259,11 @@ const scopeText = computed(() => {
                             >{{ dateLabel }}</label
                         >
                         <span v-else class="font-medium">When</span>
-                        <Input
+                        <DateField
                             v-if="usesDate"
                             id="assistant-date"
                             v-model="date"
-                            type="date"
+                            
                             :max="today"
                             min="2020-01-01"
                             class="min-h-11"

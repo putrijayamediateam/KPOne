@@ -760,15 +760,15 @@ onBeforeUnmount(() => {
                         />
                     </label>
                     <label class="grid gap-1 text-xs"
-                        >From<input
+                        >From<DateField
                             v-model="form.date_from"
-                            type="date"
+                            
                             class="h-9 rounded-lg border border-transparent bg-muted/45 px-2 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
                     /></label>
                     <label class="grid gap-1 text-xs"
-                        >To<input
+                        >To<DateField
                             v-model="form.date_to"
-                            type="date"
+                            
                             class="h-9 rounded-lg border border-transparent bg-muted/45 px-2 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
                     /></label>
                     <Button

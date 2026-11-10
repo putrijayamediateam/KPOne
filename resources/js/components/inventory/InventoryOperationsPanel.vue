@@ -915,10 +915,10 @@ const saveReorder = () =>
                                 :aria-label="`${line.sku} received batch number`"
                                 placeholder="Batch number"
                             />
-                            <Input
+                            <DateField
                                 v-model="receipt[line.publicId].expiryDate"
                                 :aria-label="`${line.sku} received batch expiry`"
-                                type="date"
+                                
                             />
                             <Input
                                 v-model="receipt[line.publicId].quantity"

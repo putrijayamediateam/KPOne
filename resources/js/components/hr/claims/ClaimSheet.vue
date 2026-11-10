@@ -167,10 +167,10 @@ const send = () => {
                 </div>
                 <div class="grid gap-1.5">
                     <Label for="claim-date">Date you paid *</Label>
-                    <Input
+                    <DateField
                         id="claim-date"
                         v-model="form.spentOn"
-                        type="date"
+                        
                         :max="today"
                         class="w-44 max-lg:h-11"
                         :aria-invalid="!!errors.spent_on"

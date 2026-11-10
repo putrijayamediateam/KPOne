@@ -295,18 +295,18 @@ const days = computed(() => {
                         /></label>
                         <div class="grid gap-3 sm:grid-cols-2">
                             <label class="block text-sm"
-                                >Start date<input
+                                >Start date<DateField
                                     v-model="form.start_date"
-                                    type="date"
+                                    
                                     required
                                     :max="certificates.today"
                                     class="mt-1 w-full min-w-0 rounded-md border bg-background p-2" /><InputError
                                     :message="form.errors.start_date"
                             /></label>
                             <label class="block text-sm"
-                                >End date<input
+                                >End date<DateField
                                     v-model="form.end_date"
-                                    type="date"
+                                    
                                     required
                                     :min="form.start_date"
                                     class="mt-1 w-full min-w-0 rounded-md border bg-background p-2" /><InputError

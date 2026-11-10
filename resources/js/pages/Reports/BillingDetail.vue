@@ -258,14 +258,14 @@ function applyTime() {
         >
             <div class="flex flex-wrap items-end gap-3">
                 <label class="min-w-0 text-sm"
-                    >From<Input
+                    >From<DateField
                         v-model="draft.from"
-                        type="date"
+                        
                         :disabled="busy" /></label
                 ><label class="min-w-0 text-sm"
-                    >To<Input
+                    >To<DateField
                         v-model="draft.to"
-                        type="date"
+                        
                         :disabled="busy" /></label
                 ><Button :disabled="busy" @click="perform()">{{
                     busy ? 'Preparing…' : 'Run report'

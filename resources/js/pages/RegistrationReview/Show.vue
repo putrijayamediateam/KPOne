@@ -368,9 +368,9 @@ watch(
                         <label class="grid gap-1"
                             ><span class="text-sm font-medium"
                                 >Date of birth</span
-                            ><input
+                            ><DateField
                                 v-model="correction.date_of_birth"
-                                type="date"
+                                
                                 class="h-10 rounded-md border bg-background px-3" /><InputError
                                 :message="
                                     correction.errors.date_of_birth

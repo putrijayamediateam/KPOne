@@ -1037,9 +1037,9 @@ const correctionStatusTone = (
                                 "
                                 >‹</Button
                             >
-                            <Input
+                            <DateField
                                 id="review-date"
-                                type="date"
+                                
                                 class="min-h-11 w-40 sm:min-h-9"
                                 :model-value="attendance.review.date ?? ''"
                                 @change="
@@ -1441,10 +1441,10 @@ const correctionStatusTone = (
                 </div>
                 <div class="grid gap-1">
                     <Label for="effective-from">Applies from *</Label>
-                    <Input
+                    <DateField
                         id="effective-from"
                         v-model="settingsForm.effective_from"
-                        type="date"
+                        
                         class="min-h-11 w-48 sm:min-h-9"
                         aria-describedby="effective-help"
                     />
@@ -1615,10 +1615,10 @@ const correctionStatusTone = (
                         <Label for="correction-in"
                             >Clock-in date and time *</Label
                         >
-                        <Input
+                        <DateField
                             id="correction-in"
                             v-model="correction.inTime"
-                            type="datetime-local"
+                            
                             class="min-h-11 sm:min-h-9"
                         />
                         <InputError :message="correctionErrors.in_time" />
@@ -1630,10 +1630,10 @@ const correctionStatusTone = (
                         <Label for="correction-out"
                             >Clock-out date and time *</Label
                         >
-                        <Input
+                        <DateField
                             id="correction-out"
                             v-model="correction.outTime"
-                            type="datetime-local"
+                            
                             class="min-h-11 sm:min-h-9"
                         />
                         <InputError :message="correctionErrors.out_time" />

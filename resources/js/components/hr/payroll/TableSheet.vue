@@ -177,10 +177,10 @@ const rowError = (i: number, field: string) =>
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="table-from">Applies from *</Label>
-                        <Input
+                        <DateField
                             id="table-from"
                             v-model="form.effectiveFrom"
-                            type="date"
+                            
                             class="w-44 max-lg:h-11"
                             :aria-invalid="!!errors.effective_from"
                         />

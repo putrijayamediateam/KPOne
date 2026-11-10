@@ -1284,10 +1284,10 @@ const bankDialog = computed(() => {
                         <Label for="document-issued"
                             >Issue date (optional)</Label
                         >
-                        <Input
+                        <DateField
                             id="document-issued"
                             v-model="upload.issuedOn"
-                            type="date"
+                            
                             class="max-lg:h-11"
                         />
                         <InputError :message="errors.issued_on" />
@@ -1296,10 +1296,10 @@ const bankDialog = computed(() => {
                         <Label for="document-expires"
                             >Expiry date (optional)</Label
                         >
-                        <Input
+                        <DateField
                             id="document-expires"
                             v-model="upload.expiresOn"
-                            type="date"
+                            
                             class="max-lg:h-11"
                         />
                         <InputError :message="errors.expires_on" />
@@ -1404,10 +1404,10 @@ const bankDialog = computed(() => {
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="period-start">Start date</Label>
-                        <Input
+                        <DateField
                             id="period-start"
                             v-model="period.startsOn"
-                            type="date"
+                            
                             class="max-lg:h-11"
                             :aria-invalid="!!errors.starts_on"
                         />
@@ -1417,10 +1417,10 @@ const bankDialog = computed(() => {
                         <Label for="period-probation"
                             >Probation ends (optional)</Label
                         >
-                        <Input
+                        <DateField
                             id="period-probation"
                             v-model="period.probationEndsOn"
-                            type="date"
+                            
                             class="max-lg:h-11"
                         />
                         <InputError :message="errors.probation_ends_on" />
@@ -1429,20 +1429,20 @@ const bankDialog = computed(() => {
                         <Label for="period-confirmed"
                             >Confirmed on (optional)</Label
                         >
-                        <Input
+                        <DateField
                             id="period-confirmed"
                             v-model="period.confirmedOn"
-                            type="date"
+                            
                             class="max-lg:h-11"
                         />
                         <InputError :message="errors.confirmed_on" />
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="period-end">End date (optional)</Label>
-                        <Input
+                        <DateField
                             id="period-end"
                             v-model="period.endsOn"
-                            type="date"
+                            
                             class="max-lg:h-11"
                             :aria-invalid="!!errors.ends_on"
                         />
@@ -1571,10 +1571,10 @@ const bankDialog = computed(() => {
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="position-from">Applies from</Label>
-                        <Input
+                        <DateField
                             id="position-from"
                             v-model="position.fromDate"
-                            type="date"
+                            
                             class="max-lg:h-11"
                             :aria-invalid="!!errors.from_date"
                         />
@@ -1682,10 +1682,10 @@ const bankDialog = computed(() => {
                     </template>
                     <div class="grid gap-1.5">
                         <Label for="personal-dob">Date of birth</Label>
-                        <Input
+                        <DateField
                             id="personal-dob"
                             v-model="personal.dateOfBirth"
-                            type="date"
+                            
                             class="max-lg:h-11"
                         />
                         <InputError :message="errors.date_of_birth" />

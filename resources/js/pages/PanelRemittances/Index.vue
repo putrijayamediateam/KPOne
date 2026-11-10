@@ -310,9 +310,9 @@ const record = () => {
                 </label>
                 <label class="grid min-w-0 gap-1 text-xs">
                     Date received
-                    <Input
+                    <DateField
                         v-model="form.receivedDate"
-                        type="date"
+                        
                         :max="branch.today"
                         :disabled="filters.panel === ''"
                     />

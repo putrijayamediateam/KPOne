@@ -169,10 +169,10 @@ const recordClose = () => {
                         for="report-date"
                     >
                         Business date
-                        <Input
+                        <DateField
                             id="report-date"
                             v-model="form.business_date"
-                            type="date"
+                            
                         />
                     </label>
                     <Button type="submit" variant="outline">Load day</Button>

@@ -712,9 +712,9 @@ const saveProblem = () => {
                     </label>
                     <label class="text-sm">
                         Onset date
-                        <input
+                        <DateField
                             v-model="problemForm.onset_date"
-                            type="date"
+                            
                             class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                         />
                     </label>

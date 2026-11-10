@@ -1391,9 +1391,9 @@ const toggleDescription = computed(() => {
                                     "
                             /></label>
                             <label class="grid gap-1 text-xs"
-                                >Expiry date<Input
+                                >Expiry date<DateField
                                     v-model="form.batch.expiry_date"
-                                    type="date" /><InputError
+                                     /><InputError
                                     :message="form.errors['batch.expiry_date']"
                             /></label>
                         </div>

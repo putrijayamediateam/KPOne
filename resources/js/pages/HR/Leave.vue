@@ -2032,10 +2032,10 @@ const calendarDays = computed(() =>
                 >
                     <div class="grid gap-2">
                         <Label for="holiday-date">Date</Label>
-                        <Input
+                        <DateField
                             id="holiday-date"
                             v-model="holidayForm.holiday_date"
-                            type="date"
+                            
                             class="h-11 sm:h-9"
                         />
                         <InputError
@@ -2267,10 +2267,10 @@ const calendarDays = computed(() =>
                     <div class="grid gap-4 sm:grid-cols-2 sm:items-start">
                         <div class="grid gap-2">
                             <Label for="apply-start">Start date *</Label>
-                            <Input
+                            <DateField
                                 id="apply-start"
                                 v-model="applyForm.start_date"
-                                type="date"
+                                
                                 class="h-11 sm:h-9"
                                 :aria-invalid="
                                     applyForm.errors.start_date
@@ -2288,10 +2288,10 @@ const calendarDays = computed(() =>
                         </div>
                         <div class="grid gap-2">
                             <Label for="apply-end">End date *</Label>
-                            <Input
+                            <DateField
                                 id="apply-end"
                                 v-model="applyForm.end_date"
-                                type="date"
+                                
                                 class="h-11 sm:h-9"
                                 :min="applyForm.start_date || undefined"
                                 :aria-invalid="

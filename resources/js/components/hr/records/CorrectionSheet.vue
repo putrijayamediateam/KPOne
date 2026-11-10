@@ -127,10 +127,10 @@ const send = () => {
                 </div>
                 <div v-else-if="kind === 'date_of_birth'" class="grid gap-1.5">
                     <Label for="correction-dob">New date of birth *</Label>
-                    <Input
+                    <DateField
                         id="correction-dob"
                         v-model="form.value"
-                        type="date"
+                        
                         class="max-lg:h-11"
                         :aria-invalid="!!errors.date_of_birth"
                     />

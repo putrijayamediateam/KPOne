@@ -1238,10 +1238,10 @@ const minimumError = (session: string, role: string) =>
                     </div>
                     <div class="grid gap-2">
                         <Label for="shift-date">Date *</Label>
-                        <Input
+                        <DateField
                             id="shift-date"
                             v-model="shiftForm.date"
-                            type="date"
+                            
                             :min="roster.week.start"
                             :max="roster.week.end"
                             :aria-invalid="

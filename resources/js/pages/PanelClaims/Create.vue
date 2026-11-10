@@ -279,10 +279,10 @@ const fieldAnnouncedErrors = new Set(['submitted_date', 'remarks', 'photos']);
                             for="submitted-date"
                             class="mb-2 block text-sm font-medium"
                             >Submitted date</label
-                        ><input
+                        ><DateField
                             id="submitted-date"
                             v-model="form.submitted_date"
-                            type="date"
+                            
                             required
                             :min="allocation.visitDate"
                             :max="branch.today"

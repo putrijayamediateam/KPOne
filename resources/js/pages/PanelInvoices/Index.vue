@@ -126,11 +126,11 @@ const canDownload = computed(() => props.ready && props.total > 0);
         >
             <label class="grid min-w-0 gap-1 text-xs">
                 Visit date from
-                <Input v-model="form.from" type="date" />
+                <DateField v-model="form.from"  />
             </label>
             <label class="grid min-w-0 gap-1 text-xs">
                 Visit date to
-                <Input v-model="form.to" type="date" />
+                <DateField v-model="form.to"  />
             </label>
             <label class="grid min-w-0 gap-1 text-xs">
                 Time from

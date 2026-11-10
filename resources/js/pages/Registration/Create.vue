@@ -705,13 +705,13 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             ? 'DOB *'
                             : 'DOB (optional)'
                     }}</span
-                    ><input
+                    ><DateField
                         v-model="quick.date_of_birth"
                         :required="requirements.requireDateOfBirth"
                         :aria-invalid="
                             !!errorFor('quick_patient.date_of_birth')
                         "
-                        type="date"
+                        
                         class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
                         :message="errorFor('quick_patient.date_of_birth')"
                 /></label>

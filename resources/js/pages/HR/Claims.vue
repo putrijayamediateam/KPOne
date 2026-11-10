@@ -812,10 +812,10 @@ const dialogOpen = computed(
             >
                 <div class="grid gap-1.5">
                     <Label for="claim-month">Month</Label>
-                    <Input
+                    <DateField
                         id="claim-month"
                         v-model="month"
-                        type="month"
+                        
                         class="w-44 max-lg:h-11"
                     />
                 </div>
@@ -1229,10 +1229,10 @@ const dialogOpen = computed(
             </div>
             <div class="grid gap-1.5">
                 <Label for="claim-pay-date">Paid on *</Label>
-                <Input
+                <DateField
                     id="claim-pay-date"
                     v-model="payment.paidOn"
-                    type="date"
+                    
                     :max="claims.today"
                     class="w-44 max-lg:h-11"
                 />

@@ -1389,9 +1389,9 @@ const reverse = (receipt: Receipt) =>
                                 needs approval and is not a cash receipt.
                             </p>
                             <label class="mt-2 block"
-                                >Pay later due date<input
+                                >Pay later due date<DateField
                                     v-model="form.due_date"
-                                    type="date"
+                                    
                                     class="billing-input" /></label
                             ><Button
                                 variant="secondary"
