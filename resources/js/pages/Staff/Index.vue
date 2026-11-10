@@ -1,10 +1,17 @@
 <script setup lang="ts">
-import { Head, Link, router } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Plus, Search, X } from '@lucide/vue';
-import { computed, reactive } from 'vue';
+import { computed, reactive, ref } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+    Card,
+    CardContent,
+    CardDescription,
+    CardHeader,
+    CardTitle,
+} from '@/components/ui/card';
+import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { formatRoleLabel } from '@/lib/displayLabels';
@@ -25,7 +32,82 @@ const props = defineProps<{
     };
     filterOptions: StaffOptions;
     canCreate: boolean;
+    // HR-17e: HR's staff-account requests; null for anyone who may not create staff accounts.
+    accountRequests?: AccountRequest[] | null;
+    // HR-15a: locum sign-ins HR asked for, and the locum accounts that can be linked; same audience.
+    locumSignIns?: { requests: LocumSignIn[] } | null;
 }>();
+
+type LocumSignIn = {
+    id: string;
+    name: string;
+    email: string;
+    requestedOn: string;
+    requestedBy: string;
+    lockVersion: number;
+    // The account with the email HR asked for, holding the Locum role only; null until it is created.
+    account: { id: string; name: string } | null;
+};
+const page = usePage();
+const linkError = computed(() => {
+    const errors = (page.props.errors ?? {}) as Record<
+        string,
+        string | undefined
+    >;
+
+    return errors.user_id ?? errors.request ?? errors.records ?? null;
+});
+const linking = ref<string | null>(null);
+const linkLocum = (request: LocumSignIn) => {
+    linking.value = request.id;
+    router.post(
+        `/staff/locum-sign-ins/${request.id}/link`,
+        {
+            user_id: request.account?.id ?? '',
+            expected_lock_version: request.lockVersion,
+            idempotency_key: crypto.randomUUID(),
+        },
+        { preserveScroll: true, onFinish: () => (linking.value = null) },
+    );
+};
+
+type AccountRequest = {
+    id: string;
+    name: string;
+    email: string;
+    position: string;
+    branch: string;
+    requestedOn: string;
+    requestedBy: string;
+    lockVersion: number;
+};
+const marking = ref<AccountRequest | null>(null);
+const markKey = ref(crypto.randomUUID());
+const markProcessing = ref(false);
+const markDone = () => {
+    const request = marking.value;
+
+    if (!request) {
+        return;
+    }
+
+    markProcessing.value = true;
+    router.post(
+        `/staff/account-requests/${request.id}/done`,
+        {
+            expected_lock_version: request.lockVersion,
+            idempotency_key: markKey.value,
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                marking.value = null;
+                markKey.value = crypto.randomUUID();
+            },
+            onFinish: () => (markProcessing.value = false),
+        },
+    );
+};
 
 const form = reactive({
     search: props.filters.search ?? '',
@@ -94,6 +176,140 @@ const clearFilters = () => {
                 >
             </template>
         </PageHeader>
+
+        <Card
+            v-if="accountRequests && accountRequests.length"
+            data-test="staff-account-requests"
+        >
+            <CardHeader>
+                <CardTitle class="text-base"
+                    >Staff accounts HR asked for</CardTitle
+                >
+                <CardDescription>
+                    Candidates who passed and accepted. Create each account the
+                    usual way with Create staff, then mark the request done.
+                    Nothing is created from this list.
+                </CardDescription>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-3">
+                <ul class="flex flex-col gap-2">
+                    <li
+                        v-for="request in accountRequests"
+                        :key="request.id"
+                        class="flex flex-col gap-2 rounded-lg border p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
+                    >
+                        <div class="flex min-w-0 flex-col">
+                            <span class="font-medium break-words">{{
+                                request.name
+                            }}</span>
+                            <span class="break-all text-muted-foreground">{{
+                                request.email
+                            }}</span>
+                            <span class="text-muted-foreground"
+                                >{{ request.position }} · {{ request.branch }} ·
+                                asked on {{ request.requestedOn }} by
+                                {{ request.requestedBy }}</span
+                            >
+                        </div>
+                        <Button
+                            variant="outline"
+                            class="max-lg:min-h-11"
+                            :aria-label="`Mark done: ${request.name}`"
+                            data-test="staff-account-request-done"
+                            @click="marking = request"
+                            >Mark done</Button
+                        >
+                    </li>
+                </ul>
+            </CardContent>
+        </Card>
+
+        <Card
+            v-if="locumSignIns && locumSignIns.requests.length"
+            data-test="staff-locum-sign-ins"
+        >
+            <CardHeader>
+                <CardTitle class="text-base"
+                    >Locum sign-ins HR asked for</CardTitle
+                >
+                <CardDescription>
+                    Create each account the usual way with Create staff, with
+                    the Locum role only, then link it here. A locum sees only
+                    their own approved shifts and the open shifts at their
+                    branches.
+                </CardDescription>
+                <p
+                    class="text-sm text-muted-foreground"
+                    data-test="locum-director-only"
+                >
+                    Only the Director can create a Locum account.
+                </p>
+            </CardHeader>
+            <CardContent class="flex flex-col gap-3">
+                <p
+                    v-if="linkError"
+                    role="alert"
+                    class="text-sm text-destructive"
+                    data-test="staff-locum-link-error"
+                >
+                    {{ linkError }}
+                </p>
+                <ul class="flex flex-col gap-2">
+                    <li
+                        v-for="request in locumSignIns.requests"
+                        :key="request.id"
+                        class="flex flex-col gap-3 rounded-lg border p-3 text-sm lg:flex-row lg:items-end lg:justify-between"
+                    >
+                        <div class="flex min-w-0 flex-col">
+                            <span class="font-medium break-words">{{
+                                request.name
+                            }}</span>
+                            <span class="break-all text-muted-foreground">{{
+                                request.email
+                            }}</span>
+                            <span class="text-muted-foreground"
+                                >Locum · asked on {{ request.requestedOn }} by
+                                {{ request.requestedBy }}</span
+                            >
+                        </div>
+                        <Button
+                            v-if="request.account"
+                            variant="outline"
+                            class="max-lg:min-h-11"
+                            :disabled="linking === request.id"
+                            :aria-label="`Link ${request.account.name} to ${request.name}`"
+                            data-test="staff-locum-link"
+                            @click="linkLocum(request)"
+                            >{{
+                                linking === request.id
+                                    ? 'Linking…'
+                                    : `Link ${request.account.name}`
+                            }}</Button
+                        >
+                        <p
+                            v-else
+                            class="text-muted-foreground lg:max-w-xs"
+                            data-test="staff-locum-none"
+                        >
+                            No account with this email yet. Create it with
+                            Create staff, using this email and the Locum role
+                            only.
+                        </p>
+                    </li>
+                </ul>
+            </CardContent>
+        </Card>
+
+        <OperationalConfirmDialog
+            :open="marking !== null"
+            :title="`Mark done: ${marking?.name ?? ''}?`"
+            description="Only once you have created their staff account with Create staff. HR sees that the account exists."
+            confirm-label="Mark done"
+            cancel-label="Not yet"
+            :processing="markProcessing"
+            @update:open="(open) => !open && (marking = null)"
+            @confirm="markDone"
+        />
 
         <Card>
             <CardHeader class="pb-4"

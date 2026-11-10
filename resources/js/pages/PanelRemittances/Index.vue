@@ -5,6 +5,7 @@ import { toast } from 'vue-sonner';
 import PanelStatementHelper from '@/components/panel/PanelStatementHelper.vue';
 import type { Statement } from '@/components/panel/PanelStatementHelper.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageHeader } from '@/components/ui/page-header';
@@ -310,11 +311,11 @@ const record = () => {
                 </label>
                 <label class="grid min-w-0 gap-1 text-xs">
                     Date received
-                    <Input
+                    <DateField
                         v-model="form.receivedDate"
-                        type="date"
                         :max="branch.today"
                         :disabled="filters.panel === ''"
+                        :echo="false"
                     />
                 </label>
                 <label class="grid min-w-0 gap-1 text-xs md:col-span-2">

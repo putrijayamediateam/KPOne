@@ -8,7 +8,7 @@ use Illuminate\Contracts\Console\Kernel;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-// DSP-7 contention worker: runs one record or check against a disposable race database while the test holds the
+// DSP-7 and DSP-16 contention worker: runs one record or check against a disposable race database while the test holds the
 // competing transaction, so the test can prove the worker waits on a lock and then sees the committed result.
 require __DIR__.'/../../vendor/autoload.php';
 $app = require __DIR__.'/../../bootstrap/app.php';
@@ -41,7 +41,8 @@ try {
     echo 'SUCCEEDED'.PHP_EOL;
 } catch (ValidationException $e) {
     $field = array_key_first($e->errors());
-    if (! in_array($field, ['quantity', 'state', 'expected_return_count'], true)) {
+    // DSP-16: a split quarantine is refused on its batches ("batches" or "batches.N.quantity").
+    if (! in_array($field, ['quantity', 'state', 'expected_return_count'], true) && ! str_starts_with((string) $field, 'batches')) {
         throw $e;
     }
     echo 'REFUSED '.$field.PHP_EOL;

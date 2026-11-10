@@ -4,8 +4,10 @@ import { computed } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
+import { formatDate } from '@/lib/presentation';
 
 type PaymentMethod = {
     id: number;
@@ -169,10 +171,10 @@ const recordClose = () => {
                         for="report-date"
                     >
                         Business date
-                        <Input
+                        <DateField
                             id="report-date"
                             v-model="form.business_date"
-                            type="date"
+                            :echo="false"
                         />
                     </label>
                     <Button type="submit" variant="outline">Load day</Button>
@@ -493,7 +495,12 @@ const recordClose = () => {
         </section>
 
         <section class="rounded-xl border bg-card p-4">
-            <h2 class="font-semibold">Close history — {{ businessDate }}</h2>
+            <h2 class="font-semibold">
+                Close history —
+                <span class="whitespace-nowrap">{{
+                    formatDate(businessDate)
+                }}</span>
+            </h2>
             <p class="mt-1 text-sm text-muted-foreground">
                 Latest revisions are shown first. This is summary-level
                 evidence; no patient details are displayed.

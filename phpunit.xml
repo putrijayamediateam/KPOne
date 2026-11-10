@@ -19,9 +19,15 @@
             <exclude>tests/Feature/HR/PostgresAttendanceContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresOvertimeContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresRecordsContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresMemosContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresLettersContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresDisciplineContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresIncidentsContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresOpenShiftsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresCredentialsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresClaimsContentionTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresPayrollContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresInterviewContentionTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
@@ -63,9 +69,15 @@
             <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
             <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>
             <file>tests/Feature/HR/PostgresRecordsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresMemosContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresLettersContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresDisciplineContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresIncidentsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresOpenShiftsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresCredentialsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresPayrollContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresInterviewContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>

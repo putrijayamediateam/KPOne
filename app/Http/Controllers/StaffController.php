@@ -2,14 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Audit\AuditRecorder;
+use App\Domain\HR\Applications\Services\StaffAccountRequests;
+use App\Domain\HR\Records\Services\LocumSignIns;
 use App\Domain\Identity\Services\StaffAdministrationService;
 use App\Domain\Identity\Services\StaffDirectoryService;
 use App\Domain\Identity\Services\StaffProvisioningService;
 use App\Http\Requests\StoreStaffRequest;
 use App\Http\Requests\UpdateStaffRequest;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
@@ -24,7 +29,43 @@ class StaffController extends Controller
             'filters' => $filters,
             'filterOptions' => $directory->filterOptions($request->user()),
             'canCreate' => $request->user()->can('create', User::class),
+            // HR-17e: HR's staff-account requests, only for whoever may create staff accounts.
+            'accountRequests' => StaffAccountRequests::openFor($request->user()),
+            // HR-15a: locum sign-ins HR asked for, and the locum accounts that can be linked; same audience.
+            'locumSignIns' => LocumSignIns::openFor($request->user()),
         ]);
+    }
+
+    /** HR-17e: the account administrator marks HR's request done once the account exists. Creates nothing itself. */
+    public function accountRequestDone(Request $request, StaffAccountRequests $requests, string $accountRequest): RedirectResponse
+    {
+        try {
+            $requests->done($request->user(), $accountRequest, $request->only(['expected_lock_version', 'idempotency_key']));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('staff.index'));
+        } catch (AuthorizationException) {
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
+            abort(403);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Marked done. HR sees that the account exists.']);
+
+        return to_route('staff.index');
+    }
+
+    /** HR-15a: link the locum account just created to the locum's file. Creates no account itself. */
+    public function linkLocumSignIn(Request $request, LocumSignIns $signIns, string $signIn): RedirectResponse
+    {
+        try {
+            $signIns->link($request->user(), $signIn, $request->only(['user_id', 'expected_lock_version', 'idempotency_key']));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('staff.index'));
+        } catch (AuthorizationException) {
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
+            abort(403);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Linked. The locum can sign in and see their approved shifts.']);
+
+        return to_route('staff.index');
     }
 
     public function create(Request $request, StaffDirectoryService $directory): Response

@@ -3,6 +3,7 @@
 namespace App\Domain\HR\Payroll\Services;
 
 use App\Domain\HR\Attendance\Services\AttendanceTotals;
+use App\Domain\HR\Payroll\PayProfileMtd;
 use App\Domain\HR\Records\Models\Worker;
 use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\DecryptException;
@@ -235,7 +236,8 @@ final class PayrollRunCalculator
                 $worked = null;
                 $typed = array_key_exists((int) $workerId, $mtd);
                 $stop = null;
-                if (($profile->mtd_category ?? null) !== null) {
+                $details = PayProfileMtd::read($profile);
+                if ($details !== null) {
                     // Any manual line of a type that counts for MTD is one-off pay, even when lines cancel out (Suresh, re-check minor 1).
                     $oneOff = collect($lines)->contains(fn (array $l): bool => $l['kind'] === 'manual' && $l['itemTypeId'] !== null
                         && (bool) ($types->get($l['itemTypeId'].':'.$l['itemTypeVersion'])->counts_mtd ?? false));
@@ -253,8 +255,7 @@ final class PayrollRunCalculator
                         }
                         $ytd = $yearToDate[(int) $workerId] ?? ['y' => 0, 'k' => 0, 'x' => 0];
                         $worked = MtdCalculator::month($schedule['values'], $schedule['bands'],
-                            ['category' => (int) $profile->mtd_category, 'children' => (int) $profile->mtd_children,
-                                'disabled_self' => (bool) $profile->mtd_disabled_self, 'disabled_spouse' => (bool) $profile->mtd_disabled_spouse],
+                            $details,
                             ['y' => $ytd['y'], 'k' => $ytd['k'], 'x' => $ytd['x'], 'y1' => self::schemeWage($lines, $types, 'mtd'), 'k1' => $epf], (int) $start->format('n'));
                         if ($worked === null) {
                             $stop = 'no_mtd_band';
@@ -271,7 +272,7 @@ final class PayrollRunCalculator
                         }
                     }
                 }
-                $how = $worked === null ? null : PayrollMoney::rm($worked['chargeable']).' chargeable for the year, category '.(int) $profile->mtd_category
+                $how = $worked === null ? null : PayrollMoney::rm($worked['chargeable']).' chargeable for the year, category '.(int) ($details['category'] ?? 0)
                     .', '.$worked['monthsLeft'].' '.($worked['monthsLeft'] === 1 ? 'month' : 'months').' left';
                 if ($typed) {
                     if ($worked !== null) {
@@ -281,7 +282,7 @@ final class PayrollRunCalculator
                         .($worked === null ? '' : ' (worked out: '.PayrollMoney::rm($worked['amount']).')'), 'profile', (int) $profile->id);
                 } elseif ($worked !== null) {
                     $lines[] = $this->line('mtd', 'mtd', $worked['amount'], 'MTD (PCB) · worked out: '.$how, 'mtd_schedule', $schedule['id'] ?? null);
-                } elseif (($profile->mtd_category ?? null) === null) {
+                } elseif ($details === null) {
                     $errors[] = 'mtd_missing';
                 }
             }
