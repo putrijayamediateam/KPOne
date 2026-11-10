@@ -60,3 +60,11 @@ test('every refusal of the start date form is shown, not only a bad date', () =>
         assert.ok(page.includes(`errors?.${key}`), key);
     }
 });
+
+test('a start date moved later is announced on the month page (owner decision 2026-11-10)', () => {
+    assert.ok(page.includes('data-testid="start-date-moved-later"'));
+    assert.ok(
+        page.includes('Start date changed on {{ startDate.setAt }} (was'),
+    );
+    assert.ok(month.includes('movedLaterFrom: string | null;'));
+});

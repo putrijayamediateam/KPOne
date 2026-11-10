@@ -57,6 +57,7 @@ const props = defineProps<{
             startsOn: string | null;
             revision: number;
             setBy: string | null;
+            movedLaterFrom: string | null;
             setAt: string | null;
             canSet: boolean;
         };

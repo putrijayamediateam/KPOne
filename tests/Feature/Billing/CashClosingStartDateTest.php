@@ -64,7 +64,7 @@ class CashClosingStartDateTest extends ClinicalTestCase
             ->assertRedirect(route('cash-closings.month', ['month' => '2026-11']))->assertSessionHasNoErrors();
         $this->get(route('cash-closings.month'))->assertInertia(fn (Assert $page) => $page
             ->where('cashClosingMonth.startsOn', '2026-11-02')->where('cashClosingMonth.startDate.revision', 1)
-            ->where('cashClosingMonth.startDate.canSet', true)->where('cashClosingMonth.startDate.setBy', $finance->name)
+            ->where('cashClosingMonth.startDate.canSet', true)->where('cashClosingMonth.startDate.setBy', $finance->name)->where('cashClosingMonth.startDate.movedLaterFrom', null)
             ->where('cashClosingMonth.rows.0.status', 'before_start')
             ->where('cashClosingMonth.rows.1.status', 'not_counted')->where('cashClosingMonth.rows.2.status', 'not_counted')
             ->where('cashClosingMonth.rows.3.status', 'waiting')->where('cashClosingMonth.summary.notCounted', 2));
@@ -76,7 +76,8 @@ class CashClosingStartDateTest extends ClinicalTestCase
         $this->selectBranch($director);
         $this->post(route('cash-closings.start-date'), [...$this->input('2026-11-03'), 'expected_revision' => 1])->assertSessionHasNoErrors();
         $this->get(route('cash-closings.month'))->assertInertia(fn (Assert $page) => $page
-            ->where('cashClosingMonth.rows.1.status', 'before_start')->where('cashClosingMonth.rows.2.status', 'not_counted'));
+            ->where('cashClosingMonth.rows.1.status', 'before_start')->where('cashClosingMonth.rows.2.status', 'not_counted')
+            ->where('cashClosingMonth.startDate.movedLaterFrom', '2026-11-02')); // Owner decision 2026-11-10: the page says it moved later.
         $this->assertSame(['2026-11-02', '2026-11-03'], CashClosingStartDate::query()->orderBy('revision')->get()->map(fn ($r) => $r->starts_on->toDateString())->all());
 
         // A start date in the future marks nothing as missed this month, but never hides the count already made:
@@ -88,6 +89,10 @@ class CashClosingStartDateTest extends ClinicalTestCase
         // A month with no counts before the start date reads "starts" and shows nothing to count.
         $this->get(route('cash-closings.month', ['month' => '2026-10']))->assertInertia(fn (Assert $page) => $page
             ->where('cashClosingMonth.beforeStart', true)->where('cashClosingMonth.hasClosings', false)->where('cashClosingMonth.summary.notCounted', 0));
+        // Moved earlier again: nothing is hidden, so no note.
+        $this->post(route('cash-closings.start-date'), [...$this->input('2026-11-01'), 'expected_revision' => 3])->assertSessionHasNoErrors();
+        $this->get(route('cash-closings.month'))->assertInertia(fn (Assert $page) => $page
+            ->where('cashClosingMonth.startDate.movedLaterFrom', null)->where('cashClosingMonth.rows.0.status', 'not_counted'));
     }
 
     public function test_bad_dates_stale_revisions_retries_and_other_branches_are_handled(): void

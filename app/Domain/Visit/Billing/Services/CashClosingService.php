@@ -371,13 +371,20 @@ final class CashClosingService
         }, 3);
     }
 
-    /** @return array{startsOn: string|null, revision: int, setBy: string|null, setAt: string|null, canSet: bool} */
+    /** @return array{startsOn: string|null, revision: int, setBy: string|null, movedLaterFrom: string|null, setAt: string|null, canSet: bool} */
     private function startDateContext(User $actor, Branch $branch, ?CarbonImmutable $setStart): array
     {
         $row = CashClosingStartDate::query()->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->orderByDesc('revision')->first();
         $name = $row === null ? null : ($this->staff->visibleUsers($actor)->whereKey($row->set_by_user_id)->value('name') ?? 'Staff member');
 
-        return ['startsOn' => $setStart?->toDateString(), 'revision' => (int) ($row->revision ?? 0), 'setBy' => $name,
+        // Owner decision 2026-11-10: a start date moved later is allowed, but the month page says so, because days
+        // before the new date stop showing as missed.
+        $previous = $row === null || $row->revision < 2 ? null : CashClosingStartDate::query()->where('organisation_id', $branch->organisation_id)
+            ->where('branch_id', $branch->id)->where('revision', $row->revision - 1)->value('starts_on');
+        $previous = $previous === null ? null : CarbonImmutable::parse((string) $previous)->toDateString();
+        $movedLaterFrom = $previous !== null && $setStart !== null && $previous < $setStart->toDateString() ? $previous : null;
+
+        return ['startsOn' => $setStart?->toDateString(), 'revision' => (int) ($row->revision ?? 0), 'setBy' => $name, 'movedLaterFrom' => $movedLaterFrom,
             'setAt' => $row?->set_at->setTimezone($branch->timezone)->format('j M Y, g:i A'), 'canSet' => $actor->can(self::START_DATE_PERMISSION)];
     }
 

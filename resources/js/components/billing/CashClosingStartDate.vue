@@ -9,6 +9,7 @@ const props = defineProps<{
         startsOn: string | null;
         revision: number;
         setBy: string | null;
+        movedLaterFrom: string | null;
         setAt: string | null;
         canSet: boolean;
     };
@@ -86,6 +87,16 @@ const saveStart = () => {
                 Not set. Days before the branch's first count are not marked as
                 missed.
             </template>
+        </p>
+        <p
+            v-if="startDate.movedLaterFrom && startDate.startsOn"
+            class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+            data-testid="start-date-moved-later"
+        >
+            Start date changed on {{ startDate.setAt }} (was
+            {{ plainDate(startDate.movedLaterFrom) }}). Days before
+            {{ plainDate(startDate.startsOn) }} are no longer marked as Not
+            counted.
         </p>
         <form
             v-if="startDate.canSet"
