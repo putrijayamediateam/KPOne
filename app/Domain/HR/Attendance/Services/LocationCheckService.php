@@ -289,7 +289,7 @@ final class LocationCheckService
                     'radiusMetres' => $on ? (int) $s->radius_metres : null,
                     'consentEn' => $on ? (string) $s->consent_en : null,
                     'consentBm' => $on ? (string) $s->consent_bm : null,
-                    'since' => $on ? AttendanceSupport::day(CarbonImmutable::parse((string) $s->created_at)) : null];
+                    'since' => $on ? AttendanceSupport::day(CarbonImmutable::parse((string) $s->created_at)->setTimezone($b->timezone)) : null];
             })->values()->all(),
         ];
     }
