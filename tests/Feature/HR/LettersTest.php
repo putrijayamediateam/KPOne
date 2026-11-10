@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\RowCopies;
 
 /**
  * HR-10a letters (HR-PLAN 20.3; owner, 2026-11-10). Synthetic data only.
@@ -301,6 +302,36 @@ class LettersTest extends VisitTestCase
     }
 
     // ---- fixture ----
+
+    public function test_the_issued_list_finds_a_letter_behind_more_than_200_newer_letters_the_viewer_may_not_see(): void
+    {
+        // TEAM.md section 7 hardening: who the viewer may see is worked out first, so the 200-row limit never hides an
+        // older letter they may see behind newer letters to people they may not manage.
+        $this->businessDetails();
+        $template = $this->template();
+        $this->travelTo(CarbonImmutable::parse('2026-11-10 08:00', $this->branch->timezone));
+        $this->issue($this->file($this->actor('ca')), $template)->assertSessionHasNoErrors();
+        $visible = (string) DB::table('hr_letters')->orderByDesc('id')->value('public_id');
+        $this->travelTo(CarbonImmutable::parse('2026-11-10 09:00', $this->branch->timezone));
+        $director2 = $this->actor('director');
+        $directorFile = $this->file($this->director, $director2);
+        $this->selectBranch($director2);
+        $this->issue($directorFile, $template)->assertSessionHasNoErrors();
+        // The insert guard requires each number to come from the counter, so the counter is stepped for every copy, as issuing does.
+        $hidden = DB::table('hr_letters')->where('worker_id', $directorFile->id)->sole();
+        for ($g = 1; $g <= 200; $g++) {
+            DB::table('hr_letter_counters')->where('organisation_id', $hidden->organisation_id)->where('year', $hidden->year)->increment('last_number');
+            $number = (int) DB::table('hr_letter_counters')->where('organisation_id', $hidden->organisation_id)->where('year', $hidden->year)->value('last_number');
+            RowCopies::copy('hr_letters', (int) $hidden->id, 1, ['issued_at' => "t.issued_at - interval '{$g} second'", 'number' => (string) $number,
+                'reference' => "'HRL/' || t.year || '/' || lpad('{$number}', 6, '0')"]);
+        }
+
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.letters.index', ['tab' => 'issued']))->assertInertia(fn (Assert $page) => $page->has('letters.issued', 1)
+            ->where('letters.issued.0.id', $visible));
+        $this->selectBranch($director2);
+        $this->get(route('hr.letters.index', ['tab' => 'issued']))->assertInertia(fn (Assert $page) => $page->has('letters.issued', 200));
+    }
 
     /** @param array<string, mixed> $overrides */
     private function templateInput(array $overrides = []): array
