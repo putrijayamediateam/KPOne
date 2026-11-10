@@ -90,7 +90,8 @@ final class DisciplineService
                 'created_at' => $now, 'updated_at' => $now]);
             $this->event($actor, $caseId, 'opened');
             $this->support->remember($actor, $key, 'discipline_open', $hash, $publicId);
-            $this->support->audit->record('hr.discipline.case_opened', $worker, ['case_id' => $caseId], $actor, null, $actor->organisation_id);
+            // No audit subject: the audit log must not show whom a case is about (Suresh, M2).
+            $this->support->audit->record('hr.discipline.case_opened', null, ['case_id' => $caseId], $actor, null, $actor->organisation_id);
 
             return $publicId;
         }, 3);
@@ -138,6 +139,11 @@ final class DisciplineService
         $written = [];
         try {
             $this->append($actor, $caseId, $input, 'file', [$prepared['sha256']], function (\stdClass $case) use ($actor, $prepared, &$written): array {
+                // A deadlock retry runs this again: remove what an earlier attempt wrote (Suresh, m2).
+                foreach ($written as $stale) {
+                    Storage::disk(DocumentService::DISK)->delete($stale);
+                }
+                $written = [];
                 if (DB::table('hr_discipline_files')->where('case_id', $case->id)->where('sha256', $prepared['sha256'])->exists()) {
                     throw ValidationException::withMessages(['file' => 'This file is already on the case.']);
                 }

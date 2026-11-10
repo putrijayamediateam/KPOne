@@ -124,6 +124,8 @@ class DisciplineTest extends VisitTestCase
         $this->assertSame(['hr.discipline.case_opened', 'hr.discipline.note_added', 'hr.discipline.show_cause_added', 'hr.discipline.reply_added', 'hr.discipline.file_added',
             'hr.discipline.case_viewed', 'hr.discipline.file_opened', 'hr.discipline.case_closed'], $audit);
         $this->assertStringNotContainsString('SYNTHETIC', DB::table('audit_logs')->get()->toJson());
+        // The audit log never names whom a case is about (Suresh, M2).
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'like', 'hr.discipline.%')->whereNotNull('subject_id')->count());
         $this->assertStringNotContainsString('Second time', DB::table('audit_logs')->get()->toJson());
     }
 
@@ -149,6 +151,21 @@ class DisciplineTest extends VisitTestCase
         $this->get(route('hr.discipline.show', $case))->assertForbidden();
         $this->selectBranch($otherHr);
         $this->get(route('hr.discipline.show', $case))->assertForbidden();
+        // PostgreSQL also refuses an HR Manager's entry on it (Suresh, m1).
+        $caseRow = DB::table('hr_discipline_cases')->where('public_id', $case)->sole();
+        $this->assertRefused('23514', fn () => DB::table('hr_discipline_events')->insert(['organisation_id' => $caseRow->organisation_id, 'case_id' => $caseRow->id,
+            'kind' => 'note', 'body_encrypted' => Crypt::encryptString('x'), 'actor_user_id' => $this->hr->id, 'created_at' => now()]));
+        // HR-10a's Issued list leaves out a show-cause letter to the other HR Manager, so the case is not revealed (Suresh, M3).
+        $this->businessDetails();
+        $this->selectBranch($this->director);
+        $body = "Dear {name},\n\n{details}\n\nReference {reference}, dated {date}.";
+        $this->post(route('hr.letters.templates.store'), ['type' => 'show_cause', 'title' => 'Synthetic show cause', 'title_bm' => 'Tunjuk sebab sintetik', 'body_en' => $body,
+            'body_bm' => $body, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->post(route('hr.letters.issue'), ['worker_id' => $hrFile->public_id, 'template_id' => (string) DB::table('hr_letter_templates')->orderByDesc('id')->value('public_id'),
+            'language' => 'en', 'details' => 'Synthetic details.', 'expected_template_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->get(route('hr.letters.index', ['tab' => 'issued']))->assertInertia(fn (Assert $page) => $page->has('letters.issued', 1));
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.letters.index', ['tab' => 'issued']))->assertInertia(fn (Assert $page) => $page->where('letters.issued', []));
 
         // A locum file (no account) can have a case.
         $locum = app(StaffFileService::class)->addLocum($this->hr, ['display_name' => 'Synthetic Locum', 'phone' => '012-345 6789', 'idempotency_key' => (string) Str::uuid()]);

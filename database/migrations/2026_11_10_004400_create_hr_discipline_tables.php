@@ -37,9 +37,9 @@ return new class extends Migration
             $t->foreign('organisation_id', 'hr_discipline_cases_org_fk')->references('id')->on('organisations')->restrictOnDelete();
             $t->foreign(['worker_id', 'organisation_id'], 'hr_discipline_cases_worker_fk')->references(['id', 'organisation_id'])->on('hr_workers')->restrictOnDelete();
             foreach (['subject_user_id', 'opened_by_user_id', 'closed_by_user_id'] as $column) {
-                $t->foreign($column, "hr_discipline_cases_{$column}_fk")->references('id')->on('users')->restrictOnDelete();
+                $t->foreign([$column, 'organisation_id'], "hr_discipline_cases_{$column}_fk")->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
             }
-            $t->foreign('outcome_letter_id', 'hr_discipline_cases_letter_fk')->references('id')->on('hr_letters')->restrictOnDelete();
+            $t->foreign(['outcome_letter_id', 'organisation_id'], 'hr_discipline_cases_letter_fk')->references(['id', 'organisation_id'])->on('hr_letters')->restrictOnDelete();
             $t->index(['organisation_id', 'status', 'opened_at'], 'hr_discipline_cases_list_idx');
             $t->index('worker_id', 'hr_discipline_cases_worker_idx');
         });
@@ -64,7 +64,7 @@ return new class extends Migration
             $t->unique(['id', 'organisation_id'], 'hr_discipline_files_id_org_unique');
             $t->unique(['case_id', 'sha256'], 'hr_discipline_files_once');
             $t->foreign(['case_id', 'organisation_id'], 'hr_discipline_files_case_fk')->references(['id', 'organisation_id'])->on('hr_discipline_cases')->restrictOnDelete();
-            $t->foreign('uploaded_by_user_id', 'hr_discipline_files_user_fk')->references('id')->on('users')->restrictOnDelete();
+            $t->foreign(['uploaded_by_user_id', 'organisation_id'], 'hr_discipline_files_user_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
         });
         DB::statement("ALTER TABLE hr_discipline_files ADD CONSTRAINT hr_discipline_files_shape CHECK (kind IN ('pdf', 'jpeg', 'png') AND bytes > 0)");
 
@@ -80,9 +80,9 @@ return new class extends Migration
             $t->unsignedBigInteger('actor_user_id');
             $t->timestampTz('created_at');
             $t->foreign(['case_id', 'organisation_id'], 'hr_discipline_events_case_fk')->references(['id', 'organisation_id'])->on('hr_discipline_cases')->restrictOnDelete();
-            $t->foreign('letter_id', 'hr_discipline_events_letter_fk')->references('id')->on('hr_letters')->restrictOnDelete();
+            $t->foreign(['letter_id', 'organisation_id'], 'hr_discipline_events_letter_fk')->references(['id', 'organisation_id'])->on('hr_letters')->restrictOnDelete();
             $t->foreign(['file_id', 'organisation_id'], 'hr_discipline_events_file_fk')->references(['id', 'organisation_id'])->on('hr_discipline_files')->restrictOnDelete();
-            $t->foreign('actor_user_id', 'hr_discipline_events_actor_fk')->references('id')->on('users')->restrictOnDelete();
+            $t->foreign(['actor_user_id', 'organisation_id'], 'hr_discipline_events_actor_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
             $t->index(['case_id', 'id'], 'hr_discipline_events_case_idx');
         });
         DB::statement("ALTER TABLE hr_discipline_events ADD CONSTRAINT hr_discipline_events_shape CHECK (
@@ -143,6 +143,7 @@ END $$;
 CREATE TRIGGER hr_discipline_cases_guard BEFORE UPDATE ON hr_discipline_cases FOR EACH ROW EXECUTE FUNCTION guard_hr_discipline_case();
 
 -- Events and files are added only while the case is open; a show-cause link is a current show-cause letter of the same person.
+-- The case row is read without a lock: every write path (DisciplineService::managed and close) already holds it FOR UPDATE.
 CREATE OR REPLACE FUNCTION guard_hr_discipline_event_insert() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE c record;
 BEGIN
@@ -158,6 +159,9 @@ BEGIN
  END IF;
  IF NEW.actor_user_id IS NOT DISTINCT FROM c.subject_user_id THEN
   RAISE EXCEPTION 'Nobody records their own discipline case' USING ERRCODE = '23514';
+ END IF;
+ IF c.subject_user_id IS NOT NULL AND NOT hr_discipline_director_only(c.subject_user_id, NEW.actor_user_id) THEN
+  RAISE EXCEPTION 'A Director''s or HR Manager''s case is written only by a Director' USING ERRCODE = '23514';
  END IF;
  IF NEW.kind = 'show_cause' AND NOT EXISTS (SELECT 1 FROM hr_letters l WHERE l.id = NEW.letter_id AND l.worker_id = c.worker_id
      AND l.organisation_id = c.organisation_id AND l.type = 'show_cause' AND l.voided_at IS NULL) THEN
@@ -185,13 +189,5 @@ CREATE TRIGGER hr_discipline_files_no_truncate BEFORE TRUNCATE ON hr_discipline_
 SQL);
     }
 
-    public function down(): void
-    {
-        foreach (['hr_discipline_events', 'hr_discipline_files', 'hr_discipline_cases'] as $table) {
-            DB::statement("DROP TABLE IF EXISTS {$table} CASCADE");
-        }
-        DB::unprepared('DROP FUNCTION IF EXISTS guard_hr_discipline_file_insert(); DROP FUNCTION IF EXISTS guard_hr_discipline_event_insert();
-            DROP FUNCTION IF EXISTS guard_hr_discipline_case(); DROP FUNCTION IF EXISTS guard_hr_discipline_case_insert();
-            DROP FUNCTION IF EXISTS hr_discipline_director_only(bigint, bigint);');
-    }
+    public function down(): void {} // HR record evidence is retained, following the evidence convention.
 };
