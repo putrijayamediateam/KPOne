@@ -101,10 +101,41 @@ final class CandidateLink
             'stageLabel' => self::CANDIDATE_STAGES[$application->status] ?? 'Closed',
             'stageLabelMs' => self::CANDIDATE_STAGES_MS[$application->status] ?? 'Ditutup',
             'open' => in_array($application->status, JobApplicationService::OPEN, true),
+            'interview' => self::interviewView($application),
             'submittedOn' => CarbonImmutable::parse($application->submitted_at)->setTimezone($zone)->toDateString(),
             'messages' => array_map(fn (array $m): array => ['label' => HiringTemplates::candidateLabel($m['template']), 'subject' => $m['subject'], 'body' => $m['body'], 'at' => $m['at']],
                 HiringMessenger::listFor($application, true)),
         ];
+    }
+
+    /**
+     * HR-17c: at Scheduling, the slots to pick or the picks waiting for the clinic; at Interview, the confirmed time.
+     *
+     * @return array<string, mixed>|null
+     */
+    public static function interviewView(\stdClass $application): ?array
+    {
+        $slots = app(InterviewSlots::class);
+        $branch = $slots->branchFor($application);
+        $zone = $branch['zone'] ?? 'UTC';
+        $label = fn (string $at): string => CarbonImmutable::parse($at)->setTimezone($zone)->format('D j M Y, g:i A');
+        if ($application->status === 'scheduling') {
+            $pick = DB::table('hr_job_interview_picks')->where('application_id', $application->id)->where('round', $application->interview_round)->first();
+
+            return ['branch' => $branch['name'] ?? null, 'picked' => $pick === null ? [] : array_map($label, (array) json_decode((string) $pick->starts, true)),
+                'days' => $pick === null ? $slots->available($application) : [], 'picks' => InterviewSlots::PICKS,
+                // "Kuala Lumpur time" (Daniel, HR-17c): the times are the branch's.
+                'zone' => str_replace('_', ' ', (string) last(explode('/', $zone)))];
+        }
+        if ($application->status === 'interview') {
+            $interview = DB::table('hr_job_interviews as i')->join('branches as b', 'b.id', '=', 'i.branch_id')->where('i.application_id', $application->id)
+                ->where('i.status', 'confirmed')->first(['i.starts_at', 'b.name', 'b.timezone']);
+
+            return $interview === null ? null : ['confirmed' => CarbonImmutable::parse($interview->starts_at)->setTimezone((string) ($interview->timezone ?: 'UTC'))
+                ->format('D j M Y, g:i A'), 'branch' => (string) $interview->name];
+        }
+
+        return null;
     }
 
     /** The candidate withdraws an open application through their private link. */
@@ -119,6 +150,7 @@ final class CandidateLink
                 throw ValidationException::withMessages(['withdraw' => 'This application is already closed. / Permohonan ini sudah ditutup.']);
             }
             $now = now()->utc();
+            InterviewSlots::releaseOnWithdraw((int) $row->id, null);
             DB::table('hr_job_applications')->where('id', $row->id)->update(['status' => 'withdrawn', 'closed_at' => $now, 'stage_entered_at' => $now,
                 'lock_version' => (int) $row->lock_version + 1, 'updated_at' => $now]);
             DB::table('hr_job_application_events')->insert([
