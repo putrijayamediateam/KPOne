@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Leave\Services\LeaveEvidenceFiles;
 use App\Domain\Organisation\Compliance\Services\CompliancePageService;
+use App\Domain\Organisation\Compliance\Services\FridgeService;
 use App\Domain\Organisation\Compliance\Services\LicenceService;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
@@ -20,7 +21,7 @@ class ClinicComplianceController extends Controller
 
     public function index(Request $request, CompliancePageService $pages): \Inertia\Response
     {
-        return Inertia::render('ClinicCompliance/Index', ['compliance' => $pages->page($request->user(), $request->only(['tab']))]);
+        return Inertia::render('ClinicCompliance/Index', ['compliance' => $pages->page($request->user(), $request->only(['tab', 'month']))]);
     }
 
     public function saveType(Request $request, LicenceService $licences): RedirectResponse
@@ -54,6 +55,31 @@ class ClinicComplianceController extends Controller
     public function markInError(Request $request, LicenceService $licences, string $version): RedirectResponse
     {
         return $this->run($request, 'licences', 'Marked as entered in error.', fn () => $licences->markInError($request->user(), $version, $request->only(['reason', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function saveFridge(Request $request, FridgeService $fridges): RedirectResponse
+    {
+        return $this->run($request, 'settings', 'Fridge saved.', fn () => $fridges->saveFridge($request->user(), $request->only(['fridge_id', 'branch_id', 'name', 'min', 'max', 'readings_per_day', 'expect_by', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function archiveFridge(Request $request, FridgeService $fridges, string $fridge): RedirectResponse
+    {
+        return $this->run($request, 'settings', 'Fridge archived.', fn () => $fridges->archiveFridge($request->user(), $fridge, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function recordReading(Request $request, FridgeService $fridges): RedirectResponse
+    {
+        return $this->run($request, 'fridge', 'Reading saved.', fn () => $fridges->record($request->user(), $request->only(['fridge_id', 'temp', 'low', 'high', 'reason', 'idempotency_key'])));
+    }
+
+    public function reviewReading(Request $request, FridgeService $fridges, string $reading): RedirectResponse
+    {
+        return $this->run($request, 'fridge', 'Action recorded.', fn () => $fridges->review($request->user(), $reading, $request->only(['action', 'note', 'idempotency_key'])));
+    }
+
+    public function readingError(Request $request, FridgeService $fridges, string $reading): RedirectResponse
+    {
+        return $this->run($request, 'fridge', 'Marked as entered in error.', fn () => $fridges->markInError($request->user(), $reading, $request->only(['reason', 'idempotency_key'])));
     }
 
     /** Streams one scan or photo after recording the open. A PDF is always a download, never shown inside KPOne. */

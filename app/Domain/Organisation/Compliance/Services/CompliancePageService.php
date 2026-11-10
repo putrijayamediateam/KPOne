@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class CompliancePageService
 {
-    public function __construct(private ComplianceSupport $support) {}
+    public function __construct(private ComplianceSupport $support, private FridgePageService $fridges) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -24,7 +24,11 @@ final class CompliancePageService
     public function page(User $actor, array $query): array
     {
         $canLicences = $actor->can(CompliancePermissions::LICENCES_MANAGE);
-        $tabs = $canLicences ? ['overview', 'licences', 'settings'] : [];
+        $canFridgeManage = $actor->can(CompliancePermissions::FRIDGE_MANAGE);
+        $canFridge = $canFridgeManage || $actor->can(CompliancePermissions::FRIDGE_RECORD) || $actor->can(CompliancePermissions::FRIDGE_REVIEW);
+        $tabs = array_values(array_filter([
+            $canLicences ? 'overview' : null, $canLicences ? 'licences' : null, $canFridge ? 'fridge' : null, ($canLicences || $canFridgeManage) ? 'settings' : null,
+        ]));
         $tab = in_array($query['tab'] ?? null, $tabs, true) ? (string) $query['tab'] : ($tabs[0] ?? 'overview');
         $orgId = $actor->organisation_id;
         $today = $this->support->today($orgId);
@@ -46,7 +50,9 @@ final class CompliancePageService
             ],
             'overview' => $canLicences && $tab === 'overview' ? $this->overview($types, $rows) : null,
             'licences' => $canLicences && $tab === 'licences' ? ['rows' => $rows, 'types' => collect($types)->where('isActive', true)->values()->all()] : null,
-            'settings' => $canLicences && $tab === 'settings' ? ['types' => $types] : null,
+            'settings' => $tab === 'settings' ? ['types' => $canLicences ? $types : null, 'fridges' => $canFridgeManage ? $this->fridges->settingsFridges($actor) : null] : null,
+            'fridge' => $canFridge && $tab === 'fridge' ? $this->fridges->fridgeTab($actor, $query) : null,
+            'canManageFridges' => $canFridgeManage,
         ];
     }
 
