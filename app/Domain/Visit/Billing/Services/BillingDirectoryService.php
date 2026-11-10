@@ -77,6 +77,9 @@ class BillingDirectoryService
                 // BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers only.
                 'refunds' => $printing ? null : app(RefundService::class)->forVisit($actor, $visit, $branch->timezone),
                 'corrections' => $printing ? null : app(ReceiptCorrectionService::class)->forVisit($actor, $visit, $invoice, $branch->timezone),
+                // BIL-17: voided invoices of this visit stay visible (number, total, when and by whom, and their receipts),
+                // never the void reason, following the activity log rule.
+                'voidedInvoices' => $printing ? [] : $this->voidedInvoices($actor, $visit, $branch->timezone),
                 'issuedCopies' => $printing ? null : app(IssuedBillingDocumentService::class)->forVisit($actor, $visit, $branch->timezone),
                 'methods' => $actor->can('payments.add.branch') ? PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()->map(fn ($m): array => ['code' => $m->code, 'name' => $m->name, 'requiresReference' => $m->requires_reference])->all() : [],
                 'panels' => $actor->can('coverage.propose.branch') ? Panel::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->limit(100)->get(['id', 'name'])->toArray() : [],
@@ -88,6 +91,26 @@ class BillingDirectoryService
                     'reverse' => $mutable && $actor->can('payments.reverse.branch'), 'void' => $mutable && $actor->can('invoices.void.branch'),
                     'complete' => $mutable && $actor->can('visits.complete.branch') && $state['due_now'] === 0, 'print' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch')]];
         });
+    }
+
+    /** @return list<array{number: string, totalSen: int, voidedAt: string|null, voidedBy: string, receipts: list<array{number: string, amountSen: int, method: string, status: string}>}> */
+    private function voidedInvoices(User $actor, Visit $visit, string $timezone): array
+    {
+        $voided = Invoice::query()->where('visit_id', $visit->id)->where('status', 'voided')->orderBy('id')->get();
+        if ($voided->isEmpty()) {
+            return [];
+        }
+        $allocations = PaymentAllocation::query()->whereIn('invoice_id', $voided->pluck('id'))->get(['invoice_id', 'payment_id']);
+        $payments = Payment::query()->whereIn('id', $allocations->pluck('payment_id'))->orderBy('id')->get()->keyBy('id');
+        $names = $this->staff->visibleUsers($actor)->whereIn('id', $voided->pluck('voided_by_user_id')->filter()->unique())->pluck('name', 'id');
+
+        return $voided->map(fn (Invoice $i): array => [
+            'number' => (string) $i->invoice_number, 'totalSen' => (int) $i->total_sen,
+            'voidedAt' => $i->voided_at?->setTimezone($timezone)->format('j M Y, g:i A'),
+            'voidedBy' => $names[$i->voided_by_user_id] ?? 'Staff member',
+            'receipts' => $allocations->where('invoice_id', $i->id)->map(fn ($a): ?Payment => $payments->get($a->payment_id))->filter()
+                ->map(fn (Payment $p): array => ['number' => $p->receipt_number, 'amountSen' => (int) $p->amount_sen, 'method' => $p->method_snapshot, 'status' => $p->status])->values()->all(),
+        ])->values()->all();
     }
 
     /** @return array{label: string, href: string}|null */

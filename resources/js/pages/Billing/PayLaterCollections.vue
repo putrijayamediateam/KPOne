@@ -24,6 +24,8 @@ const props = defineProps<{
         shown: Totals;
         currentPage: number;
         lastPage: number;
+        /** BIL-17: money due after a receipt correction, by visit number; it is paid before pay-later. */
+        dueNow?: Record<string, number>;
         data: Array<{
             patientName: string;
             patientNumber: string;
@@ -177,6 +179,18 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         class="text-right font-semibold whitespace-nowrap tabular-nums"
                     >
                         {{ myr(row.remainingSen) }}
+                        <span
+                            v-if="
+                                (collections.dueNow?.[row.visitNumber] ?? 0) > 0
+                            "
+                            class="block text-xs font-normal text-muted-foreground"
+                            data-testid="pay-later-due-now"
+                            >+
+                            {{
+                                myr(collections.dueNow?.[row.visitNumber] ?? 0)
+                            }}
+                            due now, paid first</span
+                        >
                     </td>
                     <td class="text-right">
                         <ActionLink

@@ -174,6 +174,19 @@ export type BillingPage = {
     /** BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers. */
     refunds?: RefundsContext | null;
     corrections?: CorrectionsContext | null;
+    /** BIL-17: voided invoices of this visit, kept visible after a void. */
+    voidedInvoices?: Array<{
+        number: string;
+        totalSen: number;
+        voidedAt: string | null;
+        voidedBy: string;
+        receipts: Array<{
+            number: string;
+            amountSen: number;
+            method: string;
+            status: string;
+        }>;
+    }>;
     issuedCopies?: IssuedCopy[] | null;
     methods: Array<{ code: string; name: string; requiresReference: boolean }>;
     panels: Array<{ id: number; name: string }>;

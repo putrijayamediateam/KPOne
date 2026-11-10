@@ -453,6 +453,44 @@ const reverse = (receipt: Receipt) =>
                     </div>
                 </section>
                 <OutstandingBills :groups="billing.outstanding" />
+                <section
+                    v-if="billing.voidedInvoices?.length"
+                    class="rounded-xl border bg-card p-4 text-[13px]"
+                    aria-labelledby="voided-invoices-heading"
+                    data-testid="voided-invoices"
+                >
+                    <h2 id="voided-invoices-heading" class="font-semibold">
+                        Voided invoices
+                    </h2>
+                    <p class="text-xs text-muted-foreground">
+                        Kept for the record. They no longer count towards what
+                        is owed.
+                    </p>
+                    <div
+                        v-for="voided in billing.voidedInvoices"
+                        :key="voided.number"
+                        class="mt-2 rounded-md bg-muted/40 p-2"
+                    >
+                        <p class="text-sm tabular-nums">
+                            <span class="font-medium">{{ voided.number }}</span>
+                            · {{ myr(voided.totalSen) }} · Voided
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            {{ voided.voidedAt }} by {{ voided.voidedBy }}
+                        </p>
+                        <p
+                            v-for="r in voided.receipts"
+                            :key="r.number"
+                            class="text-xs tabular-nums"
+                        >
+                            {{ r.number }} · {{ r.method }} ·
+                            {{ myr(r.amountSen) }} ·
+                            {{
+                                r.status === 'reversed' ? 'Reversed' : r.status
+                            }}
+                        </p>
+                    </div>
+                </section>
                 <ReceiptRefunds
                     v-if="billing.refunds"
                     :refunds="billing.refunds"
@@ -1025,7 +1063,28 @@ const reverse = (receipt: Receipt) =>
                                 · {{ billing[kind]!.memberReference }}</span
                             >
                         </p>
-                        <p v-if="billing[kind]!.dueDate" class="text-xs">
+                        <p
+                            v-if="
+                                kind === 'deferment' &&
+                                billing[kind]!.status === 'approved' &&
+                                billing[kind]!.remainingSen === 0
+                            "
+                            class="text-xs font-medium"
+                            data-testid="pay-later-settled"
+                        >
+                            Settled in full
+                        </p>
+                        <p v-else-if="billing[kind]!.dueDate" class="text-xs">
+                            <template
+                                v-if="
+                                    kind === 'deferment' &&
+                                    billing[kind]!.status === 'approved' &&
+                                    billing[kind]!.remainingSen !== null &&
+                                    billing[kind]!.remainingSen! <
+                                        billing[kind]!.amountSen
+                                "
+                                >{{ myr(billing[kind]!.remainingSen!) }} left ·
+                            </template>
                             Due {{ formatDate(billing[kind]!.dueDate) }}
                         </p>
                         <p
@@ -1208,7 +1267,11 @@ const reverse = (receipt: Receipt) =>
                                 autocomplete="off"
                         /></label>
                         <button
-                            v-if="dueNowText && !isCompleted"
+                            v-if="
+                                dueNowText &&
+                                (!isCompleted ||
+                                    (billing.invoice?.state.due_now ?? 0) > 0)
+                            "
                             type="button"
                             class="text-xs font-medium text-primary"
                             @click="form.amount = dueNowText"
