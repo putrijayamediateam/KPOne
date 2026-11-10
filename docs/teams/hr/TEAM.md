@@ -529,6 +529,10 @@ check items, keep them"). The rest stand unless the owner changes them.
   the Locum-only rule after linking is held by `StaffRoleService` and the link guard; a trigger is a possible
   follow-up that needs its own review. The roster does not count a locum doctor towards the resident-doctor minimum.
   A future grant migration that loops over every role would reach `locum`; grant migrations name their roles.
+  The Staff page shows locum sign-in and staff-account requests to everyone who passes the staff-creation check
+  (Director and Technical Admin) without checking the role the account needs, so Technical Admin can see a locum or
+  CA Supervisor request only the Director can finish; `StaffProvisioningService` refuses the role, and from HR-15b
+  the card says "Only the Director can create a Locum account." (B.E.R.N.I.S.S: lists unchanged for v1).
 - HR-17e known limits: the pool tick wording and the invitation message are drafts (Malay included); a staff-account
   request is a note between people, and the account created is not linked back to the application; the pool offers
   only open positions of the same type, because the form's questions differ by type.
