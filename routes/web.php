@@ -330,6 +330,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('positions', 'addPosition')->name('hr.applications.positions.store');
                 Route::post('positions/{position}', 'updatePosition')->whereUuid('position')->name('hr.applications.positions.update');
                 Route::post('{application}/move', 'move')->whereUuid('application')->name('hr.applications.move');
+                // HR-17a hiring stages (owner, 2026-11-10).
+                Route::post('{application}/screening', 'screen')->whereUuid('application')->name('hr.applications.screen');
+                Route::post('checklist', 'checklist')->name('hr.applications.checklist');
                 Route::post('retention', 'retention')->name('hr.applications.retention');
             });
         });

@@ -81,7 +81,8 @@ test('the HR page records each CV open on the server and asks before a closing s
     assert.match(template('hr'), /Each open of a CV is recorded\./);
     assert.match(
         source.hr,
-        /\['offered', 'not_taken_forward', 'withdrawn'\]\.includes\(to\)/,
+        // HR-17a's closing stages (HR-PLAN 19.3; owner, 2026-11-10).
+        /\['passed', 'failed', 'not_taken_forward', 'withdrawn'\]\.includes\(to\)/,
     );
     assert.match(template('hr'), /A closed application cannot be moved again/);
     assert.match(
@@ -94,7 +95,8 @@ test('the HR page records each CV open on the server and asks before a closing s
     );
     assert.match(
         template('hr'),
-        /If the offer is declined, you can still mark it Withdrawn\./,
+        // HR-17a: no offer is made in KPOne (owner, 2026-11-10).
+        /Any offer is made outside KPOne\./,
     );
     assert.match(template('hr'), /The public form is <strong>off<\/strong>/);
     // Off until a retention period is saved, because the notice promises deletion (Daniel, HR-13).
