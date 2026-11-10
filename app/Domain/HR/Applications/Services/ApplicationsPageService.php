@@ -39,7 +39,7 @@ final class ApplicationsPageService
     public function page(User $actor, array $query): array
     {
         abort_unless($actor->can(ApplicationPermissions::MANAGE), 403);
-        $tabs = ['applications', 'positions', 'settings'];
+        $tabs = ['applications', 'pool', 'positions', 'settings'];
         $tab = in_array($query['tab'] ?? null, $tabs, true) ? (string) $query['tab'] : 'applications';
         $zone = JobApplicationService::zone($actor->organisation_id);
         $positions = DB::table('hr_job_positions as p')->leftJoin('branches as b', 'b.id', '=', 'p.branch_id')
@@ -86,6 +86,9 @@ final class ApplicationsPageService
             'settings' => $this->settings($actor, $zone),
             'checklist' => $this->checklist($actor),
             'interviewDocuments' => InterviewDocuments::settings((int) $actor->organisation_id, $zone),
+            // HR-17e: the talent pool period and, on its tab, who is in the pool.
+            'pool' => [...TalentPool::settings((int) $actor->organisation_id),
+                'members' => $tab === 'pool' ? TalentPool::members((int) $actor->organisation_id, $zone) : []],
             'needsYou' => $this->needsYou($actor, $zone),
             'email' => ['enabled' => HiringMessenger::emailEnabled(), 'mailbox' => HiringMessenger::mailbox() !== null],
         ];
@@ -170,7 +173,7 @@ final class ApplicationsPageService
         $rows = $base->orderByDesc('a.submitted_at')->orderByDesc('a.id')->offset(($page - 1) * self::PER_PAGE)->limit(self::PER_PAGE)
             ->get(['a.id', 'a.public_id', 'a.status', 'a.name_encrypted', 'a.phone_encrypted', 'a.email_encrypted', 'a.message_encrypted', 'a.details_encrypted',
                 'a.cv_path', 'a.cv_bytes', 'a.privacy_notice_version', 'a.submitted_at', 'a.closed_at', 'a.purged_at', 'a.lock_version',
-                'p.title', 'p.position_type', 'a.organisation_id', 'a.position_id', 'a.stage_entered_at', 'a.interview_round']);
+                'p.title', 'p.position_type', 'a.organisation_id', 'a.position_id', 'a.stage_entered_at', 'a.interview_round', 'a.talent_pool_consent', 'a.pool_withdrawn_at']);
         $messages = DB::table('hr_job_application_messages')->whereIn('application_id', $rows->pluck('id'))->orderByDesc('created_at')->orderByDesc('id')
             ->get()->groupBy('application_id');
         $screenings = DB::table('hr_job_screenings as s')->leftJoin('users as u', 'u.id', '=', 's.actor_user_id')
@@ -209,6 +212,10 @@ final class ApplicationsPageService
                 'submittedAt' => self::local($a->submitted_at, $zone),
                 'closedAt' => $a->closed_at === null ? null : self::local($a->closed_at, $zone),
                 'purged' => $a->purged_at !== null,
+                // HR-17e: the talent pool and the staff-account request.
+                'poolUntil' => ($until = TalentPool::until($a)) === null ? null : CarbonImmutable::parse($until)->format('j M Y'),
+                'poolConsent' => (bool) $a->talent_pool_consent && $a->pool_withdrawn_at === null,
+                'accountRequest' => StaffAccountRequests::latestFor((int) $a->id, $zone),
                 'lockVersion' => (int) $a->lock_version,
             ])->values()->all(),
         ];

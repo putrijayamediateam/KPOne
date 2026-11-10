@@ -80,6 +80,13 @@ final class HiringTemplates
             'body' => "Your interview for {position} on {date} at {time} has been cancelled. Please choose three new times on your private page.\n\n"
                 .'Temu duga anda untuk jawatan {position} pada {date} jam {time} telah dibatalkan. Sila pilih tiga masa baharu di halaman peribadi anda.',
         ],
+        'pool_invited' => [
+            'label' => 'Invited from the talent pool',
+            'subject' => 'A new opening: {position} / Jawatan baharu: {position}',
+            'body' => "You asked us to keep your details for future openings. We would like to consider you for {position} at {clinic}, using the answers and CV you sent before. We will call you first. You can follow this application, or withdraw it, with your new private link below.\n\n"
+                ."Anda meminta kami menyimpan butiran anda untuk jawatan akan datang. Kami ingin mempertimbangkan anda untuk jawatan {position} di {clinic}, menggunakan jawapan dan CV yang anda hantar sebelum ini. Kami akan menghubungi anda dahulu. Anda boleh mengikuti permohonan ini, atau menariknya balik, melalui pautan peribadi baharu anda di bawah.\n\n"
+                .'Your private link / Pautan peribadi anda: {link}',
+        ],
         'auto_reject_reminder' => [
             'label' => 'Reminder',
             'subject' => 'Hiring: application {reference} closes at the next working day',
@@ -92,11 +99,14 @@ final class HiringTemplates
     /** What a candidate sees in place of the private link when an email is shown again (the token is never kept). */
     public const LINK_SHOWN_ONCE = 'shown once, when you applied / ditunjukkan sekali, semasa anda memohon';
 
+    /** HR-17e: the same for an invitation from the talent pool, whose link went only in that message. */
+    public const LINK_IN_INVITATION = 'sent once, with the invitation / dihantar sekali, bersama jemputan';
+
     /** @var array<string, string> each placeholder and the only shape its value may take */
     public const PLACEHOLDERS = [
         'position' => '/\A[^\r\n<>{}]{3,80}\z/u',
         'clinic' => '/\AKlinik Putrijaya\z/',
-        'link' => '/\A(https?:\/\/[^\s<>]{1,200}#[A-Za-z0-9_-]{43}|shown once, when you applied \/ ditunjukkan sekali, semasa anda memohon)\z/',
+        'link' => '/\A(https?:\/\/[^\s<>]{1,200}#[A-Za-z0-9_-]{43}|shown once, when you applied \/ ditunjukkan sekali, semasa anda memohon|sent once, with the invitation \/ dihantar sekali, bersama jemputan)\z/',
         'reference' => '/\A[0-9A-F]{8}\z/',
         'stage' => '/\A(New|Phone screening)\z/',
         'date' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/', // Tue 17 Nov 2026
