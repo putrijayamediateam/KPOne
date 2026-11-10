@@ -78,6 +78,12 @@ class DispensaryAllergyMatcherTest extends TestCase
             'strength written with a volume' => ['Paracetamol 120mg/5ml syrup rash', ['Paracetamol 250mg5ml Suspension', null]],
             'salt in the medicine name' => ['Diclofenac 75mg injection hives', ['Diclofenac Sodium 50mg Tablet', null]],
             'multi-word core inside the allergy text' => ['Co amoxiclav 625mg gives rash', ['Co-Amoxiclav 375mg Tablet', null]],
+            'symptom words do not hide the medicine' => ['Aspirin stomach pain', ['Aspirin 300mg Dispersible Tablet', null]],
+            'only the second part carries the medicine' => ['Seafood; Amoxicillin 500mg rash', ['Amoxicillin 250mg Capsule', null]],
+            'comma inside a strength' => ['Paracetamol 1,000mg rash', ['Paracetamol 500mg Tablet', null]],
+            'a long core still matches inside a longer word' => ['Sulfa drug rash', ['Sulfasalazine 500mg Tablet', null]],
+            'a three-letter medicine core as a whole word' => ['ORS sachet vomiting', ['ORS Sachet', null]],
+            'a medicine made only of salt words keeps its old match' => ['Potassium chloride', ['Potassium Chloride 600mg Tablet', null]],
         ];
     }
 
@@ -101,6 +107,11 @@ class DispensaryAllergyMatcherTest extends TestCase
             'malay reaction words alone are not a match' => ['Ruam gatal teruk', ['Cetirizine 10mg Tablet', null]],
             'a short word is not compared on its own' => ['Egg yolk', ['Eggplant extract', null]],
             'drug class is still not known (documented miss)' => ['Penicillin 500mg rash', ['Amoxicillin 250mg Capsule', 'Amoxicillin']],
+            'a short allergy core inside a longer word' => ['Pen rash', ['Paracetamol Suspension 120mg', null]],
+            'a medicine core inside a longer allergy word' => ['Environmental dust', ['Iron Syrup', null]],
+            'a three-letter medicine core inside a longer allergy word' => ['Food colors', ['ORS Sachet', null]],
+            'one shared ordinary word is not a match' => ['Synthetic seafood', ['Synthetic OTC medicine', null]],
+            'a shared body word is not a match' => ['Penicillin - throat swelling', ['Strepsils Throat Lozenge', null]],
         ];
     }
 
