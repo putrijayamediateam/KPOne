@@ -71,6 +71,14 @@ final class LettersPageService
         $workers = Worker::query()->with(['user.roles'])->whereIn('id', $rows->pluck('worker_id')->unique()->all())->get()->keyBy('id');
         $issuers = DB::table('users')->whereIn('id', $rows->pluck('issued_by_user_id')->unique()->all())->pluck('name', 'id');
 
+        // HR-10c (Suresh, M3): letters to someone the viewer may not manage are left out, so a Director's or HR Manager's
+        // warning or show-cause letter does not show other managers that a case exists. Recipients see their own in My letters.
+        $rows = $rows->filter(function (\stdClass $r) use ($workers, $actor): bool {
+            $worker = $workers->get($r->worker_id);
+
+            return $worker instanceof Worker && ($worker->user === null || $this->letters->refusalFor($actor, $worker->user) === null);
+        });
+
         return array_values($rows->map(function (\stdClass $r) use ($zone, $workers, $issuers, $actor): array {
             $worker = $workers->get($r->worker_id);
             $refusal = ! $worker instanceof Worker ? 'This staff file cannot take letters.' : ($worker->user === null ? null : $this->letters->refusalFor($actor, $worker->user));

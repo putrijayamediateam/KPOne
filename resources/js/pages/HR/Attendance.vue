@@ -28,6 +28,7 @@ import type {
 import { weekTone } from '@/components/hr/attendance/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField, DateTimeField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -1037,20 +1038,18 @@ const correctionStatusTone = (
                                 "
                                 >‹</Button
                             >
-                            <Input
+                            <DateField
                                 id="review-date"
-                                type="date"
-                                class="min-h-11 w-40 sm:min-h-9"
                                 :model-value="attendance.review.date ?? ''"
                                 @change="
-                                    (e: Event) =>
+                                    (value: string) =>
                                         visit({
                                             branch: attendance.review?.branch
                                                 ?.id,
-                                            date: (e.target as HTMLInputElement)
-                                                .value,
+                                            date: value,
                                         })
                                 "
+                                :echo="false"
                             />
                             <Button
                                 variant="outline"
@@ -1441,11 +1440,9 @@ const correctionStatusTone = (
                 </div>
                 <div class="grid gap-1">
                     <Label for="effective-from">Applies from *</Label>
-                    <Input
+                    <DateField
                         id="effective-from"
                         v-model="settingsForm.effective_from"
-                        type="date"
-                        class="min-h-11 w-48 sm:min-h-9"
                         aria-describedby="effective-help"
                     />
                     <p
@@ -1615,11 +1612,9 @@ const correctionStatusTone = (
                         <Label for="correction-in"
                             >Clock-in date and time *</Label
                         >
-                        <Input
+                        <DateTimeField
                             id="correction-in"
                             v-model="correction.inTime"
-                            type="datetime-local"
-                            class="min-h-11 sm:min-h-9"
                         />
                         <InputError :message="correctionErrors.in_time" />
                     </div>
@@ -1630,11 +1625,9 @@ const correctionStatusTone = (
                         <Label for="correction-out"
                             >Clock-out date and time *</Label
                         >
-                        <Input
+                        <DateTimeField
                             id="correction-out"
                             v-model="correction.outTime"
-                            type="datetime-local"
-                            class="min-h-11 sm:min-h-9"
                         />
                         <InputError :message="correctionErrors.out_time" />
                     </div>
