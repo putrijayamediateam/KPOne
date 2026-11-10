@@ -27,6 +27,7 @@ class CashClosingStartDateTest extends ClinicalTestCase
         $this->travelTo(CarbonImmutable::parse('2026-11-05 10:00', $this->branch->timezone));
     }
 
+    /** @return list<array{string, int}> */
     public static function setters(): array
     {
         return [['finance_officer', 302], ['director', 302], ['ca_supervisor', 403], ['ca', 403], ['administrator', 403]];
