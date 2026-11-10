@@ -1,6 +1,7 @@
 <?php
 
 use App\Console\Commands\AgentsDailyRun;
+use App\Console\Commands\AutoRejectJobApplications;
 use App\Console\Commands\CleanupPublicPatientIntakes;
 use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeJobApplications;
@@ -40,6 +41,13 @@ Schedule::command(PurgeHrDocuments::class)
 // HR-13: closed job applications are cleared after the clinic-entered retention (none shipped; nothing until HR sets one).
 Schedule::command(PurgeJobApplications::class)
     ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// HR-17b: an application left at New or Phone screening for 3 working days gets one reminder to the hiring mailbox,
+// then is closed as Auto-rejected. Each application's branch-local date decides, so hourly is safe and catches up.
+Schedule::command(AutoRejectJobApplications::class)
+    ->hourlyAt(15)
     ->withoutOverlapping()
     ->onOneServer();
 

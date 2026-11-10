@@ -81,6 +81,20 @@ class AttendanceTest extends VisitTestCase
         }
     }
 
+    public function test_review_opens_on_a_day_with_an_approved_shift_and_nobody_clocked_in_yet(): void
+    {
+        // Regression: AttendanceDays merged an empty sessions list with the day's shifts and returned a 500 (HR-9 found it).
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $this->settings($hr);
+        $this->roster($hr, $director, [[$ca, '08:00', '17:00', 0]]);
+        $this->selectBranch($hr);
+
+        $this->get(route('hr.attendance.index', ['tab' => 'review', 'branch' => $this->branch->id, 'date' => self::WEEK]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('attendance.tab', 'review')->has('attendance.review.rows', 1));
+    }
+
     public function test_clock_in_and_out_record_server_time_only_and_refuse_double_taps(): void
     {
         $ca = $this->actor('ca');

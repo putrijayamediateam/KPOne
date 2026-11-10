@@ -36,7 +36,7 @@ final class JobApplicationIntake
 
     public const NOT_PDF = 'Your CV must be a PDF file. / CV anda mestilah fail PDF.';
 
-    public function __construct(private AuditRecorder $audit) {}
+    public function __construct(private AuditRecorder $audit, private HiringMessenger $messenger) {}
 
     public function ensureEnabled(): void
     {
@@ -97,17 +97,17 @@ final class JobApplicationIntake
     }
 
     /**
-     * Files one application. Returns false when the honeypot or the timing says robot: the caller shows the same
-     * thank-you page and nothing is stored.
+     * Files one application. Returns its private link token (HR-17b), shown once on the thank-you page, or null when
+     * the honeypot or the timing says robot: the caller shows the same thank-you page and nothing is stored.
      *
      * @param  array<string, mixed>  $input
      */
-    public function submit(array $input, mixed $cv): bool
+    public function submit(array $input, mixed $cv): ?string
     {
         $this->ensureEnabled();
         $nonce = $this->nonce($input['form_token'] ?? null, $robot);
         if (! empty($input[self::HONEYPOT])) {
-            return false;
+            return null;
         }
         // Fields first, so a person who presses Send too soon on an empty form sees what to fill in; a complete form
         // sent within the minimum time is a robot (found in the HR-13 screenshot run).
@@ -128,12 +128,13 @@ final class JobApplicationIntake
             throw ValidationException::withMessages($errors);
         }
         if ($robot) {
-            return false;
+            return null;
         }
 
         $path = null;
+        [$token, $tokenHash] = CandidateLink::issue();
         try {
-            DB::transaction(function () use ($fields, $prepared, $nonce, $type, &$path): void {
+            DB::transaction(function () use ($fields, $prepared, $nonce, $type, &$path, $token, $tokenHash): void {
                 $position = DB::table('hr_job_positions')->where('public_id', $fields['position'])->sharedLock()->first();
                 if ($position === null || ! $position->is_open || (int) $position->organisation_id !== self::organisationId()) {
                     throw ValidationException::withMessages(['position' => 'This position is no longer open. Choose another. / Jawatan ini sudah ditutup. Pilih jawatan lain.']);
@@ -158,8 +159,10 @@ final class JobApplicationIntake
                         'message_encrypted' => $fields['message'] === null ? null : Crypt::encryptString($fields['message']),
                         'details_encrypted' => Crypt::encryptString(json_encode($fields['details'], JSON_THROW_ON_ERROR)),
                         'talent_pool_consent' => $fields['talent_pool_consent'],
+                        'talent_pool_text_version' => $fields['talent_pool_consent'] ? (string) config('hr-applications.pool_text_version', 'draft-hr17e-pool-v1') : null,
                         'cv_path' => $path, 'cv_bytes' => $prepared['bytes'], 'cv_sha256' => $prepared['sha256'],
                         'privacy_notice_version' => self::privacyVersion(), 'form_nonce' => $nonce, 'submitted_at' => $now,
+                        'status_token_hash' => $tokenHash, 'stage_entered_at' => $now,
                         'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
                 } catch (UniqueConstraintViolationException) {
                     // Two sends of one form at once (Suresh, HR-13 minor 1): the second gets the same message as a retry.
@@ -169,6 +172,10 @@ final class JobApplicationIntake
                     'action' => 'submitted', 'to_status' => 'new', 'created_at' => $now]);
                 $this->audit->record('hr.applications.received', null, ['application_id' => $id, 'position_id' => (int) $position->id,
                     'bytes' => $prepared['bytes']], null, null, (int) $position->organisation_id);
+                $row = DB::table('hr_job_applications')->where('id', $id)->first();
+                if ($row instanceof \stdClass) {
+                    $this->messenger->record($row, 'received', 'new', CandidateLink::url($token));
+                }
             }, 3);
         } catch (\Throwable $e) {
             if ($path !== null) {
@@ -177,7 +184,7 @@ final class JobApplicationIntake
             throw $e;
         }
 
-        return true;
+        return $token;
     }
 
     /**
@@ -246,9 +253,8 @@ final class JobApplicationIntake
         }
 
         return ['position' => $position, 'name' => $name, 'phone' => $phone, 'email' => mb_strtolower($email), 'message' => $raw === '' ? null : $raw,
-            // No talent pool yet: the form does not ask, and nothing sent is taken as consent until HR-17e builds the
-            // pool and a way to withdraw (Suresh, HR-17a).
-            'details' => $details, 'talent_pool_consent' => false];
+            // HR-17e: an optional, separate tick, never preset; the candidate can leave the pool on their private page.
+            'details' => $details, 'talent_pool_consent' => filter_var($input['talent_pool'] ?? false, FILTER_VALIDATE_BOOL)];
     }
 
     /**
