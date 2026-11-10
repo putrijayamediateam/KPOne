@@ -7,7 +7,7 @@ use App\Domain\Clinical\Models\PatientAllergyRecord;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 
-/** DSP-1: the free-text allergy matcher. Synthetic text only; no database. */
+/** DSP-1 and DSP-14: the free-text allergy matcher. Synthetic text only; no database. */
 class DispensaryAllergyMatcherTest extends TestCase
 {
     private function record(string $allergen, string $status = PatientAllergyRecord::STATUS_ACTIVE): PatientAllergyRecord
@@ -62,6 +62,51 @@ class DispensaryAllergyMatcherTest extends TestCase
     /** @param list<string|null> $names */
     #[DataProvider('notMatching')]
     public function test_a_non_matching_allergy_is_not_found(string $allergen, array $names): void
+    {
+        $this->assertSame([], (new DispensaryAllergyMatcher)->matches([$this->record($allergen)], $names));
+    }
+
+    /** @return array<string, array{string, list<string|null>}> */
+    public static function strengthAndExtraWords(): array
+    {
+        return [
+            'allergy with a strength and a reaction, medicine with another strength' => ['Amoxicillin 500mg rash', ['Amoxicillin 250mg Capsule', null]],
+            'allergy with a dose form, no generic name' => ['Aspirin 100mg tablet, swelling', ['Aspirin 300mg', null]],
+            'brand with extra words in the medicine name' => ['Panadol 500mg tablets rash', ['Panadol Actifast 500mg', null]],
+            'allergic to wording with a strength and a reaction' => ['Allergic to ibuprofen 400mg causes swelling', ['Ibuprofen 200mg Tablet', null]],
+            'malay wording with a strength and a reaction' => ['Alahan amoxicillin 250mg ruam gatal', ['Amoxicillin 500mg Capsule', null]],
+            'strength written with a volume' => ['Paracetamol 120mg/5ml syrup rash', ['Paracetamol 250mg5ml Suspension', null]],
+            'salt in the medicine name' => ['Diclofenac 75mg injection hives', ['Diclofenac Sodium 50mg Tablet', null]],
+            'multi-word core inside the allergy text' => ['Co amoxiclav 625mg gives rash', ['Co-Amoxiclav 375mg Tablet', null]],
+        ];
+    }
+
+    /** @param list<string|null> $names */
+    #[DataProvider('strengthAndExtraWords')]
+    public function test_dsp_14_strengths_forms_and_extra_words_do_not_hide_a_match(string $allergen, array $names): void
+    {
+        $record = $this->record($allergen);
+
+        $this->assertSame([$record], (new DispensaryAllergyMatcher)->matches([$record], $names));
+    }
+
+    /** @return array<string, array{string, list<string|null>}> */
+    public static function strengthAndExtraWordsNotMatching(): array
+    {
+        return [
+            'a shared dose form is not a match' => ['Amoxicillin syrup rash', ['Paracetamol Syrup 120mg/5ml', null]],
+            'a shared salt is not a match' => ['Diclofenac sodium 50mg rash', ['Naproxen Sodium 275mg', null]],
+            'a shared strength is not a match' => ['Seafood 500mg', ['Paracetamol 500mg Tablet', null]],
+            'reaction and form words alone are not a match' => ['Rash after injection', ['Ceftriaxone 1g Injection', null]],
+            'malay reaction words alone are not a match' => ['Ruam gatal teruk', ['Cetirizine 10mg Tablet', null]],
+            'a short word is not compared on its own' => ['Egg yolk', ['Eggplant extract', null]],
+            'drug class is still not known (documented miss)' => ['Penicillin 500mg rash', ['Amoxicillin 250mg Capsule', 'Amoxicillin']],
+        ];
+    }
+
+    /** @param list<string|null> $names */
+    #[DataProvider('strengthAndExtraWordsNotMatching')]
+    public function test_dsp_14_shared_forms_salts_strengths_and_reactions_do_not_match(string $allergen, array $names): void
     {
         $this->assertSame([], (new DispensaryAllergyMatcher)->matches([$this->record($allergen)], $names));
     }
