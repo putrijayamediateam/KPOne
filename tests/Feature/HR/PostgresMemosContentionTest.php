@@ -9,6 +9,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
 use Illuminate\Database\Connection;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -99,9 +100,9 @@ class PostgresMemosContentionTest extends TestCase
         } else {
             $this->assertSame(1, substr_count($out, 'STALE memo: This memo was replaced and no longer takes reads.'), $out);
             $this->assertSame(0, $acks, $out);
+            // PostgreSQL itself refuses the late acknowledgement from the person who did open the memo.
+            $this->assertRefusedAsReplaced($f['ca'], $xId);
         }
-        // Whatever the order, a memo with a live replacement never gains a read afterwards.
-        $this->assertRefused23514($f['ca'], $xId);
     }
 
     public function test_two_replacements_of_one_memo_record_one_replacement(): void
@@ -116,16 +117,15 @@ class PostgresMemosContentionTest extends TestCase
         $this->assertSame(1, DB::table('hr_memos')->where('replaces_memo_id', $xId)->count());
     }
 
-    private function assertRefused23514(User $ca, int $memoId): void
+    private function assertRefusedAsReplaced(User $ca, int $memoId): void
     {
         try {
-            DB::transaction(fn () => DB::table('hr_memo_acknowledgements')->insert(['organisation_id' => $ca->organisation_id, 'memo_id' => $memoId, 'user_id' => $ca->id + 100000, 'created_at' => now()]));
-        } catch (\Throwable) {
-            $this->addToAssertionCount(1);
-
-            return;
+            DB::transaction(fn () => DB::table('hr_memo_acknowledgements')->insert(['organisation_id' => $ca->organisation_id, 'memo_id' => $memoId, 'user_id' => $ca->id, 'created_at' => now()]));
+            $this->fail('Expected PostgreSQL to refuse a late acknowledgement.');
+        } catch (QueryException $e) {
+            $this->assertSame('23514', $e->errorInfo[0] ?? null, $e->getMessage());
+            $this->assertStringContainsString('A replaced memo takes no acknowledgement', $e->getMessage());
         }
-        $this->fail('Expected PostgreSQL to refuse a late acknowledgement.');
     }
 
     /** @return array<string, mixed> */
