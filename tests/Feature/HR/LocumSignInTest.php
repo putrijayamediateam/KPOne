@@ -42,8 +42,10 @@ class LocumSignInTest extends VisitTestCase
         foreach ($expected as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));
         }
-        // Any account administrator may give or manage the role; it grants no authority over anyone.
-        $this->assertTrue(app(StaffAuthorityService::class)->canAssignRoles($this->actor('technical_admin'), [PermissionCatalogue::LOCUM_ROLE]));
+        // The Director creates locum accounts, as for a CA Supervisor: Technical Admin does not cover the open-shift
+        // permission (B.E.R.N.I.S.S for the owner). The role grants no authority over anyone.
+        $this->assertTrue(app(StaffAuthorityService::class)->canAssignRoles($this->actor('director'), [PermissionCatalogue::LOCUM_ROLE]));
+        $this->assertFalse(app(StaffAuthorityService::class)->canAssignRoles($this->actor('technical_admin'), [PermissionCatalogue::LOCUM_ROLE]));
         $this->assertFalse($this->hr->can('access.manage.organisation')); // HR may not create accounts at all (StaffProvisioningService)
 
         $locum = $this->actor(PermissionCatalogue::LOCUM_ROLE);

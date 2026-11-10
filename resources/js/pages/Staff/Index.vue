@@ -235,8 +235,15 @@ const clearFilters = () => {
                 <CardDescription>
                     Create each account the usual way with Create staff, with
                     the Locum role only, then link it here. A locum sees only
-                    their own approved shifts.
+                    their own approved shifts and the open shifts at their
+                    branches.
                 </CardDescription>
+                <p
+                    class="text-sm text-muted-foreground"
+                    data-test="locum-director-only"
+                >
+                    Only the Director can create a Locum account.
+                </p>
             </CardHeader>
             <CardContent class="flex flex-col gap-3">
                 <p

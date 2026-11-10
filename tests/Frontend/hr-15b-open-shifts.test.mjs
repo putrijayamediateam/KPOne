@@ -45,3 +45,14 @@ test('My roster links a locum to open shifts', () => {
         /v-if="roster\.my\.canAskOpenShifts"[\s\S]{0,300}href="\/hr\/open-shifts"/,
     );
 });
+
+test('the Staff page says only the Director creates a Locum account', () => {
+    const staff = readFileSync(
+        new URL('../../resources/js/pages/Staff/Index.vue', import.meta.url),
+        'utf8',
+    );
+    assert.match(
+        staff,
+        /data-test="locum-director-only"[\s\S]{0,80}Only the Director can create a Locum account\./,
+    );
+});
