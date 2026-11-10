@@ -19,6 +19,10 @@ use Illuminate\Validation\ValidationException;
  * none set nobody is kept beyond the usual retention). The candidate can leave the pool on their private page at any
  * time, once and for good. HR can invite a pool candidate to an open position of the same type: that starts a new
  * application at phone screening with the same answers and CV, and the candidate gets a new private link.
+ *
+ * The person is in the pool only through the application they ticked. An invited application holds no tick of its own,
+ * so it never starts a new period, and leaving from its private page leaves the pool of the application it came from
+ * (Suresh, HR-17e M1).
  */
 final class TalentPool
 {
@@ -85,6 +89,20 @@ final class TalentPool
         return ['version' => $latest === null ? 0 : (int) $latest->version, 'days' => self::daysOn($organisationId, $today), 'pending' => $pending];
     }
 
+    /**
+     * What the candidate's page says about the pool: the tick of the application itself, or, for an invited one, of
+     * the application it came from.
+     *
+     * @return array{consented:bool, left:bool}
+     */
+    public static function candidateView(\stdClass $application): array
+    {
+        $root = $application->invited_from_application_id === null ? $application
+            : DB::table('hr_job_applications')->where('id', $application->invited_from_application_id)->first(['talent_pool_consent', 'pool_withdrawn_at']);
+
+        return ['consented' => (bool) ($root->talent_pool_consent ?? false), 'left' => ($root->pool_withdrawn_at ?? null) !== null];
+    }
+
     /** Whether an application is in the pool today. */
     public static function inPool(\stdClass $application): bool
     {
@@ -115,11 +133,14 @@ final class TalentPool
     public function leave(mixed $token, CandidateLink $links): void
     {
         DB::transaction(function () use ($token, $links): void {
-            $application = $links->resolve($token, true);
-            if ($application === null) {
+            $own = $links->resolve($token, true);
+            if ($own === null) {
                 throw ValidationException::withMessages(['link' => CandidateLink::INVALID]);
             }
-            if (! $application->talent_pool_consent || $application->pool_withdrawn_at !== null) {
+            // From an invited application, the tick lives on the application it came from.
+            $application = $own->invited_from_application_id === null ? $own
+                : DB::table('hr_job_applications')->where('id', $own->invited_from_application_id)->lockForUpdate()->first();
+            if ($application === null || ! $application->talent_pool_consent || $application->pool_withdrawn_at !== null) {
                 throw ValidationException::withMessages(['pool' => 'You are not in the talent pool. / Anda tiada dalam kumpulan bakat.']);
             }
             DB::table('hr_job_applications')->where('id', $application->id)->update(['pool_withdrawn_at' => now()->utc(),
@@ -195,7 +216,8 @@ final class TalentPool
                 $id = DB::table('hr_job_applications')->insertGetId(['public_id' => $publicId, 'organisation_id' => $actor->organisation_id,
                     'position_id' => $position->id, 'status' => 'phone_screening', 'name_encrypted' => $source->name_encrypted,
                     'phone_encrypted' => $source->phone_encrypted, 'email_encrypted' => $source->email_encrypted, 'message_encrypted' => $source->message_encrypted,
-                    'details_encrypted' => $source->details_encrypted, 'talent_pool_consent' => true, 'cv_path' => $path, 'cv_bytes' => $source->cv_bytes,
+                    // No tick of its own: the person stays in the pool through the source only (Suresh, HR-17e M1).
+                    'details_encrypted' => $source->details_encrypted, 'talent_pool_consent' => false, 'cv_path' => $path, 'cv_bytes' => $source->cv_bytes,
                     'cv_sha256' => $source->cv_sha256, 'privacy_notice_version' => $source->privacy_notice_version, 'form_nonce' => bin2hex(random_bytes(16)),
                     'submitted_at' => $now, 'status_token_hash' => $tokenHash, 'stage_entered_at' => $now, 'invited_from_application_id' => $source->id,
                     'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);

@@ -7,8 +7,9 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * HR-17e result, talent pool and staff-account handoff (HR-PLAN 19.8; owner, 2026-11-10: no offer and no onboarding
- * checklist in KPOne). The form gains an optional, separate talent-pool tick; the candidate can leave the pool on their
- * private page at any time, once and for good. A passed or failed candidate who ticked it stays in the pool for a
+ * checklist in KPOne). The form gains an optional, separate talent-pool tick, stored with the version of its wording;
+ * the candidate can leave the pool from the private page of that application or of any it was invited to, once and for
+ * good. A passed or failed candidate who ticked it stays in the pool for a
  * clinic-entered period counted from closing (KPOne ships no number), and HR can invite them to a new open position of
  * the same type, which starts a new application at phone screening. HR can ask the account administrator for a staff
  * account for a passed candidate; the request (name, email, position, branch) is listed on the Staff page for whoever
@@ -20,10 +21,17 @@ return new class extends Migration
     {
         Schema::table('hr_job_applications', function (Blueprint $t): void {
             $t->timestampTz('pool_withdrawn_at')->nullable();
+            // Which tick wording the candidate agreed to (Suresh, HR-17e M2); set only with the tick, never changed.
+            $t->string('talent_pool_text_version', 40)->nullable();
             $t->unsignedBigInteger('invited_from_application_id')->nullable();
             $t->foreign(['invited_from_application_id', 'organisation_id'], 'hr_job_apps_invited_from_fk')->references(['id', 'organisation_id'])->on('hr_job_applications')->restrictOnDelete();
         });
-        DB::statement('ALTER TABLE hr_job_applications ADD CONSTRAINT hr_job_apps_pool CHECK (pool_withdrawn_at IS NULL OR talent_pool_consent)');
+        // A withdrawal needs a tick; a tick carries the wording agreed to; an invited application holds no tick of its own,
+        // so it never starts a new pool period: the person stays in the pool only through the application they ticked
+        // (Suresh, HR-17e M1).
+        DB::statement('ALTER TABLE hr_job_applications ADD CONSTRAINT hr_job_apps_pool CHECK ((pool_withdrawn_at IS NULL OR talent_pool_consent)
+            AND (talent_pool_consent = (talent_pool_text_version IS NOT NULL))
+            AND (invited_from_application_id IS NULL OR NOT talent_pool_consent))');
         // One invitation per pool candidate and position.
         DB::statement('CREATE UNIQUE INDEX hr_job_apps_invited_once ON hr_job_applications (invited_from_application_id, position_id) WHERE invited_from_application_id IS NOT NULL');
 
@@ -133,7 +141,8 @@ BEGIN
  IF NEW.id <> OLD.id OR NEW.public_id <> OLD.public_id OR NEW.organisation_id <> OLD.organisation_id OR NEW.position_id <> OLD.position_id
    OR NEW.cv_bytes <> OLD.cv_bytes OR NEW.cv_sha256 <> OLD.cv_sha256 OR NEW.privacy_notice_version <> OLD.privacy_notice_version
    OR NEW.form_nonce <> OLD.form_nonce OR NEW.submitted_at IS DISTINCT FROM OLD.submitted_at OR NEW.created_at IS DISTINCT FROM OLD.created_at
-   OR NEW.talent_pool_consent <> OLD.talent_pool_consent OR NEW.invited_from_application_id IS DISTINCT FROM OLD.invited_from_application_id THEN
+   OR NEW.talent_pool_consent <> OLD.talent_pool_consent OR NEW.invited_from_application_id IS DISTINCT FROM OLD.invited_from_application_id
+   OR NEW.talent_pool_text_version IS DISTINCT FROM OLD.talent_pool_text_version THEN
   RAISE EXCEPTION 'An application keeps what was sent' USING ERRCODE = 'P0001';
  END IF;
  IF OLD.purged_at IS NOT NULL AND (NEW.purged_at IS DISTINCT FROM OLD.purged_at OR NEW.status <> OLD.status) THEN

@@ -101,7 +101,7 @@ final class StaffAccountRequests
         $zone = JobApplicationService::zone((int) $actor->organisation_id);
         $rows = DB::table('hr_staff_account_requests as r')->leftJoin('branches as b', 'b.id', '=', 'r.branch_id')
             ->leftJoin('users as u', 'u.id', '=', 'r.requested_by_user_id')->where('r.organisation_id', $actor->organisation_id)
-            ->where('r.status', 'open')->orderBy('r.requested_at')->orderBy('r.id')->limit(50)
+            ->where('r.status', 'open')->whereNull('r.purged_at')->orderBy('r.requested_at')->orderBy('r.id')->limit(50)
             ->get(['r.public_id', 'r.name_encrypted', 'r.email_encrypted', 'r.position_title', 'r.requested_at', 'r.lock_version', 'b.name as branch', 'u.name as requester']);
 
         return array_values($rows->map(fn (\stdClass $r): array => ['id' => (string) $r->public_id, 'name' => self::reveal($r->name_encrypted),

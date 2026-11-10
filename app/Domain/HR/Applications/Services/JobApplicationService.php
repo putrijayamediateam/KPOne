@@ -455,7 +455,13 @@ final class JobApplicationService
                                 'email_encrypted' => null, 'message_encrypted' => null, 'details_encrypted' => null, 'cv_path' => null, 'status_token_hash' => null, 'purged_at' => now()->utc(),
                                 'lock_version' => (int) $row->lock_version + 1, 'updated_at' => now()->utc()]);
                             DB::table('hr_job_screenings')->where('application_id', $row->id)->whereNotNull('note_encrypted')->update(['note_encrypted' => null]);
-                            // HR-17e: a staff-account request's name and email go with the application's values.
+                            // HR-17e: an open staff-account request is cancelled first, with the reason recorded, so the Staff page
+                            // never lists a blank request (Suresh, HR-17e m3); then its name and email go with the application's.
+                            if (DB::table('hr_staff_account_requests')->where('application_id', $row->id)->where('status', 'open')
+                                ->update(['status' => 'cancelled', 'closed_at' => now()->utc(), 'updated_at' => now()->utc()]) > 0) {
+                                DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
+                                    'action' => 'account_cancelled', 'created_at' => now()->utc()]);
+                            }
                             DB::table('hr_staff_account_requests')->where('application_id', $row->id)->whereNull('purged_at')
                                 ->update(['name_encrypted' => null, 'email_encrypted' => null, 'purged_at' => now()->utc(), 'updated_at' => now()->utc()]);
                             DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,

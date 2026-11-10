@@ -1200,7 +1200,8 @@ const removeDocument = () => {
             >
                 <p>
                     <strong
-                        >The candidate's new private link, shown once.</strong
+                        >The candidate's new private link, shown once. Give it
+                        only to the candidate, and do not keep it.</strong
                     >
                     {{
                         applications.email.enabled
@@ -2237,7 +2238,7 @@ const removeDocument = () => {
         <OperationalConfirmDialog
             :open="inviting !== null"
             :title="`Invite ${inviting?.member.name ?? ''} to ${inviting?.position.label ?? ''}?`"
-            description="A new application starts at phone screening with the same answers and CV, and the candidate gets a new private link. Call them first."
+            description="A new application starts at phone screening with the same answers and CV, and the candidate gets a new private link. Call them soon: like any application at phone screening, the daily check closes it as Auto-rejected after 3 working days without a decision."
             confirm-label="Invite"
             :processing="inviteProcessing"
             @update:open="(open) => !open && (inviting = null)"

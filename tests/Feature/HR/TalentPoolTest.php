@@ -6,6 +6,7 @@ use App\Domain\HR\Applications\Services\CandidateLink;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
 use App\Domain\HR\Applications\Services\JobApplicationService;
+use App\Domain\HR\Applications\Services\TalentPool;
 use App\Mail\HiringMessageMail;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -53,8 +54,9 @@ class TalentPoolTest extends VisitTestCase
     {
         [$plainId, $plainToken] = $this->filedWithToken('Synthetic Assistant');
         [$poolId, $poolToken] = $this->filedWithToken('Synthetic Assistant Two', true);
-        $this->assertFalse((bool) $this->row($plainId)->talent_pool_consent);
-        $this->assertTrue((bool) $this->row($poolId)->talent_pool_consent);
+        $this->assertSame([false, null], [(bool) $this->row($plainId)->talent_pool_consent, $this->row($plainId)->talent_pool_text_version]);
+        // The tick keeps the version of the wording agreed to (Suresh, HR-17e M2).
+        $this->assertSame([true, 'draft-hr17e-pool-v1'], [(bool) $this->row($poolId)->talent_pool_consent, $this->row($poolId)->talent_pool_text_version]);
 
         $this->statusPage($plainToken)->assertInertia(fn (Assert $p) => $p->where('application.pool', ['consented' => false, 'left' => false]));
         $this->leave($plainToken)->assertSessionHasErrors('pool');
@@ -122,7 +124,8 @@ class TalentPoolTest extends VisitTestCase
         $this->invite($source, $night)->assertSessionHasNoErrors()->assertRedirect(route('hr.applications.index', ['tab' => 'pool']));
         $from = $this->row($source);
         $new = DB::table('hr_job_applications')->where('invited_from_application_id', $from->id)->sole();
-        $this->assertSame(['phone_screening', true], [$new->status, (bool) $new->talent_pool_consent]);
+        // No tick of its own, so it never starts a new pool period (Suresh, HR-17e M1).
+        $this->assertSame(['phone_screening', false, null], [$new->status, (bool) $new->talent_pool_consent, $new->talent_pool_text_version]);
         $this->assertSame(Crypt::decryptString($from->name_encrypted), Crypt::decryptString($new->name_encrypted));
         $this->assertNotSame($from->cv_path, $new->cv_path);
         $this->assertSame(Crypt::decryptString(Storage::disk(JobApplicationIntake::DISK)->get($from->cv_path)),
@@ -145,6 +148,37 @@ class TalentPoolTest extends VisitTestCase
         $this->invite($source, $weekend)->assertSessionHasErrors('application');
     }
 
+    public function test_leaving_from_an_invited_application_leaves_the_pool_of_the_one_it_came_from(): void
+    {
+        [$source] = $this->closed('Synthetic Assistant', 'failed', true);
+        $this->poolOn();
+        $this->selectBranch($this->hr);
+        foreach (['Synthetic Assistant Night', 'Synthetic Assistant Weekend'] as $title) {
+            $this->post(route('hr.applications.positions.store'), ['title' => $title, 'branch_id' => 'any', 'position_type' => 'ca',
+                'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        }
+        $night = (string) DB::table('hr_job_positions')->where('title', 'Synthetic Assistant Night')->value('public_id');
+        $weekend = (string) DB::table('hr_job_positions')->where('title', 'Synthetic Assistant Weekend')->value('public_id');
+        $link = app(TalentPool::class)->invite($this->hr, $source, ['position' => $night, 'expected_lock_version' => $this->row($source)->lock_version,
+            'idempotency_key' => (string) Str::uuid()]);
+        $invitedToken = Str::after((string) $link, '#');
+        $this->assertTrue(CandidateLink::valid($invitedToken));
+
+        // The invited application's page shows the pool tick of the application it came from, and leaving there leaves it.
+        $this->statusPage($invitedToken)->assertInertia(fn (Assert $p) => $p->where('application.pool', ['consented' => true, 'left' => false]));
+        $this->leave($invitedToken)->assertSessionHasNoErrors();
+        $this->assertNotNull($this->row($source)->pool_withdrawn_at);
+        $this->statusPage($this->tokens[$source])->assertInertia(fn (Assert $p) => $p->where('application.pool.left', true));
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.applications.index', ['tab' => 'pool']))->assertInertia(fn (Assert $p) => $p->where('applications.pool.members', []));
+        $this->invite($source, $weekend)->assertSessionHasErrors('application');
+
+        // PostgreSQL: an invited application can never hold a tick of its own.
+        $new = DB::table('hr_job_applications')->where('invited_from_application_id', $this->row($source)->id)->sole();
+        $this->assertDatabaseRefuses(fn () => DB::table('hr_job_applications')->where('id', $new->id)->update(['talent_pool_consent' => true,
+            'talent_pool_text_version' => 'draft-hr17e-pool-v1']));
+    }
+
     public function test_the_purge_keeps_a_pool_candidate_until_the_pool_period_ends(): void
     {
         [$pool] = $this->closed('Synthetic Assistant', 'passed', true);
@@ -159,9 +193,14 @@ class TalentPoolTest extends VisitTestCase
         app(JobApplicationService::class)->purgeExpired();
         $this->assertNotNull($this->row($plain)->purged_at);
         $this->assertNull($this->row($pool)->purged_at);
+        // The open request is cancelled with the reason recorded, then emptied, so the Staff page never lists it blank.
         $request = DB::table('hr_staff_account_requests')->sole();
-        $this->assertSame([null, null], [$request->name_encrypted, $request->email_encrypted]);
+        $this->assertSame([null, null, 'cancelled'], [$request->name_encrypted, $request->email_encrypted, $request->status]);
         $this->assertNotNull($request->purged_at);
+        $this->assertSame(1, DB::table('hr_job_application_events')->where('application_id', $request->application_id)->where('action', 'account_cancelled')->count());
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $this->get(route('staff.index'))->assertInertia(fn (Assert $p) => $p->where('accountRequests', []));
 
         // Once the candidate leaves the pool, the usual retention applies at the next run.
         $this->leave($this->tokens[$pool])->assertSessionHasNoErrors();

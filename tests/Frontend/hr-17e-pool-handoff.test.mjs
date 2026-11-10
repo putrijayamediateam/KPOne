@@ -34,6 +34,8 @@ test('the talent-pool tick is optional, separate and never preset, in both langu
     assert.match(t, /data-test="apply-talent-pool"/);
     assert.match(t, /Optional:/);
     assert.match(t, /Pilihan: simpan butiran saya/);
+    assert.match(t, /Whatever the result of/);
+    assert.match(t, /use the answers and CV\s+I sent/);
 });
 
 test('the candidate can leave the pool, asked first, in both languages', () => {

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Applications\Services\StaffAccountRequests;
 use App\Domain\Identity\Services\StaffAdministrationService;
 use App\Domain\Identity\Services\StaffDirectoryService;
@@ -9,6 +10,7 @@ use App\Domain\Identity\Services\StaffProvisioningService;
 use App\Http\Requests\StoreStaffRequest;
 use App\Http\Requests\UpdateStaffRequest;
 use App\Models\User;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -38,6 +40,9 @@ class StaffController extends Controller
             $requests->done($request->user(), $accountRequest, $request->only(['expected_lock_version', 'idempotency_key']));
         } catch (ValidationException $e) {
             throw $e->redirectTo(route('staff.index'));
+        } catch (AuthorizationException) {
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
+            abort(403);
         }
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Marked done. HR sees that the account exists.']);
 

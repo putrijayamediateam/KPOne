@@ -1021,23 +1021,24 @@ const field =
                                 />
                                 <span
                                     ><span class="font-medium">Optional:</span>
-                                    keep my details for future openings. If this
-                                    application does not go ahead, the clinic
-                                    may contact me about another position of the
-                                    same kind, for a period it sets. I can
-                                    remove myself at any time on my private
-                                    page.
+                                    keep my details for future openings.
+                                    Whatever the result of this application, the
+                                    clinic may contact me about another position
+                                    of the same kind and use the answers and CV
+                                    I sent, for a period it sets. I can remove
+                                    myself at any time on my private page.
                                     <span
                                         lang="ms"
                                         class="block text-zinc-600 dark:text-zinc-400"
                                         >Pilihan: simpan butiran saya untuk
-                                        jawatan akan datang. Jika permohonan ini
-                                        tidak diteruskan, klinik boleh
+                                        jawatan akan datang. Walau apa pun
+                                        keputusan permohonan ini, klinik boleh
                                         menghubungi saya tentang jawatan lain
-                                        yang sama jenis, untuk tempoh yang
-                                        ditetapkannya. Saya boleh mengeluarkan
-                                        diri saya pada bila-bila masa di halaman
-                                        peribadi saya.</span
+                                        yang sama jenis dan menggunakan jawapan
+                                        serta CV yang saya hantar, untuk tempoh
+                                        yang ditetapkannya. Saya boleh
+                                        mengeluarkan diri saya pada bila-bila
+                                        masa di halaman peribadi saya.</span
                                     ></span
                                 >
                             </label>
