@@ -128,3 +128,21 @@ export const requestTone = (row: OvertimeRequestRow): 'neutral' | 'success' =>
 
 export const weekTone = (level: WeekHours['level']): 'warning' | 'neutral' =>
     level === 'none' ? 'neutral' : 'warning';
+
+/** HR-16a: the Director's location check card (one branch at a time; off by default). */
+export type LocationCheckCard = {
+    suggestedRadius: number;
+    draftConsentEn: string;
+    draftConsentBm: string;
+    branches: {
+        id: number;
+        name: string;
+        enabled: boolean;
+        centreLat: string;
+        centreLng: string;
+        radiusMetres: number | null;
+        consentEn: string | null;
+        consentBm: string | null;
+        since: string | null;
+    }[];
+};
