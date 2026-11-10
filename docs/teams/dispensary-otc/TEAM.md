@@ -232,7 +232,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     are unchanged). No new permission: CA and CA Supervisor already hold `inventory.view.branch`.
 30. DSP-7b returns list (2026-11-06): B.E.R.N.I.S.S for the owner chose option (a): the read-only "Returns to check"
     list with the existing checker rule (a CA Supervisor who did not record the return). Adding the Finance Officer and
-    Director as checkers stays out: it widens who signs a clinical check, so it waits for the owner (open question).
+    Director as checkers stays out: it widens who signs a clinical check, so it waited for the owner; the owner said no (decision 33).
     Iman's sketch: Inventory & services group, table from 768 px and cards below, "Open case" to `#medicine-returns`.
     Existing assertion change approved by B.E.R.N.I.S.S for the owner: `ClinicManagementTest`'s exact destination map
     gains `/dispensary/returns-to-check` for the checker permission, CA Supervisor only.
@@ -246,6 +246,10 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 32. DSP-13 returns index and tests (2026-11-07): approved by B.E.R.N.I.S.S for the owner after the owner's "carry on".
     The query's organisation filter cannot be reached through a web request (the active branch is always one the person
     is assigned to), so it stays as defence in depth without its own test.
+33. Return checkers (2026-11-10, the owner's own answer, relayed by B.E.R.N.I.S.S): "No, keep it to CA staff". Clinical
+    checks at Dispensary, including medicine return checks, stay with CA staff (in v1 a CA Supervisor who did not record
+    the return). The Finance Officer and the Director do not become return checkers, including for controlled medicines.
+    This closes the open question in decision 30.
 
 ## 7. Open items and known limits
 
@@ -278,6 +282,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 - **Scan to add (DSP-12):** the scan finds only medicines mapped to the scanned SKU; an unlinked SKU needs a CA
   Supervisor to link it. A barcode on more than one medicine shows the list. Auto-pick happens only for one medicine
   with stock and no allergy match. The CA guides in `docs/guides/ms/` do not mention "Scan to add" yet.
+- **Stale returns note (fixed in PR #424):** the Completed page's Medicine returns note now says "Recording a return gives no money back." and points to Refunds on the visit's billing page (BIL-10), where a CA Supervisor or Finance Officer records a refund and someone else approves it; the CA guide matches.
 - **CA guide:** `docs/guides/ms/` should say the OTC allergy step now starts with no choice made (DSP-5).
 - **Allergy matching is text only (DSP-1, DSP-1b, DSP-1c):** a CA add or edit that matches an active allergy record
   needs a recorded confirmation. Drug groups and other names (brand names, misspellings) are matched only when a
@@ -365,8 +370,8 @@ order, each its own PR:
    CA Supervisor records a returned quantity, reason and condition on a completed case; a CA Supervisor who did not
    record it checks it: Dispose, Quarantine to a patient returns location (STK-11) or Refuse. Decisions 20 and 21.
    Merges only after STK-11.
-   - **DSP-7b — merged in #360, list only (decision 30).** Still open
-     for the owner: Finance Officer and Director as checkers, and the Director for controlled medicines.
+   - **DSP-7b — merged in #360, list only (decision 30).** Finance Officer and Director as checkers: the owner said
+     no (decision 33); checks stay with CA staff.
 10. **DSP-8 Dispensary pages on phones and tablets — built 2026-11-05 (branch `feature/dsp-8-dispensary-mobile`).**
     Checked at 320, 390, 768 and 1440 px, light and dark.
 11. **DSP-10 The clinic's landscape label — merged in #344.** Decision 27.
