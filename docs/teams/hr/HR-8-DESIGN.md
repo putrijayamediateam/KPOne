@@ -1,8 +1,7 @@
 # HR-8 Announcements and memos: design note
 
-Status: **draft for the HR team's agreement; owner decisions recorded in section 10** (written by the Queue & TV team, Amirul Lead, 2026-11-10, because the
-owner asked B.E.R.N.I.S.S to give HR-8 to Queue & TV: "i want to start all that"). Nothing is built. Liyana and
-Suresh (HR) agree this note, or change it, before any code. Follows `HR-PLAN.md` (HR-8, about line 288) and
+Status: **agreed by Liyana (HR) on 2026-11-10 with nine changes, folded in below; owner decisions in section 10** (written by the Queue & TV team, Amirul Lead, 2026-11-10, because the
+owner asked B.E.R.N.I.S.S to give HR-8 to Queue & TV: "i want to start all that"). Suresh (HR) reviews the PR. Follows `HR-PLAN.md` (HR-8, about line 288) and
 `TEAM.md` sections 4, 6 and 8.
 
 ## 1. What the clinic gets
@@ -10,7 +9,8 @@ Suresh (HR) agree this note, or change it, before any code. Follows `HR-PLAN.md`
 A Director or HR Manager writes a memo (title, plain text, optional PDF), chooses who it is for, and publishes it.
 Each person in the audience sees it under **Memos**, opens it, and presses **I have read this**. The publisher sees
 **who has not read it yet**. A memo is never edited after publishing; a correction is a new memo that says it
-replaces the old one. In KPOne only: no email, push, SMS or WhatsApp (decision 5, and the owner on 2026-11-10).
+replaces the old one. In KPOne only: no email, push, SMS or WhatsApp. HR-8 sends nothing and never calls `StaffMessenger`
+(TEAM.md decision 5 is amended: HR-14 can send email, off by default).
 
 ## 2. Who is in the audience (the rules to agree)
 
@@ -21,7 +21,9 @@ replaces the old one. In KPOne only: no email, push, SMS or WhatsApp (decision 5
 | Roles ticked, no branches | active people who hold any ticked role, at any branch |
 | Both ticked | people who match a ticked branch **and** a ticked role (AND, not OR) |
 
-- "Human role" is `RosterPermissions::HUMAN_ROLES` (never the TV account). Inactive accounts are not expected.
+- "Human role" is `RosterPermissions::HUMAN_ROLES` (never the TV account), taken from the account's **current** roles. Inactive accounts are not expected.
+- "Effective assignment" is read from `staff_branch_assignments`: valid today in that branch's own time zone.
+- The page says **"expected now"** ("3 of 12 expected now have read"), because the list is live.
 - A person working at two branches is expected for a memo to either branch. The branch shown beside a name is their
   primary effective branch, as on the SOP list.
 - A person with no effective branch assignment is expected only for "All staff" and for role-only memos.
@@ -35,19 +37,25 @@ replaces the old one. In KPOne only: no email, push, SMS or WhatsApp (decision 5
 - If the memo has a PDF, the PDF must be opened too ("Open the PDF first."). A text-only memo needs only the
   memo itself to have been opened.
 - One acknowledgement per person per memo, append-only. A double click is an idempotent retry.
-- A withdrawn or closed memo accepts no new acknowledgements; the reads already given stay.
+- The audience check happens in `MemoService::acknowledge()` under the account lock, not in PostgreSQL. PostgreSQL refuses an
+  acknowledgement unless the memo is not withdrawn, not replaced, not past `expires_at`, and the opens exist
+  (the memo, and the PDF if there is one).
+- A withdrawn, replaced or closed memo accepts no new acknowledgements; the reads already given stay.
+- Opens: one row per person, memo and kind (`insertOrIgnore`, so a second open adds no row); the audit row is written on every open.
+  The open is recorded in the same transaction before any text or PDF byte is returned.
 
 ## 4. Lifecycle
 
 - **Published**: shown to the audience, in "Memos to read".
 - **Replaced**: a new memo can name the memo it replaces ("Corrects the memo of 3 Nov"). The old memo stays and shows
-  "Replaced by a newer memo". Staff who have not read the old one are told to read the new one. (The old memo's
-  "who hasn't read" list is kept; it is not carried to the new memo.)
+  "Replaced by a newer memo". It takes no new acknowledgements, like a closed memo. Its "who hasn't read" list is labelled
+  "Replaced" and tells unread people to read the new memo. The list is not carried to the new memo. A memo can be replaced
+  once, and a withdrawn memo cannot be replaced.
 - **Withdrawn**: the publisher withdraws a memo (a reason from a short fixed list). Staff see "Withdrawn"; every
   read already given is kept; nothing is deleted.
 - **Optional "Open until" date**: after it the memo is **closed** (no new reads, listed under Closed). Without a
   date the memo stays open until withdrawn. Entered as a date, closing at the end of that day in the publisher's
-  active branch time zone (times stored in UTC).
+  active branch time zone. `expires_at` is stored in UTC, computed once at publish, and shown in the viewer's branch time.
 
 ## 5. Screens (one page, `/hr/memos`, reached from the Clinic management hub)
 
@@ -69,11 +77,11 @@ Tabs shown only when the person has more than one (as `Sops.vue` does):
 
 | Table | Purpose | Rules |
 |---|---|---|
-| `hr_memos` | one row per memo: `public_id` uuid, `organisation_id`, `title`, encrypted `body`, optional PDF (`pdf_path`, `pdf_bytes`, `pdf_sha256`, encrypted at rest through the HR-2b checks), `published_by_user_id`, `published_at`, nullable `expires_at`, nullable `replaces_memo_id`, nullable `withdrawn_at`, `withdrawn_by_user_id`, `withdrawn_reason`, `lock_version` | composite `(id, organisation_id)` keys; never deleted; title, body, PDF and audience cannot change after publishing; a withdrawn memo stays withdrawn; `replaces_memo_id` must be an earlier memo of the same organisation |
+| `hr_memos` | one row per memo: `public_id` uuid, `organisation_id`, plain-text `title` (hint on the form: "Don't put a staff member's name, health or pay in the title."), encrypted `body`, optional PDF through the HR-5c SOP path (10 MB, content check, HR-4b vault under a generated name, no original filename kept; `pdf_path`, `pdf_bytes`, `pdf_sha256`), `published_by_user_id`, `published_at`, nullable `expires_at`, nullable `replaces_memo_id`, nullable `withdrawn_at`, `withdrawn_by_user_id`, `withdrawn_reason`, `lock_version` | composite `(id, organisation_id)` keys; never deleted; title, body, PDF and audience cannot change after publishing; a withdrawn memo stays withdrawn; `replaces_memo_id` must be an earlier memo of the same organisation |
 | `hr_memo_branches` | audience branches (none = no branch limit) | append-only; organisation-scoped foreign key to `branches` |
 | `hr_memo_roles` | audience roles (none = no role limit) | append-only; role allowlist check |
 | `hr_memo_opens` | `memo_id`, `user_id`, `kind` (`memo` or `pdf`), `created_at` | append-only; one per person, memo and kind |
-| `hr_memo_acknowledgements` | `memo_id`, `user_id`, `created_at` | append-only; unique per person and memo; a guard trigger refuses an acknowledgement unless the memo is published, not withdrawn, not closed, the person is in the audience and the needed opens exist |
+| `hr_memo_acknowledgements` | `memo_id`, `user_id`, `created_at` | append-only; unique per person and memo; a guard trigger refuses an acknowledgement unless the memo is not withdrawn, not replaced, not past `expires_at` and the needed opens exist (the audience is checked in the service) |
 
 Append-only and truncate guards reuse `guard_hr_records_append_only()` (HR-5c). Audit events carry ids, counts and
 codes only, never the title or text: `hr.memos.published`, `.withdrawn`, `.opened`, `.acknowledged`.
@@ -90,13 +98,16 @@ codes only, never the title or text: `hr.memos.published`, `.withdrawn`, `.opene
   Granted by an additive migration (`firstOrCreate`, give only what is missing, a missing role logged and skipped,
   `down()` a no-op), mirrored in `PermissionCatalogue`, in neither people-and-access authority set.
 - Hub: one row in `ClinicManagementNavigation.php`.
+- My HR details: one prop (`memosToRead`) and one card in `RecordsController`/`Records.vue`; Liyana is copied on that diff.
 
 ## 8. Tests
 
 - Feature: exact grants; the audience matrix of section 2 (all, branch only, role only, both, two-branch person, no
   effective branch, inactive, TV account, a person who joins later); open before acknowledge (memo and PDF); no
   acknowledgement after withdrawal or closing; replaces link rules; PostgreSQL refuses edits, deletes and truncates;
-  another organisation's memos are not found; audit rows carry no text; double click is idempotent.
+  another organisation's memos are not found; audit rows carry no text; double click is idempotent; acknowledgement refused
+  outside the audience (service level); acknowledgement refused after expiry at branch-local midnight with the clock frozen at
+  16:00 UTC; a replaced memo takes no new acknowledgement.
 - Frontend: `hr-8-memos.test.mjs` (compile, button states, "who hasn't" list, My HR details card).
 - **One existing assertion changes** (needs the owner's approval, as HR-5c had in decision 51):
   `tests/Feature/ClinicManagementTest.php` exact hub map gains
