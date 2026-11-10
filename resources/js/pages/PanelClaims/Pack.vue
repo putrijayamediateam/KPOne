@@ -38,10 +38,7 @@ type PackClaim = {
 };
 
 const props = defineProps<{
-    // CAT-9 sends details.phone_secondary; the shared PrintLetterhead type does not list it yet.
-    letterhead: PrintLetterhead & {
-        details: { phone_secondary?: string | null };
-    };
+    letterhead: PrintLetterhead;
     pack: {
         panelName: string;
         branchName: string;
