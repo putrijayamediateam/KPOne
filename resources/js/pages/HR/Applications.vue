@@ -66,6 +66,18 @@ type Application = {
     }[];
     autoRejectOn: string | null;
     autoRejectSoon: boolean;
+    // HR-17c: the candidate's three times at Scheduling, or the confirmed one at Interview.
+    interview: {
+        round: number;
+        branch: string | null;
+        picks: {
+            start: string;
+            label: string;
+            taken: boolean;
+            past: boolean;
+        }[];
+        confirmed: string | null;
+    } | null;
 };
 type NeedsYouRow = {
     id: string;
@@ -104,6 +116,7 @@ const props = defineProps<{
             graceDays: number;
             types: Option[];
             rejectReasons: Option[];
+            cancelReasons: Option[];
         };
         positions: Position[];
         applications: {
@@ -120,6 +133,8 @@ const props = defineProps<{
         };
         checklist: { version: number; items: string[] };
         needsYou: {
+            picks: { count: number; rows: NeedsYouRow[] };
+            today: { count: number; rows: NeedsYouRow[] };
             closing: { count: number; rows: NeedsYouRow[] };
             new: { count: number; rows: NeedsYouRow[] };
             noWorkingDays: boolean;
@@ -205,9 +220,42 @@ const tone = (status: string) =>
 // HR-17b "Needs you": a row opens just that application.
 const needsYouCount = computed(
     () =>
+        props.applications.needsYou.picks.count +
+        props.applications.needsYou.today.count +
         props.applications.needsYou.closing.count +
         props.applications.needsYou.new.count,
 );
+// HR-17c: interview actions. Each is one POST with the row's lock version and a fresh key.
+const interviewAction = reactive({
+    processing: false,
+    cancelOpen: false,
+    reason: '',
+});
+const interviewPost = (path: string, data: Record<string, string> = {}) => {
+    if (!viewing.value) {
+        return;
+    }
+
+    interviewAction.processing = true;
+    router.post(
+        `/hr/applications/${viewing.value.id}/interview/${path}`,
+        {
+            ...data,
+            expected_lock_version: viewing.value.lockVersion,
+            idempotency_key: crypto.randomUUID(),
+            ...(list.value?.filters ?? {}),
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                viewing.value = null;
+                interviewAction.cancelOpen = false;
+                confirming.value = null;
+            },
+            onFinish: () => (interviewAction.processing = false),
+        },
+    );
+};
 const focusOn = (row: NeedsYouRow) =>
     router.get(
         '/hr/applications',
@@ -314,6 +362,22 @@ const saveScreening = () => {
         },
     );
 };
+// HR-17c (Daniel): at Scheduling, "Interview" means an interview arranged outside KPOne, and it is hidden once the
+// candidate has picked times, so Confirm is the one path.
+const arrangedOutside = (to: string) =>
+    viewing.value?.status === 'scheduling' && to === 'interview';
+const moveSteps = computed(() =>
+    (viewing.value?.next ?? []).filter(
+        (step) =>
+            !(
+                arrangedOutside(step.value) &&
+                (viewing.value?.interview?.picks.length ?? 0) > 0
+            ),
+    ),
+);
+// Confirming tells the candidate, so it asks first (Daniel, HR-17c).
+const confirming = ref<{ start: string; label: string } | null>(null);
+
 const askMove = (to: string) => {
     if (!viewing.value) {
         return;
@@ -590,6 +654,50 @@ const saveRetention = () => {
                     so its applications are never closed automatically. Set the
                     working days to start the 3-day count.
                 </p>
+                <div
+                    v-for="group in [
+                        {
+                            key: 'today',
+                            title: 'Interviews today',
+                            data: applications.needsYou.today,
+                        },
+                        {
+                            key: 'picks',
+                            title: 'Times to confirm',
+                            data: applications.needsYou.picks,
+                        },
+                    ].filter((g) => g.data.count)"
+                    :key="group.key"
+                    class="flex flex-col gap-1.5"
+                    :data-test="`needs-you-${group.key}`"
+                >
+                    <h4 class="text-sm font-medium">
+                        {{ group.title }} ({{ group.data.count }})
+                    </h4>
+                    <ul class="flex flex-col gap-1.5">
+                        <li
+                            v-for="row in group.data.rows"
+                            :key="row.id"
+                            class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2"
+                        >
+                            <div class="min-w-0">
+                                <p class="text-sm font-medium break-words">
+                                    {{ row.name }} · {{ row.position }}
+                                </p>
+                                <p class="text-sm text-muted-foreground">
+                                    {{ row.why }}
+                                </p>
+                            </div>
+                            <Button
+                                variant="outline"
+                                class="max-lg:min-h-11"
+                                :aria-label="`Open the application from ${row.name}`"
+                                @click="focusOn(row)"
+                                >Open</Button
+                            >
+                        </li>
+                    </ul>
+                </div>
                 <!-- The urgent ones in full; new applications as one line, since the list below shows them (Daniel, HR-17b). -->
                 <div
                     v-if="applications.needsYou.closing.count"
@@ -1000,6 +1108,103 @@ const saveRetention = () => {
                         >
                     </p>
 
+                    <!-- HR-17c: the candidate's times at Scheduling, the confirmed interview at Interview. -->
+                    <section
+                        v-if="viewing.interview"
+                        class="flex flex-col gap-3 rounded-lg border p-3"
+                        aria-labelledby="interview-title"
+                        data-test="application-interview"
+                    >
+                        <h3 id="interview-title" class="font-semibold">
+                            Interview
+                            <span
+                                v-if="viewing.interview.branch"
+                                class="font-normal text-muted-foreground"
+                                >· {{ viewing.interview.branch }}</span
+                            >
+                        </h3>
+                        <template v-if="viewing.interview.confirmed">
+                            <p class="text-sm">
+                                Confirmed for
+                                <strong>{{
+                                    viewing.interview.confirmed
+                                }}</strong
+                                >.
+                            </p>
+                            <Button
+                                variant="outline"
+                                class="w-fit max-lg:min-h-11"
+                                :disabled="interviewAction.processing"
+                                data-test="interview-cancel"
+                                @click="
+                                    Object.assign(interviewAction, {
+                                        cancelOpen: true,
+                                        reason: '',
+                                    })
+                                "
+                                >Cancel and ask for new times</Button
+                            >
+                        </template>
+                        <template v-else-if="viewing.interview.picks.length">
+                            <p class="text-sm text-muted-foreground">
+                                The candidate's three times. Confirm one; the
+                                candidate is told.
+                            </p>
+                            <ul class="flex flex-col gap-2">
+                                <li
+                                    v-for="pick in viewing.interview.picks"
+                                    :key="pick.start"
+                                    class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2 text-sm"
+                                >
+                                    <span>
+                                        {{ pick.label }}
+                                        <span
+                                            v-if="pick.taken || pick.past"
+                                            class="text-muted-foreground"
+                                            >·
+                                            {{
+                                                pick.taken
+                                                    ? 'already taken'
+                                                    : 'passed'
+                                            }}</span
+                                        >
+                                    </span>
+                                    <Button
+                                        variant="outline"
+                                        class="max-lg:min-h-11"
+                                        :disabled="
+                                            pick.taken ||
+                                            pick.past ||
+                                            interviewAction.processing
+                                        "
+                                        :aria-label="`Confirm ${pick.label}`"
+                                        data-test="interview-confirm"
+                                        @click="
+                                            confirming = {
+                                                start: pick.start,
+                                                label: pick.label,
+                                            }
+                                        "
+                                        >Confirm</Button
+                                    >
+                                </li>
+                            </ul>
+                            <Button
+                                variant="outline"
+                                class="w-fit max-lg:min-h-11"
+                                :disabled="interviewAction.processing"
+                                data-test="interview-ask-again"
+                                @click="interviewPost('ask-again')"
+                                >None suit: ask for new times</Button
+                            >
+                        </template>
+                        <p v-else class="text-sm text-muted-foreground">
+                            Waiting for the candidate to choose three times on
+                            their private page.
+                        </p>
+                        <InputError :message="errors.start" />
+                    </section>
+
                     <!-- The stage's own action comes first; the application's details follow (Daniel, HR-17a). -->
                     <form
                         v-if="viewing.status === 'phone_screening'"
@@ -1172,12 +1377,16 @@ const saveRetention = () => {
                         <h3 class="text-sm font-semibold">Move to</h3>
                         <div class="flex flex-wrap gap-2">
                             <Button
-                                v-for="step in viewing.next"
+                                v-for="step in moveSteps"
                                 :key="step.value"
                                 :variant="
-                                    ['not_taken_forward', 'withdrawn'].includes(
-                                        step.value,
-                                    )
+                                    [
+                                        'not_taken_forward',
+                                        'withdrawn',
+                                        'passed',
+                                        'failed',
+                                    ].includes(step.value) ||
+                                    arrangedOutside(step.value)
                                         ? 'outline'
                                         : 'default'
                                 "
@@ -1185,7 +1394,11 @@ const saveRetention = () => {
                                 :disabled="moving.processing"
                                 :data-test="`application-move-${step.value}`"
                                 @click="askMove(step.value)"
-                                >{{ step.label }}</Button
+                                >{{
+                                    arrangedOutside(step.value)
+                                        ? 'Arranged outside KPOne'
+                                        : step.label
+                                }}</Button
                             >
                         </div>
                     </div>
@@ -1325,6 +1538,57 @@ const saveRetention = () => {
                 </div>
             </SheetContent>
         </Sheet>
+
+        <OperationalConfirmDialog
+            :open="confirming !== null"
+            :title="`Confirm ${confirming?.label ?? ''}?`"
+            description="The candidate is told the date, time and branch."
+            confirm-label="Confirm interview"
+            :processing="interviewAction.processing"
+            :error="errors.start"
+            data-test="interview-confirm-dialog"
+            @update:open="(open) => !open && (confirming = null)"
+            @confirm="
+                confirming &&
+                interviewPost('confirm', { start: confirming.start })
+            "
+        />
+
+        <OperationalConfirmDialog
+            :open="interviewAction.cancelOpen"
+            title="Cancel this interview?"
+            description="The slot is freed, the application goes back to Scheduling and the candidate is asked for three new times."
+            confirm-label="Cancel interview"
+            cancel-label="Keep interview"
+            destructive
+            :processing="interviewAction.processing"
+            :error="errors.reason"
+            @update:open="(open) => (interviewAction.cancelOpen = open)"
+            @confirm="
+                interviewPost('cancel', { reason: interviewAction.reason })
+            "
+        >
+            <fieldset
+                class="flex flex-col gap-1"
+                data-test="interview-cancel-reasons"
+            >
+                <legend class="mb-1 text-sm font-medium">Why?</legend>
+                <label
+                    v-for="r in applications.options.cancelReasons"
+                    :key="r.value"
+                    class="flex min-h-11 items-center gap-3 text-sm"
+                >
+                    <input
+                        v-model="interviewAction.reason"
+                        type="radio"
+                        name="interview-cancel-reason"
+                        :value="r.value"
+                        class="size-5"
+                    />
+                    {{ r.label }}
+                </label>
+            </fieldset>
+        </OperationalConfirmDialog>
 
         <OperationalConfirmDialog
             :open="rejecting.open"

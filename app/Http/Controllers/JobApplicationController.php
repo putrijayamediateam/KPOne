@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\HR\Applications\Services\CandidateLink;
+use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\RedirectResponse;
@@ -76,6 +77,19 @@ class JobApplicationController extends Controller
         }
 
         return redirect()->route('hr-applications.status')->withCookie($this->cookie($request, (string) $token));
+    }
+
+    /** HR-17c: the candidate's three interview times. */
+    public function picks(Request $request, JobApplicationIntake $intake, CandidateLink $links, InterviewSlots $slots): RedirectResponse
+    {
+        $intake->ensureEnabled();
+        try {
+            $slots->pick($request->cookie($this->cookieName()), $request->only(['starts']), $links);
+        } catch (ValidationException $e) {
+            return redirect()->route('hr-applications.status')->withErrors($e->errors());
+        }
+
+        return redirect()->route('hr-applications.status');
     }
 
     public function withdraw(Request $request, JobApplicationIntake $intake, CandidateLink $links): RedirectResponse
