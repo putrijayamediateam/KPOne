@@ -6,7 +6,7 @@ import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 
 // REG-2 (owner decisions 2026-11-05): staff Registration and Patient screens use English labels and
-// messages ("Panggil semula" stays). The nine phone and IC/Passport messages are English everywhere,
+// messages (Q-7, 2026-11-10: "Panggil semula" is now "Call again" too). The nine phone and IC/Passport messages are English everywhere,
 // including the public QR form; the QR form's own wording (purposes, contact labels) stays as it is.
 
 const read = (path) =>
@@ -87,7 +87,7 @@ test('REG-2: staff Registration and Patient sources carry no Malay labels', () =
         /\b(diperlukan|nombor|telefon|semak|pilih|mesti|tidak lengkap|negara pengeluar|jumpa doktor|pemeriksaan|vaksin|prosedur|lain-lain|sila|pesakit)\b/i;
 
     for (const file of files) {
-        const text = read(file).replace(/Panggil semula/g, '');
+        const text = read(file);
         assert.doesNotMatch(text, malay, file);
     }
 });
