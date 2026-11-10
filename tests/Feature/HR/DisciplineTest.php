@@ -166,6 +166,10 @@ class DisciplineTest extends VisitTestCase
         $this->get(route('hr.letters.index', ['tab' => 'issued']))->assertInertia(fn (Assert $page) => $page->has('letters.issued', 1));
         $this->selectBranch($this->hr);
         $this->get(route('hr.letters.index', ['tab' => 'issued']))->assertInertia(fn (Assert $page) => $page->where('letters.issued', []));
+        // Nor does the audit log name the recipient or the letter type.
+        foreach (DB::table('audit_logs')->where('event', 'hr.letters.issued')->pluck('metadata') as $metadata) {
+            $this->assertSame(['letter_id', 'template_version_id', 'replaces_letter_id'], array_keys((array) json_decode((string) $metadata, true)));
+        }
 
         // A locum file (no account) can have a case.
         $locum = app(StaffFileService::class)->addLocum($this->hr, ['display_name' => 'Synthetic Locum', 'phone' => '012-345 6789', 'idempotency_key' => (string) Str::uuid()]);
