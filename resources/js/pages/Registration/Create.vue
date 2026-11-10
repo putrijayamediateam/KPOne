@@ -27,6 +27,7 @@ import {
     identityError,
     focusInvalidField,
 } from '@/lib/patient-registration';
+import { formatDate } from '@/lib/presentation';
 import type { PatientRegistrationSummary, VisitOptions } from '@/types';
 import type { RegistrationRequirements } from '@/types/registration-settings';
 
@@ -472,7 +473,11 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         class="font-mono text-xs text-slate-600 dark:text-slate-300"
                     >
                         {{ selectedPatient.patientNumber }} ·
-                        {{ selectedPatient.dateOfBirth ?? 'DOB not recorded' }}
+                        {{
+                            selectedPatient.dateOfBirth
+                                ? formatDate(selectedPatient.dateOfBirth)
+                                : 'DOB not recorded'
+                        }}
                     </div>
                     <div
                         class="mt-0.5 text-xs text-slate-600 dark:text-slate-300"
@@ -573,7 +578,9 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 class="shrink-0 text-right text-xs text-muted-foreground"
                             >
                                 <span class="block">{{
-                                    patient.dateOfBirth ?? 'DOB unknown'
+                                    patient.dateOfBirth
+                                        ? formatDate(patient.dateOfBirth)
+                                        : 'DOB unknown'
                                 }}</span>
                                 <span>{{
                                     patient.identifier?.maskedValue ??
