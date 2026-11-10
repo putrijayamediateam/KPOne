@@ -354,7 +354,10 @@ onBeforeUnmount(() => {
     <Head :title="`Daftar di ${branchName}`"
         ><meta name="referrer" content="no-referrer"
     /></Head>
-    <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
+    <main
+        class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8"
+        lang="ms"
+    >
         <section
             class="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-xl shadow-zinc-950/5 dark:border-zinc-800 dark:bg-zinc-900"
         >
