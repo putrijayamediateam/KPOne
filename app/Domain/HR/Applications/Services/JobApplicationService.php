@@ -70,6 +70,15 @@ final class JobApplicationService
 
     public const CHECKLIST_MAX = 15;
 
+    /** @var array<string, string> why a phone screening was rejected (Daniel, HR-17a) */
+    public const REJECT_REASONS = [
+        'speaking' => 'How they came across on the phone',
+        'availability' => 'Availability does not fit',
+        'experience' => 'Experience does not fit',
+        'not_reachable' => 'Could not be reached',
+        'other' => 'Other',
+    ];
+
     /** A first or shorter retention waits this long before the purge may use it, so a mistake can be undone. */
     public const GRACE_DAYS = 7;
 
@@ -263,6 +272,11 @@ final class JobApplicationService
         if ($rating === false) {
             $errors['rating'] = 'Give a rating from 1 to 5.';
         }
+        $reason = $outcome === 'reject' && is_string($input['reject_reason'] ?? null) && isset(self::REJECT_REASONS[$input['reject_reason']])
+            ? (string) $input['reject_reason'] : null;
+        if ($outcome === 'reject' && $reason === null) {
+            $errors['reject_reason'] = 'Choose why the call is rejected.';
+        }
         if (mb_strlen($note) > 500) {
             $errors['note'] = 'Use at most 500 characters.';
         }
@@ -280,9 +294,9 @@ final class JobApplicationService
         }
         $ticks = array_values(array_unique($ticks));
         sort($ticks);
-        DB::transaction(function () use ($actor, $applicationId, $input, $key, $outcome, $rating, $ticks, $note): void {
+        DB::transaction(function () use ($actor, $applicationId, $input, $key, $outcome, $rating, $ticks, $note, $reason): void {
             $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
-            $hash = $this->support->hash([$actor->id, 'job_application_screen', $applicationId, $outcome, $rating, $ticks, hash('sha256', $note)]);
+            $hash = $this->support->hash([$actor->id, 'job_application_screen', $applicationId, $outcome, $rating, $ticks, hash('sha256', $note), $reason]);
             if ($this->support->replay($actor, $key, 'job_application_screen', $hash) !== null) {
                 return;
             }
@@ -301,6 +315,7 @@ final class JobApplicationService
             DB::table('hr_job_screenings')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
                 'checklist_version' => $checklist === null ? null : (int) $checklist->version, 'ticked' => json_encode($ticks, JSON_THROW_ON_ERROR),
                 'rating' => $rating, 'note_encrypted' => $note === '' ? null : Crypt::encryptString($note), 'outcome' => $outcome,
+                'reject_reason' => $reason,
                 'actor_user_id' => $actor->id, 'created_at' => $now]);
             DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $to === 'scheduling' ? null : $now,
                 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => $now]);
@@ -312,7 +327,7 @@ final class JobApplicationService
             ]);
             $this->support->remember($actor, $key, 'job_application_screen', $hash, $applicationId);
             $this->support->audit->record('hr.applications.screened', null, ['application_id' => (int) $application->id, 'outcome' => $outcome,
-                'ticked' => count($ticks)], $actor, null, $actor->organisation_id);
+                'reason' => $reason, 'ticked' => count($ticks)], $actor, null, $actor->organisation_id);
         }, 3);
     }
 

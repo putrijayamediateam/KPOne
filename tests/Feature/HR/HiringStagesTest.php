@@ -133,7 +133,11 @@ class HiringStagesTest extends VisitTestCase
         $other = $this->filed($hr, 'Synthetic Second Role');
         $this->selectBranch($hr);
         $this->move($hr, $other, 'phone_screening', 1)->assertSessionHasNoErrors();
-        $this->screen($other, ['outcome' => 'reject', 'rating' => 2], 2)->assertSessionHasNoErrors();
+        // A reject needs a reason from the list (Daniel, HR-17a).
+        $this->screen($other, ['outcome' => 'reject', 'rating' => 2], 2)->assertSessionHasErrors('reject_reason');
+        $this->screen($other, ['outcome' => 'reject', 'rating' => 2, 'reject_reason' => 'because'], 2)->assertSessionHasErrors('reject_reason');
+        $this->screen($other, ['outcome' => 'reject', 'rating' => 2, 'reject_reason' => 'availability'], 2)->assertSessionHasNoErrors();
+        $this->assertSame('availability', DB::table('hr_job_screenings')->where('outcome', 'reject')->value('reject_reason'));
         $row = DB::table('hr_job_applications')->where('public_id', $other)->sole();
         $this->assertSame('not_taken_forward', $row->status);
         $this->assertNotNull($row->closed_at);
@@ -186,7 +190,7 @@ class HiringStagesTest extends VisitTestCase
         $id = $this->filed($hr, 'Synthetic Assistant');
         $this->selectBranch($hr);
         $this->move($hr, $id, 'phone_screening', 1)->assertSessionHasNoErrors();
-        $this->screen($id, ['outcome' => 'reject', 'rating' => 1, 'note' => 'Synthetic note'], 2)->assertSessionHasNoErrors();
+        $this->screen($id, ['outcome' => 'reject', 'rating' => 1, 'note' => 'Synthetic note', 'reject_reason' => 'speaking'], 2)->assertSessionHasNoErrors();
         // Retention of 30 days, after the 7-day wait.
         $version = (int) DB::table('hr_job_application_settings')->max('version');
         $this->post(route('hr.applications.retention'), ['retention_days' => 30, 'expected_version' => $version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();

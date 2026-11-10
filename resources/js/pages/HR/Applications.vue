@@ -39,6 +39,7 @@ type Application = {
     screening: {
         outcome: 'pass' | 'reject';
         rating: number;
+        reason: string | null;
         note: string | null;
         items: { text: string; ticked: boolean }[];
         by: string;
@@ -81,6 +82,7 @@ const props = defineProps<{
             positions: Option[];
             graceDays: number;
             types: Option[];
+            rejectReasons: Option[];
         };
         positions: Position[];
         applications: {
@@ -206,13 +208,19 @@ const screening = reactive({
     key: '',
     processing: false,
 });
-const ratingOptions = [
-    { value: '1', label: '1 · Poor' },
-    { value: '2', label: '2' },
-    { value: '3', label: '3 · Fair' },
-    { value: '4', label: '4' },
-    { value: '5', label: '5 · Excellent' },
-];
+// Pass is the primary action; Reject asks first and needs a reason (Daniel, HR-17a).
+const rejecting = reactive({ open: false, reason: '' });
+const recordPass = () => {
+    screening.outcome = 'pass';
+    saveScreening();
+};
+const askReject = () => {
+    Object.assign(rejecting, { open: true, reason: '' });
+};
+const confirmReject = () => {
+    screening.outcome = 'reject';
+    saveScreening();
+};
 const saveScreening = () => {
     const application = viewing.value;
 
@@ -228,6 +236,8 @@ const saveScreening = () => {
             rating: screening.rating,
             ticked: screening.ticked,
             note: screening.note,
+            reject_reason:
+                screening.outcome === 'reject' ? rejecting.reason : null,
             expected_lock_version: application.lockVersion,
             idempotency_key: screening.key,
             ...(list.value?.filters ?? {}),
@@ -235,7 +245,10 @@ const saveScreening = () => {
         },
         {
             preserveScroll: true,
-            onSuccess: () => (viewing.value = null),
+            onSuccess: () => {
+                viewing.value = null;
+                rejecting.open = false;
+            },
             onFinish: () => (screening.processing = false),
         },
     );
@@ -376,6 +389,22 @@ const saveChecklist = () => {
         },
     );
 };
+
+// Save is the primary button only while its card has unsaved changes (Daniel, HR-17a).
+const checklistDirty = computed(
+    () =>
+        JSON.stringify(
+            checklist.text
+                .split('\n')
+                .map((line) => line.trim())
+                .filter((line) => line !== ''),
+        ) !== JSON.stringify(props.applications.checklist.items),
+);
+const retentionDirty = computed(
+    () =>
+        retention.days.trim() !==
+        (props.applications.settings.retentionDays?.toString() ?? ''),
+);
 
 // ---- Settings ----
 const retention = reactive({
@@ -594,7 +623,12 @@ const saveRetention = () => {
                             {{ position.typeLabel }} ·
                             {{ position.branch ?? 'Any branch' }} ·
                             {{ position.openApplications }} open of
-                            {{ position.applications }} applications
+                            {{ position.applications }}
+                            {{
+                                position.applications === 1
+                                    ? 'application'
+                                    : 'applications'
+                            }}
                         </p>
                     </div>
                     <div class="flex items-center gap-2">
@@ -628,7 +662,7 @@ const saveRetention = () => {
             </h2>
             <p class="text-sm text-muted-foreground">
                 Days before the applicant's details and CV are deleted, counted
-                from when the application closed (Offered, Not taken forward or
+                from when the application closed (Passed, Failed, rejected or
                 Withdrawn), or from when it was sent if nobody closed it. KPOne
                 ships no number. Leave it empty to keep applications.
             </p>
@@ -672,7 +706,8 @@ const saveRetention = () => {
             <div>
                 <Button
                     class="max-lg:min-h-11"
-                    :disabled="retention.processing"
+                    :variant="retentionDirty ? 'default' : 'outline'"
+                    :disabled="!retentionDirty || retention.processing"
                     data-test="retention-save"
                     @click="saveRetention"
                     >{{ retention.processing ? 'Saving…' : 'Save' }}</Button
@@ -684,7 +719,7 @@ const saveRetention = () => {
         <section
             v-if="applications.tab === 'settings'"
             aria-labelledby="checklist-title"
-            class="flex flex-col gap-3 rounded-xl border bg-card p-4"
+            class="flex max-w-xl flex-col gap-3 rounded-xl border bg-card p-4"
             data-test="screening-checklist"
         >
             <h2 id="checklist-title" class="text-base font-semibold">
@@ -714,7 +749,8 @@ const saveRetention = () => {
             <div>
                 <Button
                     class="max-lg:min-h-11"
-                    :disabled="checklist.processing"
+                    :variant="checklistDirty ? 'default' : 'outline'"
+                    :disabled="!checklistDirty || checklist.processing"
                     data-test="checklist-save"
                     @click="saveChecklist"
                     >{{ checklist.processing ? 'Saving…' : 'Save' }}</Button
@@ -744,36 +780,6 @@ const saveRetention = () => {
                         v-if="errors.to || failure"
                         :message="errors.to ?? failure ?? ''"
                     />
-                    <dl v-if="!viewing.purged" class="grid gap-3 text-sm">
-                        <div>
-                            <dt class="text-muted-foreground">Phone</dt>
-                            <dd class="break-words">{{ viewing.phone }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-muted-foreground">Email</dt>
-                            <dd class="break-all">{{ viewing.email }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-muted-foreground">Message</dt>
-                            <dd class="break-words whitespace-pre-line">
-                                {{ viewing.message ?? '—' }}
-                            </dd>
-                        </div>
-                        <div v-for="d in viewing.details" :key="d.label">
-                            <dt class="text-muted-foreground">{{ d.label }}</dt>
-                            <dd class="break-words">{{ d.value }}</dd>
-                        </div>
-                        <div>
-                            <dt class="text-muted-foreground">
-                                Privacy notice
-                            </dt>
-                            <dd>Version {{ viewing.privacyNoticeVersion }}</dd>
-                        </div>
-                    </dl>
-                    <p v-else class="text-sm text-muted-foreground">
-                        The applicant's details and CV were deleted after the
-                        retention period. The step and dates are kept.
-                    </p>
                     <div class="flex flex-wrap items-center gap-2">
                         <StatusBadge
                             :status="viewing.status"
@@ -786,69 +792,14 @@ const saveRetention = () => {
                             >Closed {{ viewing.closedAt }}</span
                         >
                     </div>
-                    <Button
-                        v-if="viewing.hasCv"
-                        as-child
-                        variant="outline"
-                        class="w-fit max-lg:min-h-11"
-                    >
-                        <a
-                            :href="`/hr/applications/${viewing.id}/cv`"
-                            :aria-label="`Open CV (PDF, ${viewing.cvKb} KB)`"
-                            data-test="application-cv"
-                            >Open CV ({{ viewing.cvKb }} KB)</a
-                        >
-                    </Button>
-                    <p
-                        v-if="viewing.hasCv"
-                        class="text-xs text-muted-foreground"
-                    >
-                        Each open of a CV is recorded.
-                    </p>
-                    <section
-                        v-if="viewing.screening"
-                        class="flex flex-col gap-2 rounded-lg border p-3 text-sm"
-                        aria-labelledby="screening-record-title"
-                        data-test="screening-record"
-                    >
-                        <h3 id="screening-record-title" class="font-semibold">
-                            Phone screening:
-                            {{
-                                viewing.screening.outcome === 'pass'
-                                    ? 'passed'
-                                    : 'rejected'
-                            }}, rating {{ viewing.screening.rating }} of 5
-                        </h3>
-                        <ul
-                            v-if="viewing.screening.items.length"
-                            class="flex flex-col gap-1"
-                        >
-                            <li
-                                v-for="item in viewing.screening.items"
-                                :key="item.text"
-                            >
-                                {{ item.ticked ? 'Yes' : 'No' }} ·
-                                {{ item.text }}
-                            </li>
-                        </ul>
-                        <p
-                            v-if="viewing.screening.note"
-                            class="break-words whitespace-pre-line"
-                        >
-                            {{ viewing.screening.note }}
-                        </p>
-                        <p class="text-muted-foreground">
-                            By {{ viewing.screening.by }},
-                            {{ viewing.screening.at }}
-                        </p>
-                    </section>
 
+                    <!-- The stage's own action comes first; the application's details follow (Daniel, HR-17a). -->
                     <form
                         v-if="viewing.status === 'phone_screening'"
                         class="flex flex-col gap-3 rounded-lg border p-3"
                         aria-labelledby="screening-form-title"
                         data-test="screening-form"
-                        @submit.prevent="saveScreening"
+                        @submit.prevent="recordPass"
                     >
                         <h3
                             id="screening-form-title"
@@ -883,21 +834,44 @@ const saveRetention = () => {
                             No call checklist yet. Add the questions you ask in
                             Settings.
                         </p>
-                        <div class="flex flex-col gap-1.5">
-                            <Label id="screening-rating-label"
-                                >How did they come across? (1 to 5)</Label
+                        <fieldset
+                            class="flex flex-col gap-1.5"
+                            :aria-invalid="errors.rating ? 'true' : undefined"
+                            aria-describedby="screening-rating-ends screening-rating-error"
+                            data-test="screening-rating"
+                        >
+                            <legend class="mb-1 text-sm font-medium">
+                                How did they come across?
+                            </legend>
+                            <div
+                                class="grid grid-cols-5 overflow-hidden rounded-md border"
                             >
-                            <OperationalSelect
-                                v-model="screening.rating"
-                                :options="ratingOptions"
-                                label="Rating"
-                                labelledby="screening-rating-label"
-                                placeholder="Choose a rating"
-                                trigger-class="max-lg:min-h-11"
-                                :invalid="Boolean(errors.rating)"
+                                <label
+                                    v-for="n in 5"
+                                    :key="n"
+                                    class="flex min-h-11 cursor-pointer items-center justify-center border-l text-sm font-medium first:border-l-0 has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-inset"
+                                >
+                                    <input
+                                        v-model="screening.rating"
+                                        type="radio"
+                                        name="screening-rating"
+                                        :value="String(n)"
+                                        class="sr-only"
+                                    />
+                                    {{ n }}
+                                </label>
+                            </div>
+                            <p
+                                id="screening-rating-ends"
+                                class="flex justify-between text-xs text-muted-foreground"
+                            >
+                                <span>1 Weak</span><span>5 Strong</span>
+                            </p>
+                            <InputError
+                                id="screening-rating-error"
+                                :message="errors.rating"
                             />
-                            <InputError :message="errors.rating" />
-                        </div>
+                        </fieldset>
                         <div class="flex flex-col gap-1.5">
                             <Label for="screening-note">Note (optional)</Label>
                             <textarea
@@ -920,50 +894,72 @@ const saveRetention = () => {
                                 :message="errors.note"
                             />
                         </div>
-                        <fieldset class="flex flex-col gap-1">
-                            <legend class="mb-1 text-sm font-medium">
-                                Result
-                            </legend>
-                            <label
-                                class="flex min-h-11 items-center gap-3 text-sm"
-                            >
-                                <input
-                                    v-model="screening.outcome"
-                                    type="radio"
-                                    value="pass"
-                                    class="size-5"
-                                    data-test="screening-pass"
-                                />
-                                Pass: go on to scheduling the interview
-                            </label>
-                            <label
-                                class="flex min-h-11 items-center gap-3 text-sm"
-                            >
-                                <input
-                                    v-model="screening.outcome"
-                                    type="radio"
-                                    value="reject"
-                                    class="size-5"
-                                    data-test="screening-reject"
-                                />
-                                Reject: close as Not taken forward
-                            </label>
-                            <InputError :message="errors.outcome" />
-                        </fieldset>
-                        <div>
+                        <InputError :message="errors.outcome" />
+                        <div class="flex flex-wrap gap-2">
                             <Button
                                 type="submit"
                                 class="max-lg:min-h-11"
                                 :disabled="screening.processing"
-                                data-test="screening-save"
+                                data-test="screening-pass"
                                 >{{
-                                    screening.processing
+                                    screening.processing &&
+                                    screening.outcome === 'pass'
                                         ? 'Saving…'
-                                        : 'Record the call'
+                                        : 'Pass: schedule the interview'
                                 }}</Button
+                            >
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="border-destructive/50 text-destructive hover:bg-destructive/10 max-lg:min-h-11"
+                                :disabled="screening.processing"
+                                data-test="screening-reject"
+                                @click="askReject"
+                                >Reject…</Button
                             >
                         </div>
                     </form>
+
+                    <section
+                        v-if="viewing.screening"
+                        class="flex flex-col gap-2 rounded-lg border p-3 text-sm"
+                        aria-labelledby="screening-record-title"
+                        data-test="screening-record"
+                    >
+                        <h3 id="screening-record-title" class="font-semibold">
+                            Phone screening:
+                            {{
+                                viewing.screening.outcome === 'pass'
+                                    ? 'passed'
+                                    : 'rejected'
+                            }}, rating {{ viewing.screening.rating }} of 5
+                        </h3>
+                        <p v-if="viewing.screening.reason">
+                            Reason: {{ viewing.screening.reason }}
+                        </p>
+                        <ul
+                            v-if="viewing.screening.items.length"
+                            class="flex flex-col gap-1"
+                        >
+                            <li
+                                v-for="item in viewing.screening.items"
+                                :key="item.text"
+                            >
+                                {{ item.ticked ? 'Yes' : 'No' }} ·
+                                {{ item.text }}
+                            </li>
+                        </ul>
+                        <p
+                            v-if="viewing.screening.note"
+                            class="break-words whitespace-pre-line"
+                        >
+                            {{ viewing.screening.note }}
+                        </p>
+                        <p class="text-muted-foreground">
+                            By {{ viewing.screening.by }},
+                            {{ viewing.screening.at }}
+                        </p>
+                    </section>
 
                     <div v-if="viewing.next.length" class="flex flex-col gap-2">
                         <h3 class="text-sm font-semibold">Move to</h3>
@@ -986,9 +982,104 @@ const saveRetention = () => {
                             >
                         </div>
                     </div>
+
+                    <section
+                        class="flex flex-col gap-3 border-t pt-4"
+                        aria-labelledby="application-details-title"
+                    >
+                        <h3
+                            id="application-details-title"
+                            class="text-sm font-semibold"
+                        >
+                            Application
+                        </h3>
+                        <dl v-if="!viewing.purged" class="grid gap-3 text-sm">
+                            <div>
+                                <dt class="text-muted-foreground">Phone</dt>
+                                <dd class="break-words">{{ viewing.phone }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-muted-foreground">Email</dt>
+                                <dd class="break-all">{{ viewing.email }}</dd>
+                            </div>
+                            <div v-for="d in viewing.details" :key="d.label">
+                                <dt class="text-muted-foreground">
+                                    {{ d.label }}
+                                </dt>
+                                <dd class="break-words">{{ d.value }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-muted-foreground">Message</dt>
+                                <dd class="break-words whitespace-pre-line">
+                                    {{ viewing.message ?? '—' }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-muted-foreground">
+                                    Privacy notice
+                                </dt>
+                                <dd>
+                                    Version {{ viewing.privacyNoticeVersion }}
+                                </dd>
+                            </div>
+                        </dl>
+                        <p v-else class="text-sm text-muted-foreground">
+                            The applicant's details and CV were deleted after
+                            the retention period. The step and dates are kept.
+                        </p>
+                        <Button
+                            v-if="viewing.hasCv"
+                            as-child
+                            variant="outline"
+                            class="w-fit max-lg:min-h-11"
+                        >
+                            <a
+                                :href="`/hr/applications/${viewing.id}/cv`"
+                                :aria-label="`Open CV (PDF, ${viewing.cvKb} KB)`"
+                                data-test="application-cv"
+                                >Open CV ({{ viewing.cvKb }} KB)</a
+                            >
+                        </Button>
+                        <p
+                            v-if="viewing.hasCv"
+                            class="text-xs text-muted-foreground"
+                        >
+                            Each open of a CV is recorded.
+                        </p>
+                    </section>
                 </div>
             </SheetContent>
         </Sheet>
+
+        <OperationalConfirmDialog
+            :open="rejecting.open"
+            title="Reject after the phone call?"
+            description="This closes the application as Not taken forward. A closed application cannot be moved again."
+            confirm-label="Reject"
+            destructive
+            :processing="screening.processing"
+            :error="errors.reject_reason ?? errors.rating ?? errors.outcome"
+            @update:open="(open) => (rejecting.open = open)"
+            @confirm="confirmReject"
+        >
+            <fieldset class="flex flex-col gap-1" data-test="reject-reasons">
+                <legend class="mb-1 text-sm font-medium">Why?</legend>
+                <label
+                    v-for="r in applications.options.rejectReasons"
+                    :key="r.value"
+                    class="flex min-h-11 items-center gap-3 text-sm"
+                >
+                    <input
+                        v-model="rejecting.reason"
+                        type="radio"
+                        name="reject-reason"
+                        :value="r.value"
+                        class="size-5"
+                    />
+                    {{ r.label }}
+                </label>
+            </fieldset>
+        </OperationalConfirmDialog>
 
         <OperationalConfirmDialog
             :open="moving.confirm"

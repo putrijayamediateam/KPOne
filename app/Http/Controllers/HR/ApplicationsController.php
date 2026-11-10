@@ -48,7 +48,7 @@ class ApplicationsController extends Controller
         $back = route('hr.applications.index', array_filter(['tab' => 'applications', ...$request->only(['status', 'position', 'page'])]));
 
         return $this->run($request, $back, 'Phone screening recorded.',
-            fn () => $applications->screen($request->user(), $application, $request->only(['outcome', 'rating', 'ticked', 'note', 'expected_lock_version', 'idempotency_key'])));
+            fn () => $applications->screen($request->user(), $application, $request->only(['outcome', 'rating', 'ticked', 'note', 'reject_reason', 'expected_lock_version', 'idempotency_key'])));
     }
 
     public function checklist(Request $request, JobApplicationService $applications): RedirectResponse

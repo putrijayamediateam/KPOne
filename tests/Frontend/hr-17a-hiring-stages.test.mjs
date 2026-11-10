@@ -74,9 +74,20 @@ test('HR records the phone call with the checklist, a 1 to 5 rating and pass or 
     );
     assert.match(source.hr, /expected_lock_version: application\.lockVersion/);
     assert.match(template('hr'), /viewing\.status === 'phone_screening'/);
-    assert.match(template('hr'), /value="pass"/);
-    assert.match(template('hr'), /value="reject"/);
-    assert.match(source.hr, /'5 · Excellent'/);
+    // Pass is the primary button; Reject asks first and needs a reason (Daniel, HR-17a).
+    assert.match(template('hr'), /@submit\.prevent="recordPass"/);
+    assert.match(template('hr'), /@click="askReject"/);
+    assert.match(template('hr'), /title="Reject after the phone call\?"/);
+    assert.match(source.hr, /reject_reason:/);
+    // The rating is five radio buttons in a fieldset, with labelled ends.
+    assert.match(template('hr'), /v-for="n in 5"/);
+    assert.match(template('hr'), /type="radio"\s+name="screening-rating"/);
+    assert.match(template('hr'), /1 Weak<\/span><span>5 Strong/);
+    // The stage action comes before the application's details.
+    assert.ok(
+        template('hr').indexOf('data-test="screening-form"') <
+            template('hr').indexOf('id="application-details-title"'),
+    );
     assert.match(template('hr'), /KPOne\s+ships\s+none\./);
     assert.match(source.hr, /'\/hr\/applications\/checklist'/);
     assert.match(
@@ -87,4 +98,87 @@ test('HR records the phone call with the checklist, a 1 to 5 rating and pass or 
     assert.match(source.hr, /position_type: positionForm\.type/);
     // No offer is made in KPOne.
     assert.match(template('hr'), /Any offer is made outside KPOne\./);
+});
+
+test('the public form has three steps, checks each before Next and uses the shared date box', async () => {
+    assert.match(
+        template('apply'),
+        /Step \{\{ step \}\} of \{\{ STEP_COUNT \}\}/,
+    );
+    assert.match(template('apply'), /Langkah \{\{ step \}\} daripada/);
+    assert.match(template('apply'), /data-test="apply-next"/);
+    assert.match(template('apply'), /data-test="apply-back"/);
+    assert.match(template('apply'), /data-test="apply-error-summary"/);
+    assert.match(template('apply'), /<DateField/);
+    assert.doesNotMatch(template('apply'), /type="date"/);
+    assert.match(template('apply'), /From today, within a year\./);
+    assert.doesNotMatch(source.apply, /localStorage|sessionStorage|indexedDB/);
+
+    const lib = await import('../../resources/js/lib/job-application-form.ts');
+    const blank = {
+        position: '',
+        name: '',
+        phone: '',
+        email: '',
+        preferred_branch: '',
+        start_date: '',
+        education: '',
+        years_experience: '',
+        languages: [],
+        institution: '',
+        programme: '',
+        intern_from: '',
+        intern_to: '',
+        availability: '',
+        mmc_number: '',
+        apc_year: '',
+        apc_expiry: '',
+        message: '',
+        privacy_accepted: false,
+    };
+    assert.deepEqual(
+        Object.keys(lib.validateApplicationStep(1, blank, null, '2026-11-10')),
+        ['position', 'name', 'phone', 'email'],
+    );
+    assert.ok(
+        'mmc_number' in
+            lib.validateApplicationStep(
+                2,
+                blank,
+                'resident_doctor',
+                '2026-11-10',
+            ),
+    );
+    assert.ok(
+        !(
+            'mmc_number' in
+            lib.validateApplicationStep(2, blank, 'ca', '2026-11-10')
+        ),
+    );
+    assert.ok(
+        'start_date' in
+            lib.validateApplicationStep(
+                2,
+                { ...blank, start_date: '2027-11-11' },
+                'ca',
+                '2026-11-10',
+            ),
+    );
+    assert.ok(
+        !(
+            'start_date' in
+            lib.validateApplicationStep(
+                2,
+                { ...blank, start_date: '2027-11-10' },
+                'ca',
+                '2026-11-10',
+            )
+        ),
+    );
+    assert.deepEqual(
+        Object.keys(lib.validateApplicationStep(3, blank, null, '2026-11-10')),
+        ['privacy_accepted'],
+    );
+    assert.equal(lib.stepOf('mmc_number'), 2);
+    assert.equal(lib.stepOf('cv'), 3);
 });

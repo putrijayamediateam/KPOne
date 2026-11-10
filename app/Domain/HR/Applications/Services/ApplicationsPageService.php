@@ -53,6 +53,7 @@ final class ApplicationsPageService
                     ->get(['id', 'name'])->map(fn (object $b): array => ['value' => (string) $b->id, 'label' => (string) $b->name])->values()->all(),
                 'positions' => $positions->map(fn (object $p): array => ['value' => (string) $p->public_id, 'label' => (string) $p->title])->values()->all(),
                 'graceDays' => JobApplicationService::GRACE_DAYS,
+                'rejectReasons' => collect(JobApplicationService::REJECT_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
                 'types' => collect(JobApplicationService::TYPES)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             ],
             'positions' => $positions->map(fn (object $p): array => [
@@ -94,7 +95,7 @@ final class ApplicationsPageService
                 'a.cv_path', 'a.cv_bytes', 'a.privacy_notice_version', 'a.submitted_at', 'a.closed_at', 'a.purged_at', 'a.lock_version',
                 'p.title', 'p.position_type']);
         $screenings = DB::table('hr_job_screenings as s')->leftJoin('users as u', 'u.id', '=', 's.actor_user_id')
-            ->whereIn('s.application_id', $rows->pluck('id'))->get(['s.application_id', 's.checklist_version', 's.ticked', 's.rating', 's.note_encrypted', 's.outcome', 's.created_at', 'u.name'])
+            ->whereIn('s.application_id', $rows->pluck('id'))->get(['s.application_id', 's.checklist_version', 's.ticked', 's.rating', 's.note_encrypted', 's.outcome', 's.reject_reason', 's.created_at', 'u.name'])
             ->keyBy('application_id');
         $lists = DB::table('hr_job_screening_checklists')->where('organisation_id', $actor->organisation_id)->get(['version', 'items'])->keyBy('version');
         $branches = collect(JobApplicationIntake::branches($actor->organisation_id))->pluck('label', 'value');
@@ -195,6 +196,7 @@ final class ApplicationsPageService
 
         return [
             'outcome' => (string) $s->outcome,
+            'reason' => $s->reject_reason === null ? null : (JobApplicationService::REJECT_REASONS[$s->reject_reason] ?? (string) $s->reject_reason),
             'rating' => (int) $s->rating,
             'note' => self::plain($s->note_encrypted),
             'items' => array_map(fn (int $i, mixed $text): array => ['text' => (string) $text, 'ticked' => in_array($i, $ticked, true)], array_keys($items), $items),

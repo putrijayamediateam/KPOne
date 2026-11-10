@@ -46,6 +46,8 @@ return new class extends Migration
             $t->unsignedSmallInteger('rating');
             $t->text('note_encrypted')->nullable();
             $t->string('outcome', 10); // pass | reject
+            // Why a call was rejected, from a fixed list (Daniel, HR-17a); never free text.
+            $t->string('reject_reason', 20)->nullable();
             $t->unsignedBigInteger('actor_user_id');
             $t->timestampTz('created_at');
             $t->foreign(['application_id', 'organisation_id'], 'hr_job_screenings_app_fk')->references(['id', 'organisation_id'])->on('hr_job_applications')->restrictOnDelete();
@@ -57,7 +59,9 @@ return new class extends Migration
         DB::statement("ALTER TABLE hr_job_screening_checklists ADD CONSTRAINT hr_job_screen_lists_shape CHECK (
             version >= 1 AND jsonb_typeof(items) = 'array' AND jsonb_array_length(items) BETWEEN 1 AND 15)");
         DB::statement("ALTER TABLE hr_job_screenings ADD CONSTRAINT hr_job_screenings_shape CHECK (
-            rating BETWEEN 1 AND 5 AND outcome IN ('pass', 'reject') AND jsonb_typeof(ticked) = 'array')");
+            rating BETWEEN 1 AND 5 AND outcome IN ('pass', 'reject') AND jsonb_typeof(ticked) = 'array'
+            AND ((outcome = 'pass' AND reject_reason IS NULL)
+                OR (outcome = 'reject' AND reject_reason IN ('speaking', 'availability', 'experience', 'not_reachable', 'other'))))");
 
         DB::unprepared(<<<'SQL'
 CREATE TRIGGER hr_job_screen_lists_append BEFORE UPDATE OR DELETE ON hr_job_screening_checklists FOR EACH ROW EXECUTE FUNCTION guard_hr_records_append_only();
@@ -70,7 +74,7 @@ CREATE OR REPLACE FUNCTION guard_hr_job_screening() RETURNS trigger LANGUAGE plp
 BEGIN
  IF NEW.id <> OLD.id OR NEW.organisation_id <> OLD.organisation_id OR NEW.application_id <> OLD.application_id
    OR NEW.checklist_version IS DISTINCT FROM OLD.checklist_version OR NEW.ticked <> OLD.ticked OR NEW.rating <> OLD.rating
-   OR NEW.outcome <> OLD.outcome OR NEW.actor_user_id <> OLD.actor_user_id OR NEW.created_at IS DISTINCT FROM OLD.created_at
+   OR NEW.outcome <> OLD.outcome OR NEW.reject_reason IS DISTINCT FROM OLD.reject_reason OR NEW.actor_user_id <> OLD.actor_user_id OR NEW.created_at IS DISTINCT FROM OLD.created_at
    OR (NEW.note_encrypted IS NOT NULL AND NEW.note_encrypted IS DISTINCT FROM OLD.note_encrypted) THEN
   RAISE EXCEPTION 'A phone screening keeps what was recorded' USING ERRCODE = 'P0001';
  END IF;
