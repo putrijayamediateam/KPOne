@@ -19,6 +19,19 @@ final class ApplicationsPageService
 {
     public const PER_PAGE = 25;
 
+    /** "Needs you" lists at most this many rows per reason; the count is always the full number. */
+    public const NEEDS_YOU_ROWS = 8;
+
+    /** @var array<string, string> the words for a message's outcome on the HR view */
+    public const MESSAGE_STATUSES = [
+        'sending' => 'Sending',
+        'sent' => 'Emailed',
+        'failed' => 'Failed: shown in KPOne only',
+        'off' => 'Email off: shown in KPOne only',
+    ];
+
+    public function __construct(private HiringDeadlines $deadlines) {}
+
     /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
@@ -71,6 +84,50 @@ final class ApplicationsPageService
             'applications' => $tab === 'applications' ? $this->applications($actor, $query, $zone) : null,
             'settings' => $this->settings($actor, $zone),
             'checklist' => $this->checklist($actor),
+            'needsYou' => $this->needsYou($actor, $zone),
+            'email' => ['enabled' => HiringMessenger::emailEnabled(), 'mailbox' => HiringMessenger::mailbox() !== null],
+        ];
+    }
+
+    /**
+     * HR-17b "Needs you" (HR-PLAN 19.9): new applications, and those the daily check closes at the start of the next
+     * working day. Interview slots and interviews today come with HR-17c. Each row says why it is listed.
+     *
+     * @return array<string, mixed>
+     */
+    private function needsYou(User $actor, string $zone): array
+    {
+        $waiting = DB::table('hr_job_applications as a')->join('hr_job_positions as p', 'p.id', '=', 'a.position_id')
+            ->where('a.organisation_id', $actor->organisation_id)->whereIn('a.status', HiringDeadlines::WAITING)->whereNull('a.purged_at')
+            ->orderBy('a.stage_entered_at')->orderBy('a.id')->limit(500)
+            ->get(['a.id', 'a.public_id', 'a.organisation_id', 'a.position_id', 'a.status', 'a.stage_entered_at', 'a.name_encrypted', 'p.title', 'p.branch_id']);
+        $row = fn (\stdClass $a, string $why): array => ['id' => (string) $a->public_id, 'status' => (string) $a->status, 'name' => self::plain($a->name_encrypted) ?? 'Applicant',
+            'position' => (string) $a->title, 'why' => $why];
+        $new = [];
+        $closing = [];
+        $noDays = [];
+        foreach ($waiting as $a) {
+            $deadlines = $this->deadlines->deadlines($a);
+            $today = $this->deadlines->today($a);
+            if ($deadlines === null) {
+                $noDays[(string) ($a->branch_id ?? 'any')] = true;
+            } elseif ($today !== null && $today >= $deadlines['remind']) {
+                $closing[] = $row($a, $a->status === 'new'
+                    ? 'No first look yet: closes as Auto-rejected at the start of the next working day.'
+                    : 'No call recorded yet: closes as Auto-rejected at the start of the next working day.');
+
+                continue;
+            }
+            if ($a->status === 'new') {
+                $new[] = $row($a, 'New application, sent '.self::local($a->stage_entered_at, $zone).'.');
+            }
+        }
+
+        return [
+            'closing' => ['count' => count($closing), 'rows' => array_slice($closing, 0, self::NEEDS_YOU_ROWS)],
+            'new' => ['count' => count($new), 'rows' => array_slice($new, 0, self::NEEDS_YOU_ROWS)],
+            // A branch with no working days set never auto-rejects (HR-PLAN 19.13).
+            'noWorkingDays' => $noDays !== [],
         ];
     }
 
@@ -82,18 +139,23 @@ final class ApplicationsPageService
     {
         $status = is_string($query['status'] ?? null) && (isset(JobApplicationService::STATUSES[$query['status']]) || $query['status'] === 'open') ? $query['status'] : 'open';
         $position = is_string($query['position'] ?? null) ? $query['position'] : '';
+        // "Needs you" opens one application: the list shows just that one (HR-17b).
+        $focus = is_string($query['focus'] ?? null) && preg_match('/\A[0-9a-f-]{36}\z/', $query['focus']) === 1 ? $query['focus'] : '';
         $page = max(1, (int) filter_var($query['page'] ?? 1, FILTER_VALIDATE_INT, ['options' => ['default' => 1]]));
 
         $base = DB::table('hr_job_applications as a')->join('hr_job_positions as p', 'p.id', '=', 'a.position_id')
             ->where('a.organisation_id', $actor->organisation_id)
-            ->when($status === 'open', fn ($q) => $q->whereIn('a.status', JobApplicationService::OPEN))
-            ->when($status !== 'open', fn ($q) => $q->where('a.status', $status))
+            ->when($focus !== '', fn ($q) => $q->where('a.public_id', $focus))
+            ->when($focus === '' && $status === 'open', fn ($q) => $q->whereIn('a.status', JobApplicationService::OPEN))
+            ->when($focus === '' && $status !== 'open', fn ($q) => $q->where('a.status', $status))
             ->when($position !== '', fn ($q) => $q->where('p.public_id', $position));
         $total = (clone $base)->count();
         $rows = $base->orderByDesc('a.submitted_at')->orderByDesc('a.id')->offset(($page - 1) * self::PER_PAGE)->limit(self::PER_PAGE)
             ->get(['a.id', 'a.public_id', 'a.status', 'a.name_encrypted', 'a.phone_encrypted', 'a.email_encrypted', 'a.message_encrypted', 'a.details_encrypted',
                 'a.cv_path', 'a.cv_bytes', 'a.privacy_notice_version', 'a.submitted_at', 'a.closed_at', 'a.purged_at', 'a.lock_version',
-                'p.title', 'p.position_type']);
+                'p.title', 'p.position_type', 'a.organisation_id', 'a.position_id', 'a.stage_entered_at']);
+        $messages = DB::table('hr_job_application_messages')->whereIn('application_id', $rows->pluck('id'))->orderByDesc('created_at')->orderByDesc('id')
+            ->get()->groupBy('application_id');
         $screenings = DB::table('hr_job_screenings as s')->leftJoin('users as u', 'u.id', '=', 's.actor_user_id')
             ->whereIn('s.application_id', $rows->pluck('id'))->get(['s.application_id', 's.checklist_version', 's.ticked', 's.rating', 's.note_encrypted', 's.outcome', 's.reject_reason', 's.created_at', 'u.name'])
             ->keyBy('application_id');
@@ -101,11 +163,11 @@ final class ApplicationsPageService
         $branches = collect(JobApplicationIntake::branches($actor->organisation_id))->pluck('label', 'value');
 
         return [
-            'filters' => ['status' => $status, 'position' => $position],
+            'filters' => ['status' => $status, 'position' => $position, 'focus' => $focus],
             'page' => $page,
             'perPage' => self::PER_PAGE,
             'total' => $total,
-            'rows' => $rows->map(fn (object $a): array => [
+            'rows' => $rows->map(fn (\stdClass $a): array => [
                 'id' => (string) $a->public_id,
                 'position' => (string) $a->title,
                 'status' => (string) $a->status,
@@ -118,6 +180,11 @@ final class ApplicationsPageService
                 'type' => (string) $a->position_type,
                 'details' => self::details(self::plain($a->details_encrypted), $branches->all()),
                 'screening' => isset($screenings[$a->id]) ? self::screening($screenings[$a->id], $lists->all(), $zone) : null,
+                'messages' => array_map(fn (\stdClass $m): array => [...HiringMessenger::shown($m, (string) $a->public_id, HiringMessenger::positionTitle((int) $a->position_id)),
+                    'statusLabel' => self::MESSAGE_STATUSES[$m->status] ?? (string) $m->status, 'atLabel' => self::local($m->created_at, $zone)],
+                    ($messages[$a->id] ?? collect())->all()),
+                'autoRejectOn' => $this->autoRejectOn($a),
+                'autoRejectSoon' => $this->autoRejectSoon($a),
                 'hasCv' => $a->cv_path !== null,
                 'cvKb' => (int) ceil((int) $a->cv_bytes / 1024),
                 'privacyNoticeVersion' => (string) $a->privacy_notice_version,
@@ -127,6 +194,29 @@ final class ApplicationsPageService
                 'lockVersion' => (int) $a->lock_version,
             ])->values()->all(),
         ];
+    }
+
+    /** The branch-local date the daily check closes a waiting application, as words, or null. */
+    private function autoRejectOn(\stdClass $a): ?string
+    {
+        if (! in_array($a->status, HiringDeadlines::WAITING, true) || $a->purged_at !== null) {
+            return null;
+        }
+        $deadlines = $this->deadlines->deadlines($a);
+
+        return $deadlines === null ? null : CarbonImmutable::parse($deadlines['reject'])->format('D j M Y');
+    }
+
+    /** Whether the daily check closes a waiting application at the start of the next working day (Daniel, HR-17b). */
+    private function autoRejectSoon(\stdClass $a): bool
+    {
+        if (! in_array($a->status, HiringDeadlines::WAITING, true) || $a->purged_at !== null) {
+            return false;
+        }
+        $deadlines = $this->deadlines->deadlines($a);
+        $today = $this->deadlines->today($a);
+
+        return $deadlines !== null && $today !== null && $today >= $deadlines['remind'];
     }
 
     /** @return array<string, mixed> */

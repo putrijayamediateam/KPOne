@@ -19,7 +19,7 @@ class ApplicationsController extends Controller
 {
     public function index(Request $request, ApplicationsPageService $pages): Response
     {
-        return Inertia::render('HR/Applications', ['applications' => $pages->page($request->user(), $request->only(['tab', 'status', 'position', 'page']))]);
+        return Inertia::render('HR/Applications', ['applications' => $pages->page($request->user(), $request->only(['tab', 'status', 'position', 'page', 'focus']))]);
     }
 
     public function addPosition(Request $request, JobApplicationService $applications): RedirectResponse

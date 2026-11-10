@@ -139,6 +139,12 @@ class AppServiceProvider extends ServiceProvider
             Limit::perHour(10)->by('hr-apply-hour:'.$request->ip()),
             Limit::perHour(100)->by('hr-apply-all'),
         ]);
+        // HR-17b: the candidate's private link page. Per IP, and the exchange of a link for its cookie is tighter.
+        RateLimiter::for('hr-applications-status', fn (Request $request): array => [Limit::perMinute(60)->by('hr-status:'.$request->ip())]);
+        RateLimiter::for('hr-applications-link', fn (Request $request): array => [
+            Limit::perMinute(10)->by('hr-link:'.$request->ip()),
+            Limit::perHour(60)->by('hr-link-hour:'.$request->ip()),
+        ]);
         RateLimiter::for('public-intake-exchange', fn (Request $request): array => $this->publicLinkExchangeLimits($request));
         RateLimiter::for('public-intake-submit', function (Request $request): array {
             $context = $this->publicIntakeSessionContext($request);
