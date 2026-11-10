@@ -62,6 +62,31 @@ const currentStep = computed(() => {
 
     return props.status.state === 'under_review' ? 1 : 0;
 });
+// A screen reader hears only the key facts when they change: the status message, the queue number and the
+// patients ahead. The wait estimate and the other branches' counts change on most polls, so they are never
+// announced. A call to the room is announced by its own alert. The text stays empty until the first change, so
+// the page is not read twice when it opens.
+const announcement = computed(() => {
+    const parts = [props.status.message];
+
+    if (props.status.queueNumber) {
+        parts.push(`Nombor queue anda ${props.status.queueNumber}.`);
+    }
+
+    if (props.status.ahead !== null && !called.value) {
+        parts.push(
+            props.status.ahead > 0
+                ? `Pesakit di hadapan anda: ${props.status.ahead}.`
+                : 'Anda seterusnya dalam giliran.',
+        );
+    }
+
+    return parts.join(' ');
+});
+const announced = ref('');
+watch(announcement, (text) => {
+    announced.value = text;
+});
 const soundOn = ref(false);
 let audio: AudioContext | undefined;
 const distanceKm = (from: Coordinates, to: Coordinates): number => {
@@ -209,8 +234,16 @@ onBeforeUnmount(() => {
     >
         <section
             class="w-full min-w-0 space-y-6 rounded-3xl border bg-white p-6 shadow-xl sm:p-9 dark:bg-zinc-900"
-            aria-live="polite"
         >
+            <p
+                class="sr-only"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                data-test="status-announcer"
+            >
+                {{ announced }}
+            </p>
             <header class="flex items-center gap-3">
                 <img
                     src="/kp-mark.png"
