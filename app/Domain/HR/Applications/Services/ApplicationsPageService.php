@@ -91,7 +91,7 @@ final class ApplicationsPageService
         $total = (clone $base)->count();
         $rows = $base->orderByDesc('a.submitted_at')->orderByDesc('a.id')->offset(($page - 1) * self::PER_PAGE)->limit(self::PER_PAGE)
             ->get(['a.id', 'a.public_id', 'a.status', 'a.name_encrypted', 'a.phone_encrypted', 'a.email_encrypted', 'a.message_encrypted', 'a.details_encrypted',
-                'a.talent_pool_consent', 'a.cv_path', 'a.cv_bytes', 'a.privacy_notice_version', 'a.submitted_at', 'a.closed_at', 'a.purged_at', 'a.lock_version',
+                'a.cv_path', 'a.cv_bytes', 'a.privacy_notice_version', 'a.submitted_at', 'a.closed_at', 'a.purged_at', 'a.lock_version',
                 'p.title', 'p.position_type']);
         $screenings = DB::table('hr_job_screenings as s')->leftJoin('users as u', 'u.id', '=', 's.actor_user_id')
             ->whereIn('s.application_id', $rows->pluck('id'))->get(['s.application_id', 's.checklist_version', 's.ticked', 's.rating', 's.note_encrypted', 's.outcome', 's.created_at', 'u.name'])
@@ -116,7 +116,6 @@ final class ApplicationsPageService
                 'message' => self::plain($a->message_encrypted),
                 'type' => (string) $a->position_type,
                 'details' => self::details(self::plain($a->details_encrypted), $branches->all()),
-                'talentPoolConsent' => (bool) $a->talent_pool_consent,
                 'screening' => isset($screenings[$a->id]) ? self::screening($screenings[$a->id], $lists->all(), $zone) : null,
                 'hasCv' => $a->cv_path !== null,
                 'cvKb' => (int) ceil((int) $a->cv_bytes / 1024),

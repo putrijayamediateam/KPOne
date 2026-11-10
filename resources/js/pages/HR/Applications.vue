@@ -36,7 +36,6 @@ type Application = {
     message: string | null;
     type: string;
     details: { label: string; value: string }[];
-    talentPoolConsent: boolean;
     screening: {
         outcome: 'pass' | 'reject';
         rating: number;

@@ -73,7 +73,6 @@ class HiringStagesTest extends VisitTestCase
         $this->selectBranch($hr);
         $this->get(route('hr.applications.index'))->assertInertia(fn (Assert $page) => $page
             ->where('applications.applications.rows.0.type', 'resident_doctor')
-            ->where('applications.applications.rows.0.talentPoolConsent', false)
             ->where('applications.applications.rows.0.details.0', ['label' => 'Preferred branch', 'value' => 'Cheras'])
             ->where('applications.applications.rows.0.details.5', ['label' => 'MMC number (as stated)', 'value' => '54321'])
             ->where('applications.applications.rows.0.screening', null));
