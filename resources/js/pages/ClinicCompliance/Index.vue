@@ -5,6 +5,12 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import { ChevronDown, TriangleAlert } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
+import FridgeSettings from '@/components/compliance/FridgeSettings.vue';
+import FridgeTab from '@/components/compliance/FridgeTab.vue';
+import type {
+    FridgeSetting,
+    FridgeTabData,
+} from '@/components/compliance/fridgeTypes';
 import { dateLabel } from '@/components/hr/records/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -84,7 +90,12 @@ type Compliance = {
         typesWithoutRecord: string[];
     } | null;
     licences: { rows: Row[]; types: LicenceType[] } | null;
-    settings: { types: LicenceType[] } | null;
+    settings: {
+        types: LicenceType[] | null;
+        fridges: FridgeSetting[] | null;
+    } | null;
+    fridge: FridgeTabData | null;
+    canManageFridges: boolean;
 };
 
 const props = defineProps<{ compliance: Compliance }>();
@@ -96,6 +107,7 @@ const base = '/clinic-compliance';
 const labels: Record<string, string> = {
     overview: 'Overview',
     licences: 'Licences',
+    fridge: 'Fridge log',
     settings: 'Settings',
 };
 const tabs = computed(() =>
@@ -357,7 +369,7 @@ const unusedSuggestions = computed(() => {
         />
 
         <EmptyState
-            v-if="!compliance.canManageLicences"
+            v-if="compliance.tabs.length === 0"
             title="You cannot open this page."
             description="Ask the Director if you need access."
         />
@@ -653,90 +665,108 @@ const unusedSuggestions = computed(() => {
             </ul>
         </section>
 
+        <!-- Fridge log -->
+        <FridgeTab
+            v-else-if="compliance.tab === 'fridge' && compliance.fridge"
+            :fridge="compliance.fridge"
+            :set-up-hint="compliance.canManageFridges"
+        />
+
         <!-- Settings -->
-        <section
+        <div
             v-else-if="compliance.tab === 'settings' && compliance.settings"
-            class="flex flex-col gap-3"
-            aria-label="Licence types"
+            class="flex flex-col gap-8"
         >
-            <div class="flex flex-wrap items-center justify-between gap-2">
-                <p class="text-sm text-muted-foreground">
-                    KPOne ships no licence list. Add the ones your clinic holds.
-                </p>
-                <Button
-                    type="button"
-                    class="min-h-11 lg:min-h-9"
-                    data-test="add-type"
-                    @click="openType(null)"
-                    >Add a licence type</Button
-                >
-            </div>
-            <div
-                v-if="unusedSuggestions.length"
-                class="flex flex-wrap items-center gap-2 text-sm"
+            <section
+                v-if="compliance.settings.types"
+                class="flex flex-col gap-3"
+                aria-label="Licence types"
             >
-                <span class="text-muted-foreground">Suggested names:</span>
-                <Button
-                    v-for="s in unusedSuggestions"
-                    :key="s"
-                    type="button"
-                    variant="outline"
-                    class="min-h-11 lg:min-h-9"
-                    @click="openType(null, s)"
-                    >{{ s }}</Button
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <p class="text-sm text-muted-foreground">
+                        KPOne ships no licence list. Add the ones your clinic
+                        holds.
+                    </p>
+                    <Button
+                        type="button"
+                        class="min-h-11 lg:min-h-9"
+                        data-test="add-type"
+                        @click="openType(null)"
+                        >Add a licence type</Button
+                    >
+                </div>
+                <div
+                    v-if="unusedSuggestions.length"
+                    class="flex flex-wrap items-center gap-2 text-sm"
                 >
-            </div>
-            <EmptyState
-                v-if="!compliance.settings.types.length"
-                title="No licence types yet."
-                description="Add the first one above."
-            />
-            <ul v-else class="flex flex-col gap-3">
-                <li
-                    v-for="t in compliance.settings.types"
-                    :key="t.id"
-                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4"
-                >
-                    <div class="min-w-0">
-                        <p class="text-sm font-semibold break-words">
-                            {{ t.name }}
-                            <span
-                                v-if="!t.isActive"
-                                class="text-xs font-normal text-muted-foreground"
-                                >· archived</span
+                    <span class="text-muted-foreground">Suggested names:</span>
+                    <Button
+                        v-for="s in unusedSuggestions"
+                        :key="s"
+                        type="button"
+                        variant="outline"
+                        class="min-h-11 lg:min-h-9"
+                        @click="openType(null, s)"
+                        >{{ s }}</Button
+                    >
+                </div>
+                <EmptyState
+                    v-if="!(compliance.settings.types ?? []).length"
+                    title="No licence types yet."
+                    description="Add the first one above."
+                />
+                <ul v-else class="flex flex-col gap-3">
+                    <li
+                        v-for="t in compliance.settings.types ?? []"
+                        :key="t.id"
+                        class="flex flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-4"
+                    >
+                        <div class="min-w-0">
+                            <p class="text-sm font-semibold break-words">
+                                {{ t.name }}
+                                <span
+                                    v-if="!t.isActive"
+                                    class="text-xs font-normal text-muted-foreground"
+                                    >· archived</span
+                                >
+                            </p>
+                            <p class="text-xs text-muted-foreground">
+                                {{
+                                    t.expires
+                                        ? `Expires. Warn from ${t.warnFromDays ?? 0} days before.`
+                                        : 'Does not expire.'
+                                }}
+                            </p>
+                        </div>
+                        <div v-if="t.isActive" class="flex gap-2">
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="min-h-11 lg:min-h-9"
+                                @click="openType(t)"
+                                >Edit<span class="sr-only">
+                                    {{ t.name }}</span
+                                ></Button
                             >
-                        </p>
-                        <p class="text-xs text-muted-foreground">
-                            {{
-                                t.expires
-                                    ? `Expires. Warn from ${t.warnFromDays ?? 0} days before.`
-                                    : 'Does not expire.'
-                            }}
-                        </p>
-                    </div>
-                    <div v-if="t.isActive" class="flex gap-2">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            class="min-h-11 lg:min-h-9"
-                            @click="openType(t)"
-                            >Edit<span class="sr-only">
-                                {{ t.name }}</span
-                            ></Button
-                        >
-                        <Button
-                            type="button"
-                            variant="outline"
-                            class="min-h-11 lg:min-h-9"
-                            @click="archiveType(t)"
-                            >Archive<span class="sr-only">
-                                {{ t.name }}</span
-                            ></Button
-                        >
-                    </div>
-                </li>
-            </ul>
-        </section>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                class="min-h-11 lg:min-h-9"
+                                @click="archiveType(t)"
+                                >Archive<span class="sr-only">
+                                    {{ t.name }}</span
+                                ></Button
+                            >
+                        </div>
+                    </li>
+                </ul>
+            </section>
+            <FridgeSettings
+                v-if="compliance.settings.fridges"
+                :fridges="compliance.settings.fridges"
+                :branches="compliance.options.branches"
+            />
+        </div>
 
         <!-- Add or renew -->
         <Sheet

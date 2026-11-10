@@ -67,14 +67,20 @@ class LicencesTest extends VisitTestCase
         $holders = collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array(CompliancePermissions::LICENCES_MANAGE, $p, true))->keys()->sort()->values()->all();
         $this->assertSame(['administrator', 'director', 'hr_manager'], $holders);
         $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority(CompliancePermissions::LICENCES_MANAGE));
-        foreach (['technical_admin', 'ca', 'ca_supervisor', 'resident_doctor', 'finance_officer', 'panel_officer', 'marketing', 'business_development', 'queue_display'] as $role) {
+        foreach (['technical_admin', 'resident_doctor', 'finance_officer', 'panel_officer', 'marketing', 'business_development', 'queue_display'] as $role) {
             $this->selectBranch($this->actor($role));
             $this->get(route('clinic-compliance.index'))->assertForbidden();
             $this->post(route('clinic-compliance.types.save'), ['name' => 'X', 'expires' => true, 'warn_from_days' => 60, 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
         }
-        foreach (['director', 'administrator', 'hr_manager'] as $role) {
+        // The CA and CA Supervisor reach the page for the fridge log only, never the licences.
+        foreach (['ca', 'ca_supervisor'] as $role) {
             $this->selectBranch($this->actor($role));
-            $this->get(route('clinic-compliance.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('compliance.tabs', ['overview', 'licences', 'settings']));
+            $this->get(route('clinic-compliance.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('compliance.tabs', ['fridge']));
+            $this->post(route('clinic-compliance.types.save'), ['name' => 'X', 'expires' => true, 'warn_from_days' => 60, 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
+        }
+        foreach (['director' => ['overview', 'licences', 'fridge', 'settings'], 'administrator' => ['overview', 'licences', 'fridge', 'settings'], 'hr_manager' => ['overview', 'licences', 'settings']] as $role => $tabs) {
+            $this->selectBranch($this->actor($role));
+            $this->get(route('clinic-compliance.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('compliance.tabs', $tabs));
         }
     }
 
@@ -294,7 +300,7 @@ class LicencesTest extends VisitTestCase
     {
         $this->selectBranch($this->actor('administrator'));
         $this->get('/clinic-management')->assertInertia(fn (Assert $page) => $page->where('groups', fn ($groups): bool => str_contains(json_encode($groups) ?: '', '/clinic-compliance')));
-        $this->selectBranch($this->actor('ca'));
+        $this->selectBranch($this->actor('resident_doctor'));
         $this->get('/clinic-management')->assertInertia(fn (Assert $page) => $page->where('groups', fn ($groups): bool => ! str_contains(json_encode($groups) ?: '', '/clinic-compliance')));
     }
 

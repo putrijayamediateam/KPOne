@@ -1,0 +1,74 @@
+export type Option = { value: string; label: string };
+export type ReadingView = {
+    id: string;
+    takenAt: string;
+    temp: string;
+    low: string | null;
+    high: string | null;
+    rangeMin: string;
+    rangeMax: string;
+    outOfRange: boolean;
+    reason: string | null;
+    enteredBy: string;
+    errorReason?: string | null;
+    review?: {
+        action: string;
+        note: string | null;
+        by: string;
+        at: string;
+    } | null;
+};
+export type DayView = {
+    date: string;
+    count: number;
+    lowest: string | null;
+    highest: string | null;
+    outOfRange: boolean;
+    missed: boolean;
+    isToday: boolean;
+};
+export type FridgeCard = {
+    id: string;
+    lockVersion: number;
+    name: string;
+    branchId: number;
+    branchName: string;
+    min: string;
+    max: string;
+    readingsPerDay: number;
+    expectBy: string | null;
+    canRecord: boolean;
+    canReview: boolean;
+    canManage: boolean;
+    todayCount: number;
+    alerts: ReadingView[];
+    recent: ReadingView[];
+    days: DayView[];
+};
+export type FridgeTabData = {
+    month: string;
+    monthLabel: string;
+    previousMonth: string;
+    nextMonth: string | null;
+    canRecord: boolean;
+    canReview: boolean;
+    canManage: boolean;
+    setUp: boolean;
+    alertCount: number;
+    fridges: FridgeCard[];
+    reasons: Option[];
+    actions: Option[];
+    correctionReasons: Option[];
+};
+export type FridgeSetting = {
+    id: string;
+    lockVersion: number;
+    name: string;
+    branchId: number;
+    branchName: string;
+    min: string;
+    max: string;
+    readingsPerDay: number;
+    expectBy: string | null;
+    isActive: boolean;
+};

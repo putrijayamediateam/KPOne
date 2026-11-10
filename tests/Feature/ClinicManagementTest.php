@@ -79,7 +79,7 @@ class ClinicManagementTest extends VisitTestCase
             '/hr/sops' => ['hr.sops.acknowledge.own', 'hr.sops.manage.organisation'],
             '/hr/claims' => ['hr.claims.submit.own', 'hr.claims.approve.organisation', 'hr.claims.pay.organisation', 'hr.claims.manage.organisation'],
             '/hr/payroll' => ['hr.payroll.prepare.organisation', 'hr.payroll.export.organisation'],
-            '/clinic-compliance' => ['compliance.licences.manage.organisation'],
+            '/clinic-compliance' => ['compliance.licences.manage.organisation', 'compliance.fridge.manage.organisation', 'compliance.fridge.record.branch', 'compliance.fridge.review.branch'],
             '/hr/applications' => ['hr.applications.manage.organisation'],
             '/hr/messages' => ['hr.messages.receive.own', 'hr.messages.manage.organisation'],
             '/staff' => ['staff.view.own', 'staff.view.branch', 'staff.view.organisation'],
