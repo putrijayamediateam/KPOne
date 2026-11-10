@@ -104,6 +104,9 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-7b | Returns to check: a read-only branch list (`/dispensary/returns-to-check`, Clinic management > Inventory & services) of medicine returns waiting for a check, oldest first, 25 a page, each with an "Open case" link to the Completed page's returns section, where the check still happens; the Other note is never listed; only the v1 checkers (a CA Supervisor holding `inventory.variances.approve.branch`) see the page and its link | #360 (merged `72325c2`) |
 | DSP-12 | Scan to find a medicine in "Add a medicine": an outline "Scan to add" button opens the shared `ScanInput` (new `dispensary-add` context, polite only). POST `dispensary/{case}/medicines/by-sku` (read only; `dispensary.update.branch`, 60 a minute, branch and organisation checks, uuid SKU) returns the active medicines mapped to that SKU, shaped like the name search. One medicine with stock and no allergy match is chosen in the Add form and Quantity takes focus; an allergy match shows the red panel and the list with focus on Choose; several medicines or no stock show the list; an unlinked SKU says so. A scan saves nothing and is refused during a save or over typed directions; the newest scan wins | #383 (merged `378b1e4`) |
 | DSP-13 | Index `dispensary_return_branch_waiting_index` on `dispensary_returns (organisation_id, branch_id, recorded_at, id)` for the Returns to check list (migration `2026_11_06_200400`, no data change), and two tests: a CA Supervisor of another organisation sees none of these returns (even with the session pointed at this branch), and a recorder the viewer may not see shows as "Staff member" | #389 (merged `41944e9`) |
+| DSP-14 | Allergy match ignores strengths, dose forms and extra words: a "core" of each side drops tokens that start with a digit, units, dose forms and salt words (and, on the allergy side, wrapper, reaction, symptom and filler words); an allergy part's core inside a medicine name (whole words below 5 characters) or the medicine name's core inside the allergy text's core (whole words) also matches. Only adds matches; still warns, never blocks. Backend only | #428 (merged) |
+| DSP-15 | Quarantine one return across several batches: on a line dispensed from 2+ batches the check panel shows one box per batch (earliest expiry first, "Available: N", never prefilled, "Fill from earliest expiry" helper), a running "Placed X of Y" line, the shares in the confirm dialog and the batches on the history row. New append-only `dispensary_return_check_batches` (one STK-11 movement per share); PostgreSQL repeats the pairing, per-batch, can't-grow and exact-total rules. Migration `2026_11_07_000600` (decision 36) | #430 (merged) |
+| DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | #439 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -250,6 +253,16 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     checks at Dispensary, including medicine return checks, stay with CA staff (in v1 a CA Supervisor who did not record
     the return). The Finance Officer and the Director do not become return checkers, including for controlled medicines.
     This closes the open question in decision 30.
+34. DSP-14 allergy match with strengths (2026-11-10): the owner chose it ("go with DSP-14") and said "ship it". It
+    only adds matches; it still warns and asks the CA to confirm (decision 11). A drug class nobody tagged is still missed.
+35. DSP-15 split quarantine (2026-11-10): the owner chose it ("go with DSP-15") and said "ship it". Iman's sketch; boxes
+    are never prefilled, so the checker reads the batches on the boxes in hand, and "Fill from earliest expiry" only
+    helps. Daniel: OK with one change (the new boxes and helper follow DD-24, 44 px below 1024 px). Controlled
+    medicines are still never quarantined (decision 21).
+36. Migration slot for DSP-15 (2026-11-10): `2026_11_07_000600` in the Inventory range, approved by B.E.R.N.I.S.S as a
+    one-off (Inventory paused, slot unused), because the change must run after DSP-7's `2026_11_07_000500`. The same kind of
+    exception as DSP-7's checks table.
+37. DSP-16 race test (2026-11-10): the owner chose it ("go with DSP-16") and said "ship it". Tests only.
 
 ## 7. Open items and known limits
 
@@ -268,30 +281,35 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
   limit. The expiry prints only for a line with exactly one allocated batch with a real expiry; otherwise "EXP: -".
   No batch number, barcode or label snapshot; prints are logged per line (DSP-6). The 13-row limit is tighter than
   the old 35, so a long clinic header plus long directions is blocked sooner. The phone prints in reading form ("Tel: 03-2123 4567",
-  decision 28); a number the formatter does not recognise prints as stored. The CA and CA Supervisor guides in
-  `docs/guides/ms/` still describe the controlled line under the medicine name (Staff Experience told).
+  decision 28); a number the formatter does not recognise prints as stored.
 - **Label print log (DSP-6):** a print is logged when the fresh check passes, so a cancelled dialog, or a page that
   goes stale during the check, still counts. Printing from the browser's own menu or Ctrl+P is not logged and does
   not add the mark (the printer test says to use the button). Since DSP-10 the REPRINT mark sits top right inside the border, in the 8 cells the clinic name
   never uses (a test pins it). The fresh check writes a print row and an audit row, so it is a POST since DSP-6b (throttled, same-origin, CSRF-checked). A consultation-case print and two prints of the same case at the same moment are tested (DSP-6b).
 - **Medicine returns (DSP-7):** no refund in KPOne; only a CA Supervisor checks in v1, so a return a CA
   Supervisor records needs a second CA Supervisor on shift; checkers see waiting returns on the case page and
-  in the branch "Returns to check" list (DSP-7b, indexed since DSP-13; checked returns stay in the index, so the sorted read slows slightly as history grows). A quarantine credits one batch, so a return larger than any single batch of the
-  line cannot be quarantined (dispose it, or refuse it and record one return per batch). Returned stock leaves a
+  in the branch "Returns to check" list (DSP-7b, indexed since DSP-13; checked returns stay in the index, so the sorted read slows slightly as history grows). Since DSP-15 a quarantine can split one return across the
+  batches of its line; no batch ever takes back more than the line dispensed from it. Returned stock leaves a
   returns location only by an STK-5 count or write-off, or a transfer to another returns location (STK-11).
 - **Scan to add (DSP-12):** the scan finds only medicines mapped to the scanned SKU; an unlinked SKU needs a CA
   Supervisor to link it. A barcode on more than one medicine shows the list. Auto-pick happens only for one medicine
-  with stock and no allergy match. The CA guides in `docs/guides/ms/` do not mention "Scan to add" yet.
+  with stock and no allergy match.
 - **Stale returns note (fixed in PR #424):** the Completed page's Medicine returns note now says "Recording a return gives no money back." and points to Refunds on the visit's billing page (BIL-10), where a CA Supervisor or Finance Officer records a refund and someone else approves it; the CA guide matches.
-- **CA guide:** `docs/guides/ms/` should say the OTC allergy step now starts with no choice made (DSP-5).
+- **Check this return panel (design debt, agreed with Daniel 2026-11-10):** DSP-15's new boxes and helper follow
+  DD-24 (44 px below 1024 px), but the rest of the panel still switches below 640 px (sm). Moving it to max-lg is a
+  separate small fix.
+- **CA Supervisor guide after DSP-15:** `docs/guides/ms/penyelia-ca.md` says to choose the original batch for a
+  quarantine. Since #430 merged, it needs the split boxes ("Batches the units came from", "Fill from earliest expiry").
 - **Allergy matching is text only (DSP-1, DSP-1b, DSP-1c):** a CA add or edit that matches an active allergy record
   needs a recorded confirmation. Drug groups and other names (brand names, misspellings) are matched only when a
   catalogue editor has added them (DSP-1b, DSP-1c), so an untagged medicine still misses penicillin vs amoxicillin,
-  and a brand name or misspelling nobody listed is still missed, and allergy text with extra words not split by a comma may miss a name with a strength. It is a
+  and a brand name or misspelling nobody listed is still missed. Since DSP-14, strengths, dose forms and extra words no
+  longer hide a match ("Amoxicillin 500mg rash" warns for "Amoxicillin 250mg Capsule"); a shared dose form, salt,
+  strength or reaction word alone never matches. It is a
   warning, not a block (owner decision 11); the visible allergy list stays the main safeguard. Simple wrapper
   words ("allergic to", "allergy", "alahan") are ignored, so "Allergic to aspirin" matches "Aspirin 100mg".
   For OTC the CA now records the allergy itself (DSP-5), so it is matched like any other record; the OTC step
-  starts with no choice made (the CA guide in `docs/guides/ms/` should say so). An allergy added at OTC raises the
+  starts with no choice made (the CA guide says so). An allergy added at OTC raises the
   profile version, so a doctor's earlier review of that profile is no longer current. The doctor's Treatment
   Plan has no such check. A very broad drug group name (for example "Tablets") causes false alarms, so
   editors should use drug-class names only.
@@ -379,6 +397,9 @@ order, each its own PR:
 12. **DSP-11 Scan to check at Dispensary — merged in #349.** Decision 29.
 13. **DSP-12 Scan to add — merged in #383.** Decision 31.
 14. **DSP-13 Returns list index and tests — merged in #389.** Decision 32.
+15. **DSP-14 Allergy match with strengths — merged in #428.** Decision 34.
+16. **DSP-15 Quarantine one return across batches — merged in #430.** Decisions 35 and 36.
+17. **DSP-16 Race test for split quarantines — PR #439.** Decision 37.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
