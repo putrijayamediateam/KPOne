@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Schema;
  * when, at which branch and of which kind, with optional photos (checked, EXIF removed). The Director or HR Manager
  * acknowledges it, adds actions with an owner and a due date, and closes it with an outcome. The reporter sees the
  * status only, never the managers' notes. Patient-care reports are flagged for clinical review. A report can be linked
- * to an HR-10c discipline case only by someone who may handle discipline.
+ * to an HR-10c discipline case only by someone who may handle discipline. A staff-conduct report may be sent to the
+ * Director only (for example when it is about the HR Manager): then only a Director lists, reads or handles it.
  */
 return new class extends Migration
 {
@@ -24,6 +25,7 @@ return new class extends Migration
             $t->unsignedBigInteger('reporter_user_id');
             $t->timestampTz('occurred_at');
             $t->string('category', 20);
+            $t->boolean('director_only')->default(false);
             $t->text('description_encrypted');
             $t->string('status', 12); // reported | acknowledged | closed
             $t->unsignedBigInteger('acknowledged_by_user_id')->nullable();
@@ -38,7 +40,7 @@ return new class extends Migration
             $t->timestampsTz();
             $t->unique(['id', 'organisation_id'], 'hr_incidents_id_org_unique');
             $t->foreign('organisation_id', 'hr_incidents_org_fk')->references('id')->on('organisations')->restrictOnDelete();
-            $t->foreign('branch_id', 'hr_incidents_branch_fk')->references('id')->on('branches')->restrictOnDelete();
+            $t->foreign(['branch_id', 'organisation_id'], 'hr_incidents_branch_fk')->references(['id', 'organisation_id'])->on('branches')->restrictOnDelete();
             foreach (['reporter_user_id', 'acknowledged_by_user_id', 'closed_by_user_id', 'linked_by_user_id'] as $column) {
                 $t->foreign([$column, 'organisation_id'], "hr_incidents_{$column}_fk")->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
             }
@@ -49,6 +51,7 @@ return new class extends Migration
         DB::statement("ALTER TABLE hr_incidents ADD CONSTRAINT hr_incidents_shape CHECK (
             status IN ('reported', 'acknowledged', 'closed') AND lock_version >= 1
             AND category IN ('workplace_safety', 'staff_conduct', 'equipment_premises', 'near_miss', 'patient_care')
+            AND (NOT director_only OR category = 'staff_conduct')
             AND ((acknowledged_at IS NULL) = (acknowledged_by_user_id IS NULL)) AND ((status = 'reported') = (acknowledged_at IS NULL))
             AND ((status = 'closed') = (closed_at IS NOT NULL)) AND ((closed_at IS NULL) = (closed_by_user_id IS NULL))
             AND ((closed_at IS NULL) = (outcome_encrypted IS NULL))
@@ -106,6 +109,12 @@ return new class extends Migration
         });
 
         DB::unprepared(<<<'SQL'
+-- Whether this account holds the Director role (a "Director only" report is handled by a Director alone).
+CREATE OR REPLACE FUNCTION hr_incident_is_director(actor bigint) RETURNS boolean LANGUAGE sql STABLE AS $$
+ SELECT EXISTS (SELECT 1 FROM model_has_roles mr JOIN roles r ON r.id = mr.role_id
+     WHERE mr.model_id = actor AND mr.model_type = 'App\Models\User' AND r.name = 'director')
+$$;
+
 CREATE OR REPLACE FUNCTION guard_hr_incident_insert() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF NEW.status <> 'reported' OR NEW.lock_version <> 1 OR NEW.discipline_case_id IS NOT NULL THEN
@@ -124,6 +133,7 @@ CREATE OR REPLACE FUNCTION guard_hr_incident() RETURNS trigger LANGUAGE plpgsql 
 BEGIN
  IF NEW.id <> OLD.id OR NEW.public_id <> OLD.public_id OR NEW.organisation_id <> OLD.organisation_id OR NEW.branch_id <> OLD.branch_id
    OR NEW.reporter_user_id <> OLD.reporter_user_id OR NEW.occurred_at <> OLD.occurred_at OR NEW.category <> OLD.category
+   OR NEW.director_only <> OLD.director_only
    OR NEW.description_encrypted <> OLD.description_encrypted OR NEW.created_at IS DISTINCT FROM OLD.created_at
    OR NEW.lock_version <> OLD.lock_version + 1
    OR (OLD.acknowledged_at IS NOT NULL AND (NEW.acknowledged_at IS DISTINCT FROM OLD.acknowledged_at OR NEW.acknowledged_by_user_id IS DISTINCT FROM OLD.acknowledged_by_user_id))
@@ -135,6 +145,16 @@ BEGIN
  IF OLD.status = 'reported' AND NEW.status = 'closed' THEN
   RAISE EXCEPTION 'Acknowledge an incident report before closing it' USING ERRCODE = 'P0001';
  END IF;
+ IF NEW.status = 'closed' AND OLD.status <> 'closed'
+   AND EXISTS (SELECT 1 FROM hr_incident_actions a WHERE a.incident_id = NEW.id AND a.done_at IS NULL) THEN
+  RAISE EXCEPTION 'Mark every action done before closing an incident report' USING ERRCODE = 'P0001';
+ END IF;
+ IF NEW.director_only AND (
+     (NEW.acknowledged_by_user_id IS DISTINCT FROM OLD.acknowledged_by_user_id AND NOT hr_incident_is_director(NEW.acknowledged_by_user_id))
+     OR (NEW.closed_by_user_id IS DISTINCT FROM OLD.closed_by_user_id AND NOT hr_incident_is_director(NEW.closed_by_user_id))
+     OR (NEW.linked_by_user_id IS DISTINCT FROM OLD.linked_by_user_id AND NOT hr_incident_is_director(NEW.linked_by_user_id))) THEN
+  RAISE EXCEPTION 'A report sent to the Director only is handled only by a Director' USING ERRCODE = '23514';
+ END IF;
  IF NEW.discipline_case_id IS NOT NULL AND OLD.discipline_case_id IS NULL AND NOT EXISTS (SELECT 1 FROM model_has_permissions mp
      JOIN permissions p ON p.id = mp.permission_id WHERE mp.model_id = NEW.linked_by_user_id AND mp.model_type = 'App\Models\User'
      AND p.name = 'hr.discipline.manage.organisation'
@@ -142,22 +162,35 @@ BEGIN
      WHERE mr.model_id = NEW.linked_by_user_id AND mr.model_type = 'App\Models\User' AND p.name = 'hr.discipline.manage.organisation') THEN
   RAISE EXCEPTION 'Only someone who handles discipline links an incident to a case' USING ERRCODE = '23514';
  END IF;
+ IF NEW.discipline_case_id IS NOT NULL AND OLD.discipline_case_id IS NULL AND (NEW.category <> 'staff_conduct'
+   OR NOT EXISTS (SELECT 1 FROM hr_discipline_cases c WHERE c.id = NEW.discipline_case_id AND c.status = 'open'
+     AND (c.subject_user_id IS NULL OR hr_discipline_director_only(c.subject_user_id, NEW.linked_by_user_id)))) THEN
+  RAISE EXCEPTION 'A staff-conduct report links only to an open case its linker may handle' USING ERRCODE = '23514';
+ END IF;
  RETURN NEW;
 END $$;
 CREATE TRIGGER hr_incidents_guard BEFORE UPDATE ON hr_incidents FOR EACH ROW EXECUTE FUNCTION guard_hr_incident();
 
--- Actions: only the done mark changes, once. Actions, notes and photos are added only while the report is open,
+-- Actions: only the done mark changes, once, never by the reporter. Actions, notes and photos are added only while the report is open,
 -- and never by the reporter (photos come only with the report itself). The incident row is read without a lock:
 -- every write path in IncidentService already holds it FOR UPDATE.
 CREATE OR REPLACE FUNCTION guard_hr_incident_action() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE i record;
 BEGIN
  IF NEW.id <> OLD.id OR NEW.public_id <> OLD.public_id OR NEW.incident_id <> OLD.incident_id OR NEW.description_encrypted <> OLD.description_encrypted
    OR NEW.owner_user_id <> OLD.owner_user_id OR NEW.due_on <> OLD.due_on OR NEW.created_by_user_id <> OLD.created_by_user_id
    OR NEW.created_at <> OLD.created_at OR NEW.lock_version <> OLD.lock_version + 1 OR OLD.done_at IS NOT NULL OR NEW.done_at IS NULL THEN
   RAISE EXCEPTION 'An incident action changes only by being marked done, once' USING ERRCODE = 'P0001';
  END IF;
- IF EXISTS (SELECT 1 FROM hr_incidents i WHERE i.id = NEW.incident_id AND i.status = 'closed') THEN
+ SELECT * INTO i FROM hr_incidents WHERE id = NEW.incident_id;
+ IF i.status = 'closed' THEN
   RAISE EXCEPTION 'A closed incident takes no more changes' USING ERRCODE = 'P0001';
+ END IF;
+ IF NEW.done_by_user_id = i.reporter_user_id THEN
+  RAISE EXCEPTION 'Nobody handles their own incident report' USING ERRCODE = '23514';
+ END IF;
+ IF i.director_only AND NOT hr_incident_is_director(NEW.done_by_user_id) THEN
+  RAISE EXCEPTION 'A report sent to the Director only is handled only by a Director' USING ERRCODE = '23514';
  END IF;
  RETURN NEW;
 END $$;
@@ -179,6 +212,9 @@ BEGIN
  actor := (to_jsonb(NEW) ->> CASE TG_TABLE_NAME WHEN 'hr_incident_actions' THEN 'created_by_user_id' ELSE 'author_user_id' END)::bigint;
  IF actor = i.reporter_user_id THEN
   RAISE EXCEPTION 'Nobody handles their own incident report' USING ERRCODE = '23514';
+ END IF;
+ IF i.director_only AND NOT hr_incident_is_director(actor) THEN
+  RAISE EXCEPTION 'A report sent to the Director only is handled only by a Director' USING ERRCODE = '23514';
  END IF;
  RETURN NEW;
 END $$;

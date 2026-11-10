@@ -27,6 +27,7 @@ use Illuminate\Validation\ValidationException;
  * The Director or HR Manager acknowledges it, adds notes (never shown to the reporter) and actions with an owner and a
  * due date, and closes it with an outcome. Nobody handles their own report. Patient-care reports are flagged
  * "Needs clinical review". A report is linked to an HR-10c discipline case only by someone who may handle that case.
+ * A staff-conduct report may be sent to the Director only (the HR Manager never lists, reads or handles it).
  * Text and photos are encrypted and never audited.
  */
 final class IncidentService
@@ -85,7 +86,7 @@ final class IncidentService
     }
 
     /**
-     * @param  array<string, mixed>  $input  branch_id, occurred_on, occurred_time, category, description, idempotency_key
+     * @param  array<string, mixed>  $input  branch_id, occurred_on, occurred_time, category, director_only, description, idempotency_key
      * @param  list<array{content:string, kind:string, bytes:int, sha256:string}>  $photos  from preparePhotos()
      */
     public function report(User $actor, array $input, array $photos = []): string
@@ -94,6 +95,10 @@ final class IncidentService
         $category = is_string($input['category'] ?? null) && array_key_exists($input['category'], self::CATEGORIES) ? $input['category'] : null;
         if ($category === null) {
             throw ValidationException::withMessages(['category' => 'Choose what kind of incident it was.']);
+        }
+        $directorOnly = filter_var($input['director_only'] ?? false, FILTER_VALIDATE_BOOLEAN);
+        if ($directorOnly && $category !== 'staff_conduct') {
+            throw ValidationException::withMessages(['director_only' => 'Only a staff-conduct report can go to the Director only.']);
         }
         $branch = is_string($input['branch_id'] ?? null) ? Branch::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)
             ->where('code', $input['branch_id'])->first() : null;
@@ -105,13 +110,13 @@ final class IncidentService
             'Describe what happened in 10 to '.self::MAX_TEXT.' characters.');
         $written = [];
         try {
-            return DB::transaction(function () use ($actor, $key, $category, $branch, $occurred, $text, $photos, &$written): string {
+            return DB::transaction(function () use ($actor, $key, $category, $directorOnly, $branch, $occurred, $text, $photos, &$written): string {
                 foreach ($written as $stale) {
                     Storage::disk(DocumentService::DISK)->delete($stale);
                 }
                 $written = [];
                 $actor = $this->support->lock($actor, IncidentPermissions::REPORT);
-                $hash = $this->support->hash([$actor->id, 'incident_report', $branch->id, $occurred->toIso8601String(), $category, hash('sha256', $text),
+                $hash = $this->support->hash([$actor->id, 'incident_report', $branch->id, $occurred->toIso8601String(), $category, $directorOnly, hash('sha256', $text),
                     array_column($photos, 'sha256')]);
                 if (($replay = $this->support->replay($actor, $key, 'incident_report', $hash)) !== null) {
                     return $replay;
@@ -119,7 +124,7 @@ final class IncidentService
                 $now = now()->utc();
                 $publicId = (string) Str::uuid();
                 $incidentId = DB::table('hr_incidents')->insertGetId(['public_id' => $publicId, 'organisation_id' => $actor->organisation_id,
-                    'branch_id' => $branch->id, 'reporter_user_id' => $actor->id, 'occurred_at' => $occurred->utc(), 'category' => $category,
+                    'branch_id' => $branch->id, 'reporter_user_id' => $actor->id, 'occurred_at' => $occurred->utc(), 'category' => $category, 'director_only' => $directorOnly,
                     'description_encrypted' => Crypt::encryptString($text), 'status' => 'reported', 'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
                 foreach ($photos as $photo) {
                     $photoId = (string) Str::uuid();
@@ -285,7 +290,7 @@ final class IncidentService
         return DB::transaction(function () use ($actor, $incidentId, $reporter): array {
             $actor = $this->support->lock($actor, IncidentPermissions::MANAGE, [$reporter]);
             $row = DB::table('hr_incidents')->where('organisation_id', $actor->organisation_id)->where('public_id', $incidentId)->first();
-            abort_if(! $row instanceof \stdClass, 404);
+            abort_if(! $row instanceof \stdClass || ! self::mayHandle($actor, $row), 404);
             $this->support->audit->record('hr.incidents.viewed', null, ['incident_id' => (int) $row->id], $actor, null, $actor->organisation_id);
 
             return [$row, true];
@@ -310,6 +315,12 @@ final class IncidentService
 
         return ['content' => $content, 'mime' => $photo->kind === 'png' ? 'image/png' : 'image/jpeg',
             'filename' => 'incident-'.substr((string) $photo->public_id, 0, 8).'.'.($photo->kind === 'png' ? 'png' : 'jpg')];
+    }
+
+    /** A report sent to the Director only is not there for anyone else: lists, views and handling all leave it out. */
+    public static function mayHandle(User $actor, \stdClass $incident): bool
+    {
+        return ! (bool) $incident->director_only || $actor->hasRole('director');
     }
 
     public static function decrypt(?string $encrypted): ?string
@@ -382,7 +393,7 @@ final class IncidentService
     private function managed(User $actor, string $incidentId): \stdClass
     {
         $incident = DB::table('hr_incidents')->where('organisation_id', $actor->organisation_id)->where('public_id', $incidentId)->lockForUpdate()->first();
-        abort_if(! $incident instanceof \stdClass, 404);
+        abort_if(! $incident instanceof \stdClass || ! self::mayHandle($actor, $incident), 404);
         if ((int) $incident->reporter_user_id === $actor->id) {
             throw new AuthorizationException('You may not handle your own report. Ask someone else.');
         }

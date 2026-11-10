@@ -38,7 +38,7 @@ class IncidentsController extends Controller
     {
         $id = null;
         $response = $this->run($request, route('hr.incidents.index', ['tab' => 'mine']), 'Report sent to HR.', function () use ($request, $incidents, &$id): void {
-            $id = $incidents->report($request->user(), $request->only(['branch_id', 'occurred_on', 'occurred_time', 'category', 'description', 'idempotency_key']),
+            $id = $incidents->report($request->user(), $request->only(['branch_id', 'occurred_on', 'occurred_time', 'category', 'director_only', 'description', 'idempotency_key']),
                 IncidentService::preparePhotos($request->file('photos')));
         });
 

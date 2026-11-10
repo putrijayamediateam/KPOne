@@ -60,3 +60,21 @@ test('closing is a destructive confirm, blocked while an action is open; nothing
         assert.doesNotMatch(script(key), /\/hr\/messages|mailto:|wa\.me/);
     }
 });
+
+test('patient-care reports warn against patient details; staff conduct may go to the Director only', () => {
+    const page = template('list');
+    assert.match(page, /data-test="incident-patient-warning"/);
+    assert.match(
+        page,
+        /do not write the patient's name, IC number\s+or clinical details/,
+    );
+    assert.match(
+        page,
+        /v-if="form\.category === 'staff_conduct'"[\s\S]{0,400}incident-director-only/,
+    );
+    assert.match(page, /Send to the Director only/);
+    assert.match(
+        script('list'),
+        /director_only:\s+form\.category === 'staff_conduct' && form\.directorOnly/,
+    );
+});

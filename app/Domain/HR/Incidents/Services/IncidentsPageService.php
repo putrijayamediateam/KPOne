@@ -39,7 +39,9 @@ final class IncidentsPageService
         $managed = collect();
         $counts = ['open' => 0, 'clinical' => 0, 'closed' => 0];
         if ($canManage) {
-            $all = DB::table('hr_incidents')->where('organisation_id', $actor->organisation_id)->orderByDesc('occurred_at')->limit(500)->get();
+            $all = DB::table('hr_incidents')->where('organisation_id', $actor->organisation_id)
+                ->when(! $actor->hasRole('director'), fn ($q) => $q->where('director_only', false)) // only a Director sees "Director only" reports
+                ->orderByDesc('occurred_at')->limit(500)->get();
             $counts = ['open' => $all->where('status', '<>', 'closed')->where('category', '<>', 'patient_care')->count(),
                 'clinical' => $all->where('status', '<>', 'closed')->where('category', 'patient_care')->count(),
                 'closed' => $all->where('status', 'closed')->count()];
@@ -54,7 +56,7 @@ final class IncidentsPageService
         $row = fn (\stdClass $r, bool $withReporter): array => ['id' => (string) $r->public_id, 'category' => (string) $r->category,
             'categoryLabel' => IncidentService::CATEGORIES[$r->category] ?? (string) $r->category, 'branch' => (string) ($names[$r->branch_id] ?? 'Branch'),
             'occurredAt' => $this->when($r->occurred_at, $zone), 'status' => (string) $r->status, 'statusLabel' => IncidentService::STATUS[$r->status] ?? (string) $r->status,
-            'needsClinicalReview' => $r->category === 'patient_care', 'reporter' => $withReporter ? (string) ($reporters[$r->reporter_user_id] ?? 'Staff member') : null,
+            'needsClinicalReview' => $r->category === 'patient_care', 'directorOnly' => (bool) $r->director_only, 'reporter' => $withReporter ? (string) ($reporters[$r->reporter_user_id] ?? 'Staff member') : null,
             'own' => (int) $r->reporter_user_id === $actor->id];
 
         return [
@@ -86,6 +88,7 @@ final class IncidentsPageService
             'category' => (string) $r->category,
             'categoryLabel' => IncidentService::CATEGORIES[$r->category] ?? (string) $r->category,
             'needsClinicalReview' => $r->category === 'patient_care',
+            'directorOnly' => (bool) $r->director_only,
             'branch' => (string) ($branch ?? 'Branch'),
             'occurredAt' => $this->when($r->occurred_at, $zone),
             'reportedOn' => $this->when($r->created_at, $zone),
@@ -130,7 +133,7 @@ final class IncidentsPageService
         ];
     }
 
-    /** @return array{linked:bool, caseId:?string, options:list<array{value:string, label:string}>, canLink:bool} the discipline link; the case id only for someone who may handle it */
+    /** @return array{linked:bool, caseId:?string, options:list<array{value:string, label:string}>, canLink:bool} the discipline link, shown only to someone who may handle the case */
     private function link(User $actor, \stdClass $r): array
     {
         $canDiscipline = $actor->can(DisciplinePermissions::MANAGE) && (int) $r->reporter_user_id !== $actor->id;
@@ -139,7 +142,8 @@ final class IncidentsPageService
             $subject = $case instanceof \stdClass && $case->subject_user_id !== null ? User::query()->with('roles')->whereKey($case->subject_user_id)->first() : null;
             $may = $canDiscipline && $case instanceof \stdClass && ($case->subject_user_id === null || $subject !== null) && $this->discipline->refusalFor($actor, $subject) === null;
 
-            return ['linked' => true, 'caseId' => $may ? (string) $case->public_id : null, 'options' => [], 'canLink' => false];
+            // Someone who may not handle the case is not told that a case exists (HR-10c keeps such cases from them).
+            return ['linked' => $may, 'caseId' => $may ? (string) $case->public_id : null, 'options' => [], 'canLink' => false];
         }
         if (! $canDiscipline || $r->category !== 'staff_conduct' || $r->status === 'closed') {
             return ['linked' => false, 'caseId' => null, 'options' => [], 'canLink' => false];

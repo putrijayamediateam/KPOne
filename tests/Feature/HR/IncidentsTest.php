@@ -147,6 +147,63 @@ class IncidentsTest extends VisitTestCase
             ->assertSessionHasErrors('case_id'); // once
     }
 
+    public function test_a_director_only_report_is_listed_read_and_handled_only_by_a_director(): void
+    {
+        $reporter = $this->actor('ca');
+        $this->selectBranch($reporter);
+        $this->report(['director_only' => '1'])->assertSessionHasErrors('director_only'); // staff conduct only
+        $this->report(['category' => 'staff_conduct', 'director_only' => '1'])->assertSessionHasNoErrors();
+        $incident = DB::table('hr_incidents')->sole();
+        $this->assertTrue((bool) $incident->director_only);
+        $this->get(route('hr.incidents.show', $incident->public_id))->assertOk(); // the reporter still sees the status
+
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.incidents.index', ['tab' => 'open']))->assertInertia(fn (Assert $page) => $page->where('incidents.counts.open', 0)->where('incidents.reports', []));
+        $this->get(route('hr.incidents.show', $incident->public_id))->assertNotFound();
+        $this->post(route('hr.incidents.acknowledge', $incident->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        $this->post(route('hr.incidents.note', $incident->public_id), ['note' => 'Synthetic note.', 'idempotency_key' => (string) Str::uuid()])->assertNotFound();
+        // PostgreSQL refuses the same, whatever the application does.
+        $this->assertRefused('23514', fn () => DB::table('hr_incidents')->where('id', $incident->id)->update(['status' => 'acknowledged',
+            'acknowledged_by_user_id' => $this->hr->id, 'acknowledged_at' => now(), 'lock_version' => 2]));
+        $this->assertRefused('23514', fn () => DB::table('hr_incident_notes')->insert(['organisation_id' => $incident->organisation_id, 'incident_id' => $incident->id,
+            'body_encrypted' => Crypt::encryptString('x'), 'author_user_id' => $this->hr->id, 'created_at' => now()]));
+        $this->assertRefused('P0001', fn () => DB::table('hr_incidents')->where('id', $incident->id)->update(['director_only' => false, 'lock_version' => 2]));
+
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $this->get(route('hr.incidents.index', ['tab' => 'open']))->assertInertia(fn (Assert $page) => $page->where('incidents.counts.open', 1)
+            ->where('incidents.reports.0.directorOnly', true));
+        $this->get(route('hr.incidents.show', $incident->public_id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('incident.directorOnly', true));
+        $this->post(route('hr.incidents.acknowledge', $incident->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasNoErrors();
+        $this->assertSame('acknowledged', DB::table('hr_incidents')->where('id', $incident->id)->value('status'));
+    }
+
+    public function test_a_manager_who_may_not_handle_the_linked_case_is_not_told_of_it(): void
+    {
+        $director = $this->actor('director');
+        $subject = $this->actor('director');
+        $worker = app(StaffFileService::class)->openFile($director, ['user_id' => $subject->id, 'idempotency_key' => (string) Str::uuid()]);
+        $case = app(DisciplineService::class)->open($director, ['worker_id' => $worker->public_id, 'incident_on' => '2026-11-09',
+            'allegation' => "Synthetic allegation about a Director's conduct.", 'idempotency_key' => (string) Str::uuid()]);
+        $this->selectBranch($this->actor('ca'));
+        $this->report(['category' => 'staff_conduct'])->assertSessionHasNoErrors();
+        $incident = (string) DB::table('hr_incidents')->value('public_id');
+
+        $this->selectBranch($this->hr); // the HR Manager may not handle a Director's case, so is not offered it
+        $this->get(route('hr.incidents.show', $incident))->assertInertia(fn (Assert $page) => $page->where('incident.link.options', []));
+        $this->selectBranch($director);
+        $this->post(route('hr.incidents.link', $incident), ['case_id' => $case, 'expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasNoErrors();
+        $this->get(route('hr.incidents.show', $incident))->assertInertia(fn (Assert $page) => $page->where('incident.link.linked', true)->where('incident.link.caseId', $case));
+
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.incidents.show', $incident))->assertInertia(fn (Assert $page) => $page->where('incident.link.linked', false)
+            ->where('incident.link.caseId', null)->where('incident.link.canLink', false)->where('incident.link.options', []));
+        $this->post(route('hr.incidents.link', $incident), ['case_id' => $case, 'expected_lock_version' => 2, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasErrors('case_id'); // still linked once
+    }
+
     public function test_postgresql_keeps_the_history(): void
     {
         $ca = $this->actor('ca');
@@ -172,6 +229,18 @@ class IncidentsTest extends VisitTestCase
         $caseId = (int) DB::table('hr_discipline_cases')->where('public_id', $case)->value('id');
         $this->assertRefused('23514', fn () => DB::table('hr_incidents')->where('id', $incident->id)->update(['discipline_case_id' => $caseId,
             'linked_by_user_id' => $finance->id, 'linked_at' => now(), 'lock_version' => 2]));
+        // ... and only a staff-conduct report.
+        $this->assertRefused('23514', fn () => DB::table('hr_incidents')->where('id', $incident->id)->update(['discipline_case_id' => $caseId,
+            'linked_by_user_id' => $this->hr->id, 'linked_at' => now(), 'lock_version' => 2]));
+        // Closing needs every action done; the reporter never marks one done.
+        DB::table('hr_incidents')->where('id', $incident->id)->update(['status' => 'acknowledged', 'acknowledged_by_user_id' => $this->hr->id,
+            'acknowledged_at' => now(), 'lock_version' => 2]);
+        $actionId = DB::table('hr_incident_actions')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $incident->organisation_id,
+            'incident_id' => $incident->id, 'description_encrypted' => Crypt::encryptString('x'), 'owner_user_id' => $this->hr->id, 'due_on' => '2026-11-12',
+            'created_by_user_id' => $this->hr->id, 'created_at' => now(), 'lock_version' => 1]);
+        $this->assertRefused('P0001', fn () => DB::table('hr_incidents')->where('id', $incident->id)->update(['status' => 'closed', 'outcome_encrypted' => Crypt::encryptString('x'),
+            'closed_by_user_id' => $this->hr->id, 'closed_at' => now(), 'lock_version' => 3]));
+        $this->assertRefused('23514', fn () => DB::table('hr_incident_actions')->where('id', $actionId)->update(['done_by_user_id' => $ca->id, 'done_at' => now(), 'lock_version' => 2]));
     }
 
     #[RequiresPhpExtension('gd')]

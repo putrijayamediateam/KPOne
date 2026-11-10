@@ -35,6 +35,7 @@ const props = defineProps<{
         category: string;
         categoryLabel: string;
         needsClinicalReview: boolean;
+        directorOnly: boolean;
         branch: string;
         occurredAt: string | null;
         reportedOn: string | null;
@@ -226,6 +227,12 @@ const close = () =>
                     status="clinical"
                     label="Needs clinical review"
                     tone="danger"
+                />
+                <StatusBadge
+                    v-if="r.directorOnly"
+                    status="director-only"
+                    label="Director only"
+                    tone="neutral"
                 />
             </template>
             <template #description>

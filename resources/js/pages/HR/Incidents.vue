@@ -8,6 +8,7 @@ import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,6 +35,7 @@ type Row = {
     status: 'reported' | 'acknowledged' | 'closed';
     statusLabel: string;
     needsClinicalReview: boolean;
+    directorOnly: boolean;
     reporter: string | null;
     own: boolean;
 };
@@ -94,6 +96,7 @@ const form = reactive({
     occurredOn: '',
     occurredTime: '',
     category: '',
+    directorOnly: false,
     description: '',
     photos: [] as File[],
     key: crypto.randomUUID(),
@@ -106,6 +109,7 @@ const startReport = () => {
         occurredOn: props.incidents.today,
         occurredTime: '',
         category: '',
+        directorOnly: false,
         description: '',
         photos: [],
         key: crypto.randomUUID(),
@@ -138,6 +142,8 @@ const submit = () => {
             occurred_on: form.occurredOn,
             occurred_time: form.occurredTime,
             category: form.category,
+            director_only:
+                form.category === 'staff_conduct' && form.directorOnly ? 1 : 0,
             description: form.description,
             photos: form.photos,
             idempotency_key: form.key,
@@ -221,6 +227,12 @@ const textareaClass =
                             label="Needs clinical review"
                             tone="danger"
                         />
+                        <StatusBadge
+                            v-if="r.directorOnly"
+                            status="director-only"
+                            label="Director only"
+                            tone="neutral"
+                        />
                     </p>
                     <p class="text-sm text-muted-foreground">
                         {{ r.branch }} · {{ r.occurredAt
@@ -275,11 +287,37 @@ const textareaClass =
                         <p
                             v-if="form.category === 'patient_care'"
                             class="text-sm text-muted-foreground"
+                            data-test="incident-patient-warning"
                         >
                             Patient-care reports are flagged for clinical
-                            review.
+                            review, which happens outside KPOne. HR reads this
+                            report: do not write the patient's name, IC number
+                            or clinical details. Give the visit number only.
                         </p>
+                        <div
+                            v-if="form.category === 'staff_conduct'"
+                            class="flex items-start gap-2"
+                        >
+                            <Checkbox
+                                id="incident-director-only"
+                                :model-value="form.directorOnly"
+                                @update:model-value="
+                                    (v) => (form.directorOnly = v === true)
+                                "
+                            />
+                            <div class="flex flex-col gap-1">
+                                <Label for="incident-director-only"
+                                    >Send to the Director only</Label
+                                >
+                                <p class="text-sm text-muted-foreground">
+                                    For example, if this is about the HR
+                                    Manager. The HR Manager will not see it. You
+                                    cannot change this after sending.
+                                </p>
+                            </div>
+                        </div>
                         <InputError :message="errors.category" />
+                        <InputError :message="errors.director_only" />
                     </div>
                     <div class="flex flex-col gap-2">
                         <Label id="incident-branch-label">Branch</Label>
