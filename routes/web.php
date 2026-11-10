@@ -24,6 +24,7 @@ use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
 use App\Http\Controllers\ClinicalServiceCatalogueController;
+use App\Http\Controllers\ClinicComplianceController;
 use App\Http\Controllers\ClinicianCredentialController;
 use App\Http\Controllers\ClinicInsightsController;
 use App\Http\Controllers\ClinicManagementController;
@@ -256,6 +257,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('records/{record}/{decision}', 'decide')->whereUuid('record')->whereIn('decision', ['accept', 'reject'])->name('hr.credentials.decide');
             Route::post('types', 'saveType')->name('hr.credentials.types.save');
             Route::post('types/{type}/archive', 'archiveType')->whereUuid('type')->name('hr.credentials.types.archive');
+        });
+    });
+
+    // HR-11a clinic licences (owner, 2026-11-10: "yes, order is fine, go ahead"). Clinic data, not HR data; see HR-11-DESIGN.md.
+    Route::prefix('clinic-compliance')->controller(ClinicComplianceController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::middleware(['permission:compliance.licences.manage.organisation'])->group(function (): void {
+            Route::get('/', 'index')->name('clinic-compliance.index');
+            Route::get('files/{file}', 'openFile')->whereUuid('file')->middleware('throttle:30,1')->name('clinic-compliance.files.open');
+            Route::middleware('throttle:60,1')->group(function (): void {
+                Route::post('types', 'saveType')->name('clinic-compliance.types.save');
+                Route::post('types/{type}/archive', 'archiveType')->whereUuid('type')->name('clinic-compliance.types.archive');
+                Route::post('licences', 'record')->name('clinic-compliance.licences.store');
+                Route::post('versions/{version}/error', 'markInError')->whereUuid('version')->name('clinic-compliance.versions.error');
+            });
         });
     });
 
