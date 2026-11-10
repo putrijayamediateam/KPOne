@@ -282,7 +282,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 - **Scan to add (DSP-12):** the scan finds only medicines mapped to the scanned SKU; an unlinked SKU needs a CA
   Supervisor to link it. A barcode on more than one medicine shows the list. Auto-pick happens only for one medicine
   with stock and no allergy match. The CA guides in `docs/guides/ms/` do not mention "Scan to add" yet.
-- **Stale returns note:** the Completed page's Medicine returns note still says "Any refund is handled outside KPOne.", but since BIL-10 a refund after completion (reason "Medicine returned") is recorded on the Billing page by a CA Supervisor or Finance Officer. A small wording fix is due (the guides mark it [PERLU DISAHKAN]).
+- **Stale returns note (fixed in PR #424):** the Completed page's Medicine returns note now says "Recording a return gives no money back." and points to Refunds on the visit's billing page (BIL-10), where a CA Supervisor or Finance Officer records a refund and someone else approves it; the CA guide matches.
 - **CA guide:** `docs/guides/ms/` should say the OTC allergy step now starts with no choice made (DSP-5).
 - **Allergy matching is text only (DSP-1, DSP-1b, DSP-1c):** a CA add or edit that matches an active allergy record
   needs a recorded confirmation. Drug groups and other names (brand names, misspellings) are matched only when a

@@ -110,7 +110,7 @@ Label melintang ini bersaiz 100 × 62 mm dan masih bersifat sementara (“provis
 1. Buka kes “Dispensary” yang telah selesai (“Dispensary completed”). Di bahagian “Medicine returns”, pilih “Record a return” pada baris ubat yang dipulangkan.
 2. Masukkan “Quantity returned” (tidak lebih daripada yang dibekalkan, tolak pulangan terdahulu), pilih “Reason” (contohnya “Patient did not use it” atau “Wrong medicine or strength given”) dan “Condition seen” (“Sealed and in date”, “Opened or damaged” atau “Cannot tell”). Jika sebab ialah “Other”, tulis nota ringkas tanpa maklumat klinikal yang tidak perlu.
 3. Pilih “Record return”. Tiada perubahan stok pada langkah ini. Skrin menyatakan “Return recorded. It now waits for a check by someone else.”
-4. CA Supervisor yang lain akan menyemak pulangan itu (lihat panduan Penyelia CA). Bahagian ini menyatakan “No refund in KPOne. Recording a return does not refund anything. Any refund is handled outside KPOne.” Merekod pulangan ubat memang tidak memulangkan wang. Namun bayaran balik selepas lawatan selesai kini boleh direkod pada halaman bil (sebab “Medicine returned”) oleh CA Supervisor atau Finance Officer, bukan CA (lihat panduan Penyelia CA). Teks pada skrin akan dikemas kini: [PERLU DISAHKAN].
+4. CA Supervisor yang lain akan menyemak pulangan itu (lihat panduan Penyelia CA). Bahagian ini menyatakan “Recording a return gives no money back.” Merekod pulangan ubat tidak memulangkan wang. Jika pesakit patut menerima wang semula, CA Supervisor atau Finance Officer merekodnya di bawah “Refunds” pada halaman bil lawatan itu (sebab “Medicine returned”), dan orang lain meluluskannya. CA tidak merekod bayaran balik (lihat panduan Penyelia CA).
 
 ## Bil, pelarasan dan bayaran
 
