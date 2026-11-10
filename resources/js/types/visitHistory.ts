@@ -85,6 +85,8 @@ export type VisitHistoryFinancial = {
         refundedSen: number;
         method: string;
         status: string;
+        receivedAt: string;
+        recordedBy: string;
         printUrl: string | null;
     }>;
     printUrl: string | null;
