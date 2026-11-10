@@ -78,6 +78,7 @@ class ClinicManagementTest extends VisitTestCase
             '/hr/records' => ['hr.records.view.own', 'hr.records.view.organisation'],
             '/hr/credentials' => ['hr.credentials.view.own', 'hr.credentials.manage.organisation'],
             '/hr/sops' => ['hr.sops.acknowledge.own', 'hr.sops.manage.organisation'],
+            '/hr/memos' => ['hr.memos.read.own', 'hr.memos.publish.organisation'],
             '/hr/claims' => ['hr.claims.submit.own', 'hr.claims.approve.organisation', 'hr.claims.pay.organisation', 'hr.claims.manage.organisation'],
             '/hr/payroll' => ['hr.payroll.prepare.organisation', 'hr.payroll.export.organisation'],
             '/clinic-compliance' => ['compliance.licences.manage.organisation'],
