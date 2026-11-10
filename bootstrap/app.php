@@ -47,6 +47,8 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontFlash([
             'password',
+            'ratings',
+            'comment',
             'allegation',
             'reply',
             'password_confirmation',
