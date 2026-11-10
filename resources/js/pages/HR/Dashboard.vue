@@ -161,9 +161,9 @@ function days(value: number): string {
             </p>
             <dl
                 v-else
-                class="mt-3 grid grid-cols-2 gap-x-6 gap-y-2 text-sm lg:grid-cols-4"
+                class="mt-3 flex flex-col gap-2 text-sm sm:grid sm:grid-cols-4 sm:gap-x-6"
             >
-                <div>
+                <div class="flex items-baseline justify-between gap-4 sm:block">
                     <dt class="text-muted-foreground">Total staff cost</dt>
                     <dd
                         class="text-lg font-semibold tabular-nums"
@@ -172,23 +172,29 @@ function days(value: number): string {
                         {{ dashboard.staffCost.totalText }}
                     </dd>
                 </div>
-                <div>
+                <div class="flex items-baseline justify-between gap-4 sm:block">
                     <dt class="text-muted-foreground">
-                        Gross pay (less unpaid leave)
+                        Pay before deductions
+                        <span class="block text-xs"
+                            >Unpaid leave already taken off</span
+                        >
                     </dt>
                     <dd class="tabular-nums">
                         {{ dashboard.staffCost.earningsText }}
                     </dd>
                 </div>
-                <div>
+                <div class="flex items-baseline justify-between gap-4 sm:block">
                     <dt class="text-muted-foreground">
                         Employer contributions
+                        <span class="block text-xs"
+                            >Added on top of pay by the clinic</span
+                        >
                     </dt>
                     <dd class="tabular-nums">
                         {{ dashboard.staffCost.employerText }}
                     </dd>
                 </div>
-                <div>
+                <div class="flex items-baseline justify-between gap-4 sm:block">
                     <dt class="text-muted-foreground">People paid</dt>
                     <dd class="tabular-nums">
                         {{ dashboard.staffCost.people }}
