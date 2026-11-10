@@ -41,6 +41,7 @@ use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\DashboardController as HrDashboardController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\LettersController as HrLettersController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
 use App\Http\Controllers\HR\OutsideExportController as HrOutsideExportController;
@@ -417,6 +418,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('audience', 'audience')->name('hr.memos.audience');
             Route::post('/', 'publish')->name('hr.memos.publish');
             Route::post('{memo}/withdraw', 'withdraw')->whereUuid('memo')->name('hr.memos.withdraw');
+        });
+    });
+
+    // HR-10a letters (HR-PLAN 20.3; owner, 2026-11-10). Printed and signed by hand; nothing is sent.
+    Route::prefix('hr/letters')->controller(HrLettersController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.records.view.own,hr.letters.issue.organisation')->name('hr.letters.index');
+        Route::get('{letter}', 'show')->whereUuid('letter')
+            ->middleware(['permission:hr.records.view.own,hr.letters.issue.organisation', 'throttle:60,1'])->name('hr.letters.show');
+        Route::middleware(['permission:hr.letters.issue.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('preview', 'preview')->name('hr.letters.preview');
+            Route::post('/', 'issue')->name('hr.letters.issue');
+            Route::post('{letter}/void', 'void')->whereUuid('letter')->name('hr.letters.void');
+            Route::post('{letter}/given', 'given')->whereUuid('letter')->name('hr.letters.given');
+            Route::post('templates', 'storeTemplate')->name('hr.letters.templates.store');
+            Route::post('templates/{template}/revise', 'reviseTemplate')->whereUuid('template')->name('hr.letters.templates.revise');
+            Route::post('templates/{template}/retire', 'retireTemplate')->whereUuid('template')->name('hr.letters.templates.retire');
         });
     });
 
