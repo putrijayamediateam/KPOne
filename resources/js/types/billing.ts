@@ -95,6 +95,29 @@ export type RefundsContext = {
         refunds: RefundEntry[];
     }>;
 };
+/** BIL-16: correcting a receipt recorded in error on a completed visit. */
+export type CorrectionsContext = {
+    invoiceLockVersion: number;
+    methods: Array<{ code: string; name: string; requiresReference: boolean }>;
+    receipts: Array<{
+        publicId: string;
+        number: string;
+        method: string;
+        amountSen: number;
+        payLaterSen: number;
+        lockVersion: number;
+        refused: string | null;
+    }>;
+    corrections: Array<{
+        publicId: string;
+        original: string;
+        replacement: string | null;
+        receivedSen: number;
+        reason: string;
+        by: string;
+        at: string;
+    }>;
+};
 export type BillingPage = {
     billTo?: BillToContext | null;
     notes?: InvoiceNotesContext | null;
@@ -150,6 +173,7 @@ export type BillingPage = {
     payments: Receipt[];
     /** BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers. */
     refunds?: RefundsContext | null;
+    corrections?: CorrectionsContext | null;
     issuedCopies?: IssuedCopy[] | null;
     methods: Array<{ code: string; name: string; requiresReference: boolean }>;
     panels: Array<{ id: number; name: string }>;
