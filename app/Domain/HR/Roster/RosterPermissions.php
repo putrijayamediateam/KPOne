@@ -2,6 +2,8 @@
 
 namespace App\Domain\HR\Roster;
 
+use App\Domain\Access\PermissionCatalogue;
+
 /**
  * HR-1 roster planner (B.E.R.N.I.S.S for the owner, 2026-11-05). Director and HR Manager plan; the Director approves,
  * never the person who sent the week; every human staff member sees their own approved shifts. The TV account gets
@@ -22,6 +24,7 @@ final class RosterPermissions
     /** @return array<string, list<string>> */
     public static function grants(): array
     {
-        return [self::MANAGE => ['director', 'hr_manager'], self::APPROVE => ['director'], self::VIEW_OWN => self::HUMAN_ROLES];
+        // HR-15a: a locum with a sign-in sees their own approved shifts too, and nothing else from HR.
+        return [self::MANAGE => ['director', 'hr_manager'], self::APPROVE => ['director'], self::VIEW_OWN => [...self::HUMAN_ROLES, PermissionCatalogue::LOCUM_ROLE]];
     }
 }

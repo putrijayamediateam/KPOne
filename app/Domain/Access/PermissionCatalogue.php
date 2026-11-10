@@ -48,6 +48,13 @@ final class PermissionCatalogue
 
     public const QUEUE_DISPLAY_ROLE = 'queue_display';
 
+    /**
+     * HR-15a (HR-PLAN 21.3; B.E.R.N.I.S.S for the owner, 2026-11-10): a locum's own sign-in. Their own account settings
+     * and their own approved shifts only; never patient, clinical, billing, inventory, Insights or staff-directory access.
+     * HR-PLAN 21.3 pins the list exactly (tested).
+     */
+    public const LOCUM_ROLE = 'locum';
+
     /** The clinic manager's operational settings account; never patient, clinical or finance-approval access. */
     public const ADMINISTRATOR_ROLE = 'administrator';
 
@@ -445,6 +452,10 @@ final class PermissionCatalogue
             'branch_context.switch.branch',
             'queue.display.branch',
         ];
+
+        // HR-15a: a locum sees their own settings and chooses among their own assigned branches (as the TV account
+        // does; no data comes with it); their own shifts come with the HR roster grants below.
+        $roles[self::LOCUM_ROLE] = ['profile.view.own', 'branch_context.switch.branch'];
 
         foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
             $roles[$holder][] = 'inventory.batch_holds.place.branch';
