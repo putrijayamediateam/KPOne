@@ -4,6 +4,7 @@ import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { OperationalSelect } from '@/components/ui/select';
 import { OperationalTabs } from '@/components/ui/tabs';
@@ -538,7 +539,7 @@ const submitMapping = () => {
             </label>
             <label class="grid gap-1 text-xs">
                 Expiry date
-                <Input v-model="batchForm.expiry_date" type="date" />
+                <DateField v-model="batchForm.expiry_date" />
                 <InputError :message="batchForm.errors.expiry_date" />
             </label>
             <div class="md:col-span-2">
