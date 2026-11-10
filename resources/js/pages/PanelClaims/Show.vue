@@ -6,6 +6,7 @@ import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
+import { formatDate } from '@/lib/presentation';
 import { myr, toSen } from '@/types/billing';
 
 type ClaimData = {
@@ -356,7 +357,7 @@ const eventTitle = (type: string) =>
                     </h1>
                     <p class="mt-1 text-sm text-muted-foreground">
                         <template v-if="claim.submittedOn">
-                            Submitted on {{ claim.submittedOn }}
+                            Submitted on {{ formatDate(claim.submittedOn) }}
                         </template>
                         <template v-else>
                             Created on {{ claim.createdAt }}
