@@ -262,9 +262,9 @@ const onChecked = async (row: ReturnRow, message: string) => {
             <span class="font-semibold"
                 >Recording a return gives no money back.</span
             >
-            If the patient is refunded, a CA Supervisor or Finance Officer
-            records it under Refunds on the visit's billing page, and someone
-            else approves it.
+            If the patient should get money back, a CA Supervisor or Finance
+            Officer records it under Refunds on the visit's billing page, and
+            someone else approves it.
         </p>
         <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
