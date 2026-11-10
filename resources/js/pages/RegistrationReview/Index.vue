@@ -41,14 +41,12 @@ const purposeLabel: Record<string, string> = {
 </script>
 
 <template>
-    <Head title="Pendaftaran QR" />
+    <Head title="QR Intake" />
     <main class="flex flex-1 flex-col gap-6 p-4 md:p-7">
         <header class="space-y-1">
             <div class="flex items-center gap-2">
                 <ClipboardCheck class="size-6 text-pink-700" />
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Pendaftaran QR
-                </h1>
+                <h1 class="text-2xl font-semibold tracking-tight">QR Intake</h1>
             </div>
             <p class="text-sm text-muted-foreground">
                 {{ branch.name }} · Review public intake once before creating
@@ -66,11 +64,11 @@ const purposeLabel: Record<string, string> = {
                                 }}</CardTitle
                             >
                             <p class="mt-1 text-xs text-muted-foreground">
-                                {{ item.summary.age ?? '—' }} tahun ·
+                                {{ item.summary.age ?? '—' }} years ·
                                 {{
                                     item.submissionType === 'guardian'
-                                        ? 'Penjaga'
-                                        : 'Pesakit'
+                                        ? 'Guardian'
+                                        : 'Patient'
                                 }}
                             </p>
                         </div>
@@ -82,16 +80,18 @@ const purposeLabel: Record<string, string> = {
                 <CardContent class="space-y-4"
                     ><dl class="grid grid-cols-2 gap-3 text-sm">
                         <div class="col-span-2">
-                            <dt class="text-muted-foreground">Tujuan</dt>
+                            <dt class="text-muted-foreground">Purpose</dt>
                             <dd>
                                 {{
                                     purposeLabel[item.summary.purpose ?? ''] ??
-                                    'Belum dinyatakan'
+                                    'Not stated'
                                 }}
                             </dd>
                         </div>
                         <div class="col-span-2">
-                            <dt class="text-muted-foreground">Aduan ringkas</dt>
+                            <dt class="text-muted-foreground">
+                                Brief complaint
+                            </dt>
                             <dd class="line-clamp-2">
                                 {{ item.summary.complaint }}
                             </dd>
@@ -105,19 +105,21 @@ const purposeLabel: Record<string, string> = {
                             <dd>{{ formatDateTime(item.expiresAt) }}</dd>
                         </div>
                         <div>
-                            <dt class="text-muted-foreground">Duplikasi</dt>
+                            <dt class="text-muted-foreground">
+                                Duplicate check
+                            </dt>
                             <dd>
                                 {{
                                     item.summary.duplicateStatus === 'possible'
-                                        ? 'Semakan diperlukan'
-                                        : 'Tiada calon'
+                                        ? 'Needs review'
+                                        : 'No match found'
                                 }}
                             </dd>
                         </div>
                     </dl>
                     <Button as-child class="w-full"
                         ><Link :href="`/registration-review/${item.publicId}`"
-                            >Semak pendaftaran</Link
+                            >Review</Link
                         ></Button
                     ></CardContent
                 >

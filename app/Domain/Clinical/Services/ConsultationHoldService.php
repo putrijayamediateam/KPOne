@@ -220,7 +220,7 @@ class ConsultationHoldService
 
         if ($activeHolds >= self::MAX_HELD_PATIENTS_PER_DOCTOR) {
             throw ValidationException::withMessages([
-                'hold' => 'Doktor sudah mempunyai 3 pesakit On Hold. Sambung semula atau selesaikan pesakit yang ditahan sebelum menahan pesakit lain.',
+                'hold' => 'The doctor already has 3 patients On Hold. Resume or complete a held patient before holding another.',
             ]);
         }
     }

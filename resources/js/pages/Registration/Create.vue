@@ -770,7 +770,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 />
                 <label
                     v-if="errorFor('quick_patient.duplicate_override')"
-                    class="flex items-start gap-2 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm md:col-span-2"
+                    class="flex items-start gap-2 rounded-md border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
                     ><input
                         v-model="quick.duplicate_override"
                         type="checkbox"
@@ -930,8 +930,8 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 :aria-pressed="form.priority === 'urgent'"
                                 :class="
                                     form.priority === 'urgent'
-                                        ? 'bg-amber-50 text-amber-800 ring-1 ring-amber-300'
-                                        : 'text-muted-foreground hover:text-amber-800'
+                                        ? 'bg-warning/10 text-warning-strong ring-1 ring-warning/30'
+                                        : 'text-muted-foreground hover:text-warning-strong'
                                 "
                                 class="h-9 rounded-sm px-3 text-sm font-semibold transition-colors"
                                 @click="form.priority = 'urgent'"
@@ -1009,7 +1009,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             </section>
             <label
                 v-if="errorFor('confirm_repeat')"
-                class="flex items-start gap-3 rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm"
+                class="flex items-start gap-3 rounded-lg border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
                 ><input
                     v-model="form.confirm_repeat"
                     type="checkbox"

@@ -209,7 +209,7 @@ const rows = (summary: Summary) => [
 <template>
     <section
         v-if="merge.mergedFrom.length"
-        class="space-y-3 rounded-lg border border-sky-200 bg-sky-50/50 p-5 dark:border-sky-900 dark:bg-sky-950/30"
+        class="space-y-3 rounded-lg border border-border bg-muted/40 p-5"
         data-testid="merged-records"
     >
         <h2 class="font-semibold">Merged records</h2>
@@ -280,7 +280,7 @@ const rows = (summary: Summary) => [
 
     <section
         v-if="merge.pending.length"
-        class="space-y-3 rounded-lg border border-amber-200 bg-amber-50/50 p-5 dark:border-amber-900 dark:bg-amber-950/30"
+        class="space-y-3 rounded-lg border border-warning/25 bg-warning/10 p-5"
         data-testid="pending-merges"
     >
         <h2 class="font-semibold">Waiting for approval</h2>
@@ -398,7 +398,7 @@ const rows = (summary: Summary) => [
             </div>
             <ul
                 v-if="comparison.blockers.length"
-                class="space-y-1 rounded-md border border-red-200 bg-red-50/60 p-3 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300"
+                class="space-y-1 rounded-md border border-destructive/25 bg-destructive/10 p-3 text-sm text-destructive"
                 data-testid="merge-blockers"
             >
                 <li v-for="blocker in comparison.blockers" :key="blocker">
