@@ -560,9 +560,32 @@ const textareaClass =
                     data-test="issued-letter"
                 >
                     <div class="min-w-0">
-                        <p class="font-medium break-words">
-                            {{ letter.recipient }} · {{ letter.title }}
-                        </p>
+                        <!-- The badge sits on the title row, so the buttons fit one line at 390 px (Daniel). -->
+                        <div
+                            class="flex flex-wrap items-center gap-x-2 gap-y-1"
+                        >
+                            <p class="font-medium break-words">
+                                {{ letter.recipient }} · {{ letter.title }}
+                            </p>
+                            <StatusBadge
+                                v-if="letter.status !== 'current'"
+                                :status="letter.status"
+                                :label="statusLabel[letter.status]"
+                                tone="neutral"
+                            />
+                            <!-- The current state in words (Daniel): given or still to give. -->
+                            <StatusBadge
+                                v-else
+                                :status="letter.givenOn ? 'given' : 'waiting'"
+                                :label="
+                                    letter.givenOn
+                                        ? 'Given'
+                                        : 'Waiting to be given'
+                                "
+                                :tone="letter.givenOn ? 'success' : 'neutral'"
+                                data-test="letter-given-state"
+                            />
+                        </div>
                         <p class="text-sm text-muted-foreground">
                             {{ letter.reference }} · {{ letter.typeLabel }} ·
                             {{ letter.language }} · issued
@@ -583,22 +606,6 @@ const textareaClass =
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <StatusBadge
-                            v-if="letter.status !== 'current'"
-                            :status="letter.status"
-                            :label="statusLabel[letter.status]"
-                            tone="neutral"
-                        />
-                        <!-- The current state in words (Daniel): given or still to give. -->
-                        <StatusBadge
-                            v-else
-                            :status="letter.givenOn ? 'given' : 'waiting'"
-                            :label="
-                                letter.givenOn ? 'Given' : 'Waiting to be given'
-                            "
-                            :tone="letter.givenOn ? 'success' : 'neutral'"
-                            data-test="letter-given-state"
-                        />
                         <template v-if="!letter.refusal">
                             <Button
                                 as-child
@@ -642,7 +649,7 @@ const textareaClass =
                                 <DropdownMenu>
                                     <DropdownMenuTrigger as-child>
                                         <Button
-                                            variant="ghost"
+                                            variant="outline"
                                             size="icon"
                                             class="min-h-11 min-w-11 lg:hidden"
                                             :aria-label="`More actions for ${letter.reference}`"

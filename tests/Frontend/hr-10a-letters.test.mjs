@@ -86,7 +86,10 @@ test('Daniel round 1: given state, the "…" menu below 1024 px, the closing lin
     assert.match(page, /'Waiting to be given'/);
     assert.match(page, /data-test="letter-given-state"/);
     assert.match(page, /class="hidden lg:inline-flex"/);
-    assert.match(page, /class="min-h-11 min-w-11 lg:hidden"/);
+    assert.match(
+        page,
+        /variant="outline"\s+size="icon"\s+class="min-h-11 min-w-11 lg:hidden"/,
+    );
     assert.match(
         page,
         /:aria-label="`More actions for \$\{letter\.reference\}`"/,
