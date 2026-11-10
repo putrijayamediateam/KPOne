@@ -449,6 +449,14 @@ check items, keep them"). The rest stand unless the owner changes them.
     2026-11-10). From HR-15b the role holds `hr.open_shifts.request.own`, which Technical Admin does not cover, so
     `canAssignRoles` refuses it to Technical Admin; Technical Admin still administers and links existing locum accounts.
     The authority rules are unchanged, and Technical Admin is never given HR permissions to work around this.
+95. HR-16a location check at clock-in (B.E.R.N.I.S.S for the owner, 2026-11-10: location only, at one branch, off by
+    default, coordinates never stored; migrations from `2026_11_10_005500`): a Director-only permission
+    `hr.attendance.location.manage.organisation`; on at one branch at a time (service and PostgreSQL); versioned settings with
+    the branch's own point, a radius (KPOne suggests 150 m) and EN and BM consent text (KPOne pre-fills a draft for the PDPA
+    review); staff acknowledge each version once; the browser reads the position once at the press and the server keeps only
+    inside, outside or not available with an accuracy band (a reading rougher than 1 km is not available); a refusal never
+    blocks; Review shows plain muted words; staff see their own latest result (Suresh, m3); the audit log records only that a
+    press was checked, never the result (Suresh, M1). HR-16b (photo) is not built.
 
 ## 7. Open items and known limits
 
@@ -537,6 +545,10 @@ check items, keep them"). The rest stand unless the owner changes them.
   later removes or moves that shift in the planner before approval, the open shift stays "Filled" with nobody
   rostered; HR posts it again. Two confirms into the same branch week take turns on an advisory lock so the second
   uses the first's new draft; no two-process test covers that case (the race test covers two confirms of one shift).
+- HR-16a known limits: staff see their own latest result only while the check is on at that branch; results and
+  consent rows have no purge (PDPA pack 04 and 08); browser location can be wrong indoors, so "outside" is a prompt for a
+  conversation, never a decision; the existing `hr-3a-attendance.test.mjs` no-geolocation assertion needs B.E.R.N.I.S.S's
+  approval to drop `geolocation` (camera and capture stay banned).
 - HR-17e known limits: the pool tick wording and the invitation message are drafts (Malay included); a staff-account
   request is a note between people, and the account created is not linked back to the application; the pool offers
   only open positions of the same type, because the form's questions differ by type.
