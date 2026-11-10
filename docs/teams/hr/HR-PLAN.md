@@ -3050,3 +3050,228 @@ new ──► phone_screening ──► scheduling ──► interview ──►
   - the answers and the call note are decrypted for the 25 listed rows (as HR-13);
   - consent withdrawal and the talent pool come with HR-17e;
   - the MMC number and APC are as stated by the candidate.
+
+## 20. HR-10 Appraisal, letters, discipline and incidents: design note (draft for the owner, 2026-11-10)
+
+Builds on HR-4a (staff files), HR-4b (documents), HR-3a and HR-3b (attendance and overtime) and HR-2a (leave). It
+covers section 2's HR-10 line: appraisal cycles, letters with numbered issued copies, a restricted discipline file
+and incident reports. **Nothing here is built until the owner answers 20.1 and says "start HR-10".** Synthetic data
+only until the PDPA review. Data Protection Officer: HR Manager (decision 83).
+
+### 20.1 Questions for the owner (with my recommendation)
+
+1. **Offer letters.** The owner decided on 2026-11-10 that no offer is made in KPOne (19.1, point 7). **Recommend:**
+   letters cover confirmation, warning, show-cause and "other" only; no offer letter.
+2. **Who sees discipline records.** **Recommend:** Director and HR Manager only, on a separate permission. An HR
+   Manager's own case only by a Director; nobody handles their own case. The staff member sees only the letters
+   issued to them (show-cause, warning), never the case notes.
+3. **Incidents: HR or clinical governance.** **Recommend:** HR-10 takes staff and workplace incidents (safety, conduct,
+   equipment, near misses). A report about patient care is flagged "needs clinical review" and its handling waits for
+   a clinical-governance decision; the form tells staff not to write a patient's name, IC or diagnosis.
+4. **Appraisal frequency and criteria.** **Recommend:** KPOne ships no criteria and no cycle length. HR enters the
+   criteria (versioned) and opens a cycle with dates; a supervisor rates each criterion 1 to 5 with a comment.
+5. **Letter wording.** **Recommend:** KPOne ships no letter text. HR enters templates (EN and BM, versioned), and the
+   clinic's adviser approves them before real use, as with the MC wording.
+6. **Retention** of appraisals, letters, discipline cases and incidents: [DECIDE], added to the PDPA pack's 04 table.
+
+### 20.2 Slices (each its own PR: Suresh, Daniel for screens, a green gate, then ship it)
+
+| Slice | What | Migrations (HR range) |
+|---|---|---|
+| HR-10a | Letters: templates (EN/BM, versioned), numbered issued copies, printable page, staff see their own | `004000` tables, `004100` grants |
+| HR-10b | Appraisal: criteria (versioned), cycles, supervisor rating, staff comment, Director sign-off, attendance and leave summary pulled in | `004200`, `004300` |
+| HR-10c | Discipline: restricted case file, show-cause and warning letters through HR-10a, outcome | `004400`, `004500` |
+| HR-10d | Incidents: report from any staff member, manager actions and closing, clinical-review flag | `004600`, `004700` |
+
+### 20.3 HR-10a Letters
+
+- **Templates.** Type (confirmation, warning, show-cause, other), title, EN and BM body with fixed placeholders only:
+  `{name}`, `{position}`, `{branch}`, `{date}`, `{reference}`, `{start_date}` and, for warnings, a free paragraph HR
+  writes per letter. Each save is a new version; KPOne ships none.
+- **Issue.** HR picks a staff file and a template; KPOne fills the placeholders, shows a preview, and on Issue stores
+  an encrypted, immutable snapshot (text, letterhead text, logo bytes, template version) and a number
+  `HRL/{year}/{6-digit}` from a locked yearly counter, never reused. A replacement or void keeps the original, as the
+  MC does. **No email**: the letter is printed and signed by hand; HR can record "given to the staff member on <date>".
+- **Who.** Issue and void: `hr.letters.issue.organisation` (Director, HR Manager; nobody issues a letter to
+  themselves; an HR Manager's own letters only by a Director). Staff see their own issued letters on My HR details
+  (`hr.records.view.own`).
+- **PostgreSQL.** Snapshots and numbers append-only; a void needs a reason; one number per letter.
+
+### 20.4 HR-10b Appraisal
+
+- **Criteria** (versioned, at most 15) and **cycles** (name, period, which staff). A cycle shows, per person, the
+  attendance summary from HR-3a (late days, missing clock-outs), approved leave days from HR-2a and approved overtime
+  from HR-3b, read only and for the cycle's dates.
+- **Steps.** The supervisor (`hr.appraisal.manage.organisation`: Director, HR Manager) rates each criterion 1 to 5 with
+  a comment, then sends it; the staff member reads it and adds their own comment (`hr.appraisal.view.own`, all human
+  roles); the Director signs it off. Nobody appraises themselves; an HR Manager's appraisal only by the Director.
+- **Stays out.** No ranking of staff against each other, no total score used for pay, no automatic decision.
+- Signed-off appraisals are immutable; comments are encrypted and never audited.
+
+### 20.5 HR-10c Discipline (restricted)
+
+- **Case.** Opened by `hr.discipline.manage.organisation` (Director, HR Manager) for one staff file: the allegation,
+  facts and notes (encrypted), dates, and attached documents through the HR-4b vault (category Discipline).
+- **Steps.** Show-cause letter (HR-10a) → the staff member's reply (recorded by HR, encrypted) → outcome: no action,
+  verbal warning, written warning (HR-10a), final warning, or "refer to the Director for termination". **KPOne never
+  ends employment or changes an account**; ending a period stays in HR-4a and account changes with the account
+  administrator.
+- **Who.** Separate permission; the case is never shown on the staff file's other tabs, the dashboard or any export.
+  The subject cannot open the case; an HR Manager's own case only by a Director. Every open is recorded first.
+- **PostgreSQL.** Case events append-only; an outcome once; no delete or truncate.
+
+### 20.6 HR-10d Incidents
+
+- **Report** (`hr.incidents.report.own`, all human roles, not the TV account): when, where (branch), category
+  (workplace safety, staff conduct, equipment or premises, near miss, patient care), what happened (encrypted, at
+  most 2,000 characters), optional photos (HR-2b checks, EXIF removed). The form says: "Do not write a patient's
+  name, IC or diagnosis."
+- **Handling** (`hr.incidents.manage.organisation`: Director, HR Manager): acknowledge, add actions with owners and
+  due dates, close with an outcome. The reporter sees their own report's status, not the manager's notes.
+- **Patient care** reports are flagged "Needs clinical review" and listed apart; who reviews them is the owner's
+  decision (20.1, point 3).
+- An incident about a staff member's conduct can be linked to a discipline case only by
+  `hr.discipline.manage.organisation`.
+
+### 20.7 New permissions
+
+`hr.letters.issue.organisation`, `hr.appraisal.manage.organisation`, `hr.appraisal.view.own`,
+`hr.discipline.manage.organisation`, `hr.incidents.report.own`, `hr.incidents.manage.organisation`, each granted by
+an additive migration as before. None is administrative authority.
+
+### 20.8 Existing assertions I expect to change (each needs approval)
+
+- `tests/Feature/ClinicManagementTest.php`: the exact destination map gains `/hr/letters`, `/hr/appraisals`,
+  `/hr/discipline` and `/hr/incidents` (one per slice).
+- The HR-4a "My HR details" tests may gain the staff member's own letters and appraisals. I will list exact lines in
+  each slice's PR.
+
+### 20.9 What Daniel needs to review
+
+- the letter template editor and the issued-letter print page (A4, EN and BM);
+- the appraisal form at 390 and 1440, with the read-only attendance summary;
+- the discipline case page (restricted, plain words, no red);
+- the incident report form for every staff member, and the manager's list.
+
+### 20.10 Known risks and limits
+
+- Discipline and incident text is sensitive; it is encrypted, never audited, and shown only to the two roles.
+- Patient-care incidents may need clinical review that KPOne does not yet route.
+- Letter wording needs the clinic's adviser before real use; appraisal criteria are the clinic's own.
+- With one Director and one HR Manager, an HR Manager's own appraisal and discipline depend on the Director alone.
+
+## 21. HR-15 Locum portal: design note (draft; notes only until the owner decides, decision 82)
+
+Expands 15.4. A locum today is a staff file without a KPOne sign-in (HR-4a), paid outside KPOne. HR-15 lets a locum
+the clinic chooses sign in to see their own shifts and take open shifts. **Nothing is built until the owner answers
+21.1 and says "start HR-15".** Synthetic data only. Data Protection Officer: HR Manager.
+
+### 21.1 Questions for the owner (with my recommendation)
+
+1. **Which locums get a sign-in?** **Recommend:** only those HR asks for, one by one; a locum file stays sign-in-free
+   by default.
+2. **Clinical access for a locum doctor.** **Recommend:** none in HR-15. If a locum doctor is to consult in KPOne, that
+   is a separate, explicit role decision under AGENTS.md (it would mean the Resident Doctor permissions, which HR-15
+   never grants).
+3. **Sign-in method.** **Recommend:** password with the existing rules, and Google sign-in for an existing active
+   account. A one-time code by SMS or WhatsApp only once HR-14 has a chosen provider (15.7 question 2); until then, no
+   OTP.
+4. **Open shifts.** **Recommend:** HR posts open shifts; a locum asks; a manager who is not the locum confirms; the
+   shift joins the next roster draft and still needs the roster approval (HR-1). First come is not first served: the
+   manager chooses.
+5. **Pay.** **Recommend:** locums stay paid outside KPOne in v1 (decision 30's sibling); the portal shows shifts only,
+   no rates or amounts.
+
+### 21.2 Slices
+
+| Slice | What | Migrations |
+|---|---|---|
+| HR-15a | The `locum` role (narrow), linking an account to its HR-4a locum file; account creation only through `StaffProvisioningService`; "My shifts" for a locum | `004800` role and grants, `004900` link |
+| HR-15b | Open shifts: post, ask, confirm by a manager, into the next roster draft | `005000` |
+| HR-15c | One-time code sign-in, only after HR-14 has an SMS or WhatsApp provider and the owner says so | later |
+
+### 21.3 Accounts and the role
+
+- HR presses "Ask for a sign-in" on a locum file; the account administrator creates the account the usual way (the
+  same handoff as HR-17e: a request on the Staff page, never an account made by HR). Public registration stays
+  disabled; an unknown Google identity never creates a user.
+- **Role `locum`:** `hr.roster.view.own` and a new `hr.open_shifts.request.own` only. No patient, clinical, billing,
+  inventory, Insights or staff-directory permission. A test pins the role's exact permission list.
+- The link from account to locum file is set once by the administrator and checked on every request.
+
+### 21.4 Open shifts
+
+- `hr.open_shifts.manage.organisation` (Director, HR Manager) posts a shift (branch, date, start and end, role
+  needed), with the same rules as a roster shift (HR-1: no overlap, at most 16 hours, rest warnings from HR-5b).
+- A locum asks; a manager confirms one locum and declines the others with a reason; the confirmed shift is added to
+  the branch's next draft week and is visible to the locum only after that week is approved.
+- Append-only events; a confirmed request cannot be confirmed twice (unique index), races tested.
+
+### 21.5 New permissions and expected assertion changes
+
+- New: `hr.open_shifts.manage.organisation`, `hr.open_shifts.request.own`, and the role `locum`.
+- Expected changes (each needs approval): the exact role list in `PermissionCatalogue` tests and the staff-authority
+  administrability test gain the `locum` role (it carries no administrative authority, so every administrator can
+  administer it); the Clinic management map gains `/hr/open-shifts`.
+
+### 21.6 Risks and limits
+
+- A new role touches staff authority; AC-01's rules must hold (tested).
+- A locum shares nothing with patient data by design; a mistake here is a clinical-access risk, so the role's
+  permission list is pinned exactly.
+- OTP waits for HR-14's provider; until then sign-in is password or Google only.
+
+## 22. HR-16 Selfie or location at clock-in: design note (draft; notes only until the owner decides, decision 82)
+
+Expands 15.5. **The riskiest item in KPOne HR.** A selfie is biometric-adjacent and a location is sensitive; both
+need the owner's PDPA review, a written purpose, a consent text and a clinic-set retention **before any real staff
+use**. Nothing is built until the owner answers 22.1 and says "start HR-16".
+
+### 22.1 Questions for the owner (with my recommendation)
+
+1. **Which problem are we solving?** Buddy-punching (someone clocking in for another) points to the selfie; clocking
+   in from home points to the location check. **Recommend:** start with the location check only, at one branch,
+   because it stores less (no image).
+2. **Which branch first, and the geofence radius.** **Recommend:** one branch, a radius the Director enters (KPOne
+   suggests 150 m, as a suggestion only).
+3. **Retention of selfies,** if they are ever used. **Recommend:** 30 days, entered by the clinic; deleted daily after.
+4. **Consent text** (EN/BM) and who approves it: the owner's PDPA review, with the Data Protection Officer (HR Manager).
+5. **What happens on "outside" or "no photo".** **Recommend:** never block the clock-in; flag it on Review for a
+   manager to ask the person.
+
+### 22.2 Slices
+
+| Slice | What | Migrations |
+|---|---|---|
+| HR-16a | Location check per branch: off by default; geofence entered by the Director; "inside", "outside" or "not available" and an accuracy band stored, never coordinates | `005100` |
+| HR-16b | Photo at clock-in per branch: off by default; encrypted; viewed only on a disputed day with an audited view; purged after the clinic-set retention | `005200` |
+
+### 22.3 Rules both slices share
+
+- **Off by default for every branch.** A Director turns one on for one branch, with the consent text shown to staff
+  once and their acknowledgement recorded before their first press there.
+- **Only at the moment of the press.** The browser reads the location or takes the photo when the person presses
+  Clock in or Clock out, never before or after; no background tracking, no continuous location (AGENTS.md).
+- **A refusal never blocks.** Refusing the camera or location, or a GPS failure, still records the press, marked
+  "no photo" or "location not checked".
+- **No face matching** and no outside biometric or location service; no biometric template is ever made.
+- **Seen by** Director and HR Manager only, on Review; every photo view is audited before the image is sent.
+- **Coordinates are never stored** (HR-16a); the server receives them once, compares them with the geofence and keeps
+  only the result. A test proves no coordinate column exists and none reaches the log or audit.
+
+### 22.4 Expected assertion changes
+
+- HR-3a's attendance tests: a session gains an optional check result; existing assertions on the session row's exact
+  keys may need one more key (each listed for approval in the slice's PR). With both checks off, every HR-3a test must
+  pass unchanged.
+
+### 22.5 What Daniel needs to review
+
+- the consent screen at 390 px (EN/BM), the clock-in button's camera and location prompts, and how "outside" or "no
+  photo" looks on Review without accusing anyone (no red, plain words).
+
+### 22.6 Risks and limits
+
+- Under PDPA a selfie may be treated as biometric data; the review may say no, in which case HR-16b is never built.
+- Browser location can be wrong indoors; "outside" is a prompt for a conversation, never a decision.
+- Turning either on for real staff without the review breaks the owner's condition (decision 45).
