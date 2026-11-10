@@ -394,6 +394,14 @@ check items, keep them"). The rest stand unless the owner changes them.
     settings (Adlina), each under this plan and with this team agreeing its design note first; migration ranges
     `2026_11_13_2`, `2026_11_13_1` and `2026_11_13_3`. HR keeps HR-17b to HR-17e, then HR-10 (design note first).
     HR-15 and HR-16 are design notes only until the owner decides.
+83. Data Protection Officer (owner, 2026-11-10, word for word, relayed by B.E.R.N.I.S.S): "yes, DPO HR Manager".
+    Data Protection Officer: HR Manager. Repository documents name the role only, never a person; the owner keeps the
+    name and contact details outside the repository.
+84. HR-17e talent pool (Suresh's review, 2026-11-10): the tick is optional and never preset, and each tick stores the
+    version of its wording (`talent_pool_text_version`). A person is in the pool only through the application they
+    ticked; an application made by inviting them from the pool holds no tick of its own, so it never starts a new
+    period, and leaving from either private page leaves the pool for good. Before the form is switched on, the
+    owner's PDPA review approves the tick wording and decides whether the applications privacy notice needs a v2.
 
 ## 7. Open items and known limits
 
