@@ -3,6 +3,7 @@
 namespace App\Domain\HR\Roster\Services;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\HR\Messages\Services\StaffMessenger;
 use App\Domain\HR\Roster\Models\RosterShift;
 use App\Domain\HR\Roster\Models\RosterVersion;
 use App\Domain\HR\Roster\Models\RosterWeek;
@@ -249,6 +250,11 @@ final class RosterService
             $this->remember($actor, $key, 'approve', $hash, $version);
             $this->audit->record('hr.roster.approved', $version, ['roster_week_id' => $week->id, 'version_number' => $version->version_number,
                 'shift_count' => $shifts->count(), 'superseded_version_id' => $previous?->id], $actor, $branch);
+            // HR-14: each person on the week hears it is ready, after the commit. No shift details in the message.
+            foreach (array_keys($subjects) as $subjectId) {
+                app(StaffMessenger::class)->notify((int) $actor->organisation_id, $subjectId, 'roster_ready',
+                    ['week' => CarbonImmutable::parse($week->week_start)->format('j M Y')], ['roster_version_id' => (int) $version->id]);
+            }
 
             return $version;
         }, 3);

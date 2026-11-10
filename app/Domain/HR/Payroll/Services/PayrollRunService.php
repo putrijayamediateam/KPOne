@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Payroll\Services;
 
+use App\Domain\HR\Messages\Services\StaffMessenger;
 use App\Domain\HR\Payroll\PayrollPermissions;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\RecordSupport;
@@ -316,6 +317,11 @@ final class PayrollRunService
                     'lock_version' => (int) $run->lock_version + 1, 'updated_at' => $now]);
                 // HR-7c: the payslips are snapshotted in the same transaction, so a locked run always has them.
                 $payslips = $this->payslips->issue($actor, $run);
+                // HR-14: each person with a payslip hears it is ready, after the commit. Never the amount.
+                $month = CarbonImmutable::parse((string) $run->month)->format('F Y');
+                foreach (DB::table('hr_payslips')->where('run_id', $run->id)->pluck('user_id')->unique() as $payslipUser) {
+                    app(StaffMessenger::class)->notify((int) $actor->organisation_id, (int) $payslipUser, 'payslip_ready', ['month' => $month], ['payroll_run_id' => (int) $run->id]);
+                }
             }
             if ($decision === 'approve') {
                 $this->action($actor, $run, 'approved');
