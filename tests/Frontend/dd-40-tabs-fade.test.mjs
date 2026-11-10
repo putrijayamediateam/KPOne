@@ -23,3 +23,8 @@ test('DD-40: the shared tab strip fades its right edge while tabs are hidden the
     assert.match(tabs, /ResizeObserver/);
     assert.match(tabs, /removeEventListener/);
 });
+
+test('DD-40: a focused tab is scrolled clear of the fade', () => {
+    assert.match(tabs, /@focus="revealFocused"/);
+    assert.match(tabs, /FADE_CLEARANCE/);
+});

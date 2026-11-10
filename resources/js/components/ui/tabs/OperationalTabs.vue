@@ -63,6 +63,26 @@ const selectedIndex = computed(() => {
     return index >= 0 ? index : (enabledIndexes.value[0] ?? -1);
 });
 
+/** A focused tab must sit clear of the fade at the right edge, not just inside the strip. */
+const FADE_CLEARANCE = 40;
+const revealFocused = (event: FocusEvent) => {
+    const element = nav.value;
+    const tab = event.currentTarget as HTMLElement | null;
+
+    if (!element || !tab || typeof element.getBoundingClientRect !== 'function') {
+        return;
+    }
+
+    const box = element.getBoundingClientRect();
+    const tabBox = tab.getBoundingClientRect();
+
+    if (tabBox.left < box.left) {
+        element.scrollLeft += tabBox.left - box.left;
+    } else if (tabBox.right > box.right - FADE_CLEARANCE) {
+        element.scrollLeft += tabBox.right - (box.right - FADE_CLEARANCE);
+    }
+};
+
 const setTabElement = (element: unknown, index: number) => {
     tabElements.value[index] =
         element !== null &&
@@ -159,6 +179,7 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
             :tabindex="selectedIndex === index ? 0 : -1"
             :disabled="tab.disabled"
             @click="emit('update:modelValue', tab.value)"
+            @focus="revealFocused"
             @keydown="handleKeydown($event, index)"
         >
             {{ tab.label }}
