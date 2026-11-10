@@ -139,19 +139,19 @@ const cardRows = computed(() => {
                 label: 'Average in-clinic time',
                 value: `${value.time.inClinic.average} min`,
                 previous: `${value.time.inClinic.previousAverage} min`,
-                note: `Longest ${value.time.inClinic.longest} min${value.time.inClinic.longestAt ? ` · ${value.time.inClinic.longestAt}` : ''}`,
+                note: `Longest ${value.time.inClinic.longest} min${value.time.inClinic.longestAt ? ` · ${formatDate(value.time.inClinic.longestAt)}` : ''}`,
             },
             {
                 label: 'Average waiting time',
                 value: `${value.time.waiting.average} min`,
                 previous: `${value.time.waiting.previousAverage} min`,
-                note: `Longest ${value.time.waiting.longest} min${value.time.waiting.longestAt ? ` · ${value.time.waiting.longestAt}` : ''}`,
+                note: `Longest ${value.time.waiting.longest} min${value.time.waiting.longestAt ? ` · ${formatDate(value.time.waiting.longestAt)}` : ''}`,
             },
             {
                 label: 'Average serving time',
                 value: `${value.time.serving.average} min`,
                 previous: `${value.time.serving.previousAverage} min`,
-                note: `Longest ${value.time.serving.longest} min${value.time.serving.longestAt ? ` · ${value.time.serving.longestAt}` : ''}`,
+                note: `Longest ${value.time.serving.longest} min${value.time.serving.longestAt ? ` · ${formatDate(value.time.serving.longestAt)}` : ''}`,
             },
             { label: 'Urgent visits', value: String(value.priority.urgent) },
             { label: 'Normal visits', value: String(value.priority.normal) },
@@ -310,7 +310,7 @@ const chartPoints = computed<ChartPoint[]>(() => {
 
     if (value.kind === 'sales') {
         return value.dailyTrend.map((point) => ({
-            label: formatDayMonth(point.date),
+            label: `${Number(point.date.slice(8, 10))}/${Number(point.date.slice(5, 7))}`,
             value: point.salesSen,
             detail: `${money(point.salesSen)} · ${point.patients} distinct ${patientNoun(point.patients)}`,
             patients: point.patients,
@@ -319,7 +319,7 @@ const chartPoints = computed<ChartPoint[]>(() => {
 
     if (value.kind === 'in-clinic') {
         return value.dailyVisits.map((point) => ({
-            label: formatDayMonth(point.date),
+            label: `${Number(point.date.slice(8, 10))}/${Number(point.date.slice(5, 7))}`,
             value: point.patients,
             detail: `${point.patients} visits`,
         }));
