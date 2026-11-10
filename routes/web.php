@@ -384,6 +384,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware(['sensitive.no-store', 'permission:hr.applications.manage.organisation'])->group(function (): void {
             Route::get('/', 'index')->name('hr.applications.index');
             Route::get('{application}/cv', 'cv')->whereUuid('application')->middleware('throttle:60,1')->name('hr.applications.cv');
+            Route::post('{application}/show-contact', 'showContact')->whereUuid('application')->middleware('throttle:30,1')->name('hr.applications.show-contact');
             Route::get('interview-documents/{document}', 'document')->whereUuid('document')->middleware('throttle:60,1')->name('hr.applications.documents.show');
             Route::middleware('throttle:30,1')->group(function (): void {
                 Route::post('positions', 'addPosition')->name('hr.applications.positions.store');

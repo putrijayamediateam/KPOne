@@ -11,6 +11,7 @@ use App\Domain\HR\Applications\Services\StaffAccountRequests;
 use App\Domain\HR\Applications\Services\TalentPool;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -160,6 +161,17 @@ class ApplicationsController extends Controller
     }
 
     /** The CV downloads; the open is recorded first. */
+    public function showContact(Request $request, JobApplicationService $applications, string $application): JsonResponse
+    {
+        try {
+            $value = $applications->showContact($request->user(), $application, $request->input('field'));
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => array_map(fn (array $m): string => $m[0], $e->errors())], 422);
+        }
+
+        return response()->json(['value' => $value, 'shownAt' => now()->toIso8601String()])->header('Cache-Control', 'no-store, private');
+    }
+
     public function cv(Request $request, JobApplicationService $applications, string $application): HttpResponse
     {
         try {
