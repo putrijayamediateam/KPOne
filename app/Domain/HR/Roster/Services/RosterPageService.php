@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Roster\Services;
 
+use App\Domain\HR\OpenShifts\OpenShiftPermissions;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Attendance\ClockPermissions;
@@ -100,7 +101,8 @@ final class RosterPageService
         }
 
         // HR-3a: an outline "Clock in" link on My roster for staff who clock (Daniel: never a second primary).
-        return ['days' => $days, 'canClock' => $actor->can(ClockPermissions::CLOCK_OWN)];
+        // HR-15b: a locum finds open shifts from their own roster.
+        return ['days' => $days, 'canClock' => $actor->can(ClockPermissions::CLOCK_OWN), 'canAskOpenShifts' => $actor->can(OpenShiftPermissions::REQUEST_OWN)];
     }
 
     /**
