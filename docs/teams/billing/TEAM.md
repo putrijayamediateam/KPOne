@@ -112,6 +112,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-12 | Insights provider tables (Sales and Today) take each approved refund credit off its invoice's doctor, or the OTC row, on the approval day, so the rows add up to the headline net sales (owner decision). No permission, migration or screen change. Design note: `BIL-12-DESIGN.md` | PR #405 |
 | BIL-13 | PostgreSQL race tests for refunds after completion: two refunds at once on one receipt never exceed it (one recorded, the other refused on the amount), and two that fit together are both recorded. The race test cleanup also removes invoice credits. Test only | PR #399 |
 | BIL-14 | The old live invoice and receipt print addresses (PREVIEW pages) redirect to the visit's Billing page at Issued copies with "Print from here so the copy is recorded."; opening an old link prints and records nothing. Same permission and branch checks (owner decision). Tests that read the old page now read the recorded copy (15 checks, each approved by the owner 2026-11-10). No permission, migration or layout change. Design note: `BIL-14-DESIGN.md` | PR #406 |
+| BIL-16 | Correct a receipt recorded in error on a completed visit, in one step: a Finance Officer who did not record it reverses it and records what was really received; only money not received becomes due (owner decisions). Never a refund. Append-only `payment_corrections` evidence (migration `2026_11_12_400100`), no new permission. Design note: `BIL-16-DESIGN.md` | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -232,6 +233,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 35. BIL-14 retire the PREVIEW print pages (2026-11-07 and 2026-11-10, the owner in the Billing session): the old
     addresses redirect to Issued copies on the Billing page with a note; the tests move to the recorded copy (items
     a to o approved one by one).
+36. BIL-16 correct a receipt after completion (2026-11-10, the owner in the Billing session): a Finance Officer only,
+    never the person who recorded it; takes effect at once; any date (an approved cash closing day shows "changed
+    after approval"); replace in one step, so only money not really received becomes due.
 
 ## 7. Open items and known limits
 
@@ -243,9 +247,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   shortfall outside KPOne. The warning is not on the printed invoice or the completed-visit Invoice page.
 - **No void once a Panel or pay-later amount is approved:** an approved responsibility cannot be withdrawn, so
   such an invoice cannot be voided and reissued (pinned by a refusal test in BIL-1).
-- **No corrections after completion:** a receipt recorded in error on a completed visit (including a later
-  pay-later instalment) cannot be reversed in KPOne; reversal and void need a Registered visit (pinned by a
-  refusal test in BIL-1).
+- **Corrections after completion:** since BIL-16 a receipt recorded in error on a completed visit is corrected on
+  its Billing page (reverse and replace in one step). Voiding still needs a Registered visit (pinned by a refusal
+  test in BIL-1).
 - After a void, the Billing page shows only the replacement invoice; the voided invoice and its reversed
   receipt stay in the records but are not listed on that page.
 - A fully settled pay-later card still reads "Pay later · Approved · Due <date>" with no settled label; the
@@ -327,6 +331,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Insights provider credits (BIL-12): when the Range provider list is cut at 100 doctors, a doctor below the cut who
   has a credit in the period is not added with only that credit (their sales are not shown either); the existing
   "truncated" note explains why the rows then do not add up to the headline. Below 100 doctors the rows always add up.
+- Receipt corrections after completion (BIL-16): a receipt that paid off pay-later keeps that part (the amount
+  received cannot be below it, because an approved pay-later balance cannot grow back); a receipt with a refund, or
+  that pays more than one invoice, cannot be corrected. The replacement receipt carries the correction date, so the
+  original shows as reversed on its own day and the replacement on the day of the correction. Before completion
+  the existing reversal still applies.
 
 ## 8. Rules (every task)
 
