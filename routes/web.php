@@ -36,11 +36,13 @@ use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
+use App\Http\Controllers\HR\AppraisalsController as HrAppraisalsController;
 use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\DashboardController as HrDashboardController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\LettersController as HrLettersController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
 use App\Http\Controllers\HR\OutsideExportController as HrOutsideExportController;
@@ -425,6 +427,37 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::get('audience', 'audience')->name('hr.memos.audience');
             Route::post('/', 'publish')->name('hr.memos.publish');
             Route::post('{memo}/withdraw', 'withdraw')->whereUuid('memo')->name('hr.memos.withdraw');
+        });
+    });
+
+    // HR-10a letters (HR-PLAN 20.3; owner, 2026-11-10). Printed and signed by hand; nothing is sent.
+    Route::prefix('hr/letters')->controller(HrLettersController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.records.view.own,hr.letters.issue.organisation')->name('hr.letters.index');
+        Route::get('{letter}', 'show')->whereUuid('letter')
+            ->middleware(['permission:hr.records.view.own,hr.letters.issue.organisation', 'throttle:60,1'])->name('hr.letters.show');
+        Route::middleware(['permission:hr.letters.issue.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('preview', 'preview')->name('hr.letters.preview');
+            Route::post('/', 'issue')->name('hr.letters.issue');
+            Route::post('{letter}/void', 'void')->whereUuid('letter')->name('hr.letters.void');
+            Route::post('{letter}/given', 'given')->whereUuid('letter')->name('hr.letters.given');
+            Route::post('templates', 'storeTemplate')->name('hr.letters.templates.store');
+            Route::post('templates/{template}/revise', 'reviseTemplate')->whereUuid('template')->name('hr.letters.templates.revise');
+            Route::post('templates/{template}/retire', 'retireTemplate')->whereUuid('template')->name('hr.letters.templates.retire');
+        });
+    });
+
+    // HR-10b appraisal (HR-PLAN 20.4; owner, 2026-11-10). No ranking and no total score.
+    Route::prefix('hr/appraisals')->controller(HrAppraisalsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.appraisal.view.own,hr.appraisal.manage.organisation')->name('hr.appraisals.index');
+        Route::get('{appraisal}', 'show')->whereUuid('appraisal')
+            ->middleware(['permission:hr.appraisal.view.own,hr.appraisal.manage.organisation', 'throttle:60,1'])->name('hr.appraisals.show');
+        Route::post('{appraisal}/comment', 'comment')->whereUuid('appraisal')->middleware(['permission:hr.appraisal.view.own', 'throttle:30,1'])->name('hr.appraisals.comment');
+        Route::middleware(['permission:hr.appraisal.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('criteria', 'saveCriteria')->name('hr.appraisals.criteria.store');
+            Route::post('cycles', 'openCycle')->name('hr.appraisals.cycles.store');
+            Route::post('cycles/{cycle}/close', 'closeCycle')->whereUuid('cycle')->name('hr.appraisals.cycles.close');
+            Route::post('{appraisal}', 'save')->whereUuid('appraisal')->name('hr.appraisals.save');
+            Route::post('{appraisal}/sign-off', 'signOff')->whereUuid('appraisal')->name('hr.appraisals.sign-off');
         });
     });
 

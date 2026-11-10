@@ -8,7 +8,7 @@ import {
     CollapsibleContent,
     CollapsibleTrigger,
 } from '@/components/ui/collapsible';
-import { Input } from '@/components/ui/input';
+import { DateField } from '@/components/ui/date-field';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState } from '@/components/ui/state';
@@ -306,10 +306,9 @@ const RIZAL_SHOWN = 5;
         >
             <div class="grid gap-1.5">
                 <Label for="summary-date">Summary on</Label>
-                <Input
+                <DateField
                     id="summary-date"
                     v-model="chosen"
-                    type="date"
                     class="w-44 max-lg:min-h-11"
                     :min="summary.earliest"
                     :max="summary.today"
