@@ -247,7 +247,7 @@ test('a patient being served can be called again from the queue board, and the T
     const board = read(
         'resources/js/components/patient-board/PatientBoard.vue',
     );
-    assert.ok(board.includes('>Call Again</DropdownMenuItem'));
+    assert.ok(board.includes('>Call again</DropdownMenuItem'));
     assert.ok(board.includes('@select="$emit(\'recall\', row)"'));
     assert.ok(
         queue.includes(

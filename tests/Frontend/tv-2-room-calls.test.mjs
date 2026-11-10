@@ -72,7 +72,7 @@ test('the doctor calls to a treatment room from the consultation and stays on it
 });
 
 test('staff call a serving patient to a treatment room from the queue board', () => {
-    assert.ok(board.includes('>Call to Treatment Room</DropdownMenuItem'));
+    assert.ok(board.includes('>Call to treatment room</DropdownMenuItem'));
     assert.ok(board.includes("$emit('callTreatment', row)"));
     assert.ok(queue.includes('@call-treatment="openTreatmentCall"'));
     assert.ok(queue.includes('/queue/treatment-call'));

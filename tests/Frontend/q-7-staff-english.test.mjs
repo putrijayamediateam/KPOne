@@ -41,7 +41,14 @@ test('the TV fallback room names are English, and the Malay spoken digits stay',
     assert.match(display, /'kosong',\s*'satu',\s*'dua',\s*'tiga'/);
 });
 
-test('the consultation page and Dispensary use the English call labels', () => {
+test('the Queue board menu and the consultation page use the same sentence-case call labels', () => {
+    const board = read(
+        'resources/js/components/patient-board/PatientBoard.vue',
+    );
+    assert.match(board, />Call again<\/DropdownMenuItem/);
+    assert.match(board, />Call to treatment room<\/DropdownMenuItem/);
+    assert.match(board, />Call to Dispensary<\/DropdownMenuItem/);
+
     const consultation = read('resources/js/pages/Clinical/Show.vue');
     assert.match(consultation, /<Megaphone class="size-4" \/> Call again/);
     assert.match(
