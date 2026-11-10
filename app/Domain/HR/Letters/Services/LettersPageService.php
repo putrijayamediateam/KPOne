@@ -68,7 +68,7 @@ final class LettersPageService
     private function issued(User $actor, string $zone): array
     {
         $rows = $this->base($actor)->limit(200)->get();
-        $workers = Worker::query()->with(['user.roles', 'personal'])->whereIn('id', $rows->pluck('worker_id')->unique()->all())->get()->keyBy('id');
+        $workers = Worker::query()->with(['user.roles'])->whereIn('id', $rows->pluck('worker_id')->unique()->all())->get()->keyBy('id');
         $issuers = DB::table('users')->whereIn('id', $rows->pluck('issued_by_user_id')->unique()->all())->pluck('name', 'id');
 
         return array_values($rows->map(function (\stdClass $r) use ($zone, $workers, $issuers, $actor): array {
@@ -95,7 +95,7 @@ final class LettersPageService
     /** @return list<array{id:string, name:string, kind:string, refusal:?string}> */
     private function workers(User $actor): array
     {
-        $workers = Worker::query()->with(['user.roles', 'personal'])->where('organisation_id', $actor->organisation_id)->limit(500)->get();
+        $workers = Worker::query()->with(['user.roles'])->where('organisation_id', $actor->organisation_id)->limit(500)->get();
 
         return array_values($workers->filter(fn (Worker $w): bool => $w->user_id === null || ($w->user !== null && $w->user->is_active))
             ->map(fn (Worker $w): array => ['id' => (string) $w->public_id, 'name' => $this->name($w), 'kind' => (string) $w->kind,
@@ -108,8 +108,9 @@ final class LettersPageService
         return DB::table('hr_letters as l')->join('hr_workers as w', 'w.id', '=', 'l.worker_id')
             ->join('hr_letter_template_versions as v', 'v.id', '=', 'l.template_version_id')
             ->where('l.organisation_id', $actor->organisation_id)->orderByDesc('l.issued_at')->orderByDesc('l.id')
+            ->leftJoin('hr_letters as r', 'r.replaces_letter_id', '=', 'l.id')
             ->select(['l.id', 'l.public_id', 'l.worker_id', 'l.type', 'l.language', 'l.reference', 'l.issued_at', 'l.issued_by_user_id', 'l.given_on',
-                'l.voided_at', 'l.void_reason', 'l.lock_version', 'l.replaces_letter_id', 'v.title']);
+                'l.voided_at', 'l.void_reason', 'l.lock_version', 'l.replaces_letter_id', 'v.title', 'r.reference as replaced_by', 'r.voided_at as replaced_by_voided_at']);
     }
 
     /** @return array<string, mixed> */
@@ -121,13 +122,14 @@ final class LettersPageService
             'typeLabel' => LetterService::TYPES[$r->type] ?? (string) $r->type, 'language' => $r->language === 'en' ? 'English' : 'Malay',
             'issuedOn' => CarbonImmutable::parse((string) $r->issued_at, 'UTC')->setTimezone($zone)->format('j M Y'),
             'givenOn' => $r->given_on === null ? null : CarbonImmutable::parse((string) $r->given_on)->format('j M Y'),
-            'status' => $status, 'voidReason' => $status === 'void' ? (LetterService::VOID_REASONS[$r->void_reason] ?? (string) $r->void_reason) : null];
+            'status' => $status, 'voidReason' => $status === 'void' ? (LetterService::VOID_REASONS[$r->void_reason] ?? (string) $r->void_reason) : null,
+            // A replaced letter names its replacement, and says when that one was voided too, so HR knows to issue again (Suresh, m3).
+            'replacedBy' => $r->replaced_by === null ? null : (string) $r->replaced_by.($r->replaced_by_voided_at !== null ? ' (void)' : '')];
     }
 
+    /** The account name, or a locum's display name, as Staff files shows it; the legal name stays behind Show (Suresh, B1). */
     private function name(Worker $worker): string
     {
-        $legal = $worker->personal?->legal_name_encrypted;
-
-        return is_string($legal) && trim($legal) !== '' ? trim($legal) : $worker->name();
+        return $worker->name();
     }
 }

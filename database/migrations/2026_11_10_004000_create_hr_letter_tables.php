@@ -179,7 +179,8 @@ END $$;
 CREATE TRIGGER hr_letter_counters_insert_guard BEFORE INSERT ON hr_letter_counters FOR EACH ROW EXECUTE FUNCTION guard_hr_letter_counter_insert();
 
 -- A letter is issued current, with the counter's own number, from a version of a template of the same type and
--- organisation; a replacement points at an earlier letter of the same staff file that is not void.
+-- organisation, at its current version and not retired; a replacement points at an earlier letter of the same staff file
+-- that is not void.
 CREATE OR REPLACE FUNCTION guard_hr_letter_insert() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE old RECORD;
 BEGIN
@@ -190,8 +191,9 @@ BEGIN
   RAISE EXCEPTION 'A letter takes the counter''s number' USING ERRCODE = '23514';
  END IF;
  IF NOT EXISTS (SELECT 1 FROM hr_letter_template_versions v JOIN hr_letter_templates t ON t.id = v.template_id
-     WHERE v.id = NEW.template_version_id AND t.organisation_id = NEW.organisation_id AND t.type = NEW.type) THEN
-  RAISE EXCEPTION 'A letter comes from a template of its type' USING ERRCODE = '23514';
+     WHERE v.id = NEW.template_version_id AND t.organisation_id = NEW.organisation_id AND t.type = NEW.type
+       AND t.retired_at IS NULL AND v.version = t.current_version) THEN
+  RAISE EXCEPTION 'A letter comes from the current version of a template of its type that is not retired' USING ERRCODE = '23514';
  END IF;
  IF NEW.replaces_letter_id IS NOT NULL THEN
   SELECT id, worker_id, voided_at INTO old FROM hr_letters WHERE id = NEW.replaces_letter_id AND organisation_id = NEW.organisation_id FOR UPDATE;
@@ -220,6 +222,10 @@ BEGIN
  IF OLD.voided_at IS NOT NULL AND (NEW.voided_at IS DISTINCT FROM OLD.voided_at OR NEW.voided_by_user_id IS DISTINCT FROM OLD.voided_by_user_id
    OR NEW.void_reason IS DISTINCT FROM OLD.void_reason OR NEW.given_on IS DISTINCT FROM OLD.given_on) THEN
   RAISE EXCEPTION 'A void letter stays void' USING ERRCODE = 'P0001';
+ END IF;
+ -- "Replaced" is set only once a replacement points at this letter (Suresh, M2).
+ IF OLD.voided_at IS NULL AND NEW.void_reason = 'replaced' AND NOT EXISTS (SELECT 1 FROM hr_letters WHERE replaces_letter_id = OLD.id) THEN
+  RAISE EXCEPTION 'A letter is replaced only by a replacement' USING ERRCODE = 'P0001';
  END IF;
  RETURN NEW;
 END $$;

@@ -137,8 +137,12 @@ final class LetterService
         return DB::transaction(function () use ($actor, $input): array {
             $actor = $this->support->authority->lock($actor, LetterPermissions::ISSUE);
             $worker = $this->worker($actor, $input['worker_id'] ?? null, false);
-            [$version, $language, $details] = $this->issueChoices($actor, $input);
+            [$version, $language, $details] = $this->issueChoices($actor, $input, false);
             $today = CarbonImmutable::now($this->zone($actor->organisation_id));
+            // The preview shows the legal name from the staff file, so it is recorded as a Show, as HR-4a does (Suresh, B1).
+            if ($this->legalName($worker) !== null) {
+                $this->support->audit->record('hr.records.value_shown', $worker, ['field' => 'legal_name', 'via' => 'letter_preview'], $actor, null, $actor->organisation_id);
+            }
 
             return ['title' => (string) $version->title, 'language' => $language, 'templateVersion' => (int) $version->version,
                 'body' => $this->fill($worker, $version, $language, $details, 'HRL/'.$today->year.'/……', $today)];
@@ -164,7 +168,10 @@ final class LetterService
                 return $replay;
             }
             $worker = $this->worker($actor, $workerId, true);
-            [$version, $language, $details] = $this->issueChoices($actor, $input);
+            if ($worker->user !== null && ! $worker->user->is_active) {
+                throw ValidationException::withMessages(['worker_id' => 'This staff member\'s account is inactive. Letters go to current staff only.']);
+            }
+            [$version, $language, $details] = $this->issueChoices($actor, $input, true);
             if (filter_var($input['expected_template_version'] ?? null, FILTER_VALIDATE_INT) !== (int) $version->version) {
                 throw ValidationException::withMessages(['template_id' => 'This template was changed since you opened the preview. Check the preview again.']);
             }
@@ -382,9 +389,10 @@ final class LetterService
      * @param  array<string, mixed>  $input
      * @return array{0:\stdClass, 1:string, 2:string} the current template version, the language and the checked details
      */
-    private function issueChoices(User $actor, array $input): array
+    private function issueChoices(User $actor, array $input, bool $lock): array
     {
-        $template = $this->template($actor, $input['template_id'] ?? null, false);
+        // Issuing holds the template row (FOR SHARE), so a revise or retire waits until the letter is in (Suresh, M3).
+        $template = $this->template($actor, $input['template_id'] ?? null, $lock ? 'share' : false);
         if ($template->retired_at !== null) {
             throw ValidationException::withMessages(['template_id' => 'This template was retired. Choose another.']);
         }
@@ -437,9 +445,23 @@ final class LetterService
 
     private function recipientName(Worker $worker): string
     {
-        $legal = $worker->personal?->legal_name_encrypted;
+        return $this->legalName($worker) ?? $worker->name();
+    }
 
-        return is_string($legal) && trim($legal) !== '' ? trim($legal) : $worker->name();
+    /** The legal name from the staff file, or null when none is set or it cannot be read. Only letters read it. */
+    private function legalName(Worker $worker): ?string
+    {
+        $raw = $worker->personal?->getRawOriginal('legal_name_encrypted');
+        if (! is_string($raw) || $raw === '') {
+            return null;
+        }
+        try {
+            $legal = Crypt::decryptString($raw);
+        } catch (DecryptException) {
+            return null; // an unreadable value falls back to the account name (Suresh, B1)
+        }
+
+        return trim($legal) !== '' ? trim($legal) : null;
     }
 
     /** The worker's primary branch today, else the organisation's first active branch (a locum has no assignment). */
@@ -492,13 +514,13 @@ final class LetterService
         return $next;
     }
 
-    private function template(User $actor, mixed $templateId, bool $lock): \stdClass
+    private function template(User $actor, mixed $templateId, bool|string $lock): \stdClass
     {
         if (! is_string($templateId) || ! Str::isUuid($templateId)) {
             throw ValidationException::withMessages(['template_id' => 'Choose a template.']);
         }
         $query = DB::table('hr_letter_templates')->where('organisation_id', $actor->organisation_id)->where('public_id', $templateId);
-        $template = ($lock ? $query->lockForUpdate() : $query)->first();
+        $template = ($lock === 'share' ? $query->sharedLock() : ($lock === true ? $query->lockForUpdate() : $query))->first();
         if (! $template instanceof \stdClass) {
             throw ValidationException::withMessages(['template_id' => 'Choose a template.']);
         }

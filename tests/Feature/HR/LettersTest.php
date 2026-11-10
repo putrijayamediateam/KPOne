@@ -10,6 +10,7 @@ use App\Domain\Organisation\BusinessDetails\BusinessDetailsService;
 use App\Domain\Organisation\BusinessDetails\OrganisationBusinessProfile;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
@@ -239,6 +240,60 @@ class LettersTest extends VisitTestCase
         $this->assertRefused('23514', fn () => DB::table('hr_letters')->where('id', $letter->id)->update(['void_reason' => 'nonsense', 'voided_at' => now(), 'voided_by_user_id' => $this->hr->id, 'lock_version' => 2]));
         DB::table('hr_letters')->where('id', $letter->id)->update(['voided_at' => now(), 'voided_by_user_id' => $this->hr->id, 'void_reason' => 'other', 'lock_version' => 2]);
         $this->assertRefused('P0001', fn () => DB::table('hr_letters')->where('id', $letter->id)->update(['voided_at' => null, 'voided_by_user_id' => null, 'void_reason' => null, 'lock_version' => 3]));
+    }
+
+    public function test_the_legal_name_is_only_in_the_letter_and_its_audited_preview(): void
+    {
+        $this->businessDetails();
+        $staff = $this->actor('ca');
+        $worker = $this->file($staff);
+        app(StaffFileService::class)->savePersonal($this->hr, $worker->public_id, ['legal_name' => 'Synthetic Legal Name Binti Contoh',
+            'expected_lock_version' => 0, 'idempotency_key' => (string) Str::uuid()]);
+        $template = $this->template();
+        $this->selectBranch($this->hr);
+        $this->issue($worker, $template)->assertSessionHasNoErrors();
+
+        // The lists show the account name, as Staff files does; the legal name stays behind HR-4a's audited Show.
+        foreach (['issued', 'templates'] as $tab) {
+            $props = (string) json_encode($this->get(route('hr.letters.index', ['tab' => $tab]))->assertOk()->viewData('page')['props']);
+            $this->assertStringNotContainsString('Synthetic Legal Name', $props);
+            $this->assertStringContainsString($staff->name, $props);
+        }
+        $shown = fn () => DB::table('audit_logs')->where('event', 'hr.records.value_shown')->where('actor_user_id', $this->hr->id)->count();
+        $this->assertSame(0, $shown());
+        $preview = $this->postJson(route('hr.letters.preview'), ['worker_id' => $worker->public_id, 'template_id' => $template, 'language' => 'en'])->assertOk()->json();
+        $this->assertStringContainsString('Dear Synthetic Legal Name Binti Contoh', $preview['body']);
+        $this->assertSame(1, $shown());
+        $snapshot = json_decode(Crypt::decryptString((string) DB::table('hr_letters')->value('snapshot_encrypted')), true);
+        $this->assertSame('Synthetic Legal Name Binti Contoh', $snapshot['recipient']);
+        // The disciplinary paragraph is never flashed into the session.
+        $this->assertContains('details', (fn () => $this->dontFlash)->call(app(ExceptionHandler::class)));
+    }
+
+    public function test_an_inactive_account_takes_no_new_letter_and_postgresql_ties_replaced_and_templates(): void
+    {
+        $this->businessDetails();
+        $staff = $this->actor('ca');
+        $worker = $this->file($staff);
+        $template = $this->template();
+        $this->selectBranch($this->hr);
+        $this->issue($worker, $template)->assertSessionHasNoErrors();
+        $letter = DB::table('hr_letters')->sole();
+        // "Replaced" needs a replacement pointing at the letter.
+        $this->assertRefused('P0001', fn () => DB::table('hr_letters')->where('id', $letter->id)->update(['voided_at' => now(), 'voided_by_user_id' => $this->hr->id,
+            'void_reason' => 'replaced', 'lock_version' => 2]));
+        // A letter comes only from the current version of a template that is not retired.
+        $row = DB::table('hr_letter_templates')->where('public_id', $template)->sole();
+        $this->post(route('hr.letters.templates.retire', $template), ['expected_lock_version' => $row->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        DB::table('hr_letter_counters')->update(['last_number' => 2]);
+        $this->assertRefused('23514', fn () => DB::table('hr_letters')->insert([...(array) $letter, 'id' => null, 'public_id' => (string) Str::uuid(),
+            'number' => 2, 'reference' => 'HRL/2026/000002', 'replaces_letter_id' => null]));
+
+        $other = $this->template(['title' => 'Second confirmation']);
+        $this->selectBranch($this->hr);
+        $staff->forceFill(['is_active' => false])->save();
+        $this->issue($worker, $other)->assertSessionHasErrors('worker_id');
+        $this->assertSame(1, DB::table('hr_letters')->count());
     }
 
     // ---- fixture ----

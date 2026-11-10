@@ -37,6 +37,7 @@ type LetterRow = {
     givenOn: string | null;
     status: Status;
     voidReason: string | null;
+    replacedBy: string | null;
 };
 type IssuedRow = LetterRow & {
     recipient: string;
@@ -477,6 +478,8 @@ const textareaClass =
                             {{ letter.issuedOn }}
                             <template v-if="letter.givenOn">
                                 · given {{ letter.givenOn }}</template
+                            ><template v-if="letter.replacedBy">
+                                · replaced by {{ letter.replacedBy }}</template
                             >
                         </p>
                     </div>
@@ -557,6 +560,8 @@ const textareaClass =
                                 · given {{ letter.givenOn }}</template
                             ><template v-if="letter.voidReason">
                                 · void ({{ letter.voidReason }})</template
+                            ><template v-if="letter.replacedBy">
+                                · replaced by {{ letter.replacedBy }}</template
                             >
                         </p>
                         <p
