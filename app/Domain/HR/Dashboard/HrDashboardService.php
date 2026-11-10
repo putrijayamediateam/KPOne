@@ -110,7 +110,8 @@ final class HrDashboardService
     /** @return array<int, string> */
     private function names(int $organisationId): array
     {
-        return User::query()->where('organisation_id', $organisationId)->pluck('name', 'id')->map(fn ($n): string => (string) $n)->all();
+        // Active staff only: a person who left with a surviving shift, session or leave is not listed by name.
+        return User::query()->where('organisation_id', $organisationId)->where('is_active', true)->pluck('name', 'id')->map(fn ($n): string => (string) $n)->all();
     }
 
     /**
@@ -126,28 +127,32 @@ final class HrDashboardService
             $approved = RosterVersion::query()->select('id')->where('organisation_id', $actor->organisation_id)->where('status', 'approved');
             $shifts = RosterShift::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
                 ->whereIn('roster_version_id', $approved)->where('starts_at', '<=', $now)->where('ends_at', '>', $now)->orderBy('starts_at')->get();
-            $roles = $this->roles(array_values($shifts->pluck('staff_user_id')->map(fn ($id): int => (int) $id)->all()));
-            $doctors = $shifts->filter(fn (RosterShift $s): bool => in_array('resident_doctor', $roles[$s->staff_user_id] ?? [], true))->pluck('staff_user_id')->unique()->count();
+            // Someone whose approved leave covers now is on leave, not rostered (the other half of a half day still is).
+            $away = $this->onLeaveNow($actor->organisation_id, $branch, $now, array_values($shifts->pluck('staff_user_id')->map(fn ($id): int => (int) $id)->all()));
+            $onShift = $shifts->filter(fn (RosterShift $s): bool => isset($names[$s->staff_user_id]) && ! isset($away[$s->staff_user_id]))->values();
+            $roles = $this->roles(array_values($onShift->pluck('staff_user_id')->map(fn ($id): int => (int) $id)->all()));
+            $doctors = $onShift->filter(fn (RosterShift $s): bool => in_array('resident_doctor', $roles[$s->staff_user_id] ?? [], true))->pluck('staff_user_id')->unique()->count();
             $out['rostered'] = [
-                'count' => $shifts->pluck('staff_user_id')->unique()->count(),
+                'count' => $onShift->pluck('staff_user_id')->unique()->count(),
                 'doctors' => $doctors,
-                'people' => $shifts->unique('staff_user_id')->take(self::MAX_NAMES)->map(fn (RosterShift $s): array => [
-                    'name' => $names[$s->staff_user_id] ?? 'Staff member',
+                'people' => $onShift->unique('staff_user_id')->take(self::MAX_NAMES)->map(fn (RosterShift $s): array => [
+                    'name' => $names[$s->staff_user_id],
                     'role' => $this->roleLabel($roles[$s->staff_user_id] ?? []),
                     'until' => $s->ends_at->setTimezone($s->timezone)->format('g:i A'),
                 ])->values()->all(),
-                // Only when the roster has someone on now: a closed branch is not "without a doctor".
-                'noDoctor' => $shifts->isNotEmpty() && $doctors === 0,
+                // Only when someone is on now: a closed or quiet branch is not "without a doctor".
+                'noDoctor' => $onShift->isNotEmpty() && $doctors === 0,
             ];
-            $out['staffing'] = $this->staffing($actor, $branch, $localToday);
+            $out['staffing'] = $this->staffing($actor, $branch, $localToday, $shifts, $now);
         }
         if ($can['attendance']) {
             $open = ClockSession::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->whereNull('clock_out_at')
                 ->where('clock_in_at', '>=', $now->subHours(16))->orderBy('clock_in_at')->get();
+            $active = $open->filter(fn (ClockSession $s): bool => isset($names[$s->user_id]));
             $out['clockedIn'] = [
-                'count' => $open->pluck('user_id')->unique()->count(),
-                'people' => $open->unique('user_id')->take(self::MAX_NAMES)->map(fn (ClockSession $s): array => [
-                    'name' => $names[$s->user_id] ?? 'Staff member',
+                'count' => $active->pluck('user_id')->unique()->count(),
+                'people' => $active->unique('user_id')->take(self::MAX_NAMES)->map(fn (ClockSession $s): array => [
+                    'name' => $names[$s->user_id],
                     'since' => $s->clock_in_at->setTimezone($s->timezone)->format('g:i A'),
                 ])->values()->all(),
             ];
@@ -156,13 +161,13 @@ final class HrDashboardService
             // Leave slots are branch-local wall-clock times (LeaveCalendar::utcSlots), so compare with the branch's local now.
             $localNow = $now->setTimezone($branch->timezone)->format('Y-m-d H:i:s');
             $requests = LeaveRequest::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('status', 'approved')
-                ->where('slot_start', '<=', $localNow)->where('slot_end', '>', $localNow)->get();
+                ->where('slot_start', '<=', $localNow)->where('slot_end', '>', $localNow)->get()->filter(fn (LeaveRequest $r): bool => isset($names[$r->user_id]));
             $out['onLeave'] = [
                 'count' => $requests->pluck('user_id')->unique()->count(),
                 // Name and "On leave" or "half day" only: never the leave type or the reason.
                 'people' => $requests->unique('user_id')->take(self::MAX_NAMES)->map(fn (LeaveRequest $r): array => [
-                    'name' => $names[$r->user_id] ?? 'Staff member',
-                    'half' => $r->halves === 1,
+                    'name' => $names[$r->user_id],
+                    'half' => $r->halves === 1 && $r->start_date->equalTo($r->end_date),
                 ])->values()->all(),
             ];
         }
@@ -171,35 +176,71 @@ final class HrDashboardService
     }
 
     /**
-     * Today against the branch's minimum staffing, by the Planner's own rule (RosterPageService::shortfalls).
+     * Of these people, who has approved leave covering now (leave slots are branch-local wall-clock times).
      *
+     * @param  list<int>  $userIds
+     * @return array<int, true>
+     */
+    private function onLeaveNow(int $organisationId, Branch $branch, CarbonImmutable $now, array $userIds): array
+    {
+        if ($userIds === []) {
+            return [];
+        }
+        $localNow = $now->setTimezone($branch->timezone)->format('Y-m-d H:i:s');
+
+        $away = [];
+        foreach (LeaveRequest::query()->where('organisation_id', $organisationId)->whereIn('user_id', $userIds)->where('status', 'approved')
+            ->where('slot_start', '<=', $localNow)->where('slot_end', '>', $localNow)->pluck('user_id') as $id) {
+            $away[(int) $id] = true;
+        }
+
+        return $away;
+    }
+
+    /**
+     * Enough or Short for the sessions that are on now (Liyana, HR), by the Planner's own rule
+     * (RosterPageService::shortfalls): the people on each session's shifts today, by role, against that session's
+     * minimum. A full-day shift counts for whichever of morning or afternoon it is now, as the Planner counts it for
+     * both; a "Full day" minimum applies all day. A day with no shifts at a branch that does not work today shows
+     * nothing (state "closed"), because minimums apply to every day (a known HR-1 limit).
+     *
+     * @param  Collection<int, RosterShift>  $covering  approved shifts on now
      * @return array<string, mixed>
      */
-    private function staffing(User $actor, Branch $branch, CarbonImmutable $localToday): array
+    private function staffing(User $actor, Branch $branch, CarbonImmutable $localToday, Collection $covering, CarbonImmutable $now): array
     {
-        $configured = collect($this->minimums->minimums($branch))->flatten()->sum() > 0;
         $shifts = $this->shiftsOn($actor->organisation_id, $branch, $localToday, $localToday);
-        if (! $configured) {
+        if ($shifts->isEmpty()) {
+            $working = $this->leave->workingDays($branch);
+
+            return ['state' => $working !== null && ! in_array($localToday->dayOfWeekIso, $working, true) ? 'closed' : 'no_roster', 'messages' => []];
+        }
+        if (collect($this->minimums->minimums($branch))->flatten()->sum() <= 0) {
             return ['state' => 'not_set', 'messages' => []];
         }
-        if ($shifts->isEmpty()) {
-            return ['state' => 'no_roster', 'messages' => []];
+        if ($covering->isEmpty()) {
+            return ['state' => 'no_shift_now', 'messages' => []];
         }
-        $gaps = $this->gaps($branch, $localToday, $shifts);
+        $sessions = array_values(array_unique([...$covering->pluck('session_type')->all(), 'full_day']));
+        if (in_array('full_day', $covering->pluck('session_type')->all(), true)) {
+            $sessions[] = (int) $now->setTimezone($branch->timezone)->format('G') < 12 ? 'morning' : 'afternoon';
+        }
+        $gaps = $this->gaps($branch, $localToday, $shifts, array_values(array_unique($sessions)));
 
         return ['state' => $gaps === [] ? 'enough' : 'short', 'messages' => array_map(fn (array $g): string => $g['message'], $gaps)];
     }
 
     /**
      * @param  Collection<int, RosterShift>  $shifts
+     * @param  list<string>|null  $onlySessions
      * @return list<array{date: string, day: string, message: string}>
      */
-    private function gaps(Branch $branch, CarbonImmutable $from, Collection $shifts): array
+    private function gaps(Branch $branch, CarbonImmutable $from, Collection $shifts, ?array $onlySessions = null): array
     {
         $people = User::query()->with('roles')->whereIn('id', $shifts->pluck('staff_user_id')->unique())->get()->keyBy('id');
 
         // The Planner's check looks at 7 days from its start date; only the day asked for counts here.
-        return array_values(array_filter($this->roster->shortfalls($branch, $from, $shifts, $people), fn (array $g): bool => $g['date'] === $from->toDateString()));
+        return array_values(array_filter($this->roster->shortfalls($branch, $from, $shifts, $people, $onlySessions), fn (array $g): bool => $g['date'] === $from->toDateString()));
     }
 
     /** @return Collection<int, RosterShift> approved shifts that start on a branch-local date in [$from, $to] */

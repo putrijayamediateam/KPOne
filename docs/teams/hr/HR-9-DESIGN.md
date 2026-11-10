@@ -11,7 +11,7 @@ One read-only page, `/hr/dashboard`, for the Director and the HR Manager. It add
 | Section | Shows | Built from |
 |---|---|---|
 | Today per branch | Who is rostered now and who has clocked in, "Enough" or "Short" against minimum staffing for the current session, a "No doctor" alert in words, and who is on leave today ("On leave" or "half day" only) | approved roster shifts (HR-1), minimum staffing (HR-1), clock sessions (HR-3a), approved leave (HR-2a) |
-| This month | Per branch and for the clinic: days clocked, late arrivals, left early, missing clock-in or clock-out, approved overtime minutes, leave days taken (all types added together, never by type), roster shortfall days | clock sessions and the HR-3a flags, approved overtime (HR-3b), leave ledger (HR-2a), roster warnings (HR-1, HR-5b) |
+| This month | Per branch: days clocked, late arrivals, left early, missing clock-in or clock-out, approved overtime minutes, leave days taken (all types added together, never by type), roster shortfall days | clock sessions and the HR-3a flags, approved overtime (HR-3b), leave ledger (HR-2a), roster warnings (HR-1, HR-5b) |
 | Month picker | The current month and the 11 before it, branch-local dates | no new data |
 
 Left for later, each needing an owner decision first (HR-PLAN "TO CONFIRM"): turnover (does it count locums?), compliance counts, and a twice-daily "shift report" (the clinic's times; a section on this page, never a message).
@@ -42,15 +42,17 @@ Director and HR Manager hold all three today, so the result is the same as the p
 
 ## 6. How the numbers are made (so HR can check them)
 
-- "Rostered now": shifts of the current approved roster version whose local start is at or before now and whose end is after now. A person on approved leave for the day is shown as on leave, not rostered.
-- "Clocked in": an open clock session today at that branch.
-- "Enough" or "Short" uses **the Planner's own rule for today** (`RosterPageService::shortfalls`, made public, so this page cannot disagree with the Planner's warning): a role below the branch's minimum in a session that has shifts today. It does not wait for the session's hours. It says "No shifts today" when nobody is rostered, and "Minimum staffing not set" when the branch has no minimum. "No Resident Doctor rostered now" shows only when someone else is rostered now and no doctor is (a closed or quiet branch is not alarmed). Both are words in a badge, never colour alone.
+- "Rostered now": shifts of approved roster versions only (a draft, a replaced version or a draft overlap never counts) whose local start is at or before now and whose end is after now, for active staff. A person whose approved leave covers now is shown as on leave and not as rostered (a half day: on leave for that half, rostered for the other half). A clinic-wide total is not built; figures are per branch.
+- "Clocked in": an open clock session at that branch.
+- "Enough" or "Short" (Liyana, HR): **per session, now.** The sessions on now are the sessions of the approved shifts covering the current branch-local time, plus "Full day" (whose minimum applies all day); a full-day shift counts for whichever of morning or afternoon it is now, as the Planner counts it for both. Each role's count on that session's shifts today is compared with that session's minimum through the Planner's own `RosterPageService::shortfalls` (made to accept a list of sessions), so a CA Supervisor never counts towards the CA minimum and the page cannot disagree with the Planner. States: Enough, Short, "No shift right now", "No shifts today", "Minimum staffing not set", and nothing at all for a branch with no shifts that does not work today (HR-2a working days). The page says that minimums apply to every day, so a day with a roster at a closed branch can read Short (HR-1 limit).
+- "No Resident Doctor rostered now" shows only when someone else is on shift now and no doctor is (a person on leave does not count as on shift).
+- Overtime minutes: approved requests dated in the month, with a later reversal excluded, using the stored approved minutes. Short days: counted from approved rosters only, by today's minimums (an HR-5b limit, stated on the page).
 - Month figures reuse the HR-3a flag rules and the HR-3b approved minutes, so this page cannot disagree with Review and Summary there. The flags stay hidden until HR has saved attendance settings, as on Review.
 - Performance: one query per section per branch group, no per-person loop. Capped at 200 names on "Today".
 
 ## 7. Questions for HR (Liyana, Suresh)
 
-1. "Enough or Short" now uses the Planner's rule for the whole day, as built. Do you want it to follow the current session instead?
+1. Enough or Short per session now: answered by Liyana (per session, now), as built.
 2. Should "late" count only flags after a saved grace period (as Review does)? We assume yes.
 3. Is leave days taken a single figure, or do you want sick versus annual in the monthly summary? We assume a single figure (no leave type on a dashboard).
 4. Reuse of the three existing permissions, or the new `hr.dashboard.view.organisation`?

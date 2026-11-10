@@ -28,7 +28,13 @@ type Today = {
     clockedIn: { count: number; people: Person[] } | null;
     onLeave: { count: number; people: Person[] } | null;
     staffing: {
-        state: 'enough' | 'short' | 'not_set' | 'no_roster';
+        state:
+            | 'enough'
+            | 'short'
+            | 'not_set'
+            | 'no_roster'
+            | 'no_shift_now'
+            | 'closed';
         messages: string[];
     } | null;
 };
@@ -117,6 +123,14 @@ function days(value: number): string {
             </div>
         </div>
 
+        <p class="text-xs text-muted-foreground" data-test="rules-note">
+            Enough or Short compares the people on today's shifts with the
+            minimum staffing for the sessions that are on now, as the roster
+            Planner does. Minimums apply to every day, so a day with a roster at
+            a branch that is closed can read Short. Short days are counted from
+            approved rosters only, by today's minimums.
+        </p>
+
         <EmptyState
             v-if="dashboard.branches.length === 0"
             title="No active branch."
@@ -161,7 +175,17 @@ function days(value: number): string {
                             tone="neutral"
                         />
                         <StatusBadge
-                            v-else
+                            v-else-if="
+                                branch.today.staffing.state === 'no_shift_now'
+                            "
+                            status="no_shift_now"
+                            label="No shift right now"
+                            tone="neutral"
+                        />
+                        <StatusBadge
+                            v-else-if="
+                                branch.today.staffing.state === 'not_set'
+                            "
                             status="not_set"
                             label="Minimum staffing not set"
                             tone="neutral"
@@ -204,8 +228,8 @@ function days(value: number): string {
                         </p>
                         <ul v-else class="grid gap-0.5 text-sm">
                             <li
-                                v-for="p in branch.today.rostered.people"
-                                :key="p.name"
+                                v-for="(p, i) in branch.today.rostered.people"
+                                :key="`${p.name}-${i}`"
                             >
                                 {{ p.name }}
                                 <span class="text-muted-foreground">
@@ -213,6 +237,20 @@ function days(value: number): string {
                                 </span>
                             </li>
                         </ul>
+                        <p
+                            v-if="
+                                branch.today.rostered.count >
+                                branch.today.rostered.people.length
+                            "
+                            class="text-xs text-muted-foreground"
+                        >
+                            and
+                            {{
+                                branch.today.rostered.count -
+                                branch.today.rostered.people.length
+                            }}
+                            more
+                        </p>
                     </div>
                     <div
                         v-if="branch.today.clockedIn"
@@ -230,8 +268,8 @@ function days(value: number): string {
                         </p>
                         <ul v-else class="grid gap-0.5 text-sm">
                             <li
-                                v-for="p in branch.today.clockedIn.people"
-                                :key="p.name"
+                                v-for="(p, i) in branch.today.clockedIn.people"
+                                :key="`${p.name}-${i}`"
                             >
                                 {{ p.name }}
                                 <span class="text-muted-foreground">
@@ -239,6 +277,20 @@ function days(value: number): string {
                                 </span>
                             </li>
                         </ul>
+                        <p
+                            v-if="
+                                branch.today.clockedIn.count >
+                                branch.today.clockedIn.people.length
+                            "
+                            class="text-xs text-muted-foreground"
+                        >
+                            and
+                            {{
+                                branch.today.clockedIn.count -
+                                branch.today.clockedIn.people.length
+                            }}
+                            more
+                        </p>
                     </div>
                     <div
                         v-if="branch.today.onLeave"
@@ -256,8 +308,8 @@ function days(value: number): string {
                         </p>
                         <ul v-else class="grid gap-0.5 text-sm">
                             <li
-                                v-for="p in branch.today.onLeave.people"
-                                :key="p.name"
+                                v-for="(p, i) in branch.today.onLeave.people"
+                                :key="`${p.name}-${i}`"
                             >
                                 {{ p.name }}
                                 <span class="text-muted-foreground">
@@ -265,6 +317,20 @@ function days(value: number): string {
                                 </span>
                             </li>
                         </ul>
+                        <p
+                            v-if="
+                                branch.today.onLeave.count >
+                                branch.today.onLeave.people.length
+                            "
+                            class="text-xs text-muted-foreground"
+                        >
+                            and
+                            {{
+                                branch.today.onLeave.count -
+                                branch.today.onLeave.people.length
+                            }}
+                            more
+                        </p>
                     </div>
                 </div>
             </div>

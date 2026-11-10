@@ -325,9 +325,10 @@ final class RosterPageService
      *
      * @param  Collection<int, RosterShift>  $shifts
      * @param  Collection<int, User>  $people
+     * @param  list<string>|null  $onlySessions  null judges every session (the Planner); HR-9 passes the sessions on now
      * @return list<array{date:string, day:string, message:string}>
      */
-    public function shortfalls(Branch $branch, CarbonImmutable $weekStart, Collection $shifts, Collection $people): array
+    public function shortfalls(Branch $branch, CarbonImmutable $weekStart, Collection $shifts, Collection $people, ?array $onlySessions = null): array
     {
         $minimums = $this->minimums->minimums($branch);
         $out = [];
@@ -335,6 +336,9 @@ final class RosterPageService
             $day = $weekStart->addDays($i);
             $gaps = [];
             foreach ($minimums as $session => $roles) {
+                if ($onlySessions !== null && ! in_array($session, $onlySessions, true)) {
+                    continue; // HR-9: the dashboard judges only the sessions that are on now.
+                }
                 foreach ($roles as $role => $minimum) {
                     if ($minimum <= 0) {
                         continue;

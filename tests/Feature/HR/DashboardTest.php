@@ -4,6 +4,9 @@ namespace Tests\Feature\HR;
 
 use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\HR\Roster\Models\RosterVersion;
+use App\Domain\Organisation\Models\Branch;
+use App\Domain\Organisation\Models\Department;
+use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -101,6 +104,24 @@ class DashboardTest extends VisitTestCase
         $this->assertSame('enough', $this->dashboard($director)['branches'][0]['today']['staffing']['state']);
     }
 
+    public function test_enough_or_short_judges_the_sessions_on_now_and_a_closed_day_shows_nothing(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $this->workingDays($hr, [1, 2, 3, 4, 5]);
+        $this->minimums($hr, ['morning' => ['ca' => 2]]);
+        $this->roster($hr, $director, [[$this->actor('ca'), '08:00', '19:00']]);
+        $state = fn (): string => $this->dashboard($director)['branches'][0]['today']['staffing']['state'];
+
+        $this->assertSame('short', $state(), 'A full-day shift is judged as the morning at 10:00.');
+        $this->at('2027-03-08 14:00');
+        $this->assertSame('enough', $state(), 'At 14:00 it is the afternoon, which has no minimum; the morning is not judged.');
+        $this->at('2027-03-08 21:00');
+        $this->assertSame('no_shift_now', $state(), 'Shifts today, none on now.');
+        $this->at('2027-03-14 10:00'); // Sunday: no shifts and not a working day.
+        $this->assertSame('closed', $state());
+    }
+
     public function test_a_branch_with_someone_on_shift_but_no_doctor_is_flagged_and_a_quiet_hour_is_not(): void
     {
         $hr = $this->actor('hr_manager');
@@ -115,14 +136,18 @@ class DashboardTest extends VisitTestCase
         $this->assertFalse($today['rostered']['noDoctor']);
     }
 
-    public function test_staffing_says_when_the_minimum_or_the_roster_is_missing_rather_than_guessing(): void
+    public function test_staffing_says_when_the_roster_or_the_minimum_is_missing_rather_than_guessing(): void
     {
         $hr = $this->actor('hr_manager');
         $director = $this->actor('director');
-        $this->assertSame('not_set', $this->dashboard($director)['branches'][0]['today']['staffing']['state']);
+        $state = fn (): string => $this->dashboard($director)['branches'][0]['today']['staffing']['state'];
+
+        $this->assertSame('no_roster', $state(), 'No shifts today at a branch whose working days are not set.');
+        $this->roster($hr, $director, [[$this->actor('ca'), '08:00', '17:00']]);
+        $this->assertSame('not_set', $state(), 'A roster but no minimum staffing: nothing to judge against.');
         $this->minimums($hr, ['morning' => ['ca' => 1]]);
-        $this->assertSame('no_roster', $this->dashboard($director)['branches'][0]['today']['staffing']['state']);
-        $this->assertSame(0, $this->dashboard($director)['branches'][0]['month']['shortfallDays'], 'A minimum but no shifts: no short days to count.');
+        $this->assertSame('enough', $state());
+        $this->assertSame(0, $this->dashboard($director)['branches'][0]['month']['shortfallDays'], 'A minimum met: no short days to count.');
     }
 
     public function test_a_day_with_a_shift_and_nobody_clocked_in_yet_opens_on_review_and_on_the_dashboard(): void
@@ -214,12 +239,181 @@ class DashboardTest extends VisitTestCase
         }
     }
 
-    public function test_other_organisations_and_inactive_branches_never_appear(): void
+    public function test_inactive_branches_never_appear(): void
     {
         $director = $this->actor('director');
         DB::table('branches')->where('id', '!=', $this->branch->id)->where('organisation_id', $this->organisation->id)->update(['is_active' => false]);
         $names = array_column($this->dashboard($director)['branches'], 'name');
         $this->assertSame([$this->branch->name], $names);
+    }
+
+    public function test_a_doctor_on_leave_is_not_rostered_now_and_the_other_half_of_a_half_day_still_is(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $doctor = $this->actor('resident_doctor');
+        $ca = $this->actor('ca');
+        $this->roster($hr, $director, [[$doctor, '08:00', '17:00'], [$ca, '08:00', '17:00']]);
+        // A morning half day (slot 00:00 to 12:00) for the doctor.
+        $this->leave($doctor, $hr, $director, self::WEEK, self::WEEK, '2027-03-08 00:00:00', '2027-03-08 12:00:00', 1, 'full', 'full');
+
+        $today = $this->dashboard($director)['branches'][0]['today']; // 10:00
+        $this->assertSame([$ca->name], array_column($today['rostered']['people'], 'name'));
+        $this->assertSame(0, $today['rostered']['doctors']);
+        $this->assertTrue($today['rostered']['noDoctor'], 'A doctor on leave with a surviving shift does not hide the alert.');
+        $this->assertSame([[$doctor->name, true]], array_map(fn (array $p): array => [$p['name'], $p['half']], $today['onLeave']['people']));
+
+        $this->at('2027-03-08 14:00'); // The afternoon is theirs again.
+        $today = $this->dashboard($director)['branches'][0]['today'];
+        $this->assertEqualsCanonicalizing([$doctor->name, $ca->name], array_column($today['rostered']['people'], 'name'));
+        $this->assertFalse($today['rostered']['noDoctor']);
+        $this->assertSame(0, $today['onLeave']['count']);
+    }
+
+    public function test_midnight_in_kuala_lumpur_is_the_new_day_and_a_leave_slot_ends_exactly_at_local_midnight(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $away = $this->actor('ca');
+        $this->leave($away, $hr, $director, '2027-03-07', '2027-03-07', '2027-03-07 00:00:00', '2027-03-08 00:00:00', 2);
+        $this->leave($this->actor('ca'), $hr, $director, '2027-03-08', '2027-03-08', '2027-03-08 00:00:00', '2027-03-09 00:00:00', 2);
+
+        $this->travelTo(CarbonImmutable::parse('2027-03-07 16:30:00', 'UTC')); // 00:30 on Monday 8 March in Kuala Lumpur.
+        $page = $this->dashboard($director);
+
+        $this->assertSame('2027-03', $page['month']);
+        $this->assertSame('Mon 8 Mar', $page['branches'][0]['today']['date']);
+        $this->assertSame(1, $page['branches'][0]['today']['onLeave']['count'], 'Sunday\'s leave ended at local midnight; only Monday\'s is on now.');
+    }
+
+    public function test_attendance_flags_in_the_month(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        [$early, $missing, $noOut] = [$this->actor('ca'), $this->actor('ca'), $this->actor('ca')];
+        $this->settings($hr);
+        $this->at('2027-03-08 07:00');
+        $this->roster($hr, $director, [[$early, '08:00', '17:00'], [$missing, '08:00', '17:00'], [$noOut, '08:00', '17:00']]);
+        $this->at('2027-03-08 08:00');
+        $this->clock($early, 'in');
+        $this->clock($noOut, 'in');
+        $this->at('2027-03-08 15:00');
+        $this->clock($early, 'out');
+        $this->at('2027-03-08 18:30');
+
+        $month = $this->dashboard($director)['branches'][0]['month'];
+
+        $this->assertSame(['daysClocked' => 2, 'late' => 0, 'leftEarly' => 1, 'noClockIn' => 1, 'noClockOut' => 1], $month['attendance']);
+    }
+
+    public function test_approved_overtime_counts_only_approved_requests_dated_in_the_month(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $person = $this->actor('ca');
+        $setting = DB::table('hr_overtime_settings')->insertGetId(['organisation_id' => $hr->organisation_id, 'effective_from' => '2027-01-01', 'normal_multiplier' => 1.5, 'rest_day_multiplier' => 2,
+            'public_holiday_multiplier' => 3, 'nearing_hours' => 40, 'limit_hours' => 45, 'created_by_user_id' => $hr->id, 'created_at' => now()]);
+        // Each request belongs to a closed clock session of the same person on the same day.
+        foreach ([['2027-03-08', 'approved', 45], ['2027-03-20', 'approved', 30], ['2027-03-22', 'reversed', 90], ['2027-03-23', 'pending', null], ['2027-04-03', 'approved', 60]] as [$date, $status, $minutes]) {
+            $this->at("{$date} 09:00");
+            $this->clock($person, 'in');
+            $this->at("{$date} 12:00");
+            $this->clock($person, 'out');
+            $session = DB::table('hr_clock_sessions')->where('user_id', $person->id)->whereDate('local_date', $date)->first();
+            $id = DB::table('hr_overtime_requests')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $hr->organisation_id, 'user_id' => $person->id, 'requested_by_user_id' => $hr->id,
+                'clock_session_id' => $session->id, 'branch_id' => $this->branch->id, 'local_date' => $date, 'minutes_requested' => $minutes ?? 30, 'reason_code' => 'other', 'day_type' => 'normal',
+                'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+            if ($status !== 'pending') { // A request starts pending; decide it, and reverse it once, as the services do.
+                DB::table('hr_overtime_requests')->where('id', $id)->update(['status' => 'approved', 'minutes_approved' => $minutes, 'overtime_setting_id' => $setting, 'multiplier' => 1.5,
+                    'worked_minutes_at_decision' => 180, 'decided_by_user_id' => $director->id, 'decided_at' => now()]);
+            }
+            if ($status === 'reversed') {
+                DB::table('hr_overtime_requests')->where('id', $id)->update(['status' => 'reversed', 'reversed_by_user_id' => $director->id, 'reversed_at' => now(), 'reverse_reason' => 'other']);
+            }
+        }
+        $this->at('2027-04-04 10:00');
+
+        $march = $this->dashboard($director, ['month' => '2027-03'])['branches'][0]['month'];
+        $april = $this->dashboard($director, ['month' => '2027-04'])['branches'][0]['month'];
+
+        $this->assertSame(75, $march['overtime']['approvedMinutes'], 'March: 45 + 30. A reversed and a pending request do not count, nor does one dated April.');
+        $this->assertSame(60, $april['overtime']['approvedMinutes']);
+    }
+
+    public function test_leave_is_clamped_to_the_month_and_reads_not_set_up_without_working_days(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $person = $this->actor('ca');
+        // Friday 26 Feb to Tuesday 2 March, Monday to Friday working: February has 1 day, March has Monday and Tuesday.
+        $this->leave($person, $hr, $director, '2027-02-26', '2027-03-02', '2027-02-26 00:00:00', '2027-03-03 00:00:00', 6);
+
+        $this->assertNull($this->dashboard($director)['branches'][0]['month']['leave'], 'Working days are not set up: not a guessed number.');
+
+        $this->workingDays($hr, [1, 2, 3, 4, 5]);
+        $this->assertEquals(['days' => 2, 'people' => 1], $this->dashboard($director)['branches'][0]['month']['leave']);
+        $this->assertEquals(['days' => 1, 'people' => 1], $this->dashboard($director, ['month' => '2027-02'])['branches'][0]['month']['leave']);
+    }
+
+    public function test_the_permissions_are_checked_fresh_on_every_request_and_an_inactive_user_is_refused(): void
+    {
+        $person = $this->actor('ca');
+        $person->givePermissionTo('hr.leave.manage.organisation');
+        $this->selectBranch($person);
+        $this->get(route('hr.dashboard.index'))->assertOk();
+
+        $person->revokePermissionTo('hr.leave.manage.organisation');
+        $this->get(route('hr.dashboard.index'))->assertForbidden();
+
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $this->get(route('hr.dashboard.index'))->assertOk();
+        DB::table('users')->where('id', $director->id)->update(['is_active' => false]);
+        $this->get(route('hr.dashboard.index'))->assertStatus(403);
+    }
+
+    public function test_a_viewer_with_only_the_leave_permission_never_receives_the_roster_or_clock_names(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $doctor = $this->actor('resident_doctor');
+        $this->roster($hr, $director, [[$doctor, '08:00', '17:00']]);
+        $this->clock($doctor, 'in');
+        $viewer = $this->actor('ca');
+        $viewer->givePermissionTo('hr.leave.manage.organisation');
+
+        $this->selectBranch($viewer);
+        $json = (string) $this->get(route('hr.dashboard.index'))->assertOk()->getContent();
+
+        $this->assertStringNotContainsString($doctor->name, $json, 'Roster and clock names are withheld from the whole payload, not only hidden in the page.');
+    }
+
+    public function test_another_organisations_staff_clock_times_and_leave_never_appear(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $organisation = new Organisation;
+        $organisation->forceFill(['code' => 'SYN-HR9', 'name' => 'Synthetic other organisation', 'is_active' => true])->save();
+        $other = new Branch;
+        $other->forceFill(['organisation_id' => $organisation->id, 'code' => 'SYN-HR9', 'name' => 'Synthetic other branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
+        $department = new Department;
+        $department->forceFill(['organisation_id' => $organisation->id, 'code' => 'SYN-DEPT', 'name' => 'Synthetic Department', 'is_active' => true])->save();
+        $outsider = $this->actor('ca', $other);
+        $this->clock($outsider, 'in');
+        $theirBoss = $this->actor('hr_manager', $other);
+        $this->leave($this->actor('ca', $other), $theirBoss, $theirBoss, self::WEEK, self::WEEK, '2027-03-08 00:00:00', '2027-03-09 00:00:00', 2, 'full', 'full', $other->id, $organisation->id);
+
+        $json = (string) $this->get(route('hr.dashboard.index'))->getContent();
+        $page = $this->dashboard($director);
+
+        $this->assertStringNotContainsString($outsider->name, $json);
+        $this->assertSame([$this->branch->name], array_column(array_filter($page['branches'], fn (array $b): bool => $b['id'] === $this->branch->id), 'name'));
+        foreach ($page['branches'] as $branch) {
+            $this->assertNotSame($other->id, $branch['id']);
+            $this->assertSame(0, $branch['today']['clockedIn']['count']);
+            $this->assertSame(0, $branch['today']['onLeave']['count']);
+            $this->assertSame(0, $branch['month']['attendance']['daysClocked']);
+        }
     }
 
     // --- helpers -------------------------------------------------------------------------------------------------
@@ -301,11 +495,18 @@ class DashboardTest extends VisitTestCase
 
     private function approvedLeave(User $person, User $hr, User $director): void
     {
-        $type = DB::table('hr_leave_types')->insertGetId(['organisation_id' => $person->organisation_id, 'code' => 'AL', 'name' => 'Synthetic annual', 'is_paid' => true,
-            'uses_balance' => false, 'allow_half_days' => false, 'evidence_needed' => false, 'updated_by_user_id' => $hr->id, 'created_at' => now(), 'updated_at' => now()]);
-        $id = DB::table('hr_leave_requests')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $person->organisation_id, 'user_id' => $person->id,
-            'leave_type_id' => $type, 'branch_id' => $this->branch->id, 'start_date' => self::WEEK, 'end_date' => self::WEEK, 'start_part' => 'full', 'end_part' => 'full',
-            'slot_start' => '2027-03-08 00:00:00', 'slot_end' => '2027-03-09 00:00:00', 'year' => 2027, 'halves' => 2, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+        $this->leave($person, $hr, $director, self::WEEK, self::WEEK, '2027-03-08 00:00:00', '2027-03-09 00:00:00', 2);
+    }
+
+    /** An approved leave request written directly, as the AttendanceTest fixtures do; slots are branch-local wall-clock times. */
+    private function leave(User $person, User $hr, User $director, string $start, string $end, string $slotStart, string $slotEnd, int $halves, string $startPart = 'full', string $endPart = 'full', ?int $branchId = null, ?int $organisationId = null): void
+    {
+        $organisationId ??= $person->organisation_id;
+        $type = DB::table('hr_leave_types')->where('organisation_id', $organisationId)->value('id') ?? DB::table('hr_leave_types')->insertGetId(['organisation_id' => $organisationId, 'code' => 'AL', 'name' => 'Synthetic annual', 'is_paid' => true,
+            'uses_balance' => false, 'allow_half_days' => true, 'evidence_needed' => false, 'updated_by_user_id' => $person->id, 'created_at' => now(), 'updated_at' => now()]);
+        $id = DB::table('hr_leave_requests')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $organisationId, 'user_id' => $person->id,
+            'leave_type_id' => $type, 'branch_id' => $branchId ?? $this->branch->id, 'start_date' => $start, 'end_date' => $end, 'start_part' => $startPart, 'end_part' => $endPart,
+            'slot_start' => $slotStart, 'slot_end' => $slotEnd, 'year' => 2027, 'halves' => $halves, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
         DB::table('hr_leave_requests')->where('id', $id)->update(['status' => 'approved', 'decided_by_user_id' => $director->id, 'decided_at' => now()]);
     }
 }

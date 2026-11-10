@@ -47,6 +47,7 @@ test('staffing and the doctor alert are words with a badge, never colour alone, 
         'Enough staff',
         'Short of staff',
         'No shifts today',
+        'No shift right now',
         'Minimum staffing not set',
         'No Resident Doctor rostered now',
     ]) {
@@ -55,7 +56,7 @@ test('staffing and the doctor alert are words with a badge, never colour alone, 
 
     assert.match(
         service,
-        /'noDoctor' => \$shifts->isNotEmpty\(\) && \$doctors === 0/,
+        /'noDoctor' => \$onShift->isNotEmpty\(\) && \$doctors === 0/,
     );
 });
 
