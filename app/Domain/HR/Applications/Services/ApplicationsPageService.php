@@ -66,6 +66,7 @@ final class ApplicationsPageService
                     ->get(['id', 'name'])->map(fn (object $b): array => ['value' => (string) $b->id, 'label' => (string) $b->name])->values()->all(),
                 'positions' => $positions->map(fn (object $p): array => ['value' => (string) $p->public_id, 'label' => (string) $p->title])->values()->all(),
                 'graceDays' => JobApplicationService::GRACE_DAYS,
+                'cancelReasons' => collect(InterviewSlots::CANCEL_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
                 'rejectReasons' => collect(JobApplicationService::REJECT_REASONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
                 'types' => collect(JobApplicationService::TYPES)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             ],
@@ -123,7 +124,22 @@ final class ApplicationsPageService
             }
         }
 
+        // HR-17c: times waiting for HR to confirm, and today's interviews (branch-local).
+        $picks = DB::table('hr_job_applications as a')->join('hr_job_positions as p', 'p.id', '=', 'a.position_id')
+            ->join('hr_job_interview_picks as k', fn ($j) => $j->on('k.application_id', '=', 'a.id')->on('k.round', '=', 'a.interview_round'))
+            ->where('a.organisation_id', $actor->organisation_id)->where('a.status', 'scheduling')->whereNull('a.purged_at')
+            ->orderBy('k.created_at')->limit(200)->get(['a.public_id', 'a.status', 'a.name_encrypted', 'p.title', 'k.created_at'])
+            ->map(fn (\stdClass $a): array => $row($a, 'Chose three interview times on '.self::local($a->created_at, $zone).'. Confirm one, or ask for new times.'))->all();
+        $todayStart = CarbonImmutable::now($zone)->startOfDay();
+        $today = DB::table('hr_job_interviews as i')->join('hr_job_applications as a', 'a.id', '=', 'i.application_id')
+            ->join('hr_job_positions as p', 'p.id', '=', 'a.position_id')->where('i.organisation_id', $actor->organisation_id)->where('i.status', 'confirmed')
+            ->where('a.status', 'interview')->whereBetween('i.starts_at', [$todayStart->utc(), $todayStart->endOfDay()->utc()])->orderBy('i.starts_at')
+            ->get(['a.public_id', 'a.status', 'a.name_encrypted', 'p.title', 'i.starts_at'])
+            ->map(fn (\stdClass $a): array => $row($a, 'Interview today at '.CarbonImmutable::parse($a->starts_at)->setTimezone($zone)->format('g:i A').'.'))->all();
+
         return [
+            'picks' => ['count' => count($picks), 'rows' => array_slice($picks, 0, self::NEEDS_YOU_ROWS)],
+            'today' => ['count' => count($today), 'rows' => array_slice($today, 0, self::NEEDS_YOU_ROWS)],
             'closing' => ['count' => count($closing), 'rows' => array_slice($closing, 0, self::NEEDS_YOU_ROWS)],
             'new' => ['count' => count($new), 'rows' => array_slice($new, 0, self::NEEDS_YOU_ROWS)],
             // A branch with no working days set never auto-rejects (HR-PLAN 19.13).
@@ -153,7 +169,7 @@ final class ApplicationsPageService
         $rows = $base->orderByDesc('a.submitted_at')->orderByDesc('a.id')->offset(($page - 1) * self::PER_PAGE)->limit(self::PER_PAGE)
             ->get(['a.id', 'a.public_id', 'a.status', 'a.name_encrypted', 'a.phone_encrypted', 'a.email_encrypted', 'a.message_encrypted', 'a.details_encrypted',
                 'a.cv_path', 'a.cv_bytes', 'a.privacy_notice_version', 'a.submitted_at', 'a.closed_at', 'a.purged_at', 'a.lock_version',
-                'p.title', 'p.position_type', 'a.organisation_id', 'a.position_id', 'a.stage_entered_at']);
+                'p.title', 'p.position_type', 'a.organisation_id', 'a.position_id', 'a.stage_entered_at', 'a.interview_round']);
         $messages = DB::table('hr_job_application_messages')->whereIn('application_id', $rows->pluck('id'))->orderByDesc('created_at')->orderByDesc('id')
             ->get()->groupBy('application_id');
         $screenings = DB::table('hr_job_screenings as s')->leftJoin('users as u', 'u.id', '=', 's.actor_user_id')
@@ -185,6 +201,7 @@ final class ApplicationsPageService
                     ($messages[$a->id] ?? collect())->all()),
                 'autoRejectOn' => $this->autoRejectOn($a),
                 'autoRejectSoon' => $this->autoRejectSoon($a),
+                'interview' => $this->interview($a, $zone),
                 'hasCv' => $a->cv_path !== null,
                 'cvKb' => (int) ceil((int) $a->cv_bytes / 1024),
                 'privacyNoticeVersion' => (string) $a->privacy_notice_version,
@@ -205,6 +222,36 @@ final class ApplicationsPageService
         $deadlines = $this->deadlines->deadlines($a);
 
         return $deadlines === null ? null : CarbonImmutable::parse($deadlines['reject'])->format('D j M Y');
+    }
+
+    /**
+     * HR-17c: at Scheduling the candidate's three times (each marked when already taken), at Interview the confirmed
+     * time; plus the interview branch and the cancel reasons.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function interview(\stdClass $a, string $zone): ?array
+    {
+        if (! in_array($a->status, ['scheduling', 'interview'], true) || $a->purged_at !== null) {
+            return null;
+        }
+        $label = fn (string $at): string => CarbonImmutable::parse($at)->setTimezone($zone)->format('D j M Y, g:i A');
+        if ($a->status === 'scheduling') {
+            $pick = DB::table('hr_job_interview_picks as p')->join('branches as b', 'b.id', '=', 'p.branch_id')->where('p.application_id', $a->id)
+                ->where('p.round', $a->interview_round)->first(['p.starts', 'b.name']);
+            $starts = $pick === null ? [] : (array) json_decode((string) $pick->starts, true);
+            $taken = $starts === [] ? [] : DB::table('hr_job_interviews')->where('organisation_id', $a->organisation_id)->where('status', 'confirmed')
+                ->whereIn('starts_at', array_map(fn (string $s): CarbonImmutable => CarbonImmutable::parse($s)->utc(), $starts))->pluck('starts_at')
+                ->map(fn ($at): string => InterviewSlots::key(CarbonImmutable::parse($at)))->flip()->all();
+
+            return ['round' => (int) $a->interview_round, 'branch' => $pick?->name, 'confirmed' => null,
+                'picks' => array_map(fn (string $s): array => ['start' => $s, 'label' => $label($s), 'taken' => isset($taken[$s]), 'past' => CarbonImmutable::parse($s)->lte(now())], $starts)];
+        }
+        $interview = DB::table('hr_job_interviews as i')->join('branches as b', 'b.id', '=', 'i.branch_id')->where('i.application_id', $a->id)
+            ->where('i.status', 'confirmed')->first(['i.starts_at', 'b.name']);
+
+        return ['round' => (int) $a->interview_round, 'branch' => $interview?->name, 'picks' => [],
+            'confirmed' => $interview === null ? null : $label((string) $interview->starts_at)];
     }
 
     /** Whether the daily check closes a waiting application at the start of the next working day (Daniel, HR-17b). */

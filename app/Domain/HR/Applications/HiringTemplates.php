@@ -27,8 +27,8 @@ final class HiringTemplates
         'screening_passed' => [
             'label' => 'Invited to an interview',
             'subject' => 'Interview for {position} / Temu duga untuk {position}',
-            'body' => "Thank you for speaking with us. We would like to invite you to an interview for {position}. We will contact you to arrange a time.\n\n"
-                .'Terima kasih kerana bercakap dengan kami. Kami ingin menjemput anda ke temu duga untuk jawatan {position}. Kami akan menghubungi anda untuk menetapkan masa.',
+            'body' => "Thank you for speaking with us. We would like to invite you to an interview for {position}. Please choose three times that suit you on your private page.\n\n"
+                .'Terima kasih kerana bercakap dengan kami. Kami ingin menjemput anda ke temu duga untuk jawatan {position}. Sila pilih tiga masa yang sesuai di halaman peribadi anda.',
         ],
         'not_taken_forward' => [
             'label' => 'Not taken forward',
@@ -62,6 +62,24 @@ final class HiringTemplates
             'body' => "Thank you for attending the interview for {position}. We will not take your application further this time. We wish you well.\n\n"
                 .'Terima kasih kerana menghadiri temu duga untuk jawatan {position}. Kami tidak akan meneruskan permohonan anda kali ini. Kami doakan yang terbaik untuk anda.',
         ],
+        'interview_confirmed' => [
+            'label' => 'Interview time confirmed',
+            'subject' => 'Your interview on {date} / Temu duga anda pada {date}',
+            'body' => "Your interview for {position} is on {date} at {time}, at {clinic} {branch}. If you cannot come, you can withdraw on your private page.\n\n"
+                .'Temu duga anda untuk jawatan {position} adalah pada {date} jam {time}, di {clinic} {branch}. Jika anda tidak dapat hadir, anda boleh menarik balik permohonan di halaman peribadi anda.',
+        ],
+        'pick_again' => [
+            'label' => 'Asked for new times',
+            'subject' => 'Please choose new interview times / Sila pilih masa temu duga yang baharu',
+            'body' => "The times you chose for {position} do not suit the clinic. Please choose three new times on your private page.\n\n"
+                .'Masa yang anda pilih untuk jawatan {position} tidak sesuai dengan klinik. Sila pilih tiga masa baharu di halaman peribadi anda.',
+        ],
+        'interview_cancelled' => [
+            'label' => 'Interview cancelled',
+            'subject' => 'Your interview on {date} was cancelled / Temu duga anda pada {date} dibatalkan',
+            'body' => "Your interview for {position} on {date} at {time} has been cancelled. Please choose three new times on your private page.\n\n"
+                .'Temu duga anda untuk jawatan {position} pada {date} jam {time} telah dibatalkan. Sila pilih tiga masa baharu di halaman peribadi anda.',
+        ],
         'auto_reject_reminder' => [
             'label' => 'Reminder',
             'subject' => 'Hiring: application {reference} closes at the next working day',
@@ -81,6 +99,9 @@ final class HiringTemplates
         'link' => '/\A(https?:\/\/[^\s<>]{1,200}#[A-Za-z0-9_-]{43}|shown once, when you applied \/ ditunjukkan sekali, semasa anda memohon)\z/',
         'reference' => '/\A[0-9A-F]{8}\z/',
         'stage' => '/\A(New|Phone screening)\z/',
+        'date' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/', // Tue 17 Nov 2026
+        'time' => '/\A\d{1,2}:00 (AM|PM)\z/',
+        'branch' => '/\A[^\r\n<>{}]{2,60}\z/u',
     ];
 
     public static function label(string $template): string

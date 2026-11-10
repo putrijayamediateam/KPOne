@@ -175,7 +175,15 @@ final class JobApplicationService
                         ? 'Record the phone screening to move on to scheduling.'
                         : 'Choose one of the next steps shown.')]);
             }
+            // HR-17c: a result waits for the confirmed interview to have started (Suresh, HR-17c).
+            if (in_array($to, ['passed', 'failed'], true) && DB::table('hr_job_interviews')->where('application_id', $application->id)
+                ->where('status', 'confirmed')->where('starts_at', '>', now()->utc())->exists()) {
+                throw ValidationException::withMessages(['to' => 'The interview has not happened yet. Record the result after it.']);
+            }
             $closed = ! in_array($to, self::OPEN, true);
+            if ($to === 'withdrawn') {
+                InterviewSlots::releaseOnWithdraw((int) $application->id, $actor->id);
+            }
             DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $closed ? now()->utc() : null,
                 'stage_entered_at' => now()->utc(), 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
             DB::table('hr_job_application_events')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
