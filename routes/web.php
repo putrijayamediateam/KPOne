@@ -41,6 +41,7 @@ use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\DashboardController as HrDashboardController;
+use App\Http\Controllers\HR\DisciplineController as HrDisciplineController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\LettersController as HrLettersController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
@@ -458,6 +459,21 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('cycles/{cycle}/close', 'closeCycle')->whereUuid('cycle')->name('hr.appraisals.cycles.close');
             Route::post('{appraisal}', 'save')->whereUuid('appraisal')->name('hr.appraisals.save');
             Route::post('{appraisal}/sign-off', 'signOff')->whereUuid('appraisal')->name('hr.appraisals.sign-off');
+        });
+    });
+
+    // HR-10c discipline (HR-PLAN 20.5; owner, 2026-11-10). Restricted: never shown on the staff file, the dashboard or exports.
+    Route::prefix('hr/discipline')->controller(HrDisciplineController::class)->middleware(['sensitive.no-store', 'permission:hr.discipline.manage.organisation'])->group(function (): void {
+        Route::get('/', 'index')->name('hr.discipline.index');
+        Route::get('{case}', 'show')->whereUuid('case')->middleware('throttle:60,1')->name('hr.discipline.show');
+        Route::get('{case}/files/{file}', 'openFile')->whereUuid('case')->whereUuid('file')->middleware('throttle:60,1')->name('hr.discipline.files.show');
+        Route::middleware('throttle:30,1')->group(function (): void {
+            Route::post('/', 'store')->name('hr.discipline.store');
+            Route::post('{case}/notes', 'note')->whereUuid('case')->name('hr.discipline.note');
+            Route::post('{case}/replies', 'reply')->whereUuid('case')->name('hr.discipline.reply');
+            Route::post('{case}/show-cause', 'showCause')->whereUuid('case')->name('hr.discipline.show-cause');
+            Route::post('{case}/files', 'file')->whereUuid('case')->name('hr.discipline.files.store');
+            Route::post('{case}/close', 'close')->whereUuid('case')->name('hr.discipline.close');
         });
     });
 

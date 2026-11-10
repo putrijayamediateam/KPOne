@@ -49,6 +49,8 @@ return Application::configure(basePath: dirname(__DIR__))
             'password',
             'ratings',
             'comment',
+            'allegation',
+            'reply',
             'password_confirmation',
             'current_password',
             'patient_query',
