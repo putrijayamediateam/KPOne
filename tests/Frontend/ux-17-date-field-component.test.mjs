@@ -53,10 +53,10 @@ test('the box reads dd/mm/yyyy and the calendar is reachable by keyboard and 44 
 
 test('min and max disable days and the Malay wording is available for the public form', () => {
     assert.match(calendar, /:disabled="!allowed\(cell\.iso\)"/);
-    assert.match(date, /withinRange\(iso, props\.min, props\.max\)/);
+    assert.match(date, /dateProblem\(typed, props\.min, props\.max/);
     assert.match(
         read('resources/js/lib/date-field.ts'),
-        /choose: 'Pilih tarikh'/,
+        /choose: 'Pilih tarikh \(dd\/mm\/yyyy\)'/,
     );
 });
 
@@ -64,4 +64,16 @@ test('the date and time field is 12-hour with AM and PM and the month field is m
     assert.match(dateTime, /<option value="AM">AM<\/option>/);
     assert.match(dateTime, /<option value="PM">PM<\/option>/);
     assert.match(month, /monthPlaceholder/);
+});
+
+test('the fields describe themselves to a screen reader', () => {
+    const calendar = read('resources/js/components/ui/date-field/DateCalendar.vue');
+
+    assert.match(date, /hintId/);
+    assert.match(date, /role="dialog"/);
+    assert.match(date, /close-auto-focus/);
+    assert.match(date, /echo/);
+    assert.match(month, /monthFormatHint/);
+    assert.match(calendar, /role="gridcell"\s*:aria-selected/);
+    assert.match(calendar, /bg-brand-strong text-white[^']*dark:text-black/);
 });

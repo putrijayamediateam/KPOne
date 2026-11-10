@@ -91,6 +91,15 @@ export const maskDateInput = (next: string, previous = ''): string => {
         return next;
     }
 
+    // A paste adds more than one character at once: read it whole (10112026, 10-11-2026, 2026-11-10).
+    if (next.length - previous.length > 1) {
+        const pasted = parseDisplayDate(next);
+
+        if (pasted) {
+            return formatDisplayDate(pasted);
+        }
+    }
+
     const cleaned = next
         .replace(/[-.]/g, '/')
         .replace(/[^\d/]/g, '')
@@ -159,6 +168,14 @@ export const parseDisplayMonth = (
 export const maskMonthInput = (next: string, previous = ''): string => {
     if (next.length < previous.length) {
         return next;
+    }
+
+    if (next.length - previous.length > 1) {
+        const pasted = parseDisplayMonth(next);
+
+        if (pasted) {
+            return formatDisplayMonth(pasted);
+        }
     }
 
     const cleaned = next
@@ -295,10 +312,18 @@ export const addMonthsIso = (iso: string, amount: number): string => {
 };
 
 /** Today in Kuala Lumpur as yyyy-mm-dd, whatever time zone the computer is set to. */
-export const todayIso = (now: Date = new Date()): string =>
-    new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kuala_Lumpur' }).format(
-        now,
-    );
+export const todayIso = (now: Date = new Date()): string => {
+    const parts = new Intl.DateTimeFormat('en-GB', {
+        timeZone: 'Asia/Kuala_Lumpur',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    }).formatToParts(now);
+    const pick = (type: string): string =>
+        parts.find((part) => part.type === type)?.value ?? '';
+
+    return `${pick('year')}-${pick('month')}-${pick('day')}`;
+};
 
 export const MONTH_NAMES = [
     'January',
@@ -332,35 +357,42 @@ export const MONTH_NAMES_MS = [
 
 export type DateFieldLocale = 'en' | 'ms';
 
+type FieldText = {
+    choose: string;
+    chooseMonth: string;
+    formatHint: string;
+    monthFormatHint: string;
+    today: string;
+    thisMonth: string;
+    clear: string;
+    previousMonth: string;
+    nextMonth: string;
+    previousYear: string;
+    nextYear: string;
+    invalidDate: string;
+    invalidMonth: string;
+    invalidTime: string;
+    notRealDate: (typed: string) => string;
+    notRealMonth: (typed: string) => string;
+    rangeBetween: (from: string, to: string) => string;
+    rangeFrom: (from: string) => string;
+    rangeUntil: (to: string) => string;
+    placeholder: string;
+    monthPlaceholder: string;
+    hour: string;
+    hourOnly: string;
+    minute: string;
+    meridiem: string;
+    weekdays: string[];
+};
+
 /** Words the fields show. Staff screens are English; the public QR form passes 'ms'. */
-export const DATE_FIELD_TEXT: Record<
-    DateFieldLocale,
-    {
-        choose: string;
-        chooseMonth: string;
-        today: string;
-        thisMonth: string;
-        clear: string;
-        previousMonth: string;
-        nextMonth: string;
-        previousYear: string;
-        nextYear: string;
-        invalidDate: string;
-        invalidMonth: string;
-        invalidTime: string;
-        outOfRange: string;
-        placeholder: string;
-        monthPlaceholder: string;
-        hour: string;
-        hourOnly: string;
-        minute: string;
-        meridiem: string;
-        weekdays: string[];
-    }
-> = {
+export const DATE_FIELD_TEXT: Record<DateFieldLocale, FieldText> = {
     en: {
-        choose: 'Choose date',
-        chooseMonth: 'Choose month',
+        choose: 'Choose date (dd/mm/yyyy)',
+        chooseMonth: 'Choose month (mm/yyyy)',
+        formatHint: 'Format dd/mm/yyyy',
+        monthFormatHint: 'Format mm/yyyy',
         today: 'Today',
         thisMonth: 'This month',
         clear: 'Clear',
@@ -371,7 +403,11 @@ export const DATE_FIELD_TEXT: Record<
         invalidDate: 'Enter a date as dd/mm/yyyy.',
         invalidMonth: 'Enter a month as mm/yyyy.',
         invalidTime: 'Enter a time such as 5:30.',
-        outOfRange: 'That date is outside the allowed range.',
+        notRealDate: (typed) => `${typed} is not a real date.`,
+        notRealMonth: (typed) => `${typed} is not a real month.`,
+        rangeBetween: (from, to) => `Choose a date from ${from} to ${to}.`,
+        rangeFrom: (from) => `Choose ${from} or later.`,
+        rangeUntil: (to) => `Choose ${to} or earlier.`,
         placeholder: 'dd/mm/yyyy',
         monthPlaceholder: 'mm/yyyy',
         hour: 'Time',
@@ -381,8 +417,10 @@ export const DATE_FIELD_TEXT: Record<
         weekdays: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     },
     ms: {
-        choose: 'Pilih tarikh',
-        chooseMonth: 'Pilih bulan',
+        choose: 'Pilih tarikh (dd/mm/yyyy)',
+        chooseMonth: 'Pilih bulan (mm/yyyy)',
+        formatHint: 'Format dd/mm/yyyy',
+        monthFormatHint: 'Format mm/yyyy',
         today: 'Hari ini',
         thisMonth: 'Bulan ini',
         clear: 'Kosongkan',
@@ -393,7 +431,11 @@ export const DATE_FIELD_TEXT: Record<
         invalidDate: 'Masukkan tarikh sebagai dd/mm/yyyy.',
         invalidMonth: 'Masukkan bulan sebagai mm/yyyy.',
         invalidTime: 'Masukkan masa seperti 5:30.',
-        outOfRange: 'Tarikh itu di luar julat yang dibenarkan.',
+        notRealDate: (typed) => `${typed} bukan tarikh yang sah.`,
+        notRealMonth: (typed) => `${typed} bukan bulan yang sah.`,
+        rangeBetween: (from, to) => `Pilih tarikh dari ${from} hingga ${to}.`,
+        rangeFrom: (from) => `Pilih ${from} atau selepas.`,
+        rangeUntil: (to) => `Pilih ${to} atau sebelum.`,
         placeholder: 'dd/mm/yyyy',
         monthPlaceholder: 'mm/yyyy',
         hour: 'Masa',
@@ -402,4 +444,130 @@ export const DATE_FIELD_TEXT: Record<
         meridiem: 'AM atau PM',
         weekdays: ['Isn', 'Sel', 'Rab', 'Kha', 'Jum', 'Sab', 'Ahd'],
     },
+};
+
+/** The sentence for a date outside min and max, saying what the range is. */
+export const rangeSentence = (
+    locale: DateFieldLocale,
+    min: string | undefined,
+    max: string | undefined,
+    format: (value: string) => string,
+): string => {
+    const text = DATE_FIELD_TEXT[locale];
+
+    if (min && max) {
+        return text.rangeBetween(format(min), format(max));
+    }
+
+    return min
+        ? text.rangeFrom(format(min))
+        : text.rangeUntil(format(max ?? ''));
+};
+
+/** What is wrong with the typed text, in words; '' when it is a usable date inside the range. */
+export const dateProblem = (
+    typed: string,
+    min: string | undefined,
+    max: string | undefined,
+    locale: DateFieldLocale = 'en',
+): string => {
+    const value = typed.trim();
+    const text = DATE_FIELD_TEXT[locale];
+
+    if (value === '') {
+        return '';
+    }
+
+    const iso = parseDisplayDate(value);
+
+    if (iso === null) {
+        const shaped =
+            /^\d{1,2}[/.-]\d{1,2}[/.-]\d{4}$|^\d{8}$|^\d{4}-\d{1,2}-\d{1,2}$/.test(
+                value,
+            );
+
+        return shaped ? text.notRealDate(value) : text.invalidDate;
+    }
+
+    return withinRange(iso, min, max)
+        ? ''
+        : rangeSentence(locale, min, max, formatDisplayDate);
+};
+
+export const monthProblem = (
+    typed: string,
+    min: string | undefined,
+    max: string | undefined,
+    locale: DateFieldLocale = 'en',
+): string => {
+    const value = typed.trim();
+    const text = DATE_FIELD_TEXT[locale];
+
+    if (value === '') {
+        return '';
+    }
+
+    const month = parseDisplayMonth(value);
+
+    if (month === null) {
+        return /^\d{1,2}[/.-]\d{4}$|^\d{4}-\d{1,2}$/.test(value)
+            ? text.notRealMonth(value)
+            : text.invalidMonth;
+    }
+
+    return (!min || month >= min) && (!max || month <= max)
+        ? ''
+        : rangeSentence(locale, min, max, formatDisplayMonth);
+};
+
+const SHORT_MONTHS = [
+    'Jan',
+    'Feb',
+    'Mar',
+    'Apr',
+    'May',
+    'Jun',
+    'Jul',
+    'Aug',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dec',
+];
+const SHORT_MONTHS_MS = [
+    'Jan',
+    'Feb',
+    'Mac',
+    'Apr',
+    'Mei',
+    'Jun',
+    'Jul',
+    'Ogo',
+    'Sep',
+    'Okt',
+    'Nov',
+    'Dis',
+];
+
+/** "10 Nov 2026" for the echo under the box (same idea as the ringgit echo on the limits page). */
+export const formatEchoDate = (
+    iso: string | null | undefined,
+    locale: DateFieldLocale = 'en',
+): string => {
+    const clean = normaliseIso(iso);
+
+    if (!clean) {
+        return '';
+    }
+
+    const names = locale === 'ms' ? SHORT_MONTHS_MS : SHORT_MONTHS;
+
+    return `${Number(clean.slice(8, 10))} ${names[Number(clean.slice(5, 7)) - 1]} ${clean.slice(0, 4)}`;
+};
+
+/** "5:16 PM" for the echo of a date and time. */
+export const formatEchoTime = (time: string | null | undefined): string => {
+    const parts = to12Hour(time);
+
+    return parts ? `${parts.hour}:${parts.minute} ${parts.meridiem}` : '';
 };

@@ -3,6 +3,8 @@ import { computed, ref, useAttrs, useId, watch } from 'vue';
 import DateField from './DateField.vue';
 import {
     DATE_FIELD_TEXT,
+    formatEchoDate,
+    formatEchoTime,
     from12Hour,
     splitDateTime,
     to12Hour,
@@ -21,8 +23,9 @@ const props = withDefaults(
         min?: string;
         max?: string;
         locale?: DateFieldLocale;
+        echo?: boolean;
     }>(),
-    { modelValue: '', min: undefined, max: undefined, locale: 'en' },
+    { modelValue: '', min: undefined, max: undefined, locale: 'en', echo: true },
 );
 const emit = defineEmits<{
     'update:modelValue': [value: string];
@@ -93,9 +96,18 @@ const dateAttrs = computed(() => {
     return rest;
 });
 const selectClass =
-    'h-full rounded-md border border-input bg-card px-2 text-base shadow-xs outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:opacity-70 md:text-sm dark:bg-input/30';
+    'h-full rounded-md border border-input bg-card px-2 text-base shadow-xs outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 md:text-sm dark:bg-input/30';
 const timeClass =
-    'h-full w-12 rounded-md border border-input bg-card px-2 text-center text-base shadow-xs outline-none placeholder:text-muted-foreground hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 disabled:opacity-70 aria-invalid:border-destructive md:text-sm dark:bg-input/30';
+    'h-full w-12 rounded-md border border-input bg-card px-2 text-center text-base shadow-xs outline-none placeholder:text-muted-foreground hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 aria-invalid:border-destructive md:text-sm dark:bg-input/30';
+const echoText = computed(() => {
+    if (!props.echo || !current()) {
+        return '';
+    }
+
+    const [d, t] = current().split('T');
+
+    return `${formatEchoDate(d, props.locale)}, ${formatEchoTime(t)}`;
+});
 const disabled = computed(() => attrs.disabled !== undefined && attrs.disabled !== false);
 </script>
 
@@ -108,6 +120,7 @@ const disabled = computed(() => attrs.disabled !== undefined && attrs.disabled !
                 :min="min"
                 :max="max"
                 :locale="locale"
+                :echo="false"
                 class="min-w-[11rem] flex-1"
                 @update:model-value="onDate"
             />
@@ -140,6 +153,7 @@ const disabled = computed(() => attrs.disabled !== undefined && attrs.disabled !
                     :disabled="disabled"
                     :aria-label="words.minute"
                     :aria-invalid="timeProblem ? 'true' : undefined"
+                    :aria-describedby="timeProblem ? `${timeId}-error` : undefined"
                     :class="timeClass"
                     @input="onTimeInput"
                     @blur="onTimeBlur"
@@ -159,6 +173,9 @@ const disabled = computed(() => attrs.disabled !== undefined && attrs.disabled !
                 </select>
             </div>
         </div>
+        <p v-if="echoText && !timeProblem" class="mt-1 text-sm text-muted-foreground tabular-nums" aria-hidden="true">
+            = {{ echoText }}
+        </p>
         <p
             v-if="timeProblem"
             :id="`${timeId}-error`"

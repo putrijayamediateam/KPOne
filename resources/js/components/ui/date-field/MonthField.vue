@@ -8,6 +8,7 @@ import {
     MONTH_NAMES_MS,
     formatDisplayMonth,
     maskMonthInput,
+    monthProblem,
     parseDisplayMonth,
     todayIso,
 } from '@/lib/date-field';
@@ -36,6 +37,7 @@ const attrs = useAttrs();
 const words = computed(() => DATE_FIELD_TEXT[props.locale]);
 const names = computed(() => (props.locale === 'ms' ? MONTH_NAMES_MS : MONTH_NAMES));
 const errorId = useId();
+const hintId = useId();
 const text = ref(formatDisplayMonth(props.modelValue));
 const open = ref(false);
 const problem = ref('');
@@ -59,17 +61,9 @@ const commit = (value: string): void => {
     emit('input', value);
 };
 const check = (typed: string): { value: string; error: string } => {
-    if (typed.trim() === '') {
-        return { value: '', error: '' };
-    }
+    const error = monthProblem(typed, props.min, props.max, props.locale);
 
-    const value = parseDisplayMonth(typed);
-
-    if (value === null) {
-        return { value: '', error: words.value.invalidMonth };
-    }
-
-    return inRange(value) ? { value, error: '' } : { value: '', error: words.value.outOfRange };
+    return error ? { value: '', error } : { value: parseDisplayMonth(typed) ?? '', error: '' };
 };
 const onInput = (event: Event): void => {
     const target = event.target as HTMLInputElement;
@@ -118,7 +112,7 @@ const monthValue = (month: number): string =>
 
 const inputAttrs = computed(() => {
     const { class: _class, ...rest } = attrs;
-    const described = [rest['aria-describedby'], problem.value ? errorId : '']
+    const described = [rest['aria-describedby'], hintId, problem.value ? errorId : '']
         .filter(Boolean)
         .join(' ');
 
@@ -144,7 +138,7 @@ const inputAttrs = computed(() => {
                 :placeholder="words.monthPlaceholder"
                 data-slot="input"
                 data-kpone-field="month"
-                class="h-full w-full min-w-0 rounded-md border border-input bg-card px-3 py-1 pr-11 text-base shadow-xs transition-[background-color,border-color,box-shadow] outline-none selection:bg-brand selection:text-brand-foreground placeholder:text-muted-foreground hover:border-foreground/25 read-only:bg-muted/70 read-only:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-destructive/20 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 md:text-sm dark:bg-input/30 dark:aria-invalid:ring-destructive/40"
+                class="h-full w-full min-w-0 rounded-md border border-input bg-card px-3 py-1 pr-11 text-base shadow-xs transition-[background-color,border-color,box-shadow] outline-none selection:bg-brand selection:text-brand-foreground placeholder:text-muted-foreground hover:border-foreground/25 read-only:bg-muted/70 read-only:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-destructive/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-sm dark:bg-input/30 dark:aria-invalid:ring-destructive/40"
                 @input="onInput"
                 @blur="onBlur"
             />
@@ -154,7 +148,7 @@ const inputAttrs = computed(() => {
                         type="button"
                         :disabled="disabled"
                         :aria-label="words.chooseMonth"
-                        class="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-50"
+                        class="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                     >
                         <CalendarDays class="size-4" aria-hidden="true" />
                     </button>
@@ -163,13 +157,15 @@ const inputAttrs = computed(() => {
                     <PopoverContent
                         align="end"
                         :side-offset="6"
-                        class="z-50 rounded-lg border bg-popover p-3 text-popover-foreground shadow-lg"
+                        role="dialog"
+                    :aria-label="words.chooseMonth"
+                    class="z-50 rounded-lg border bg-popover p-3 text-popover-foreground shadow-lg"
                     >
                         <div class="w-[19rem] max-w-full space-y-2 text-sm">
                             <div class="flex items-center justify-between gap-2">
                                 <button
                                     type="button"
-                                    class="grid size-11 place-items-center rounded-md border border-input hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none sm:size-9"
+                                    class="grid size-11 place-items-center rounded-md border border-input hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:size-9"
                                     :aria-label="words.previousYear"
                                     @click="year -= 1"
                                 >
@@ -178,7 +174,7 @@ const inputAttrs = computed(() => {
                                 <p class="font-medium" aria-live="polite">{{ year }}</p>
                                 <button
                                     type="button"
-                                    class="grid size-11 place-items-center rounded-md border border-input hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none sm:size-9"
+                                    class="grid size-11 place-items-center rounded-md border border-input hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:size-9"
                                     :aria-label="words.nextYear"
                                     @click="year += 1"
                                 >
@@ -192,7 +188,7 @@ const inputAttrs = computed(() => {
                                     type="button"
                                     :disabled="!inRange(monthValue(index + 1))"
                                     :aria-pressed="selected === monthValue(index + 1)"
-                                    class="min-h-11 rounded-md hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent sm:min-h-9"
+                                    class="min-h-11 rounded-md hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent sm:min-h-9"
                                     :class="
                                         selected === monthValue(index + 1)
                                             ? 'bg-brand text-brand-foreground hover:bg-brand/90'
@@ -206,14 +202,14 @@ const inputAttrs = computed(() => {
                             <div class="flex items-center justify-between gap-2 border-t pt-2">
                                 <button
                                     type="button"
-                                    class="min-h-11 rounded-md px-3 text-brand-strong hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-9"
+                                    class="min-h-11 rounded-md px-3 text-brand-strong hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-9"
                                     @click="pickThisMonth"
                                 >
                                     {{ words.thisMonth }}
                                 </button>
                                 <button
                                     type="button"
-                                    class="min-h-11 rounded-md px-3 text-muted-foreground hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-9"
+                                    class="min-h-11 rounded-md px-3 text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-9"
                                     @click="onClear"
                                 >
                                     {{ words.clear }}
@@ -224,6 +220,7 @@ const inputAttrs = computed(() => {
                 </PopoverPortal>
             </PopoverRoot>
         </div>
+        <span :id="hintId" class="sr-only">{{ words.monthFormatHint }}</span>
         <p v-if="problem" :id="errorId" class="mt-1 text-sm text-destructive" role="alert">
             {{ problem }}
         </p>

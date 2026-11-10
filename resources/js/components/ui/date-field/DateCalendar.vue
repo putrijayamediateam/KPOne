@@ -113,7 +113,7 @@ const todayAllowed = computed(() => allowed(today.value));
         <div class="flex items-center justify-between gap-2">
             <button
                 type="button"
-                class="grid size-11 place-items-center rounded-md border border-input hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none sm:size-9"
+                class="grid size-11 place-items-center rounded-md border border-input hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:size-9"
                 :aria-label="text.previousMonth"
                 @click="moveTo(addMonthsIso(focused, -1), false)"
             >
@@ -122,7 +122,7 @@ const todayAllowed = computed(() => allowed(today.value));
             <p class="font-medium" aria-live="polite">{{ monthLabel }}</p>
             <button
                 type="button"
-                class="grid size-11 place-items-center rounded-md border border-input hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none sm:size-9"
+                class="grid size-11 place-items-center rounded-md border border-input hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:size-9"
                 :aria-label="text.nextMonth"
                 @click="moveTo(addMonthsIso(focused, 1), false)"
             >
@@ -150,20 +150,24 @@ const todayAllowed = computed(() => allowed(today.value));
                 class="grid grid-cols-7"
                 role="row"
             >
-                <span v-for="cell in week" :key="cell.iso" role="gridcell">
+                <span
+                    v-for="cell in week"
+                    :key="cell.iso"
+                    role="gridcell"
+                    :aria-selected="cell.iso === selected"
+                >
                     <button
                         type="button"
                         :data-iso="cell.iso"
                         :tabindex="cell.iso === focused ? 0 : -1"
                         :disabled="!allowed(cell.iso)"
                         :aria-label="longLabel(cell.iso)"
-                        :aria-selected="cell.iso === selected"
-                        :aria-current="cell.iso === today ? 'date' : undefined"
-                        class="grid h-10 w-full place-items-center rounded-md tabular-nums hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent sm:h-9"
+                                                :aria-current="cell.iso === today ? 'date' : undefined"
+                        class="grid h-10 w-full place-items-center rounded-md tabular-nums hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:line-through disabled:opacity-40 disabled:hover:bg-transparent sm:h-9"
                         :class="[
-                            cell.inMonth ? '' : 'text-muted-foreground/60',
+                            cell.inMonth ? '' : 'text-muted-foreground',
                             cell.iso === selected
-                                ? 'bg-brand text-brand-foreground hover:bg-brand/90'
+                                ? 'bg-brand-strong text-white hover:bg-brand-strong/90 dark:text-black'
                                 : '',
                             cell.iso === today && cell.iso !== selected
                                 ? 'border border-brand text-brand-strong'
@@ -179,7 +183,7 @@ const todayAllowed = computed(() => allowed(today.value));
         <div class="flex items-center justify-between gap-2 border-t pt-2">
             <button
                 type="button"
-                class="min-h-11 rounded-md px-3 text-brand-strong hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none disabled:opacity-40 sm:min-h-9"
+                class="min-h-11 rounded-md px-3 text-brand-strong hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40 sm:min-h-9"
                 :disabled="!todayAllowed"
                 @click="pick(today)"
             >
@@ -187,7 +191,7 @@ const todayAllowed = computed(() => allowed(today.value));
             </button>
             <button
                 type="button"
-                class="min-h-11 rounded-md px-3 text-muted-foreground hover:bg-muted focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none sm:min-h-9"
+                class="min-h-11 rounded-md px-3 text-muted-foreground hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-9"
                 @click="emit('clear')"
             >
                 {{ text.clear }}

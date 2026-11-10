@@ -152,3 +152,31 @@ test('today is the Kuala Lumpur date whatever the computer time zone is', () => 
     assert.equal(h.todayIso(new Date('2026-11-10T15:59:00Z')), '2026-11-10');
     assert.equal(h.todayIso(new Date('2026-11-10T16:00:00Z')), '2026-11-11');
 });
+
+test('a paste is read whole, not one character at a time', () => {
+    assert.equal(h.maskDateInput('10112026', ''), '10/11/2026');
+    assert.equal(h.maskDateInput('2026-11-10', ''), '10/11/2026');
+    assert.equal(h.maskMonthInput('2026-11', ''), '11/2026');
+});
+
+test('errors say what is wrong and show the range', () => {
+    assert.equal(h.dateProblem('', undefined, undefined), '');
+    assert.equal(h.dateProblem('abc', undefined, undefined), 'Enter a date as dd/mm/yyyy.');
+    assert.equal(h.dateProblem('31/04/2026', undefined, undefined), '31/04/2026 is not a real date.');
+    assert.equal(
+        h.dateProblem('01/11/2026', '2026-11-05', '2026-11-20'),
+        'Choose a date from 05/11/2026 to 20/11/2026.',
+    );
+    assert.equal(h.dateProblem('10/11/2026', '2026-11-05', '2026-11-20'), '');
+    assert.match(h.dateProblem('31/04/2026', undefined, undefined, 'ms'), /bukan tarikh yang sah/);
+    assert.equal(h.monthProblem('13/2026', undefined, undefined), '13/2026 is not a real month.');
+});
+
+test('the echo and the Malay words', () => {
+    assert.equal(h.formatEchoDate('2026-11-10'), '10 Nov 2026');
+    assert.equal(h.formatEchoDate('2026-05-01', 'ms'), '1 Mei 2026');
+    assert.equal(h.formatEchoTime('17:16'), '5:16 PM');
+    assert.equal(h.DATE_FIELD_TEXT.ms.choose, 'Pilih tarikh (dd/mm/yyyy)');
+    assert.equal(h.DATE_FIELD_TEXT.en.weekdays[0], 'Mon');
+    assert.equal(h.DATE_FIELD_TEXT.ms.weekdays[0], 'Isn');
+});
