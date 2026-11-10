@@ -319,8 +319,10 @@ final class PayrollRunService
                 $payslips = $this->payslips->issue($actor, $run);
                 // HR-14: each person with a payslip hears it is ready, after the commit. Never the amount.
                 $month = CarbonImmutable::parse((string) $run->month)->format('F Y');
+                // One messenger for the whole run, so a mail service that fails is not tried again for every person.
+                $messenger = app(StaffMessenger::class);
                 foreach (DB::table('hr_payslips')->where('run_id', $run->id)->pluck('user_id')->unique() as $payslipUser) {
-                    app(StaffMessenger::class)->notify((int) $actor->organisation_id, (int) $payslipUser, 'payslip_ready', ['month' => $month], ['payroll_run_id' => (int) $run->id]);
+                    $messenger->notify((int) $actor->organisation_id, (int) $payslipUser, 'payslip_ready', ['month' => $month], ['payroll_run_id' => (int) $run->id]);
                 }
             }
             if ($decision === 'approve') {

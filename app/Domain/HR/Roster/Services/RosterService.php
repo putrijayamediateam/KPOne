@@ -251,8 +251,10 @@ final class RosterService
             $this->audit->record('hr.roster.approved', $version, ['roster_week_id' => $week->id, 'version_number' => $version->version_number,
                 'shift_count' => $shifts->count(), 'superseded_version_id' => $previous?->id], $actor, $branch);
             // HR-14: each person on the week hears it is ready, after the commit. No shift details in the message.
+            // One messenger for the whole week, so a mail service that fails is not tried again for every person.
+            $messenger = app(StaffMessenger::class);
             foreach (array_keys($subjects) as $subjectId) {
-                app(StaffMessenger::class)->notify((int) $actor->organisation_id, $subjectId, 'roster_ready',
+                $messenger->notify((int) $actor->organisation_id, $subjectId, 'roster_ready',
                     ['week' => CarbonImmutable::parse($week->week_start)->format('j M Y')], ['roster_version_id' => (int) $version->id]);
             }
 

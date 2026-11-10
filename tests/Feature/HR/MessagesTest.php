@@ -250,6 +250,7 @@ class MessagesTest extends VisitTestCase
 
         // One action sending to two people (as a payroll lock does): the mail service is asked once, not once per person.
         Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('smtp down'));
+        // (The hooks share one messenger per action; RosterTest proves it through a real approval.)
         DB::transaction(function () use ($ca, $nurse): void {
             $messenger = app(StaffMessenger::class);
             $messenger->notify($ca->organisation_id, $ca->id, 'roster_ready', ['week' => '9 Nov 2026'], ['roster_version_id' => 1]);
