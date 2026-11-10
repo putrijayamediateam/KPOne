@@ -156,7 +156,7 @@ class InvoiceNotesTest extends BillingTestCase
         $this->assertStringNotContainsString($text, json_encode($activity));
         $audit = DB::table('audit_logs')->where('event', 'billing.note_added')->sole();
         $this->assertSame(['record_version' => 1], json_decode($audit->metadata, true));
-        $this->get(route('billing.print', [$visit, $invoice]))->assertOk()->assertInertia(fn (Assert $p) => $p->where('billing.notes', null))->assertDontSee($text);
+        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertInertia(fn (Assert $p) => $p->missing('billing.notes'))->assertDontSee($text);
         $this->get(route('billing.show', $visit))->assertOk()->assertDontSee($text);
     }
 
