@@ -49,7 +49,7 @@ test('mobile intake has the approved patient and guardian journey', () => {
         assert.ok(publicForm.includes(expected), expected);
     }
 
-    assert.ok(publicForm.includes('type="date"'));
+    assert.ok(publicForm.includes('<DateField'));
     assert.ok(publicForm.includes('type="tel"'));
     assert.ok(!publicForm.includes('localStorage'));
     assert.ok(!publicForm.includes('sessionStorage'));
