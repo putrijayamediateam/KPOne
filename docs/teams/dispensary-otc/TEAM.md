@@ -95,13 +95,15 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-7 | Medicine returns after dispensing: record (CA, CA Supervisor; quantity, fixed reason, encrypted note for Other, condition; no stock change) and check (a CA Supervisor who did not record it: Dispose, Quarantine to a patient returns location through STK-11's `dispensary_return` movement, or Refuse with a fixed reason); controlled medicines never quarantined; append-only `dispensary_returns` and `dispensary_return_checks` (migrations `2026_11_06_200200`, `2026_11_07_000500`); Completed page gets PageHeader and a Medicine returns section | #288 (merged `88c2ae1`) |
 | DSP-8 | Dispensary pages on phones and tablets: at 768 px the medicine and service line grids (2 columns there) had rows spanning 3 or 4 columns, so the browser added near-zero-width columns and Quantity, Dosage, Route and Precaution became 18 px slivers with overlapping labels; rows now span the full width (or 2, then 3 on wide screens). On phones (below 640 px) every button, text field and dropdown on the Dispensary, Completed and label preview pages is at least 44 px tall; wide screens unchanged. Also the "1 of these labels was printed before" wording, and the OTC allergy card now says the check also uses catalogue drug groups | #273 (merged `b078be4`) |
 | DD-24 to DD-27 | Design debt from DSP-8: 44 px controls below 1024 px too (tablets); the case page uses PageHeader "Dispensary" and only the patient card names the patient (h2, labelled KP number, Visit, Doctor); batch options lead with "N unit on hand · exp 30 Oct 2027" plus a "Selected:" line under the dropdown; the Added/Edited by CA chips are `StatusBadge` accent | #308 (`4c95234`) |
-| DSP-6b | The label print check that logs a print is now a POST (`dispensary.labels.print`, `dispensary.items.label.print`, the page's address plus `/print`, token and branch in the body, CSRF header); the label page no longer accepts `?verify=1`. New tests: a consultation-case print and reprint, and a PostgreSQL race of two CAs printing one case at once (print numbers 1 and 2) | #317 |
-| DSP-1c | Other names for allergy matching: catalogue editors add up to 10 brand names or misspellings per medicine ("Other names" in the Medicine Catalogue "…" menu); the Dispensary allergy warning compares allergies with them too, through one `MedicineCatalogueItem::allergyMatchTerms()` list; never printed; audited by count | #324 |
-| Print label | The single-label button reads "Print label" (sentence case, Daniel's nit from DD-24 to DD-27); the `TreatmentPlanTest` pin and the printer test updated | pending (branch `fix/dsp-print-label-casing`) |
-| DD-37 | The Drug groups dialog keeps the typed groups on a validation error, with the message under the field and a red border; a list changed meanwhile still closes it with a toast (the DSP-1c pattern) | pending (branch `fix/dsp-dd-37-drug-groups-error`) |
-| DSP-10 | The clinic's landscape drug label: 100 × 62 mm (provisional), Courier New 9 pt, 48 cells × at most 13 rows inside a rounded border. Clinic name (bold capitals, 40 characters), address, bold "Tel: (phone)" and a rule; patient name only; medicine display name with "QTY: n" (no unit); directions as one capitalised "dosage, frequency, instruction" block (3 rows); Precaution, Duration and the catalogue Indication (72 characters); date and "EXP: dd/mm/yyyy" (or "EXP: -") on the bottom row. No route, batch number, logo, email, patient or visit number. "Ubat Terkawal/Controlled Medicine" below the border; REPRINT top right inside it. Over a limit still blocks, never cuts | pending (branch `feature/dsp-10-landscape-label`) |
-| DSP-11 | Scan to check at Dispensary: on an open case the CA scans the box they picked (handheld scanner, typing or camera, STK-9's `ScanInput` with a new `dispensary` context and GET `/inventory/scan`); a box whose SKU is a saved line's mapped SKU marks that line "Checked by scan" and the summary counts "N of M"; any other known SKU shows "Not on this case: <item> (<SKU code>)". Screen only: nothing is saved, recorded or blocked; Complete is unchanged | pending (branch `feature/dsp-11-scan-check`) |
-| DSP-7b | Returns to check: a read-only branch list (`/dispensary/returns-to-check`, Clinic management > Inventory & services) of medicine returns waiting for a check, oldest first, 25 a page, each with an "Open case" link to the Completed page's returns section, where the check still happens; the Other note is never listed; only the v1 checkers (a CA Supervisor holding `inventory.variances.approve.branch`) see the page and its link | pending (branch `feature/dsp-7b-returns-to-check`) |
+| DSP-6b | The label print check that logs a print is now a POST (`dispensary.labels.print`, `dispensary.items.label.print`, the page's address plus `/print`, token and branch in the body, CSRF header); the label page no longer accepts `?verify=1`. New tests: a consultation-case print and reprint, and a PostgreSQL race of two CAs printing one case at once (print numbers 1 and 2) | #317 (merged `1fa97f1`) |
+| DSP-1c | Other names for allergy matching: catalogue editors add up to 10 brand names or misspellings per medicine ("Other names" in the Medicine Catalogue "…" menu); the Dispensary allergy warning compares allergies with them too, through one `MedicineCatalogueItem::allergyMatchTerms()` list; never printed; audited by count | #324 (merged `7dd0628`) |
+| Print label | The single-label button reads "Print label" (sentence case, Daniel's nit from DD-24 to DD-27); the `TreatmentPlanTest` pin and the printer test updated | #321 (merged `3afd49a`) |
+| DD-37 | The Drug groups dialog keeps the typed groups on a validation error, with the message under the field and a red border; a list changed meanwhile still closes it with a toast (the DSP-1c pattern) | #328 (merged `26078b5`) |
+| DSP-10 | The clinic's landscape drug label: 100 × 62 mm (provisional), Courier New 9 pt, 48 cells × at most 13 rows inside a rounded border. Clinic name (bold capitals, 40 characters), address, bold "Tel: (phone)" and a rule; patient name only; medicine display name with "QTY: n" (no unit); directions as one capitalised "dosage, frequency, instruction" block (3 rows); Precaution, Duration and the catalogue Indication (72 characters); date and "EXP: dd/mm/yyyy" (or "EXP: -") on the bottom row. No route, batch number, logo, email, patient or visit number. "Ubat Terkawal/Controlled Medicine" below the border; REPRINT top right inside it. Over a limit still blocks, never cuts | #344 (merged `f7099c5`) |
+| DSP-11 | Scan to check at Dispensary: on an open case the CA scans the box they picked (handheld scanner, typing or camera, STK-9's `ScanInput` with a new `dispensary` context and GET `/inventory/scan`); a box whose SKU is a saved line's mapped SKU marks that line "Checked by scan" and the summary counts "N of M"; any other known SKU shows "Not on this case: <item> (<SKU code>)". Screen only: nothing is saved, recorded or blocked; Complete is unchanged | #349 (merged `667a413`) |
+| DSP-7b | Returns to check: a read-only branch list (`/dispensary/returns-to-check`, Clinic management > Inventory & services) of medicine returns waiting for a check, oldest first, 25 a page, each with an "Open case" link to the Completed page's returns section, where the check still happens; the Other note is never listed; only the v1 checkers (a CA Supervisor holding `inventory.variances.approve.branch`) see the page and its link | #360 (merged `72325c2`) |
+| DSP-12 | Scan to find a medicine in "Add a medicine": an outline "Scan to add" button opens the shared `ScanInput` (new `dispensary-add` context, polite only). POST `dispensary/{case}/medicines/by-sku` (read only; `dispensary.update.branch`, 60 a minute, branch and organisation checks, uuid SKU) returns the active medicines mapped to that SKU, shaped like the name search. One medicine with stock and no allergy match is chosen in the Add form and Quantity takes focus; an allergy match shows the red panel and the list with focus on Choose; several medicines or no stock show the list; an unlinked SKU says so. A scan saves nothing and is refused during a save or over typed directions; the newest scan wins | #383 (merged `378b1e4`) |
+| DSP-13 | Index `dispensary_return_branch_waiting_index` on `dispensary_returns (organisation_id, branch_id, recorded_at, id)` for the Returns to check list (migration `2026_11_06_200400`, no data change), and two tests: a CA Supervisor of another organisation sees none of these returns (even with the session pointed at this branch), and a recorder the viewer may not see shows as "Staff member" | #389 (merged `41944e9`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -234,6 +236,16 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     Iman's sketch: Inventory & services group, table from 768 px and cards below, "Open case" to `#medicine-returns`.
     Existing assertion change approved by B.E.R.N.I.S.S for the owner: `ClinicManagementTest`'s exact destination map
     gains `/dispensary/returns-to-check` for the checker permission, CA Supervisor only.
+31. DSP-12 scan to add (2026-11-06/07): B.E.R.N.I.S.S for the owner chose Iman's option 2 (a separate "Scan to add"
+    button after Search) and approved the ship-it. Find only: a scan never saves; the CA still sets quantity,
+    directions and batch and presses Add. When exactly one medicine matches, with stock and no allergy match, the scan
+    picks it in the Add form: an exception to STK-9's "a scan never fills" for the Dispensary Add form only, recorded at
+    the Inventory team's request (Mei Ling and Zulkifli: OK). An allergy match never auto-picks, and `addItem` still runs
+    the DSP-1 check. Daniel: OK after "Close scan" became an outline button; the "+" on both Search buttons predates
+    DSP-12 and is on his debt list.
+32. DSP-13 returns index and tests (2026-11-07): approved by B.E.R.N.I.S.S for the owner after the owner's "carry on".
+    The query's organisation filter cannot be reached through a web request (the active branch is always one the person
+    is assigned to), so it stays as defence in depth without its own test.
 
 ## 7. Open items and known limits
 
@@ -260,9 +272,12 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
   never uses (a test pins it). The fresh check writes a print row and an audit row, so it is a POST since DSP-6b (throttled, same-origin, CSRF-checked). A consultation-case print and two prints of the same case at the same moment are tested (DSP-6b).
 - **Medicine returns (DSP-7):** no refund in KPOne; only a CA Supervisor checks in v1, so a return a CA
   Supervisor records needs a second CA Supervisor on shift; checkers see waiting returns on the case page and
-  in the branch "Returns to check" list (DSP-7b). A quarantine credits one batch, so a return larger than any single batch of the
+  in the branch "Returns to check" list (DSP-7b, indexed since DSP-13; checked returns stay in the index, so the sorted read slows slightly as history grows). A quarantine credits one batch, so a return larger than any single batch of the
   line cannot be quarantined (dispose it, or refuse it and record one return per batch). Returned stock leaves a
   returns location only by an STK-5 count or write-off, or a transfer to another returns location (STK-11).
+- **Scan to add (DSP-12):** the scan finds only medicines mapped to the scanned SKU; an unlinked SKU needs a CA
+  Supervisor to link it. A barcode on more than one medicine shows the list. Auto-pick happens only for one medicine
+  with stock and no allergy match. The CA guides in `docs/guides/ms/` do not mention "Scan to add" yet.
 - **CA guide:** `docs/guides/ms/` should say the OTC allergy step now starts with no choice made (DSP-5).
 - **Allergy matching is text only (DSP-1, DSP-1b, DSP-1c):** a CA add or edit that matches an active allergy record
   needs a recorded confirmation. Drug groups and other names (brand names, misspellings) are matched only when a
@@ -350,13 +365,15 @@ order, each its own PR:
    CA Supervisor records a returned quantity, reason and condition on a completed case; a CA Supervisor who did not
    record it checks it: Dispose, Quarantine to a patient returns location (STK-11) or Refuse. Decisions 20 and 21.
    Merges only after STK-11.
-   - **DSP-7b — built 2026-11-06 (branch `feature/dsp-7b-returns-to-check`), list only (decision 30).** Still open
+   - **DSP-7b — merged in #360, list only (decision 30).** Still open
      for the owner: Finance Officer and Director as checkers, and the Director for controlled medicines.
 10. **DSP-8 Dispensary pages on phones and tablets — built 2026-11-05 (branch `feature/dsp-8-dispensary-mobile`).**
     Checked at 320, 390, 768 and 1440 px, light and dark.
-11. **DSP-10 The clinic's landscape label — built 2026-11-06 (branch `feature/dsp-10-landscape-label`).** Decision 27.
+11. **DSP-10 The clinic's landscape label — merged in #344.** Decision 27.
 
-12. **DSP-11 Scan to check at Dispensary — built 2026-11-06 (branch `feature/dsp-11-scan-check`).** Decision 29.
+12. **DSP-11 Scan to check at Dispensary — merged in #349.** Decision 29.
+13. **DSP-12 Scan to add — merged in #383.** Decision 31.
+14. **DSP-13 Returns list index and tests — merged in #389.** Decision 32.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.

@@ -768,6 +768,9 @@ class PanelClaimsTest extends BillingTestCase
 
     public function test_panel_invoices_page_lists_a_panels_invoices_and_downloads_a_safe_audited_csv(): void
     {
+        // The 23:59 time-of-day filter below must never match the fixture visit,
+        // so the visit is created at a fixed 10:00 branch-local time on today's date.
+        $this->travelTo(CarbonImmutable::now($this->branch->timezone)->setTime(10, 0));
         [$panelOfficer, $visit, $invoice, $allocation] = $this->approvedPanelFixture();
         $this->selectBranch($panelOfficer, $this->branch);
 

@@ -358,7 +358,8 @@ final class PayrollSetupService
             $id = DB::table('hr_pay_profiles')->insertGetId(['public_id' => $publicId, 'organisation_id' => $actor->organisation_id, 'worker_id' => $worker->id,
                 'pay_group_id' => $group->id, 'pay_type' => $values['pay_type'], 'rate_encrypted' => Crypt::encryptString((string) $values['rate_sen']),
                 'epf' => $values['epf'], 'epf_category' => $values['epf_category'], 'socso' => $values['socso'], 'socso_category' => $values['socso_category'],
-                'eis' => $values['eis'], 'mtd' => $values['mtd'], 'hrd' => $values['hrd'], 'effective_from' => $values['effective_from'], 'status' => 'waiting',
+                'eis' => $values['eis'], 'mtd' => $values['mtd'], 'hrd' => $values['hrd'], 'mtd_category' => $values['mtd_category'], 'mtd_children' => $values['mtd_children'],
+                'mtd_disabled_self' => $values['mtd_disabled_self'], 'mtd_disabled_spouse' => $values['mtd_disabled_spouse'], 'effective_from' => $values['effective_from'], 'status' => 'waiting',
                 'entered_by_user_id' => $actor->id, 'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
             foreach ($items as $i => $item) {
                 DB::table('hr_pay_profile_items')->insert(['organisation_id' => $actor->organisation_id, 'profile_id' => $id, 'position' => $i + 1,
@@ -631,7 +632,7 @@ final class PayrollSetupService
      * Every field of a pay profile. One submit names everything to fix.
      *
      * @param  array<string, mixed>  $input
-     * @return array{pay_group_id:string, pay_type:string, rate_sen:int, epf:bool, epf_category:?string, socso:bool, socso_category:?string, eis:bool, mtd:bool, hrd:bool, effective_from:string, items:list<array{item_type_id:string, amount_sen:int}>}
+     * @return array{pay_group_id:string, pay_type:string, rate_sen:int, epf:bool, epf_category:?string, socso:bool, socso_category:?string, eis:bool, mtd:bool, hrd:bool, mtd_category:?int, mtd_children:?int, mtd_disabled_self:bool, mtd_disabled_spouse:bool, effective_from:string, items:list<array{item_type_id:string, amount_sen:int}>}
      */
     public static function profile(array $input): array
     {
@@ -666,6 +667,24 @@ final class PayrollSetupService
                 }
             }
         }
+        // HR-7d (HR-PLAN 18.3): optional MTD details. With a category KPOne works out MTD; without one it is typed each run.
+        $mtd = ['mtd_category' => null, 'mtd_children' => null, 'mtd_disabled_self' => false, 'mtd_disabled_spouse' => false];
+        $category = $input['mtd_category'] ?? null;
+        if ($schemes['mtd'] && $category !== null && $category !== '') {
+            if (! in_array((string) $category, ['1', '2', '3'], true)) {
+                $errors['mtd_category'] = 'Choose category 1, 2 or 3, or leave it empty to type MTD each run.';
+            } else {
+                $mtd['mtd_category'] = (int) $category;
+                $children = $input['mtd_children'] ?? '0';
+                if (! is_scalar($children) || preg_match('/\A\d{1,2}\z/', trim((string) $children)) !== 1 || (int) $children > 20) {
+                    $errors['mtd_children'] = 'Enter the number of children for relief, from 0 to 20.';
+                } else {
+                    $mtd['mtd_children'] = (int) $children;
+                }
+                $mtd['mtd_disabled_self'] = filter_var($input['mtd_disabled_self'] ?? false, FILTER_VALIDATE_BOOL);
+                $mtd['mtd_disabled_spouse'] = $mtd['mtd_category'] === 2 && filter_var($input['mtd_disabled_spouse'] ?? false, FILTER_VALIDATE_BOOL);
+            }
+        }
         $from = self::date($input['effective_from'] ?? null);
         if ($from === null) {
             $errors['effective_from'] = 'Choose the date this profile applies from.';
@@ -694,6 +713,6 @@ final class PayrollSetupService
             throw ValidationException::withMessages($errors);
         }
 
-        return ['pay_group_id' => (string) $group, 'pay_type' => (string) $type, 'rate_sen' => $rate, ...$schemes, ...$categories, 'effective_from' => (string) $from, 'items' => $items];
+        return ['pay_group_id' => (string) $group, 'pay_type' => (string) $type, 'rate_sen' => $rate, ...$schemes, ...$categories, ...$mtd, 'effective_from' => (string) $from, 'items' => $items];
     }
 }

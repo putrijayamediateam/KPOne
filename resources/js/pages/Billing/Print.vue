@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import BillToRecipient from '@/components/billing/BillToRecipient.vue';
+import OfficialDocument from '@/components/billing/OfficialDocument.vue';
 import type { BillingPage, Receipt } from '@/types/billing';
 import { myr } from '@/types/billing';
 import type { BillToRecipientData } from '@/types/billTo';
@@ -11,6 +12,8 @@ const props = defineProps<{
     receipt: Receipt | null;
     billTo?: BillToRecipientData | null;
     letterhead: PrintLetterhead;
+    /** BIL-9: 'bil9' on versions issued in the clinic's paper layout; absent on earlier versions and the preview. */
+    layout?: 'bil9';
     /** BIL-5: present only on a recorded print of a frozen copy; absent on the live preview. */
     issued?: {
         label: 'original' | 'revised' | 'copy';
@@ -76,180 +79,219 @@ const print = () => window.print();
                 at {{ issued.printedAt }} (branch time).
             </p>
         </div>
-        <header
-            class="mb-5 flex items-start gap-4 border-b pb-4"
-            aria-label="Clinic letterhead"
-        >
-            <img
-                v-if="letterhead.logo"
-                :src="letterhead.logo.url"
-                alt="Clinic logo"
-                class="max-h-20 w-24 shrink-0 object-contain"
-            />
-            <div class="min-w-0 break-words">
-                <h1 class="text-lg font-bold">
-                    {{ letterhead.details.clinic_name }}
-                </h1>
-                <p v-for="line in addressLines" :key="line">{{ line }}</p>
-                <p v-if="letterhead.details.email">
-                    {{ letterhead.details.email }}
+        <OfficialDocument
+            v-if="layout === 'bil9'"
+            :billing="billing as never"
+            :receipt="receipt"
+            :bill-to="billTo"
+            :letterhead="letterhead"
+            :label-text="labelText"
+            :issued="issued ?? null"
+        />
+        <template v-else>
+            <header
+                class="mb-5 flex items-start gap-4 border-b pb-4"
+                aria-label="Clinic letterhead"
+            >
+                <img
+                    v-if="letterhead.logo"
+                    :src="letterhead.logo.url"
+                    alt="Clinic logo"
+                    class="max-h-20 w-24 shrink-0 object-contain"
+                />
+                <div class="min-w-0 break-words">
+                    <h1 class="text-lg font-bold">
+                        {{ letterhead.details.clinic_name }}
+                    </h1>
+                    <p v-for="line in addressLines" :key="line">{{ line }}</p>
+                    <p v-if="letterhead.details.email">
+                        {{ letterhead.details.email }}
+                    </p>
+                    <p v-if="letterhead.details.phone">
+                        Tel: {{ letterhead.details.phone }}
+                    </p>
+                </div>
+            </header>
+            <h2 class="my-6 text-center text-lg font-bold underline">
+                {{ receipt ? 'OFFICIAL RECEIPT' : 'OFFICIAL INVOICE' }}
+            </h2>
+            <div
+                v-if="issued"
+                class="-mt-3 mb-4 text-center"
+                data-testid="issued-label"
+            >
+                <p
+                    class="inline-block border-[1.5px] border-current px-3 py-0.5 text-xs font-bold tracking-wider uppercase"
+                >
+                    {{ labelText }}
                 </p>
-                <p v-if="letterhead.details.phone">
-                    Tel: {{ letterhead.details.phone }}
+                <p class="mt-1 text-[11px]">
+                    Version {{ issued.version }} · issued {{ issued.issuedAt }}
+                    (branch time)
+                </p>
+                <p
+                    v-for="note in issued.notes"
+                    :key="note"
+                    class="mx-auto mt-2 max-w-xl border px-3 py-1 text-xs"
+                >
+                    {{ note }}
                 </p>
             </div>
-        </header>
-        <h2 class="my-6 text-center text-lg font-bold underline">
-            {{ receipt ? 'OFFICIAL RECEIPT' : 'OFFICIAL INVOICE' }}
-        </h2>
-        <div
-            v-if="issued"
-            class="-mt-3 mb-4 text-center"
-            data-testid="issued-label"
-        >
             <p
-                class="inline-block border-[1.5px] border-current px-3 py-0.5 text-xs font-bold tracking-wider uppercase"
+                v-else
+                class="-mt-3 mb-4 border px-3 py-1 text-center text-xs font-bold"
+                data-testid="preview-label"
             >
-                {{ labelText }}
+                PREVIEW — not an issued copy. Print from the Billing page to
+                issue one.
             </p>
-            <p class="mt-1 text-[11px]">
-                Version {{ issued.version }} · issued {{ issued.issuedAt }}
-                (branch time)
-            </p>
-            <p
-                v-for="note in issued.notes"
-                :key="note"
-                class="mx-auto mt-2 max-w-xl border px-3 py-1 text-xs"
+            <section
+                class="my-4 grid min-w-0 gap-4 sm:grid-cols-2"
+                aria-label="Document details"
             >
-                {{ note }}
-            </p>
-        </div>
-        <p
-            v-else
-            class="-mt-3 mb-4 border px-3 py-1 text-center text-xs font-bold"
-            data-testid="preview-label"
-        >
-            PREVIEW — not an issued copy. Print from the Billing page to issue
-            one.
-        </p>
-        <section
-            class="my-4 grid min-w-0 gap-4 sm:grid-cols-2"
-            aria-label="Document details"
-        >
-            <div class="min-w-0 break-words" aria-label="Patient recipient">
-                <h3 class="mb-1 font-semibold">To</h3>
-                <p>
-                    <span v-if="!receipt && billTo">Patient: </span
-                    >{{ billing.patient.name }}
-                </p>
-                <p>{{ billing.patient.patientNumber }}</p>
-            </div>
-            <div class="min-w-0 text-right break-words">
-                <p>
-                    <span class="font-semibold">{{
-                        receipt ? 'Receipt No:' : 'Invoice No:'
-                    }}</span>
-                    {{ receipt?.number ?? billing.invoice?.number }}
-                </p>
-                <p>
-                    <span class="font-semibold">Date:</span>
-                    {{ receipt?.receivedAt ?? billing.invoice?.finalizedAt }}
-                </p>
-                <p>
-                    <span class="font-semibold">Status:</span>
-                    {{ receipt?.status ?? billing.invoice?.status }}
-                </p>
-            </div>
-        </section>
-        <p class="my-2">{{ billing.visit.visitNumber }}</p>
-        <section
-            v-if="!receipt && billTo"
-            class="my-4 rounded border p-4"
-            aria-label="Bill to"
-        >
-            <h3 class="mb-2 font-semibold">Bill to</h3>
-            <BillToRecipient :recipient="billTo" />
-        </section>
-        <template v-if="receipt"
-            ><p class="my-4">
-                Received for {{ billing.patient.name }} the sum of
-                {{ myr(receipt.amountSen) }} via {{ receipt.method }} towards
-                Invoice {{ billing.invoice?.number }}.
-            </p>
-            <p v-if="receipt.status === 'reversed'">
-                Recording reversed — this is not a refund receipt.
-            </p>
-            <p>Originating Invoice: {{ billing.invoice?.number }}</p></template
-        ><template v-else-if="billing.invoice"
-            ><table
-                class="my-4 w-full table-fixed text-left text-xs sm:text-sm"
+                <div class="min-w-0 break-words" aria-label="Patient recipient">
+                    <h3 class="mb-1 font-semibold">To</h3>
+                    <p>
+                        <span v-if="!receipt && billTo">Patient: </span
+                        >{{ billing.patient.name }}
+                    </p>
+                    <p>{{ billing.patient.patientNumber }}</p>
+                </div>
+                <div class="min-w-0 text-right break-words">
+                    <p>
+                        <span class="font-semibold">{{
+                            receipt ? 'Receipt No:' : 'Invoice No:'
+                        }}</span>
+                        {{ receipt?.number ?? billing.invoice?.number }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Date:</span>
+                        {{
+                            receipt?.receivedAt ?? billing.invoice?.finalizedAt
+                        }}
+                    </p>
+                    <p>
+                        <span class="font-semibold">Status:</span>
+                        {{ receipt?.status ?? billing.invoice?.status }}
+                    </p>
+                </div>
+            </section>
+            <p class="my-2">{{ billing.visit.visitNumber }}</p>
+            <section
+                v-if="!receipt && billTo"
+                class="my-4 rounded border p-4"
+                aria-label="Bill to"
             >
-                <thead>
-                    <tr>
-                        <th>Item</th>
-                        <th>Qty</th>
-                        <th>Unit price (RM)</th>
-                        <th>Total (RM)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr
-                        v-for="(line, index) in billing.invoice.lines"
-                        :key="index"
-                        class="border-b"
+                <h3 class="mb-2 font-semibold">Bill to</h3>
+                <BillToRecipient :recipient="billTo" />
+            </section>
+            <template v-if="receipt"
+                ><p class="my-4">
+                    Received for {{ billing.patient.name }} the sum of
+                    {{ myr(receipt.amountSen) }} via
+                    {{ receipt.method }} towards Invoice
+                    {{ billing.invoice?.number }}.
+                </p>
+                <p v-if="receipt.status === 'reversed'">
+                    Recording reversed — this is not a refund receipt.
+                </p>
+                <p>
+                    Originating Invoice: {{ billing.invoice?.number }}
+                </p></template
+            ><template v-else-if="billing.invoice"
+                ><table
+                    class="my-4 w-full table-fixed text-left text-xs sm:text-sm"
+                >
+                    <thead>
+                        <tr>
+                            <th>Item</th>
+                            <th>Qty</th>
+                            <th>Unit price (RM)</th>
+                            <th>Total (RM)</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="(line, index) in billing.invoice.lines"
+                            :key="index"
+                            class="border-b"
+                        >
+                            <td class="py-2 break-words">{{ line.name }}</td>
+                            <td>{{ line.quantity }} {{ line.unit }}</td>
+                            <td>{{ myr(line.unitPriceSen) }}</td>
+                            <td>{{ myr(line.totalSen) }}</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <dl
+                    class="my-4 space-y-2"
+                    aria-label="Invoice amount breakdown"
+                >
+                    <div class="flex justify-between">
+                        <dt>Original subtotal</dt>
+                        <dd>
+                            {{ myr(billing.invoice.adjustment.subtotalSen) }}
+                        </dd>
+                    </div>
+                    <div class="flex justify-between">
+                        <dt>
+                            {{
+                                billing.invoice.adjustment.adjustmentSen < 0
+                                    ? 'Discount'
+                                    : billing.invoice.adjustment.adjustmentSen >
+                                        0
+                                      ? 'Surcharge'
+                                      : 'Invoice adjustment'
+                            }}
+                        </dt>
+                        <dd>
+                            {{
+                                billing.invoice.adjustment.adjustmentSen < 0
+                                    ? '−'
+                                    : '+'
+                            }}{{
+                                myr(
+                                    Math.abs(
+                                        billing.invoice.adjustment
+                                            .adjustmentSen,
+                                    ),
+                                )
+                            }}
+                        </dd>
+                    </div>
+                    <div
+                        v-if="billing.invoice.refundCreditSen"
+                        class="flex justify-between"
+                        data-testid="print-refund-credit"
                     >
-                        <td class="py-2 break-words">{{ line.name }}</td>
-                        <td>{{ line.quantity }} {{ line.unit }}</td>
-                        <td>{{ myr(line.unitPriceSen) }}</td>
-                        <td>{{ myr(line.totalSen) }}</td>
-                    </tr>
-                </tbody>
-            </table>
-            <dl class="my-4 space-y-2" aria-label="Invoice amount breakdown">
-                <div class="flex justify-between">
-                    <dt>Original subtotal</dt>
-                    <dd>{{ myr(billing.invoice.adjustment.subtotalSen) }}</dd>
-                </div>
-                <div class="flex justify-between">
-                    <dt>
-                        {{
-                            billing.invoice.adjustment.adjustmentSen < 0
-                                ? 'Discount'
-                                : billing.invoice.adjustment.adjustmentSen > 0
-                                  ? 'Surcharge'
-                                  : 'Invoice adjustment'
-                        }}
-                    </dt>
-                    <dd>
-                        {{
-                            billing.invoice.adjustment.adjustmentSen < 0
-                                ? '−'
-                                : '+'
-                        }}{{
-                            myr(
-                                Math.abs(
-                                    billing.invoice.adjustment.adjustmentSen,
-                                ),
-                            )
-                        }}
-                    </dd>
-                </div>
-                <div class="flex justify-between font-semibold">
-                    <dt>Adjusted total</dt>
-                    <dd>{{ myr(billing.invoice.state.total) }}</dd>
-                </div>
-            </dl>
-            <p>Self-pay received {{ myr(billing.invoice.state.self_pay) }}</p>
-            <p>Panel responsibility {{ myr(billing.invoice.state.panel) }}</p>
-            <p>Approved pay later {{ myr(billing.invoice.state.deferred) }}</p>
-            <p>Due now {{ myr(billing.invoice.state.due_now) }}</p></template
-        >
-        <p
-            v-if="letterhead.footerText"
-            class="document-footer mt-8 border-t pt-3 text-center text-xs break-words whitespace-pre-wrap italic"
-        >
-            {{ letterhead.footerText }}
-        </p>
+                        <dt>Refund credit</dt>
+                        <dd>−{{ myr(billing.invoice.refundCreditSen) }}</dd>
+                    </div>
+                    <div class="flex justify-between font-semibold">
+                        <dt>Adjusted total</dt>
+                        <dd>{{ myr(billing.invoice.state.total) }}</dd>
+                    </div>
+                </dl>
+                <p>
+                    Self-pay received {{ myr(billing.invoice.state.self_pay) }}
+                </p>
+                <p>
+                    Panel responsibility {{ myr(billing.invoice.state.panel) }}
+                </p>
+                <p>
+                    Approved pay later {{ myr(billing.invoice.state.deferred) }}
+                </p>
+                <p>
+                    Due now {{ myr(billing.invoice.state.due_now) }}
+                </p></template
+            >
+            <p
+                v-if="letterhead.footerText"
+                class="document-footer mt-8 border-t pt-3 text-center text-xs break-words whitespace-pre-wrap italic"
+            >
+                {{ letterhead.footerText }}
+            </p>
+        </template>
     </main>
 </template>
 
@@ -266,6 +308,7 @@ const print = () => window.print();
         color: black;
     }
     .document-print [aria-label='Bill to'],
+    .document-print .document-closing,
     .document-print header,
     .document-print tr,
     .document-footer {

@@ -2224,6 +2224,21 @@ Shared rules for all five:
 - **Tests:** the export's exact columns, formula neutralising, row cap, audit, and that no identity or bank value is
   in the file by default; with an API, a fake HTTP client proves timeouts and failures change nothing.
 
+### 15.1a HR-12 as built (2026-11-07)
+
+- **The owner's answers** (15.7 item 1, in the HR session): a generic CSV export first. There is no named product or API yet, so there is no live link and no import preview in v1. The data is the staff list, approved leave and approved overtime only. No payroll, identity numbers, bank details or documents.
+- **Where:** a closed-by-default "Export for an outside HR product" section on the Staff files tab of `/hr/records`, for the Director and the HR Manager (`hr.records.manage.organisation`). No new permission, no migration and no Clinic management line.
+- **Files:**
+  - Staff list: KPOne ID, name, kind, position, employment type and dates, primary branch, and status in the Staff files words, plus Starting.
+  - Approved leave touching a month: type, from, to, "Days in request" and paid. A note line in the file explains requests that cross months.
+  - Approved overtime in a month: date, day type and approved minutes, never pay.
+- **Rules:** each download is a POST, audited before release with the kind, month and row count, and never stored. Cells are formula-safe, and the 5,000-row cap refuses rather than cuts.
+- **Known limits:**
+  - The file is uploaded to the outside product by hand.
+  - Leave rows carry the whole request's days.
+  - The leave type is shown by name and can hint at health. "Hide leave type in the outside-HR export?" is on the owner's PDPA-review list (B.E.R.N.I.S.S for the owner).
+- Built in PR #397, merged as `8c6d78b`. Daniel: OK. Suresh: ready to merge after M1.
+
 ### 15.2 HR-13 Job application intake (KPOne's first public intake)
 
 - **What:** a public "Apply" form for open positions; applications land in a private HR list; HR moves an
@@ -2243,6 +2258,44 @@ Shared rules for all five:
   byte is sent.
 - **Tests:** rate limits, honeypot and timing, file checks, the switch off by default, audit before release, no
   account created, and retention purge.
+
+### 15.2a HR-13 as built (2026-11-07)
+
+- **The owner's answers** (15.7 item 4 and the form language, in the HR session):
+  - Positions: HR keeps a list in KPOne.
+  - Retention: HR enters it, and KPOne ships no number.
+  - Language: the public form shows English and Bahasa Melayu side by side, its error messages included.
+  - Who approves the privacy notice: the owner. The notice stays a draft (`draft-hr13-applications-v1`) until then.
+- **Switched off twice over:**
+  - The form returns 404 unless `HR_APPLICATIONS_ENABLED=true` (false in `.env.example` and in the config default).
+  - Even with the switch on, it stays closed until HR saves a retention period, because the notice promises deletion after that period (Daniel; option (a), chosen by B.E.R.N.I.S.S for the owner).
+  - **The switch must not be turned on until the owner approves the privacy notice. A lawyer review is recommended** (B.E.R.N.I.S.S for the owner).
+- **The public form** (`/careers/apply`):
+  - It asks for the position, name, phone, email, an optional message, one PDF CV of at most 5 MB, and a privacy tick.
+  - Spam is kept out by a signed form token with a one-time nonce, a honeypot field and a 5-second minimum fill time. The honeypot is checked first, then the fields and the CV in one pass, then the timing, so a person sees what to fill in and a robot gets the thank-you page with nothing stored.
+  - Each address may send 3 a minute and 10 an hour, and the whole form 100 an hour.
+  - Personal values and the CV are encrypted, and the original file name is never kept.
+  - Nothing typed goes into the session, and no account is ever created.
+- **The HR page** (`/hr/applications`, Director and HR Manager, `hr.applications.manage.organisation`):
+  - A status line says whether the form is on, off, or off until a retention period is saved.
+  - Applications, Positions and Settings tabs.
+  - Steps: New → Shortlisted → Interview → Offered, with Not taken forward and Withdrawn from any open step. A declined offer can become Withdrawn; every other closed step is final.
+  - A CV open is recorded before any byte is sent.
+- **Retention:**
+  - A first or shorter period waits 7 days.
+  - The daily `hr-applications:purge` clears the values and the CV, counting from when an application closed, or from when it was sent if nobody closed it (Suresh, M1). The row and its history stay.
+- **Known limits:**
+  - One organisation per installation.
+  - An application still at Interview is cleared once the period has passed since it was sent.
+  - Phone and email show on the HR list without a Show button.
+  - The overall cap of 100 sends an hour can lock real applicants out for up to an hour.
+  - Behind a proxy with no trusted list, all senders share one address for rate limiting.
+  - The CV's size and hash and the nonce stay after a purge.
+  - The clinic name is fixed text.
+  - The PDF check is shallow.
+  - Applicants have no self-service withdrawal or deletion.
+  - Daniel's optional follow-up (showing the pending retention date on the "on" line) is left for later.
+- Built in PR #402, merged as `9eedfd4`. Suresh: ready to merge after M1, M3, M4 and M5. Daniel: OK with changes, then OK.
 
 ### 15.3 HR-14 Staff messages: WhatsApp, SMS, email and OTP (foundation for HR-15)
 
@@ -2497,3 +2550,266 @@ The existing `hr.payroll.prepare.organisation` and `hr.payroll.approve.organisat
   `PayrollSetupTest` (`payroll.tabs` gains `runs`).
 - **Daniel's look:** Lock run is the primary step and never red, with the Lock confirm in the standard tone; phone
   cards read "Employee contributions" and show Refunds when not zero.
+
+## 17. HR-7c payslips and exports: design note
+
+Written 2026-11-07 after HR-7b (#379). It works out the payslips and exports part of section 14 (14.2, 14.3 items 7
+and 8, 14.4, 14.5 and 14.10) and changes no HR-1 to HR-7b rule. **Status: approved by B.E.R.N.I.S.S for the
+owner on 2026-11-07, with the answers in 17.9 and the change to 17.3 below; built in PR #393.** Everything stays synthetic until the accountant's sign-off and the PDPA review, and the accountant line
+stays on every payroll page. **KPOne makes no payment and files nothing.**
+
+### 17.1 Scope
+- **Payslips:**
+  - one encrypted payslip snapshot per person per locked run, written at the moment of locking, and never changed;
+  - each person sees only their own;
+  - an adjustment run gives its own payslip, shown beside the original ("Adjustment to October 2026").
+- **Exports from a locked run only:**
+  - the bank file;
+  - the accountant summary CSV;
+  - the statutory summary on screen.
+- **Not in HR-7c:**
+  - MTD computed by KPOne (HR-7d);
+  - EA forms and year-end statements;
+  - any payment, bank API, filing, or link to the outside HR product;
+  - emailing or messaging payslips (HR-14 later, "Your payslip for October 2026 is ready in KPOne" only, never the payslip itself).
+
+### 17.2 Payslips
+- **Where:** a "Payslips" section on the person's own My HR details page, newest first. A person with none sees "No payslips yet."
+- **What one shows:**
+  - the clinic letterhead (BIZ-01);
+  - the person's name, and the pay group and period ("October 2026");
+  - earnings, deductions and refunds as three short tables, each line in the words HR-7b stored ("Overtime · 3 h 30 min × RM 12.50 × 1.5");
+  - the employee's statutory parts and MTD;
+  - the employer contributions as information;
+  - the net pay in bold;
+  - the bank account masked to the last four, read from the HR-4 staff file at locking time;
+  - the line "Generated by KPOne. To confirm with the clinic's accountant before real use."
+- **Snapshot:** written in the lock transaction, one per person, encrypted, with a hash. A later change to the letterhead, bank details or a name never changes an issued payslip.
+- **Opening is recorded** (who, which payslip, when; no amount), as HR-2b does for evidence files.
+- **Print:** one A4 layout, white in every theme (PRINT-1), with a 15 to 20 mm `@page` margin, checked on images taken from a real A4 PDF. No PDF is stored.
+- **Preparers and approvers** can open any payslip of a run they could open; nobody else sees another person's payslip.
+
+### 17.3 Exports
+- **Who:** the Director only in v1 (17.9 item 2), from a locked run only, on an Exports tab of `/hr/payroll`.
+- **Each download:**
+  - writes its audit row first (`hr_payroll_exports`: run, kind, layout, row count, by, time);
+  - is never stored;
+  - follows the CSV rules of the reports: UTF-8 BOM, formula-neutralised cells, a row cap and a throttle.
+- **The bank file:** v1 ships one generic CSV: name, account holder, bank, account number, amount and the reference "Salary October 2026" ("Salary adjustment October 2026" for an adjustment run).
+  - It pays the confirmed bank details frozen on each payslip at locking (`hr_payslips.bank_detail_id`), so the file always pays the account the payslip shows, and downloading it again gives the same file.
+  - **Changed after review (Suresh's S1; approved by B.E.R.N.I.S.S for the owner, 2026-11-07):** anyone who had no confirmed bank details when the run was locked is left out of the file and named on the Exports tab, to be paid outside the file. The draft said to refuse the whole run; once the account is frozen at locking, that refusal could never be cleared.
+  - A run where nobody had confirmed bank details gives no bank file, and an account that cannot be read, or is not 5 to 20 digits, refuses the whole file and names the person.
+  - The Exports tab tells the Director to open the file in a spreadsheet as text, so account numbers keep their leading zeros.
+- **The accountant summary CSV:** totals by person, section and item, plus each scheme's employee and employer parts, grouped by the worker so two people with the same name stay apart (Suresh's S2).
+- **The statutory summary:** on screen only. It shows totals per scheme (EPF, SOCSO, EIS, HRD, MTD), employee and employer parts and the head count, for the clinic to type into the KWSP, PERKESO and LHDN portals by hand.
+
+### 17.4 Permissions (decided in 17.9)
+- `hr.payroll.export.organisation`: the bank file, the accountant summary and the statutory summary from locked runs. **The Director only in v1.** The Finance Officer gets no payroll access; this is to be revisited after the PDPA review.
+- `hr.payslips.view.own`: my payslips, for every human role, not the TV account.
+- Neither permission is people-and-access authority. One additive migration (`2026_11_10_002800`) grants them.
+- Payroll preparers and approvers may open any payslip; nobody else sees another person's payslip.
+- **Changes outside HR:**
+  - the `/hr/payroll` page opens to exporters, for the Exports tab only;
+  - the existing "KPOne HR payroll" Clinic management row also shows for exporters, through one approved `ClinicManagementTest` hub-map line: `'/hr/payroll' => ['hr.payroll.prepare.organisation', 'hr.payroll.export.organisation'],`;
+  - My HR details gains the My payslips section.
+
+### 17.5 Rules
+- Payslips and exports exist only for a locked run. A locked run and its payslips never change; a correction is an adjustment run with its own payslip.
+- Every write follows the HR pattern: a fresh permission check under lock, `DB::transaction`, `lock_version`, an idempotency key, and audit with ids, codes, counts and versions only, never an amount or an account number.
+- Payslip snapshots are encrypted at rest. The account number reaches only the bank file and the masked last four on the payslip.
+- PostgreSQL:
+  - payslips and export rows are append-only, with no update, delete or truncate;
+  - a payslip belongs to a locked run and to a person in that run;
+  - one payslip per person per run;
+  - one organisation throughout.
+
+### 17.6 Tables (sketch)
+| Table | Holds |
+|---|---|
+| `hr_payslips` | run, worker, encrypted snapshot, hash, created at |
+| `hr_payslip_opens` | append-only: payslip, opened by, opened at |
+| `hr_payroll_exports` | append-only: run, kind (bank, accountant), layout, row count, by, at (no file) |
+
+Migrations from `2026_11_10_002700`.
+
+### 17.7 Screens (Hui Min, with Daniel's look before the build)
+- An Exports tab: one card per locked run, with Download bank file, Download accountant summary and the statutory summary in a disclosure. A run with someone missing bank details names them ("Not in the bank file: …, pay them outside the file"); the bank download is unavailable only when nobody in the run had confirmed bank details.
+- My HR details: the Payslips section with one row per payslip and Print.
+- The payslip page, white in every theme.
+
+### 17.8 Tests (planned)
+- Payslip figures equal the locked run's lines, written by hand.
+- The snapshot never changes after a letterhead, name or bank change.
+- Own payslips only, and every open recorded.
+- The bank file: masked nowhere but the file, refused with missing bank details, the CSV safety rules, and the audit row written before the bytes.
+- The accountant summary and the statutory summary totals by hand.
+- An adjustment run's payslip beside the original.
+- Permissions for each role, including the TV account.
+- The PostgreSQL append-only rules.
+- No amount or account number in audit or the session.
+- The print white in dark mode.
+
+### 17.9 Owner's answers (approved by B.E.R.N.I.S.S for the owner, 2026-11-07)
+1. **Go-ahead for HR-7c:** yes, on synthetic data only.
+2. **Who exports:** the Director only. The Finance Officer gets no payroll access; to be revisited after the PDPA review.
+3. **Payslips:** `hr.payslips.view.own` for every human role, not the TV account.
+4. **The bank file layout:** the generic CSV first. A bank's own layout waits for the clinic to name its bank.
+5. **The accountant summary:** yes, exported by the Director.
+6. **Paper payslips:** each person prints their own.
+7. **The hub line:** yes; the exact `ClinicManagementTest` line is in 17.4.
+8. **Dates:** "30 Oct 2026", with the period as "October 2026".
+
+Also decided while building:
+- **No logo on the payslip in v1:** letterhead text only, in the same block as the other letters (Daniel): the clinic name first and bold, the address on one line, then "Tel: …" through `PrintedPhone`. A branch with no Business details shows the organisation's name, never the bare branch name. "Logo on payslips?" is on the owner's later list.
+- **The 17.3 change:** people without confirmed bank details at locking are left out of the bank file and named.
+
+### 17.10 Known risks and limits
+- Statutory correctness still depends entirely on the tables the clinic enters.
+- The bank file holds account numbers and amounts once it leaves KPOne. The clinic's handling of the downloaded file is outside KPOne.
+- Encrypted amounts are totalled in PHP, and the export is not load-tested.
+- A former staff member whose account is inactive cannot sign in to open their old payslips; HR opens them as a preparer.
+- Opening a payslip is a GET that writes an open row each time.
+- The bank file has one generic layout only.
+
+## 18. HR-7d MTD (PCB) worked out by KPOne: design note
+
+Written 2026-11-07. **Status: approved by B.E.R.N.I.S.S for the owner with its defaults, on the owner's own "start the
+HR-7d build" (2026-11-07); built in PR #396, merged as `bfe546b`.** Every [TO CONFIRM] stays on the owner's later list as
+an accountant question. The defaults are not the accountant's sign-off.
+It works out the MTD part that section 14.8 left for later, and changes no HR-1 to HR-7c rule.
+**KPOne ships no tax number and files nothing.** Synthetic data only until the accountant's sign-off and the PDPA
+review. The accountant line stays on every payroll page.
+
+### 18.1 Scope
+- **In:**
+  - a yearly MTD schedule that the clinic enters, checked by someone else;
+  - each person's MTD details on their pay profile;
+  - KPOne working out MTD for **normal monthly remuneration** on a monthly run, from the year to date in KPOne's own locked runs;
+  - the preparer may still type a different MTD for a person on a draft, and the line then says so.
+  - **Changed after review (Suresh):**
+    - **S1:** a manual line on a monthly run that counts for MTD is one-off pay. It is never projected over the year: the worked figure stops, and the run asks for a typed MTD.
+    - **S2:** a run (regular or adjustment) of an earlier month this year that is not locked yet stops the worked figure until it is locked and the run is prepared again, or the MTD is typed.
+    - **M1:** a typed MTD always gets past the schedule and band errors, with a warning instead.
+- **Not in HR-7d (later, each with the accountant):**
+  - additional remuneration (bonus, arrears and commission). A manual line that counts for MTD on a monthly run stops the worked figure, and the preparer types that person's MTD. Adjustment runs carry no MTD line in v1, which predates HR-7d (Suresh, M2), so the MTD on a bonus paid through an adjustment run is recorded outside KPOne for now;
+  - TP1 (other reliefs and rebates the employee claims);
+  - TP3 (pay, EPF, MTD and zakat from a previous employer this year);
+  - zakat;
+  - non-residents' flat rate;
+  - EA forms;
+  - CP39 or e-PCB files.
+- **TP3 gap:** a person who joined in the year after January gets a warning saying that previous employment (TP3) is not counted, so the preparer can check it and type the MTD instead.
+
+### 18.2 The MTD schedule (Tables tab)
+- **One schedule per year:**
+  - a source note (for example "LHDN schedule for 2026, as given by the accountant");
+  - the rounding (round up to the next 5 sen, to the nearest sen, or none);
+  - the smallest MTD that is deducted (a smaller result deducts nothing);
+  - the yearly reliefs: individual (D), spouse (S), disabled individual (DU), disabled spouse (SU), each child (Q), and the EPF relief limit;
+  - the bands, each with:
+    - "chargeable income from" (M) and "to";
+    - the rate (R);
+    - the tax on M for categories 1 and 3 (B);
+    - the tax on M for category 2 (B).
+- **No number is shipped.** The form suggests nothing and starts empty.
+- **Checked by someone other than the person who entered it,** with the same decider rule as the other tables (14.4): a Director, or the HR Manager when a Director entered it.
+  - It counts only once checked, and a later checked schedule for the same year replaces it.
+  - Rows are append-only, and every schedule says "To confirm with the clinic's accountant before real use."
+
+### 18.3 MTD details on the pay profile
+When "MTD" is ticked on a pay profile, it also holds:
+- the tax category: 1 (single), 2 (married, spouse not working) or 3 (married, spouse working);
+- the number of children for relief;
+- disabled individual (yes or no);
+- disabled spouse (yes or no; category 2 only).
+
+They are confirmed with the profile by someone else, as the profile already is. A profile saved before HR-7d, with no category, keeps the HR-7b behaviour: MTD typed for each run.
+
+### 18.4 How KPOne works it out (monthly run, normal remuneration)
+This follows the computerised method's structure: the yearly chargeable income spread over the remaining months.
+- **Y1:** this month's pay that counts for MTD.
+  - Basic or worked hours always count, and pay item types count where "counts for MTD" is ticked.
+  - Unpaid leave counts against it, as for the other schemes.
+- **K1:** this month's EPF employee part.
+- **Y and K:** the same, summed from the person's lines in this year's locked runs in KPOne.
+- **X:** the MTD already deducted in those runs.
+- **n:** the months left in the year after this one.
+- **Y2 = Y1** for each remaining month, and **K2 = K1**, with the EPF limit applied to the year's total.
+- **P** = Y − K + (Y1 − K1) + (Y2 − K2) × n − (D + S if category 2 + DU if disabled + SU if category 2 and disabled spouse + Q × children).
+  - P is never below zero.
+- **The band** is the one holding P, which gives M, R and B for the person's category.
+- **MTD for the month** = ((P − M) × R + B − X) ÷ (n + 1), then:
+  - never below zero;
+  - rounded as the schedule says;
+  - nothing deducted when below the smallest MTD.
+- **Whole sen throughout,** with one rounding at the end (PayrollMath).
+
+The line explains itself, for example: "MTD (PCB) · worked out: RM 34,560.00 chargeable for the year, category 1, 3 months left".
+
+### 18.5 Errors and warnings on the run
+- **Errors** (each becomes a warning when an MTD is typed for the person):
+  - no checked schedule for the run's year when a person's profile has MTD details;
+  - no band for P;
+  - one-off pay on this run that counts for MTD;
+  - an earlier month this year not locked yet;
+  - "MTD not entered" (unchanged) for a profile without MTD details.
+- **Warnings:**
+  - "Joined this year: previous employment (TP3) is not counted";
+  - "MTD typed for this run instead of RM x worked out".
+
+### 18.6 Permissions and rules
+- **No new permission:**
+  - the schedule uses `hr.payroll.prepare.organisation` to enter, and the existing decider rule to check;
+  - MTD details use the pay profile's own flow.
+- Every write follows the HR pattern: a fresh permission check under lock, `DB::transaction`, row locks, `lock_version`, an idempotency key, and audit with ids, codes and versions only, never an amount.
+- MTD details are not secret amounts: category, children and the disability flags. They are personal data, shown only where the pay profile is.
+
+### 18.7 Tables (sketch)
+| Table | Holds |
+|---|---|
+| `hr_mtd_schedules` | year, source note, rounding, the smallest MTD, the reliefs and the EPF limit (sen), status, entered by, decided by, lock version |
+| `hr_mtd_schedule_rows` | append-only: position, chargeable from and to (sen), rate (basis points), tax on M for categories 1 and 3, and for category 2 (sen) |
+| `hr_pay_profiles` (+) | `mtd_category`, `mtd_children`, `mtd_disabled_self`, `mtd_disabled_spouse` (nullable; required with MTD for new profiles) |
+
+Migrations from `2026_11_10_002900` (after HR-7c's `002800`).
+
+### 18.8 Screens (Hui Min, with Daniel's look)
+- **Tables tab:** an "MTD schedule" card beside the other tables (year, status, bands and reliefs), with Enter, Check, Reject and Withdraw as for the other tables.
+- **Pay profile form:** the MTD fields under the MTD tick.
+- **Run lines:** the worked-out MTD with its sentence, and the typed one marked as typed. The MTD box still lets the preparer type a figure.
+
+### 18.9 Tests (planned)
+- Hand-worked synthetic cases:
+  - category 1, 2 and 3;
+  - children and disability;
+  - a person over the EPF limit;
+  - January and December;
+  - a mid-year joiner with earlier runs in the year;
+  - rounding to 5 sen;
+  - below the smallest MTD.
+- Year to date counts only locked runs of the same year and the same person.
+- A typed MTD replaces the worked one, and the run says so.
+- No checked schedule, or no band, gives an error; a profile without details keeps "MTD not entered".
+- The two-person check and the PostgreSQL append-only rules on the schedule.
+- No amount in audit.
+
+### 18.10 Questions for the owner and the accountant [TO CONFIRM], with the defaults used
+1. **Method:** LHDN's computerised calculation for normal remuneration, with the clinic entering the year's schedule and reliefs (default). Or keep typing MTD from the LHDN calculator?
+2. **TP1, TP3 and zakat:** left for a later slice (default), with the mid-year joiner warning.
+3. **Bonuses and arrears** (additional remuneration): MTD typed by hand on the adjustment run (default).
+4. **Who may type over a worked-out MTD:** any preparer, with the run showing both figures (default).
+5. **Rounding and the smallest MTD:** entered on each year's schedule (default: no value shipped).
+
+### 18.11 Known risks and limits
+- Correctness depends entirely on the schedule and reliefs the clinic enters, and on the accountant confirming the method against LHDN's current specification.
+- TP1, TP3, zakat and additional remuneration are not counted in HR-7d, so those people need a typed MTD.
+- Year to date counts only KPOne's own locked runs. Pay from before KPOne payroll began is not counted.
+- Variable overtime is projected over the remaining months like basic pay (an accountant question).
+- Child relief has one rate for every child; LHDN's differs by the child's age, education and disability (Suresh, M4).
+- In a joiner's or leaver's month the part-month pay is projected over the remaining months, so that month's MTD is low; later months catch up through X.
+- Each band's "From" is M; with bands running on by one sen, M is 1 sen from LHDN's figure for later bands (negligible).
+- A worker in two regular runs for one month (a pay group change, from HR-7b) would be counted twice in the year to date.
+- Adjustment runs carry no MTD line in v1.
+- The person's MTD details are never flashed into the session (`dontFlash`).
+- Deploy note: drafts prepared before the deploy ask to be prepared again once, because the run fingerprint gains the MTD schedule.
+- An earlier month this year whose run was never prepared is not detected: the year to date silently lacks it.

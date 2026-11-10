@@ -10,10 +10,31 @@ final class ClinicManagementNavigation
 {
     public function __construct(private BranchAccessService $branches, private BillingWorkAccess $billing) {}
 
-    /** @return list<array{title: string, icon: string, links: list<array{title: string, description: string, href: string}>}> */
+    /**
+     * The hub's exact rows (ClinicManagementController).
+     *
+     * @return list<array{title: string, icon: string, links: list<array{title: string, description: string, href: string}>}>
+     */
     public function groups(User $actor): array
     {
-        $branch = $this->branches->activeBranch($actor) !== null;
+        return $this->build($actor, true);
+    }
+
+    /**
+     * Whether the hub has anything for this person: the shell's menu flag, built on every page. It skips the one
+     * row check that needs the person's staff profile (the approval inbox's branch assignment, AG-11), so ordinary
+     * pages read no staff record for the menu; every person who may see the inbox also has other rows.
+     */
+    public function hasDestinations(User $actor): bool
+    {
+        return $this->build($actor, false) !== [];
+    }
+
+    /** @return list<array{title: string, icon: string, links: list<array{title: string, description: string, href: string}>}> */
+    private function build(User $actor, bool $exact): array
+    {
+        $activeBranch = $this->branches->activeBranch($actor);
+        $branch = $activeBranch !== null;
         $settings = $branch && $actor->can('catalogue.settings.manage.organisation');
         $panels = $actor->can('panels.manage.organisation');
         $display = $actor->can('queue_display.manage.organisation') || $actor->can('queue_display.manage.branch');
@@ -96,6 +117,17 @@ final class ClinicManagementNavigation
             [$branch && $actor->can('website.content.view.organisation'), 'Branch public profiles', 'Edit private EN and BM website drafts. Nothing is public yet.', 'website.profiles'],
             [$branch && $actor->can('website.assets.manage.organisation'), 'Media library', 'Manage sanitised private website images and rights references.', 'website.media'],
         ]);
+        // AG-11 (the owner's choice, 2026-11-07): the AI agent pages, each shown only to people who may open it.
+        // The inbox lists the active branch's suggestions and opens only where the viewer is assigned today (ProposalInbox);
+        // the registry and office are organisation-wide.
+        $add('AI agents', 'agents', [
+            [$actor->can('ai_agents.view.organisation'), 'All agents', 'See each AI agent, what it reads and its latest runs.', 'agents.index'],
+            [$actor->can('ai_agents.view.organisation'), 'Agent office', 'Watch the AI agents at work in the office view.', 'agents.office'],
+            [$actor->can('ai_assistant.use.organisation'), 'Quick answers', 'Ask preset questions about today, money, Panel and stock.', 'agents.assistant'],
+            // AG-8's page lists every branch the viewer works at today, so it needs no active branch.
+            [$actor->can('ai_daily_summary.view.branch'), 'AI daily summary', 'Read the 07:00 report and the 14:00 update from the AI agents.', 'agents.daily-summary'],
+            [$activeBranch !== null && $actor->can('ai_proposals.view.branch') && (! $exact || $this->branches->hasEffectiveAssignment($actor, $activeBranch)), 'Approval inbox', 'Approve or reject AI agent suggestions for this branch. Approving changes nothing in stock.', 'agents.inbox'],
+        ]);
         $add('Documents', 'documents', [
             [$settings, 'MC template previews', 'Review fixed English and Bahasa Melayu wording. No issuance.', 'medical-certificate-templates.index'],
         ]);
@@ -109,7 +141,8 @@ final class ClinicManagementNavigation
             [$actor->can('hr.credentials.view.own') || $actor->can('hr.credentials.manage.organisation'), 'KPOne HR credentials', 'Your certificates and renewals, and the credentials register for HR.', 'hr.credentials.index'],
             [$actor->can('hr.sops.acknowledge.own') || $actor->can('hr.sops.manage.organisation'), 'KPOne HR SOPs', 'SOPs to read for your role, and who has acknowledged them for HR.', 'hr.sops.index'],
             [$actor->can('hr.claims.submit.own') || $actor->can('hr.claims.approve.organisation') || $actor->can('hr.claims.pay.organisation') || $actor->can('hr.claims.manage.organisation'), 'KPOne HR staff claims', 'Claim back what you paid for the clinic; approvals, payments recorded and settings for HR and Finance.', 'hr.claims.index'],
-            [$actor->can('hr.payroll.prepare.organisation'), 'KPOne HR payroll', 'Pay profiles, statutory tables and pay settings, each checked by a second person.', 'hr.payroll.index'],
+            [$actor->can('hr.payroll.prepare.organisation') || $actor->can('hr.payroll.export.organisation'), 'KPOne HR payroll', 'Payroll runs, pay profiles, statutory tables and exports, each checked by a second person.', 'hr.payroll.index'],
+            [$actor->can('hr.applications.manage.organisation'), 'KPOne HR job applications', 'Open positions and the applications sent from the public form.', 'hr.applications.index'],
             [$actor->can('staff.view.own') || $actor->can('staff.view.branch') || $actor->can('staff.view.organisation'), 'Staff', 'Review staff within your existing access.', 'staff.index'],
             [$actor->can('branches.view.branch') || $actor->can('branches.view.organisation'), 'Branches', 'Review the clinic locations you may access.', 'branches.index'],
             [$actor->can('access.view.organisation'), 'Access Control', 'Review existing roles and permissions.', 'access-control.index'],

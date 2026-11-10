@@ -170,6 +170,22 @@ class ClinicInsightsReportService
     }
 
     /**
+     * BIL-10: approved refund credits by approval time, in the same branch periods and doctor filter as invoices.
+     *
+     * @param  InsightPeriods  $periods
+     */
+    private function creditQuery(User $actor, array $periods, ?int $doctorId): Builder
+    {
+        $query = InvoiceSalesProjection::approvedCredits($actor->organisation_id);
+        $this->scopePeriod($query, $periods, 'decided_at', 'branch_id');
+        if ($doctorId !== null) {
+            $query->whereIn('consultation_checkout_id', DB::table('consultation_checkouts')->where('attending_doctor_user_id', $doctorId)->select('id'));
+        }
+
+        return $query;
+    }
+
+    /**
      * @param  InsightPeriods  $periods
      */
     private function invoiceQuery(User $actor, array $periods, ?int $doctorId = null): Builder
@@ -199,9 +215,13 @@ class ClinicInsightsReportService
     {
         $current = $this->invoiceQuery($actor, $periods, $doctorId);
         $prior = $this->invoiceQuery($actor, $previous, $doctorId);
-        $total = (int) (clone $current)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
+        $credits = $this->creditQuery($actor, $periods, $doctorId);
+        $creditSen = (int) (clone $credits)->sum('amount_sen');
+        $invoiceTotal = (int) (clone $current)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
+        // BIL-10: refund credits come off net sales on the day the refund was approved.
+        $total = $invoiceTotal - $creditSen;
         $patientCount = (int) (clone $current)->distinct()->count('invoices.patient_id');
-        $previousTotal = (int) (clone $prior)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
+        $previousTotal = (int) (clone $prior)->sum(DB::raw(InvoiceSalesProjection::PAYABLE)) - (int) $this->creditQuery($actor, $previous, $doctorId)->sum('amount_sen');
         $previousPatients = (int) (clone $prior)->distinct()->count('invoices.patient_id');
 
         $returning = DB::table('invoices')
@@ -221,7 +241,7 @@ class ClinicInsightsReportService
             ->where('previous.status', 'completed')
             ->whereColumn('previous.completed_at', '<', 'invoices.finalized_at');
         $returningTotal = (int) (clone $returning)->whereExists($priorVisit)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
-        $newTotal = $total - $returningTotal;
+        $newTotal = $invoiceTotal - $returningTotal; // New and returning are invoice sales; refund credits are their own row.
 
         $rows = (clone $current)->selectRaw('invoices.branch_id, invoices.finalized_at, invoices.patient_id, kpone_invoice_payable(invoices.id) AS total_sen')->get();
         $days = [];
@@ -231,6 +251,10 @@ class ClinicInsightsReportService
             $key = CarbonImmutable::parse($row->finalized_at, 'UTC')->setTimezone($branch->timezone)->toDateString();
             $days[$key] = ($days[$key] ?? 0) + (int) $row->total_sen;
             $dailyPatients[$key][$row->patient_id] = true;
+        }
+        foreach ((clone $credits)->get(['branch_id', 'decided_at', 'amount_sen']) as $credit) {
+            $key = CarbonImmutable::parse($credit->decided_at, 'UTC')->setTimezone($periods[$credit->branch_id]['branch']->timezone)->toDateString();
+            $days[$key] = ($days[$key] ?? 0) - (int) $credit->amount_sen;
         }
 
         $loadRankings = function (array $lineTypes) use ($actor, $periods, $doctorId): Collection {
@@ -302,7 +326,7 @@ class ClinicInsightsReportService
             'kind' => 'sales',
             'summary' => [
                 'totalSen' => $total,
-                'reconciliation' => InvoiceSalesProjection::reconciliation($current),
+                'reconciliation' => InvoiceSalesProjection::reconciliation($current, $creditSen),
                 'newSen' => $newTotal,
                 'returningSen' => $returningTotal,
                 'patients' => $patientCount,
@@ -311,7 +335,7 @@ class ClinicInsightsReportService
                 'previousPatients' => $previousPatients,
                 'previousPerPatientSen' => $previousPatients === 0 ? 0 : (int) round($previousTotal / $previousPatients),
             ],
-            'dailyTrend' => collect($days)->sortKeys()->map(static fn (int $value, string $date): array => ['date' => $date, 'salesSen' => $value, 'patients' => count($dailyPatients[$date])])->values()->all(),
+            'dailyTrend' => collect($days)->sortKeys()->map(static fn (int $value, string $date): array => ['date' => $date, 'salesSen' => $value, 'patients' => count($dailyPatients[$date] ?? [])])->values()->all(),
             'services' => $services['rows'],
             'medicines' => $medicines['rows'],
             'rankingTruncated' => [

@@ -30,6 +30,7 @@ use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Billing\Models\CashClosingDecision;
 use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\Invoice;
+use App\Domain\Visit\Billing\Models\InvoiceCredit;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PaymentRefund;
@@ -135,7 +136,8 @@ class PostgresBillingRegressionTest extends TestCase
         // BIL-5: the invoice row lock (and the version and label triggers) put two presses of Print in order.
         $f = $this->billingFixture();
         foreach (['ca', 'ca2'] as $key) {
-            foreach (['billing.print.branch', 'billing.bill_to.view.branch', 'billing.view.branch'] as $permission) {
+            // BIL-9: the printer must also see the patient's identity, as CA and CA Supervisor do.
+            foreach (['billing.print.branch', 'billing.bill_to.view.branch', 'billing.view.branch', 'patients.view.organisation'] as $permission) {
                 $f[$key]->givePermissionTo(Permission::findOrCreate($permission, 'web'));
             }
         }
@@ -538,6 +540,38 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame(1, PaymentRefundDecision::query()->where('organisation_id', $f['organisation']->id)->count());
     }
 
+    public function test_two_refunds_after_completion_racing_on_one_receipt_never_exceed_it(): void
+    {
+        // BIL-13: two people each record a refund after completion of RM 30.00 on one RM 40.00 receipt at the same
+        // moment. The receipt row lock (service and PostgreSQL rule) makes them run one after the other, and the second
+        // re-reads the first, so exactly one is recorded and the receipt is never refunded beyond its amount.
+        $f = $this->completedRefundFixture();
+        $args = fn (): array => [...$this->refundArgs($f), 'reason_code' => 'medicine_returned', 'amount_sen' => 3000, 'idempotency_key' => (string) Str::uuid()];
+        $out = $this->race([
+            $this->billWorker($f, 'bill-refund', $args(), 'supervisor'),
+            $this->billWorker($f, 'bill-refund', $args(), 'finance'),
+        ], $f['receipt']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE amount_sen'), $out);
+        $this->assertSame([3000], PaymentRefund::query()->where('organisation_id', $f['organisation']->id)->pluck('amount_sen')->all());
+        $this->assertSame(1, InvoiceCredit::query()->where('invoice_id', $f['invoice']->id)->count());
+        $this->assertSame(1, DB::table('audit_logs')->where('organisation_id', $f['organisation']->id)->where('event', 'billing.refund_recorded')->count());
+    }
+
+    public function test_two_refunds_after_completion_that_fit_together_are_both_recorded(): void
+    {
+        // Two refunds of RM 20.00 on one RM 40.00 receipt fit together: both are recorded, one after the other.
+        $f = $this->completedRefundFixture();
+        $args = fn (): array => [...$this->refundArgs($f), 'reason_code' => 'goodwill', 'amount_sen' => 2000, 'idempotency_key' => (string) Str::uuid()];
+        $out = $this->race([
+            $this->billWorker($f, 'bill-refund', $args(), 'supervisor'),
+            $this->billWorker($f, 'bill-refund', $args(), 'finance'),
+        ], $f['receipt']);
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(4000, (int) PaymentRefund::query()->where('organisation_id', $f['organisation']->id)->sum('amount_sen'));
+        $this->assertSame(2, InvoiceCredit::query()->where('invoice_id', $f['invoice']->id)->count());
+    }
+
     public function test_void_reissue_and_payment_cannot_both_win(): void
     {
         $f = $this->billingFixture();
@@ -680,6 +714,26 @@ class PostgresBillingRegressionTest extends TestCase
         $f['closing'] = app(CashClosingService::class)->count($f['ca'], ['expected_branch_id' => $f['branch']->id, 'business_date' => $f['day']->toDateString(),
             'counted_cash' => '0.00', 'variance_reason' => null, 'idempotency_key' => (string) Str::uuid()]);
         $this->assertSame(0, $f['closing']->expected_cash_sen);
+
+        return $f;
+    }
+
+    /**
+     * BIL-13: the cash closing fixture's RM 40.00 receipt stays posted and the visit is completed, so its money can be
+     * refunded after completion. A CA Supervisor and a Finance Officer may both record refunds.
+     */
+    private function completedRefundFixture(): array
+    {
+        $f = $this->cashClosingFixture();
+        foreach (['payments.refunds.record.branch'] as $permission) {
+            $f['finance']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+            $f['supervisor']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        }
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        app(CompleteVisitationService::class)->complete($f['ca'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->refresh()->lock_version, 'visit_lock_version' => $f['visit']->refresh()->lock_version]);
+        $this->assertSame(Visit::STATUS_COMPLETED, $f['visit']->refresh()->status);
+        $f['invoice']->refresh();
+        $f['receipt']->refresh();
 
         return $f;
     }
@@ -1152,7 +1206,7 @@ class PostgresBillingRegressionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic evidence.
-            foreach (['issued_billing_document_prints', 'issued_billing_documents', 'payment_refund_decisions', 'payment_refunds', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
+            foreach (['issued_billing_document_prints', 'issued_billing_documents', 'invoice_credits', 'payment_refund_decisions', 'payment_refunds', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");
