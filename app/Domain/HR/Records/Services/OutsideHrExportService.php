@@ -101,7 +101,12 @@ final class OutsideHrExportService
             array_values($rows)];
     }
 
-    /** @return array{0: list<string>, 1: list<list<string>>} approved leave overlapping the month, never its reason */
+    /**
+     * Approved leave overlapping the month: "On leave" only, never the leave type or the reason, because a type such
+     * as sick, maternity or hospitalisation is health information (owner, 2026-11-10: "On leave only").
+     *
+     * @return array{0: list<string>, 1: list<list<string>>}
+     */
     private function leave(User $actor, CarbonImmutable $month): array
     {
         $rows = DB::table('hr_leave_requests as r')->join('hr_leave_types as t', 't.id', '=', 'r.leave_type_id')->join('users as u', 'u.id', '=', 'r.user_id')
@@ -109,15 +114,15 @@ final class OutsideHrExportService
             ->where('r.organisation_id', $actor->organisation_id)->where('r.status', 'approved')
             ->where('r.start_date', '<=', $month->endOfMonth()->toDateString())->where('r.end_date', '>=', $month->toDateString())
             ->orderBy('r.start_date')->orderBy('r.id')
-            ->get(['w.public_id', 'u.name', 't.name as type', 't.is_paid', 'r.start_date', 'r.end_date', 'r.start_part', 'r.end_part', 'r.halves'])
-            ->map(fn (\stdClass $r): array => [(string) ($r->public_id ?? ''), (string) $r->name, (string) $r->type,
+            ->get(['w.public_id', 'u.name', 't.is_paid', 'r.start_date', 'r.end_date', 'r.start_part', 'r.end_part', 'r.halves'])
+            ->map(fn (\stdClass $r): array => [(string) ($r->public_id ?? ''), (string) $r->name, 'On leave',
                 CarbonImmutable::parse((string) $r->start_date)->toDateString().($r->start_part === 'full' ? '' : ' ('.$r->start_part.')'),
                 CarbonImmutable::parse((string) $r->end_date)->toDateString().($r->end_part === 'full' ? '' : ' ('.$r->end_part.')'),
                 intdiv((int) $r->halves, 2).((int) $r->halves % 2 === 1 ? '.5' : ''), $r->is_paid ? 'Yes' : 'No'])->values()->all();
         $rows = array_values($rows);
 
         // Days are the whole request's, so a request crossing months appears in each month's file (Suresh, M1).
-        return [['KPOne ID', 'Name', 'Leave type', 'From', 'To', 'Days in request', 'Paid'], $rows];
+        return [['KPOne ID', 'Name', 'Leave', 'From', 'To', 'Days in request', 'Paid'], $rows];
     }
 
     /** @return array{0: list<string>, 1: list<list<string>>} approved overtime in the month, minutes only, never pay */
