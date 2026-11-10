@@ -86,3 +86,16 @@ test('the Settings tab shows fridges to those who manage them and the page offer
         /range with your pharmacist or vaccine supplier/i,
     );
 });
+
+test('Daniel changes: day cards below 1024 px, one menu for the rare action, a live out-of-range line, plain "today" wording', () => {
+    assert.match(src.tab, /data-test="day-cards"/);
+    assert.match(src.tab, /lg:hidden/);
+    assert.match(src.tab, /More actions for the \$\{clock\(/);
+    assert.match(src.tab, /data-test="outside-range"/);
+    assert.match(src.tab, /Saving it will raise an\s+alert/);
+    assert.match(
+        src.tab,
+        /today\s+\(\{\{\s*f\.readingsPerDay\s*\}\}\s+expected\)/,
+    );
+    assert.match(src.tab, /fridge\.fridges\.length >= 2/);
+});

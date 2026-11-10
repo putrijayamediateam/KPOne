@@ -2,11 +2,17 @@
 // HR-11b vaccine fridge log. A record of what a person typed, not a certification. In range, Out of range and Missed are
 // worked out by the server when the page opens. Alerts use the danger tone with an icon and words, never colour alone.
 import { router, usePage } from '@inertiajs/vue3';
-import { TriangleAlert } from '@lucide/vue';
+import { Ellipsis, TriangleAlert } from '@lucide/vue';
 import { computed, reactive } from 'vue';
 import { dateLabel } from '@/components/hr/records/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { OperationalSelect } from '@/components/ui/select';
@@ -38,6 +44,13 @@ const when = (iso: string, zone: string) =>
         timeStyle: 'short',
         timeZone: zone,
     }).format(new Date(iso));
+const clock = (iso: string, zone: string) =>
+    new Intl.DateTimeFormat('en-GB', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+        timeZone: zone,
+    }).format(new Date(iso));
 const goMonth = (month: string) =>
     router.get(base, { tab: 'fridge', month }, { preserveScroll: true });
 const numbers = (r: ReadingView) =>
@@ -54,6 +67,21 @@ const dayLine = (d: DayView) =>
         : `${d.count} reading${d.count === 1 ? '' : 's'}`;
 
 // ---- Add a reading ----
+// A live warning while typing: the server decides what is out of range; this only tells the person beforehand.
+const outside = computed(() => {
+    const f = reading.fridge;
+    const text = reading.temp.trim();
+
+    if (!f || !/^-?\d{1,2}(\.\d)?$/.test(text)) {
+        return '';
+    }
+
+    const n = Number(text);
+
+    return n < Number(f.min) || n > Number(f.max)
+        ? `${text} °C is outside ${f.min} to ${f.max} °C.`
+        : '';
+});
 const reading = reactive({
     open: false,
     fridge: null as FridgeCard | null,
@@ -178,24 +206,24 @@ const sendMistake = () => {
             class="flex flex-wrap items-center justify-between gap-2"
             data-test="fridge-month"
         >
-            <div class="flex items-center gap-2">
-                <Button
-                    type="button"
-                    variant="outline"
-                    class="min-h-11 lg:min-h-9"
-                    @click="goMonth(fridge.previousMonth)"
-                    >Previous month</Button
-                >
-                <Button
-                    type="button"
-                    variant="outline"
-                    class="min-h-11 lg:min-h-9"
-                    :disabled="!fridge.nextMonth"
-                    @click="fridge.nextMonth && goMonth(fridge.nextMonth)"
-                    >Next month</Button
-                >
-            </div>
-            <p class="text-sm font-medium">{{ fridge.monthLabel }}</p>
+            <Button
+                type="button"
+                variant="outline"
+                class="min-h-11 lg:min-h-9"
+                @click="goMonth(fridge.previousMonth)"
+                >Previous<span class="sr-only"> month</span></Button
+            >
+            <p class="text-sm font-medium" aria-live="polite">
+                {{ fridge.monthLabel }}
+            </p>
+            <Button
+                type="button"
+                variant="outline"
+                class="min-h-11 lg:min-h-9"
+                :disabled="!fridge.nextMonth"
+                @click="fridge.nextMonth && goMonth(fridge.nextMonth)"
+                >Next<span class="sr-only"> month</span></Button
+            >
         </div>
 
         <ErrorState
@@ -209,7 +237,7 @@ const sendMistake = () => {
         />
 
         <div
-            v-if="fridge.alertCount > 0"
+            v-if="fridge.alertCount > 0 && fridge.fridges.length >= 2"
             class="flex items-start gap-2 rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
             role="status"
             data-test="fridge-alert-banner"
@@ -245,9 +273,9 @@ const sendMistake = () => {
                     </h2>
                     <p class="text-xs text-muted-foreground">
                         {{ f.branchName }} · Allowed {{ f.min }} to
-                        {{ f.max }} °C · Today {{ f.todayCount }} of
-                        {{ f.readingsPerDay }}
-                        {{ f.readingsPerDay === 1 ? 'reading' : 'readings' }}
+                        {{ f.max }} °C · {{ f.todayCount }}
+                        {{ f.todayCount === 1 ? 'reading' : 'readings' }} today
+                        ({{ f.readingsPerDay }} expected)
                     </p>
                 </div>
                 <Button
@@ -356,16 +384,29 @@ const sendMistake = () => {
                         · {{ r.review.by }}, {{ when(r.review.at, f.timezone) }}
                     </p>
                     <div v-if="f.canManage && !r.errorReason">
-                        <Button
-                            type="button"
-                            variant="outline"
-                            class="min-h-11 lg:min-h-9"
-                            @click="openMistake(r)"
-                            >Mark entered in error<span class="sr-only">
-                                for the reading at
-                                {{ when(r.takenAt, f.timezone) }}</span
-                            ></Button
-                        >
+                        <DropdownMenu>
+                            <DropdownMenuTrigger as-child>
+                                <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    class="min-h-11 min-w-11 lg:min-h-9 lg:min-w-9"
+                                    :aria-label="`More actions for the ${clock(r.takenAt, f.timezone)} reading`"
+                                    data-action="reading-menu"
+                                >
+                                    <Ellipsis
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="start" class="w-56">
+                                <DropdownMenuItem
+                                    class="min-h-11 lg:min-h-9"
+                                    @select="openMistake(r)"
+                                    >Mark entered in error</DropdownMenuItem
+                                >
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </li>
             </ul>
@@ -375,7 +416,51 @@ const sendMistake = () => {
             >
                 Day by day
             </h3>
-            <div class="mt-1 overflow-x-auto">
+            <ul class="mt-1 divide-y lg:hidden" data-test="day-cards">
+                <li
+                    v-for="d in f.days"
+                    :key="d.date"
+                    class="flex flex-col gap-1 py-3 text-sm"
+                >
+                    <p
+                        class="flex flex-wrap items-center justify-between gap-2"
+                    >
+                        <span class="font-medium">{{ dateLabel(d.date) }}</span>
+                        <span class="flex flex-wrap items-center gap-1">
+                            <StatusBadge
+                                v-if="d.outOfRange"
+                                status="out_of_range"
+                                label="Out of range"
+                                tone="danger"
+                            />
+                            <StatusBadge
+                                v-if="d.missed"
+                                status="missed"
+                                label="Missed"
+                                tone="warning"
+                            />
+                            <span
+                                v-if="!d.outOfRange && !d.missed"
+                                class="text-xs text-muted-foreground"
+                                >{{
+                                    d.count > 0
+                                        ? 'Done'
+                                        : d.isToday
+                                          ? 'Not yet'
+                                          : ''
+                                }}</span
+                            >
+                        </span>
+                    </p>
+                    <p class="text-xs text-muted-foreground tabular-nums">
+                        {{ dayLine(d)
+                        }}<template v-if="d.lowest !== null">
+                            · {{ d.lowest }} to {{ d.highest }} °C</template
+                        >
+                    </p>
+                </li>
+            </ul>
+            <div class="mt-1 hidden overflow-x-auto lg:block">
                 <table class="w-full min-w-[28rem] text-sm">
                     <caption class="sr-only">
                         Daily readings for
@@ -496,6 +581,21 @@ const sendMistake = () => {
                             class="max-lg:h-11"
                             :aria-invalid="!!errors.temp"
                         />
+                        <p
+                            v-if="outside"
+                            class="flex items-start gap-1.5 text-xs text-warning-strong"
+                            role="status"
+                            data-test="outside-range"
+                        >
+                            <TriangleAlert
+                                class="mt-0.5 size-3.5 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <span
+                                >Warning: {{ outside }} Saving it will raise an
+                                alert.</span
+                            >
+                        </p>
                         <InputError :message="errors.temp" />
                     </div>
                     <div class="grid gap-1.5">
