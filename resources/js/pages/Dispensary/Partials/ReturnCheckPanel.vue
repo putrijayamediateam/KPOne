@@ -538,7 +538,7 @@ const serverAlert = computed(() => {
                                     ? `${id(`share-${batch.publicId}-available`)} ${id(`share-${batch.publicId}-error`)}`
                                     : id(`share-${batch.publicId}-available`)
                             "
-                            class="h-11 w-24 rounded-md border border-input bg-card px-3 text-right tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60 aria-invalid:border-destructive sm:h-9"
+                            class="h-9 w-24 rounded-md border border-input bg-card px-3 text-right tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60 aria-invalid:border-destructive max-lg:h-11"
                             data-field="check-share"
                         />
                         <span class="text-muted-foreground">{{
@@ -581,7 +581,7 @@ const serverAlert = computed(() => {
                     <Button
                         type="button"
                         variant="outline"
-                        class="h-11 w-full sm:h-9 sm:w-auto"
+                        class="h-9 w-full max-lg:h-11 sm:w-auto"
                         :disabled="form.processing || anyTyped"
                         data-action="fill-earliest-expiry"
                         @click="fillFromEarliestExpiry"

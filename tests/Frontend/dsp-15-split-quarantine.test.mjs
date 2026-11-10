@@ -161,3 +161,9 @@ test('review fixes: batch errors still show, typing clears only batch messages, 
     // A one-batch line is blocked with a reason too.
     assert.ok(panel.includes('props.line.quarantineAvailable !== null &&'));
 });
+
+test('the new boxes and the fill button follow DD-24: 44 px below 1024 px (Daniel)', () => {
+    assert.ok(panel.includes('class="h-9 w-24 '));
+    assert.ok(/class="h-9 w-24 [^"]*max-lg:h-11"/.test(panel));
+    assert.ok(panel.includes('class="h-9 w-full max-lg:h-11 sm:w-auto"'));
+});
