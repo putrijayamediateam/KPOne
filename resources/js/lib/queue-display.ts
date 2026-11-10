@@ -40,11 +40,11 @@ const SERVICE_FALLBACK: Record<
     CallService,
     { display: string; ms: string; en: string }
 > = {
-    consultation: { display: ROOM_FALLBACK, ms: 'Kaunter', en: 'Counter' },
-    dispensary: { display: 'Pharmacy', ms: 'Farmasi', en: 'Pharmacy' },
+    consultation: { display: ROOM_FALLBACK, ms: 'Counter', en: 'Counter' },
+    dispensary: { display: 'Pharmacy', ms: 'Pharmacy', en: 'Pharmacy' },
     treatment: {
         display: 'Treatment Room',
-        ms: 'Bilik rawatan',
+        ms: 'Treatment room',
         en: 'Treatment room',
     },
 };
