@@ -109,6 +109,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-9 | Issued invoices and receipts follow the clinic's own paper: letterhead in capitals with Email and Tel (second phone when set), To block with name, IC/passport and phone, item table, seven category totals, totals with Invoice total, Panel covers and Pay later, a receipt sentence, item table and invoice number, VOID on a void invoice. Versions issued before keep their D03 layout; `myr()` prints negative amounts as −RM x. Design note: `BIL-9-DESIGN.md` | PR #388 |
 | BIL-10 | Refunds after a visit is completed: part or all of one posted receipt (never more than the receipt less its refunds that are not rejected), recorded by a CA Supervisor or Finance Officer and approved or rejected by a Finance Officer or Director, never the recorder (the two BIL-6 permissions). Each carries an invoice credit of the same amount: once approved, the ledger lowers the invoice total and what was paid together, so nothing becomes due again. Billing page refund panel (amount, method, reason), "Refunded … · … kept" under the receipt and a "Refund credit" line on the Billing, Invoice and printed invoice; Insights and the Sales CSV show "Refund credits" as their own row on the approval day; Daily summary and Transaction Detail gain a "Refunded after completion" column. Additive migration with PostgreSQL guards (`invoice_credits`, `payment_refunds.kind`). Design note: `BIL-10-DESIGN.md` | PR #392 |
 | BIL-11 | Each service line keeps its clinical service's category as priced (frozen at finalisation), so a later rename never moves money between the printed category rows or revises the copy. Invoices finalised before BIL-11 keep reading the live category (owner decision). Additive nullable column; no screen, amount or permission change. Design note: `BIL-11-DESIGN.md` | PR #404 |
+| BIL-12 | Insights provider tables (Sales and Today) take each approved refund credit off its invoice's doctor, or the OTC row, on the approval day, so the rows add up to the headline net sales (owner decision). No permission, migration or screen change. Design note: `BIL-12-DESIGN.md` | PR #405 |
 | BIL-13 | PostgreSQL race tests for refunds after completion: two refunds at once on one receipt never exceed it (one recorded, the other refused on the amount), and two that fit together are both recorded. The race test cleanup also removes invoice credits. Test only | PR #399 |
 | BIL-15 | Cash closing start date per branch: a Director or Finance Officer sets the first day the monthly cash closing (BIL-7) expects daily counts, on the cash closing month page; without one the start stays the first count. Append-only revisions, audited; a start date moved later is announced on the page and never hides counts already made. New permission `payments.cash_closing.start_date.manage.branch` (finance_officer, director; additive migration `2026_11_12_200100`). No change to counts, approvals or amounts | PR pending |
 
@@ -226,6 +227,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     (listed in the PR). Details in `BIL-10-DESIGN.md` sections 6 and 8.
 32. BIL-11 frozen service category (2026-11-07, the owner in the Billing session): invoices finalised before BIL-11
     keep reading the live category; every invoice finalised after carries its frozen category.
+33. BIL-12 refund credits in the Insights provider table (2026-11-07, the owner in the Billing session): each credit
+    comes off its invoice's doctor (or the OTC row) on the approval day; rows add up to the headline.
 34. BIL-15 cash closing start date (2026-11-07 and 2026-11-10, the owner in the Billing session): set by a Director or
     Finance Officer, on the cash closing month page; no date set means the start is the branch's first count. Moving the
     date later is allowed and audited, and the month page says "Start date changed on X (was Y)". There is no "clear"
@@ -320,8 +323,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   other or older free-text category counts as Service); the old live
   `/print` preview keeps the D03 layout; copies issued before keep theirs; IC/passport and phone on paper are a PDPA
   point before real use.
-- Refunds after completion (BIL-10): see `BIL-10-DESIGN.md` section 9 (Insights Provider table stays invoice-based;
+- Refunds after completion (BIL-10): see `BIL-10-DESIGN.md` section 9 (Insights Provider table nets credits since BIL-12;
   one invoice per refunded receipt; the race test is BIL-13).
+- Insights provider credits (BIL-12): when the Range provider list is cut at 100 doctors, a doctor below the cut who
+  has a credit in the period is not added with only that credit (their sales are not shown either); the existing
+  "truncated" note explains why the rows then do not add up to the headline. Below 100 doctors the rows always add up.
 - Cash closing start date (BIL-15): no way back to "no date set" (owner decision). A request key reused on two
   different branches at the same moment can fail with a server error instead of a message (the branch check normally
   catches it first). A month before the start that holds counts still shows them in full.
