@@ -159,6 +159,7 @@ final class JobApplicationIntake
                         'message_encrypted' => $fields['message'] === null ? null : Crypt::encryptString($fields['message']),
                         'details_encrypted' => Crypt::encryptString(json_encode($fields['details'], JSON_THROW_ON_ERROR)),
                         'talent_pool_consent' => $fields['talent_pool_consent'],
+                        'talent_pool_text_version' => $fields['talent_pool_consent'] ? (string) config('hr-applications.pool_text_version', 'draft-hr17e-pool-v1') : null,
                         'cv_path' => $path, 'cv_bytes' => $prepared['bytes'], 'cv_sha256' => $prepared['sha256'],
                         'privacy_notice_version' => self::privacyVersion(), 'form_nonce' => $nonce, 'submitted_at' => $now,
                         'status_token_hash' => $tokenHash, 'stage_entered_at' => $now,
@@ -252,9 +253,8 @@ final class JobApplicationIntake
         }
 
         return ['position' => $position, 'name' => $name, 'phone' => $phone, 'email' => mb_strtolower($email), 'message' => $raw === '' ? null : $raw,
-            // No talent pool yet: the form does not ask, and nothing sent is taken as consent until HR-17e builds the
-            // pool and a way to withdraw (Suresh, HR-17a).
-            'details' => $details, 'talent_pool_consent' => false];
+            // HR-17e: an optional, separate tick, never preset; the candidate can leave the pool on their private page.
+            'details' => $details, 'talent_pool_consent' => filter_var($input['talent_pool'] ?? false, FILTER_VALIDATE_BOOL)];
     }
 
     /**
