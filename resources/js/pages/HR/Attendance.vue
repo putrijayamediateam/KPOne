@@ -1659,6 +1659,13 @@ const correctionStatusTone = (
                         {{ clock.consentFor === 'out' ? 'out' : 'in' }} without
                         it.
                     </SheetDescription>
+                    <p
+                        class="text-xs text-muted-foreground"
+                        data-test="location-consent-draft"
+                    >
+                        Draft wording until the clinic's PDPA review. Synthetic
+                        data only.
+                    </p>
                 </SheetHeader>
                 <div class="flex flex-col gap-4 px-4 pb-4 text-sm">
                     <section class="flex flex-col gap-1">

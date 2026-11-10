@@ -32,6 +32,11 @@ test('the location is read once, at the press, and never tracked or kept in the 
 
 test('consent is shown once, in English and Bahasa Melayu, and clocking in without location is always offered', () => {
     assert.match(page, /data-test="location-consent"/);
+    // The text stays marked as a draft on screen until the PDPA review (B.E.R.N.I.S.S).
+    assert.match(
+        page,
+        /data-test="location-consent-draft"[\s\S]{0,80}Draft wording until the clinic's PDPA review\./,
+    );
     assert.match(page, /consentEn[\s\S]{0,400}lang="ms"[\s\S]{0,300}consentBm/);
     assert.match(
         page,
