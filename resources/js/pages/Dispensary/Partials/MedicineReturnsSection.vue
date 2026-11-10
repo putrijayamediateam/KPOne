@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status';
 import {
+    batchesLine,
     refuseReasonLabels,
     returnConditionLabels,
     returnReasonLabels,
@@ -259,9 +260,12 @@ const onChecked = async (row: ReturnRow, message: string) => {
             class="rounded-md border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning-strong"
             data-testid="returns-no-refund"
         >
-            <span class="font-semibold">No refund in KPOne.</span> Recording a
-            return does not refund anything. Any refund is handled outside
-            KPOne.
+            <span class="font-semibold"
+                >Recording a return gives no money back.</span
+            >
+            If the patient should get money back, a CA Supervisor or Finance
+            Officer records it under Refunds on the visit's billing page, and
+            someone else approves it.
         </p>
         <p class="sr-only" aria-live="polite">{{ announcement }}</p>
 
@@ -640,6 +644,24 @@ const onChecked = async (row: ReturnRow, message: string) => {
                                         class="text-muted-foreground"
                                     >
                                         {{ outcomeLine(row) }}
+                                    </p>
+                                    <p
+                                        v-if="
+                                            row.check &&
+                                            batchesLine(
+                                                row.check.batches,
+                                                line.unit,
+                                            )
+                                        "
+                                        class="text-xs [overflow-wrap:anywhere] text-muted-foreground"
+                                        data-testid="return-check-batches"
+                                    >
+                                        {{
+                                            batchesLine(
+                                                row.check.batches,
+                                                line.unit,
+                                            )
+                                        }}
                                     </p>
                                     <p
                                         v-if="row.check?.refuseReason"

@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\HR\Memos\Services\MemosPageService;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\BankDetailService;
 use App\Domain\HR\Records\Services\ChecklistService;
@@ -32,7 +33,9 @@ class RecordsController extends Controller
     {
         return Inertia::render('HR/Records', ['records' => $pages->page($request->user(), $request->only(['tab', 'q', 'branch', 'type', 'status'])),
             // HR-5c: how many SOPs you still have to read, linking to /hr/sops.
-            'sopsToRead' => app(SopsPageService::class)->toRead($request->user())]);
+            'sopsToRead' => app(SopsPageService::class)->toRead($request->user()),
+            // HR-8: how many memos you still have to read, linking to /hr/memos.
+            'memosToRead' => app(MemosPageService::class)->toRead($request->user())]);
     }
 
     public function show(Request $request, RecordsPageService $pages, string $worker): Response
