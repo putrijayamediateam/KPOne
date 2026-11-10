@@ -55,7 +55,7 @@ Aliran lama “Stocktake” dan “Manual Adjustment” telah ditutup. Gunakan �
 3. Jika kiraan perlu dibuat semula, tulis sebab dalam “Reason to return (only for Return)” dan pilih “Return for recount”.
 4. Jika kiraan betul, pilih “Approve closing”. Butang ini hanya boleh digunakan selepas hari itu tamat (selepas tengah malam waktu cawangan).
 5. Anda tidak boleh meluluskan kiraan sendiri. Hari itu juga tidak boleh diluluskan selagi ada bayaran balik tunai untuk hari itu yang belum diluluskan.
-6. Pilih “Month view” untuk halaman “Monthly cash closing”: setiap hari dalam bulan itu dengan status (“Approved”, “Waiting for approval”, “Returned”, “Not counted”, “Open day”), kiraan, jangkaan dan beza. Hari “Not counted” dikira bermula dari tarikh mula tutup tunai cawangan (“Cash closing start date”). Tarikh ini ditetapkan atau ditukar oleh Finance Officer atau Director; jika belum ditetapkan, kiraan bermula dari kiraan pertama cawangan.
+6. Pilih “Month view” untuk halaman “Monthly cash closing”: setiap hari dalam bulan itu dengan status (“Approved”, “Waiting for approval”, “Returned”, “Not counted”, “Open”, “Not in use yet”), kiraan, jangkaan dan beza. Hari “Not counted” dikira bermula dari tarikh mula tutup tunai cawangan (“Cash closing start date”). Tarikh ini ditetapkan atau ditukar oleh Finance Officer atau Director (kad itu menyatakan “A Director or Finance Officer can change this date.”); jika belum ditetapkan, kiraan bermula dari kiraan pertama cawangan.
 
 ## Rekod bayaran balik (refund)
 
@@ -75,29 +75,31 @@ Bahagian “Refunds” berada pada halaman “Patient Billing” lawatan itu. La
 
 **Dalam kedua-dua keadaan:** Finance Officer atau Director yang bukan perekod memilih “Approve refund” atau “Reject” (dengan sebab). Jika anda merekod bayaran balik itu, skrin menyatakan “You recorded this refund. …”; anda tidak boleh meluluskannya sendiri.
 
-Jika resit tersalah rekod (contohnya amaun atau cara bayaran salah), gunakan “Correct a receipt”, bukan bayaran balik. Pembetulan resit dibuat oleh Finance Officer yang bukan perekod resit itu: resit yang salah diterbalikkan dan amaun yang benar-benar diterima direkod semula. Hanya wang yang tidak diterima menjadi amaun perlu dibayar.
+Selepas “Complete Visitation”, jika resit tersalah rekod (contohnya amaun atau cara bayaran salah), gunakan “Correct a receipt”, bukan bayaran balik. Sebelum lawatan selesai, Finance Officer menterbalikkan resit (“Reverse recording error”). Resit yang sudah ada bayaran balik tidak boleh dibetulkan. Pembetulan resit dibuat oleh Finance Officer yang bukan perekod resit itu: resit yang salah diterbalikkan dan amaun yang benar-benar diterima direkod semula. Hanya wang yang tidak diterima menjadi amaun perlu dibayar.
 
 ## Semak pulangan ubat
 
 1. Buka “Clinic management” > “Inventory & services” > “Returns to check”. Senarai menunjukkan pulangan ubat cawangan ini yang menunggu semakan, yang paling lama dahulu. Pilih “Open case” untuk pergi ke bahagian “Medicine returns” kes itu.
-2. Pada pulangan yang menunggu, buka “Check this return” dan pilih satu:
-    - “Dispose”: ubat dimusnahkan; tiada stok dikembalikan.
+2. Pada panel “Check this return” bagi pulangan yang menunggu, pilih “Outcome”:
+    - “Dispose”: ubat dilupuskan; tiada stok dikembalikan.
     - “Quarantine”: ubat dipindahkan ke lokasi pulangan (“Move to returns location”) dan ditahan; ia tidak boleh didispens dari situ. Jika baris ubat dibekalkan daripada beberapa batch, pilih batch asal.
     - “Refuse”: pulangan direkod secara salah. Pilih sebab (contohnya “Wrong case or patient” atau “Recorded twice”), kemudian “Refuse return”. Tiada perubahan stok, dan kuantiti itu boleh direkod semula.
-3. “Dispose” dan “Quarantine” tidak boleh dibatalkan. Ubat terkawal tidak boleh dikuarantin; lupuskan atau tolak sahaja.
+3. Setiap pilihan meminta pengesahan dalam dialog (contohnya “Move to returns location” atau “Refuse return”). “Dispose” dan “Quarantine” tidak boleh dibatalkan. Bagi ubat terkawal, skrin menetapkan “Dispose” (“Controlled medicines are always disposed.”); “Refuse” masih dibenarkan jika pulangan direkod secara salah.
 4. Anda tidak boleh menyemak pulangan yang anda rekod sendiri: senarai menyatakan “You recorded this. Another CA Supervisor must check it.” Jika cawangan belum ada lokasi pulangan, skrin menyatakan “This branch has no returns location yet. Ask the Inventory team to set one up.”
 
 Semakan pulangan ubat ialah semakan klinikal, jadi ia kekal dengan staf CA sahaja (keputusan pemilik, 10 November 2026). Finance Officer dan Director tidak menyemak pulangan ubat.
 
 ## Panggil pesakit seterusnya untuk doktor (“Call next”)
 
-1. Pada papan “Consultation”, pilih doktor dalam penapis doktor dan pilih “Apply”. Butang “Call next for …” hanya muncul selepas seorang doktor dipilih.
+1. Pada papan “Consultation”, pilih doktor dalam penapis doktor dan pilih “Apply”. Sebelum itu, butang “Call next” dilumpuhkan dengan sebab “Choose a doctor and press Apply to call their next patient.”; selepas “Apply”, butang menjadi “Call next for …”.
 2. Pilih butang itu. Dialog menamakan pesakit, contohnya “Call A-012 Ahmad Ismail?”. Semak nama dan pilih “Call A-012”.
 3. Peraturan sama seperti doktor: pesakit hari ini dahulu, pesakit “Not ready to call” dilangkau, dan tiada panggilan tanpa pengesahan.
 
 ## Ringkasan harian AI
 
 Buka “Clinic management” > “AI agents” > “AI daily summary” untuk membaca laporan pukul 07:00 dan kemas kini pukul 14:00 daripada ejen AI. Halaman ini untuk bacaan sahaja; cadangan ejen tidak mengubah apa-apa sehingga orang yang berkuasa meluluskannya, dan kelulusan itu hanya merekod keputusan.
+
+Cadangan ejen (contohnya tambah stok atau amaran luput) diputuskan di “Clinic management” > “AI agents” > “Approval inbox”. Pilih “Approve” atau “Reject” (penolakan memerlukan sebab). Kelulusan hanya merekod keputusan dan tidak mengubah stok. Anda tidak boleh memutuskan cadangan daripada larian yang anda mulakan sendiri.
 
 ## Pemindahan stok: terima dan selesaikan perbezaan
 

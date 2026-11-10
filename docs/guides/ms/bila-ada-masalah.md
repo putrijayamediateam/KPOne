@@ -26,7 +26,7 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 
 ## Pautan cetakan lama atau tarikh yang nampak salah
 
-1. Jika anda membuka pautan cetakan invois atau resit yang lama, anda akan dibawa ke senarai “Issued copies” pada halaman bil. Ini dijangka; tiada apa-apa dicetak atau direkod. Pilih “Reprint” pada dokumen yang betul.
+1. Jika anda membuka pautan cetakan invois atau resit yang lama, anda akan dibawa ke senarai “Issued copies” pada halaman bil dengan mesej “Print from here so the copy is recorded.” Ini dijangka; tiada apa-apa dicetak atau direkod. Pilih “Reprint” pada dokumen yang betul.
 2. Jika tarikh pada skrin nampak tertukar hari dan bulan (contohnya 11/06 bukan 06/11), jangan simpan dahulu. Semak susunan medan tarikh itu: skrin yang sudah dikemas kini sentiasa menggunakan dd/mm/yyyy. Jika masih tidak pasti, beritahu “[NAMA PENGENDALI]” dengan nama halaman tersebut.
 
 ## Tidak pasti atau akses ditolak

@@ -35,8 +35,8 @@ Jika penapis atau halaman tertentu sedang aktif, kedudukannya kekal selepas tind
 ## Bilangan pada tab dan warna masa menunggu
 
 - Tab pada halaman “Registration” (“All”, “Waiting”, “Serving Now”, “Dispensary”, “Awaiting Billing”, “Completed”, “Cancelled”, “QR Intake”) menunjukkan bilangan dalam bulatan kecil. Bilangan mengikut penapis yang telah digunakan (bukan tab yang sedang dibuka) dan dikemas kini setiap kali papan menyegar semula. Pengecualian: “Dispensary” hanya mengira kes yang belum bermula atau sedang disediakan, dan hanya mengikut carian nama atau nombor KP, bukan tarikh atau penapis lain; “QR Intake” menunjukkan semua pendaftaran QR yang menunggu semakan.
-- Pada tab “Completed” dan “Serving Now”, senarai hanya menunjukkan 25 pesakit terkini. Jika bilangan lebih besar, baris kecil di bawah senarai menyatakan, contohnya, “Showing the latest 25 of 31”. Gunakan carian atau penapis untuk mencari pesakit yang lebih awal.
 - Pada baris pesakit yang sedang menunggu, label “Waiting N min” bertukar kuning (amber) dari 30 minit dan merah dari 60 minit, dengan tulisan lebih tebal. Ini juga berlaku pada papan “Consultation”. Warna hanya peringatan; susunan giliran tidak berubah. Pesakit yang ditahan (held), sedang dirawat atau dibatalkan tidak diwarnakan.
+- Pada papan “Consultation”, tab “Serving Now” dan “Consultation Completed” hanya menyenaraikan 25 pesakit terkini walaupun bilangan pada tab lebih besar. Jika demikian, baris kecil di bawah senarai menyatakan, contohnya, “Showing the latest 25 of 31”. Cara mencari pesakit yang lebih awal: [PERLU DISAHKAN].
 
 ## Tandakan pesakit belum bersedia dipanggil
 
@@ -48,7 +48,7 @@ Jika penapis atau halaman tertentu sedang aktif, kedudukannya kekal selepas tind
 ## Daftar dan sediakan pesakit OTC
 
 1. Dalam “Register Visit”, pilih jenis lawatan “OTC”, lengkapkan pendaftaran dan pilih “Register Visit”.
-2. Pada baris pesakit di “Registration”, pilih “Dispense”. Panggilan ke farmasi tidak perlu dibuat dahulu. Untuk memanggil pesakit ke farmasi melalui TV, gunakan “Call to Dispensary” pada menu baris pesakit, atau “Call patient” pada halaman “Dispensary”.
+2. Pada baris pesakit di “Registration”, pilih “Dispense”. Panggilan ke farmasi tidak perlu dibuat dahulu. Untuk memanggil pesakit ke farmasi melalui TV, gunakan “Call to Dispensary” pada menu baris pesakit.
 3. Pada halaman “Dispensary”, kad “Ask the patient about allergies” menunjukkan “Recorded allergies” dahulu. Tiada pilihan dibuat pada mulanya; anda mesti memilih sendiri.
     - Jika pesakit tiada alahan, pilih “Patient reports no allergy”, kemudian “Confirm”.
     - Jika pesakit ada alahan, pilih “Patient reports an allergy”. Dalam “Allergy details”, isi “Allergen (required)”, dan jika diketahui “Category (optional)”, “Severity (optional)” dan “Reaction (optional)”. Pilih “Add allergy” (atau “Add another allergy” untuk alahan seterusnya), kemudian “Confirm”. Alahan disimpan dalam profil alahan pesakit; hanya doktor boleh mengubah atau membuangnya.
@@ -63,6 +63,10 @@ Jika penapis atau halaman tertentu sedang aktif, kedudukannya kekal selepas tind
 3. Tanda ini untuk satu simpanan sahaja dan hilang selepas disimpan.
 
 Semakan ini hanya membandingkan teks alahan dengan nama ubat, nama generik, kumpulan ubat dan “Other names” (nama jenama atau ejaan lain) dalam katalog. Ia boleh terlepas kumpulan ubat atau nama lain yang belum dimasukkan dalam katalog. Sentiasa baca senarai alahan penuh.
+
+## Panggil pesakit ke farmasi (konsultasi)
+
+Pada kes “Dispensary” konsultasi yang sedang menunggu atau sedang disediakan, pilih “Call patient” untuk memaparkan panggilan ke farmasi di TV. Jika cawangan ada lebih daripada satu bilik farmasi, pilih bilik dahulu. Butang ini tiada pada kes OTC; untuk OTC, gunakan “Call to Dispensary” pada menu baris pesakit di “Registration”.
 
 ## Cari ubat dengan imbasan (“Scan to add”)
 
@@ -79,8 +83,8 @@ Imbasan ditolak semasa simpanan sedang berjalan, atau jika anda sudah menaip ara
 ## Semak ubat dengan imbasan sebelum diserahkan
 
 1. Pada kes “Dispensary” yang masih terbuka, klik dalam kotak “Scan or type barcode”, kemudian imbas kotak ubat yang telah anda ambil.
-2. Jika kotak itu sepadan dengan baris ubat yang disimpan, baris itu ditanda “Checked by scan” dan ringkasan menunjukkan, contohnya, “1 of 2 lines checked by scan.”
-3. Jika kotak itu bukan untuk kes ini, panel merah menyatakan “Not on this case: …”. Semak sama ada anda mengambil ubat atau kekuatan yang betul.
+2. Jika kotak itu sepadan dengan baris ubat yang disimpan, baris itu ditanda “Checked by scan”. Mesej di bawah kotak imbasan menyatakan, contohnya, “Matches: … 1 of 2 lines checked by scan. Shown on this screen only.”, dan ringkasan di sebelah kanan menunjukkan “Checked by scan” dengan “1 of 2 (not saved)”.
+3. Jika kotak itu bukan untuk kes ini, panel merah menyatakan “Not on this case: …”. Jika kotak itu hanya pada baris yang telah dibuang, panel merah menyatakan “On this case but removed: …”. Semak sama ada anda mengambil ubat atau kekuatan yang betul.
 4. Tanda ini hanya pada skrin dan tidak disimpan; ia hilang selepas muat semula. Imbasan tidak menyemak kuantiti atau batch, dan tidak menghalang “Complete Dispensary”.
 
 ## Cetak label ubat
@@ -106,7 +110,7 @@ Label melintang ini bersaiz 100 × 62 mm dan masih bersifat sementara (“provis
 1. Buka kes “Dispensary” yang telah selesai (“Dispensary completed”). Di bahagian “Medicine returns”, pilih “Record a return” pada baris ubat yang dipulangkan.
 2. Masukkan “Quantity returned” (tidak lebih daripada yang dibekalkan, tolak pulangan terdahulu), pilih “Reason” (contohnya “Patient did not use it” atau “Wrong medicine or strength given”) dan “Condition seen” (“Sealed and in date”, “Opened or damaged” atau “Cannot tell”). Jika sebab ialah “Other”, tulis nota ringkas tanpa maklumat klinikal yang tidak perlu.
 3. Pilih “Record return”. Tiada perubahan stok pada langkah ini. Skrin menyatakan “Return recorded. It now waits for a check by someone else.”
-4. CA Supervisor yang lain akan menyemak pulangan itu (lihat panduan Penyelia CA). Bahagian ini menyatakan “No refund in KPOne.”: merekod pulangan ubat tidak memulangkan wang. Jika wang perlu dipulangkan, ia direkod berasingan pada halaman bil (lihat panduan Penyelia CA).
+4. CA Supervisor yang lain akan menyemak pulangan itu (lihat panduan Penyelia CA). Bahagian ini menyatakan “No refund in KPOne. Recording a return does not refund anything. Any refund is handled outside KPOne.” Merekod pulangan ubat memang tidak memulangkan wang. Namun bayaran balik selepas lawatan selesai kini boleh direkod pada halaman bil (sebab “Medicine returned”) oleh CA Supervisor atau Finance Officer, bukan CA (lihat panduan Penyelia CA). Teks pada skrin akan dikemas kini: [PERLU DISAHKAN].
 
 ## Bil, pelarasan dan bayaran
 
@@ -147,7 +151,7 @@ Setiap resit pada tab “Documents”, senarai bayaran dan halaman “Payments�
 4. Semak dokumen, kemudian gunakan dialog cetak pelayar. Pilih “Back to …” untuk kembali ke halaman asal.
 5. Senarai “Issued copies” pada tab “Documents” menunjukkan setiap dokumen yang telah dikeluarkan, versi, siapa yang mengeluarkannya dan bilangan cetakan. Pilih “Reprint” untuk mencetak salinan.
 
-Halaman pratonton lama (“PREVIEW”) telah ditutup. Jika anda membuka pautan cetakan lama, anda akan dibawa ke “Issued copies”; tiada apa-apa dicetak atau direkod. Dokumen yang berbilang halaman mempunyai nombor halaman di bahagian bawah.
+Halaman pratonton lama (“PREVIEW”) telah ditutup. Jika anda membuka pautan cetakan lama, anda akan dibawa ke “Issued copies” dengan mesej “Print from here so the copy is recorded.”; tiada apa-apa dicetak atau direkod. Dokumen yang berbilang halaman mempunyai nombor halaman di bahagian bawah.
 
 ## Langkah rawatan (contohnya nebuliser)
 

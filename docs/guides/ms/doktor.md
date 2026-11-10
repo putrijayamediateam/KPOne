@@ -61,7 +61,7 @@ Langkah seterusnya boleh dimulakan walaupun langkah yang selesai masih menunggu 
 
 ## Panggil semula dan panggil ke bilik rawatan
 
-Pada halaman konsultasi, pilih “Call again” untuk memaparkan semula panggilan pesakit di TV. Untuk menghantar pesakit ke bilik rawatan, pilih bilik dalam “Treatment room”, kemudian “Call to treatment room”. Panggilan ini hanya dipaparkan di TV; konsultasi kekal dengan anda. Jika bilik belum dipilih, mesej “Choose a treatment room first.” muncul di bawah pilihan bilik.
+Pada halaman konsultasi, pilih “Call again” untuk memaparkan semula panggilan pesakit di TV. Untuk menghantar pesakit ke bilik rawatan, pilih “Call to treatment room”. Jika cawangan ada lebih daripada satu bilik rawatan, pilih bilik dalam “Treatment room” dahulu. Panggilan ini hanya dipaparkan di TV; konsultasi kekal dengan anda. Jika bilik belum dipilih, mesej “Choose a treatment room first.” muncul di bawah pilihan bilik.
 
 ## Panggil pesakit yang belum bersedia
 
@@ -84,4 +84,4 @@ Pada halaman konsultasi, pilih “Call again” untuk memaparkan semula panggila
 
 ## Mesej pada skrin
 
-Mesej seperti “Treatment Plan saved.” muncul di bahagian atas tengah skrin, jadi butang “Complete Consultation” di bawah tidak tertutup. Pada halaman konsultasi di skrin lebar (1024 px ke atas), mesej muncul di sudut kiri bawah supaya tidak menutup butang di bahagian atas. Mesej itu hilang selepas beberapa saat.
+Pada halaman konsultasi di skrin 1024 px ke atas, mesej seperti “Treatment Plan saved.” muncul di sudut kiri bawah supaya tidak menutup butang di bahagian atas. Di skrin yang lebih kecil dan di halaman lain, mesej muncul di bahagian atas tengah. Mesej itu hilang selepas beberapa saat.
