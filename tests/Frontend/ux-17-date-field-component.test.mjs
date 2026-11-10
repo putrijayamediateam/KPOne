@@ -67,7 +67,9 @@ test('the date and time field is 12-hour with AM and PM and the month field is m
 });
 
 test('the fields describe themselves to a screen reader', () => {
-    const calendar = read('resources/js/components/ui/date-field/DateCalendar.vue');
+    const calendar = read(
+        'resources/js/components/ui/date-field/DateCalendar.vue',
+    );
 
     assert.match(date, /hintId/);
     assert.match(date, /role="dialog"/);
@@ -76,4 +78,15 @@ test('the fields describe themselves to a screen reader', () => {
     assert.match(month, /monthFormatHint/);
     assert.match(calendar, /role="gridcell"\s*:aria-selected/);
     assert.match(calendar, /bg-brand-strong text-white[^']*dark:text-black/);
+});
+
+test('the public QR date of birth uses the patient look', () => {
+    const qr = readFileSync(
+        new URL(
+            '../../resources/js/pages/PublicCheckIn/Show.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+    assert.match(qr, /look="patient"/);
 });

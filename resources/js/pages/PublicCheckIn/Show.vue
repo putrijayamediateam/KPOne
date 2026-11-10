@@ -621,6 +621,7 @@ onBeforeUnmount(() => {
                                     v-model="form.date_of_birth"
                                     :aria-invalid="!!errorFor('date_of_birth')"
                                     locale="ms"
+                                    look="patient"
                                 /><span
                                     v-if="errorFor('date_of_birth')"
                                     class="text-sm text-red-700"
