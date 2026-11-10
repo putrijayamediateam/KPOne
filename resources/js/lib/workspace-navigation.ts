@@ -217,8 +217,8 @@ const destinations: Record<
     },
     publicCheckInLinks: {
         key: 'publicCheckInLinks',
-        label: 'Public Check-In',
-        description: 'Manage branch public check-in links.',
+        label: 'QR check-in links',
+        description: 'Manage branch QR check-in links.',
         href: '/public-checkin-links',
         icon: 'building',
     },
