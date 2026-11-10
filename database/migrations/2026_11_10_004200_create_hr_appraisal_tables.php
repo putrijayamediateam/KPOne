@@ -144,6 +144,23 @@ BEGIN
  IF OLD.status = 'draft' AND NEW.status NOT IN ('draft', 'sent') THEN
   RAISE EXCEPTION 'A draft appraisal is sent before it is signed off' USING ERRCODE = 'P0001';
  END IF;
+ -- A Director's or HR Manager's appraisal is written only by a Director.
+ IF OLD.status = 'draft' AND NEW.status = 'sent' AND EXISTS (SELECT 1 FROM model_has_roles mr JOIN roles r ON r.id = mr.role_id
+     WHERE mr.model_id = NEW.user_id AND mr.model_type = 'App\Models\User' AND r.name IN ('director', 'hr_manager'))
+   AND NOT EXISTS (SELECT 1 FROM model_has_roles mr JOIN roles r ON r.id = mr.role_id
+     WHERE mr.model_id = NEW.appraiser_user_id AND mr.model_type = 'App\Models\User' AND r.name = 'director') THEN
+  RAISE EXCEPTION 'A Director''s or HR Manager''s appraisal is written only by a Director' USING ERRCODE = '23514';
+ END IF;
+ -- Only a Director signs off, and only once the person has commented or 7 days have passed since it was sent.
+ IF OLD.status = 'sent' AND NEW.status = 'signed_off' THEN
+  IF NOT EXISTS (SELECT 1 FROM model_has_roles mr JOIN roles r ON r.id = mr.role_id
+     WHERE mr.model_id = NEW.signed_off_by_user_id AND mr.model_type = 'App\Models\User' AND r.name = 'director') THEN
+   RAISE EXCEPTION 'Only a Director signs an appraisal off' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.signed_off_at < OLD.sent_at OR (OLD.staff_commented_at IS NULL AND NEW.staff_commented_at IS NULL AND NEW.signed_off_at < OLD.sent_at + interval '7 days') THEN
+   RAISE EXCEPTION 'The person has 7 days to comment before sign-off' USING ERRCODE = '23514';
+  END IF;
+ END IF;
  IF OLD.status = 'sent' AND (NEW.ratings_encrypted IS DISTINCT FROM OLD.ratings_encrypted OR NEW.appraiser_user_id IS DISTINCT FROM OLD.appraiser_user_id
    OR NEW.sent_at IS DISTINCT FROM OLD.sent_at OR NEW.summary_encrypted IS DISTINCT FROM OLD.summary_encrypted OR NEW.status NOT IN ('sent', 'signed_off')
    OR (OLD.staff_commented_at IS NOT NULL AND (NEW.staff_comment_encrypted IS DISTINCT FROM OLD.staff_comment_encrypted

@@ -14,6 +14,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\Feature\Visit\VisitTestCase;
 
 /**
@@ -77,7 +78,8 @@ class AppraisalsTest extends VisitTestCase
         $this->assertStringNotContainsString('SYNTHETIC-APPRAISAL', (string) $sent->ratings_encrypted);
         $this->assertStringNotContainsString('SYNTHETIC-APPRAISAL', DB::table('audit_logs')->get()->toJson());
         $summary = json_decode(Crypt::decryptString((string) $sent->summary_encrypted), true);
-        $this->assertSame(['late' => 0, 'lateMinutes' => 0, 'noClockIn' => 0, 'noClockOut' => 0, 'leaveDays' => 0, 'overtimeMinutes' => 0], $summary);
+        $this->assertSame(['asOf' => '2026-11-10', 'partial' => true, 'rulesMissing' => true, 'late' => 0, 'lateMinutes' => 0, 'noClockIn' => 0, 'noClockOut' => 0,
+            'leaveDays' => 0, 'overtimeMinutes' => 0], $summary);
         $this->rate($appraisal, [[5, ''], [5, '']], false, 3)->assertSessionHasErrors('appraisal'); // sent: no more changes
 
         // An HR Manager does not sign off; the person reads it and comments once.
@@ -97,7 +99,14 @@ class AppraisalsTest extends VisitTestCase
         $this->get(route('hr.appraisals.index', ['tab' => 'cycles', 'cycle' => $cycle]))->assertInertia(fn (Assert $page) => $page
             ->where('appraisals.cycles.0.signedOff', 1)->where('appraisals.cycle.people.0.status', 'signed_off'));
         $this->assertSame(['hr.appraisals.criteria_saved', 'hr.appraisals.cycle_opened', 'hr.appraisals.saved', 'hr.appraisals.sent', 'hr.appraisals.commented', 'hr.appraisals.signed_off'],
-            DB::table('audit_logs')->where('event', 'like', 'hr.appraisals.%')->orderBy('id')->pluck('event')->all());
+            DB::table('audit_logs')->where('event', 'like', 'hr.appraisals.%')->where('event', '<>', 'hr.appraisals.opened')->orderBy('id')->pluck('event')->all());
+        // Every open is recorded, with ids only: never a rating or a comment.
+        $opens = DB::table('audit_logs')->where('event', 'hr.appraisals.opened')->get();
+        $this->assertSame(1, $opens->count()); // the person's own open after send; the draft 404 records nothing
+        foreach ($opens as $open) {
+            $this->assertStringNotContainsString(self::COMMENT, (string) json_encode($open));
+            $this->assertStringNotContainsString('Thank you', (string) json_encode($open));
+        }
     }
 
     public function test_the_summary_counts_the_cycles_approved_leave_and_overtime(): void
@@ -115,7 +124,8 @@ class AppraisalsTest extends VisitTestCase
         $this->selectBranch($this->hr);
         $appraisal = DB::table('hr_appraisals')->sole();
         $this->get(route('hr.appraisals.show', $appraisal->public_id))->assertInertia(fn (Assert $page) => $page->where('appraisal.summaryLive', true)
-            ->where('appraisal.summary.leaveDays', 2));
+            ->where('appraisal.summary.leaveDays', 2)->where('appraisal.summary.partial', false)->where('appraisal.summary.asOf', '2026-10-31')
+            ->where('appraisal.summary.rulesMissing', true));
         // Leave that runs past the cycle is counted on the branch's working days; with none set up it cannot be counted.
         $late = DB::table('hr_leave_requests')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $staff->organisation_id, 'user_id' => $staff->id,
             'leave_type_id' => $this->leaveType(), 'branch_id' => $this->branch->id, 'start_date' => '2026-10-30', 'end_date' => '2026-11-03', 'start_part' => 'full',
@@ -140,6 +150,15 @@ class AppraisalsTest extends VisitTestCase
         $this->get(route('hr.appraisals.show', $rows[$hrFile->id]->public_id))->assertForbidden();
         $this->selectBranch($this->director);
         $this->rate($rows[$hrFile->id], [[4, '']], true, 1)->assertSessionHasNoErrors();
+        // Sent before the period ended: the summary says it is partial.
+        $this->get(route('hr.appraisals.show', $rows[$hrFile->id]->public_id))->assertInertia(fn (Assert $page) => $page->where('appraisal.summary.partial', true)
+            ->where('appraisal.summary.asOf', '2026-11-10')->where('appraisal.can.signOff', false)->whereNot('appraisal.signOffFrom', null));
+        // No comment yet: the person has 7 days before a Director may sign off.
+        $this->post(route('hr.appraisals.sign-off', $rows[$hrFile->id]->public_id), ['expected_lock_version' => 2, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasErrors('appraisal');
+        $this->travel(7)->days();
+        $this->get(route('hr.appraisals.show', $rows[$hrFile->id]->public_id))->assertInertia(fn (Assert $page) => $page->where('appraisal.can.signOff', true)
+            ->where('appraisal.signOffFrom', null));
         // A Director appraised the HR Manager, and a Director signs off: allowed (the one-Director case).
         $this->post(route('hr.appraisals.sign-off', $rows[$hrFile->id]->public_id), ['expected_lock_version' => 2, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $this->assertSame(1, DB::table('hr_appraisals')->where('status', 'signed_off')->count());
@@ -190,6 +209,17 @@ class AppraisalsTest extends VisitTestCase
         // The person is never their own appraiser or signer.
         $this->assertRefused('23514', fn () => DB::table('hr_appraisals')->where('id', $sent->id)->update(['status' => 'signed_off', 'signed_off_by_user_id' => $staff->id,
             'signed_off_at' => now(), 'lock_version' => 3]));
+        // Only a Director signs off, and not inside the 7-day comment window without a comment.
+        $this->assertRefused('23514', fn () => DB::table('hr_appraisals')->where('id', $sent->id)->update(['status' => 'signed_off', 'signed_off_by_user_id' => $this->hr->id,
+            'signed_off_at' => now(), 'lock_version' => 3]));
+        $this->assertRefused('23514', fn () => DB::table('hr_appraisals')->where('id', $sent->id)->update(['status' => 'signed_off', 'signed_off_by_user_id' => $this->director->id,
+            'signed_off_at' => now(), 'lock_version' => 3]));
+        // A Director's or HR Manager's appraisal is sent only by a Director.
+        $otherHr = $this->actor('hr_manager');
+        $this->cycle([$this->file($otherHr, $this->director)]);
+        $hrDraft = DB::table('hr_appraisals')->where('user_id', $otherHr->id)->sole();
+        $this->assertRefused('23514', fn () => DB::table('hr_appraisals')->where('id', $hrDraft->id)->update(['status' => 'sent', 'appraiser_user_id' => $this->hr->id,
+            'ratings_encrypted' => Crypt::encryptString('[{"rating":4,"comment":""}]'), 'summary_encrypted' => Crypt::encryptString('{}'), 'sent_at' => now(), 'lock_version' => 2]));
         $other = $this->actor('ca');
         $otherFile = $this->file($other);
         $this->cycle([$otherFile]);
@@ -220,7 +250,7 @@ class AppraisalsTest extends VisitTestCase
 
     /**
      * @param  list<array{0:int|null, 1:string}>  $ratings
-     * @return TestResponse<\Symfony\Component\HttpFoundation\Response>
+     * @return TestResponse<Response>
      */
     private function rate(\stdClass $appraisal, array $ratings, bool $send, int $version): TestResponse
     {

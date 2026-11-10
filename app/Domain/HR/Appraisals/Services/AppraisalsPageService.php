@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Appraisals\Services;
 
+use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Appraisals\AppraisalPermissions;
 use App\Domain\HR\Records\Models\Worker;
 use App\Models\User;
@@ -19,7 +20,7 @@ final class AppraisalsPageService
 {
     public const STATUS = ['draft' => 'Not sent yet', 'sent' => 'Sent', 'signed_off' => 'Signed off'];
 
-    public function __construct(private AppraisalService $appraisals) {}
+    public function __construct(private AppraisalService $appraisals, private AuditRecorder $audit) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -67,6 +68,8 @@ final class AppraisalsPageService
         }
         $cycle = DB::table('hr_appraisal_cycles')->where('id', $a->cycle_id)->first();
         abort_if(! $cycle instanceof \stdClass, 404);
+        // Ratings, comments and the summary are sensitive: every open is recorded, ids only (Suresh m3).
+        $this->audit->record('hr.appraisals.opened', null, ['appraisal_id' => (int) $a->id, 'own' => $own], $actor, null, $actor->organisation_id);
         $criteria = AppraisalService::criteriaOf((int) $cycle->criteria_version_id);
         $zone = AppraisalService::zone((int) $actor->organisation_id);
         $names = DB::table('users')->whereIn('id', array_filter([$a->user_id, $a->appraiser_user_id, $a->signed_off_by_user_id]))->pluck('name', 'id');
@@ -91,11 +94,13 @@ final class AppraisalsPageService
             'staffCommentedOn' => $this->day($a->staff_commented_at, $zone),
             'signedOffBy' => $a->signed_off_by_user_id === null ? null : (string) ($names[$a->signed_off_by_user_id] ?? 'Staff member'),
             'signedOffOn' => $this->day($a->signed_off_at, $zone),
+            'signOffFrom' => $a->status === 'sent' && $a->staff_commented_at === null && ! AppraisalService::canSignOffNow($a) ? AppraisalService::signOffFrom($a) : null,
+            'commentDays' => AppraisalService::COMMENT_DAYS,
             'lockVersion' => (int) $a->lock_version,
             'maxComment' => AppraisalService::MAX_COMMENT,
             'can' => [
                 'edit' => $editable,
-                'signOff' => ! $own && $a->status === 'sent' && $actor->hasRole('director'),
+                'signOff' => ! $own && $a->status === 'sent' && $actor->hasRole('director') && AppraisalService::canSignOffNow($a),
                 'comment' => $own && $a->status === 'sent' && $a->staff_commented_at === null,
             ],
         ];

@@ -67,3 +67,12 @@ test('closing a cycle confirms; criteria and cycles are manager-only tabs', () =
     assert.match(page, /data-test="cycle-sheet"/);
     assert.match(page, /data-test="my-appraisals"/);
 });
+
+test('the page says when sign-off opens and when the summary is partial or rules are missing', () => {
+    const page = template('appraisal');
+    assert.match(page, /data-test="appraisal-sign-off-wait"/);
+    assert.match(page, /appraisal\.signOffFrom/);
+    assert.match(page, /data-test="summary-partial"/);
+    assert.match(page, /data-test="summary-rules-missing"/);
+    assert.match(template('page'), /never sent and will stay unsent/);
+});

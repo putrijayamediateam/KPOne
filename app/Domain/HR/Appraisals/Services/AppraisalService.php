@@ -4,6 +4,7 @@ namespace App\Domain\HR\Appraisals\Services;
 
 use App\Domain\HR\Applications\Services\JobApplicationService;
 use App\Domain\HR\Appraisals\AppraisalPermissions;
+use App\Domain\HR\Attendance\Services\AttendanceSettingsService;
 use App\Domain\HR\Attendance\Services\AttendanceTotals;
 use App\Domain\HR\Leave\Services\LeaveCalendar;
 use App\Domain\HR\Records\Models\Worker;
@@ -32,7 +33,23 @@ final class AppraisalService
 
     public const MAX_COMMENT = 1000;
 
-    public function __construct(private RecordSupport $support, private AttendanceTotals $totals, private LeaveCalendar $calendar) {}
+    /** Days the person has to comment before a Director may sign off without a comment (Suresh M2). */
+    public const COMMENT_DAYS = 7;
+
+    public function __construct(private RecordSupport $support, private AttendanceTotals $totals, private LeaveCalendar $calendar,
+        private AttendanceSettingsService $attendanceSettings) {}
+
+    public static function canSignOffNow(\stdClass $appraisal): bool
+    {
+        return $appraisal->staff_commented_at !== null
+            || ($appraisal->sent_at !== null && CarbonImmutable::parse((string) $appraisal->sent_at, 'UTC')->addDays(self::COMMENT_DAYS)->lessThanOrEqualTo(CarbonImmutable::now('UTC')));
+    }
+
+    public static function signOffFrom(\stdClass $appraisal): string
+    {
+        return CarbonImmutable::parse((string) $appraisal->sent_at, 'UTC')->addDays(self::COMMENT_DAYS)
+            ->setTimezone(self::zone((int) $appraisal->organisation_id))->format('j M Y, g:i A');
+    }
 
     /** @param array<string, mixed> $input criteria: list of {title, description}, idempotency_key */
     public function saveCriteria(User $actor, array $input): int
@@ -228,6 +245,9 @@ final class AppraisalService
             if ($appraisal->status !== 'sent') {
                 throw ValidationException::withMessages(['appraisal' => $appraisal->status === 'draft' ? 'Send the appraisal before it is signed off.' : 'This appraisal is already signed off.']);
             }
+            if (! self::canSignOffNow($appraisal)) {
+                throw ValidationException::withMessages(['appraisal' => 'The person has '.self::COMMENT_DAYS.' days to comment. Sign off once they comment or after '.self::signOffFrom($appraisal).'.']);
+            }
             DB::table('hr_appraisals')->where('id', $appraisal->id)->update(['status' => 'signed_off', 'signed_off_by_user_id' => $actor->id, 'signed_off_at' => now()->utc(),
                 'lock_version' => (int) $appraisal->lock_version + 1, 'updated_at' => now()->utc()]);
             $this->support->remember($actor, $key, 'appraisal_sign_off', $hash, $appraisalId);
@@ -264,7 +284,11 @@ final class AppraisalService
         $row = $this->totals->summary($organisationId, [$userId], $from, $to)[$userId] ?? [];
         $overtime = array_sum(array_map('intval', (array) ($row['overtime'] ?? [])));
 
-        return ['late' => (int) ($row['late'] ?? 0), 'lateMinutes' => (int) ($row['lateMinutes'] ?? 0), 'noClockIn' => (int) ($row['noClockIn'] ?? 0),
+        $today = CarbonImmutable::now(self::zone($organisationId))->toDateString();
+
+        return ['asOf' => min($today, $to->toDateString()), 'partial' => $today < $to->toDateString(),
+            'rulesMissing' => $this->attendanceSettings->forDate($organisationId, $from->toDateString()) === null,
+            'late' => (int) ($row['late'] ?? 0), 'lateMinutes' => (int) ($row['lateMinutes'] ?? 0), 'noClockIn' => (int) ($row['noClockIn'] ?? 0),
             'noClockOut' => (int) ($row['noClockOut'] ?? 0), 'leaveDays' => $this->leaveDays($organisationId, $userId, $from, $to), 'overtimeMinutes' => $overtime];
     }
 

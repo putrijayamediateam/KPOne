@@ -20,6 +20,9 @@ type Summary = {
     noClockOut: number;
     leaveDays: number | null;
     overtimeMinutes: number;
+    asOf?: string;
+    partial?: boolean;
+    rulesMissing?: boolean;
 };
 
 const props = defineProps<{
@@ -40,6 +43,8 @@ const props = defineProps<{
         staffCommentedOn: string | null;
         signedOffBy: string | null;
         signedOffOn: string | null;
+        signOffFrom: string | null;
+        commentDays: number;
         lockVersion: number;
         maxComment: number;
         can: { edit: boolean; signOff: boolean; comment: boolean };
@@ -59,6 +64,14 @@ const back = computed(() =>
         ? '/hr/appraisals?tab=mine'
         : `/hr/appraisals?tab=cycles&cycle=${props.appraisal.cycle.id}`,
 );
+const day = (iso: string | undefined) =>
+    iso
+        ? new Date(`${iso}T00:00:00`).toLocaleDateString('en-GB', {
+              day: 'numeric',
+              month: 'short',
+              year: 'numeric',
+          })
+        : '';
 const hours = (minutes: number) =>
     `${Math.floor(minutes / 60)} h ${minutes % 60} min`;
 
@@ -190,6 +203,22 @@ const textareaClass =
                         ? 'Worked out now from KPOne HR; it is frozen when the appraisal is sent.'
                         : 'As it was when the appraisal was sent.'
                 }}
+            </p>
+            <p
+                v-if="appraisal.summary?.partial"
+                class="text-xs text-muted-foreground"
+                data-test="summary-partial"
+            >
+                Attendance as of {{ day(appraisal.summary.asOf) }}: the period
+                had not ended yet.
+            </p>
+            <p
+                v-if="appraisal.summary?.rulesMissing"
+                class="text-xs text-warning-strong"
+                data-test="summary-rules-missing"
+            >
+                Attendance rules were not set for part of this period, so late
+                days and missed clock-ins may be under-counted.
             </p>
             <dl
                 v-if="appraisal.summary"
@@ -405,6 +434,15 @@ const textareaClass =
             <p v-else class="text-sm text-muted-foreground">No comment.</p>
         </section>
 
+        <p
+            v-if="!appraisal.own && appraisal.signOffFrom"
+            class="text-sm text-muted-foreground"
+            data-test="appraisal-sign-off-wait"
+        >
+            {{ appraisal.person }} has {{ appraisal.commentDays }} days to
+            comment. A Director can sign off once they comment, or from
+            {{ appraisal.signOffFrom }}.
+        </p>
         <div v-if="appraisal.can.signOff">
             <Button
                 class="max-lg:min-h-11"
