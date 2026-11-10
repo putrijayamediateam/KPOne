@@ -244,8 +244,11 @@ const canCallNextWhileHeld = computed(
         !page.props.auth.permissions.includes('queue.view.branch'),
 );
 const recallError = ref('');
+// Which call button the error belongs to, so a "Call again" error is not shown under the treatment room controls.
+const recallErrorFor = ref<'recall' | 'treatment'>('recall');
 const recallPatient = () => {
     recallProcessing.value = true;
+    recallErrorFor.value = 'recall';
     recallError.value = '';
     router.patch(
         `/visits/${encodeURIComponent(props.clinical.visit.visitNumber)}/queue/recall`,
@@ -260,7 +263,7 @@ const recallPatient = () => {
             onError: (errors) => {
                 recallError.value =
                     Object.values(errors)[0] ??
-                    'Pesakit tidak dapat dipanggil semula.';
+                    'This patient cannot be called again.';
             },
             onFinish: () => (recallProcessing.value = false),
         },
@@ -270,9 +273,25 @@ const recallPatient = () => {
 const treatmentRoomId = ref<string | number>(
     props.treatmentRooms?.length === 1 ? props.treatmentRooms[0].id : '',
 );
+// Choosing a room clears a treatment room error, so the red state does not outlive the fix.
+watch(treatmentRoomId, () => {
+    if (recallErrorFor.value === 'treatment') {
+        recallError.value = '';
+    }
+});
+// The error sits under the treatment room controls only when it came from the treatment room button and they are shown.
+const treatmentError = computed(
+    () =>
+        recallError.value !== '' &&
+        recallErrorFor.value === 'treatment' &&
+        props.clinical.queue.canRecall &&
+        (props.treatmentRooms?.length ?? 0) > 0,
+);
 const callToTreatment = () => {
+    recallErrorFor.value = 'treatment';
+
     if (treatmentRoomId.value === '') {
-        recallError.value = 'Pilih bilik rawatan dahulu.';
+        recallError.value = 'Choose a treatment room first.';
 
         return;
     }
@@ -293,7 +312,7 @@ const callToTreatment = () => {
             onError: (errors) => {
                 recallError.value =
                     Object.values(errors)[0] ??
-                    'Pesakit tidak dapat dipanggil ke bilik rawatan.';
+                    'This patient cannot be called to the treatment room.';
             },
             onFinish: () => (recallProcessing.value = false),
         },
@@ -584,41 +603,56 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     data-testid="recall-patient"
                     @click="recallPatient"
                 >
-                    <Megaphone class="size-4" /> Panggil semula
+                    <Megaphone class="size-4" /> Call again
                 </Button>
                 <div
                     v-if="
                         clinical.queue.canRecall &&
                         (treatmentRooms?.length ?? 0) > 0
                     "
-                    class="flex items-center gap-2"
+                    class="flex flex-col gap-1"
                 >
-                    <OperationalSelect
-                        v-if="(treatmentRooms?.length ?? 0) > 1"
-                        v-model="treatmentRoomId"
-                        label="Treatment room"
-                        placeholder="Bilik rawatan"
-                        trigger-class="h-8 w-40"
-                        :options="
-                            (treatmentRooms ?? []).map((room) => ({
-                                value: room.id,
-                                label: room.name,
-                            }))
-                        "
+                    <div class="flex items-center gap-2">
+                        <OperationalSelect
+                            v-if="(treatmentRooms?.length ?? 0) > 1"
+                            v-model="treatmentRoomId"
+                            label="Treatment room"
+                            placeholder="Treatment room"
+                            trigger-class="h-8 w-40"
+                            :describedby="
+                                treatmentError ? 'recall-error' : undefined
+                            "
+                            :invalid="treatmentError"
+                            :options="
+                                (treatmentRooms ?? []).map((room) => ({
+                                    value: room.id,
+                                    label: room.name,
+                                }))
+                            "
+                        />
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            :disabled="recallProcessing || callNextProcessing"
+                            :aria-describedby="
+                                treatmentError ? 'recall-error' : undefined
+                            "
+                            data-testid="call-treatment"
+                            @click="callToTreatment"
+                        >
+                            <Megaphone class="size-4" /> Call to treatment room
+                        </Button>
+                    </div>
+                    <InputError
+                        v-if="treatmentError"
+                        id="recall-error"
+                        class="max-w-72"
+                        :message="recallError"
                     />
-                    <Button
-                        type="button"
-                        size="sm"
-                        variant="outline"
-                        :disabled="recallProcessing || callNextProcessing"
-                        data-testid="call-treatment"
-                        @click="callToTreatment"
-                    >
-                        <Megaphone class="size-4" /> Ke bilik rawatan
-                    </Button>
                 </div>
                 <InputError
-                    v-if="recallError"
+                    v-if="recallError && !treatmentError"
                     class="max-w-56 text-right"
                     :message="recallError"
                 />

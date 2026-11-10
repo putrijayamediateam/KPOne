@@ -39,6 +39,7 @@ use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\MessagesController as HrMessagesController;
 use App\Http\Controllers\HR\OutsideExportController as HrOutsideExportController;
 use App\Http\Controllers\HR\PayrollController as HrPayrollController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
@@ -311,6 +312,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->middleware(['sensitive.no-store', 'permission:hr.payslips.view.own,hr.payroll.prepare.organisation,hr.payroll.approve.organisation', 'throttle:60,1'])
         ->name('hr.payslips.show');
 
+    // HR-14 staff messages (owner, 2026-11-10: "start"; email now, SMS and WhatsApp later).
+    Route::prefix('hr/messages')->controller(HrMessagesController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.messages.receive.own,hr.messages.manage.organisation')->name('hr.messages.index');
+        Route::post('my/{channel}', 'choose')->whereIn('channel', ['email', 'sms', 'whatsapp'])
+            ->middleware(['permission:hr.messages.receive.own', 'throttle:30,1'])->name('hr.messages.choose');
+        Route::post('channels/{channel}', 'configure')->whereIn('channel', ['email', 'sms', 'whatsapp'])
+            ->middleware(['permission:hr.messages.manage.organisation', 'throttle:30,1'])->name('hr.messages.configure');
+    });
+
     // HR-13 job applications (owner, 2026-11-07: "start the HR-13 build").
     Route::prefix('hr/applications')->controller(HrApplicationsController::class)
         ->middleware(['sensitive.no-store', 'permission:hr.applications.manage.organisation'])->group(function (): void {
@@ -320,6 +330,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('positions', 'addPosition')->name('hr.applications.positions.store');
                 Route::post('positions/{position}', 'updatePosition')->whereUuid('position')->name('hr.applications.positions.update');
                 Route::post('{application}/move', 'move')->whereUuid('application')->name('hr.applications.move');
+                // HR-17a hiring stages (owner, 2026-11-10).
+                Route::post('{application}/screening', 'screen')->whereUuid('application')->name('hr.applications.screen');
+                Route::post('checklist', 'checklist')->name('hr.applications.checklist');
                 Route::post('retention', 'retention')->name('hr.applications.retention');
             });
         });
@@ -986,6 +999,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:payments.reconcile.branch', 'sensitive.no-store'])->prefix('cash-closings')->group(function () {
             Route::get('/', [CashClosingController::class, 'index'])->name('cash-closings.index');
             Route::get('month', [CashClosingController::class, 'month'])->name('cash-closings.month');
+            Route::post('start-date', [CashClosingController::class, 'startDate'])->middleware(['permission:payments.cash_closing.start_date.manage.branch', 'throttle:20,1'])->name('cash-closings.start-date');
             Route::post('/', [CashClosingController::class, 'store'])->middleware('throttle:20,1')->name('cash-closings.store');
             Route::post('{closing}/{decision}', [CashClosingController::class, 'decide'])->whereUuid('closing')->whereIn('decision', ['approved', 'returned'])
                 ->middleware(['permission:payments.cash_closing.approve.branch', 'throttle:20,1'])->name('cash-closings.decide');

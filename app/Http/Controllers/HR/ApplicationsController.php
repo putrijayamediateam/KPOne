@@ -14,7 +14,7 @@ use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
 
-/** HR-13 job applications, staff side. Thin: every rule lives in app/Domain/HR/Applications. */
+/** HR-13 job applications and HR-17a hiring stages, staff side. Thin: every rule lives in app/Domain/HR/Applications. */
 class ApplicationsController extends Controller
 {
     public function index(Request $request, ApplicationsPageService $pages): Response
@@ -25,13 +25,13 @@ class ApplicationsController extends Controller
     public function addPosition(Request $request, JobApplicationService $applications): RedirectResponse
     {
         return $this->run($request, route('hr.applications.index', ['tab' => 'positions']), 'Position added. It shows on the form while open.',
-            fn () => $applications->addPosition($request->user(), $request->only(['title', 'branch_id', 'idempotency_key'])));
+            fn () => $applications->addPosition($request->user(), $request->only(['title', 'branch_id', 'position_type', 'idempotency_key'])));
     }
 
     public function updatePosition(Request $request, JobApplicationService $applications, string $position): RedirectResponse
     {
         return $this->run($request, route('hr.applications.index', ['tab' => 'positions']), 'Position saved.',
-            fn () => $applications->updatePosition($request->user(), $position, $request->only(['title', 'branch_id', 'is_open', 'expected_lock_version', 'idempotency_key'])));
+            fn () => $applications->updatePosition($request->user(), $position, $request->only(['title', 'branch_id', 'position_type', 'is_open', 'expected_lock_version', 'idempotency_key'])));
     }
 
     public function move(Request $request, JobApplicationService $applications, string $application): RedirectResponse
@@ -40,6 +40,21 @@ class ApplicationsController extends Controller
 
         return $this->run($request, $back, 'Application moved.',
             fn () => $applications->move($request->user(), $application, $request->only(['to', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    /** HR-17a: the phone-screening call, recorded as pass or reject. */
+    public function screen(Request $request, JobApplicationService $applications, string $application): RedirectResponse
+    {
+        $back = route('hr.applications.index', array_filter(['tab' => 'applications', ...$request->only(['status', 'position', 'page'])]));
+
+        return $this->run($request, $back, 'Phone screening recorded.',
+            fn () => $applications->screen($request->user(), $application, $request->only(['outcome', 'rating', 'ticked', 'note', 'reject_reason', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function checklist(Request $request, JobApplicationService $applications): RedirectResponse
+    {
+        return $this->run($request, route('hr.applications.index', ['tab' => 'settings']), 'Call checklist saved.',
+            fn () => $applications->setChecklist($request->user(), $request->only(['items', 'expected_version', 'idempotency_key'])));
     }
 
     public function retention(Request $request, JobApplicationService $applications): RedirectResponse

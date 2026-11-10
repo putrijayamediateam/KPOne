@@ -53,14 +53,14 @@ final class ClinicManagementNavigation
         $add('In-clinic', 'clinic', [
             [$settings, 'Business details', 'Manage organisation identity, branch contact details and the shared logo.', 'business-details.index'],
             [$settings, 'Registration settings', 'Set required details in registration.', 'registration-settings.index'],
-            [$actor->can('public_checkin_links.manage.organisation') || $actor->can('public_checkin_links.manage.branch'), 'Public Check-In (QR links)', 'Manage the public check-in QR links for your authorized branches.', 'public-checkin-links.index'],
+            [$actor->can('public_checkin_links.manage.organisation') || $actor->can('public_checkin_links.manage.branch'), 'QR check-in links', 'Manage the public check-in QR links for your authorized branches.', 'public-checkin-links.index'],
             [$settings, 'Consultation settings', 'Manage preset diagnoses for consultations.', 'diagnosis-presets.index'],
             [$panels, 'Checkout settings', 'Manage Panels, verification details and claim due rules.', 'panel-settings.index'],
             [$actor->can('payment_methods.manage.organisation'), 'Payment Methods', 'Configure the payment methods available at checkout.', 'payment-methods.index'],
             [$actor->can('billing.approval_limits.manage.organisation'), 'Billing Approval Limits', 'Manage the existing Panel and pay-later approval limits.', 'billing-approval-limits.index'],
             [$branch && $actor->can('visits.view.branch'), 'Registration', 'Open the existing branch registration board.', 'registration.index'],
             [$branch && ($actor->can('queue.view.own') || $actor->can('queue.view.branch')), 'Consultation', 'Open your authorized consultation queue.', 'queue.index'],
-            [$branch && $actor->can('public_intakes.review.branch'), 'Pendaftaran QR', 'Semak pendaftaran QR sebelum penerimaan oleh staf.', 'registration-review.index'],
+            [$branch && $actor->can('public_intakes.review.branch'), 'QR Intake', 'Review patients who checked in by QR before they join the queue.', 'registration-review.index'],
         ]);
         $add('Inventory & services', 'inventory', [
             [$actor->can('medicines.manage.organisation'), 'Medicine Catalogue', 'Manage medicines and their catalogue details.', 'medicines.index'],
@@ -143,6 +143,7 @@ final class ClinicManagementNavigation
             [$actor->can('hr.claims.submit.own') || $actor->can('hr.claims.approve.organisation') || $actor->can('hr.claims.pay.organisation') || $actor->can('hr.claims.manage.organisation'), 'KPOne HR staff claims', 'Claim back what you paid for the clinic; approvals, payments recorded and settings for HR and Finance.', 'hr.claims.index'],
             [$actor->can('hr.payroll.prepare.organisation') || $actor->can('hr.payroll.export.organisation'), 'KPOne HR payroll', 'Payroll runs, pay profiles, statutory tables and exports, each checked by a second person.', 'hr.payroll.index'],
             [$actor->can('hr.applications.manage.organisation'), 'KPOne HR job applications', 'Open positions and the applications sent from the public form.', 'hr.applications.index'],
+            [$actor->can('hr.messages.receive.own') || $actor->can('hr.messages.manage.organisation'), 'KPOne HR messages', 'Choose how KPOne tells you about your leave, roster, payslip and claims; channel settings for HR.', 'hr.messages.index'],
             [$actor->can('staff.view.own') || $actor->can('staff.view.branch') || $actor->can('staff.view.organisation'), 'Staff', 'Review staff within your existing access.', 'staff.index'],
             [$actor->can('branches.view.branch') || $actor->can('branches.view.organisation'), 'Branches', 'Review the clinic locations you may access.', 'branches.index'],
             [$actor->can('access.view.organisation'), 'Access Control', 'Review existing roles and permissions.', 'access-control.index'],

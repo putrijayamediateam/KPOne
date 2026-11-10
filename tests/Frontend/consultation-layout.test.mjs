@@ -37,8 +37,8 @@ test('Compact safety and moved actions retain selectors, labels and existing gua
         'Choose preset',
         'Add diagnosis',
         'Save clinical record',
-        'Panggil semula',
-        'Ke bilik rawatan',
+        'Call again',
+        'Call to treatment room',
         'On Hold',
     ]) {
         assert.ok(

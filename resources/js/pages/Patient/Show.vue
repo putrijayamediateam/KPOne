@@ -94,7 +94,7 @@ const formatTime = (value: string) =>
             class="flex flex-col justify-between gap-4 md:flex-row md:items-start"
         >
             <div>
-                <div class="font-mono text-sm font-medium text-emerald-800">
+                <div class="font-mono text-sm font-medium text-brand-strong">
                     {{ patient.patientNumber }}
                 </div>
                 <h1 class="text-2xl font-semibold tracking-tight">
@@ -270,7 +270,7 @@ const formatTime = (value: string) =>
                         <div class="flex items-center gap-2 font-medium">
                             <BadgeCheck
                                 v-if="identifier.isCurrent"
-                                class="size-4 text-emerald-700"
+                                class="size-4 text-success"
                             />{{ identifier.type.toUpperCase() }} ·
                             {{ identifier.displayValue }}
                         </div>
