@@ -60,3 +60,31 @@ test('entries are added, never edited; actions show only while the case is open'
     assert.doesNotMatch(script('case'), /router\.(put|patch|delete)\(/);
     assert.doesNotMatch(script('case'), /\/hr\/messages|mailto:|wa\.me/);
 });
+
+test('disabled actions say why; the file picker is the shared button; closing has its own card', () => {
+    const page = template('case');
+    assert.match(page, /<FileChooseButton/);
+    assert.doesNotMatch(page, /<input[^>]*type="file"/);
+
+    for (const reason of [
+        'Write the note first.',
+        'Type the reply first.',
+        'Choose a file first.',
+    ]) {
+        assert.match(page, new RegExp(reason.replace('.', '\\.')));
+    }
+
+    assert.match(
+        page,
+        /data-test="case-close-card"[\s\S]{0,300}Close the case/,
+    );
+    assert.match(page, /<Link\s+href="\/hr\/letters\?tab=issued"/);
+    assert.match(
+        script('case'),
+        /Issue the warning letter in HR letters first\./,
+    );
+    assert.match(
+        template('list'),
+        /Open case: choose a staff file and write the allegation\s+first\./,
+    );
+});

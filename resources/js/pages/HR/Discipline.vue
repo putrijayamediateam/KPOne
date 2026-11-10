@@ -249,7 +249,11 @@ const textareaClass =
                         <Button
                             type="submit"
                             class="max-lg:min-h-11"
-                            :disabled="form.processing || !form.worker"
+                            :disabled="
+                                form.processing ||
+                                !form.worker ||
+                                form.allegation.trim().length < 10
+                            "
                             data-test="case-save"
                             >{{
                                 form.processing ? 'Opening…' : 'Open case'
@@ -263,6 +267,15 @@ const textareaClass =
                             >Cancel</Button
                         >
                     </div>
+                    <p
+                        v-if="
+                            !form.worker || form.allegation.trim().length < 10
+                        "
+                        class="text-sm text-muted-foreground"
+                    >
+                        Open case: choose a staff file and write the allegation
+                        first.
+                    </p>
                 </form>
             </SheetContent>
         </Sheet>

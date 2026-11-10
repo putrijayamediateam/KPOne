@@ -4,6 +4,7 @@
 import type { FormDataConvertible } from '@inertiajs/core';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
+import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -147,7 +148,7 @@ const linkLetter = () =>
     );
 
 // ---- File ----
-const fileInput = ref<HTMLInputElement | null>(null);
+const chooser = ref<{ clear: () => void } | null>(null);
 const upload = reactive({
     file: null as File | null,
     key: crypto.randomUUID(),
@@ -161,9 +162,7 @@ const addFile = () =>
             upload.file = null;
             upload.key = crypto.randomUUID();
 
-            if (fileInput.value) {
-                fileInput.value.value = '';
-            }
+            chooser.value?.clear();
         },
         upload,
         true,
@@ -181,7 +180,24 @@ const outcome = reactive({
 const chosen = computed(() =>
     props.case.outcomes.find((o) => o.code === outcome.code),
 );
-const close = () =>
+const closeBlocked = computed(() =>
+    !outcome.code
+        ? 'Choose the outcome first.'
+        : chosen.value?.needsLetter && !outcome.letter
+          ? props.case.warningLetters.length
+              ? 'Choose the warning letter first.'
+              : 'Issue the warning letter in HR letters first.'
+          : null,
+);
+// The shared confirm dialog has no disabled state, so a blocked confirm shows its reason instead of sending.
+const blockedShown = ref(false);
+const close = () => {
+    if (closeBlocked.value) {
+        blockedShown.value = true;
+
+        return;
+    }
+
     post(
         'close',
         {
@@ -194,6 +210,7 @@ const close = () =>
         () => (outcome.open = false),
         outcome,
     );
+};
 </script>
 
 <template>
@@ -339,6 +356,12 @@ const close = () =>
                         @click="addNote"
                         >Add note</Button
                     >
+                    <p
+                        v-if="!note.text.trim()"
+                        class="mt-1 text-sm text-muted-foreground"
+                    >
+                        Write the note first.
+                    </p>
                 </div>
             </section>
 
@@ -420,6 +443,12 @@ const close = () =>
                         @click="addReply"
                         >Record reply</Button
                     >
+                    <p
+                        v-if="!reply.text.trim()"
+                        class="mt-1 text-sm text-muted-foreground"
+                    >
+                        Type the reply first.
+                    </p>
                 </div>
             </section>
 
@@ -436,13 +465,13 @@ const close = () =>
                     {{ props.case.fileCount }} of
                     {{ props.case.limits.files }} used.
                 </p>
-                <Label for="case-file" class="sr-only">File</Label>
-                <input
+                <FileChooseButton
                     id="case-file"
-                    ref="fileInput"
-                    type="file"
+                    ref="chooser"
                     accept="application/pdf,image/jpeg,image/png"
-                    class="text-sm file:mr-3 file:rounded-md file:border file:bg-transparent file:px-3 file:py-2 max-lg:file:min-h-11"
+                    :label="upload.file ? 'Choose another file' : 'Choose file'"
+                    :status="upload.file ? upload.file.name : 'No file chosen'"
+                    status-id="case-file-state"
                     aria-describedby="case-file-help"
                     @change="
                         upload.file =
@@ -459,22 +488,43 @@ const close = () =>
                         @click="addFile"
                         >Add file</Button
                     >
+                    <p
+                        v-if="!upload.file"
+                        class="mt-1 text-sm text-muted-foreground"
+                    >
+                        Choose a file first.
+                    </p>
                 </div>
             </section>
 
-            <div>
-                <Button
-                    class="max-lg:min-h-11"
-                    data-test="case-close"
-                    @click="
-                        outcome.code = '';
-                        outcome.letter = '';
-                        outcome.note = '';
-                        outcome.open = true;
-                    "
-                    >Record outcome</Button
-                >
-            </div>
+            <section
+                aria-labelledby="close-title"
+                class="flex flex-col gap-2 rounded-xl border bg-card p-4"
+                data-test="case-close-card"
+            >
+                <h2 id="close-title" class="text-sm font-semibold">
+                    Close the case
+                </h2>
+                <p class="text-sm text-muted-foreground">
+                    Record the one outcome. The case then closes and nothing
+                    more can be added.
+                </p>
+                <div>
+                    <Button
+                        variant="outline"
+                        class="max-lg:min-h-11"
+                        data-test="case-close"
+                        @click="
+                            outcome.code = '';
+                            outcome.letter = '';
+                            outcome.note = '';
+                            blockedShown = false;
+                            outcome.open = true;
+                        "
+                        >Record outcome</Button
+                    >
+                </div>
+            </section>
         </template>
 
         <OperationalConfirmDialog
@@ -486,7 +536,7 @@ const close = () =>
             cancel-label="Keep open"
             processing-label="Recording…"
             :processing="outcome.processing"
-            :error="failure"
+            :error="(blockedShown ? closeBlocked : null) ?? failure"
             @update:open="(v: boolean) => (outcome.open = v)"
             @confirm="close"
         >
@@ -527,7 +577,13 @@ const close = () =>
                         "
                     />
                     <p v-else class="text-sm">
-                        Issue the warning letter in HR letters first.
+                        Issue the warning letter in
+                        <Link
+                            href="/hr/letters?tab=issued"
+                            class="underline underline-offset-4"
+                            >HR letters</Link
+                        >
+                        first.
                     </p>
                     <InputError :message="errors.letter_id" />
                 </template>
