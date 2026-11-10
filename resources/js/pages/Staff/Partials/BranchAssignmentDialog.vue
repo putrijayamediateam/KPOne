@@ -130,7 +130,7 @@ const endAssignment = () =>
                         Set as primary branch</label
                     >
                 </div>
-                <div class="grid gap-4 sm:grid-cols-2">
+                <div class="grid items-start gap-4 sm:grid-cols-2">
                     <div class="grid gap-2">
                         <label
                             class="text-sm font-medium"

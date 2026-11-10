@@ -258,12 +258,12 @@ function applyTime() {
             class="space-y-3 rounded-lg border bg-card p-4"
         >
             <div class="flex flex-wrap items-end gap-3">
-                <label class="min-w-0 text-sm"
+                <label class="min-w-0 text-sm max-sm:w-full"
                     >From<DateField
                         v-model="draft.from"
                         :disabled="busy"
                         :echo="false" /></label
-                ><label class="min-w-0 text-sm"
+                ><label class="min-w-0 text-sm max-sm:w-full"
                     >To<DateField
                         v-model="draft.to"
                         :disabled="busy"

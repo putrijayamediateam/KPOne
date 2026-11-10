@@ -251,10 +251,10 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
             class="space-y-3 rounded-lg border bg-card p-4"
         >
             <div class="flex flex-wrap items-end gap-3">
-                <label class="grid gap-1 text-sm"
+                <label class="grid gap-1 text-sm max-sm:w-full"
                     >From<DateField v-model="draft.from" :echo="false"
                 /></label>
-                <label class="grid gap-1 text-sm"
+                <label class="grid gap-1 text-sm max-sm:w-full"
                     >To<DateField v-model="draft.to" :echo="false"
                 /></label>
                 <Button :disabled="busy" @click="perform()">Run report</Button>

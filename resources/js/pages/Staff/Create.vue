@@ -298,7 +298,7 @@ const submit = () => form.post('/staff');
                                 >
                             </div>
                             <div
-                                class="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+                                class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4"
                             >
                                 <div class="grid gap-2 xl:col-span-2">
                                     <label
