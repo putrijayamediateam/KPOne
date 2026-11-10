@@ -4,7 +4,11 @@ namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Applications\Services\ApplicationsPageService;
+use App\Domain\HR\Applications\Services\InterviewDocuments;
+use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationService;
+use App\Domain\HR\Applications\Services\StaffAccountRequests;
+use App\Domain\HR\Applications\Services\TalentPool;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
@@ -19,7 +23,7 @@ class ApplicationsController extends Controller
 {
     public function index(Request $request, ApplicationsPageService $pages): Response
     {
-        return Inertia::render('HR/Applications', ['applications' => $pages->page($request->user(), $request->only(['tab', 'status', 'position', 'page']))]);
+        return Inertia::render('HR/Applications', ['applications' => $pages->page($request->user(), $request->only(['tab', 'status', 'position', 'page', 'focus']))]);
     }
 
     public function addPosition(Request $request, JobApplicationService $applications): RedirectResponse
@@ -51,6 +55,30 @@ class ApplicationsController extends Controller
             fn () => $applications->screen($request->user(), $application, $request->only(['outcome', 'rating', 'ticked', 'note', 'reject_reason', 'expected_lock_version', 'idempotency_key'])));
     }
 
+    /** HR-17c: confirm one of the candidate's three times. */
+    public function confirmInterview(Request $request, InterviewSlots $slots, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'Interview confirmed. The candidate is told.',
+            fn () => $slots->confirm($request->user(), $application, $request->only(['start', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function askAgain(Request $request, InterviewSlots $slots, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'New times asked for. The candidate is told.',
+            fn () => $slots->askAgain($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function cancelInterview(Request $request, InterviewSlots $slots, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'Interview cancelled. The candidate is asked for new times.',
+            fn () => $slots->cancel($request->user(), $application, $request->only(['reason', 'expected_lock_version', 'idempotency_key'])));
+    }
+
+    private function back(Request $request): string
+    {
+        return route('hr.applications.index', array_filter(['tab' => 'applications', ...$request->only(['status', 'position', 'page'])]));
+    }
+
     public function checklist(Request $request, JobApplicationService $applications): RedirectResponse
     {
         return $this->run($request, route('hr.applications.index', ['tab' => 'settings']), 'Call checklist saved.',
@@ -61,6 +89,74 @@ class ApplicationsController extends Controller
     {
         return $this->run($request, route('hr.applications.index', ['tab' => 'settings']), 'Retention saved.',
             fn () => $applications->setRetention($request->user(), $request->only(['retention_days', 'expected_version', 'idempotency_key'])));
+    }
+
+    /** HR-17e: how long a pool candidate is kept after closing. */
+    public function poolDays(Request $request, TalentPool $pool): RedirectResponse
+    {
+        return $this->run($request, route('hr.applications.index', ['tab' => 'settings']), 'Talent pool period saved.',
+            fn () => $pool->setDays($request->user(), $request->only(['pool_days', 'expected_version', 'idempotency_key'])));
+    }
+
+    /** HR-17e: invite a pool candidate to an open position of the same type. The new private link is shown to HR once. */
+    public function invite(Request $request, TalentPool $pool, string $application): RedirectResponse
+    {
+        $link = null;
+        $response = $this->run($request, route('hr.applications.index', ['tab' => 'pool']), 'Invited. A new application starts at phone screening.',
+            function () use ($request, $pool, $application, &$link): void {
+                $link = $pool->invite($request->user(), $application, $request->only(['position', 'expected_lock_version', 'idempotency_key']));
+            });
+        if ($link !== null) {
+            Inertia::flash('invitationLink', $link);
+        }
+
+        return $response;
+    }
+
+    public function requestAccount(Request $request, StaffAccountRequests $requests, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'Staff account asked for. The account administrator sees it on the Staff page.',
+            fn () => $requests->request($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function cancelAccountRequest(Request $request, StaffAccountRequests $requests, string $accountRequest): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'Request cancelled.',
+            fn () => $requests->cancel($request->user(), $accountRequest, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    /** HR-17d: a PDF the candidate can download once their interview is confirmed. */
+    public function addDocument(Request $request, InterviewDocuments $documents): RedirectResponse
+    {
+        return $this->run($request, route('hr.applications.index', ['tab' => 'settings']), 'Document added.',
+            fn () => $documents->upload($request->user(), $request->file('file'), $request->only(['position_type', 'title', 'idempotency_key'])));
+    }
+
+    public function removeDocument(Request $request, InterviewDocuments $documents, string $document): RedirectResponse
+    {
+        return $this->run($request, route('hr.applications.index', ['tab' => 'settings']), 'Document removed. Its file is deleted.',
+            fn () => $documents->remove($request->user(), $document, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    /** HR opens an interview document; the open is recorded first. */
+    public function document(Request $request, InterviewDocuments $documents, string $document): HttpResponse
+    {
+        try {
+            $opened = $documents->open($request->user(), $document);
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('hr.applications.index', ['tab' => 'settings']));
+        } catch (AuthorizationException) {
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
+            abort(403);
+        }
+
+        return response($opened['content'], 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="'.$opened['filename'].'"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     /** The CV downloads; the open is recorded first. */
