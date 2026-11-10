@@ -73,6 +73,10 @@ Development, Finance and the TV account get no HR data by implication. Server ch
 | HR-17c | Interview slots: at Scheduling the candidate picks exactly three one-hour slots (9, 10, 11, 12, 2, 3 and 4 o'clock branch time) over the next 10 working days less public holidays, never one already confirmed in the organisation; HR confirms one under a per-slot advisory lock, asks for new times (a new round), or cancels an interview with a fixed reason, which frees the slot and returns to Scheduling; Passed or Failed only once the interview has started; messages `interview_confirmed`, `pick_again` and `interview_cancelled`; "Times to confirm" and "Interviews today" in "Needs you". No new permission; migration `2026_11_10_003700`. | PR #440, merged as `f0ebbbe` (head `e9ec37b`) |
 | HR-17d | Interview documents: HR uploads PDFs per position type (at most 10 MB each and 10 active per type, held in PostgreSQL under the service's lock), stored encrypted under a generated name with no original file name; every HR open is recorded; Remove keeps the row and deletes the bytes; the candidate downloads them from the private page only while their interview is confirmed (a PostgreSQL trigger refuses any other download), each download recorded before any byte is sent; HR's drawer lists what was downloaded. No new permission; migration `2026_11_10_003800`. | PR #442, merged as `4040176` (head `339e315`) |
 | HR-17e | Talent pool and staff-account requests: an optional, never preset pool tick stored with its wording version (`draft-hr17e-pool-v1`); a ticked application with a result stays in the pool for HR's clinic-entered days (none shipped; empty keeps nobody), counted from its close, and is kept out of the purge; the candidate leaves once from the private page; HR invites a pool member to an open position of the same type, which makes a new application at Phone screening with a copied, re-encrypted CV, its own link and the `pool_invited` message (once per position, unique index). For a passed candidate HR asks for a staff account; the request shows on the Staff page only to people with `staff.manage.organisation` and `access.manage.organisation`, who create the account the usual way and mark it done; HR creates no account and changes no role or branch. No new permission; migration `2026_11_10_003900`. | PR #443, merged as `e02a771` (head `ebfdd27`) |
+| HR-10a | Letters at `/hr/letters` (Templates, Issue, Issued; My letters for every human role): HR-entered EN and BM templates (confirmation, warning, show-cause, other) with fixed placeholders only, `{details}` in warning and show-cause letters; KPOne ships no wording. Issue from a server preview to an encrypted, immutable snapshot numbered `HRL/{year}/{6-digit}` with the letterhead text and logo bytes (through `DocumentLetterheadCapture`) and the template version; replace, void with a reason, and "given on" once. Nobody issues to themselves; a Director's or HR Manager's letter only by a Director. Printed A4 with two signature lines; nothing is emailed. Permission `hr.letters.issue.organisation` (Director, HR Manager); migrations `2026_11_10_004000` and `004100`. | PR #445, merged as `c3f7f79` |
+| HR-10b | Appraisals at `/hr/appraisals` (Criteria, Cycles; my appraisals for every human role): HR-entered, versioned criteria (KPOne ships none); a cycle keeps its criteria version; 1 to 5 per criterion with an optional comment, no total and no ranking; a summary of attendance, leave and overtime for the period, live on a draft and frozen on send; the person sees it only once sent and adds one comment; a Director signs off once the person commented or 7 days after sending, never their own. Nobody appraises themselves; a Director's or HR Manager's appraisal only by a Director (service and PostgreSQL). Ratings, comments and the summary are encrypted. Permissions `hr.appraisal.manage.organisation` (Director, HR Manager) and `hr.appraisal.view.own` (11 human roles); migrations `2026_11_10_004200` and `004300`. | PR #448, merged as `f39b490` |
+| HR-10c | Discipline at `/hr/discipline` (Director and HR Manager only): a case with an encrypted allegation that never changes; an append-only timeline of notes, linked HR-10a show-cause letters, the staff member's reply and files (PDF, JPG or PNG in their own `hr_discipline_files` table, not the HR-4b vault); one outcome closes it (no action, verbal, written or final warning, or "Refer to the Director for termination"; a written or final warning needs a current warning letter). KPOne never ends employment or changes an account. Nobody handles a case about themselves; a Director's or HR Manager's case only by a Director (service and PostgreSQL, `hr_discipline_director_only`); cases the viewer may not handle are left out of lists and counts; no audit row has a subject. HR-10a's Issued list leaves out letters to people the viewer may not manage, and letter audit holds ids only. Permission `hr.discipline.manage.organisation`; migrations `2026_11_10_004400` and `004500`. | PR #449 |
+| HR-10d | Incident reports at `/hr/incidents` (My reports for every human role; Open, Needs clinical review and Closed for the Director and HR Manager): kind, branch, date and time, an encrypted description and up to 3 photos (JPG or PNG, re-encoded, EXIF removed); acknowledge, actions with an owner and a due date, HR notes never shown to the reporter, and close with an outcome once every action is done; the reporter sees the status only. Patient-care reports are flagged "Needs clinical review" and the form warns not to write patient details. A staff-conduct report may be sent to the Director only (immutable; only a Director lists, reads or handles it; refused when the reporter is the only Director). A staff-conduct report links to an open HR-10c case only by someone who may handle it, and a manager who may not is not told of the link. Nobody handles their own report (service and PostgreSQL). Permissions `hr.incidents.manage.organisation` (Director, HR Manager) and `hr.incidents.report.own` (11 human roles); migrations `2026_11_10_004600` and `004700`. | Not merged yet |
 
 ## 6. Decisions (never ask again)
 
@@ -406,6 +410,28 @@ check items, keep them"). The rest stand unless the owner changes them.
     ticked; an application made by inviting them from the pool holds no tick of its own, so it never starts a new
     period, and leaving from either private page leaves the pool for good. Before the form is switched on, the
     owner's PDPA review approves the tick wording and decides whether the applications privacy notice needs a v2.
+85. HR-10 recommendations approved (owner, 2026-11-10, word for word, relayed by B.E.R.N.I.S.S): "all continue with
+    your recommendations". This covers HR-10a to HR-10d as in HR-PLAN section 20, the six new permissions and one
+    Clinic management line per slice, then HR-15 and HR-16. No offer letters; KPOne ships no letter wording and no
+    appraisal criteria; the clinic's adviser approves letter wording before real use.
+86. HR-10a `{details}` (Suresh agreed): the free paragraph is allowed in show-cause letters as well as warnings,
+    because a show-cause letter has to state the alleged facts. HR-PLAN 20.3 named warnings only.
+87. HR-10a letterhead: HR letters use the clinical documents' `DocumentLetterheadCapture`, so a change to the clinical
+    letterhead rules also changes HR letters, and an incomplete letterhead refuses an HR letter.
+88. HR-10c files (Suresh agreed): discipline files live in their own `hr_discipline_files` table, not the HR-4b vault
+    under a Discipline category, because the vault is listed on the staff file, opened by the person themselves and
+    purged by document-type retention, any of which would leak a case.
+89. HR-10c confirm dialog (Daniel): the shared `OperationalConfirmDialog` has no disabled state, so a close that still
+    needs its warning letter is refused with the reason in the dialog's error box. Daniel logs "confirm dialog with a
+    disabled state" as a shared-component item.
+90. HR-10d incidents (Suresh's review, 2026-11-10):
+    - a manager who may not handle a linked discipline case is not told that a case exists;
+    - a staff-conduct report may be sent to the Director only (for a report about the HR Manager), checked in the
+      service and in PostgreSQL, and refused when the reporter is the only Director, because nobody else could
+      handle it;
+    - **owner decision to confirm:** clinical review of patient-care reports happens outside KPOne. KPOne flags them,
+      HR reads them, and the form tells the reporter not to write a patient's name, IC or clinical details (the visit
+      number only). Showing them only to a Director, or naming a clinical reviewer role, waits for the owner.
 
 ## 7. Open items and known limits
 
@@ -470,6 +496,18 @@ check items, keep them"). The rest stand unless the owner changes them.
   one fixed hour, with no interview room or interviewer per branch.
 - HR-17d known limits: PDFs are stored as uploaded and never rendered in KPOne (shallow check); opening or downloading
   is a GET that writes an event row each time; dummy PDFs only until the owner provides the real ones.
+- HR-10a known limits: opening a letter is a GET that writes an open row each time; a voided replacement leaves no
+  current letter; the year in the number comes from the first active branch's time zone; letter wording needs the
+  clinic's adviser before real use.
+- HR-10b known limits: with one Director, the same person writes the HR Manager's appraisal and signs it off; leave
+  across the period edge is recounted with today's working days; PostgreSQL's 7-day check compares `signed_off_at`
+  with `sent_at` (the service check is the real one); drafts left when a cycle closes stay unsent.
+- HR-10c known limits: opening a case or a file writes an audit row each time; a file added by mistake stays with the
+  case; the list reads the latest 300 cases before filtering; HR-10a's Issued list applies its 200-row limit before
+  its new filter.
+- HR-10d known limits: photos come only with the report, never later; the list reads the latest 500 reports before
+  the tabs; opening a report or a photo as a manager writes an audit row each time; patient-care reports are read by
+  HR until the owner names a clinical reviewer.
 - HR-17e known limits: the pool tick wording and the invitation message are drafts (Malay included); a staff-account
   request is a note between people, and the account created is not linked back to the application; the pool offers
   only open positions of the same type, because the form's questions differ by type.
