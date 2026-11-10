@@ -3,6 +3,7 @@
 namespace Tests\Feature\Billing;
 
 use App\Domain\Shared\Services\ClinicInsightsReportService;
+use App\Domain\Shared\Services\ClinicInsightsService;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceCredit;
 use App\Domain\Visit\Billing\Models\Payment;
@@ -234,6 +235,38 @@ class RefundAfterCompletionTest extends BillingTestCase
         $messages = array_column($this->actingAs($finance)->getJson(route('billing.activity', [$f['visit'], $f['invoice']]).'?'.http_build_query(['expected_branch_id' => $f['visit']->branch_id]))->assertOk()->json('data'), 'message');
         $this->assertContains('Refund after completion recorded', $messages);
         $this->assertContains('Refund after completion approved; invoice credited', $messages);
+    }
+
+    public function test_a_credit_comes_off_its_doctors_row_on_the_approval_day_so_the_rows_add_up_to_the_headline(): void
+    {
+        // BIL-12 (owner decision 2026-11-07): the provider table takes each credit off the invoice's attending doctor.
+        $saleDay = CarbonImmutable::now('Asia/Kuala_Lumpur')->startOfDay()->subDays(3)->setTime(10, 0);
+        $approvalDay = $saleDay->addDays(2);
+        $this->travelTo($saleDay);
+        $f = $this->completedFixture();
+        $doctor = DB::table('consultation_checkouts')->where('id', $f['invoice']->consultation_checkout_id)->value('attending_doctor_user_id');
+        $doctorName = (string) DB::table('users')->where('id', $doctor)->value('name');
+        $this->selectBranch($this->actor('ca_supervisor'));
+        $this->post(route('billing.refund', [$f['visit'], $f['receipt']->public_id]), $this->input($f, 'medicine_returned', 1500))->assertSessionHasNoErrors();
+        $this->travelTo($approvalDay);
+        $this->selectBranch($this->actor('finance_officer'));
+        $this->post(route('billing.refund.decide', [$f['visit'], PaymentRefund::query()->sole()->public_id, 'approved']), $this->decide($f))->assertSessionHasNoErrors();
+
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $report = fn (CarbonImmutable $from, CarbonImmutable $to, ?int $doctorId = null) => app(ClinicInsightsReportService::class)
+            ->report($director, 'sales', 'all', $from->toDateString(), $to->toDateString(), $doctorId)['report'];
+        // The sale day keeps the doctor's full sale; the approval day shows the credit alone, with no patients.
+        $this->assertSame([['name' => $doctorName, 'salesSen' => 4000, 'patients' => 1]], $report($saleDay, $saleDay)['providers']);
+        $this->assertSame([['name' => $doctorName, 'salesSen' => -1500, 'patients' => 0]], $report($approvalDay, $approvalDay)['providers']);
+        // Over both days the rows add up to the headline net sales, with and without the doctor filter.
+        $both = $report($saleDay, $approvalDay);
+        $this->assertSame([['name' => $doctorName, 'salesSen' => 2500, 'patients' => 1]], $both['providers']);
+        $this->assertSame($both['summary']['totalSen'], array_sum(array_column($both['providers'], 'salesSen')));
+        $this->assertSame(2500, $report($saleDay, $approvalDay, (int) $doctor)['providers'][0]['salesSen']);
+        // Today's provider table follows the same rule on the approval day.
+        $today = app(ClinicInsightsService::class)->today($director);
+        $this->assertSame([['name' => $doctorName, 'salesSen' => -1500, 'patients' => 0]], $today['rankings']['providers']);
     }
 
     public function test_an_open_visit_still_refunds_only_reversed_receipts_and_postgres_refuses_what_the_service_refuses(): void

@@ -228,13 +228,18 @@ class ClinicInsightsService
             ->orderBy('users.name')
             ->get()
             ->map(static fn (object $row): array => [
+                'id' => (int) $row->id,
                 'name' => (string) $row->name,
                 'salesSen' => (int) $row->sales_sen,
                 'patients' => (int) $row->patients,
             ])->all());
+        // BIL-12: refund credits approved today come off their invoice's doctor (or the OTC row), as in the headline.
+        $credits = InvoiceSalesProjection::approvedCredits($actor->organisation_id);
+        $this->applyPeriod($credits, $periods, 'decided_at', 'today');
+        $withCredits = InvoiceSalesProjection::withCredits($actor->organisation_id, $doctors, $credits, $otc, true);
 
         // DSP-4: OTC sales have no doctor; one fixed row, always last.
-        return $otc === null ? $doctors : [...$doctors, $otc];
+        return $withCredits['otc'] === null ? $withCredits['doctors'] : [...$withCredits['doctors'], $withCredits['otc']];
     }
 
     /**
