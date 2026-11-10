@@ -215,7 +215,8 @@ final class IssuedBillingDocumentService
         $identifier = PatientIdentifier::query()->where('patient_id', $patient->id)->whereNull('retired_at')->oldest('id')->first(); // As the patient pages show it.
         $categories = DB::table('invoice_lines as l')->leftJoin('charge_definitions as c', 'c.id', '=', 'l.charge_definition_id')
             ->leftJoin('clinical_service_catalogue_items as s', 's.id', '=', 'c.clinical_service_catalogue_item_id')
-            ->where('l.invoice_id', $invoice->id)->orderBy('l.id')->get(['l.line_type', 's.category'])
+            // BIL-11: the category frozen on the line; lines finalised before BIL-11 (NULL) keep reading the live one.
+            ->where('l.invoice_id', $invoice->id)->orderBy('l.id')->get(['l.line_type', DB::raw('COALESCE(l.service_category_snapshot, s.category) AS category')])
             ->map(fn (object $l): string => self::category((string) $l->line_type, $l->category === null ? null : (string) $l->category))->all();
         /** @var list<array{name: string, quantity: string, unit: string|null, unitPriceSen: int, totalSen: int}> $sourceLines */
         $sourceLines = array_values($source['lines']);
