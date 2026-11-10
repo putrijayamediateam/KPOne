@@ -548,7 +548,8 @@ check items, keep them"). The rest stand unless the owner changes them.
 - HR-16a known limits: staff see their own latest result only while the check is on at that branch; results and
   consent rows have no purge (PDPA pack 04 and 08); browser location can be wrong indoors, so "outside" is a prompt for a
   conversation, never a decision; the existing `hr-3a-attendance.test.mjs` no-geolocation assertion needs B.E.R.N.I.S.S's
-  approval to drop `geolocation` (camera and capture stay banned).
+  approval to drop `geolocation` (camera and capture stay banned); approved by B.E.R.N.I.S.S for the owner, 2026-11-10.
+- HR-3 tidy (Daniel, from HR-16a): the Review "Day" field has no "= 10 Nov 2026" echo under it (the heading below covers it).
 - HR-17e known limits: the pool tick wording and the invitation message are drafts (Malay included); a staff-account
   request is a note between people, and the account created is not linked back to the application; the pool offers
   only open positions of the same type, because the form's questions differ by type.
