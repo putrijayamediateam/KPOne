@@ -188,6 +188,10 @@ final class InterviewSlots
                 if ($at->lte(now())) {
                     throw ValidationException::withMessages(['start' => 'This time has passed. Ask the candidate for new times.']);
                 }
+                // A holiday or a change of working days since the candidate picked (Suresh, HR-17c).
+                if (! $this->isWorkingDay($application, $at)) {
+                    throw ValidationException::withMessages(['start' => 'This day is no longer a working day at the branch. Choose another of their times, or ask for new ones.']);
+                }
                 // The whole group: one interview per slot. The lock makes a second HR person wait, then see it taken.
                 DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ["hr_job_interview_slot:{$actor->organisation_id}:{$start}"]);
                 if (DB::table('hr_job_interviews')->where('organisation_id', $actor->organisation_id)->where('status', 'confirmed')->where('starts_at', $at)->exists()) {
@@ -301,7 +305,23 @@ final class InterviewSlots
             'cancelled_by_user_id' => $actorId, 'cancelled_at' => now()->utc(), 'cancel_reason' => 'withdrawn']);
     }
 
-    /** A slot's start as stored and compared: UTC, ISO 8601 with a Z. */
+    /** Whether a slot's day is still a working day, not a public holiday, at the interview branch. */
+    private function isWorkingDay(\stdClass $application, CarbonImmutable $at): bool
+    {
+        $branch = $this->branchFor($application);
+        if ($branch === null || $branch['weekdays'] === null) {
+            return false;
+        }
+        $local = $at->setTimezone($branch['zone']);
+
+        return in_array($local->isoWeekday(), $branch['weekdays'], true)
+            && ! DB::table('hr_public_holidays')->where('branch_id', $branch['id'])->whereDate('holiday_date', $local->toDateString())->exists();
+    }
+
+    /**
+     * A slot's start as stored and compared: UTC, ISO 8601 with a Z, whole seconds. The PostgreSQL insert check on
+     * hr_job_interviews compares picks in exactly this text form, so never store them any other way.
+     */
     public static function key(CarbonImmutable $at): string
     {
         return $at->utc()->format('Y-m-d\TH:i:s\Z');

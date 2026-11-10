@@ -183,6 +183,31 @@ class InterviewSlotsTest extends VisitTestCase
         $this->assertContains($slots[0], $this->starts($other));
     }
 
+    public function test_a_result_waits_for_the_interview_and_a_new_holiday_blocks_a_confirm(): void
+    {
+        [$id, $token] = $this->scheduled('Synthetic Assistant');
+        $slots = $this->starts($id);
+        $this->pick($token, array_slice($slots, 0, 3))->assertSessionHasNoErrors();
+        // A public holiday added on the picked day after the candidate chose.
+        foreach (DB::table('branches')->where('organisation_id', $this->hr->organisation_id)->pluck('id') as $branchId) {
+            DB::table('hr_public_holidays')->insert(['organisation_id' => $this->hr->organisation_id, 'branch_id' => $branchId, 'holiday_date' => '2026-11-11',
+                'name' => 'Synthetic new holiday', 'created_by_user_id' => $this->hr->id, 'created_at' => now(), 'updated_at' => now()]);
+        }
+        $this->confirm($id, $slots[0])->assertSessionHasErrors('start');
+        DB::table('hr_public_holidays')->where('holiday_date', '2026-11-11')->delete();
+        $this->confirm($id, $slots[0])->assertSessionHasNoErrors();
+
+        // Passed or Failed waits until the interview has started.
+        $move = fn (string $to) => $this->post(route('hr.applications.move', $id), ['to' => $to, 'expected_lock_version' => $this->row($id)->lock_version,
+            'idempotency_key' => (string) Str::uuid()]);
+        $move('passed')->assertSessionHasErrors('to');
+        $this->assertSame('interview', $this->row($id)->status);
+        $this->travelTo(CarbonImmutable::parse($slots[0])->addMinutes(30));
+        $this->selectBranch($this->hr);
+        $move('passed')->assertSessionHasNoErrors();
+        $this->assertSame('passed', $this->row($id)->status);
+    }
+
     public function test_needs_you_lists_todays_interviews(): void
     {
         [$id, $token] = $this->scheduled('Synthetic Assistant');

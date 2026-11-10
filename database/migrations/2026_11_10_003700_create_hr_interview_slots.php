@@ -104,12 +104,13 @@ BEGIN
 END $$;
 CREATE TRIGGER hr_job_interviews_guard BEFORE UPDATE ON hr_job_interviews FOR EACH ROW EXECUTE FUNCTION guard_hr_job_interview();
 
--- A confirmed interview must be one of its round's three picks, at Scheduling.
+-- A confirmed interview must be one of its round's three picks, for the application's current round.
 CREATE OR REPLACE FUNCTION guard_hr_job_interview_insert() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF NEW.status <> 'confirmed' OR NOT EXISTS (
      SELECT 1 FROM hr_job_interview_picks p WHERE p.id = NEW.pick_id AND p.application_id = NEW.application_id AND p.branch_id = NEW.branch_id
        AND p.round = NEW.round
+       AND EXISTS (SELECT 1 FROM hr_job_applications a WHERE a.id = NEW.application_id AND a.interview_round = NEW.round)
        AND p.starts @> to_jsonb(to_char(NEW.starts_at AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS"Z"'))) THEN
   RAISE EXCEPTION 'An interview is one of the candidate''s picks' USING ERRCODE = 'P0001';
  END IF;
