@@ -38,6 +38,7 @@ use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
 use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
+use App\Http\Controllers\HR\DashboardController as HrDashboardController;
 use App\Http\Controllers\HR\LeaveController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
 use App\Http\Controllers\HR\OutsideExportController as HrOutsideExportController;
@@ -180,6 +181,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('versions/{version}/return', 'returnToDraft')->whereUuid('version')->name('hr.roster.return');
         });
     });
+
+    // HR-9 HR dashboard (docs/teams/hr/HR-9-DESIGN.md). Read-only aggregates; each section needs its own existing HR permission.
+    Route::get('hr/dashboard', [HrDashboardController::class, 'index'])
+        ->middleware(['permission:hr.roster.manage.organisation,hr.attendance.review.organisation,hr.leave.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('hr.dashboard.index');
 
     // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time only; no location or photo.
     Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
