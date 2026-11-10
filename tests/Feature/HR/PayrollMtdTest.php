@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\HR;
 
+use App\Domain\HR\Payroll\PayProfileMtd;
 use App\Domain\HR\Payroll\Services\PayrollSetupService;
 use App\Domain\HR\Records\Models\Worker;
 use App\Models\User;
@@ -9,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -206,6 +208,79 @@ class PayrollMtdTest extends VisitTestCase
     }
 
     // ---- fixture ----
+
+    public function test_hr_7e_the_mtd_details_are_stored_encrypted_and_never_readable_in_the_table(): void
+    {
+        $worker = $this->clinic(['mtd_category' => '2', 'mtd_children' => '3', 'mtd_disabled_self' => '1', 'mtd_disabled_spouse' => '1']);
+        $profile = DB::table('hr_pay_profiles')->where('worker_id', $worker->id)->sole();
+        $raw = json_encode((array) $profile);
+        // No plain column is left, and the stored value shows neither the field names nor the disability flags.
+        $this->assertFalse(Schema::hasColumns('hr_pay_profiles', ['mtd_category']));
+        $this->assertFalse(Schema::hasColumns('hr_pay_profiles', ['mtd_children']));
+        $this->assertFalse(Schema::hasColumns('hr_pay_profiles', ['mtd_disabled_self']));
+        $this->assertFalse(Schema::hasColumns('hr_pay_profiles', ['mtd_disabled_spouse']));
+        foreach (['category', 'children', 'disabled', 'true'] as $plain) {
+            $this->assertStringNotContainsString($plain, (string) $profile->mtd_details_encrypted);
+        }
+        $this->assertStringNotContainsString('"disabled_self"', $raw);
+        $this->assertSame(['category' => 2, 'children' => 3, 'disabled_self' => true, 'disabled_spouse' => true], PayProfileMtd::read($profile));
+        // The audit trail never holds them either.
+        $audit = DB::table('audit_logs')->where('event', 'like', 'hr.payroll.profile%')->pluck('metadata')->implode(' ');
+        $this->assertStringNotContainsString('disabled', $audit);
+        // A value that cannot be decrypted reads as no details (MTD then needs a typed figure), never as a guess.
+        $this->assertNull(PayProfileMtd::read((object) ['id' => 1, 'mtd_details_encrypted' => 'not-encrypted']));
+    }
+
+    public function test_hr_7e_the_migration_encrypts_existing_plain_details_and_drops_the_plain_columns(): void
+    {
+        $worker = $this->clinic(['mtd_category' => '2', 'mtd_children' => '1', 'mtd_disabled_spouse' => '1']);
+        $plain = $this->clinicSecond();
+        // Put the table back as it was before HR-7e (inside this test's transaction), with plain values on two profiles.
+        DB::unprepared(<<<'SQL'
+DROP TRIGGER hr_pay_profiles_mtd_guard ON hr_pay_profiles;
+DROP FUNCTION guard_hr_pay_profile_mtd();
+ALTER TABLE hr_pay_profiles DROP CONSTRAINT hr_pay_profiles_mtd_shape;
+ALTER TABLE hr_pay_profiles DROP COLUMN mtd_details_encrypted;
+ALTER TABLE hr_pay_profiles ADD COLUMN mtd_category smallint NULL, ADD COLUMN mtd_children smallint NULL,
+  ADD COLUMN mtd_disabled_self boolean NOT NULL DEFAULT false, ADD COLUMN mtd_disabled_spouse boolean NOT NULL DEFAULT false;
+ALTER TABLE hr_pay_profiles ADD CONSTRAINT hr_pay_profiles_mtd_shape CHECK (mtd_category IS NULL OR (mtd AND mtd_category IN (1, 2, 3)));
+CREATE FUNCTION guard_hr_pay_profile_mtd() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF NEW.mtd_category IS DISTINCT FROM OLD.mtd_category THEN
+  RAISE EXCEPTION 'A pay profile never changes after it is entered; enter a new one' USING ERRCODE = 'P0001';
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER hr_pay_profiles_mtd_guard BEFORE UPDATE ON hr_pay_profiles FOR EACH ROW EXECUTE FUNCTION guard_hr_pay_profile_mtd();
+ALTER TABLE hr_pay_profiles DISABLE TRIGGER USER;
+SQL);
+        DB::table('hr_pay_profiles')->where('worker_id', $worker->id)->update(['mtd_category' => 2, 'mtd_children' => 1, 'mtd_disabled_spouse' => true]);
+        DB::statement('ALTER TABLE hr_pay_profiles ENABLE TRIGGER USER');
+
+        (require base_path('database/migrations/2026_11_10_003950_encrypt_hr_pay_profile_mtd_details.php'))->up();
+
+        $this->assertFalse(Schema::hasColumns('hr_pay_profiles', ['mtd_category']));
+        $this->assertSame(['category' => 2, 'children' => 1, 'disabled_self' => false, 'disabled_spouse' => true],
+            PayProfileMtd::read(DB::table('hr_pay_profiles')->where('worker_id', $worker->id)->sole()));
+        $this->assertNull(DB::table('hr_pay_profiles')->where('id', $plain)->value('mtd_details_encrypted'));
+        // The guard is back: the encrypted value never changes after entry.
+        $this->assertRefused('P0001', fn () => DB::table('hr_pay_profiles')->where('worker_id', $worker->id)->update(['mtd_details_encrypted' => null]));
+    }
+
+    /** A second confirmed profile with MTD switched on but no details (MTD typed each run). */
+    private function clinicSecond(): int
+    {
+        $setup = app(PayrollSetupService::class);
+        $other = $this->actor('ca');
+        $this->selectBranch($this->director);
+        $this->post(route('hr.records.files.store'), ['user_id' => $other->id, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $worker = Worker::query()->where('user_id', $other->id)->firstOrFail();
+        DB::table('hr_employment_periods')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $worker->organisation_id, 'worker_id' => $worker->id,
+            'type' => 'permanent', 'starts_on' => '2026-01-01', 'created_by_user_id' => $this->director->id, 'created_at' => now(), 'updated_at' => now()]);
+        $setup->enterProfile($this->hr, [...$this->pay(), 'worker_id' => $worker->public_id, 'idempotency_key' => (string) Str::uuid()]);
+
+        return (int) DB::table('hr_pay_profiles')->where('worker_id', $worker->id)->value('id');
+    }
 
     /** @return array<string, mixed> */
     private function schedule(): array
