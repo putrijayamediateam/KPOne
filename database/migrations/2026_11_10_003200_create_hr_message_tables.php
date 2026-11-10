@@ -10,7 +10,8 @@ use Illuminate\Support\Facades\Schema;
  * messages: leave decided, roster ready, payslip ready, staff claim decided or paid). Staff only; never a patient.
  * Each channel's settings are append-only versions (on or off, the clinic's price per message, a monthly cap). Each
  * person chooses channels (nothing on by default); every change is an event. A delivery row records the template
- * code, the channel, the recipient and the ids it refers to, never the rendered text. One-time codes are hashed.
+ * code, the channel, the recipient and the ids it refers to, never the rendered text.
+ * One-time codes are not part of HR-14 (owner, 2026-11-10: "leave OTP out, decide with HR-15").
  */
 return new class extends Migration
 {
@@ -73,20 +74,6 @@ return new class extends Migration
             $t->index(['organisation_id', 'created_at'], 'hr_msg_deliveries_list');
         });
 
-        Schema::create('hr_message_otps', function (Blueprint $t): void {
-            $t->id();
-            $t->unsignedBigInteger('organisation_id');
-            $t->unsignedBigInteger('user_id');
-            $t->string('purpose', 20);
-            $t->char('code_hash', 64);
-            $t->timestampTz('expires_at');
-            $t->unsignedSmallInteger('attempts')->default(0);
-            $t->timestampTz('consumed_at')->nullable();
-            $t->timestampTz('created_at');
-            $t->foreign(['user_id', 'organisation_id'], 'hr_msg_otps_user_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
-            $t->index(['user_id', 'purpose', 'created_at'], 'hr_msg_otps_lookup');
-        });
-
         DB::statement("ALTER TABLE hr_message_channel_settings ADD CONSTRAINT hr_msg_settings_shape CHECK (
             channel IN ('email', 'sms', 'whatsapp') AND version >= 1
             AND (monthly_cap IS NULL OR monthly_cap BETWEEN 1 AND 100000) AND (price_sen IS NULL OR price_sen <= 100000)
@@ -97,7 +84,6 @@ return new class extends Migration
             channel IN ('email', 'sms', 'whatsapp') AND status IN ('sending', 'sent', 'failed', 'skipped_cap')
             AND template IN ('leave_decided', 'roster_ready', 'payslip_ready', 'claim_decided')
             AND EXTRACT(DAY FROM period_month) = 1 AND jsonb_typeof(subject_ids) = 'object')");
-        DB::statement("ALTER TABLE hr_message_otps ADD CONSTRAINT hr_msg_otps_shape CHECK (code_hash ~ '^[0-9a-f]{64}$' AND attempts <= 5)");
 
         DB::unprepared(<<<'SQL'
 CREATE TRIGGER hr_msg_settings_append BEFORE UPDATE OR DELETE ON hr_message_channel_settings FOR EACH ROW EXECUTE FUNCTION guard_hr_records_append_only();
@@ -127,20 +113,6 @@ BEGIN
 END $$;
 CREATE TRIGGER hr_msg_deliveries_guard BEFORE UPDATE ON hr_message_deliveries FOR EACH ROW EXECUTE FUNCTION guard_hr_message_delivery();
 
--- A one-time code keeps who it is for and its hash; tries only go up and a used code stays used.
-CREATE OR REPLACE FUNCTION guard_hr_message_otp() RETURNS trigger LANGUAGE plpgsql AS $$
-BEGIN
- IF TG_OP = 'DELETE' THEN
-  RAISE EXCEPTION 'A one-time code is kept as evidence' USING ERRCODE = 'P0001';
- END IF;
- IF NEW.id <> OLD.id OR NEW.user_id <> OLD.user_id OR NEW.organisation_id <> OLD.organisation_id OR NEW.purpose <> OLD.purpose
-   OR NEW.code_hash <> OLD.code_hash OR NEW.expires_at IS DISTINCT FROM OLD.expires_at OR NEW.created_at IS DISTINCT FROM OLD.created_at
-   OR NEW.attempts < OLD.attempts OR (OLD.consumed_at IS NOT NULL AND NEW.consumed_at IS DISTINCT FROM OLD.consumed_at) THEN
-  RAISE EXCEPTION 'A one-time code does not change' USING ERRCODE = 'P0001';
- END IF;
- RETURN NEW;
-END $$;
-CREATE TRIGGER hr_msg_otps_guard BEFORE UPDATE OR DELETE ON hr_message_otps FOR EACH ROW EXECUTE FUNCTION guard_hr_message_otp();
 SQL);
     }
 

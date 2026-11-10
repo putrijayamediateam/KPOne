@@ -6,17 +6,16 @@ use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Claims\ClaimPermissions;
 use App\Domain\HR\Messages\MessagePermissions;
 use App\Domain\HR\Messages\MessageTemplates;
-use App\Domain\HR\Messages\Services\OneTimeCodeService;
 use App\Domain\HR\Messages\Services\StaffMessenger;
 use App\Mail\StaffMessageMail;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Contracts\Bus\Dispatcher;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
-use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use InvalidArgumentException;
 use Tests\Feature\Visit\VisitTestCase;
@@ -221,41 +220,25 @@ class MessagesTest extends VisitTestCase
         $this->assertSame(0, DB::table('hr_message_deliveries')->count());
     }
 
-    public function test_one_time_codes_are_hashed_short_lived_and_limited(): void
+    public function test_a_failed_queue_write_never_turns_a_saved_hr_change_into_an_error(): void
     {
+        $director = $this->actor('director');
+        $hr = $this->actor('hr_manager');
         $ca = $this->actor('ca');
-        $codes = app(OneTimeCodeService::class);
-        $code = $codes->issue($ca, 'sign_in');
-        $this->assertMatchesRegularExpression('/\A\d{6}\z/', $code);
-        $row = DB::table('hr_message_otps')->sole();
-        $this->assertNotSame($code, $row->code_hash);
-        $this->assertStringNotContainsString($code, json_encode(DB::table('audit_logs')->get(), JSON_THROW_ON_ERROR));
+        $this->switchOnEmail($hr, 10);
+        $this->choose($ca, 'email', true, 0)->assertSessionHasNoErrors();
+        $category = $this->makeCategory($hr);
+        $this->sendClaim($ca, $category)->assertSessionHasNoErrors();
+        $claim = DB::table('hr_staff_claims')->sole();
 
-        $wrong = $code === '000000' ? '111111' : '000000';
-        $this->assertFalse($codes->verify($ca, 'sign_in', $wrong));
-        $this->assertTrue($codes->verify($ca, 'sign_in', $code));
-        $this->assertFalse($codes->verify($ca, 'sign_in', $code)); // used once only
+        $bus = \Mockery::mock(Dispatcher::class);
+        $bus->shouldReceive('dispatch')->andThrow(new \RuntimeException('jobs table unavailable'));
+        $this->app->instance(Dispatcher::class, $bus);
 
-        // Five tries at most.
-        $next = $codes->issue($ca, 'sign_in');
-        foreach (range(1, 5) as $ignored) {
-            $this->assertFalse($codes->verify($ca, 'sign_in', $next === '000000' ? '111111' : '000000'));
-        }
-        $this->assertFalse($codes->verify($ca, 'sign_in', $next));
-
-        // Three codes per 15 minutes; a code lasts 5 minutes.
-        $last = $codes->issue($ca, 'sign_in');
-        try {
-            $codes->issue($ca, 'sign_in');
-            $this->fail('A fourth code within 15 minutes was issued.');
-        } catch (ValidationException) {
-            $this->addToAssertionCount(1);
-        }
-        $this->travel(6)->minutes();
-        $this->assertFalse($codes->verify($ca, 'sign_in', $last));
-        $this->travel(10)->minutes();
-        $this->assertMatchesRegularExpression('/\A\d{6}\z/', $codes->issue($ca, 'sign_in'));
-        $this->assertDatabaseRefuses(fn () => DB::table('hr_message_otps')->where('user_id', $ca->id)->delete());
+        $this->decide($director, $claim, 'approve')->assertRedirect()->assertSessionHasNoErrors();
+        $this->assertSame('approved', DB::table('hr_staff_claims')->where('id', $claim->id)->value('status'));
+        Mail::assertNothingSent();
+        $this->assertSame(0, DB::table('hr_message_deliveries')->count());
     }
 
     private function switchOnEmail(User $hr, int $cap): void
