@@ -2,7 +2,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { DateField } from '@/components/ui/date-field';
 import { PageHeader } from '@/components/ui/page-header';
 import OperationalSelect from '@/components/ui/select/OperationalSelect.vue';
 import { StatusBadge } from '@/components/ui/status';
@@ -259,14 +259,12 @@ const scopeText = computed(() => {
                             >{{ dateLabel }}</label
                         >
                         <span v-else class="font-medium">When</span>
-                        <Input
+                        <DateField
                             v-if="usesDate"
                             id="assistant-date"
                             v-model="date"
-                            type="date"
                             :max="today"
                             min="2020-01-01"
-                            class="min-h-11"
                             data-test="assistant-date"
                         />
                         <p
