@@ -16,6 +16,8 @@ stored-data change.
    - a full-width 44 px "Open billing" link.
 
    The "Show only bills past their due date" checkbox label is 44 px tall.
+3. **The past-due chip pluralises:** "1 day past due", "3 days past due" (owner OK on 2026-11-10 to change the
+   existing assertion in `bil-3-pay-later-collections.test.mjs`, which pinned "day(s)").
 2. **"Approved pay later" becomes "Pay later still owed"** on the Billing page summary, the completed-visit Invoice
    page and Visit history. The figure is the approved pay-later still owed (RM 20.00 of an approved RM 30.00 after a
    part payment), so "Approved" read as if it contradicted the RM 30.00 card below it. Prints keep "Approved pay
@@ -23,6 +25,4 @@ stored-data change.
 
 ## Not in BIL-18
 
-- The past-due chip still reads "N day(s) past due". An existing assertion (`bil-3-pay-later-collections.test.mjs`)
-  pins that text, so a proper plural waits for the owner's OK.
 - The "1 records" count comes from the shared pagination component; Daniel is logging it as a Staff Experience item.

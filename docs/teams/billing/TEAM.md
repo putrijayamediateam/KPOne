@@ -245,6 +245,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     after approval"); replace in one step, so only money not really received becomes due.
 37. BIL-18 (2026-11-10, the owner through B.E.R.N.I.S.S, "i want to start all that"): take Daniel's two Billing debt
     items, the pay-later list on phones and the "Approved pay later" summary row wording; layout and wording only.
+    The owner also approved changing the existing assertion so the past-due chip reads "1 day" / "N days" (2026-11-10).
 
 ## 7. Open items and known limits
 
@@ -280,8 +281,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - The pay-later collection list (BIL-3) is not audited per view, like the Finance / Billing work list and the
   Registration board; it shows patient name and KP number only. Payments are still recorded on each patient's
   Billing page.
-- Pay-later list on phones (BIL-18): the past-due chip still reads "N day(s) past due" (an existing assertion pins it;
-  a plural waits for the owner's OK), and "1 records" comes from the shared pagination component. "Return to
+- Pay-later list on phones (BIL-18): "1 records" comes from the shared pagination component. "Return to
   Workspace" is title case (sentence case per the UI guide); it is a shared string, logged for its owner, not fixed here.
 - The pay-later collection list (BIL-3) shows approved pay later only, not everything a patient owes. If a payment
   that paid off part of a pay-later debt is reversed, that amount moves back into the invoice's due now (pay later

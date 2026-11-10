@@ -144,7 +144,9 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                     <span
                         v-if="row.daysOverdue > 0"
                         class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
-                        >{{ row.daysOverdue }} day(s) past due</span
+                        >{{ row.daysOverdue }}
+                        {{ row.daysOverdue === 1 ? 'day' : 'days' }} past
+                        due</span
                     >
                 </div>
                 <p
@@ -250,7 +252,11 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                             <span
                                 v-if="row.daysOverdue > 0"
                                 class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
-                                >{{ row.daysOverdue }} day(s) past due</span
+                                >{{ row.daysOverdue }}
+                                {{
+                                    row.daysOverdue === 1 ? 'day' : 'days'
+                                }}
+                                past due</span
                             >
                         </td>
                         <td class="text-right whitespace-nowrap tabular-nums">

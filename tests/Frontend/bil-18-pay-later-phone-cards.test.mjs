@@ -73,3 +73,11 @@ test('the summary row reads Pay later still owed on screens, never on the print'
         ),
     );
 });
+
+test('both past-due chips (card and table) say day or days, never day(s)', () => {
+    assert.equal(
+        collections.split("row.daysOverdue === 1 ? 'day' : 'days'").length - 1,
+        2,
+    );
+    assert.ok(!collections.includes('day(s)'));
+});
