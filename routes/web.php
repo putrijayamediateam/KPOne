@@ -330,6 +330,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('positions', 'addPosition')->name('hr.applications.positions.store');
                 Route::post('positions/{position}', 'updatePosition')->whereUuid('position')->name('hr.applications.positions.update');
                 Route::post('{application}/move', 'move')->whereUuid('application')->name('hr.applications.move');
+                // HR-17a hiring stages (owner, 2026-11-10).
+                Route::post('{application}/screening', 'screen')->whereUuid('application')->name('hr.applications.screen');
+                Route::post('checklist', 'checklist')->name('hr.applications.checklist');
                 Route::post('retention', 'retention')->name('hr.applications.retention');
             });
         });
@@ -804,6 +807,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('{invoice}/responsibility/{kind}', 'propose')->whereIn('kind', ['panel', 'deferment'])->middleware(['permission:coverage.propose.branch,outstanding.request.branch', 'throttle:20,1'])->name('billing.propose');
             Route::post('{invoice}/responsibility/{kind}/{proposal}/approve', 'approve')->whereIn('kind', ['panel', 'deferment'])->whereUuid('proposal')->middleware(['permission:coverage.approve.branch,outstanding.approve.branch', 'throttle:20,1'])->name('billing.approve');
             Route::post('{invoice}/payments/{payment}/reverse', 'reverse')->middleware(['permission:payments.reverse.branch', 'throttle:10,1'])->name('billing.reverse');
+            Route::post('{invoice}/payments/{payment}/correct', 'correctReceipt')->middleware(['permission:payments.reverse.branch', 'throttle:10,1'])->name('billing.receipt.correct');
             Route::post('{invoice}/adjustments', 'adjustment')->middleware(['permission:billing.adjustments.add.branch', 'throttle:20,1'])->name('billing.adjustment');
             Route::post('{invoice}/adjustments/{adjustment}/reverse', 'reverseAdjustment')->whereUuid('adjustment')->middleware(['permission:billing.adjustments.reverse.branch', 'throttle:10,1'])->name('billing.adjustment.reverse');
             Route::post('{invoice}/void', 'void')->middleware(['permission:invoices.void.branch', 'throttle:10,1'])->name('billing.void');

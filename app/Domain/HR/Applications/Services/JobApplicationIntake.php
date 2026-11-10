@@ -5,6 +5,7 @@ namespace App\Domain\HR\Applications\Services;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Leave\Services\LeaveEvidenceFiles;
 use App\Domain\Organisation\Models\Organisation;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\UploadedFile;
@@ -63,7 +64,7 @@ final class JobApplicationIntake
     /**
      * The open positions shown on the form, and a fresh signed form token.
      *
-     * @return array{positions:list<array{id:string, title:string, branch:?string}>, formToken:string, privacyNoticeVersion:string}
+     * @return array{positions:list<array{id:string, title:string, branch:?string, type:string}>, branches:list<array{value:string, label:string}>, education:list<array{value:string, label:string}>, languages:list<array{value:string, label:string}>, formToken:string, privacyNoticeVersion:string}
      */
     public function form(): array
     {
@@ -73,12 +74,16 @@ final class JobApplicationIntake
             ->leftJoin('branches as b', 'b.id', '=', 'p.branch_id')
             ->where('p.organisation_id', $organisationId)->where('p.is_open', true)
             ->orderBy('p.title')->orderBy('p.id')
-            ->get(['p.public_id', 'p.title', 'b.name as branch'])
-            ->map(fn (object $p): array => ['id' => (string) $p->public_id, 'title' => (string) $p->title, 'branch' => $p->branch === null ? null : (string) $p->branch])
+            ->get(['p.public_id', 'p.title', 'p.position_type', 'b.name as branch'])
+            ->map(fn (object $p): array => ['id' => (string) $p->public_id, 'title' => (string) $p->title, 'branch' => $p->branch === null ? null : (string) $p->branch,
+                'type' => (string) $p->position_type])
             ->all();
         $positions = array_values($positions);
 
-        return ['positions' => $positions, 'formToken' => self::issueToken(), 'privacyNoticeVersion' => self::privacyVersion()];
+        $choices = fn (array $labels): array => array_map(fn (string $value, string $label): array => ['value' => $value, 'label' => $label], array_keys($labels), $labels);
+
+        return ['positions' => $positions, 'branches' => self::branches($organisationId), 'education' => $choices(self::EDUCATION),
+            'languages' => $choices(self::LANGUAGES), 'formToken' => self::issueToken(), 'privacyNoticeVersion' => self::privacyVersion()];
     }
 
     public static function issueToken(): string
@@ -88,7 +93,7 @@ final class JobApplicationIntake
 
     public static function privacyVersion(): string
     {
-        return (string) config('hr-applications.privacy_notice_version', 'draft-hr13-applications-v1');
+        return (string) config('hr-applications.privacy_notice_version', 'draft-hr17-applications-v1');
     }
 
     /**
@@ -108,8 +113,9 @@ final class JobApplicationIntake
         // sent within the minimum time is a robot (found in the HR-13 screenshot run).
         // One send names everything to fix, the CV included.
         $errors = [];
+        $type = self::positionType($input['position'] ?? null);
         try {
-            $fields = self::validated($input);
+            $fields = self::validated($input, $type);
         } catch (ValidationException $e) {
             $errors = $e->errors();
         }
@@ -127,10 +133,13 @@ final class JobApplicationIntake
 
         $path = null;
         try {
-            DB::transaction(function () use ($fields, $prepared, $nonce, &$path): void {
+            DB::transaction(function () use ($fields, $prepared, $nonce, $type, &$path): void {
                 $position = DB::table('hr_job_positions')->where('public_id', $fields['position'])->sharedLock()->first();
                 if ($position === null || ! $position->is_open || (int) $position->organisation_id !== self::organisationId()) {
                     throw ValidationException::withMessages(['position' => 'This position is no longer open. Choose another. / Jawatan ini sudah ditutup. Pilih jawatan lain.']);
+                }
+                if ((string) $position->position_type !== $type) {
+                    throw ValidationException::withMessages(['position' => 'This position changed. Reload the page and check your answers. / Jawatan ini telah berubah. Muat semula halaman dan semak jawapan anda.']);
                 }
                 if (DB::table('hr_job_applications')->where('form_nonce', $nonce)->exists()) {
                     throw ValidationException::withMessages(['form' => self::ALREADY_SENT]);
@@ -147,6 +156,8 @@ final class JobApplicationIntake
                         'position_id' => $position->id, 'status' => 'new', 'name_encrypted' => Crypt::encryptString($fields['name']),
                         'phone_encrypted' => Crypt::encryptString($fields['phone']), 'email_encrypted' => Crypt::encryptString($fields['email']),
                         'message_encrypted' => $fields['message'] === null ? null : Crypt::encryptString($fields['message']),
+                        'details_encrypted' => Crypt::encryptString(json_encode($fields['details'], JSON_THROW_ON_ERROR)),
+                        'talent_pool_consent' => $fields['talent_pool_consent'],
                         'cv_path' => $path, 'cv_bytes' => $prepared['bytes'], 'cv_sha256' => $prepared['sha256'],
                         'privacy_notice_version' => self::privacyVersion(), 'form_nonce' => $nonce, 'submitted_at' => $now,
                         'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
@@ -200,9 +211,9 @@ final class JobApplicationIntake
 
     /**
      * @param  array<string, mixed>  $input
-     * @return array{position:string, name:string, phone:string, email:string, message:?string}
+     * @return array{position:string, name:string, phone:string, email:string, message:?string, details:array<string, mixed>, talent_pool_consent:bool}
      */
-    public static function validated(array $input): array
+    public static function validated(array $input, string $type = 'ca'): array
     {
         $text = fn (string $key): string => is_string($input[$key] ?? null) ? trim((string) preg_replace('/\s+/u', ' ', $input[$key])) : '';
         $errors = [];
@@ -229,11 +240,153 @@ final class JobApplicationIntake
         if (! filter_var($input['privacy_accepted'] ?? false, FILTER_VALIDATE_BOOL)) {
             $errors['privacy_accepted'] = 'Read the privacy notice and tick the box to apply. / Baca notis privasi dan tandakan kotak untuk memohon.';
         }
+        $details = self::details($input, $type, $errors);
         if ($errors !== []) {
             throw ValidationException::withMessages($errors);
         }
 
-        return ['position' => $position, 'name' => $name, 'phone' => $phone, 'email' => mb_strtolower($email), 'message' => $raw === '' ? null : $raw];
+        return ['position' => $position, 'name' => $name, 'phone' => $phone, 'email' => mb_strtolower($email), 'message' => $raw === '' ? null : $raw,
+            // No talent pool yet: the form does not ask, and nothing sent is taken as consent until HR-17e builds the
+            // pool and a way to withdraw (Suresh, HR-17a).
+            'details' => $details, 'talent_pool_consent' => false];
+    }
+
+    /**
+     * HR-17a: the form's other answers (HR-PLAN 19.4). No IC number, date of birth, photo, salary or wage is asked. A
+     * doctor's MMC number and APC are as the candidate states them; KPOne does not check them.
+     *
+     * @param  array<string, mixed>  $input
+     * @param  array<string, string>  $errors
+     * @return array<string, mixed>
+     */
+    private static function details(array $input, string $type, array &$errors): array
+    {
+        $text = fn (string $key): string => is_string($input[$key] ?? null) ? trim((string) preg_replace('/\s+/u', ' ', $input[$key])) : '';
+        $today = CarbonImmutable::now(JobApplicationService::zone((int) self::organisationId()))->startOfDay();
+        $date = function (string $key) use ($text): ?CarbonImmutable {
+            $value = $text($key);
+            if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $value) !== 1) {
+                return null;
+            }
+            $parsed = CarbonImmutable::createFromFormat('!Y-m-d', $value);
+
+            return $parsed !== null && $parsed->format('Y-m-d') === $value ? $parsed : null;
+        };
+        $details = ['type' => $type];
+
+        $branch = $text('preferred_branch');
+        $codes = array_column(self::branches(self::organisationId()), 'value');
+        if ($branch !== 'any' && ! in_array($branch, $codes, true)) {
+            $errors['preferred_branch'] = 'Choose a branch, or "Any branch". / Pilih cawangan, atau "Mana-mana cawangan".';
+        }
+        $details['preferred_branch'] = $branch;
+        $start = $date('start_date');
+        if ($start === null || $start->lt($today) || $start->gt($today->addYear())) {
+            $errors['start_date'] = 'Enter the earliest date you can start, within the next year. / Masukkan tarikh terawal anda boleh mula, dalam tempoh setahun.';
+        }
+        $details['start_date'] = $start?->toDateString();
+        $education = $text('education');
+        if (! isset(self::EDUCATION[$education])) {
+            $errors['education'] = 'Choose your highest education. / Pilih pendidikan tertinggi anda.';
+        }
+        $details['education'] = $education;
+        $years = filter_var($input['years_experience'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 50]]);
+        if ($years === false) {
+            $errors['years_experience'] = 'Enter your years of relevant work, from 0 to 50. / Masukkan tahun pengalaman kerja berkaitan, dari 0 hingga 50.';
+        }
+        $details['years_experience'] = $years === false ? null : $years;
+        $languages = is_array($input['languages'] ?? null) ? array_values(array_unique(array_filter($input['languages'], 'is_string'))) : [];
+        if ($languages === [] || array_diff($languages, array_keys(self::LANGUAGES)) !== []) {
+            $errors['languages'] = 'Choose the languages you speak. / Pilih bahasa yang anda tuturkan.';
+        }
+        $details['languages'] = $languages;
+
+        if ($type === 'intern') {
+            foreach (['institution' => 'Enter your college or university. / Masukkan kolej atau universiti anda.', 'programme' => 'Enter your course or programme. / Masukkan kursus atau program anda.'] as $key => $message) {
+                $value = $text($key);
+                if (mb_strlen($value) < 2 || mb_strlen($value) > 120) {
+                    $errors[$key] = $message;
+                }
+                $details[$key] = $value;
+            }
+            $from = $date('intern_from');
+            $to = $date('intern_to');
+            if ($from === null || $to === null || $to->lt($from) || $from->lt($today) || $to->gt($today->addYears(2))) {
+                $errors['intern_from'] = 'Enter when your internship starts and ends. / Masukkan tarikh latihan industri anda bermula dan tamat.';
+            }
+            $details['intern_from'] = $from?->toDateString();
+            $details['intern_to'] = $to?->toDateString();
+        }
+        if ($type === 'locum') {
+            $value = $text('availability');
+            if (mb_strlen($value) < 5 || mb_strlen($value) > 300) {
+                $errors['availability'] = 'Tell us the days and times you are usually free (5 to 300 characters). / Nyatakan hari dan masa anda biasanya lapang (5 hingga 300 aksara).';
+            }
+            $details['availability'] = $value;
+        }
+        if ($type === 'resident_doctor') {
+            $mmc = $text('mmc_number');
+            if (preg_match('/^[0-9]{3,7}$/', $mmc) !== 1) {
+                $errors['mmc_number'] = 'Enter your MMC registration number (digits only). / Masukkan nombor pendaftaran MMC anda (nombor sahaja).';
+            }
+            $details['mmc_number'] = $mmc;
+            $year = filter_var($input['apc_year'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => $today->year - 1, 'max_range' => $today->year + 1]]);
+            if ($year === false) {
+                $errors['apc_year'] = 'Enter the year of your current APC. / Masukkan tahun APC semasa anda.';
+            }
+            $details['apc_year'] = $year === false ? null : $year;
+            $expiry = $date('apc_expiry');
+            if ($expiry === null || $expiry->gt($today->addYears(2))) {
+                $errors['apc_expiry'] = 'Enter the date your APC expires. / Masukkan tarikh APC anda tamat.';
+            }
+            $details['apc_expiry'] = $expiry?->toDateString();
+        }
+
+        return $details;
+    }
+
+    /** @var array<string, string> */
+    public const EDUCATION = [
+        'spm' => 'SPM',
+        'stpm_diploma' => 'STPM, diploma or certificate / STPM, diploma atau sijil',
+        'degree' => 'Degree / Ijazah',
+        'postgraduate' => 'Master\'s or higher / Sarjana atau lebih tinggi',
+        'other' => 'Other / Lain-lain',
+    ];
+
+    /** @var array<string, string> */
+    public const LANGUAGES = [
+        'malay' => 'Bahasa Melayu',
+        'english' => 'English',
+        'chinese' => 'Chinese / Cina',
+        'tamil' => 'Tamil',
+        'other' => 'Other / Lain-lain',
+    ];
+
+    /** The position's type for choosing which questions to check; a missing or unknown position counts as 'ca'. */
+    private static function positionType(mixed $positionId): string
+    {
+        if (! is_string($positionId) || ! Str::isUuid($positionId)) {
+            return 'ca';
+        }
+        $type = DB::table('hr_job_positions')->where('public_id', $positionId)->value('position_type');
+
+        return is_string($type) && isset(JobApplicationService::TYPES[$type]) ? $type : 'ca';
+    }
+
+    /**
+     * Active branches the candidate may prefer, by code.
+     *
+     * @return list<array{value:string, label:string}>
+     */
+    public static function branches(?int $organisationId): array
+    {
+        if ($organisationId === null) {
+            return [];
+        }
+
+        return array_values(DB::table('branches')->where('organisation_id', $organisationId)->where('is_active', true)->orderBy('name')
+            ->get(['code', 'name'])->map(fn (object $b): array => ['value' => (string) $b->code, 'label' => (string) $b->name])->all());
     }
 
     /** @return array{content:string, kind:string, bytes:int, sha256:string} a real PDF of at most 5 MB, checked by content */
