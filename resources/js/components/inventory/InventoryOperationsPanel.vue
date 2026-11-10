@@ -17,6 +17,7 @@ import {
     purchaseOrderActionAllowed,
     stockRequestActionAllowed,
 } from '@/lib/inventory-operation-transitions';
+import { formatDate } from '@/lib/presentation';
 import type { TransferReceiptLinePayload } from '@/lib/transfer-receipt';
 import type {
     InventoryDocument as DocumentRow,
@@ -291,7 +292,7 @@ const batchOptions = (sku?: string) =>
         .filter((item) => !sku || item.skuPublicId === sku)
         .map((item) => ({
             value: item.publicId,
-            label: `${item.batchNumber} · ${item.expiryDate}`,
+            label: `${item.batchNumber} · ${formatDate(item.expiryDate)}`,
         }));
 
 type RequestPayload = Parameters<typeof router.post>[1];
