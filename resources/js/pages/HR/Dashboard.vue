@@ -4,6 +4,7 @@
 import { Head, router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
+import { ActionLink } from '@/components/ui/action-link';
 import { Label } from '@/components/ui/label';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
@@ -100,11 +101,13 @@ function days(value: number): string {
             <SyntheticNote />
         </div>
 
-        <div class="flex flex-wrap items-end justify-between gap-3">
+        <div
+            class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+        >
             <p class="text-sm text-muted-foreground" data-test="as-of">
                 As of {{ dashboard.now }} (Kuala Lumpur time).
             </p>
-            <div class="grid gap-1">
+            <div class="flex items-center gap-2">
                 <Label for="dashboard-month">Month</Label>
                 <OperationalSelect
                     id="dashboard-month"
@@ -117,13 +120,25 @@ function days(value: number): string {
             </div>
         </div>
 
-        <p class="text-xs text-muted-foreground" data-test="rules-note">
-            Enough or Short compares the people on today's shifts with the
-            minimum staffing for each session today, as the roster Planner does.
-            Minimums apply to every day, so a day with a roster at a branch that
-            is closed can read Short. Short days are counted from approved
-            rosters only, by today's minimums.
-        </p>
+        <details
+            class="rounded-lg border bg-card px-4 py-3 text-sm"
+            data-test="rules-note"
+        >
+            <summary
+                class="cursor-pointer font-medium marker:text-muted-foreground"
+            >
+                How this page counts
+            </summary>
+            <p class="mt-2 max-w-prose text-muted-foreground">
+                Enough or Short compares the people on today's shifts with the
+                minimum staffing for each session today, as the roster Planner
+                does. Minimums apply to every day, so a day with a roster at a
+                branch that is closed can read Short. Short days are counted
+                from approved rosters only, by today's minimums. Names appear
+                only in the three lists for today. Leave shows only on leave or
+                half day, never the type or reason.
+            </p>
+        </details>
 
         <EmptyState
             v-if="dashboard.branches.length === 0"
@@ -168,14 +183,26 @@ function days(value: number): string {
                             label="No shifts today"
                             tone="neutral"
                         />
-                        <StatusBadge
+                        <template
                             v-else-if="
                                 branch.today.staffing.state === 'not_set'
                             "
-                            status="not_set"
-                            label="Minimum staffing not set"
-                            tone="neutral"
-                        />
+                        >
+                            <StatusBadge
+                                status="not_set"
+                                label="Minimum staffing not set"
+                                tone="neutral"
+                            />
+                            <ActionLink
+                                v-if="dashboard.can.roster"
+                                :href="`/hr/roster?tab=minimums&branch=${branch.id}`"
+                                variant="outline"
+                                class="max-lg:min-h-11"
+                                data-test="set-minimums"
+                            >
+                                Set minimum staffing
+                            </ActionLink>
+                        </template>
                     </template>
                     <StatusBadge
                         v-if="branch.today.rostered?.noDoctor"
@@ -324,7 +351,7 @@ function days(value: number): string {
             <div class="mt-4 grid gap-2" data-test="month">
                 <h3 class="text-sm font-semibold">{{ monthLabel }}</h3>
                 <dl
-                    class="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-4"
+                    class="grid grid-cols-2 gap-x-6 gap-y-2 text-sm lg:grid-cols-4"
                 >
                     <template v-if="branch.month.attendance">
                         <div>
@@ -397,9 +424,18 @@ function days(value: number): string {
                             >
                                 {{ days(branch.month.shortfallDays) }}
                             </template>
-                            <span v-else class="text-muted-foreground">
-                                Minimum staffing not set
-                            </span>
+                            <template v-else>
+                                <span class="text-muted-foreground">
+                                    Minimum staffing not set
+                                </span>
+                                <ActionLink
+                                    :href="`/hr/roster?tab=minimums&branch=${branch.id}`"
+                                    variant="outline"
+                                    class="mt-1 max-lg:min-h-11"
+                                >
+                                    Set minimum staffing
+                                </ActionLink>
+                            </template>
                         </dd>
                     </div>
                 </dl>

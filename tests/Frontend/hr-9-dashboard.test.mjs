@@ -70,7 +70,11 @@ test('leave shows only "On leave" or "half day" and nothing about type or reason
         /\bscore\b/i,
         /ranking/i,
     ]) {
-        assert.doesNotMatch(code(page), forbidden);
+        const pageWithoutNote = code(page).replace(
+            /<details[\s\S]*?<\/details>/g,
+            '',
+        );
+        assert.doesNotMatch(pageWithoutNote, forbidden);
         assert.doesNotMatch(code(service), forbidden);
     }
 });
@@ -101,4 +105,18 @@ test('dates use the branch time zone and leave slots are compared in branch-loca
         service,
         /createFromFormat\('!Y-m', \$month, \$branch->timezone\)/,
     );
+});
+
+test('Daniel: the rules sit behind a closed disclosure, the month figures take two columns on a phone, the as-of line and month select share a row and a missing minimum links to the roster tab', () => {
+    assert.match(page, /<details[^>]*data-test="rules-note"/);
+    assert.doesNotMatch(page, /<details[^>]*\sopen/);
+    assert.match(page, /How this page counts/);
+    assert.match(
+        page,
+        /grid grid-cols-2 gap-x-6 gap-y-2 text-sm lg:grid-cols-4/,
+    );
+    assert.match(page, /sm:flex-row sm:items-center sm:justify-between/);
+    assert.match(page, /\/hr\/roster\?tab=minimums&branch=\$\{branch\.id\}/);
+    assert.match(page, /v-if="dashboard\.can\.roster"/);
+    assert.match(page, /max-lg:min-h-11/);
 });
