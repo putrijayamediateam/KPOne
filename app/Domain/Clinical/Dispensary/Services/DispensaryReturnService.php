@@ -11,6 +11,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemBatchAllocation;
 use App\Domain\Clinical\Dispensary\Models\DispensaryReturn;
 use App\Domain\Clinical\Dispensary\Models\DispensaryReturnCheck;
+use App\Domain\Clinical\Dispensary\Models\DispensaryReturnCheckBatch;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
@@ -45,6 +46,9 @@ final class DispensaryReturnService
     /** The existing variance approval permission (CA Supervisor, Finance Officer, Director); v1 limits it to CA Supervisors. */
     public const CHECK = 'inventory.variances.approve.branch';
 
+    /** DSP-15: the most batch shares one split quarantine may carry. */
+    private const MAX_SPLIT_BATCHES = 20;
+
     public function __construct(private DispensaryAuthorityService $authority, private AuditRecorder $audit, private StaffAccessService $staff) {}
 
     /**
@@ -67,6 +71,8 @@ final class DispensaryReturnService
         $locations = InventoryLocation::query()->where('organisation_id', $case->organisation_id)->where('branch_id', $branch->id)->where('type', InventoryLocation::TYPE_DISPENSARY_RETURNS)->orderBy('name')->get(['id', 'public_id', 'name', 'is_active']);
         $mayCheck = $this->mayCheck($actor);
         $batches = DispensaryItemBatchAllocation::query()->whereIn('dispensary_item_id', $items->pluck('id'))->with('batch:id,public_id,batch_number,expiry_date')->orderBy('id')->get()->groupBy('dispensary_item_id');
+        // DSP-15: the batch shares of split quarantine checks, for the history row.
+        $shares = DispensaryReturnCheckBatch::query()->whereIn('dispensary_return_check_id', $checks->pluck('id'))->orderBy('id')->get()->groupBy('dispensary_return_check_id');
 
         return [
             'casePublicId' => $case->public_id,
@@ -78,8 +84,15 @@ final class DispensaryReturnService
             'refuseReasons' => DispensaryReturnCheck::REFUSE_REASONS,
             'noteMax' => DispensaryReturn::NOTE_MAX,
             'returnsLocations' => $mayCheck ? $locations->where('is_active', true)->map(fn (InventoryLocation $l): array => ['publicId' => $l->public_id, 'name' => $l->name])->values()->all() : [],
-            'lines' => $items->map(function (DispensaryItem $item) use ($returns, $checks, $controlled, $names, $locations, $actor, $branch, $mayCheck, $batches): array {
+            'lines' => $items->map(function (DispensaryItem $item) use ($returns, $checks, $controlled, $names, $locations, $actor, $branch, $mayCheck, $batches, $shares): array {
                 $lineReturns = $returns->get($item->id, collect());
+                $lineAllocations = $batches->get($item->id, collect());
+                $labels = $lineAllocations->mapWithKeys(fn (DispensaryItemBatchAllocation $a): array => [(int) $a->inventory_batch_id => $this->batchLabel($a)])->all();
+                $available = $mayCheck ? $this->availableByBatch($item->id, $lineAllocations) : [];
+                // DSP-15: earliest expiry first, no expiry last; the history row lists shares in the same order.
+                $sorted = $lineAllocations->unique('inventory_batch_id')
+                    ->sortBy(fn (DispensaryItemBatchAllocation $a): string => ($a->batch->expiry_date ? CarbonImmutable::parse($a->batch->expiry_date)->format('Y-m-d') : '9999-99-99').'#'.str_pad((string) $a->inventory_batch_id, 20, '0', STR_PAD_LEFT))->values();
+                $position = $sorted->mapWithKeys(fn (DispensaryItemBatchAllocation $a, int $i): array => [(int) $a->inventory_batch_id => $i])->all();
                 $dispensed = StockUnitQuantity::scaled((string) $item->quantity_dispensed);
                 $returned = $this->countedQuantity($lineReturns, $checks);
                 $isControlled = (bool) ($controlled[$item->medicine_catalogue_item_id] ?? false);
@@ -92,9 +105,14 @@ final class DispensaryReturnService
                     'returned' => $this->trimmed(StockUnitQuantity::format($returned)),
                     'returnable' => $this->trimmed(StockUnitQuantity::format(max(0, $dispensed - $returned))),
                     'returnCount' => $lineReturns->count(),
-                    'batches' => $mayCheck ? $batches->get($item->id, collect())->map(fn (DispensaryItemBatchAllocation $a): array => ['publicId' => (string) $a->batch->public_id, 'label' => trim($a->batch->batch_number.' · exp '.($a->batch->expiry_date ? CarbonImmutable::parse($a->batch->expiry_date)->format('d/m/Y') : '-'))])->unique('publicId')->values()->all() : [],
-                    'returns' => $lineReturns->map(function (DispensaryReturn $r) use ($checks, $names, $locations, $actor, $branch, $mayCheck, $isControlled): array {
+                    // DSP-15: with what can still go back to each batch.
+                    'batches' => $mayCheck ? $sorted->map(fn (DispensaryItemBatchAllocation $a): array => ['publicId' => (string) $a->batch->public_id, 'label' => $this->batchLabel($a), 'available' => $this->trimmed(StockUnitQuantity::format($available[(int) $a->inventory_batch_id] ?? 0))])->values()->all() : [],
+                    'quarantineAvailable' => $mayCheck ? $this->trimmed(StockUnitQuantity::format(array_sum($available))) : null,
+                    'returns' => $lineReturns->map(function (DispensaryReturn $r) use ($checks, $names, $locations, $actor, $branch, $mayCheck, $isControlled, $shares, $labels, $position): array {
                         $check = $checks->get($r->id);
+                        $checkBatches = $check === null || $check->outcome !== DispensaryReturnCheck::OUTCOME_QUARANTINE ? [] : ($check->inventory_batch_id !== null
+                            ? [['label' => $labels[$check->inventory_batch_id] ?? 'Batch', 'quantity' => $this->trimmed((string) $r->quantity)]]
+                            : $shares->get($check->id, collect())->sortBy(fn (DispensaryReturnCheckBatch $b): int => $position[$b->inventory_batch_id] ?? PHP_INT_MAX)->map(fn (DispensaryReturnCheckBatch $b): array => ['label' => $labels[$b->inventory_batch_id] ?? 'Batch', 'quantity' => $this->trimmed((string) $b->quantity)])->values()->all());
 
                         return [
                             'publicId' => $r->public_id, 'quantity' => $this->trimmed((string) $r->quantity), 'reason' => $r->reason,
@@ -111,6 +129,7 @@ final class DispensaryReturnService
                                 'locationName' => $check->inventory_location_id === null ? null : $locations->firstWhere('id', $check->inventory_location_id)?->name,
                                 'refuseReason' => $check->refuse_reason,
                                 'refuseNote' => $check->refuse_note_encrypted,
+                                'batches' => $checkBatches,
                             ],
                         ];
                     })->values()->all(),
@@ -198,22 +217,33 @@ final class DispensaryReturnService
             'refuse_reason' => ['nullable', 'string', Rule::requiredIf(($input['outcome'] ?? null) === DispensaryReturnCheck::OUTCOME_REFUSE), Rule::prohibitedIf(($input['outcome'] ?? null) !== DispensaryReturnCheck::OUTCOME_REFUSE), Rule::in(DispensaryReturnCheck::REFUSE_REASONS)],
             'refuse_note' => ['nullable', 'string', 'max:'.DispensaryReturn::NOTE_MAX, Rule::requiredIf(($input['refuse_reason'] ?? null) === 'other'), Rule::prohibitedIf(($input['refuse_reason'] ?? null) !== 'other')],
             'location_public_id' => ['nullable', 'uuid', Rule::requiredIf(($input['outcome'] ?? null) === DispensaryReturnCheck::OUTCOME_QUARANTINE), Rule::prohibitedIf(($input['outcome'] ?? null) !== DispensaryReturnCheck::OUTCOME_QUARANTINE)],
-            'batch_public_id' => ['nullable', 'uuid', Rule::requiredIf(($input['outcome'] ?? null) === DispensaryReturnCheck::OUTCOME_QUARANTINE), Rule::prohibitedIf(($input['outcome'] ?? null) !== DispensaryReturnCheck::OUTCOME_QUARANTINE)],
+            'batch_public_id' => ['nullable', 'uuid', Rule::requiredIf(($input['outcome'] ?? null) === DispensaryReturnCheck::OUTCOME_QUARANTINE && ! isset($input['batches'])), Rule::prohibitedIf(($input['outcome'] ?? null) !== DispensaryReturnCheck::OUTCOME_QUARANTINE || isset($input['batches']))],
+            // DSP-15: a split across batches, instead of batch_public_id.
+            'batches' => ['nullable', 'array', 'min:1', 'max:'.self::MAX_SPLIT_BATCHES, Rule::prohibitedIf(($input['outcome'] ?? null) !== DispensaryReturnCheck::OUTCOME_QUARANTINE)],
+            'batches.*.batch_public_id' => ['required', 'uuid', 'distinct'],
+            'batches.*.quantity' => ['required', 'string', 'regex:/^\d{1,11}(\.\d{1,3})?$/'],
         ], [
             'refuse_reason.required' => 'Choose a reason for refusing.',
             'refuse_note.required' => 'Write a short note for Other.',
             'refuse_note.max' => 'Keep the note to '.DispensaryReturn::NOTE_MAX.' characters.',
             'location_public_id.required' => 'Choose a returns location.',
             'batch_public_id.required' => 'Choose the batch the units came from.',
+            'batches.*.batch_public_id.distinct' => 'Choose batches this line was dispensed from.',
+            'batches.*.quantity.regex' => 'Enter a number with up to 3 decimals, for example 2.5.',
+            'batches.*.quantity.required' => 'Enter a number with up to 3 decimals, for example 2.5.',
+            'batches.max' => 'Choose batches this line was dispensed from.',
         ])->validate();
+        $shares = $this->shares($data['batches'] ?? null);
+        // Where each share sat in the request, so a per-batch message lands under its own box.
+        $shareIndexes = array_flip(array_map(fn (array $share): string => (string) $share['batch_public_id'], array_values($data['batches'] ?? [])));
         $note = isset($data['refuse_note']) ? trim((string) $data['refuse_note']) : null;
         if (($data['refuse_reason'] ?? null) === 'other' && ($note === null || $note === '')) {
             $this->refuse('refuse_note', 'Write a short note for Other.');
         }
         $branch = $this->authority->activeBranch($actor, $data);
-        $hash = $this->fingerprint(['check', $case->id, $returnPublicId, $data['outcome'], $data['refuse_reason'] ?? null, $note, $data['location_public_id'] ?? null, $data['batch_public_id'] ?? null]);
+        $hash = $this->fingerprint(['check', $case->id, $returnPublicId, $data['outcome'], $data['refuse_reason'] ?? null, $note, $data['location_public_id'] ?? null, $data['batch_public_id'] ?? null, $shares]);
 
-        return DB::transaction(function () use ($actor, $branch, $case, $returnPublicId, $data, $note, $hash): DispensaryReturnCheck {
+        return DB::transaction(function () use ($actor, $branch, $case, $returnPublicId, $data, $note, $hash, $shares, $shareIndexes): DispensaryReturnCheck {
             $actor = $this->authority->lock($actor, $branch, self::CHECK);
             if (! $this->mayCheck($actor)) {
                 $this->refuse('outcome', 'Only a CA Supervisor can check returns at this branch.');
@@ -242,6 +272,7 @@ final class DispensaryReturnService
                 $this->refuse('outcome', 'A returned controlled medicine is always disposed. Choose Dispose, or Refuse if it was recorded by mistake.');
             }
             $publicId = (string) Str::uuid();
+            $split = null;
             $location = null;
             $batch = null;
             $movementId = null;
@@ -251,7 +282,15 @@ final class DispensaryReturnService
                     $this->refuse('location_public_id', 'This returns location is no longer available. Choose another one.');
                 }
                 $allocations = DispensaryItemBatchAllocation::query()->where('dispensary_item_id', $item->id)->with('batch:id,public_id')->orderBy('id')->get();
-                $chosen = $allocations->filter(fn (DispensaryItemBatchAllocation $a): bool => $a->batch?->public_id === $data['batch_public_id']);
+                $singleBatch = $data['batch_public_id'] ?? null;
+                if ($shares !== null) {
+                    // DSP-15: two or more shares split the return; one share is stored like a single-batch quarantine.
+                    $split = $this->quarantineSplit($actor, $item, $return, $location, $allocations, $shares, $shareIndexes, $publicId);
+                    $singleBatch = $split === null ? array_key_first($shares) : null;
+                }
+            }
+            if ($data['outcome'] === DispensaryReturnCheck::OUTCOME_QUARANTINE && $split === null) {
+                $chosen = $allocations->filter(fn (DispensaryItemBatchAllocation $a): bool => $a->batch?->public_id === $singleBatch);
                 if ($chosen->isEmpty()) {
                     $this->refuse('batch_public_id', 'Choose a batch this line was dispensed from.');
                 }
@@ -260,7 +299,7 @@ final class DispensaryReturnService
                 $alreadyQuarantined = DispensaryReturnCheck::query()->join('dispensary_returns', 'dispensary_returns.id', '=', 'dispensary_return_checks.dispensary_return_id')
                     ->where('dispensary_returns.dispensary_item_id', $item->id)->where('dispensary_return_checks.outcome', DispensaryReturnCheck::OUTCOME_QUARANTINE)
                     ->where('dispensary_return_checks.inventory_batch_id', $chosen->first()->inventory_batch_id)->pluck('dispensary_returns.quantity')
-                    ->sum(fn ($q): int => StockUnitQuantity::scaled((string) $q));
+                    ->sum(fn ($q): int => StockUnitQuantity::scaled((string) $q)) + $this->sharedFromBatch($item->id, (int) $chosen->first()->inventory_batch_id);
                 if (StockUnitQuantity::scaled((string) $return->quantity) + $alreadyQuarantined > $allocated) {
                     $this->refuse('batch_public_id', 'More was returned than was dispensed from this batch. Dispose the return, or refuse it and record one return per batch.');
                 }
@@ -279,15 +318,142 @@ final class DispensaryReturnService
                 'checked_by_user_id' => $actor->id, 'checked_at' => now()->utc(),
                 'retry_key' => $data['retry_key'], 'payload_hash' => $hash,
             ])->save();
+            foreach ($split ?? [] as $share) {
+                $row = new DispensaryReturnCheckBatch;
+                $row->forceFill([
+                    'organisation_id' => $actor->organisation_id, 'dispensary_return_check_id' => $check->id,
+                    'inventory_batch_id' => $share['batch_id'], 'quantity' => $share['quantity'], 'stock_movement_id' => $share['movement_id'],
+                ])->save();
+            }
             // Codes and ids only: never the medicine name or a note.
             $this->audited('dispensary.return_checked', array_filter([
                 'return_id' => $return->id, 'check_id' => $check->id, 'dispensary_case_id' => $lockedCase->id,
                 'outcome' => (string) $data['outcome'], 'refuse_reason' => $data['refuse_reason'] ?? null,
                 'stock_movement_id' => $movementId,
+                'stock_movement_ids' => $split !== null ? implode(',', array_column($split, 'movement_id')) : null,
+                'batch_count' => $split !== null ? count($split) : null,
             ], fn ($v): bool => $v !== null), $actor, $branch, $return);
 
             return $check;
         }, 3);
+    }
+
+    /**
+     * DSP-15: the shares of a split, in thousandths, keyed by batch public id; shares of 0 are left out. Null when the
+     * request has no split. A split of exactly one share is stored like a single-batch quarantine.
+     *
+     * @return array<string, int>|null
+     */
+    private function shares(mixed $batches): ?array
+    {
+        if (! is_array($batches)) {
+            return null;
+        }
+        $shares = [];
+        foreach ($batches as $share) {
+            $quantity = (string) $share['quantity'];
+            if (preg_match('/^0+(\.0+)?$/', $quantity) !== 1) {
+                $shares[(string) $share['batch_public_id']] = StockUnitQuantity::scaled($quantity);
+            }
+        }
+        if ($shares === []) {
+            $this->refuse('batches', 'Enter how many units went back to each batch.');
+        }
+        ksort($shares);
+
+        return $shares;
+    }
+
+    /** DSP-15: what earlier split shares of this line already put back into one batch, in thousandths. */
+    private function sharedFromBatch(int $itemId, int $batchId): int
+    {
+        return DispensaryReturnCheckBatch::query()->join('dispensary_return_checks', 'dispensary_return_checks.id', '=', 'dispensary_return_check_batches.dispensary_return_check_id')
+            ->join('dispensary_returns', 'dispensary_returns.id', '=', 'dispensary_return_checks.dispensary_return_id')
+            ->where('dispensary_returns.dispensary_item_id', $itemId)->where('dispensary_return_check_batches.inventory_batch_id', $batchId)
+            ->pluck('dispensary_return_check_batches.quantity')->sum(fn ($q): int => StockUnitQuantity::scaled((string) $q));
+    }
+
+    /**
+     * DSP-15: what this line can still put back into each batch it was dispensed from, in thousandths, keyed by batch
+     * id: dispensed from the batch less earlier single-batch quarantines and split shares from it.
+     *
+     * @param  Collection<int, DispensaryItemBatchAllocation>  $allocations
+     * @return array<int, int>
+     */
+    private function availableByBatch(int $itemId, Collection $allocations): array
+    {
+        $available = [];
+        foreach ($allocations->groupBy('inventory_batch_id') as $batchId => $rows) {
+            $available[(int) $batchId] = $rows->sum(fn (DispensaryItemBatchAllocation $a): int => StockUnitQuantity::scaled((string) $a->quantity));
+        }
+        $single = DispensaryReturnCheck::query()->join('dispensary_returns', 'dispensary_returns.id', '=', 'dispensary_return_checks.dispensary_return_id')
+            ->where('dispensary_returns.dispensary_item_id', $itemId)->where('dispensary_return_checks.outcome', DispensaryReturnCheck::OUTCOME_QUARANTINE)
+            ->whereNotNull('dispensary_return_checks.inventory_batch_id')->toBase()->get(['dispensary_return_checks.inventory_batch_id', 'dispensary_returns.quantity']);
+        foreach ($single as $row) {
+            $available[(int) $row->inventory_batch_id] = ($available[(int) $row->inventory_batch_id] ?? 0) - StockUnitQuantity::scaled((string) $row->quantity);
+        }
+        $shared = DispensaryReturnCheckBatch::query()->join('dispensary_return_checks', 'dispensary_return_checks.id', '=', 'dispensary_return_check_batches.dispensary_return_check_id')
+            ->join('dispensary_returns', 'dispensary_returns.id', '=', 'dispensary_return_checks.dispensary_return_id')
+            ->where('dispensary_returns.dispensary_item_id', $itemId)->toBase()->get(['dispensary_return_check_batches.inventory_batch_id', 'dispensary_return_check_batches.quantity']);
+        foreach ($shared as $row) {
+            $available[(int) $row->inventory_batch_id] = ($available[(int) $row->inventory_batch_id] ?? 0) - StockUnitQuantity::scaled((string) $row->quantity);
+        }
+
+        return array_map(fn (int $q): int => max(0, $q), $available);
+    }
+
+    /**
+     * DSP-15: credits each share to the returns location with its own STK-11 movement, under the item lock and the
+     * shared inventory lock order (SKU, then batches by id). The check row is written by the caller; the shares
+     * follow it.
+     *
+     * @param  Collection<int, DispensaryItemBatchAllocation>  $allocations
+     * @param  array<string, int>  $shares
+     * @param  array<string, int>  $shareIndexes
+     * @return list<array{batch_id: int, quantity: string, movement_id: int}>|null null when the one share is left to the single-batch path
+     */
+    private function quarantineSplit(User $actor, DispensaryItem $item, DispensaryReturn $return, InventoryLocation $location, Collection $allocations, array $shares, array $shareIndexes, string $checkPublicId): ?array
+    {
+        $unit = (string) $item->unit_snapshot;
+        $byPublicId = $allocations->filter(fn (DispensaryItemBatchAllocation $a): bool => $a->batch !== null)->keyBy(fn (DispensaryItemBatchAllocation $a): string => (string) $a->batch->public_id);
+        $available = $this->availableByBatch($item->id, $allocations);
+        $returned = StockUnitQuantity::scaled((string) $return->quantity);
+        if (array_sum($available) < $returned) {
+            $this->refuse('outcome', 'Only '.$this->trimmed(StockUnitQuantity::format(array_sum($available))).' '.$unit." can go back to this line's batches. Dispose the return, or refuse it if it was recorded wrongly.");
+        }
+        foreach ($shares as $publicId => $scaled) {
+            $allocation = $byPublicId->get($publicId);
+            if ($allocation === null) {
+                $this->refuse('batches', 'Choose batches this line was dispensed from.');
+            }
+            $left = $available[(int) $allocation->inventory_batch_id] ?? 0;
+            if ($scaled > $left) {
+                $this->refuse('batches.'.($shareIndexes[$publicId] ?? 0).'.quantity', 'At most '.$this->trimmed(StockUnitQuantity::format($left)).' '.$unit.' from this batch.');
+            }
+        }
+        $total = array_sum($shares);
+        if ($total !== $returned) {
+            $this->refuse('batches', 'The batches add up to '.$this->trimmed(StockUnitQuantity::format($total)).' '.$unit.'. They must add up to '.$this->trimmed(StockUnitQuantity::format($returned)).' '.$unit.'.');
+        }
+        if (count($shares) === 1) {
+            return null;
+        }
+        $chosen = collect(array_keys($shares))->map(fn (string $publicId): DispensaryItemBatchAllocation => $byPublicId->get($publicId));
+        // SKU before batch, the shared inventory lock order; batches by id.
+        $skus = InventorySku::query()->whereIn('id', $chosen->pluck('inventory_sku_id')->unique())->where('organisation_id', $actor->organisation_id)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+        $batches = InventoryBatch::query()->whereIn('id', $chosen->pluck('inventory_batch_id')->unique())->where('organisation_id', $actor->organisation_id)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+        $result = [];
+        foreach ($shares as $publicId => $scaled) {
+            $allocation = $byPublicId->get($publicId);
+            $sku = $skus->get($allocation->inventory_sku_id);
+            $batch = $batches->get($allocation->inventory_batch_id);
+            abort_unless($sku !== null && $batch !== null && $batch->inventory_sku_id === $sku->id, 404);
+            $quantity = StockUnitQuantity::format($scaled);
+            $movement = app(InventoryMovementService::class)->recordDispensaryReturn($actor, $location, $sku, $batch, $quantity, $checkPublicId);
+            $result[] = ['batch_id' => $batch->id, 'quantity' => $quantity, 'movement_id' => $movement->id];
+        }
+
+        return $result;
     }
 
     /** @param array<string, mixed> $input */
@@ -393,6 +559,11 @@ final class DispensaryReturnService
     {
         return $returns->reject(fn (DispensaryReturn $r): bool => $checks->get($r->id)?->outcome === DispensaryReturnCheck::OUTCOME_REFUSE)
             ->sum(fn (DispensaryReturn $r): int => StockUnitQuantity::scaled((string) $r->quantity));
+    }
+
+    private function batchLabel(DispensaryItemBatchAllocation $allocation): string
+    {
+        return trim($allocation->batch->batch_number.' · exp '.($allocation->batch->expiry_date ? CarbonImmutable::parse($allocation->batch->expiry_date)->format('d/m/Y') : '-'));
     }
 
     private function trimmed(string $quantity): string

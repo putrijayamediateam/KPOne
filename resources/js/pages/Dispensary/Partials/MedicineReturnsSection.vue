@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status';
 import {
+    batchesLine,
     refuseReasonLabels,
     returnConditionLabels,
     returnReasonLabels,
@@ -640,6 +641,24 @@ const onChecked = async (row: ReturnRow, message: string) => {
                                         class="text-muted-foreground"
                                     >
                                         {{ outcomeLine(row) }}
+                                    </p>
+                                    <p
+                                        v-if="
+                                            row.check &&
+                                            batchesLine(
+                                                row.check.batches,
+                                                line.unit,
+                                            )
+                                        "
+                                        class="text-xs [overflow-wrap:anywhere] text-muted-foreground"
+                                        data-testid="return-check-batches"
+                                    >
+                                        {{
+                                            batchesLine(
+                                                row.check.batches,
+                                                line.unit,
+                                            )
+                                        }}
                                     </p>
                                     <p
                                         v-if="row.check?.refuseReason"
