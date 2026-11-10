@@ -4,6 +4,7 @@ namespace Tests\Feature\HR;
 
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Applications\ApplicationPermissions;
+use App\Domain\HR\Applications\Services\ApplicationsPageService;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -316,6 +317,12 @@ class JobApplicationsTest extends VisitTestCase
         foreach ($shown as $log) {
             $this->assertStringNotContainsString('6789', (string) $log->metadata);
         }
+
+        // Odd or short values never show in full (Suresh, m1 and m2).
+        $mask = fn (string $method, string $value) => (new \ReflectionMethod(ApplicationsPageService::class, $method))->invoke(null, $value);
+        $this->assertSame('••••', $mask('maskPhone', '1234'));
+        $this->assertSame('•••@x.test', $mask('maskEmail', 'ab@x.test'));
+        $this->assertSame('•••', $mask('maskEmail', 'not-an-email'));
 
         // Only someone who handles applications may show them; a purged application has nothing to show.
         $this->actingAs($this->actor('ca'));

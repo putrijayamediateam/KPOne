@@ -353,15 +353,20 @@ final class ApplicationsPageService
         ];
     }
 
-    /** "•••• 6789", the last four digits only; null when there is no phone (a purged application). */
+    /** "•••• 6789", the last four digits only ("••••" below seven digits); null when there is no phone (a purged application). */
     private static function maskPhone(?string $phone): ?string
     {
         $digits = preg_replace('/\D+/', '', (string) $phone) ?? '';
 
-        return $digits === '' ? null : '•••• '.substr($digits, -4);
+        if ($digits === '') {
+            return null;
+        }
+
+        // A short or odd number shows nothing (Suresh, m1).
+        return strlen($digits) < 7 ? '••••' : '•••• '.substr($digits, -4);
     }
 
-    /** "a•••@example.test", the first character and the domain only. */
+    /** "a•••@example.test", the first character and the domain only ("•••@domain" for a local part of two characters or fewer). */
     private static function maskEmail(?string $email): ?string
     {
         if ($email === null || ! str_contains($email, '@')) {
@@ -369,7 +374,8 @@ final class ApplicationsPageService
         }
         [$local, $domain] = explode('@', $email, 2);
 
-        return mb_substr($local, 0, 1).'•••@'.$domain;
+        // The domain stays visible (it may name an employer; noted in TEAM.md); a short local part shows nothing (Suresh, m2).
+        return (mb_strlen($local) <= 2 ? '' : mb_substr($local, 0, 1)).'•••@'.$domain;
     }
 
     private static function plain(mixed $encrypted): ?string

@@ -2136,7 +2136,11 @@ const removeDocument = () => {
                                         label="Phone"
                                         field="phone"
                                         :mask="viewing.phoneMask"
-                                        :last4="viewing.phoneMask.slice(-4)"
+                                        :last4="
+                                            viewing.phoneMask.includes(' ')
+                                                ? viewing.phoneMask.slice(-4)
+                                                : null
+                                        "
                                         worker-id=""
                                         show-field="phone"
                                         :url="`/hr/applications/${viewing.id}/show-contact`"

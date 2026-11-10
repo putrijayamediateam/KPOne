@@ -160,18 +160,24 @@ class ApplicationsController extends Controller
         ]);
     }
 
-    /** The CV downloads; the open is recorded first. */
+    /** An applicant's phone or email, shown once the view is audited (TEAM.md section 7 hardening). */
     public function showContact(Request $request, JobApplicationService $applications, string $application): JsonResponse
     {
         try {
             $value = $applications->showContact($request->user(), $application, $request->input('field'));
         } catch (ValidationException $e) {
             return response()->json(['errors' => array_map(fn (array $m): string => $m[0], $e->errors())], 422);
+        } catch (AuthorizationException) {
+            // As the CV and document handlers do (Suresh, m3).
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
+
+            return response()->json(['errors' => ['field' => 'You can no longer show this.']], 403);
         }
 
         return response()->json(['value' => $value, 'shownAt' => now()->toIso8601String()])->header('Cache-Control', 'no-store, private');
     }
 
+    /** The CV downloads; the open is recorded first. */
     public function cv(Request $request, JobApplicationService $applications, string $application): HttpResponse
     {
         try {
