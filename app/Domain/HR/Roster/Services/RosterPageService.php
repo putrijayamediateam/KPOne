@@ -3,6 +3,7 @@
 namespace App\Domain\HR\Roster\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Compliance\Services\ComplianceRulesService;
 use App\Domain\HR\Compliance\Services\ComplianceWarnings;
@@ -287,7 +288,8 @@ final class RosterPageService
             }
         }
 
-        return '';
+        // HR-15a: a locum sign-in holds the Locum role only (kept out of ROLE_LABELS, which lists HR audiences).
+        return in_array(PermissionCatalogue::LOCUM_ROLE, $roles, true) ? 'Locum' : '';
     }
 
     /** @return list<array{id:int, label:string}> Active human staff assigned to the branch on at least one day of the week. */

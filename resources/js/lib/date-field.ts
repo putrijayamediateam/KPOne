@@ -372,6 +372,8 @@ type FieldText = {
     invalidDate: string;
     invalidMonth: string;
     invalidTime: string;
+    invalidHour: string;
+    invalidMinute: string;
     notRealDate: (typed: string) => string;
     notRealMonth: (typed: string) => string;
     rangeBetween: (from: string, to: string) => string;
@@ -403,6 +405,8 @@ export const DATE_FIELD_TEXT: Record<DateFieldLocale, FieldText> = {
         invalidDate: 'Enter a date as dd/mm/yyyy.',
         invalidMonth: 'Enter a month as mm/yyyy.',
         invalidTime: 'Enter a time such as 5:30.',
+        invalidHour: 'Hour must be 1 to 12.',
+        invalidMinute: 'Minute must be 0 to 59.',
         notRealDate: (typed) => `${typed} is not a real date.`,
         notRealMonth: (typed) => `${typed} is not a real month.`,
         rangeBetween: (from, to) => `Choose a date from ${from} to ${to}.`,
@@ -431,6 +435,8 @@ export const DATE_FIELD_TEXT: Record<DateFieldLocale, FieldText> = {
         invalidDate: 'Masukkan tarikh sebagai dd/mm/yyyy.',
         invalidMonth: 'Masukkan bulan sebagai mm/yyyy.',
         invalidTime: 'Masukkan masa seperti 5:30.',
+        invalidHour: 'Jam mesti 1 hingga 12.',
+        invalidMinute: 'Minit mesti 0 hingga 59.',
         notRealDate: (typed) => `${typed} bukan tarikh yang sah.`,
         notRealMonth: (typed) => `${typed} bukan bulan yang sah.`,
         rangeBetween: (from, to) => `Pilih tarikh dari ${from} hingga ${to}.`,
@@ -570,4 +576,29 @@ export const formatEchoTime = (time: string | null | undefined): string => {
     const parts = to12Hour(time);
 
     return parts ? `${parts.hour}:${parts.minute} ${parts.meridiem}` : '';
+};
+
+/** What is wrong with the typed time, in words; '' when the hour and minute are both usable. */
+export const timeProblem = (
+    hour: string,
+    minute: string,
+    locale: DateFieldLocale = 'en',
+): string => {
+    const text = DATE_FIELD_TEXT[locale];
+    const h = hour.trim();
+    const m = minute.trim();
+
+    if (h === '' && m === '') {
+        return '';
+    }
+
+    if (!/^\d{1,2}$/.test(h) || Number(h) < 1 || Number(h) > 12) {
+        return h === '' ? text.invalidTime : text.invalidHour;
+    }
+
+    if (!/^\d{1,2}$/.test(m) || Number(m) > 59) {
+        return m === '' ? text.invalidTime : text.invalidMinute;
+    }
+
+    return '';
 };
