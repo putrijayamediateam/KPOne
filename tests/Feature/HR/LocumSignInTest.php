@@ -32,7 +32,7 @@ class LocumSignInTest extends VisitTestCase
 
     public function test_the_locum_role_is_pinned_narrow_and_lands_on_its_own_shifts(): void
     {
-        $expected = ['branch_context.switch.branch', 'hr.roster.view.own', 'profile.view.own'];
+        $expected = ['branch_context.switch.branch', 'hr.open_shifts.request.own', 'hr.roster.view.own', 'profile.view.own']; // HR-15b adds the open-shift ask
         $catalogue = PermissionCatalogue::roles()[PermissionCatalogue::LOCUM_ROLE];
         sort($catalogue);
         $this->assertSame($expected, $catalogue);
@@ -42,9 +42,10 @@ class LocumSignInTest extends VisitTestCase
         foreach ($expected as $permission) {
             $this->assertFalse(PermissionCatalogue::isAdministrativeAuthority($permission));
         }
-        // The Director creates locum accounts, as for a CA Supervisor (B.E.R.N.I.S.S for the owner); the role grants no
-        // authority over anyone.
+        // The Director creates locum accounts, as for a CA Supervisor: Technical Admin does not cover the open-shift
+        // permission (B.E.R.N.I.S.S for the owner). The role grants no authority over anyone.
         $this->assertTrue(app(StaffAuthorityService::class)->canAssignRoles($this->actor('director'), [PermissionCatalogue::LOCUM_ROLE]));
+        $this->assertFalse(app(StaffAuthorityService::class)->canAssignRoles($this->actor('technical_admin'), [PermissionCatalogue::LOCUM_ROLE]));
         $this->assertFalse($this->hr->can('access.manage.organisation')); // HR may not create accounts at all (StaffProvisioningService)
 
         $locum = $this->actor(PermissionCatalogue::LOCUM_ROLE);

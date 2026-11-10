@@ -118,6 +118,7 @@ const props = defineProps<{
         my: {
             days: { date: string; label: string; shifts: Shift[] }[];
             canClock: boolean;
+            canAskOpenShifts?: boolean;
         } | null;
         planner: Planner | null;
         minimums: Minimums | null;
@@ -588,6 +589,18 @@ const minimumError = (session: string, role: string) =>
                 >
                     <Link href="/hr/attendance" data-test="roster-clock-link"
                         >Clock in</Link
+                    >
+                </Button>
+                <Button
+                    v-if="roster.my.canAskOpenShifts"
+                    as-child
+                    variant="outline"
+                    class="min-h-11 sm:min-h-9"
+                >
+                    <Link
+                        href="/hr/open-shifts"
+                        data-test="roster-open-shifts-link"
+                        >Open shifts</Link
                     >
                 </Button>
             </div>
