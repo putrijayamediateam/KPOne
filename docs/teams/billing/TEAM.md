@@ -339,7 +339,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   pay-later) and shows in outstanding bills, not in the pay-later collection list. On such an invoice the pay-later list
   shows only the pay-later balance, while a payment pays the due money first (the Billing page shows both). The
   "Use amount due" shortcut is not offered on a completed visit, so staff type the amount. A refund after completion
-  (BIL-10) can still be recorded on the replacement receipt while money is due; the amount due does not change.
+  (BIL-10) can still be recorded on the replacement receipt while money is due; the amount due does not change. A
+  correction refused for a changed branch or a reused request key can also show that message at the top of Refunds.
 
 ## 8. Rules (every task)
 

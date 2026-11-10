@@ -90,3 +90,7 @@ test('errors sit under their own fields for screen readers, and Refunds points h
     );
     assert.ok(workspace.includes(':corrections-below="!!billing.corrections"'));
 });
+
+test('a field with an error gets the red border (Daniel)', () => {
+    assert.ok(page.includes('aria-[invalid=true]:border-destructive'));
+});

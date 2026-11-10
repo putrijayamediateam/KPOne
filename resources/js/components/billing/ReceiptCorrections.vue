@@ -179,7 +179,7 @@ const submit = (receipt: Receipt) => {
     );
 };
 const field =
-    'h-11 rounded-md border border-input bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:h-9';
+    'h-11 rounded-md border border-input bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[invalid=true]:border-destructive sm:h-9';
 </script>
 
 <template>
@@ -361,7 +361,7 @@ const field =
                             v-model="form(receipt).reason"
                             maxlength="500"
                             rows="2"
-                            class="rounded-md border border-input bg-background px-2 py-1 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="rounded-md border border-input bg-background px-2 py-1 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none aria-[invalid=true]:border-destructive"
                             :aria-invalid="
                                 fieldError(receipt, 'reason')
                                     ? 'true'
