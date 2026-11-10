@@ -140,9 +140,12 @@ function days(value: number): string {
                 <h2 id="staff-cost-title" class="text-base font-semibold">
                     Staff cost, {{ monthLabel }}
                 </h2>
-                <StatusBadge tone="warning" data-test="staff-cost-estimate">
-                    Estimate
-                </StatusBadge>
+                <StatusBadge
+                    status="estimate"
+                    label="Estimate"
+                    tone="warning"
+                    data-test="staff-cost-estimate"
+                />
             </div>
             <p class="mt-1 text-sm text-muted-foreground">
                 One figure for the whole clinic, from approved pay runs only.
