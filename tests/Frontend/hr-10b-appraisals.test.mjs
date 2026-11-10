@@ -62,7 +62,10 @@ test('every rating has an accessible name; nothing is sent outside KPOne', () =>
 test('closing a cycle confirms; criteria and cycles are manager-only tabs', () => {
     const page = template('page');
     assert.match(page, /title="Close this cycle\?"/);
-    assert.match(page, /confirm-label="Close cycle"/);
+    assert.match(
+        page,
+        /title="Close this cycle\?"[\s\S]{0,500}destructive[\s\S]{0,40}confirm-label="Close cycle"/,
+    );
     assert.match(page, /data-test="criteria-form"/);
     assert.match(page, /data-test="cycle-sheet"/);
     assert.match(page, /data-test="my-appraisals"/);

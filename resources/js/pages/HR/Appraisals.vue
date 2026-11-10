@@ -695,6 +695,7 @@ const textareaClass =
                     ? `${closing.name}. ${closing.draft === 1 ? '1 appraisal was' : `${closing.draft} appraisals were`} never sent and will stay unsent; they can no longer be rated. Sent appraisals can still take comments and be signed off. This cannot be undone.`
                     : ''
             "
+            destructive
             confirm-label="Close cycle"
             cancel-label="Keep open"
             processing-label="Closing…"
