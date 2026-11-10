@@ -47,7 +47,7 @@ final class FridgePageService
         $first = CarbonImmutable::createFromFormat('!Y-m', $month, $zone);
         $names = $this->staff->visibleUsers($actor);
 
-        $cards = $visible->map(fn ($f): array => $this->card($f, $first, $names, (bool) ($record && ($assigned[$f->branch_id] ?? false)), (bool) ($review && ($assigned[$f->branch_id] ?? false)), $manage))->all();
+        $cards = $visible->map(fn ($f): array => $this->card($f, $month, $names, (bool) ($record && ($assigned[$f->branch_id] ?? false)), (bool) ($review && ($assigned[$f->branch_id] ?? false)), $manage))->all();
         $nowLocal = CarbonImmutable::now($zone);
 
         return [
@@ -95,11 +95,12 @@ final class FridgePageService
     }
 
     /** @return array<string, mixed> */
-    private function card(\stdClass $f, CarbonImmutable $first, mixed $names, bool $canRecord, bool $canReview, bool $canManage): array
+    private function card(\stdClass $f, string $month, mixed $names, bool $canRecord, bool $canReview, bool $canManage): array
     {
         $zone = (string) $f->branch_timezone;
         $min = (int) $f->min_tenths;
         $max = (int) $f->max_tenths;
+        $first = CarbonImmutable::createFromFormat('!Y-m', $month, $zone);
         $now = CarbonImmutable::now($zone);
         $monthEnd = $first->endOfMonth();
         $from = $first->startOfMonth()->utc();
@@ -107,9 +108,12 @@ final class FridgePageService
         $readings = DB::table('compliance_fridge_readings as r')->leftJoin('compliance_fridge_corrections as c', 'c.reading_id', '=', 'r.id')->leftJoin('compliance_fridge_reviews as v', 'v.reading_id', '=', 'r.id')
             ->where('r.fridge_id', $f->id)->whereBetween('r.taken_at', [$from, $to])->orderByDesc('r.taken_at')
             ->get(['r.*', 'c.reason_code as error_reason', 'v.public_id as review_id', 'v.action_code', 'v.note_encrypted', 'v.created_at as reviewed_at', 'v.reviewed_by_user_id']);
+        // Every unreviewed out-of-range reading stays an alert however many in-range readings follow it (judged in SQL against the
+        // range kept on the reading, so no row limit can hide one).
         $open = DB::table('compliance_fridge_readings as r')->leftJoin('compliance_fridge_corrections as c', 'c.reading_id', '=', 'r.id')->leftJoin('compliance_fridge_reviews as v', 'v.reading_id', '=', 'r.id')
-            ->where('r.fridge_id', $f->id)->whereNull('c.id')->whereNull('v.id')->orderByDesc('r.taken_at')->limit(50)->get(['r.*'])
-            ->filter(fn ($r): bool => FridgeService::outOfRange($r));
+            ->where('r.fridge_id', $f->id)->whereNull('c.id')->whereNull('v.id')
+            ->whereRaw('(r.temp_tenths < r.range_min_tenths OR r.temp_tenths > r.range_max_tenths OR r.low_tenths < r.range_min_tenths OR r.low_tenths > r.range_max_tenths OR r.high_tenths < r.range_min_tenths OR r.high_tenths > r.range_max_tenths)')
+            ->orderByDesc('r.taken_at')->limit(200)->get(['r.*']);
         $userIds = $readings->pluck('entered_by_user_id')->merge($readings->pluck('reviewed_by_user_id'))->merge($open->pluck('entered_by_user_id'))->filter()->unique();
         $people = $names->whereIn('id', $userIds)->pluck('name', 'id');
         $view = fn ($r): array => [
@@ -118,7 +122,7 @@ final class FridgePageService
             'rangeMin' => $this->degrees((int) $r->range_min_tenths), 'rangeMax' => $this->degrees((int) $r->range_max_tenths), 'outOfRange' => FridgeService::outOfRange($r),
             'reason' => $r->reason_code === null ? null : (FridgeService::REASONS[$r->reason_code] ?? 'Other'), 'enteredBy' => (string) ($people[$r->entered_by_user_id] ?? 'Staff member'),
         ];
-        $recent = $readings->take(15)->map(function ($r) use ($view, $people): array {
+        $recent = $readings->take(40)->map(function ($r) use ($view, $people): array {
             return $view($r) + [
                 'errorReason' => $r->error_reason === null ? null : (FridgeService::CORRECTION_REASONS[$r->error_reason] ?? 'Other'),
                 'review' => $r->review_id === null ? null : ['action' => FridgeService::ACTIONS[$r->action_code] ?? 'Other', 'note' => $this->decrypt($r->note_encrypted), 'by' => (string) ($people[$r->reviewed_by_user_id] ?? 'Staff member'),
@@ -147,7 +151,7 @@ final class FridgePageService
         $todayCount = ($good->get($now->toDateString()) ?? collect())->count();
 
         return [
-            'id' => (string) $f->public_id, 'lockVersion' => (int) $f->lock_version, 'name' => (string) $f->name, 'branchId' => (int) $f->branch_id, 'branchName' => (string) $f->branch_name,
+            'id' => (string) $f->public_id, 'lockVersion' => (int) $f->lock_version, 'name' => (string) $f->name, 'branchId' => (int) $f->branch_id, 'branchName' => (string) $f->branch_name, 'timezone' => $zone,
             'min' => $this->degrees($min), 'max' => $this->degrees($max), 'readingsPerDay' => (int) $f->readings_per_day, 'expectBy' => $f->expect_by === null ? null : substr((string) $f->expect_by, 0, 5),
             'canRecord' => $canRecord, 'canReview' => $canReview, 'canManage' => $canManage,
             'todayCount' => $todayCount, 'alerts' => $open->map(fn ($r): array => $view($r))->values()->all(), 'recent' => $recent, 'days' => array_reverse($days),

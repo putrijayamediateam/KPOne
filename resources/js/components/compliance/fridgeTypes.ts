@@ -33,6 +33,7 @@ export type FridgeCard = {
     name: string;
     branchId: number;
     branchName: string;
+    timezone: string;
     min: string;
     max: string;
     readingsPerDay: number;

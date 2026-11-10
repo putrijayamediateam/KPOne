@@ -169,6 +169,18 @@ class FridgeTest extends VisitTestCase
         $this->assertSame(19, (int) DB::table('compliance_fridge_readings')->where('public_id', $out)->value('temp_tenths'));
     }
 
+    public function test_an_old_unreviewed_out_of_range_reading_stays_an_alert_after_many_in_range_readings(): void
+    {
+        $this->asDirector();
+        $fridge = $this->addFridge();
+        $this->read($fridge, ['temp' => '12.0'])->assertSessionHasNoErrors();
+        for ($i = 0; $i < 60; $i++) {
+            $this->read($fridge, ['temp' => '5.0'])->assertSessionHasNoErrors();
+        }
+        $this->get(route('clinic-compliance.index', ['tab' => 'fridge']))->assertInertia(fn (Assert $page) => $page
+            ->where('compliance.fridge.alertCount', 1)->where('compliance.fridge.fridges.0.alerts.0.temp', '12.0'));
+    }
+
     public function test_marking_a_reading_in_error_removes_the_alert_and_the_daily_count_but_keeps_it(): void
     {
         $this->asDirector();

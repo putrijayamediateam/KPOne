@@ -32,11 +32,11 @@ const errors = computed(
     () => (page.props.errors ?? {}) as Record<string, string | undefined>,
 );
 const base = '/clinic-compliance';
-const when = (iso: string) =>
+const when = (iso: string, zone: string) =>
     new Intl.DateTimeFormat('en-GB', {
         dateStyle: 'medium',
         timeStyle: 'short',
-        timeZone: 'Asia/Kuala_Lumpur',
+        timeZone: zone,
     }).format(new Date(iso));
 const goMonth = (month: string) =>
     router.get(base, { tab: 'fridge', month }, { preserveScroll: true });
@@ -278,7 +278,8 @@ const sendMistake = () => {
                             >Out of range</span
                         >
                         <span class="break-words"
-                            >{{ numbers(a) }} · {{ when(a.takenAt) }}</span
+                            >{{ numbers(a) }} ·
+                            {{ when(a.takenAt, f.timezone) }}</span
                         >
                     </span>
                     <Button
@@ -288,7 +289,8 @@ const sendMistake = () => {
                         class="min-h-11 lg:min-h-9"
                         @click="openReview(a)"
                         >Record action<span class="sr-only">
-                            for the reading at {{ when(a.takenAt) }}</span
+                            for the reading at
+                            {{ when(a.takenAt, f.timezone) }}</span
                         ></Button
                     >
                 </li>
@@ -313,9 +315,27 @@ const sendMistake = () => {
                 >
                     <p class="flex flex-wrap items-center gap-2">
                         <StatusBadge
-                            :status="r.outOfRange ? 'out_of_range' : 'in_range'"
-                            :label="r.outOfRange ? 'Out of range' : 'In range'"
-                            :tone="r.outOfRange ? 'danger' : 'success'"
+                            :status="
+                                r.errorReason
+                                    ? 'entered_in_error'
+                                    : r.outOfRange
+                                      ? 'out_of_range'
+                                      : 'in_range'
+                            "
+                            :label="
+                                r.errorReason
+                                    ? 'Entered in error'
+                                    : r.outOfRange
+                                      ? 'Out of range'
+                                      : 'In range'
+                            "
+                            :tone="
+                                r.errorReason
+                                    ? 'neutral'
+                                    : r.outOfRange
+                                      ? 'danger'
+                                      : 'success'
+                            "
                         />
                         <span class="break-words">{{ numbers(r) }}</span>
                         <span
@@ -325,7 +345,7 @@ const sendMistake = () => {
                         >
                     </p>
                     <p class="text-xs text-muted-foreground">
-                        {{ when(r.takenAt) }} · {{ r.enteredBy }}
+                        {{ when(r.takenAt, f.timezone) }} · {{ r.enteredBy }}
                         <template v-if="r.reason"> · {{ r.reason }}</template>
                     </p>
                     <p v-if="r.review" class="text-xs break-words">
@@ -333,7 +353,7 @@ const sendMistake = () => {
                         }}<template v-if="r.review.note">
                             ({{ r.review.note }})</template
                         >
-                        · {{ r.review.by }}, {{ when(r.review.at) }}
+                        · {{ r.review.by }}, {{ when(r.review.at, f.timezone) }}
                     </p>
                     <div v-if="f.canManage && !r.errorReason">
                         <Button
@@ -342,7 +362,8 @@ const sendMistake = () => {
                             class="min-h-11 lg:min-h-9"
                             @click="openMistake(r)"
                             >Mark entered in error<span class="sr-only">
-                                for the reading at {{ when(r.takenAt) }}</span
+                                for the reading at
+                                {{ when(r.takenAt, f.timezone) }}</span
                             ></Button
                         >
                     </div>
