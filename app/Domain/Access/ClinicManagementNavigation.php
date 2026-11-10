@@ -134,6 +134,7 @@ final class ClinicManagementNavigation
         $add('Staff & branches', 'staff', [
             [$branch && $actor->can('clinician_credentials.manage.organisation'), 'Clinician credentials', 'Verify professional names and MMC registration numbers.', 'clinician-credentials.index'],
             [$branch && $actor->can('staff.view.own') && $actor->can('encounters.view.own'), 'My clinician credentials', 'Review your own professional details.', 'clinician-credentials.own'],
+            [$actor->can('hr.roster.manage.organisation') || $actor->can('hr.attendance.review.organisation') || $actor->can('hr.leave.manage.organisation'), 'KPOne HR dashboard', 'Who is on duty today and the month at a glance, for HR.', 'hr.dashboard.index'],
             [$actor->can('hr.roster.view.own') || $actor->can('hr.roster.manage.organisation') || $actor->can('hr.roster.approve.organisation'), 'KPOne HR roster', 'Plan branch shifts and see your own roster.', 'hr.roster.index'],
             [$actor->can('hr.leave.request.own') || $actor->can('hr.leave.approve.organisation') || $actor->can('hr.leave.manage.organisation'), 'KPOne HR leave', 'Apply for leave, approve requests and see who is away.', 'hr.leave.index'],
             [$actor->can('hr.attendance.clock.own') || $actor->can('hr.attendance.review.organisation'), 'KPOne HR attendance', 'Clock in and out, correct your times and review attendance.', 'hr.attendance.index'],
