@@ -1,6 +1,6 @@
 # HR-8 Announcements and memos: design note
 
-Status: **draft for the HR team's agreement** (written by the Queue & TV team, Amirul Lead, 2026-11-10, because the
+Status: **draft for the HR team's agreement; owner decisions recorded in section 10** (written by the Queue & TV team, Amirul Lead, 2026-11-10, because the
 owner asked B.E.R.N.I.S.S to give HR-8 to Queue & TV: "i want to start all that"). Nothing is built. Liyana and
 Suresh (HR) agree this note, or change it, before any code. Follows `HR-PLAN.md` (HR-8, about line 288) and
 `TEAM.md` sections 4, 6 and 8.
@@ -109,14 +109,19 @@ Email, push, SMS or WhatsApp (HR-14 may later offer an opt-in "email me when a m
 settings; HR-8 never calls `StaffMessenger`); recipient snapshots; comments or replies; scheduling a memo for later;
 editing a published memo; attachments other than one PDF.
 
-## 10. Questions for the owner (through B.E.R.N.I.S.S)
+## 10. Owner decisions (B.E.R.N.I.S.S for the owner, delegation on, 2026-11-10)
 
-1. **CA Supervisor publishing branch memos** (HR-PLAN `[TO CONFIRM]`): default **no** in this slice, because it needs a
-   `hr.memos.publish.branch` permission and a branch check. Say yes if wanted.
-2. **Open until date**: included as optional. Say if memos should instead stay open until withdrawn only.
-3. **Technical Admin and Administrator are in `HUMAN_ROLES`**, so they are expected readers of "All staff" memos.
-   Confirm that is wanted (the default here).
-4. Branch **and** role is AND (section 2). Confirm.
-5. Flag for the coordinator (not HR-8): `TEAM.md` line 487 and decision 5 say HR-14 sends no email, but the HR-14
-   code (`app/Domain/HR/Messages`, `HR_MESSAGES_EMAIL_ENABLED`) can send email. The note is stale or the code goes
-   further than the decision.
+1. **CA Supervisor publishing branch memos: no in this slice.** Director and HR Manager only; it can come later (it
+   would need `hr.memos.publish.branch` and a branch check).
+2. **Optional "Open until" date: yes.**
+3. **Technical Admin and Administrator are expected readers of "All staff" memos: yes** (they are staff).
+4. **Branch and role ticked together means AND: yes.**
+5. **Permissions approved, both additive:** `hr.memos.read.own` (all human roles, never the TV account) and
+   `hr.memos.publish.organisation` (Director and HR Manager).
+6. **The one existing assertion change is approved:** `tests/Feature/ClinicManagementTest.php` exact hub map gains
+   `'/hr/memos' => ['hr.memos.read.own', 'hr.memos.publish.organisation']`.
+   List 5 and 6 in the PR as "approved by B.E.R.N.I.S.S for the owner, 2026-11-10".
+7. **Build once Liyana and Suresh (HR) agree this note.**
+
+Flag passed to HR by the coordinator: `TEAM.md` line 487 and decision 5 say HR-14 sends no email, but the HR-14 code
+(`app/Domain/HR/Messages`, `HR_MESSAGES_EMAIL_ENABLED`) can send email.
