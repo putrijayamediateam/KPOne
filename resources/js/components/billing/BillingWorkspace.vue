@@ -477,7 +477,7 @@ const reverse = (receipt: Receipt) =>
                             <StatusBadge
                                 status="voided"
                                 tone="neutral"
-                                class="ml-1"
+                                class="ml-1 align-middle"
                             />
                         </p>
                         <p class="text-xs text-muted-foreground">
@@ -1280,18 +1280,19 @@ const reverse = (receipt: Receipt) =>
                                 class="billing-input"
                                 autocomplete="off"
                         /></label>
-                        <button
+                        <Button
                             v-if="
                                 dueNowText &&
                                 (!isCompleted ||
                                     (billing.invoice?.state.due_now ?? 0) > 0)
                             "
                             type="button"
-                            class="mt-1 inline-flex min-h-11 w-fit items-center rounded-md border border-input px-3 text-left text-xs font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            variant="outline"
+                            class="mt-1 h-auto min-h-11 w-fit text-xs text-primary"
                             @click="form.amount = dueNowText"
                         >
                             Use amount due (RM {{ dueNowText }})
-                        </button>
+                        </Button>
                         <label
                             id="payment-method-label"
                             class="block"
@@ -1420,14 +1421,15 @@ const reverse = (receipt: Receipt) =>
                                 class="billing-input"
                                 autocomplete="off"
                         /></label>
-                        <button
+                        <Button
                             v-if="dueNowText && !isCompleted"
                             type="button"
-                            class="mt-1 mb-2 inline-flex min-h-11 w-fit items-center rounded-md border border-input px-3 text-left text-xs font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            variant="outline"
+                            class="mt-1 mb-2 h-auto min-h-11 w-fit text-xs text-primary"
                             @click="form.responsibility_amount = dueNowText"
                         >
                             Use amount due (RM {{ dueNowText }})
-                        </button>
+                        </Button>
                         <label class="block"
                             >Reason / verification evidence<textarea
                                 v-model="form.reason"

@@ -52,14 +52,14 @@ test('voided invoices use the shared status badge (Siti)', () => {
 
 test('the Use amount due shortcuts look pressable and the dialog wording matches its button', () => {
     const shortcuts = workspace
-        .split('<button')
-        .map((chunk) => chunk.split('</button>')[0])
+        .split('<Button')
+        .map((chunk) => chunk.split('</Button>')[0])
         .filter((chunk) => chunk.includes('Use amount due (RM'));
     assert.equal(shortcuts.length, 2);
 
     for (const s of shortcuts) {
         assert.match(s, /min-h-11/);
-        assert.match(s, /border/);
+        assert.match(s, /variant="outline"/);
     }
 
     assert.ok(
