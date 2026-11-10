@@ -114,7 +114,7 @@ class DispensaryController extends Controller
     {
         $check = null;
         $this->stayOnCase($dispensaryCase, function () use (&$check, $request, $dispensaryCase, $returnPublicId, $returns): void {
-            $check = $returns->check($request->user(), $dispensaryCase, $returnPublicId, $request->only(['expected_branch_id', 'retry_key', 'outcome', 'refuse_reason', 'refuse_note', 'location_public_id', 'batch_public_id']));
+            $check = $returns->check($request->user(), $dispensaryCase, $returnPublicId, $request->only(['expected_branch_id', 'retry_key', 'outcome', 'refuse_reason', 'refuse_note', 'location_public_id', 'batch_public_id', 'batches']));
         });
         Inertia::flash('toast', ['type' => 'success', 'message' => match ($check?->outcome) {
             'quarantine' => 'Return moved to the returns location.',
