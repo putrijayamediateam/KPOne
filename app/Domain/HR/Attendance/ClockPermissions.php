@@ -19,9 +19,13 @@ final class ClockPermissions
     /** HR-3b: decide and reverse overtime requests (never one's own, never one they asked for). */
     public const OVERTIME_APPROVE = 'hr.overtime.approve.organisation';
 
+    /** HR-16a: turn the location check at clock-in on or off for a branch (Director only, HR-PLAN 22.3). */
+    public const LOCATION_MANAGE = 'hr.attendance.location.manage.organisation';
+
     /** @return array<string, list<string>> */
     public static function grants(): array
     {
-        return [self::CLOCK_OWN => RosterPermissions::HUMAN_ROLES, self::REVIEW => ['director', 'hr_manager'], self::OVERTIME_APPROVE => ['director', 'hr_manager']];
+        return [self::CLOCK_OWN => RosterPermissions::HUMAN_ROLES, self::REVIEW => ['director', 'hr_manager'], self::OVERTIME_APPROVE => ['director', 'hr_manager'],
+            self::LOCATION_MANAGE => ['director']];
     }
 }

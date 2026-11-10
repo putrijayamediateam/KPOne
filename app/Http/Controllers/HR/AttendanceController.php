@@ -6,6 +6,7 @@ use App\Domain\HR\Attendance\Services\AttendancePageService;
 use App\Domain\HR\Attendance\Services\AttendanceSettingsService;
 use App\Domain\HR\Attendance\Services\ClockService;
 use App\Domain\HR\Attendance\Services\CorrectionService;
+use App\Domain\HR\Attendance\Services\LocationCheckService;
 use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Domain\HR\Attendance\Services\OvertimeSettingsService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
@@ -30,7 +31,7 @@ class AttendanceController extends Controller
     {
         $label = null;
         $response = $this->run($request, 'my', null, function () use ($request, $clock, &$label): void {
-            $session = $clock->clockIn($request->user(), $request->only(['idempotency_key']));
+            $session = $clock->clockIn($request->user(), $this->pressInput($request));
             $label = 'Clocked in at '.$session->clock_in_at->setTimezone($session->timezone)->format('g:i A').'.';
         });
         Inertia::flash('toast', ['type' => 'success', 'message' => $label]);
@@ -42,7 +43,7 @@ class AttendanceController extends Controller
     {
         $label = null;
         $response = $this->run($request, 'my', null, function () use ($request, $clock, &$label): void {
-            $session = $clock->clockOut($request->user(), $request->only(['idempotency_key']));
+            $session = $clock->clockOut($request->user(), $this->pressInput($request));
             $label = 'Clocked out at '.$session->clock_out_at?->setTimezone($session->timezone)->format('g:i A').'.';
         });
         Inertia::flash('toast', ['type' => 'success', 'message' => $label]);
@@ -70,6 +71,29 @@ class AttendanceController extends Controller
         $tab = $request->input('tab') === 'review' ? 'review' : 'my';
 
         return $this->run($request, $tab, 'Correction withdrawn.', fn () => $corrections->cancel($request->user(), $correction, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    /**
+     * HR-16a: the press with its optional location reading. The position is passed straight to the domain and never
+     * flashed (`clock_position` is in dontFlash), logged or stored.
+     *
+     * @return array<string, mixed>
+     */
+    private function pressInput(Request $request): array
+    {
+        $position = $request->input('clock_position');
+
+        return ['idempotency_key' => $request->input('idempotency_key'), 'location_consent' => $request->boolean('location_consent'),
+            'location_unavailable' => $request->input('location_unavailable'),
+            'clock_position' => is_array($position) ? array_intersect_key($position, array_flip(['latitude', 'longitude', 'accuracy'])) : null];
+    }
+
+    public function saveLocationCheck(Request $request, LocationCheckService $location): RedirectResponse
+    {
+        $on = $request->boolean('enabled');
+
+        return $this->run($request, 'settings', $on ? 'Location check saved.' : 'Location check turned off.', fn () => $location->save($request->user(),
+            $request->only(['branch_id', 'enabled', 'centre_lat', 'centre_lng', 'radius_metres', 'consent_en', 'consent_bm', 'idempotency_key'])));
     }
 
     public function saveSettings(Request $request, AttendanceSettingsService $settings): RedirectResponse
