@@ -16,7 +16,13 @@ BIL-16 merges).
 4. **The pay-later collection list notes money due now.** When an invoice also has money due after a correction,
    its row says "RM X is also due now. A payment pays that first.", because a payment clears that before pay-later. It is sent beside the
    rows, so each row keeps its agreed fields (no existing assertion changes).
+5. **Review polish (Siti, Daniel).** The settled line has a check icon and the success colour; voided invoices carry a
+   neutral "Voided" badge; both "Use amount due" shortcuts are 44 px outline buttons under their field; in a completed
+   visit's payment dialog the hint names the button ("Choose a payment method to enable Settle Outstanding Balance.";
+   an open visit keeps "Add Payment"); the pay-later list counts read "1 patient bill" or "2 patient bills".
 
 ## Not in BIL-17
 
 No change to how payments are allocated, to voiding, or to who can see the Billing page.
+The pay-later list's "1 records" comes from the shared pagination component, owned outside Billing, and is left for
+its owner. The pay-later list's phone layout and the "Approved pay later" summary row wording are BIL-18.

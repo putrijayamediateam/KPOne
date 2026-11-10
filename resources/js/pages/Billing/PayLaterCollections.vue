@@ -74,7 +74,8 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                     {{ myr(collections.all.totalSen) }}
                 </p>
                 <p class="text-xs text-muted-foreground">
-                    {{ collections.all.count }} patient bill(s)
+                    {{ collections.all.count }} patient
+                    {{ collections.all.count === 1 ? 'bill' : 'bills' }}
                 </p>
             </div>
             <div class="rounded-xl border bg-card p-4">
@@ -85,7 +86,8 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                     {{ myr(collections.all.overdueSen) }}
                 </p>
                 <p class="text-xs text-muted-foreground">
-                    {{ collections.all.overdueCount }} patient bill(s)
+                    {{ collections.all.overdueCount }} patient
+                    {{ collections.all.overdueCount === 1 ? 'bill' : 'bills' }}
                 </p>
             </div>
         </section>

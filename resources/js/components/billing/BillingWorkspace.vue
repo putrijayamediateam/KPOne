@@ -1287,7 +1287,7 @@ const reverse = (receipt: Receipt) =>
                                     (billing.invoice?.state.due_now ?? 0) > 0)
                             "
                             type="button"
-                            class="text-xs font-medium text-primary"
+                            class="mt-1 inline-flex min-h-11 w-fit items-center rounded-md border border-input px-3 text-left text-xs font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             @click="form.amount = dueNowText"
                         >
                             Use amount due (RM {{ dueNowText }})
@@ -1331,7 +1331,11 @@ const reverse = (receipt: Receipt) =>
                             v-if="!form.method"
                             class="text-xs text-muted-foreground"
                         >
-                            Choose a payment method to enable Add Payment.
+                            {{
+                                isCompleted
+                                    ? 'Choose a payment method to enable Settle Outstanding Balance.'
+                                    : 'Choose a payment method to enable Add Payment.'
+                            }}
                         </p></template
                     >
                     <DialogFooter
@@ -1419,7 +1423,7 @@ const reverse = (receipt: Receipt) =>
                         <button
                             v-if="dueNowText && !isCompleted"
                             type="button"
-                            class="mb-2 text-xs font-medium text-primary"
+                            class="mt-1 mb-2 inline-flex min-h-11 w-fit items-center rounded-md border border-input px-3 text-left text-xs font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             @click="form.responsibility_amount = dueNowText"
                         >
                             Use amount due (RM {{ dueNowText }})

@@ -49,3 +49,27 @@ test('voided invoices use the shared status badge (Siti)', () => {
         workspace.includes('<StatusBadge status="voided" tone="neutral"'),
     );
 });
+
+test('the Use amount due shortcuts look pressable and the dialog wording matches its button', () => {
+    const shortcuts = workspace
+        .split('<button')
+        .map((chunk) => chunk.split('</button>')[0])
+        .filter((chunk) => chunk.includes('Use amount due (RM'));
+    assert.equal(shortcuts.length, 2);
+
+    for (const s of shortcuts) {
+        assert.match(s, /min-h-11/);
+        assert.match(s, /border/);
+    }
+
+    assert.ok(
+        workspace.includes(
+            "'Choose a payment method to enable Settle Outstanding Balance.'",
+        ),
+    );
+});
+
+test('the pay-later list counts use a correct plural', () => {
+    assert.ok(!collections.includes('bill(s)'));
+    assert.ok(collections.includes("=== 1 ? 'bill' : 'bills'"));
+});
