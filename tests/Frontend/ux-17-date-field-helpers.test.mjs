@@ -180,3 +180,13 @@ test('the echo and the Malay words', () => {
     assert.equal(h.DATE_FIELD_TEXT.en.weekdays[0], 'Mon');
     assert.equal(h.DATE_FIELD_TEXT.ms.weekdays[0], 'Isn');
 });
+
+test('a time error says which part is wrong', () => {
+    assert.equal(h.timeProblem('5', '30'), '');
+    assert.equal(h.timeProblem('', ''), '');
+    assert.equal(h.timeProblem('13', '39'), 'Hour must be 1 to 12.');
+    assert.equal(h.timeProblem('0', '10'), 'Hour must be 1 to 12.');
+    assert.equal(h.timeProblem('5', '75'), 'Minute must be 0 to 59.');
+    assert.equal(h.timeProblem('5', ''), 'Enter a time such as 5:30.');
+    assert.equal(h.timeProblem('13', '39', 'ms'), 'Jam mesti 1 hingga 12.');
+});
