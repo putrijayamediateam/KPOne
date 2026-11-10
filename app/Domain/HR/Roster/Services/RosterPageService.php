@@ -10,6 +10,7 @@ use App\Domain\HR\Compliance\Services\ComplianceWarnings;
 use App\Domain\HR\Credentials\CredentialPermissions;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Services\LeaveCalendar;
+use App\Domain\HR\OpenShifts\OpenShiftPermissions;
 use App\Domain\HR\Roster\Models\RosterShift;
 use App\Domain\HR\Roster\Models\RosterVersion;
 use App\Domain\HR\Roster\Models\RosterWeek;
@@ -100,7 +101,8 @@ final class RosterPageService
         }
 
         // HR-3a: an outline "Clock in" link on My roster for staff who clock (Daniel: never a second primary).
-        return ['days' => $days, 'canClock' => $actor->can(ClockPermissions::CLOCK_OWN)];
+        // HR-15b: a locum finds open shifts from their own roster.
+        return ['days' => $days, 'canClock' => $actor->can(ClockPermissions::CLOCK_OWN), 'canAskOpenShifts' => $actor->can(OpenShiftPermissions::REQUEST_OWN)];
     }
 
     /**
