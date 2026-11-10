@@ -63,4 +63,7 @@ test('HR adds PDFs per position type with the shared file button, and removes th
     assert.match(source.hr, /forceFormData: true/);
     assert.match(source.hr, /const DOCS_MAX = 10;/);
     assert.match(t, /not downloaded yet/);
+    assert.match(t, /Choose a PDF and give it a title first\./);
+    assert.match(t, /<h2 id="interview-docs-title"/);
+    assert.doesNotMatch(t, /dummy PDFs/);
 });
