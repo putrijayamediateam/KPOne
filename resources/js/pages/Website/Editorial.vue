@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import EditorialDraftPreview from '@/components/website/EditorialDraftPreview.vue';
 import type {
     EditorialContent,
@@ -435,14 +436,13 @@ const inputClass =
                                 v-for="key in page.dateFields"
                                 :key="key"
                                 class="block text-sm"
-                                >{{ label(key) }} (YYYY-MM-DD)<input
-                                    :value="String(form.content[key] ?? '')"
-                                    type="date"
-                                    :class="inputClass"
-                                    @input="
-                                        form.content[key] = (
-                                            $event.target as HTMLInputElement
-                                        ).value
+                                >{{ label(key)
+                                }}<DateField
+                                    :model-value="
+                                        String(form.content[key] ?? '')
+                                    "
+                                    @update:model-value="
+                                        form.content[key] = $event
                                     "
                             /></label>
                             <template v-if="!faq">

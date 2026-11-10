@@ -48,7 +48,6 @@ test('Promotions, activities and FAQs compile with bounded fields and escaped sa
         'up to 12',
         'Saved draft preview',
         'item-wide',
-        'YYYY-MM-DD',
         'Previous',
         'Previously selected asset',
         'No cover',
