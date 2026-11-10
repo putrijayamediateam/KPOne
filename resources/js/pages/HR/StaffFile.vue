@@ -771,9 +771,7 @@ const bankDialog = computed(() => {
                                 type="submit"
                                 variant="outline"
                                 class="max-lg:min-h-11"
-                                :disabled="
-                                    signIn.processing || !signIn.email.trim()
-                                "
+                                :disabled="signIn.processing"
                                 data-test="ask-sign-in"
                                 >{{
                                     signIn.processing
