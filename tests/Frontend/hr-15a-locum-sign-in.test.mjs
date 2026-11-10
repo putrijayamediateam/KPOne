@@ -24,5 +24,6 @@ test('the Staff page links a locum account, only for whoever may create staff ac
     assert.match(staff, /`\/staff\/locum-sign-ins\/\$\{request\.id\}\/link`/);
     assert.match(staff, /with\s+the Locum role only/);
     assert.match(staff, /role="alert"[\s\S]{0,120}staff-locum-link-error/);
-    assert.match(staff, /No locum account to link yet\. Create it first\./);
+    assert.match(staff, /v-if="request\.account"[\s\S]{0,300}staff-locum-link/);
+    assert.match(staff, /using this email and the Locum role\s+only\./);
 });

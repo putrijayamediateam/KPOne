@@ -67,8 +67,9 @@ BEGIN
 END $$;
 CREATE TRIGGER hr_locum_sign_ins_insert_guard BEFORE INSERT ON hr_locum_sign_ins FOR EACH ROW EXECUTE FUNCTION guard_hr_locum_sign_in_insert();
 
--- A request keeps what was asked and is closed once. Done links an active account in the `locum` role, with no staff
--- file of its own, and only by someone who may create staff accounts.
+-- A request keeps what was asked and is closed once. Done links an active account whose only role is `locum`, with no
+-- staff file of its own, and only by someone who may create staff accounts. (The email match is checked in the service:
+-- the requested email is encrypted.)
 CREATE OR REPLACE FUNCTION guard_hr_locum_sign_in() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF NEW.id <> OLD.id OR NEW.public_id <> OLD.public_id OR NEW.organisation_id <> OLD.organisation_id OR NEW.worker_id <> OLD.worker_id
@@ -83,8 +84,10 @@ BEGIN
  IF NEW.status = 'done' AND (NOT EXISTS (SELECT 1 FROM users u WHERE u.id = NEW.linked_user_id AND u.is_active)
    OR NOT EXISTS (SELECT 1 FROM model_has_roles mr JOIN roles r ON r.id = mr.role_id
      WHERE mr.model_id = NEW.linked_user_id AND mr.model_type = 'App\Models\User' AND r.name = 'locum')
+   OR EXISTS (SELECT 1 FROM model_has_roles mr JOIN roles r ON r.id = mr.role_id
+     WHERE mr.model_id = NEW.linked_user_id AND mr.model_type = 'App\Models\User' AND r.name <> 'locum')
    OR EXISTS (SELECT 1 FROM hr_workers w WHERE w.user_id = NEW.linked_user_id)) THEN
-  RAISE EXCEPTION 'A locum sign-in is an active account in the locum role with no staff file of its own' USING ERRCODE = '23514';
+  RAISE EXCEPTION 'A locum sign-in is an active account holding the locum role only, with no staff file of its own' USING ERRCODE = '23514';
  END IF;
  RETURN NEW;
 END $$;

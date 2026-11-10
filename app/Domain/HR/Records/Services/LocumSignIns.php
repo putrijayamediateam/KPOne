@@ -11,7 +11,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Contracts\Encryption\DecryptException;
-use Illuminate\Support\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -86,10 +86,10 @@ final class LocumSignIns
     }
 
     /**
-     * For the Staff page: open requests and the locum accounts that can be linked, or null for anyone who may not
-     * create staff accounts.
+     * For the Staff page: open requests, each with the locum account that can be linked to it (the one with the email HR
+     * asked for), or null for anyone who may not create staff accounts.
      *
-     * @return array{requests:list<array<string, mixed>>, accounts:list<array{value:string, label:string}>}|null
+     * @return array{requests:list<array<string, mixed>>}|null
      */
     public static function openFor(User $actor): ?array
     {
@@ -102,11 +102,16 @@ final class LocumSignIns
             ->get(['s.public_id', 's.email_encrypted', 's.requested_at', 's.lock_version', 'w.display_name', 'u.name as requester']);
 
         return [
-            'requests' => array_values($rows->map(fn (\stdClass $r): array => ['id' => (string) $r->public_id, 'name' => (string) $r->display_name,
-                'email' => self::reveal($r->email_encrypted), 'requestedOn' => CarbonImmutable::parse((string) $r->requested_at)->setTimezone($zone)->format('j M Y'),
-                'requestedBy' => (string) ($r->requester ?? 'Staff member'), 'lockVersion' => (int) $r->lock_version])->all()),
-            'accounts' => array_values(self::linkable((int) $actor->organisation_id)->map(fn (User $u): array => ['value' => (string) $u->id,
-                'label' => "{$u->name} ({$u->email})"])->all()),
+            'requests' => array_values($rows->map(function (\stdClass $r) use ($actor, $zone): array {
+                $email = self::reveal($r->email_encrypted);
+                // Only the account with the email HR asked for can be linked (Suresh, M2).
+                $account = $email === '' ? null : self::linkable((int) $actor->organisation_id)->whereRaw('lower(email) = ?', [$email])->first(['id', 'name']);
+
+                return ['id' => (string) $r->public_id, 'name' => (string) $r->display_name, 'email' => $email,
+                    'requestedOn' => CarbonImmutable::parse((string) $r->requested_at)->setTimezone($zone)->format('j M Y'),
+                    'requestedBy' => (string) ($r->requester ?? 'Staff member'), 'lockVersion' => (int) $r->lock_version,
+                    'account' => $account === null ? null : ['id' => (string) $account->id, 'name' => (string) $account->name]];
+            })->all()),
         ];
     }
 
@@ -140,15 +145,19 @@ final class LocumSignIns
         return $workerId === null ? null : Worker::query()->whereKey($workerId)->first();
     }
 
-    /** @return Collection<int, User> active accounts in the locum role with no staff file and no link */
-    private static function linkable(int $organisationId): Collection
+    /**
+     * Active accounts whose only role is Locum (Suresh, M1), with no staff file and no other locum linked.
+     *
+     * @return Builder<User>
+     */
+    private static function linkable(int $organisationId): Builder
     {
         return User::query()->where('organisation_id', $organisationId)->where('is_active', true)
             ->whereHas('roles', fn ($q) => $q->where('name', PermissionCatalogue::LOCUM_ROLE))
+            ->whereDoesntHave('roles', fn ($q) => $q->where('name', '<>', PermissionCatalogue::LOCUM_ROLE))
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('hr_workers')->whereColumn('hr_workers.user_id', 'users.id'))
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('hr_locum_sign_ins')->whereColumn('hr_locum_sign_ins.linked_user_id', 'users.id')
-                ->where('hr_locum_sign_ins.status', 'done'))
-            ->orderBy('name')->limit(200)->get(['id', 'name', 'email']);
+                ->where('hr_locum_sign_ins.status', 'done'));
     }
 
     /** @param array<string, mixed> $input */
@@ -157,7 +166,7 @@ final class LocumSignIns
         $key = $this->support->key($input['idempotency_key'] ?? null);
         abort_if(! Str::isUuid($requestId), 404);
         DB::transaction(function () use ($actor, $requestId, $input, $key, $to, $permission, $userId): void {
-            $actor = $this->support->lock($actor, $permission, [$userId]);
+            $actor = $this->support->lock($actor, $permission, $userId === null ? [] : [$userId]);
             if ($to === 'done' && ! StaffAccountRequests::canProvision($actor)) {
                 throw new AuthorizationException('Only someone who can create staff accounts links a locum sign-in.');
             }
@@ -171,8 +180,15 @@ final class LocumSignIns
                 throw ValidationException::withMessages(['request' => 'This request was already closed.']);
             }
             $this->support->assertLock($request, $input);
-            if ($to === 'done' && ! self::linkable((int) $actor->organisation_id)->contains('id', $userId)) {
-                throw ValidationException::withMessages(['user_id' => 'Choose an active account in the Locum role that has no staff file and no other locum linked.']);
+            if ($to === 'done') {
+                $email = self::reveal($request->email_encrypted);
+                $account = self::linkable((int) $actor->organisation_id)->whereKey($userId)->first(['id', 'email']);
+                if ($account === null) {
+                    throw ValidationException::withMessages(['user_id' => 'Link an active account that holds the Locum role only, with no staff file and no other locum linked.']);
+                }
+                if ($email === '' || mb_strtolower((string) $account->email) !== $email) {
+                    throw ValidationException::withMessages(['user_id' => "The account's email is not the one HR asked for ({$email}). Create the account with that email."]);
+                }
             }
             $now = now()->utc();
             DB::table('hr_locum_sign_ins')->where('id', $request->id)->update(['status' => $to, 'closed_by_user_id' => $actor->id, 'closed_at' => $now,

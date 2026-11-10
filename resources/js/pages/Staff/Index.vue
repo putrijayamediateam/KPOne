@@ -35,10 +35,7 @@ const props = defineProps<{
     // HR-17e: HR's staff-account requests; null for anyone who may not create staff accounts.
     accountRequests?: AccountRequest[] | null;
     // HR-15a: locum sign-ins HR asked for, and the locum accounts that can be linked; same audience.
-    locumSignIns?: {
-        requests: LocumSignIn[];
-        accounts: { value: string; label: string }[];
-    } | null;
+    locumSignIns?: { requests: LocumSignIn[] } | null;
 }>();
 
 type LocumSignIn = {
@@ -48,6 +45,8 @@ type LocumSignIn = {
     requestedOn: string;
     requestedBy: string;
     lockVersion: number;
+    // The account with the email HR asked for, holding the Locum role only; null until it is created.
+    account: { id: string; name: string } | null;
 };
 const page = usePage();
 const linkError = computed(() => {
@@ -58,14 +57,13 @@ const linkError = computed(() => {
 
     return errors.user_id ?? errors.request ?? errors.records ?? null;
 });
-const linkChoice = reactive<Record<string, string>>({});
 const linking = ref<string | null>(null);
 const linkLocum = (request: LocumSignIn) => {
     linking.value = request.id;
     router.post(
         `/staff/locum-sign-ins/${request.id}/link`,
         {
-            user_id: linkChoice[request.id] ?? '',
+            user_id: request.account?.id ?? '',
             expected_lock_version: request.lockVersion,
             idempotency_key: crypto.randomUUID(),
         },
@@ -267,46 +265,28 @@ const clearFilters = () => {
                                 {{ request.requestedBy }}</span
                             >
                         </div>
-                        <div
-                            v-if="locumSignIns.accounts.length"
-                            class="flex flex-col gap-2 sm:flex-row sm:items-end"
+                        <Button
+                            v-if="request.account"
+                            variant="outline"
+                            class="max-lg:min-h-11"
+                            :disabled="linking === request.id"
+                            :aria-label="`Link ${request.account.name} to ${request.name}`"
+                            data-test="staff-locum-link"
+                            @click="linkLocum(request)"
+                            >{{
+                                linking === request.id
+                                    ? 'Linking…'
+                                    : `Link ${request.account.name}`
+                            }}</Button
                         >
-                            <div class="flex min-w-0 flex-col gap-1 sm:w-72">
-                                <span
-                                    :id="`locum-account-${request.id}`"
-                                    class="text-xs text-muted-foreground"
-                                    >Locum account to link</span
-                                >
-                                <OperationalSelect
-                                    :model-value="linkChoice[request.id] ?? ''"
-                                    :options="locumSignIns.accounts"
-                                    label="Locum account to link"
-                                    :labelledby="`locum-account-${request.id}`"
-                                    placeholder="Choose the account"
-                                    trigger-class="max-lg:min-h-11"
-                                    @update:model-value="
-                                        (v) =>
-                                            (linkChoice[request.id] = String(v))
-                                    "
-                                />
-                            </div>
-                            <Button
-                                variant="outline"
-                                class="max-lg:min-h-11"
-                                :disabled="
-                                    !linkChoice[request.id] ||
-                                    linking === request.id
-                                "
-                                :aria-label="`Link the account to ${request.name}`"
-                                data-test="staff-locum-link"
-                                @click="linkLocum(request)"
-                                >{{
-                                    linking === request.id ? 'Linking…' : 'Link'
-                                }}</Button
-                            >
-                        </div>
-                        <p v-else class="text-muted-foreground">
-                            No locum account to link yet. Create it first.
+                        <p
+                            v-else
+                            class="text-muted-foreground lg:max-w-xs"
+                            data-test="staff-locum-none"
+                        >
+                            No account with this email yet. Create it with
+                            Create staff, using this email and the Locum role
+                            only.
                         </p>
                     </li>
                 </ul>

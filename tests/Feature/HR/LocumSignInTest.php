@@ -79,17 +79,27 @@ class LocumSignInTest extends VisitTestCase
 
         // The account administrator (a Director here) creates the account the usual way, then links it.
         $director = $this->actor('director');
-        $account = $this->actor(PermissionCatalogue::LOCUM_ROLE);
         $staffAccount = $this->actor('ca');
+        $otherLocum = $this->actor(PermissionCatalogue::LOCUM_ROLE); // a locum account with another email
+        $twoRoles = $this->actor(PermissionCatalogue::LOCUM_ROLE);
+        $twoRoles->assignRole('resident_doctor');
+        $twoRoles->forceFill(['email' => 'synthetic.locum@example.test'])->save();
         $this->selectBranch($director);
         $this->get(route('staff.index'))->assertInertia(fn (Assert $page) => $page->has('locumSignIns.requests', 1)
             ->where('locumSignIns.requests.0.name', 'Synthetic Locum')->where('locumSignIns.requests.0.email', 'synthetic.locum@example.test')
-            ->has('locumSignIns.accounts', 1)->where('locumSignIns.accounts.0.value', (string) $account->id));
+            ->where('locumSignIns.requests.0.account', null)); // the only account with that email also holds another role
         $this->link($request->public_id, $staffAccount->id)->assertSessionHasErrors('user_id'); // not a locum account
+        $this->link($request->public_id, $twoRoles->id)->assertSessionHasErrors('user_id'); // the Locum role only
+        $this->link($request->public_id, $otherLocum->id)->assertSessionHasErrors('user_id'); // not the email HR asked for
+        $twoRoles->removeRole('resident_doctor');
+        $twoRoles->forceFill(['email' => 'retired.'.$twoRoles->id.'@example.test'])->save();
+        $account = $this->actor(PermissionCatalogue::LOCUM_ROLE);
+        $account->forceFill(['email' => 'Synthetic.Locum@example.test'])->save();
+        $this->get(route('staff.index'))->assertInertia(fn (Assert $page) => $page->where('locumSignIns.requests.0.account.id', (string) $account->id));
         $this->link($request->public_id, $account->id)->assertRedirect(route('staff.index'))->assertSessionHasNoErrors();
         $this->assertSame(['done', $account->id, $director->id], [DB::table('hr_locum_sign_ins')->value('status'),
             (int) DB::table('hr_locum_sign_ins')->value('linked_user_id'), (int) DB::table('hr_locum_sign_ins')->value('closed_by_user_id')]);
-        $this->get(route('staff.index'))->assertInertia(fn (Assert $page) => $page->where('locumSignIns.requests', [])->where('locumSignIns.accounts', []));
+        $this->get(route('staff.index'))->assertInertia(fn (Assert $page) => $page->where('locumSignIns.requests', []));
 
         // HR sees the link; a second sign-in is refused, and the locum account takes no staff file of its own.
         $this->selectBranch($this->hr);
@@ -98,8 +108,9 @@ class LocumSignInTest extends VisitTestCase
         $this->ask($worker, 'again@example.test')->assertSessionHasErrors('email');
         $this->post(route('hr.records.files.store'), ['user_id' => $account->id, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('user_id');
 
-        // HR and the link changed no account, role or branch assignment (only this test's own actors were made).
-        $this->assertSame([$before[0] + 3, $before[1] + 3, $before[2] + 3],
+        // HR and the link changed no account, role or branch assignment (only this test's own actors were made, one with a role
+        // added and removed again).
+        $this->assertSame([$before[0] + 5, $before[1] + 5, $before[2] + 5],
             [DB::table('users')->count(), DB::table('model_has_roles')->count(), DB::table('staff_branch_assignments')->count()]);
     }
 
@@ -137,6 +148,9 @@ class LocumSignInTest extends VisitTestCase
         // Only someone who may create staff accounts links (the HR Manager may not), and only a locum account.
         $this->refused('23514', $done($this->hr->id, $account->id));
         $this->refused('23514', $done($director->id, $ca->id));
+        $account->assignRole('resident_doctor');
+        $this->refused('23514', $done($director->id, $account->id)); // the Locum role only
+        $account->removeRole('resident_doctor');
         $done($director->id, $account->id)();
         // Closed once; never deleted; the account takes no staff file of its own.
         $this->refused('P0001', fn () => DB::table('hr_locum_sign_ins')->where('id', $request->id)->update(['status' => 'cancelled', 'linked_user_id' => null, 'lock_version' => 3]));
