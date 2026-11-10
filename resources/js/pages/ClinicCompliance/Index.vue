@@ -432,7 +432,7 @@ const unusedSuggestions = computed(() => {
             <div class="flex justify-end">
                 <Button
                     type="button"
-                    class="min-h-11 sm:min-h-9"
+                    class="min-h-11 lg:min-h-9"
                     :disabled="!compliance.licences.types.length"
                     data-test="add-licence"
                     @click="openSheet(null)"
@@ -481,7 +481,7 @@ const unusedSuggestions = computed(() => {
                                 v-if="row.typeActive"
                                 type="button"
                                 variant="outline"
-                                class="min-h-11 sm:min-h-9"
+                                class="min-h-11 lg:min-h-9"
                                 @click="openSheet(row)"
                                 >Renew<span class="sr-only">
                                     {{ row.typeName }},
@@ -492,7 +492,7 @@ const unusedSuggestions = computed(() => {
                     </div>
                     <details class="mt-3">
                         <summary
-                            class="min-h-11 cursor-pointer py-2 text-sm text-muted-foreground sm:min-h-0"
+                            class="min-h-11 cursor-pointer py-2 text-sm text-muted-foreground lg:min-h-0"
                         >
                             History ({{ row.history.length }})
                         </summary>
@@ -545,7 +545,7 @@ const unusedSuggestions = computed(() => {
                                             :href="`${base}/files/${f.id}`"
                                             target="_blank"
                                             rel="noopener"
-                                            class="inline-flex min-h-11 items-center text-brand-strong underline sm:min-h-0"
+                                            class="inline-flex min-h-11 items-center text-brand-strong underline lg:min-h-0"
                                             >{{ f.label }} ({{
                                                 size(f.bytes)
                                             }})</a
@@ -584,7 +584,7 @@ const unusedSuggestions = computed(() => {
                 </p>
                 <Button
                     type="button"
-                    class="min-h-11 sm:min-h-9"
+                    class="min-h-11 lg:min-h-9"
                     data-test="add-type"
                     @click="openType(null)"
                     >Add a licence type</Button
@@ -600,7 +600,7 @@ const unusedSuggestions = computed(() => {
                     :key="s"
                     type="button"
                     variant="outline"
-                    class="min-h-11 sm:min-h-9"
+                    class="min-h-11 lg:min-h-9"
                     @click="openType(null, s)"
                     >{{ s }}</Button
                 >
@@ -637,7 +637,7 @@ const unusedSuggestions = computed(() => {
                         <Button
                             type="button"
                             variant="outline"
-                            class="min-h-11 sm:min-h-9"
+                            class="min-h-11 lg:min-h-9"
                             @click="openType(t)"
                             >Edit<span class="sr-only">
                                 {{ t.name }}</span
@@ -646,7 +646,7 @@ const unusedSuggestions = computed(() => {
                         <Button
                             type="button"
                             variant="outline"
-                            class="min-h-11 sm:min-h-9"
+                            class="min-h-11 lg:min-h-9"
                             @click="archiveType(t)"
                             >Archive<span class="sr-only">
                                 {{ t.name }}</span
@@ -785,7 +785,7 @@ const unusedSuggestions = computed(() => {
                     </div>
                     <Button
                         type="submit"
-                        class="min-h-11 sm:min-h-9"
+                        class="min-h-11 lg:min-h-9"
                         :disabled="sheet.processing"
                         >Save licence</Button
                     >
@@ -837,7 +837,7 @@ const unusedSuggestions = computed(() => {
                     </div>
                     <Button
                         type="submit"
-                        class="min-h-11 sm:min-h-9"
+                        class="min-h-11 lg:min-h-9"
                         :disabled="mistake.processing"
                         >Mark entered in error</Button
                     >
@@ -921,7 +921,7 @@ const unusedSuggestions = computed(() => {
                     </div>
                     <Button
                         type="submit"
-                        class="min-h-11 sm:min-h-9"
+                        class="min-h-11 lg:min-h-9"
                         :disabled="typeSheet.processing"
                         >Save licence type</Button
                     >

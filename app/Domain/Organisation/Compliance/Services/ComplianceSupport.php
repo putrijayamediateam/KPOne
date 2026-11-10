@@ -77,7 +77,7 @@ final class ComplianceSupport
         }
     }
 
-    /** The branch-local "today" (the first active branch's zone, as the HR credential pages do). */
+    /** "Today" for whole-clinic items: the first active branch's zone. A branch's own licence uses that branch's zone. */
     public function today(int $organisationId): string
     {
         $zone = DB::table('branches')->where('organisation_id', $organisationId)->where('is_active', true)->orderBy('id')->value('timezone');

@@ -67,7 +67,7 @@ final class CompliancePageService
         $typeById = collect($types)->keyBy('id');
         $series = DB::table('compliance_licences as l')->join('compliance_licence_types as t', 't.id', '=', 'l.type_id')->leftJoin('branches as b', 'b.id', '=', 'l.branch_id')
             ->where('l.organisation_id', $orgId)->orderBy('t.name')->orderBy('b.name')
-            ->get(['l.id', 'l.public_id', 'l.lock_version', 'l.branch_id', 'b.name as branch_name', 't.public_id as type_public_id']);
+            ->get(['l.id', 'l.public_id', 'l.lock_version', 'l.branch_id', 'b.name as branch_name', 'b.timezone as branch_timezone', 't.public_id as type_public_id']);
         if ($series->isEmpty()) {
             return [];
         }
@@ -92,7 +92,7 @@ final class CompliancePageService
                 'typeActive' => (bool) ($type['isActive'] ?? false),
                 'branchId' => $s->branch_id === null ? null : (int) $s->branch_id,
                 'branchName' => $s->branch_id === null ? 'Whole clinic' : (string) $s->branch_name,
-                'status' => ComplianceStatus::licence((bool) ($type['expires'] ?? false), $type['warnFromDays'] ?? null, $inForce, $today),
+                'status' => ComplianceStatus::licence((bool) ($type['expires'] ?? false), $type['warnFromDays'] ?? null, $inForce, is_string($s->branch_timezone) && $s->branch_timezone !== '' ? CarbonImmutable::now($s->branch_timezone)->toDateString() : $today),
                 'expiresOn' => $inForce === null ? null : ComplianceStatus::day($inForce->expires_on),
                 'history' => $history->map(fn ($v): array => [
                     'id' => (string) $v->public_id, 'version' => (int) $v->version, 'inForce' => $inForce !== null && $inForce->id === $v->id,

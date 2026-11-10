@@ -166,6 +166,10 @@ class LicencesTest extends VisitTestCase
         $this->record($type, ['reference' => str_repeat('x', 121)])->assertSessionHasErrors('reference');
         $this->record($type, [], UploadedFile::fake()->createWithContent('licence.pdf', 'not a pdf at all'))->assertSessionHasErrors('files');
         $this->assertSame(0, DB::table('compliance_licences')->count());
+        // Four files are refused before any is read.
+        $this->post(route('clinic-compliance.licences.store'), ['type_id' => $type, 'branch_id' => $this->branch->id, 'issued_on' => '2026-06-01', 'expires_on' => '2027-06-01', 'idempotency_key' => (string) Str::uuid(),
+            'files' => [$this->pdf(), $this->pdf(), $this->pdf(), $this->pdf()]])->assertSessionHasErrors('files');
+        $this->assertSame(0, DB::table('compliance_licences')->count());
 
         // A type that does not expire takes no expiry date.
         $this->post(route('clinic-compliance.types.save'), ['name' => 'Insurance', 'expires' => false, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
@@ -319,6 +323,11 @@ class LicencesTest extends VisitTestCase
             }
         };
         $kept = 'Clinic compliance records are kept';
+        // Marking an entry in error is itself kept: it cannot be un-marked.
+        $this->post(route('clinic-compliance.versions.error', $version->public_id), ['reason' => 'wrong_dates', 'expected_lock_version' => $series->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $correction = DB::table('compliance_licence_corrections')->first();
+        $refused(fn () => DB::table('compliance_licence_corrections')->where('id', $correction->id)->delete(), $kept);
+        $refused(fn () => DB::table('compliance_licence_corrections')->where('id', $correction->id)->update(['reason_code' => 'other']), $kept);
         $refused(fn () => DB::table('compliance_licence_versions')->where('id', $version->id)->update(['expires_on' => '2030-01-01']), $kept);
         $refused(fn () => DB::table('compliance_licence_versions')->where('id', $version->id)->delete(), $kept);
         $refused(fn () => DB::table('compliance_licence_files')->where('id', $file->id)->delete(), $kept);

@@ -49,7 +49,7 @@ test('every field has a visible label and every error is announced through Input
 });
 
 test('touch targets are 44 px below 1024 px and saves carry an idempotency key and the lock version', () => {
-    assert.match(src, /min-h-11 sm:min-h-9/);
+    assert.match(src, /min-h-11 lg:min-h-9/);
     assert.match(src, /crypto\.randomUUID\(\)/);
     assert.match(src, /expected_lock_version/);
     assert.match(src, /forceFormData: true/);

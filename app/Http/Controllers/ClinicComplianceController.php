@@ -35,6 +35,10 @@ class ClinicComplianceController extends Controller
 
     public function record(Request $request, LicenceService $licences): RedirectResponse
     {
+        // Refuse before any file is decoded, so a long list cannot cost memory.
+        if (count((array) $request->file('files', [])) > LicenceService::MAX_FILES) {
+            throw ValidationException::withMessages(['files' => 'Add at most '.LicenceService::MAX_FILES.' files.'])->redirectTo(route('clinic-compliance.index', ['tab' => 'licences']));
+        }
         $files = [];
         foreach ((array) $request->file('files', []) as $file) {
             try {
