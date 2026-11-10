@@ -32,6 +32,21 @@ class CashClosingController extends Controller
         return Inertia::render('Billing/CashClosingMonth', ['cashClosingMonth' => $service->month($request->user(), is_string($month) ? $month : null)]);
     }
 
+    /** BIL-15: set or change the branch's cash closing start date, from the month page. */
+    public function startDate(Request $request, CashClosingService $service): RedirectResponse
+    {
+        $month = $request->input('month');
+        $back = route('cash-closings.month', is_string($month) && preg_match('/\A\d{4}-\d{2}\z/', $month) === 1 ? ['month' => $month] : []);
+        try {
+            $service->setStartDate($request->user(), $request->only(['expected_branch_id', 'starts_on', 'expected_revision', 'idempotency_key']));
+        } catch (ValidationException $exception) {
+            throw $exception->redirectTo($back);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Cash closing start date saved.']);
+
+        return redirect($back);
+    }
+
     public function store(Request $request, CashClosingService $service): RedirectResponse
     {
         $back = $this->back($request->input('business_date'));

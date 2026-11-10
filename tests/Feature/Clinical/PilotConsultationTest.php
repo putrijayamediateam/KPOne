@@ -60,7 +60,7 @@ class PilotConsultationTest extends ClinicalTestCase
                     $this->holdEncounter($doctor, $visit, $queue, $encounter);
                     $this->fail('A fourth hold across branches was allowed.');
                 } catch (ValidationException $exception) {
-                    $this->assertStringContainsString('3 pesakit On Hold', $exception->errors()['hold'][0]);
+                    $this->assertStringContainsString('3 patients On Hold', $exception->errors()['hold'][0]);
                 }
             }
         }
@@ -85,7 +85,7 @@ class PilotConsultationTest extends ClinicalTestCase
             $this->fail('Cross-branch double consultation was allowed.');
         } catch (ValidationException $error) {
             $message = implode(' ', $error->errors()['queue']);
-            $this->assertSame('Doktor sedang menjalankan konsultasi lain. Tahan atau selesaikan konsultasi tersebut dahulu.', $message);
+            $this->assertSame('The doctor is already in another consultation. Put that consultation On Hold or complete it first.', $message);
             foreach ([$first->patient->full_name, $first->patient->patient_number, $first->visit_number] as $private) {
                 $this->assertStringNotContainsString($private, $message);
             }

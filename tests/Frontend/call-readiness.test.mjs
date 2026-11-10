@@ -124,7 +124,7 @@ test('all readiness-only copy is English and the surrounding recall button is un
         assert.ok(view.includes('Notification sound:')); assert.ok(view.includes("? 'On' : 'Off'"));
     }
 
-    assert.ok(read('resources/js/pages/Clinical/Show.vue').includes('Panggil semula'));
+    assert.ok(read('resources/js/pages/Clinical/Show.vue').includes('Call again'));
 
     for (const copy of [service, actions, dialog, source, read('app/Http/Controllers/QueueReadinessController.php')]) {
         assert.doesNotMatch(copy, /belum|sedia|menunggu|pengesahan|butiran|bayaran|pentadbiran|pesakit|penanda|giliran|pilih|sahkan|batal|diatasi|bunyi|tidak|cubaan|berubah/i);
