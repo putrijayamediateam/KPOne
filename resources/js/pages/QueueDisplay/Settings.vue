@@ -240,7 +240,7 @@ const removePoster = (posterId: string) => {
                         v-model="roomForm.name"
                         maxlength="60"
                         autocomplete="off"
-                        placeholder="e.g. Bilik Rawatan 1"
+                        placeholder="e.g. Consultation Room 1"
                     />
                     <InputError :message="roomForm.errors.name" />
                 </label>
@@ -264,7 +264,7 @@ const removePoster = (posterId: string) => {
                 class="mt-4 rounded-lg border border-dashed p-5 text-sm text-muted-foreground"
             >
                 No rooms yet. Add the consultation rooms first, for example
-                Bilik Rawatan 1 to 4.
+                Consultation Room 1 to 4.
             </div>
             <div v-else class="mt-4 overflow-x-auto">
                 <table class="w-full min-w-[640px] text-left text-sm">
@@ -414,7 +414,7 @@ const removePoster = (posterId: string) => {
                     <Input
                         v-model="settingsForm.ticker_text"
                         maxlength="500"
-                        placeholder="e.g. Waktu operasi: 8 pagi – 10 malam setiap hari."
+                        placeholder="e.g. Open every day, 8 am to 10 pm."
                     />
                     <InputError :message="settingsForm.errors.ticker_text" />
                 </label>

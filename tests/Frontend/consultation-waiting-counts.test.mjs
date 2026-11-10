@@ -12,7 +12,7 @@ test('waiting counts sit beside recall while the existing consultation controls 
     assert.match(page, /<WaitingPatientsButton[\s\S]*?:branch-id="clinical.branch.id"/);
     assert.ok(page.indexOf('<WaitingPatientsButton') < page.indexOf('data-testid="recall-patient"'));
 
-    for (const label of ['Panggil semula', 'Ke bilik rawatan', 'On Hold', 'Save clinical record']) {
+    for (const label of ['Call again', 'Call to treatment room', 'On Hold', 'Save clinical record']) {
         assert.ok(page.includes(label));
     }
 

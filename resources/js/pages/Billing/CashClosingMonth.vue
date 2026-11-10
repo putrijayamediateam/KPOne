@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight, TriangleAlert } from '@lucide/vue';
 import { computed, ref } from 'vue';
+import CashClosingStartDate from '@/components/billing/CashClosingStartDate.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { PageHeader } from '@/components/ui/page-header';
 import { EmptyState, ErrorState } from '@/components/ui/state';
@@ -51,6 +52,15 @@ const props = defineProps<{
         startsOn: string | null;
         beforeStart: boolean;
         rows: Row[];
+        /** BIL-15: the branch's set start date (null until set), who set it, and whether you may change it. */
+        startDate: {
+            startsOn: string | null;
+            revision: number;
+            setBy: string | null;
+            movedLaterFrom: string | null;
+            setAt: string | null;
+            canSet: boolean;
+        };
     };
 }>();
 
@@ -137,6 +147,11 @@ const decidedText = (row: Row) =>
         ? null
         : `${row.decision === 'approved' ? 'Approved' : 'Returned'} by ${row.decidedBy}`;
 
+const startsInFuture = computed(
+    () =>
+        view.value.startsOn !== null && view.value.startsOn > view.value.today,
+);
+
 const goTo = (month: string | null) => {
     if (month === null || loading.value) {
         return;
@@ -188,6 +203,11 @@ const goTo = (month: string | null) => {
                 </ActionLink>
             </template>
         </PageHeader>
+
+        <CashClosingStartDate
+            :start-date="view.startDate"
+            :month="view.month"
+        />
 
         <nav
             aria-label="Month"
@@ -254,7 +274,9 @@ const goTo = (month: string | null) => {
             v-if="view.beforeStart"
             :title="
                 view.startsOn
-                    ? `Cash closing started on ${plainDate(view.startsOn)}.`
+                    ? startsInFuture
+                        ? `Cash closing starts on ${plainDate(view.startsOn)}.`
+                        : `Cash closing started on ${plainDate(view.startsOn)}.`
                     : 'No cash counts at this branch yet.'
             "
             :description="

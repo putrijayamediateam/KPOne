@@ -69,8 +69,9 @@ const destinations: Record<
     },
     registrationReview: {
         key: 'registrationReview',
-        label: 'Pendaftaran QR',
-        description: 'Semak pendaftaran QR dan masukkan pesakit ke queue.',
+        label: 'QR Intake',
+        description:
+            'Review patients who checked in by QR before they join the queue.',
         href: '/registration-review',
         icon: 'clipboard',
     },

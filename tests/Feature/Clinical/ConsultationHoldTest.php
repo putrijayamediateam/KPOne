@@ -64,7 +64,7 @@ class ConsultationHoldTest extends ClinicalTestCase
             );
             $this->fail('The fourth active hold should be refused.');
         } catch (ValidationException $exception) {
-            $this->assertStringContainsString('3 pesakit On Hold', $exception->errors()['hold'][0]);
+            $this->assertStringContainsString('3 patients On Hold', $exception->errors()['hold'][0]);
         }
 
         $this->assertDatabaseCount('consultation_holds', 3);
@@ -108,7 +108,7 @@ class ConsultationHoldTest extends ClinicalTestCase
             );
             $this->fail('The automatic fourth hold should be refused.');
         } catch (ValidationException $exception) {
-            $this->assertStringContainsString('3 pesakit On Hold', $exception->errors()['hold'][0]);
+            $this->assertStringContainsString('3 patients On Hold', $exception->errors()['hold'][0]);
         }
 
         $this->assertDatabaseCount('consultation_holds', 3);
