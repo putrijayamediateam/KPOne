@@ -212,8 +212,10 @@ final class LetterService
                     'lock_version' => (int) $replaces->lock_version + 1, 'updated_at' => $utc]);
             }
             $this->support->remember($actor, $key, 'letter_issue', $hash, $publicId);
-            $this->support->audit->record($replaces === null ? 'hr.letters.issued' : 'hr.letters.replaced', null, ['letter_id' => $letterId, 'worker_id' => (int) $worker->id,
-                'type' => (string) $version->type, 'template_version_id' => (int) $version->id, 'replaces_letter_id' => $replaces?->id], $actor, null, $actor->organisation_id);
+            // No worker or letter type in the audit (Suresh, HR-10c): a show-cause or warning letter to a named file would reveal a
+            // discipline case to audit viewers. The letter id is enough evidence; only its managers can resolve it.
+            $this->support->audit->record($replaces === null ? 'hr.letters.issued' : 'hr.letters.replaced', null, ['letter_id' => $letterId,
+                'template_version_id' => (int) $version->id, 'replaces_letter_id' => $replaces?->id], $actor, null, $actor->organisation_id);
 
             return $publicId;
         }, 3);
