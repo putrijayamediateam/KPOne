@@ -45,8 +45,9 @@ class PaymentService
             }
             $this->ledger->requireMutable($invoice, $a['lock_version'] ?? null);
             $state = $this->ledger->state($invoice);
-            if (! in_array($visit->status, [Visit::STATUS_REGISTERED, Visit::STATUS_COMPLETED], true) || $amount > $state['due_now'] + $state['deferred']
-                || ($visit->status === Visit::STATUS_COMPLETED && ($state['due_now'] !== 0 || $amount > $state['deferred']))) {
+            // BIL-16 (owner decision 2026-11-10): on a completed visit, money due after a receipt correction is collected
+            // like pay-later (it is paid first, then any approved pay-later), never more than both together.
+            if (! in_array($visit->status, [Visit::STATUS_REGISTERED, Visit::STATUS_COMPLETED], true) || $amount > $state['due_now'] + $state['deferred']) {
                 throw ValidationException::withMessages(['amount_sen' => 'Payment exceeds the originating Invoice amount available for collection.']);
             }
             $method = PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->where('code', $a['method'])->lockForUpdate()->first();

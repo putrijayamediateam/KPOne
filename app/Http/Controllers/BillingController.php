@@ -15,6 +15,7 @@ use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
 use App\Domain\Visit\Billing\Services\IssuedBillingDocumentService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
 use App\Domain\Visit\Billing\Services\PaymentService;
+use App\Domain\Visit\Billing\Services\ReceiptCorrectionService;
 use App\Domain\Visit\Billing\Services\RefundService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Visit;
@@ -84,6 +85,16 @@ class BillingController extends Controller
     public function reverse(Request $request, Visit $visit, Invoice $invoice, Payment $payment, InvoiceCorrectionService $service): RedirectResponse
     {
         $this->stayOnSettlement($request, $visit, fn () => $service->reverse($request->user(), $visit, $invoice, $payment, $request->only(['expected_branch_id', 'lock_version', 'payment_lock_version', 'reason', 'recording_error_only'])));
+
+        return redirect($this->settlementDestination($request, $visit));
+    }
+
+    /** BIL-16: correct a receipt recorded in error on a completed visit (reverse it and record what was received). */
+    public function correctReceipt(Request $request, Visit $visit, Invoice $invoice, Payment $payment, ReceiptCorrectionService $service): RedirectResponse
+    {
+        $this->stayOnSettlement($request, $visit, fn () => $service->correct($request->user(), $visit, $invoice, $payment, $request->only(['expected_branch_id', 'lock_version',
+            'payment_lock_version', 'reason', 'recording_error_only', 'received_sen', 'method', 'reference', 'idempotency_key'])));
+        Inertia::flash('toast', ['type' => 'success', 'message' => 'Receipt corrected.']);
 
         return redirect($this->settlementDestination($request, $visit));
     }

@@ -113,6 +113,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-13 | PostgreSQL race tests for refunds after completion: two refunds at once on one receipt never exceed it (one recorded, the other refused on the amount), and two that fit together are both recorded. The race test cleanup also removes invoice credits. Test only | PR #399 |
 | BIL-14 | The old live invoice and receipt print addresses (PREVIEW pages) redirect to the visit's Billing page at Issued copies with "Print from here so the copy is recorded."; opening an old link prints and records nothing. Same permission and branch checks (owner decision). Tests that read the old page now read the recorded copy (15 checks, each approved by the owner 2026-11-10). No permission, migration or layout change. Design note: `BIL-14-DESIGN.md` | PR #406 |
 | BIL-15 | Cash closing start date per branch: a Director or Finance Officer sets the first day the monthly cash closing (BIL-7) expects daily counts, on the cash closing month page; without one the start stays the first count. Append-only revisions, audited; a start date moved later is announced on the page and never hides counts already made. New permission `payments.cash_closing.start_date.manage.branch` (finance_officer, director; additive migration `2026_11_12_200100`). No change to counts, approvals or amounts | PR #408 |
+| BIL-16 | Correct a receipt recorded in error on a completed visit, in one step: a Finance Officer who did not record it reverses it and records what was really received; only money not received becomes due (owner decisions). Never a refund. Append-only `payment_corrections` evidence (migration `2026_11_12_400100`), no new permission. Design note: `BIL-16-DESIGN.md` | PR #415 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -237,6 +238,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 35. BIL-14 retire the PREVIEW print pages (2026-11-07 and 2026-11-10, the owner in the Billing session): the old
     addresses redirect to Issued copies on the Billing page with a note; the tests move to the recorded copy (items
     a to o approved one by one).
+36. BIL-16 correct a receipt after completion (2026-11-10, the owner in the Billing session): a Finance Officer only,
+    never the person who recorded it; takes effect at once; any date (an approved cash closing day shows "changed
+    after approval"); replace in one step, so only money not really received becomes due.
 
 ## 7. Open items and known limits
 
@@ -248,9 +252,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   shortfall outside KPOne. The warning is not on the printed invoice or the completed-visit Invoice page.
 - **No void once a Panel or pay-later amount is approved:** an approved responsibility cannot be withdrawn, so
   such an invoice cannot be voided and reissued (pinned by a refusal test in BIL-1).
-- **No corrections after completion:** a receipt recorded in error on a completed visit (including a later
-  pay-later instalment) cannot be reversed in KPOne; reversal and void need a Registered visit (pinned by a
-  refusal test in BIL-1).
+- **Corrections after completion:** since BIL-16 a receipt recorded in error on a completed visit is corrected on
+  its Billing page (reverse and replace in one step). Voiding still needs a Registered visit (pinned by a refusal
+  test in BIL-1).
 - After a void, the Billing page shows only the replacement invoice; the voided invoice and its reversed
   receipt stay in the records but are not listed on that page.
 - A fully settled pay-later card still reads "Pay later · Approved · Due <date>" with no settled label; the
@@ -338,6 +342,16 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   The "Start date changed" note stays until the next change (follow-up from Daniel: fade it to a neutral "Start date
   was moved on …" line after 30 days). The date field shows the browser's own date order (a
   clinic PC set to English (Malaysia) or English (UK) shows dd/mm/yyyy); the saved date is always shown as "4 Nov 2026".
+- Receipt corrections after completion (BIL-16): a receipt that paid off pay-later keeps that part (the amount
+  received cannot be below it, because an approved pay-later balance cannot grow back); a receipt with a refund, or
+  that pays more than one invoice, cannot be corrected. The replacement receipt carries the correction date, so the
+  original shows as reversed on its own day and the replacement on the day of the correction. Before completion
+  the existing reversal still applies. Money left due after a correction is collected on the completed visit (paid before any
+  pay-later) and shows in outstanding bills, not in the pay-later collection list. On such an invoice the pay-later list
+  shows only the pay-later balance, while a payment pays the due money first (the Billing page shows both). The
+  "Use amount due" shortcut is not offered on a completed visit, so staff type the amount. A refund after completion
+  (BIL-10) can still be recorded on the replacement receipt while money is due; the amount due does not change. A
+  correction refused for a changed branch or a reused request key can also show that message at the top of Refunds.
 
 ## 8. Rules (every task)
 
