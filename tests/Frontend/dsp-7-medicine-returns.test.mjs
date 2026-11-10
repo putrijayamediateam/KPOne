@@ -22,7 +22,10 @@ test('the completed page uses PageHeader, a wider layout and the separate return
 });
 
 test('the returns section says no refund happens in KPOne, using warning tokens', () => {
-    assert.ok(flat(section).includes('No refund in KPOne.'));
+    assert.ok(
+        flat(section).includes('Recording a return gives no money back.'),
+    );
+    assert.ok(flat(section).includes('under Refunds on the visit'));
 
     for (const token of [
         'border-warning/25',
