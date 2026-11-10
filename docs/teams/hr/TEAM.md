@@ -432,6 +432,17 @@ check items, keep them"). The rest stand unless the owner changes them.
     - **owner decision to confirm:** clinical review of patient-care reports happens outside KPOne. KPOne flags them,
       HR reads them, and the form tells the reporter not to write a patient's name, IC or clinical details (the visit
       number only). Showing them only to a Director, or naming a clinical reviewer role, waits for the owner.
+91. HR-15 migrations: `2026_11_10_004800` to `005499` (B.E.R.N.I.S.S, 2026-11-10); HR-16 continues from `005500`.
+92. HR-15a `locum` role (B.E.R.N.I.S.S for the owner, 2026-11-10): exactly `profile.view.own` (own password,
+    two-factor and sessions) and `hr.roster.view.own`, with `hr.open_shifts.request.own` from HR-15b; no
+    `dashboard.view.own`, no `staff.view.own`, no Insights, and not in `RosterPermissions::HUMAN_ROLES`. Pinned by a
+    test. The existing role lists in `RosterTest` and the nav-02 top-bar test gain `locum`, and the hub map will gain
+    `/hr/open-shifts` in HR-15b (approved by B.E.R.N.I.S.S for the owner).
+93. HR-15a sign-ins (Suresh's review): HR asks with the email the locum will use; the account administrator creates the
+    account the usual way and links it on the Staff page. Only an active account whose one role is Locum, with that
+    email, no staff file and no other link, can be linked (service and PostgreSQL). `StaffRoleService` refuses Locum
+    combined with any other role, and any other role on a linked account ("A locum sign-in holds the Locum role
+    only."), approved by B.E.R.N.I.S.S for the owner as a tightening only.
 
 ## 7. Open items and known limits
 
@@ -508,6 +519,10 @@ check items, keep them"). The rest stand unless the owner changes them.
 - HR-10d known limits: photos come only with the report, never later; the list reads the latest 500 reports before
   the tabs; opening a report or a photo as a manager writes an audit row each time; patient-care reports are read by
   HR until the owner names a clinical reviewer.
+- HR-15a known limits: there is no PostgreSQL trigger on `model_has_roles` (shared by every role and the seeders), so
+  the Locum-only rule after linking is held by `StaffRoleService` and the link guard; a trigger is a possible
+  follow-up that needs its own review. The roster does not count a locum doctor towards the resident-doctor minimum.
+  A future grant migration that loops over every role would reach `locum`; grant migrations name their roles.
 - HR-17e known limits: the pool tick wording and the invitation message are drafts (Malay included); a staff-account
   request is a note between people, and the account created is not linked back to the application; the pool offers
   only open positions of the same type, because the form's questions differ by type.
