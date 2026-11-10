@@ -74,7 +74,7 @@ final class OpenShiftsPageService
                 'started' => CarbonImmutable::parse((string) $s->starts_at, 'UTC')->lessThanOrEqualTo($now),
                 'asks' => array_values(($requests->get($s->id) ?? collect())->map(fn (\stdClass $r): array => ['id' => (string) $r->public_id,
                     'locum' => (string) $r->locum_name, 'askedOn' => CarbonImmutable::parse((string) $r->asked_at, 'UTC')->setTimezone($zone)->format('j M Y, g:i A'),
-                    'status' => (string) $r->status, 'statusLabel' => $this->askLabel((string) $r->status, $r->decline_reason),
+                    'status' => (string) $r->status, 'statusLabel' => $this->askLabel((string) $r->status, $r->decline_reason, manager: true),
                     'own' => (int) $r->locum_user_id === $actor->id, 'lockVersion' => (int) $r->lock_version])->all())])->all());
         }
 
@@ -117,11 +117,11 @@ final class OpenShiftsPageService
         return $starts->format('D j M Y, g:i A').' to '.($ends->isSameDay($starts) ? $ends->format('g:i A') : $ends->format('D j M, g:i A'));
     }
 
-    private function askLabel(string $status, ?string $reason): string
+    private function askLabel(string $status, ?string $reason, bool $manager = false): string
     {
         return match ($status) {
-            'asked' => 'Asked, waiting for HR',
-            'confirmed' => 'Confirmed. It shows on My roster once the week is approved.',
+            'asked' => $manager ? 'Waiting for a decision' : 'Asked, waiting for HR',
+            'confirmed' => $manager ? 'Confirmed, added to the draft roster' : 'Confirmed. It shows on My roster once the week is approved.',
             'withdrawn' => 'Withdrawn by the locum',
             default => match ($reason) {
                 'filled' => 'Not chosen: another locum was confirmed',
