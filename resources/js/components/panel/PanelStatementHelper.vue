@@ -414,7 +414,8 @@ const useTicked = () =>
                     </p>
                     <p
                         v-if="statement.nearCut && notFoundCount > 0"
-                        class="text-xs text-muted-foreground"
+                        class="mb-1 text-xs text-muted-foreground"
+                        role="note"
                         data-testid="statement-near-cut"
                     >
                         Near matches were checked against this Panel's

@@ -33,6 +33,7 @@ test('The cut note is quiet text, not an alert', () => {
     assert.ok(note, 'note found');
     assert.doesNotMatch(note, /role="alert"/);
     assert.match(note, /text-muted-foreground/);
+    assert.match(note, /role="note"/);
 });
 
 test('The claim pack takes the shared letterhead type with the second phone', () => {
