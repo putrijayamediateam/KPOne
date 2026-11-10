@@ -244,8 +244,10 @@ watch(
                     </p>
                     <p class="break-words text-muted-foreground">
                         batch {{ row.batch_number }} (expires
-                        {{ formatDate(row.expiry_date) }}) ·
-                        {{ row.location }} · on hand {{ row.on_hand }}
+                        <span class="whitespace-nowrap">{{
+                            formatDate(row.expiry_date)
+                        }}</span
+                        >) · {{ row.location }} · on hand {{ row.on_hand }}
                         {{ row.stock_unit }}
                         <span
                             v-if="!row.usable"

@@ -135,7 +135,11 @@ watch(
                     {{ row.sku_code }} · {{ row.batch_number }}
                 </h2>
                 <p>
-                    Expiry: {{ formatDate(row.expiry_date) }} · Status:
+                    Expiry:
+                    <span class="whitespace-nowrap">{{
+                        formatDate(row.expiry_date)
+                    }}</span>
+                    · Status:
                     {{ label(row.status) }}
                 </p>
                 <p

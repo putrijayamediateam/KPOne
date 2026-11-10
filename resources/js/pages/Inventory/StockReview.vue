@@ -133,7 +133,9 @@ watch(
         <h1 class="text-2xl font-semibold">Stock review</h1>
         <p>
             {{ review.branchName }} · Branch-local date:
-            {{ formatDate(review.today) }}
+            <span class="whitespace-nowrap">{{
+                formatDate(review.today)
+            }}</span>
         </p>
         <p class="text-sm text-muted-foreground">
             Review evidence only. Acknowledgements do not change stock, send

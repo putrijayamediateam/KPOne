@@ -270,7 +270,10 @@ watch(
                 <p class="text-sm">
                     {{ row.quantity }} {{ row.base_unit }} ·
                     {{ row.sku_code }} · batch {{ row.batch_number }} (expires
-                    {{ formatDate(row.expiry_date) }}) · {{ row.location }}
+                    <span class="whitespace-nowrap">{{
+                        formatDate(row.expiry_date)
+                    }}</span
+                    >) · {{ row.location }}
                 </p>
                 <p class="text-sm text-muted-foreground">
                     {{ row.supplier }} · delivery {{ row.delivery_reference }} ·
@@ -409,8 +412,11 @@ watch(
             >
                 <span class="min-w-0 flex-1"
                     >{{ lot.sku_code }} · batch {{ lot.batch_number }} (expires
-                    {{ formatDate(lot.expiry_date) }}) · {{ lot.supplier }} ·
-                    delivery {{ lot.delivery_reference }} · received
+                    <span class="whitespace-nowrap">{{
+                        formatDate(lot.expiry_date)
+                    }}</span
+                    >) · {{ lot.supplier }} · delivery
+                    {{ lot.delivery_reference }} · received
                     {{ lot.received_quantity }} {{ lot.stock_unit }}
                     <span v-if="lot.outcome === 'quarantined'">
                         (quarantined)</span

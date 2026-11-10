@@ -202,7 +202,10 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                 data-testid="cash-expected"
             >
                 <p class="text-xs text-muted-foreground">
-                    Expected cash for {{ formatDate(day.businessDate) }}
+                    Expected cash for
+                    <span class="whitespace-nowrap">{{
+                        formatDate(day.businessDate)
+                    }}</span>
                 </p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(day.expected.cashSen) }}

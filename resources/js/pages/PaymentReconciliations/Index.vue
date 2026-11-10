@@ -495,7 +495,10 @@ const recordClose = () => {
 
         <section class="rounded-xl border bg-card p-4">
             <h2 class="font-semibold">
-                Close history — {{ formatDate(businessDate) }}
+                Close history —
+                <span class="whitespace-nowrap">{{
+                    formatDate(businessDate)
+                }}</span>
             </h2>
             <p class="mt-1 text-sm text-muted-foreground">
                 Latest revisions are shown first. This is summary-level

@@ -305,7 +305,9 @@ watch(
                     <p>{{ row.batch_number }} · {{ row.location }}</p>
                     <p>
                         On hand {{ row.quantity }} {{ row.stock_unit }} · Expiry
-                        {{ formatDate(row.expiry_date) }}
+                        <span class="whitespace-nowrap">{{
+                            formatDate(row.expiry_date)
+                        }}</span>
                     </p>
                 </div>
                 <button
