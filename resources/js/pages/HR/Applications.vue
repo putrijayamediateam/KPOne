@@ -5,6 +5,7 @@ import { Head, router, usePage } from '@inertiajs/vue3';
 import { ChevronRight, TriangleAlert } from '@lucide/vue';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
+import MaskedValue from '@/components/hr/records/MaskedValue.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -33,8 +34,9 @@ type Application = {
     statusLabel: string;
     next: Option[];
     name: string | null;
-    phone: string | null;
-    email: string | null;
+    /** Masked on the list; Show records each view. */
+    phoneMask: string | null;
+    emailMask: string | null;
     message: string | null;
     type: string;
     details: { label: string; value: string }[];
@@ -2128,11 +2130,44 @@ const removeDocument = () => {
                         <dl v-if="!viewing.purged" class="grid gap-3 text-sm">
                             <div>
                                 <dt class="text-muted-foreground">Phone</dt>
-                                <dd class="break-words">{{ viewing.phone }}</dd>
+                                <dd>
+                                    <MaskedValue
+                                        v-if="viewing.phoneMask"
+                                        label="Phone"
+                                        field="phone"
+                                        :mask="viewing.phoneMask"
+                                        :last4="
+                                            viewing.phoneMask.includes(' ')
+                                                ? viewing.phoneMask.slice(-4)
+                                                : null
+                                        "
+                                        worker-id=""
+                                        show-field="phone"
+                                        :url="`/hr/applications/${viewing.id}/show-contact`"
+                                        :reset-key="viewing.id"
+                                    />
+                                    <span v-else class="text-muted-foreground"
+                                        >None given</span
+                                    >
+                                </dd>
                             </div>
                             <div>
                                 <dt class="text-muted-foreground">Email</dt>
-                                <dd class="break-all">{{ viewing.email }}</dd>
+                                <dd>
+                                    <MaskedValue
+                                        v-if="viewing.emailMask"
+                                        label="Email"
+                                        field="email"
+                                        :mask="viewing.emailMask"
+                                        worker-id=""
+                                        show-field="email"
+                                        :url="`/hr/applications/${viewing.id}/show-contact`"
+                                        :reset-key="viewing.id"
+                                    />
+                                    <span v-else class="text-muted-foreground"
+                                        >None given</span
+                                    >
+                                </dd>
                             </div>
                             <div v-for="d in viewing.details" :key="d.label">
                                 <dt class="text-muted-foreground">
