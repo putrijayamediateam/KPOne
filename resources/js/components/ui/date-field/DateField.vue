@@ -57,6 +57,8 @@ const hintId = useId();
 const input = ref<HTMLInputElement | null>(null);
 const text = ref(formatDisplayDate(props.modelValue));
 const open = ref(false);
+// change fires only when the value differs from the last one announced, as a native input does.
+let lastChange = props.modelValue ?? '';
 const calendar = ref<InstanceType<typeof DateCalendar> | null>(null);
 // The arrow keys work as soon as the calendar opens: focus lands on the selected day.
 const onOpenFocus = (event: Event): void => {
@@ -120,13 +122,17 @@ const onBlur = (): void => {
         text.value = formatDisplayDate(iso);
     }
 
-    emit('change', iso);
+    if (iso !== lastChange) {
+        lastChange = iso;
+        emit('change', iso);
+    }
 };
 const onPick = (iso: string): void => {
     text.value = formatDisplayDate(iso);
     problem.value = '';
     open.value = false;
     commit(iso);
+    lastChange = iso;
     emit('change', iso);
 };
 const onClear = (): void => {
@@ -134,6 +140,7 @@ const onClear = (): void => {
     problem.value = '';
     open.value = false;
     commit('');
+    lastChange = '';
     emit('change', '');
 };
 
