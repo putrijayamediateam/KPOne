@@ -134,6 +134,7 @@ class BillingBoundaryTest extends BillingTestCase
         $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertRedirect(route('billing.show', $visit).'#issued-copies');
         $this->assertSame($before, [$invoice->fresh()->attributesToArray(), $payment->fresh()->attributesToArray(), DB::table('audit_logs')->count()]);
         $this->issuedReceiptPage($visit, $invoice, $payment)->assertOk()->assertInertia(fn (Assert $page) => $page->where('receipt.amountSen', 4000)->missing('billing.can'));
+        $this->assertSame($history, $visit->fresh()->attributesToArray()); // Issuing the receipt copy leaves the completed visit as it was.
         $this->assertDatabaseCount('stock_movements', 0);
     }
 

@@ -215,8 +215,9 @@ class InvoiceBillToTest extends BillingTestCase
         $this->get(route('billing.print', [$visit, $invoice]))->assertForbidden();
         $this->selectBranch($ca);
         $ca->syncRoles([]);
-        $ca->givePermissionTo('billing.print.branch');
-        // BIL-14: the old address only sends them to Issued copies, and someone who cannot see Bill to cannot issue.
+        $ca->givePermissionTo(['billing.print.branch', 'billing.view.branch', 'patients.view.organisation']);
+        // BIL-14: the old address only sends them to Issued copies; a printer who may see the patient and the bill
+        // but not Bill to cannot issue, so Bill to never reaches paper without its permission.
         $this->get(route('billing.print', [$visit, $invoice]))->assertRedirect(route('billing.show', $visit).'#issued-copies');
         $this->post(route('billing.issue', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'idempotency_key' => (string) Str::uuid(), 'return_to' => 'billing'])->assertSessionHasErrors('document');
     }

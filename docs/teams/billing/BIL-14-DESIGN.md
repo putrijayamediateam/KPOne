@@ -14,7 +14,7 @@ PREVIEW, and record nothing.
 1. **The old addresses redirect to that visit's Billing page, at Issued copies,** with the note "Print from here so
    the copy is recorded." Opening an old link prints and records nothing. Same permission as today
    (`billing.print.branch`); a visit or invoice from another branch still refuses.
-2. **Existing tests that open the old page move to the recorded copy page:** 28 test lines in 13 files check what a
+2. **Existing tests that open the old page move to the recorded copy page:** test lines in 12 test files (plus a shared helper) check what a
    print shows (Bill to, notes kept off paper, letterhead, footer, adjustments, recorded-by). Each keeps its check but
    reads the recorded copy; every changed line is listed for approval, one by one, before the PR.
 

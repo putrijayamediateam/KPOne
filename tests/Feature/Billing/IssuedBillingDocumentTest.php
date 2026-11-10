@@ -258,7 +258,6 @@ class IssuedBillingDocumentTest extends BillingTestCase
         $this->assertSame(0, IssuedBillingDocument::query()->count());
     }
 
-    /** @return array<string, mixed> */
     public function test_the_old_print_addresses_send_staff_to_issued_copies_record_nothing_and_keep_their_checks(): void
     {
         // BIL-14 (owner decision 2026-11-07): the old live invoice and receipt addresses only redirect, with a note.
@@ -276,12 +275,14 @@ class IssuedBillingDocumentTest extends BillingTestCase
         $this->assertSame($before, [$this->financialEvidence(), DB::table('audit_logs')->count()]);
         // The same permission and branch checks as before: no print permission refuses, another branch is not found.
         $this->selectBranch($this->actor('technical_admin'));
-        $this->get(route('billing.print', [$visit, $invoice]))->assertForbidden();
+        $this->get(route('billing.print', [$visit, $invoice]))->assertForbidden()->assertSessionMissing('inertia.flash_data.toast');
         $other = Branch::query()->where('organisation_id', $visit->organisation_id)->where('id', '!=', $visit->branch_id)->firstOrFail();
         $this->selectBranch($this->actor('ca', $other), $other);
-        $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertNotFound();
+        $this->get(route('billing.receipt', [$visit, $invoice, $payment]))->assertNotFound()->assertSessionMissing('inertia.flash_data.toast');
+        $this->get(route('billing.print', [$visit, $invoice]))->assertNotFound()->assertSessionMissing('inertia.flash_data.toast');
     }
 
+    /** @return array<string, mixed> */
     private function input(Visit $visit): array
     {
         return ['expected_branch_id' => $visit->branch_id, 'idempotency_key' => (string) Str::uuid(), 'return_to' => 'billing'];
