@@ -15,6 +15,7 @@ use LogicException;
  * @property int $invoice_id
  * @property int $amount_sen
  * @property int $remaining_sen
+ * @property int|null $last_payment_id
  * @property int $lock_version
  * @property int $expected_invoice_version
  * @property int $requested_by_user_id

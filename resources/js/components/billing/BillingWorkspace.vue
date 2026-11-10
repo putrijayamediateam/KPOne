@@ -11,6 +11,7 @@ import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import IssuedCopies from '@/components/billing/IssuedCopies.vue';
 import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
+import ReceiptCorrections from '@/components/billing/ReceiptCorrections.vue';
 import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -456,6 +457,14 @@ const reverse = (receipt: Receipt) =>
                     v-if="billing.refunds"
                     :refunds="billing.refunds"
                     :base="base"
+                    :manage="manage"
+                    :corrections-below="!!billing.corrections"
+                />
+                <ReceiptCorrections
+                    v-if="billing.corrections"
+                    :corrections="billing.corrections"
+                    :base="invoiceBase"
+                    :due-now-sen="billing.invoice?.state.due_now ?? 0"
                     :manage="manage"
                 />
             </aside>

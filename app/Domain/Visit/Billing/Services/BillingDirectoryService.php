@@ -76,6 +76,7 @@ class BillingDirectoryService
                     ...($printing ? [] : ['recordedBy' => $recorders[$p->recorded_by_user_id] ?? 'Staff member'])])->all(),
                 // BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers only.
                 'refunds' => $printing ? null : app(RefundService::class)->forVisit($actor, $visit, $branch->timezone),
+                'corrections' => $printing ? null : app(ReceiptCorrectionService::class)->forVisit($actor, $visit, $invoice, $branch->timezone),
                 'issuedCopies' => $printing ? null : app(IssuedBillingDocumentService::class)->forVisit($actor, $visit, $branch->timezone),
                 'methods' => $actor->can('payments.add.branch') ? PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()->map(fn ($m): array => ['code' => $m->code, 'name' => $m->name, 'requiresReference' => $m->requires_reference])->all() : [],
                 'panels' => $actor->can('coverage.propose.branch') ? Panel::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->limit(100)->get(['id', 'name'])->toArray() : [],

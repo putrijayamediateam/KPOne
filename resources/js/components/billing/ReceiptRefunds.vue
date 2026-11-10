@@ -16,6 +16,8 @@ const props = defineProps<{
     refunds: RefundsContext;
     base: string;
     manage?: boolean;
+    /** BIL-16: the Correct a receipt panel is shown below, so point staff to it. */
+    correctionsBelow?: boolean;
 }>();
 
 const page = usePage();
@@ -118,6 +120,13 @@ const decide = (
                 Someone else must approve it. Once approved, the invoice is
                 lowered by the same amount, so nothing becomes due again. The
                 receipt does not change.
+            </p>
+            <p
+                v-if="refunds.visitCompleted && correctionsBelow"
+                class="text-xs text-muted-foreground"
+                data-testid="refund-corrections-pointer"
+            >
+                If the receipt was entered wrongly, use Correct a receipt below.
             </p>
             <p v-else class="text-xs text-muted-foreground">
                 Record money handed back to the patient for a reversed receipt.
