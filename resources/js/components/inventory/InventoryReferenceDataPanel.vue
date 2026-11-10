@@ -10,6 +10,7 @@ import { OperationalSelect } from '@/components/ui/select';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { requestJson } from '@/lib/json-client';
+import { formatDate } from '@/lib/presentation';
 
 type ReferenceData = {
     canManage: boolean;
@@ -103,7 +104,7 @@ const openingBalanceBatchOptions = computed(() => [
     },
     ...skuBatches.value.map((b) => ({
         value: b.publicId,
-        label: `${b.held ? `Held: ${formatInventoryReason(b.holdReason)} · ` : ''}${b.batchNumber} (expires ${b.expiryDate})`,
+        label: `${b.held ? `Held: ${formatInventoryReason(b.holdReason)} · ` : ''}${b.batchNumber} (expires ${formatDate(b.expiryDate)})`,
     })),
 ]);
 const itemOptions = computed(() => [
