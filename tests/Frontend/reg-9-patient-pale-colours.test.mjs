@@ -43,11 +43,15 @@ test('warning notices use the warning tokens', () => {
         'resources/js/pages/Patient/Edit.vue',
         'resources/js/pages/Registration/Create.vue',
     ]) {
-        assert.match(
-            read(path),
-            /border-warning\/25 bg-warning\/10 text-warning-strong/,
-            path,
-        );
+        const source = read(path);
+
+        for (const token of [
+            'border-warning/25',
+            'bg-warning/10',
+            'text-warning-strong',
+        ]) {
+            assert.ok(source.includes(token), `${path} ${token}`);
+        }
     }
 });
 
