@@ -325,6 +325,33 @@ class MedicalCertificateTest extends BillingTestCase
         $this->assertSame('2026-12-31T16:10:00+00:00', $history['documents'][0]['issuedAt']);
     }
 
+    public function test_a_wait_for_the_number_lock_that_crosses_new_year_midnight_keeps_one_year_and_one_instant(): void
+    {
+        $this->travelTo(CarbonImmutable::parse('2026-12-31 15:59:59', 'UTC'));
+        [$doctor, , $visit, $queue] = $this->servingFixture();
+        $this->startEncounter($doctor, $visit, $queue);
+        $this->verified($doctor);
+        $command = $this->command();
+        $crossed = false;
+        DB::listen(function ($query) use (&$crossed): void {
+            if (! $crossed && str_contains($query->sql, 'pg_advisory_xact_lock') && str_contains((string) json_encode($query->bindings), 'mc-number:')) {
+                $crossed = true;
+                $this->travelTo(CarbonImmutable::parse('2026-12-31 16:00:01', 'UTC'));
+            }
+        });
+
+        $id = $this->act($doctor, $visit, $command);
+
+        $this->assertTrue($crossed);
+        $doc = DB::table('medical_certificates')->find($id);
+        $this->assertSame('MC/KP/CHR/2027/000001', $doc->number);
+        $this->assertSame(0, DB::table('mc_number_counters')->where('year', 2026)->count());
+        $this->assertSame(1, DB::table('mc_number_counters')->where('year', 2027)->count());
+        $snapshot = json_decode(Crypt::decryptString($doc->encrypted_snapshot), true);
+        $this->assertSame('01/01/2027', $snapshot['fields']['issue_date']);
+        $this->assertSame('2026-12-31 16:00:01.000000+00:00', $snapshot['issuedAtUtc']);
+    }
+
     public function test_logo_bytes_are_retained_privately_even_after_current_logo_is_removed(): void
     {
         Storage::fake('local');
