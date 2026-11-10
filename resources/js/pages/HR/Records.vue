@@ -131,6 +131,8 @@ const props = defineProps<{
     sopsToRead?: number;
     // HR-8: how many memos you still have to read.
     memosToRead?: number;
+    // HR-10a: how many current letters HR issued to you.
+    lettersMine?: number;
 }>();
 
 const page = usePage();
@@ -602,6 +604,20 @@ const sendLocum = () => {
                 </p>
                 <Button as-child variant="outline" class="max-lg:min-h-11">
                     <Link href="/hr/memos">Open memos</Link>
+                </Button>
+            </div>
+            <!-- HR-10a: letters HR issued to you, linking to /hr/letters. -->
+            <div
+                v-if="lettersMine"
+                class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-card p-4"
+                data-test="letters-mine"
+            >
+                <p class="text-sm">
+                    <span class="font-semibold">Letters from HR:</span>
+                    {{ lettersMine }}
+                </p>
+                <Button as-child variant="outline" class="max-lg:min-h-11">
+                    <Link href="/hr/letters">Open letters</Link>
                 </Button>
             </div>
             <EmptyState
