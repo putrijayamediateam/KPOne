@@ -11,6 +11,7 @@ use App\Domain\HR\Applications\Services\StaffAccountRequests;
 use App\Domain\HR\Applications\Services\TalentPool;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -157,6 +158,23 @@ class ApplicationsController extends Controller
             'Content-Security-Policy' => "sandbox; default-src 'none'",
             'Cache-Control' => 'no-store, private',
         ]);
+    }
+
+    /** An applicant's phone or email, shown once the view is audited (TEAM.md section 7 hardening). */
+    public function showContact(Request $request, JobApplicationService $applications, string $application): JsonResponse
+    {
+        try {
+            $value = $applications->showContact($request->user(), $application, $request->input('field'));
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => array_map(fn (array $m): string => $m[0], $e->errors())], 422);
+        } catch (AuthorizationException) {
+            // As the CV and document handlers do (Suresh, m3).
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
+
+            return response()->json(['errors' => ['field' => 'You can no longer show this.']], 403);
+        }
+
+        return response()->json(['value' => $value, 'shownAt' => now()->toIso8601String()])->header('Cache-Control', 'no-store, private');
     }
 
     /** The CV downloads; the open is recorded first. */

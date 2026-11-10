@@ -4,6 +4,7 @@ namespace Tests\Feature\HR;
 
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Applications\ApplicationPermissions;
+use App\Domain\HR\Applications\Services\ApplicationsPageService;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -292,6 +293,49 @@ class JobApplicationsTest extends VisitTestCase
             $this->apply(['form_token' => 'stale', 'position' => $position], null, false)->assertSessionHasErrors('form');
         }
         $this->apply(['form_token' => 'stale', 'position' => $position], null, false)->assertStatus(429);
+    }
+
+    public function test_the_list_masks_phone_and_email_and_each_show_is_audited(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $id = $this->filedApplication($hr);
+        $this->actingAs($hr);
+        $page = $this->get(route('hr.applications.index', ['tab' => 'applications']))->assertOk();
+        $page->assertInertia(fn (Assert $p) => $p->where('applications.applications.rows.0.phoneMask', '•••• 6789')
+            ->where('applications.applications.rows.0.emailMask', 'a•••@example.test')->missing('applications.applications.rows.0.phone')->missing('applications.applications.rows.0.email'));
+        $this->assertStringNotContainsString('012-345 6789', (string) $page->getContent());
+        $this->assertStringNotContainsString('applicant@example.test', (string) $page->getContent());
+
+        $this->postJson(route('hr.applications.show-contact', $id), ['field' => 'phone'])->assertOk()->assertJson(['value' => '012-345 6789'])
+            ->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-store, private');
+        $this->postJson(route('hr.applications.show-contact', $id), ['field' => 'email'])->assertOk()->assertJson(['value' => 'applicant@example.test']);
+        $this->postJson(route('hr.applications.show-contact', $id), ['field' => 'name'])->assertStatus(422);
+        $applicationId = (int) DB::table('hr_job_applications')->where('public_id', $id)->value('id');
+        $shown = DB::table('audit_logs')->where('event', 'hr.applications.contact_shown')->orderBy('id')->get();
+        $this->assertSame([['application_id' => $applicationId, 'field' => 'phone'], ['application_id' => $applicationId, 'field' => 'email']],
+            $shown->map(fn ($r) => json_decode((string) $r->metadata, true))->all());
+        foreach ($shown as $log) {
+            $this->assertStringNotContainsString('6789', (string) $log->metadata);
+        }
+
+        // Odd or short values never show in full (Suresh, m1 and m2).
+        $mask = fn (string $method, string $value) => (new \ReflectionMethod(ApplicationsPageService::class, $method))->invoke(null, $value);
+        $this->assertSame('••••', $mask('maskPhone', '1234'));
+        $this->assertSame('•••@x.test', $mask('maskEmail', 'ab@x.test'));
+        $this->assertSame('•••', $mask('maskEmail', 'not-an-email'));
+
+        // Only someone who handles applications may show them; a purged application has nothing to show.
+        $this->actingAs($this->actor('ca'));
+        $this->postJson(route('hr.applications.show-contact', $id), ['field' => 'phone'])->assertForbidden();
+        // Cleared through the real purge (the table refuses a direct edit).
+        $this->selectBranch($hr);
+        $this->move($hr, $id, 'withdrawn', 1)->assertSessionHasNoErrors();
+        $this->post(route('hr.applications.retention'), ['retention_days' => 30, 'expected_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->travel(400)->days();
+        Artisan::call('hr-applications:purge');
+        $this->assertNotNull(DB::table('hr_job_applications')->where('public_id', $id)->value('purged_at'));
+        $this->actingAs($hr);
+        $this->postJson(route('hr.applications.show-contact', $id), ['field' => 'phone'])->assertStatus(422);
     }
 
     private function addPosition(User $hr, string $title): string
