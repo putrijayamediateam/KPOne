@@ -15,8 +15,9 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * HR-13 staff side (HR-PLAN 15.2). Director and HR Manager keep the open positions, move an application through New,
- * Shortlisted, Interview and then Offered, Not taken forward or Withdrawn (a closed application stays closed), open a
+ * HR-13 staff side (HR-PLAN 15.2), with HR-17a's stages (HR-PLAN 19.3). Director and HR Manager keep the open
+ * positions (each with a type), move an application through New, Phone screening (a recorded call), Scheduling,
+ * Interview and then Passed or Failed, or Not taken forward or Withdrawn (a closed application stays closed), open a
  * CV (the open is recorded before any byte is sent) and set the retention. Turning an applicant into staff stays with
  * the account administrator through StaffProvisioningService; nothing here creates an account. Every write: a fresh
  * permission check under lock, DB::transaction, row locks, lock_version, an idempotency key and audit with ids and
@@ -24,49 +25,90 @@ use Illuminate\Validation\ValidationException;
  */
 final class JobApplicationService
 {
-    /** @var array<string, string> the steps, in the order HR moves through them */
+    /** @var array<string, string> the stages, in the order HR moves through them (HR-17a; HR-PLAN 19.3) */
     public const STATUSES = [
         'new' => 'New',
-        'shortlisted' => 'Shortlisted',
+        'phone_screening' => 'Phone screening',
+        'scheduling' => 'Scheduling',
         'interview' => 'Interview',
-        'offered' => 'Offered',
+        'passed' => 'Passed',
+        'failed' => 'Failed',
         'not_taken_forward' => 'Not taken forward',
+        'auto_rejected' => 'Auto-rejected',
         'withdrawn' => 'Withdrawn',
+        // HR-13's steps, kept readable for older applications; nothing new moves to them.
+        'shortlisted' => 'Shortlisted',
+        'offered' => 'Offered',
     ];
 
-    /** @var array<string, list<string>> */
+    /**
+     * The moves HR makes with "Move to". Phone screening goes on to Scheduling only through a recorded passing
+     * screening (screen()); Auto-rejected is set only by the daily check (HR-17b).
+     *
+     * @var array<string, list<string>>
+     */
     public const NEXT = [
-        'new' => ['shortlisted', 'not_taken_forward', 'withdrawn'],
+        'new' => ['phone_screening', 'not_taken_forward', 'withdrawn'],
+        'phone_screening' => ['not_taken_forward', 'withdrawn'],
+        'scheduling' => ['interview', 'not_taken_forward', 'withdrawn'],
+        'interview' => ['passed', 'failed', 'withdrawn'],
+        // Older HR-13 applications finish their way.
         'shortlisted' => ['interview', 'not_taken_forward', 'withdrawn'],
-        'interview' => ['offered', 'not_taken_forward', 'withdrawn'],
-        // A declined offer (Suresh, HR-13 M5).
         'offered' => ['withdrawn'],
     ];
 
-    /** The steps an application is still open at; the others are closed and start the retention. */
-    public const OPEN = ['new', 'shortlisted', 'interview'];
+    /** The stages an application is still open at; the others are closed and start the retention. */
+    public const OPEN = ['new', 'shortlisted', 'phone_screening', 'scheduling', 'interview'];
+
+    /** @var array<string, string> the position types; each has its own questions on the form (HR-PLAN 19.4) */
+    public const TYPES = [
+        'ca' => 'Clinic Assistant',
+        'intern' => 'Intern',
+        'locum' => 'Locum',
+        'resident_doctor' => 'Resident Doctor',
+    ];
+
+    public const CHECKLIST_MAX = 15;
+
+    /** @var array<string, string> why a phone screening was rejected (Daniel, HR-17a) */
+    public const REJECT_REASONS = [
+        'speaking' => 'How they came across on the phone',
+        'availability' => 'Availability does not fit',
+        'experience' => 'Experience does not fit',
+        'not_reachable' => 'Could not be reached',
+        'other' => 'Other',
+    ];
+
+    /** @var array<string, string> the stage HR moves to and the fixed message the candidate gets (HR-17b) */
+    public const TELLS = [
+        'not_taken_forward' => 'not_taken_forward',
+        'withdrawn' => 'withdrawn',
+        'passed' => 'passed',
+        'failed' => 'failed',
+    ];
 
     /** A first or shorter retention waits this long before the purge may use it, so a mistake can be undone. */
     public const GRACE_DAYS = 7;
 
-    public function __construct(private RecordSupport $support) {}
+    public function __construct(private RecordSupport $support, private HiringMessenger $messenger) {}
 
     /** @param array<string, mixed> $input */
     public function addPosition(User $actor, array $input): string
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
         $title = self::title($input['title'] ?? null);
+        $type = self::type($input['position_type'] ?? 'ca');
 
-        return DB::transaction(function () use ($actor, $input, $key, $title): string {
+        return DB::transaction(function () use ($actor, $input, $key, $title, $type): string {
             $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
             $branchId = $this->branchId($actor, $input['branch_id'] ?? null);
-            $hash = $this->support->hash([$actor->id, 'job_position_add', $title, $branchId]);
+            $hash = $this->support->hash([$actor->id, 'job_position_add', $title, $branchId, $type]);
             if (($replay = $this->support->replay($actor, $key, 'job_position_add', $hash)) !== null) {
                 return $replay;
             }
             $publicId = (string) Str::uuid();
             $id = DB::table('hr_job_positions')->insertGetId(['public_id' => $publicId, 'organisation_id' => $actor->organisation_id, 'title' => $title,
-                'branch_id' => $branchId, 'is_open' => true, 'created_by_user_id' => $actor->id, 'lock_version' => 1,
+                'position_type' => $type, 'branch_id' => $branchId, 'is_open' => true, 'created_by_user_id' => $actor->id, 'lock_version' => 1,
                 'created_at' => now()->utc(), 'updated_at' => now()->utc()]);
             $this->support->remember($actor, $key, 'job_position_add', $hash, $publicId);
             $this->support->audit->record('hr.applications.position_added', null, ['position_id' => $id], $actor, null, $actor->organisation_id);
@@ -89,21 +131,23 @@ final class JobApplicationService
         if ($open === null) {
             throw ValidationException::withMessages(['is_open' => 'Choose open or closed.']);
         }
-        DB::transaction(function () use ($actor, $positionId, $input, $key, $title, $open): void {
+        $type = isset($input['position_type']) ? self::type($input['position_type']) : null;
+        DB::transaction(function () use ($actor, $positionId, $input, $key, $title, $open, $type): void {
             $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
             $branchId = $this->branchId($actor, $input['branch_id'] ?? null);
-            $hash = $this->support->hash([$actor->id, 'job_position_update', $positionId, $title, $branchId, $open]);
+            $hash = $this->support->hash([$actor->id, 'job_position_update', $positionId, $title, $branchId, $open, $type]);
             if ($this->support->replay($actor, $key, 'job_position_update', $hash) !== null) {
                 return;
             }
             $position = $this->position($actor, $positionId);
             $this->support->assertLock($position, $input);
+            $type ??= (string) $position->position_type;
             $changed = array_keys(array_filter(['title' => $position->title !== $title, 'branch' => $position->branch_id !== $branchId,
-                'is_open' => (bool) $position->is_open !== $open]));
+                'is_open' => (bool) $position->is_open !== $open, 'position_type' => $position->position_type !== $type]));
             if ($changed === []) {
                 throw ValidationException::withMessages(['position' => 'Nothing was changed.']);
             }
-            DB::table('hr_job_positions')->where('id', $position->id)->update(['title' => $title, 'branch_id' => $branchId, 'is_open' => $open,
+            DB::table('hr_job_positions')->where('id', $position->id)->update(['title' => $title, 'branch_id' => $branchId, 'is_open' => $open, 'position_type' => $type,
                 'lock_version' => (int) $position->lock_version + 1, 'updated_at' => now()->utc()]);
             $this->support->remember($actor, $key, 'job_position_update', $hash, $positionId);
             $this->support->audit->record('hr.applications.position_updated', null, ['position_id' => (int) $position->id, 'fields' => $changed],
@@ -127,17 +171,31 @@ final class JobApplicationService
             if ($application->purged_at !== null || ! in_array($to, self::NEXT[$application->status] ?? [], true)) {
                 throw ValidationException::withMessages(['to' => $application->closed_at !== null && $application->status !== 'offered'
                     ? 'This application is closed. Reload the page.'
-                    : 'Choose one of the next steps shown.']);
+                    : ($application->status === 'phone_screening' && $to === 'scheduling'
+                        ? 'Record the phone screening to move on to scheduling.'
+                        : 'Choose one of the next steps shown.')]);
+            }
+            // HR-17c: a result waits for the confirmed interview to have started (Suresh, HR-17c).
+            if (in_array($to, ['passed', 'failed'], true) && DB::table('hr_job_interviews')->where('application_id', $application->id)
+                ->where('status', 'confirmed')->where('starts_at', '>', now()->utc())->exists()) {
+                throw ValidationException::withMessages(['to' => 'The interview has not happened yet. Record the result after it.']);
             }
             $closed = ! in_array($to, self::OPEN, true);
+            if ($to === 'withdrawn') {
+                InterviewSlots::releaseOnWithdraw((int) $application->id, $actor->id);
+            }
             DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $closed ? now()->utc() : null,
-                'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
+                'stage_entered_at' => now()->utc(), 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
             DB::table('hr_job_application_events')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
                 'action' => 'status_changed', 'from_status' => $application->status, 'to_status' => $to, 'actor_user_id' => $actor->id,
                 'created_at' => now()->utc()]);
             $this->support->remember($actor, $key, 'job_application_move', $hash, $applicationId);
             $this->support->audit->record('hr.applications.moved', null, ['application_id' => (int) $application->id, 'from' => $application->status,
                 'to' => $to], $actor, null, $actor->organisation_id);
+            // HR-17b: the candidate is told of a decision (HR-PLAN 19.3 and 19.8).
+            if (isset(self::TELLS[$to])) {
+                $this->messenger->record($application, self::TELLS[$to], $to);
+            }
         }, 3);
     }
 
@@ -214,6 +272,143 @@ final class JobApplicationService
     }
 
     /**
+     * HR-17a: the phone-screening call. Records the ticked checklist items, a 1 to 5 rating, an optional note (encrypted,
+     * never audited) and pass or reject; pass moves the application to Scheduling, reject to Not taken forward. One
+     * screening per application.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function screen(User $actor, string $applicationId, array $input): void
+    {
+        $key = $this->support->key($input['idempotency_key'] ?? null);
+        $outcome = in_array($input['outcome'] ?? null, ['pass', 'reject'], true) ? (string) $input['outcome'] : null;
+        $rating = filter_var($input['rating'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 5]]);
+        $rawTicks = is_array($input['ticked'] ?? null) ? $input['ticked'] : [];
+        $note = is_string($input['note'] ?? null) ? trim($input['note']) : '';
+        $errors = [];
+        if ($outcome === null) {
+            $errors['outcome'] = 'Choose pass or reject.';
+        }
+        if ($rating === false) {
+            $errors['rating'] = 'Give a rating from 1 to 5.';
+        }
+        $reason = $outcome === 'reject' && is_string($input['reject_reason'] ?? null) && isset(self::REJECT_REASONS[$input['reject_reason']])
+            ? (string) $input['reject_reason'] : null;
+        if ($outcome === 'reject' && $reason === null) {
+            $errors['reject_reason'] = 'Choose why the call is rejected.';
+        }
+        if (mb_strlen($note) > 500) {
+            $errors['note'] = 'Use at most 500 characters.';
+        }
+        $ticks = [];
+        foreach ($rawTicks as $tick) {
+            $index = filter_var($tick, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => self::CHECKLIST_MAX - 1]]);
+            if ($index === false) {
+                $errors['ticked'] = 'Tick only items from the checklist.';
+                break;
+            }
+            $ticks[] = $index;
+        }
+        if ($errors !== []) {
+            throw ValidationException::withMessages($errors);
+        }
+        $ticks = array_values(array_unique($ticks));
+        sort($ticks);
+        DB::transaction(function () use ($actor, $applicationId, $input, $key, $outcome, $rating, $ticks, $note, $reason): void {
+            $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
+            $hash = $this->support->hash([$actor->id, 'job_application_screen', $applicationId, $outcome, $rating, $ticks, hash('sha256', $note), $reason]);
+            if ($this->support->replay($actor, $key, 'job_application_screen', $hash) !== null) {
+                return;
+            }
+            $application = $this->application($actor, $applicationId, true);
+            $this->support->assertLock($application, $input);
+            if ($application->status !== 'phone_screening' || $application->purged_at !== null) {
+                throw ValidationException::withMessages(['outcome' => 'This application is not at phone screening. Reload the page.']);
+            }
+            $checklist = DB::table('hr_job_screening_checklists')->where('organisation_id', $actor->organisation_id)->orderByDesc('version')->first();
+            $items = $checklist === null ? [] : (array) json_decode((string) $checklist->items, true);
+            if ($ticks !== [] && max($ticks) >= count($items)) {
+                throw ValidationException::withMessages(['ticked' => 'The checklist changed. Reload the page.']);
+            }
+            $to = $outcome === 'pass' ? 'scheduling' : 'not_taken_forward';
+            $now = now()->utc();
+            DB::table('hr_job_screenings')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
+                'checklist_version' => $checklist === null ? null : (int) $checklist->version, 'ticked' => json_encode($ticks, JSON_THROW_ON_ERROR),
+                'rating' => $rating, 'note_encrypted' => $note === '' ? null : Crypt::encryptString($note), 'outcome' => $outcome,
+                'reject_reason' => $reason,
+                'actor_user_id' => $actor->id, 'created_at' => $now]);
+            DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $to === 'scheduling' ? null : $now,
+                'stage_entered_at' => $now, 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => $now]);
+            DB::table('hr_job_application_events')->insert([
+                ['organisation_id' => $actor->organisation_id, 'application_id' => $application->id, 'action' => 'screened', 'from_status' => null,
+                    'to_status' => null, 'actor_user_id' => $actor->id, 'created_at' => $now],
+                ['organisation_id' => $actor->organisation_id, 'application_id' => $application->id, 'action' => 'status_changed',
+                    'from_status' => 'phone_screening', 'to_status' => $to, 'actor_user_id' => $actor->id, 'created_at' => $now],
+            ]);
+            $this->support->remember($actor, $key, 'job_application_screen', $hash, $applicationId);
+            $this->support->audit->record('hr.applications.screened', null, ['application_id' => (int) $application->id, 'outcome' => $outcome,
+                'reason' => $reason, 'ticked' => count($ticks)], $actor, null, $actor->organisation_id);
+            $this->messenger->record($application, $outcome === 'pass' ? 'screening_passed' : 'not_taken_forward', $to);
+        }, 3);
+    }
+
+    /**
+     * HR-17a: a new version of the phone-screening call checklist (1 to 15 short questions; KPOne ships none).
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function setChecklist(User $actor, array $input): void
+    {
+        $key = $this->support->key($input['idempotency_key'] ?? null);
+        $items = [];
+        foreach (is_array($input['items'] ?? null) ? $input['items'] : [] as $item) {
+            $text = is_string($item) ? trim((string) preg_replace('/\s+/u', ' ', $item)) : '';
+            if ($text === '') {
+                continue;
+            }
+            if (mb_strlen($text) < 3 || mb_strlen($text) > 160) {
+                throw ValidationException::withMessages(['items' => 'Each question needs 3 to 160 characters.']);
+            }
+            $items[] = $text;
+        }
+        if ($items === [] || count($items) > self::CHECKLIST_MAX) {
+            throw ValidationException::withMessages(['items' => 'Enter 1 to 15 questions.']);
+        }
+        if (count(array_unique(array_map('mb_strtolower', $items))) !== count($items)) {
+            throw ValidationException::withMessages(['items' => 'Each question can appear only once.']);
+        }
+        DB::transaction(function () use ($actor, $input, $key, $items): void {
+            $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
+            $hash = $this->support->hash([$actor->id, 'job_screening_checklist', $items]);
+            if ($this->support->replay($actor, $key, 'job_screening_checklist', $hash) !== null) {
+                return;
+            }
+            DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['hr_job_screening_checklists:'.$actor->organisation_id]);
+            $current = DB::table('hr_job_screening_checklists')->where('organisation_id', $actor->organisation_id)->orderByDesc('version')->first();
+            if (filter_var($input['expected_version'] ?? null, FILTER_VALIDATE_INT) !== ($current === null ? 0 : (int) $current->version)) {
+                throw ValidationException::withMessages(['items' => 'This was changed by someone else. Reload to see the latest version.']);
+            }
+            if ($current !== null && json_decode((string) $current->items, true) === $items) {
+                throw ValidationException::withMessages(['items' => 'Nothing was changed.']);
+            }
+            $version = $current === null ? 1 : (int) $current->version + 1;
+            DB::table('hr_job_screening_checklists')->insert(['organisation_id' => $actor->organisation_id, 'version' => $version,
+                'items' => json_encode($items, JSON_THROW_ON_ERROR), 'set_by_user_id' => $actor->id, 'created_at' => now()->utc()]);
+            $this->support->remember($actor, $key, 'job_screening_checklist', $hash, (string) $version);
+            $this->support->audit->record('hr.applications.checklist_saved', null, ['version' => $version, 'items' => count($items)], $actor, null, $actor->organisation_id);
+        }, 3);
+    }
+
+    public static function type(mixed $value): string
+    {
+        if (! is_string($value) || ! isset(self::TYPES[$value])) {
+            throw ValidationException::withMessages(['position_type' => 'Choose the kind of position.']);
+        }
+
+        return $value;
+    }
+
+    /**
      * The retention in force on a date: the newest version already effective, or null (keep everything).
      */
     public static function retentionOn(int $organisationId, string $date): ?int
@@ -241,17 +436,34 @@ final class JobApplicationService
                 continue;
             }
             $cutoff = CarbonImmutable::parse($today, self::zone($organisationId))->subDays($days)->startOfDay()->utc();
+            // HR-17e: a pool candidate is kept until the pool period ends, if that is later than the retention.
+            $poolDays = TalentPool::daysOn($organisationId, $today);
+            $poolSince = $poolDays === null ? null : CarbonImmutable::parse($today, self::zone($organisationId))->subDays($poolDays)->startOfDay()->utc();
             DB::table('hr_job_applications')->where('organisation_id', $organisationId)->whereNull('purged_at')
-                ->whereRaw('coalesce(closed_at, submitted_at) < ?', [$cutoff])->select('id')->orderBy('id')->chunkById(200, function ($chunk) use (&$count, $organisationId, $cutoff): void {
+                ->whereRaw('coalesce(closed_at, submitted_at) < ?', [$cutoff])
+                ->when($poolSince !== null, fn ($q) => $q->whereNot(fn ($q) => $q->whereIn('status', TalentPool::RESULTS)->where('talent_pool_consent', true)
+                    ->whereNull('pool_withdrawn_at')->where('closed_at', '>=', $poolSince)))
+                ->select('id')->orderBy('id')->chunkById(200, function ($chunk) use (&$count, $organisationId, $cutoff, $poolSince, $poolDays): void {
                     foreach ($chunk as $candidate) {
-                        $path = DB::transaction(function () use ($candidate, $organisationId, $cutoff): ?string {
+                        $path = DB::transaction(function () use ($candidate, $organisationId, $cutoff, $poolSince, $poolDays): ?string {
                             $row = DB::table('hr_job_applications')->where('id', $candidate->id)->lockForUpdate()->first();
-                            if ($row === null || $row->purged_at !== null || CarbonImmutable::parse($row->closed_at ?? $row->submitted_at)->gte($cutoff)) {
+                            if ($row === null || $row->purged_at !== null || CarbonImmutable::parse($row->closed_at ?? $row->submitted_at)->gte($cutoff)
+                                || ($poolSince !== null && TalentPool::until($row, $poolDays) !== null)) {
                                 return null;
                             }
                             DB::table('hr_job_applications')->where('id', $row->id)->update(['name_encrypted' => null, 'phone_encrypted' => null,
-                                'email_encrypted' => null, 'message_encrypted' => null, 'cv_path' => null, 'purged_at' => now()->utc(),
+                                'email_encrypted' => null, 'message_encrypted' => null, 'details_encrypted' => null, 'cv_path' => null, 'status_token_hash' => null, 'purged_at' => now()->utc(),
                                 'lock_version' => (int) $row->lock_version + 1, 'updated_at' => now()->utc()]);
+                            DB::table('hr_job_screenings')->where('application_id', $row->id)->whereNotNull('note_encrypted')->update(['note_encrypted' => null]);
+                            // HR-17e: an open staff-account request is cancelled first, with the reason recorded, so the Staff page
+                            // never lists a blank request (Suresh, HR-17e m3); then its name and email go with the application's.
+                            if (DB::table('hr_staff_account_requests')->where('application_id', $row->id)->where('status', 'open')
+                                ->update(['status' => 'cancelled', 'closed_at' => now()->utc(), 'updated_at' => now()->utc()]) > 0) {
+                                DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
+                                    'action' => 'account_cancelled', 'created_at' => now()->utc()]);
+                            }
+                            DB::table('hr_staff_account_requests')->where('application_id', $row->id)->whereNull('purged_at')
+                                ->update(['name_encrypted' => null, 'email_encrypted' => null, 'purged_at' => now()->utc(), 'updated_at' => now()->utc()]);
                             DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
                                 'action' => 'purged', 'created_at' => now()->utc()]);
                             $this->support->audit->record('hr.applications.purged', null, ['application_id' => (int) $row->id], null, null, $organisationId);

@@ -13,6 +13,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -431,6 +432,34 @@ class RosterTest extends VisitTestCase
             $links = collect(app(ClinicManagementNavigation::class)->groups($actor))->flatMap(fn ($g) => $g['links'])->pluck('href')->all();
             $this->assertSame($role !== 'queue_display', in_array('/hr/roster', $links, true), $role);
         }
+    }
+
+    public function test_approving_a_week_asks_a_failing_mail_service_once_not_once_per_person(): void
+    {
+        // HR-14 (Suresh): the roster loop shares one messenger, so a mail service that is down is not tried for everyone.
+        config(['hr-messages.email.connected' => true]);
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $other = $this->actor('ca');
+        $this->selectBranch($hr);
+        $this->post(route('hr.messages.configure', 'email'), ['enabled' => true, 'monthly_cap' => 10, 'expected_version' => 0, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasNoErrors();
+        foreach ([$ca, $other] as $person) {
+            $this->selectBranch($person);
+            $this->post(route('hr.messages.choose', 'email'), ['opted_in' => true, 'expected_lock_version' => 0, 'idempotency_key' => (string) Str::uuid()])
+                ->assertSessionHasNoErrors();
+        }
+        $version = $this->startDraft($hr);
+        $this->addShift($hr, $version, $ca, 0, '08:00', '14:00')->assertSessionHasNoErrors();
+        $this->addShift($hr, $version, $other, 1, '08:00', '14:00')->assertSessionHasNoErrors();
+        $this->submit($hr, $version)->assertSessionHasNoErrors();
+
+        Mail::shouldReceive('to')->once()->andThrow(new \RuntimeException('smtp down'));
+        $this->approve($director, $version)->assertSessionHasNoErrors();
+
+        $this->assertSame('approved', $version->refresh()->status);
+        $this->assertEqualsCanonicalizing(['send_failed', 'send_skipped'], DB::table('hr_message_deliveries')->pluck('error_code')->all());
     }
 
     private function startDraft(User $actor, ?CarbonImmutable $week = null, ?Branch $branch = null): RosterVersion

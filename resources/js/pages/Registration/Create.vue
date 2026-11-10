@@ -885,7 +885,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors"
+                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
                                 @click="form.coverage_type = 'self_pay'"
                             >
                                 Self-pay
@@ -898,7 +898,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors"
+                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
                                 @click="form.coverage_type = 'panel'"
                             >
                                 Panel
@@ -920,7 +920,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors"
+                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
                                 @click="form.priority = 'normal'"
                             >
                                 Normal
@@ -933,7 +933,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-warning/10 text-warning-strong ring-1 ring-warning/30'
                                         : 'text-muted-foreground hover:text-warning-strong'
                                 "
-                                class="h-9 rounded-sm px-3 text-sm font-semibold transition-colors"
+                                class="h-9 rounded-sm px-3 text-sm font-semibold transition-colors max-lg:h-11"
                                 @click="form.priority = 'urgent'"
                             >
                                 Urgent

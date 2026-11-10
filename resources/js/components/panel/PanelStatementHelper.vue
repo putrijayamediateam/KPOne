@@ -41,6 +41,9 @@ export type Statement = {
     headers: { index: number; label: string }[];
     mapping: Record<'amount' | 'claim' | 'invoice' | 'member', number | null>;
     rows: StatementRow[];
+    /** PNL-20: near matches looked at only the oldest open claims of this Panel, because it has more of them. */
+    nearCut?: boolean;
+    nearLimit?: number;
 };
 
 const props = defineProps<{
@@ -159,6 +162,11 @@ const matchedCount = computed(
     () =>
         (props.statement?.rows ?? []).filter((row) => row.result === 'matched')
             .length,
+);
+const notFoundCount = computed(
+    () =>
+        props.statement?.rows.filter((row) => row.result === 'not_found')
+            .length ?? 0,
 );
 const nearCount = computed(
     () =>
@@ -403,6 +411,17 @@ const useTicked = () =>
                         </template>
                         {{ statement.rows.length - matchedCount - nearCount }}
                         cannot be used
+                    </p>
+                    <p
+                        v-if="statement.nearCut && notFoundCount > 0"
+                        class="mb-1 text-xs text-muted-foreground"
+                        role="note"
+                        data-testid="statement-near-cut"
+                    >
+                        Near matches were checked against this Panel's
+                        {{ statement.nearLimit ?? 500 }} oldest open claims at
+                        this branch only. A row that says Not found may still
+                        belong to a newer claim, so check those by hand.
                     </p>
                     <p
                         v-if="matchedCount === 0 && nearCount === 0"

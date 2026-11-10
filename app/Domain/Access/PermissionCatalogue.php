@@ -11,10 +11,13 @@ use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Claims\ClaimPermissions;
 use App\Domain\HR\Credentials\CredentialPermissions;
 use App\Domain\HR\Leave\LeavePermissions;
+use App\Domain\HR\Memos\MemoPermissions;
+use App\Domain\HR\Messages\MessagePermissions;
 use App\Domain\HR\Payroll\PayrollPermissions;
 use App\Domain\HR\Records\RecordPermissions;
 use App\Domain\HR\Roster\RosterPermissions;
 use App\Domain\HR\Sops\SopPermissions;
+use App\Domain\Organisation\Compliance\CompliancePermissions;
 use App\Domain\Organisation\Website\WebsitePermissions;
 use App\Domain\Queue\Readiness\CallHoldPermissions;
 use App\Domain\Queue\Treatment\TreatmentStepPermissions;
@@ -63,9 +66,12 @@ final class PermissionCatalogue
             ...array_keys(RecordPermissions::grants()),
             ...array_keys(CredentialPermissions::grants()),
             ...array_keys(SopPermissions::grants()),
+            ...array_keys(MemoPermissions::grants()),
             ...array_keys(ClaimPermissions::grants()),
             ...array_keys(PayrollPermissions::grants()),
             ...array_keys(ApplicationPermissions::grants()),
+            ...array_keys(MessagePermissions::grants()),
+            ...array_keys(CompliancePermissions::grants()),
             'dashboard.view.own',
             'profile.view.own',
             'staff.view.own',
@@ -466,7 +472,7 @@ final class PermissionCatalogue
         }
 
         // HR-1 (B.E.R.N.I.S.S for the owner, 2026-11-05): roster planning; never people or access authority.
-        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants()] as $permission => $holders) {
+        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }

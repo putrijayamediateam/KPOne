@@ -52,6 +52,7 @@ final class ClinicManagementNavigation
         };
         $add('In-clinic', 'clinic', [
             [$settings, 'Business details', 'Manage organisation identity, branch contact details and the shared logo.', 'business-details.index'],
+            [$actor->can('compliance.licences.manage.organisation') || $actor->can('compliance.fridge.manage.organisation') || $actor->can('compliance.fridge.record.branch') || $actor->can('compliance.fridge.review.branch'), 'Clinic compliance', 'Clinic licences and the vaccine fridge log.', 'clinic-compliance.index'],
             [$settings, 'Registration settings', 'Set required details in registration.', 'registration-settings.index'],
             [$actor->can('public_checkin_links.manage.organisation') || $actor->can('public_checkin_links.manage.branch'), 'QR check-in links', 'Manage the public check-in QR links for your authorized branches.', 'public-checkin-links.index'],
             [$settings, 'Consultation settings', 'Manage preset diagnoses for consultations.', 'diagnosis-presets.index'],
@@ -134,15 +135,18 @@ final class ClinicManagementNavigation
         $add('Staff & branches', 'staff', [
             [$branch && $actor->can('clinician_credentials.manage.organisation'), 'Clinician credentials', 'Verify professional names and MMC registration numbers.', 'clinician-credentials.index'],
             [$branch && $actor->can('staff.view.own') && $actor->can('encounters.view.own'), 'My clinician credentials', 'Review your own professional details.', 'clinician-credentials.own'],
+            [$actor->can('hr.roster.manage.organisation') || $actor->can('hr.attendance.review.organisation') || $actor->can('hr.leave.manage.organisation'), 'KPOne HR dashboard', 'Who is on duty today and the month at a glance, for HR.', 'hr.dashboard.index'],
             [$actor->can('hr.roster.view.own') || $actor->can('hr.roster.manage.organisation') || $actor->can('hr.roster.approve.organisation'), 'KPOne HR roster', 'Plan branch shifts and see your own roster.', 'hr.roster.index'],
             [$actor->can('hr.leave.request.own') || $actor->can('hr.leave.approve.organisation') || $actor->can('hr.leave.manage.organisation'), 'KPOne HR leave', 'Apply for leave, approve requests and see who is away.', 'hr.leave.index'],
             [$actor->can('hr.attendance.clock.own') || $actor->can('hr.attendance.review.organisation'), 'KPOne HR attendance', 'Clock in and out, correct your times and review attendance.', 'hr.attendance.index'],
             [$actor->can('hr.records.view.own') || $actor->can('hr.records.view.organisation'), 'KPOne HR staff files', 'Your HR details, and staff files for HR.', 'hr.records.index'],
             [$actor->can('hr.credentials.view.own') || $actor->can('hr.credentials.manage.organisation'), 'KPOne HR credentials', 'Your certificates and renewals, and the credentials register for HR.', 'hr.credentials.index'],
             [$actor->can('hr.sops.acknowledge.own') || $actor->can('hr.sops.manage.organisation'), 'KPOne HR SOPs', 'SOPs to read for your role, and who has acknowledged them for HR.', 'hr.sops.index'],
+            [$actor->can('hr.memos.read.own') || $actor->can('hr.memos.publish.organisation'), 'KPOne HR Memos', 'Memos from HR to read, and who has read them for HR.', 'hr.memos.index'],
             [$actor->can('hr.claims.submit.own') || $actor->can('hr.claims.approve.organisation') || $actor->can('hr.claims.pay.organisation') || $actor->can('hr.claims.manage.organisation'), 'KPOne HR staff claims', 'Claim back what you paid for the clinic; approvals, payments recorded and settings for HR and Finance.', 'hr.claims.index'],
             [$actor->can('hr.payroll.prepare.organisation') || $actor->can('hr.payroll.export.organisation'), 'KPOne HR payroll', 'Payroll runs, pay profiles, statutory tables and exports, each checked by a second person.', 'hr.payroll.index'],
             [$actor->can('hr.applications.manage.organisation'), 'KPOne HR job applications', 'Open positions and the applications sent from the public form.', 'hr.applications.index'],
+            [$actor->can('hr.messages.receive.own') || $actor->can('hr.messages.manage.organisation'), 'KPOne HR messages', 'Choose how KPOne tells you about your leave, roster, payslip and claims; channel settings for HR.', 'hr.messages.index'],
             [$actor->can('staff.view.own') || $actor->can('staff.view.branch') || $actor->can('staff.view.organisation'), 'Staff', 'Review staff within your existing access.', 'staff.index'],
             [$actor->can('branches.view.branch') || $actor->can('branches.view.organisation'), 'Branches', 'Review the clinic locations you may access.', 'branches.index'],
             [$actor->can('access.view.organisation'), 'Access Control', 'Review existing roles and permissions.', 'access-control.index'],

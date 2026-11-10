@@ -30,6 +30,7 @@ use LogicException;
  * @property int $lock_version
  * @property CarbonImmutable|null $finalized_at
  * @property CarbonImmutable|null $voided_at
+ * @property int|null $voided_by_user_id
  */
 #[Guarded(['*'])]
 class Invoice extends Model
