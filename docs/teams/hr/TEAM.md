@@ -357,6 +357,30 @@ check items, keep them"). The rest stand unless the owner changes them.
     marked Withdrawn; a double send gives "already sent". Found in the screenshot run: the field checks now run before
     the timing check, so a person who sends an empty form sees what to fill in.
 
+74. HR-14 (owner, 2026-11-10, "start"): email now, SMS and WhatsApp later; the four messages are leave approved or
+    rejected, roster week approved, payslip ready, and staff claim decided or recorded as paid.
+75. HR-14 scope (owner, 2026-11-10, relayed by B.E.R.N.I.S.S): "Keep SMS/WhatsApp unconnected" (the channels exist,
+    always "Not connected", no provider, no sending); "leave OTP out, decide with HR-15" (no OTP code, table or test);
+    "Send directly, no worker" (sent right after the commit, no queue, no worker; a failure is recorded on the sent
+    row and never breaks the HR action); "Narrow the test" (the WA-01 guard exempts only
+    `2026_11_10_003200_create_hr_message_tables.php` from its word check, still refusing `wa.me` and WA-01 in it);
+    "Approve" the hub line `'/hr/messages'` in `ClinicManagementTest`.
+76. One mail setup (B.E.R.N.I.S.S, 2026-11-10): staff messages and hiring emails share Laravel's `MAIL_*` mailer;
+    Resend connects over SMTP with the built-in mailer, so no new Composer package (owner: "fine").
+77. HR-14 screens (Daniel, OK with changes): "Not connected" chips and no button for a channel that is not connected,
+    one wording on both tabs; its settings visible but disabled and never saved ahead; Save solid only with unsaved
+    changes; errors in their own card under their field; "cost RM x"; "Showing 1–25 of N" and a status filter on Sent.
+78. HR-14 review (Suresh): a queue or send failure after commit never turns a saved action into an error; within one
+    roster approval or payroll lock, a mail service that fails is not tried again (`send_skipped`), proven through a
+    real roster approval.
+79. Hiring plan approved (B.E.R.N.I.S.S for the owner, 2026-11-10): HR-PLAN section 19, slices HR-17a to HR-17e. The
+    owner's answers: auto-reject at both HR stages after 3 working days with a reminder the day before ("Both
+    stages"); slots up to "10 working days" ahead; one confirmed interview per slot for the "Whole group"; the
+    staff-account handoff shown to "anyone yg ada access to create staff", through the staff-creation check.
+80. HR-17a review (Suresh): no talent-pool tick or promise until HR-17e builds the pool and a way to withdraw
+    consent; a screening note is cleared only by the purge; the screening audit holds the outcome and the tick count,
+    never the rating; a warning when a position's type changes while it has open applications.
+
 ## 7. Open items and known limits
 
 - Every statutory and policy question in `docs/reports/ANALYSIS-HR.md` section 8 is open and is for the clinic's
@@ -407,6 +431,12 @@ check items, keep them"). The rest stand unless the owner changes them.
   be counted twice. Drafts prepared before the deploy ask to be prepared again once.
 - HR-12 known limits: the CSV is uploaded to the outside product by hand; no live link or import preview; leave rows
   carry the whole request's days; the leave type is shown by name (PDPA-review item).
+- HR-14 known limits: email goes to the account's sign-in address; no SMS or WhatsApp provider, so no stop-reply
+  handling; a claim refunded through payroll sends no claim message; a message still `sending` when PHP stops counts
+  against the month's cap; a later provider bounce is not recorded; locking a large payroll with email on adds about
+  one to two seconds per person (deploy note: set a short `MAIL_TIMEOUT`).
+- HR-17a known limits: the form's answers and the call note are decrypted for the 25 listed rows; the talent pool and
+  consent withdrawal come with HR-17e; the MMC number and APC are as stated by the candidate.
 - HR-13 known limits: the public form stays off until the owner approves the privacy notice; one organisation per
   installation; an application still in progress is cleared once the period has passed since it was sent; phone and
   email show on the HR list without a Show button (only CV opens are audited); the overall cap of 100 sends an hour can

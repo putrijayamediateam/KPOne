@@ -2321,6 +2321,45 @@ Shared rules for all five:
 - **Tests:** template lint (no patient or money fields), opt-out stops sending, caps stop sending, a fake provider
   proves failures never change HR data, webhook signatures checked, OTP limits.
 
+### 15.3a HR-14 as built (2026-11-10)
+
+- **The owner's answers:**
+  - "Email now, SMS/WhatsApp later".
+  - The four messages: leave approved or rejected, roster week approved, payslip ready, and staff claim decided or recorded as paid.
+  - "Keep SMS/WhatsApp unconnected": SMS and WhatsApp are built but always show "Not connected", with no provider and no sending.
+  - "leave OTP out, decide with HR-15": no one-time-code code, table, setting or test.
+  - "Send directly, no worker": a message is sent right after the HR change commits, with no queue and no worker.
+  - "Narrow the test": the WA-01 guard exempts only the HR-14 message migration from its word check, which still refuses `wa.me` and WA-01 in it.
+  - "Approve" the hub line `/hr/messages`.
+- **One page, `/hr/messages`:**
+  - My messages (every human role, not the TV account): which channels KPOne may use for your own news.
+  - Settings (Director, HR Manager): each channel's switch, the clinic's price per message, a monthly cap, and this month's count and cost.
+  - Sent (Director, HR Manager): one row per message, newest first, filtered by status. The text is never kept.
+- **Nothing is on by default:**
+  - A channel sends only when it is connected, switched on and under its cap.
+  - Settings for a channel that is not connected cannot be saved ahead (Daniel). Switching off a channel that was set up before always works.
+- **The messages:**
+  - Fixed templates whose placeholders accept only a date, a month, an `SC-` claim number or one of three decision words.
+  - No amount, reason, patient detail, identity or bank value can get in (a lint test).
+  - Every message ends with how to stop: "open KPOne, then My messages".
+- **Sending:**
+  - Through Laravel's default mailer. The same `MAIL_*` setup serves the hiring emails (section 19), and Resend connects over SMTP with no new package.
+  - Each message is reserved under the cap's advisory lock, then sent outside any transaction.
+  - A failure is recorded on its delivery row (`no_address`, `not_connected`, `send_failed`), and the HR action still succeeds (tested through a real claim approval).
+  - Within one action, such as a payroll lock or a roster approval, a mail service that fails is not tried again: the rest are recorded `send_skipped` (Suresh; tested through a real roster approval).
+  - A rolled-back HR change sends nothing.
+- **Deploy note:**
+  - Set `HR_MESSAGES_EMAIL_ENABLED=true` and the `MAIL_*` settings in the environment's secrets only after the owner has chosen the account holder.
+  - Set a short mail timeout (for example `MAIL_TIMEOUT=10`), because sends run before the page answers.
+- **New permissions:** `hr.messages.receive.own` (all 11 human roles, not the TV account) and `hr.messages.manage.organisation` (Director, HR Manager).
+- **Known limits:**
+  - Email goes to the account's sign-in address.
+  - No SMS or WhatsApp provider, so no stop-reply handling.
+  - A claim refunded through payroll sends no claim message.
+  - A message still `sending` when PHP stops counts against the cap for the month.
+  - A provider bounce that arrives later is not recorded.
+  - Locking a large payroll with email on adds about one to two seconds per person.
+
 ### 15.4 HR-15 Locum portal (needs HR-14 for OTP)
 
 - **Accounts:** a locum gets a KPOne sign-in only when HR asks and the account administrator creates it through
@@ -2331,7 +2370,7 @@ Shared rules for all five:
   the clinic offers, and their own claims and payslips if HR-6 and HR-7 apply to them. Nothing clinical by
   implication: any clinical permission for a locum doctor is a separate explicit role decision (AGENTS.md).
 - **Sign-in:** password (the existing rules) or a one-time code by SMS or WhatsApp to the account's own number
-  (HR-14). Sessions follow the existing timeout and inactive-account rules.
+  (HR-14). **OTP is decided with HR-15** (owner, 2026-11-10: "leave OTP out, decide with HR-15"); HR-14 has none. Sessions follow the existing timeout and inactive-account rules.
 - **Open shifts:** HR posts an open shift; a locum asks to take it; a manager who is not the locum confirms; the
   confirmed shift joins the next roster draft. No automatic assignment.
 - **Tests:** no self-registration path, role permissions exact, a locum sees only their own data, OTP limits, and a
@@ -2813,3 +2852,201 @@ Migrations from `2026_11_10_002900` (after HR-7c's `002800`).
 - The person's MTD details are never flashed into the session (`dontFlash`).
 - Deploy note: drafts prepared before the deploy ask to be prepared again once, because the run fingerprint gains the MTD schedule.
 - An earlier month this year whose run was never prepared is not detected: the year to date silently lacks it.
+
+## 19. HR-17 Hiring pipeline: design note (owner, 2026-11-10, relayed by B.E.R.N.I.S.S)
+
+Builds on HR-13 (15.2a). It covers CAs, interns, locums and Resident Doctors: a detailed form, a first review, phone screening, three interview times picked by the candidate, interview documents, the result, a talent pool and a staff-account handoff.
+
+**Switched off like HR-13.** The public form, the candidate links and every email stay off until the owner approves the new privacy notice (a lawyer review is recommended). Synthetic data only.
+
+### 19.1 The owner's answers this note follows
+
+The owner's words: "ikut cadangan berniss semua, …"
+
+1. Auto-reject after 3 working days without an HR decision. The candidate is told.
+2. One working day before an auto-reject, a reminder goes to the clinic's hiring mailbox. The address is configuration only.
+3. Email is used for hiring only, through the owner's Resend account.
+4. Each application has a private link (hashed token). There is no candidate account.
+5. Interview slots are one hour, on working days, inside 9am–1pm and 2pm–5pm. The candidate picks 3 and HR confirms 1.
+6. Interview documents: the function now, with dummy PDFs until the owner sends the real ones.
+7. No offer and no onboarding checklist in KPOne. After "Passed": a talent pool (consent and retention) and a staff-account handoff.
+8. HR Manager and Director only.
+9. Build it now and keep it off.
+
+### 19.1a The owner's answers to the four open points (2026-11-10, relayed by B.E.R.N.I.S.S)
+
+1. Auto-reject: "Both stages". It applies at new and phone_screening, 3 working days each, with a reminder to the hiring mailbox the day before.
+2. Slots: "10 working days" ahead.
+3. Slot clash: "Whole group". One confirmed interview per slot for the organisation.
+4. Handoff: "anyone yg ada access to create staff". It is shown to whoever can create staff accounts, using the same check as the staff-creation path, not a role list.
+- Email goes out directly after commit, with no queue and no worker. Resend connects over SMTP with the built-in mailer, so no new package is needed.
+
+### 19.2 Email: one mail setup, no new package (recommended)
+
+- Staff messages (HR-14) and hiring send through Laravel's default mailer, using the same `MAIL_*` settings.
+- **Recommendation: connect Resend over SMTP** (`smtp.resend.com`, port 587, username `resend`, password = the API key held in environment secrets) with Laravel's built-in `smtp` mailer.
+  - This needs **no new Composer package**.
+  - Laravel's `resend` mailer would need `resend/resend-php` plus its HTTP client. The owner can still choose that later as a separate dependency decision.
+- `.env.example` gains empty placeholders only:
+  - `HR_HIRING_MAILBOX=` (the hiring mailbox address);
+  - `HR_HIRING_EMAIL_ENABLED=false`.
+  - The key never appears in code or in `.env.example`.
+- **Every email is also shown in KPOne:**
+  - on the candidate's private page, as "Messages from the clinic";
+  - on the HR application view, as one row per email with the template and time.
+  - The text is rebuilt from the template, never stored.
+- Tests use `Mail::fake()` and never send.
+
+### 19.3 Stages
+
+Stored stage codes:
+
+```
+new ──► phone_screening ──► scheduling ──► interview ──► passed
+  │            │                 │             └────► failed
+  └────────────┴─────────────────┴──► not_taken_forward (HR) · auto_rejected (no decision in time) · withdrawn
+```
+
+- **Old values.** HR-13's `shortlisted` and `offered` stay readable for old rows, but no new move goes to them.
+  - The CHECK is widened in a new migration. The HR-13 migration itself is not edited.
+- **Auto-reject:**
+  - Clock: 3 working days at each stage that waits for HR (`new` and `phone_screening`).
+  - Working days: the applicant branch's working days less its public holidays, both from HR-2a leave settings. A position with no branch uses the first active branch.
+  - Job: a daily `hr-applications:auto-reject` moves the application and tells the candidate.
+  - Reminder: the day before, one email per waiting application goes to the hiring mailbox, plus an in-KPOne notice.
+- **Phone screening:**
+  - HR keeps a call checklist (KPOne ships none, at most 15 items).
+  - Each call records the ticks, a 1–5 rating and an optional short note (encrypted, never audited).
+  - Pass moves the application to `scheduling`; reject moves it to `not_taken_forward`. The candidate is told either way.
+
+### 19.4 Form per position type
+
+- **The position type.** A position gains a type: `ca`, `intern`, `locum` or `resident_doctor`. Existing positions get `ca` and HR can change it.
+- **Common fields:** name, phone, email, preferred branch, earliest start date, highest education, years of relevant work, languages spoken, short message, and the CV (PDF, as HR-13).
+- **Fields by type:**
+
+  | Type | Extra fields |
+  |---|---|
+  | Intern | institution, programme, internship start and end |
+  | Locum | days and times usually available |
+  | Resident Doctor | MMC number, APC year and APC expiry date |
+
+- **Doctors' registration.** The MMC number and APC are what the candidate states. KPOne does no MMC or APC check; HR checks by hand.
+- **Not asked:** no IC number, date of birth, photo, salary expectation or wage field (owner's point 7).
+- **Language and privacy:**
+  - English and Bahasa Melayu side by side, as HR-13.
+  - New privacy notice version `draft-hr17-applications-v1`, covering email, the private link and the optional talent-pool consent.
+
+### 19.5 Candidate private link
+
+- **The link:**
+  - Shown once on the thank-you page and sent by email. The token travels in the URL fragment (`/careers/status#token`) and is exchanged for an httpOnly cookie, like the QR status page.
+  - Stored hashed.
+  - It lapses when the application's values are purged.
+- **What the candidate sees:**
+  - stage in words;
+  - the clinic's messages;
+  - the slot picker while at `scheduling`;
+  - documents to download once the interview is confirmed;
+  - a "Withdraw my application" button.
+- **What the candidate never sees:** HR's ratings, notes or checklist.
+- **Limits:** per-IP and per-token rate limits. No account, no sign-up, no password.
+
+### 19.6 Interview slots
+
+- **Slot rules:**
+  - Starts at 9, 10, 11 or 12 am, or 2, 3 or 4 pm, branch-local.
+  - On working days, from the next working day up to 10 working days ahead.
+- **Not offered:** a slot already confirmed for another candidate, or a public holiday.
+- **Picking:**
+  - The candidate picks exactly 3; HR confirms 1 or asks for new picks. The candidate is told each time.
+  - There is one confirmed interview per organisation per slot: a PostgreSQL unique index plus a lock, because HR is one team.
+- **Rescheduling:** HR cancels the confirmed slot with a reason code and the candidate picks again.
+
+### 19.7 Interview documents
+
+- **HR side:**
+  - HR uploads PDFs per position type: at most 10 MB each and 10 per type.
+  - They are stored encrypted in the HR-4b vault with no original file name.
+- **Candidate side:**
+  - Downloads are available only while the interview is confirmed.
+  - Each download writes an event before any byte is sent.
+- **Test data:** synthetic dummy PDFs only. The owner sends the real ones later.
+
+### 19.8 Result, talent pool and staff-account handoff
+
+- **Result.** HR records Passed or Failed after the interview, and the candidate is told.
+- **No offer or onboarding checklist.** Wages are handled by call, WhatsApp or in person (owner's point 7).
+- **Talent pool (HR-17e):**
+  - Only with a separate, optional consent tick on the form, added with HR-17e together with a way to withdraw it.
+  - A passed or failed candidate with consent can be kept in the pool for a clinic-entered period (KPOne ships no number), counted from closing. Without consent, the HR-13 retention applies.
+  - HR can invite a pool candidate to a new position, which starts a new application at `phone_screening`.
+- **Staff-account handoff:**
+  - "Ask for a staff account" records a request: name, email, position, branch.
+  - The account administrator sees it on the Staff page as a short list.
+  - The administrator creates the account through the usual Staff create screen (`StaffProvisioningService`) and marks the request done.
+  - HR creates no account and changes no role or branch.
+  - Seen by whoever passes the staff-creation check (today the Director and Technical Admin), showing name, email, position and branch only (owner, 2026-11-10).
+
+### 19.9 Notifications inside KPOne for HR
+
+- A "Needs you" panel on `/hr/applications`:
+  - new applications;
+  - slot picks waiting for a decision;
+  - interviews today;
+  - auto-rejects due tomorrow.
+- Each row says why it is listed.
+- No push and no badge outside HR pages. Reminders go only to the hiring mailbox.
+
+### 19.10 Slices (each its own PR: Suresh, Daniel for screens, a green gate, then ship it)
+
+| Slice | What | Migrations (HR range) |
+|---|---|---|
+| HR-17a | Position types, the detailed form, new stages, phone screening with checklist and rating, privacy notice v1 | `003400` tables, `003500` widen stages |
+| HR-17b | Candidate private link and status page, hiring email through the shared mailer (off), messages shown in KPOne, auto-reject and the reminder, "Needs you" panel | `003600` |
+| HR-17c | Interview slots: pick 3, confirm 1, reschedule | `003700` |
+| HR-17d | Interview documents per position type and recorded downloads | `003800` |
+| HR-17e | Result, talent pool with consent and retention, staff-account handoff | `003900` |
+
+- **New permissions:** none. Everything uses `hr.applications.manage.organisation` (Director, HR Manager). The handoff list reuses the existing staff and access permissions.
+- **New routes:** public routes under `/careers/status` (off with the form), and HR routes under `/hr/applications`. No hub-map change.
+
+### 19.11 Existing assertions I expect to change (each needs approval)
+
+- `tests/Feature/HR/JobApplicationsTest.php`:
+  - lines 184–185 and 198–201: the step list `new → shortlisted → interview → offered` becomes the new stages;
+  - lines 92 and 109: the notice version `draft-hr13-applications-v1` becomes `draft-hr17-applications-v1`;
+  - line 170: the error list gains the new required fields.
+- `tests/Frontend/hr-13-job-applications.test.mjs` line 84: the closing-stage list `['offered', 'not_taken_forward', 'withdrawn']` becomes the new closing stages. The public-form field and language checks there may gain the new fields.
+- I will list exact lines in each slice's PR. Nothing else is expected.
+
+### 19.12 What Daniel needs to review
+
+- the long public form at 390 and 1440 px, in both languages and both themes;
+- the candidate status page and slot picker, the first public page with interaction after HR-13;
+- the HR application view with stages, the call checklist and rating, and the "Needs you" panel;
+- the slot confirmation dialog;
+- the documents tab;
+- the Staff page handoff list (a Staff Experience page, so Kavitha's team is told).
+
+### 19.13 Known risks and limits
+
+- Email to applicants is personal data under PDPA. The notice must say so, and nothing is sent until the owner approves it.
+- The MMC and APC details are not verified by KPOne.
+- Auto-reject counts working days from HR-2a settings. A branch with no working days set never auto-rejects, and this is shown as a warning.
+- The private link works for anyone holding it.
+- A busy hiring mailbox may miss reminders. The "Needs you" panel is the reliable place to look.
+
+### 19.14 HR-17a as built (2026-11-10)
+
+- Position types, the per-type questions, the new stages, and the phone screening with HR's call checklist (versioned; none shipped). The rating is not audited.
+- The privacy notice is `draft-hr17-applications-v1`.
+- **No talent-pool tick or promise until HR-17e** (Suresh). The column stays false, and nothing sent is taken as consent.
+- A screening note is cleared only once its application is purged.
+- The purge also clears the form's answers and the call note.
+- Older HR-13 applications at Shortlisted or Offered still finish their way.
+- No new permission.
+- Known limits:
+  - the answers and the call note are decrypted for the 25 listed rows (as HR-13);
+  - consent withdrawal and the talent pool come with HR-17e;
+  - the MMC number and APC are as stated by the candidate.
