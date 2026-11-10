@@ -345,8 +345,8 @@ const unusedSuggestions = computed(() => {
     <div class="mx-auto flex w-full max-w-7xl flex-col gap-4 px-4 py-4 md:px-5">
         <PageHeader
             eyebrow="Clinic compliance"
-            title="Clinic licences"
-            description="Clinic licences and when they expire. Warnings only: nothing here stops clinical work. Dates are what someone typed; KPOne does not check them with the authority."
+            title="Clinic compliance"
+            description="Clinic licences and the vaccine fridge log. Warnings only: nothing here stops clinical work. Dates and temperatures are what someone typed; KPOne does not check them."
         />
 
         <OperationalTabs
