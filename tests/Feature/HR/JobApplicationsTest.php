@@ -88,8 +88,8 @@ class JobApplicationsTest extends VisitTestCase
         $users = User::query()->count();
 
         $this->get(route('hr-applications.show'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Careers/Apply')
-            ->where('positions', [['id' => $position, 'title' => 'Synthetic Clinic Assistant', 'branch' => null]])
-            ->where('privacyNoticeVersion', 'draft-hr13-applications-v1')->has('formToken'));
+            ->where('positions', [['id' => $position, 'title' => 'Synthetic Clinic Assistant', 'branch' => null, 'type' => 'ca']])
+            ->where('privacyNoticeVersion', 'draft-hr17-applications-v1')->has('formToken'));
 
         $token = JobApplicationIntake::issueToken();
         $this->travel(30)->seconds();
@@ -106,7 +106,7 @@ class JobApplicationsTest extends VisitTestCase
         $this->assertIsString($stored);
         $this->assertStringNotContainsString('SYNTHETIC-CV-CONTENT', $stored);
         $this->assertStringNotContainsString('cv.pdf', (string) $row->cv_path);
-        $this->assertSame('draft-hr13-applications-v1', $row->privacy_notice_version);
+        $this->assertSame('draft-hr17-applications-v1', $row->privacy_notice_version);
         $this->assertSame(['submitted'], DB::table('hr_job_application_events')->pluck('action')->all());
         $this->assertSame($users, User::query()->count());
 
@@ -182,26 +182,31 @@ class JobApplicationsTest extends VisitTestCase
         $this->selectBranch($hr);
 
         $this->move($hr, $id, 'offered', 1)->assertSessionHasErrors('to');
-        $this->move($hr, $id, 'shortlisted', 1)->assertSessionHasNoErrors();
+        // HR-17a stages (owner, 2026-11-10): nothing new moves to HR-13's Shortlisted.
+        $this->move($hr, $id, 'shortlisted', 1)->assertSessionHasErrors('to');
+        $this->move($hr, $id, 'phone_screening', 1)->assertSessionHasNoErrors();
         // A stale page is refused.
         $this->move($hr, $id, 'interview', 1)->assertSessionHasErrors('records');
-        $this->move($hr, $id, 'interview', 2)->assertSessionHasNoErrors();
-        $this->move($hr, $id, 'not_taken_forward', 3)->assertSessionHasNoErrors();
+        // Scheduling needs a recorded phone screening.
+        $this->move($hr, $id, 'scheduling', 2)->assertSessionHasErrors('to');
+        $this->move($hr, $id, 'not_taken_forward', 2)->assertSessionHasNoErrors();
         $row = DB::table('hr_job_applications')->sole();
         $this->assertSame('not_taken_forward', $row->status);
         $this->assertNotNull($row->closed_at);
-        $this->move($hr, $id, 'withdrawn', 4)->assertSessionHasErrors('to');
+        $this->move($hr, $id, 'withdrawn', 3)->assertSessionHasErrors('to');
 
-        // A declined offer is recorded as Withdrawn; that is final too (Suresh, HR-13 M5).
-        $offer = $this->filedApplication($hr, 'Synthetic Offer Role');
+        // A candidate who passes the call goes on to the interview and its result; the result is final.
+        $passed = $this->filedApplication($hr, 'Synthetic Passed Role');
         $this->selectBranch($hr);
-        foreach (['shortlisted', 'interview', 'offered', 'withdrawn'] as $i => $step) {
-            $this->move($hr, $offer, $step, $i + 1)->assertSessionHasNoErrors();
-        }
-        $this->move($hr, $offer, 'offered', 5)->assertSessionHasErrors('to');
-        $this->assertSame('withdrawn', DB::table('hr_job_applications')->where('public_id', $offer)->value('status'));
+        $this->move($hr, $passed, 'phone_screening', 1)->assertSessionHasNoErrors();
+        $this->post(route('hr.applications.screen', $passed), ['outcome' => 'pass', 'rating' => 4, 'ticked' => [], 'expected_lock_version' => 2,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->move($hr, $passed, 'interview', 3)->assertSessionHasNoErrors();
+        $this->move($hr, $passed, 'passed', 4)->assertSessionHasNoErrors();
+        $this->move($hr, $passed, 'withdrawn', 5)->assertSessionHasErrors('to');
+        $this->assertSame('passed', DB::table('hr_job_applications')->where('public_id', $passed)->value('status'));
         $row = DB::table('hr_job_applications')->where('public_id', $id)->sole();
-        $this->assertSame(['submitted', 'status_changed', 'status_changed', 'status_changed'], DB::table('hr_job_application_events')->where('application_id', $row->id)->orderBy('id')->pluck('action')->all());
+        $this->assertSame(['submitted', 'status_changed', 'status_changed'], DB::table('hr_job_application_events')->where('application_id', $row->id)->orderBy('id')->pluck('action')->all());
 
         // PostgreSQL holds the same lines.
         foreach ([
@@ -337,7 +342,10 @@ class JobApplicationsTest extends VisitTestCase
         }
         $cv ??= UploadedFile::fake()->createWithContent('cv.pdf', self::PDF);
         $data = [...['name' => 'Synthetic Applicant', 'phone' => '012-345 6789', 'email' => 'applicant@example.test', 'message' => 'Synthetic note',
-            'privacy_accepted' => '1', 'website' => ''], ...$overrides];
+            'privacy_accepted' => '1', 'website' => '',
+            // HR-17a's questions every position asks (HR-PLAN 19.4).
+            'preferred_branch' => 'any', 'start_date' => now()->addDays(14)->toDateString(), 'education' => 'degree', 'years_experience' => '2',
+            'languages' => ['malay', 'english']], ...$overrides];
         if ($cv !== false) {
             $data['cv'] = $cv;
         }
