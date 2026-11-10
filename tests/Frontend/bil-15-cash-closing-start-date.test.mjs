@@ -44,7 +44,7 @@ test('only those allowed see the form, and the current date and who set it are s
     );
     assert.ok(
         page.includes(
-            "Not set. Days before the branch's first count are not marked as missed.",
+            "Not set. Cash closing starts from the branch's first count; days before it are not marked as Not counted.",
         ),
     );
     assert.ok(page.includes('Save start date'));
@@ -67,4 +67,13 @@ test('a start date moved later is announced on the month page (owner decision 20
         page.includes('Start date changed on {{ startDate.setAt }} (was'),
     );
     assert.ok(month.includes('movedLaterFrom: string | null;'));
+});
+
+test('the error and the allowed range are tied to the date field for screen readers (Siti)', () => {
+    assert.ok(
+        page.includes('aria-describedby="start-date-hint start-date-error"'),
+    );
+    assert.ok(page.includes('id="start-date-error"'));
+    assert.ok(page.includes('Today or earlier, or up to one year ahead.'));
+    assert.ok(page.includes('Starts on <strong>'));
 });

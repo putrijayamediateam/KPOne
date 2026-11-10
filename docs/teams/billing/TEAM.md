@@ -331,6 +331,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Cash closing start date (BIL-15): no way back to "no date set" (owner decision). A request key reused on two
   different branches at the same moment can fail with a server error instead of a message (the branch check normally
   catches it first). A month before the start that holds counts still shows them in full.
+  The "Start date changed" note stays until the next change. The date field shows the browser's own date order (a
+  clinic PC set to English (Malaysia) or English (UK) shows dd/mm/yyyy); the saved date is always shown as "4 Nov 2026".
 
 ## 8. Rules (every task)
 

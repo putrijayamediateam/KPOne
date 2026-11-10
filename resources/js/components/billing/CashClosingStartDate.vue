@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { router, usePage } from '@inertiajs/vue3';
+import { TriangleAlert } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 
@@ -70,33 +71,38 @@ const saveStart = () => {
 
 <template>
     <section
-        class="space-y-2 rounded-xl border bg-card p-4 text-sm"
+        class="space-y-2 rounded-xl border bg-card p-3 text-sm"
         aria-labelledby="start-date-heading"
         data-testid="start-date"
     >
-        <h2 id="start-date-heading" class="font-medium">
+        <h2 id="start-date-heading" class="font-semibold">
             Cash closing start date
         </h2>
-        <p class="text-xs text-muted-foreground">
-            <template v-if="startDate.startsOn">
-                {{ plainDate(startDate.startsOn) }}. Days from this date without
-                a count show as Not counted. Set by {{ startDate.setBy }} on
-                {{ startDate.setAt }}.
-            </template>
-            <template v-else>
-                Not set. Days before the branch's first count are not marked as
-                missed.
-            </template>
+        <template v-if="startDate.startsOn">
+            <p data-testid="start-date-value">
+                Starts on <strong>{{ plainDate(startDate.startsOn) }}</strong
+                >. Days from this date without a count show as Not counted.
+            </p>
+            <p class="text-xs text-muted-foreground">
+                Set by {{ startDate.setBy }} on {{ startDate.setAt }}.
+            </p>
+        </template>
+        <p v-else data-testid="start-date-value">
+            Not set. Cash closing starts from the branch's first count; days
+            before it are not marked as Not counted.
         </p>
         <p
             v-if="startDate.movedLaterFrom && startDate.startsOn"
-            class="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
+            class="flex gap-2 rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-100"
             data-testid="start-date-moved-later"
         >
-            Start date changed on {{ startDate.setAt }} (was
-            {{ plainDate(startDate.movedLaterFrom) }}). Days before
-            {{ plainDate(startDate.startsOn) }} are no longer marked as Not
-            counted.
+            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <span>
+                Start date changed on {{ startDate.setAt }} (was
+                {{ plainDate(startDate.movedLaterFrom) }}). Days before
+                {{ plainDate(startDate.startsOn) }} are no longer marked as Not
+                counted.
+            </span>
         </p>
         <form
             v-if="startDate.canSet"
@@ -110,6 +116,8 @@ const saveStart = () => {
                     v-model="startInput"
                     type="date"
                     required
+                    aria-describedby="start-date-hint start-date-error"
+                    :aria-invalid="startError ? 'true' : undefined"
                     class="h-11 rounded-md border border-input bg-background px-2 text-sm sm:h-9"
                 />
             </label>
@@ -121,6 +129,13 @@ const saveStart = () => {
                 Save start date
             </button>
         </form>
-        <InputError :message="startError" />
+        <p
+            v-if="startDate.canSet"
+            id="start-date-hint"
+            class="text-xs text-muted-foreground"
+        >
+            Today or earlier, or up to one year ahead.
+        </p>
+        <InputError id="start-date-error" :message="startError" />
     </section>
 </template>
