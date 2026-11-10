@@ -123,7 +123,9 @@ final class CandidateLink
             $pick = DB::table('hr_job_interview_picks')->where('application_id', $application->id)->where('round', $application->interview_round)->first();
 
             return ['branch' => $branch['name'] ?? null, 'picked' => $pick === null ? [] : array_map($label, (array) json_decode((string) $pick->starts, true)),
-                'days' => $pick === null ? $slots->available($application) : [], 'picks' => InterviewSlots::PICKS];
+                'days' => $pick === null ? $slots->available($application) : [], 'picks' => InterviewSlots::PICKS,
+                // "Kuala Lumpur time" (Daniel, HR-17c): the times are the branch's.
+                'zone' => str_replace('_', ' ', (string) last(explode('/', $zone)))];
         }
         if ($application->status === 'interview') {
             $interview = DB::table('hr_job_interviews as i')->join('branches as b', 'b.id', '=', 'i.branch_id')->where('i.application_id', $application->id)

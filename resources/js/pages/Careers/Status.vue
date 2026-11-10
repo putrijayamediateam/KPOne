@@ -4,6 +4,7 @@
 // and the fragment is cleared from the address bar. The page shows the stage in plain words and the clinic's
 // messages, never HR's rating, note or checklist, and nothing the candidate sent.
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { ChevronRight } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref } from 'vue';
 
 type Message = { label: string; subject: string; body: string; at: string };
@@ -26,6 +27,7 @@ type Application = {
             slots: { start: string; label: string }[];
         }[];
         picks?: number;
+        zone?: string;
         confirmed?: string;
     } | null;
 };
@@ -90,6 +92,20 @@ const toggle = (start: string) => {
           ? [...chosen.value, start]
           : chosen.value;
 };
+// Each chosen time with its day, for the "Your choices" list (Daniel, HR-17c).
+const slotLabels = computed(() => {
+    const labels: Record<string, string> = {};
+
+    for (const day of props.application?.interview?.days ?? []) {
+        for (const slot of day.slots) {
+            labels[slot.start] = `${day.label}, ${slot.label}`;
+        }
+    }
+
+    return labels;
+});
+const chosenIn = (starts: { start: string }[]) =>
+    starts.filter((s) => chosen.value.includes(s.start)).length;
 const sendPicks = () => {
     sending.value = true;
     router.post(
@@ -302,15 +318,38 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             >
                                 {{ errors.starts }}
                             </p>
-                            <fieldset
-                                v-for="day in application.interview.days"
-                                :key="day.date"
-                                class="space-y-2"
+                            <p
+                                v-if="application.interview.zone"
+                                class="text-sm font-medium"
+                                data-test="status-slots-zone"
                             >
-                                <legend class="text-sm font-semibold">
+                                {{ application.interview.zone }} time / Waktu
+                                {{ application.interview.zone }}
+                            </p>
+                            <!-- One disclosure per day, the first open (Daniel, HR-17c). -->
+                            <details
+                                v-for="(day, i) in application.interview.days"
+                                :key="day.date"
+                                class="group rounded-lg border border-zinc-200 dark:border-zinc-800"
+                                :open="i === 0"
+                                data-test="status-slots-day"
+                            >
+                                <summary
+                                    class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-semibold [&::-webkit-details-marker]:hidden"
+                                >
+                                    <ChevronRight
+                                        class="size-4 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+                                        aria-hidden="true"
+                                    />
                                     {{ day.label }}
-                                </legend>
-                                <div class="flex flex-wrap gap-2">
+                                    <span
+                                        v-if="chosenIn(day.slots)"
+                                        class="font-normal text-pink-700 dark:text-pink-400"
+                                        >· {{ chosenIn(day.slots) }} chosen /
+                                        dipilih</span
+                                    >
+                                </summary>
+                                <div class="flex flex-wrap gap-2 px-3 pb-3">
                                     <label
                                         v-for="slot in day.slots"
                                         :key="slot.start"
@@ -332,7 +371,33 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                         {{ slot.label }}
                                     </label>
                                 </div>
-                            </fieldset>
+                            </details>
+                            <div
+                                v-if="chosen.length"
+                                class="space-y-2"
+                                data-test="status-slots-choices"
+                            >
+                                <h3 class="text-sm font-semibold">
+                                    Your choices / Pilihan anda
+                                </h3>
+                                <ul class="space-y-2">
+                                    <li
+                                        v-for="start in chosen"
+                                        :key="start"
+                                        class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-200 px-3 py-1 text-sm dark:border-zinc-800"
+                                    >
+                                        {{ slotLabels[start] ?? start }}
+                                        <button
+                                            type="button"
+                                            class="inline-flex min-h-11 items-center px-2 text-sm font-medium text-pink-700 underline underline-offset-4 dark:text-pink-400"
+                                            :aria-label="`Remove ${slotLabels[start] ?? start}`"
+                                            @click="toggle(start)"
+                                        >
+                                            Remove / Buang
+                                        </button>
+                                    </li>
+                                </ul>
+                            </div>
                             <div
                                 class="sticky bottom-0 flex flex-wrap items-center gap-3 border-t border-zinc-200 bg-white py-3 dark:border-zinc-800 dark:bg-zinc-900"
                             >
@@ -351,7 +416,11 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                     data-test="status-slots-send"
                                     @click="sendPicks"
                                 >
-                                    Send my three times / Hantar tiga masa saya
+                                    {{
+                                        chosen.length === 3
+                                            ? 'Send my three times / Hantar tiga masa saya'
+                                            : 'Choose 3 times / Pilih 3 masa'
+                                    }}
                                 </button>
                             </div>
                         </template>

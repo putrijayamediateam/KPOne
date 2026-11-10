@@ -250,6 +250,7 @@ const interviewPost = (path: string, data: Record<string, string> = {}) => {
             onSuccess: () => {
                 viewing.value = null;
                 interviewAction.cancelOpen = false;
+                confirming.value = null;
             },
             onFinish: () => (interviewAction.processing = false),
         },
@@ -361,6 +362,22 @@ const saveScreening = () => {
         },
     );
 };
+// HR-17c (Daniel): at Scheduling, "Interview" means an interview arranged outside KPOne, and it is hidden once the
+// candidate has picked times, so Confirm is the one path.
+const arrangedOutside = (to: string) =>
+    viewing.value?.status === 'scheduling' && to === 'interview';
+const moveSteps = computed(() =>
+    (viewing.value?.next ?? []).filter(
+        (step) =>
+            !(
+                arrangedOutside(step.value) &&
+                (viewing.value?.interview?.picks.length ?? 0) > 0
+            ),
+    ),
+);
+// Confirming tells the candidate, so it asks first (Daniel, HR-17c).
+const confirming = ref<{ start: string; label: string } | null>(null);
+
 const askMove = (to: string) => {
     if (!viewing.value) {
         return;
@@ -1153,6 +1170,7 @@ const saveRetention = () => {
                                         >
                                     </span>
                                     <Button
+                                        variant="outline"
                                         class="max-lg:min-h-11"
                                         :disabled="
                                             pick.taken ||
@@ -1162,9 +1180,10 @@ const saveRetention = () => {
                                         :aria-label="`Confirm ${pick.label}`"
                                         data-test="interview-confirm"
                                         @click="
-                                            interviewPost('confirm', {
+                                            confirming = {
                                                 start: pick.start,
-                                            })
+                                                label: pick.label,
+                                            }
                                         "
                                         >Confirm</Button
                                     >
@@ -1358,12 +1377,12 @@ const saveRetention = () => {
                         <h3 class="text-sm font-semibold">Move to</h3>
                         <div class="flex flex-wrap gap-2">
                             <Button
-                                v-for="step in viewing.next"
+                                v-for="step in moveSteps"
                                 :key="step.value"
                                 :variant="
                                     ['not_taken_forward', 'withdrawn'].includes(
                                         step.value,
-                                    )
+                                    ) || arrangedOutside(step.value)
                                         ? 'outline'
                                         : 'default'
                                 "
@@ -1371,7 +1390,11 @@ const saveRetention = () => {
                                 :disabled="moving.processing"
                                 :data-test="`application-move-${step.value}`"
                                 @click="askMove(step.value)"
-                                >{{ step.label }}</Button
+                                >{{
+                                    arrangedOutside(step.value)
+                                        ? 'Arranged outside KPOne'
+                                        : step.label
+                                }}</Button
                             >
                         </div>
                     </div>
@@ -1511,6 +1534,21 @@ const saveRetention = () => {
                 </div>
             </SheetContent>
         </Sheet>
+
+        <OperationalConfirmDialog
+            :open="confirming !== null"
+            :title="`Confirm ${confirming?.label ?? ''}?`"
+            description="The candidate is told the date, time and branch."
+            confirm-label="Confirm interview"
+            :processing="interviewAction.processing"
+            :error="errors.start"
+            data-test="interview-confirm-dialog"
+            @update:open="(open) => !open && (confirming = null)"
+            @confirm="
+                confirming &&
+                interviewPost('confirm', { start: confirming.start })
+            "
+        />
 
         <OperationalConfirmDialog
             :open="interviewAction.cancelOpen"

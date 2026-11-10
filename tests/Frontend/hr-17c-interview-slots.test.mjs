@@ -67,3 +67,31 @@ test('HR confirms one time, asks for new times, or cancels with a reason after a
     assert.match(t, /title="Cancel this interview\?"/);
     assert.match(source.hr, /interview\/\$\{path\}/);
 });
+
+test('Candidate sees collapsible days, their choices with Remove, the time zone and a counted send button (Daniel)', () => {
+    const t = template('status');
+
+    for (const id of [
+        'status-slots-zone',
+        'status-slots-choices',
+        'status-slots-count',
+    ]) {
+        assert.ok(t.includes(`data-test="${id}"`), id);
+    }
+
+    assert.match(t, /Your choices \/ Pilihan anda/);
+    assert.match(t, /Choose 3 times \/ Pilih 3 masa/);
+    assert.match(source.status, /ChevronRight/);
+});
+
+test('HR confirms a time through a dialog and moves to Interview only when arranged outside KPOne (Daniel)', () => {
+    const t = template('hr');
+
+    assert.match(t, /Arranged outside KPOne/);
+    assert.match(t, /`Confirm \$\{confirming\?\.label \?\? ''\}\?`/);
+    assert.match(source.hr, /const arrangedOutside = /);
+    assert.match(
+        source.hr,
+        /interviewPost\('confirm', \{ start: confirming\.start \}\)/,
+    );
+});
