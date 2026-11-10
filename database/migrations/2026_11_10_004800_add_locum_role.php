@@ -7,13 +7,13 @@ use Spatie\Permission\PermissionRegistrar;
 
 /**
  * HR-15a (HR-PLAN 21.3; B.E.R.N.I.S.S for the owner, 2026-11-10): the narrow `locum` role for a locum's own sign-in.
- * Their own account settings and their own approved shifts only. The role is new, so it is created here with exactly
+ * Their own account settings, a choice among their own assigned branches, and their own approved shifts only. The role is new, so it is created here with exactly
  * its permissions; no existing role changes.
  */
 return new class extends Migration
 {
     /** Literal names: this historical migration must not follow later code changes. */
-    private const PERMISSIONS = ['profile.view.own', 'hr.roster.view.own'];
+    private const PERMISSIONS = ['profile.view.own', 'branch_context.switch.branch', 'hr.roster.view.own'];
 
     public function up(): void
     {
