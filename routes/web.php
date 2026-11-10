@@ -129,6 +129,17 @@ Route::get('careers/apply/thanks', [JobApplicationController::class, 'thanks'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-view', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.thanks');
 
+// HR-17b: the candidate's private link (HR-PLAN 19.5). Off with the form.
+Route::get('careers/status', [JobApplicationController::class, 'status'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-status', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.status');
+Route::post('careers/status/exchange', [JobApplicationController::class, 'exchange'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.status.exchange');
+Route::post('careers/status/withdraw', [JobApplicationController::class, 'withdraw'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.status.withdraw');
+
 Route::get('check-in', PublicCheckInController::class)
     ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store:no-referrer'])
     ->name('public-checkin.show');

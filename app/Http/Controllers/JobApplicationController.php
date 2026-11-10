@@ -2,14 +2,19 @@
 
 namespace App\Http\Controllers;
 
+use App\Domain\HR\Applications\Services\CandidateLink;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cookie;
+use Illuminate\Support\Facades\Crypt;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
+use Symfony\Component\HttpFoundation\Cookie as HttpCookie;
 
-/** HR-13 public job-application form. Thin: every rule lives in app/Domain/HR/Applications. */
+/** HR-13 public job-application form and HR-17b's private link page. Thin: every rule lives in app/Domain/HR/Applications. */
 class JobApplicationController extends Controller
 {
     public function show(JobApplicationIntake $intake): Response
@@ -20,21 +25,87 @@ class JobApplicationController extends Controller
     public function submit(Request $request, JobApplicationIntake $intake): RedirectResponse
     {
         try {
-            $intake->submit($request->only(['form_token', 'position', 'name', 'phone', 'email', 'message', 'privacy_accepted', 'preferred_branch', 'start_date', 'education', 'years_experience', 'languages', 'institution', 'programme', 'intern_from', 'intern_to', 'availability', 'mmc_number', 'apc_year', 'apc_expiry', JobApplicationIntake::HONEYPOT]), $request->file('cv'));
+            $token = $intake->submit($request->only(['form_token', 'position', 'name', 'phone', 'email', 'message', 'privacy_accepted', 'preferred_branch', 'start_date', 'education', 'years_experience', 'languages', 'institution', 'programme', 'intern_from', 'intern_to', 'availability', 'mmc_number', 'apc_year', 'apc_expiry', JobApplicationIntake::HONEYPOT]), $request->file('cv'));
         } catch (ValidationException $e) {
             // Errors only, never the input: nothing the applicant typed goes into the session (Suresh, HR-13 M3). The
             // page keeps the typed fields in the browser; the CV is chosen again.
             return redirect()->route('hr-applications.show')->withErrors($e->errors());
         }
 
-        // The same page whether stored or caught as a robot; it shows nothing the applicant sent.
-        return redirect()->route('hr-applications.thanks');
+        // The same page whether stored or caught as a robot; it shows nothing the applicant sent. The private link is
+        // flashed encrypted for the one thank-you page that shows it, so the session store never holds the token.
+        $redirect = redirect()->route('hr-applications.thanks');
+
+        return $token === null ? $redirect : $redirect->with('hr_status_link', Crypt::encryptString($token));
     }
 
-    public function thanks(JobApplicationIntake $intake): Response
+    public function thanks(Request $request, JobApplicationIntake $intake): Response
     {
         $intake->ensureEnabled();
+        $link = null;
+        $sealed = $request->session()->get('hr_status_link');
+        if (is_string($sealed)) {
+            try {
+                $token = Crypt::decryptString($sealed);
+                $link = CandidateLink::valid($token) ? CandidateLink::url($token) : null;
+            } catch (DecryptException) {
+                $link = null;
+            }
+        }
 
-        return Inertia::render('Careers/Thanks', ['clinicName' => 'Klinik Putrijaya']);
+        return Inertia::render('Careers/Thanks', ['clinicName' => 'Klinik Putrijaya', 'statusLink' => $link]);
+    }
+
+    public function status(Request $request, JobApplicationIntake $intake, CandidateLink $links): Response
+    {
+        $intake->ensureEnabled();
+        $application = $links->resolve($request->cookie($this->cookieName()));
+
+        return Inertia::render('Careers/Status', ['clinicName' => 'Klinik Putrijaya', 'application' => $application === null ? null : $links->view($application)]);
+    }
+
+    /** The page sends the token from the URL fragment once; it becomes an httpOnly cookie for this page only. */
+    public function exchange(Request $request, JobApplicationIntake $intake, CandidateLink $links): RedirectResponse
+    {
+        $intake->ensureEnabled();
+        $token = $request->input('token');
+        $request->replace([]);
+        if ($links->resolve($token) === null) {
+            return redirect()->route('hr-applications.status')->withErrors(['link' => CandidateLink::INVALID])
+                ->withCookie(Cookie::forget($this->cookieName(), $this->cookiePath()));
+        }
+
+        return redirect()->route('hr-applications.status')->withCookie($this->cookie($request, (string) $token));
+    }
+
+    public function withdraw(Request $request, JobApplicationIntake $intake, CandidateLink $links): RedirectResponse
+    {
+        $intake->ensureEnabled();
+        try {
+            $links->withdraw($request->cookie($this->cookieName()));
+        } catch (ValidationException $e) {
+            return redirect()->route('hr-applications.status')->withErrors($e->errors());
+        }
+
+        // The page then shows the stage as Withdrawn, and the clinic's "withdrawn" message.
+        return redirect()->route('hr-applications.status');
+    }
+
+    private function cookie(Request $request, #[\SensitiveParameter] string $token): HttpCookie
+    {
+        $secure = config('session.secure');
+
+        return Cookie::make($this->cookieName(), $token, (int) config('hr-applications.status_cookie_days', 180) * 24 * 60, $this->cookiePath(), null,
+            $secure === null ? $request->isSecure() : (bool) $secure, true, false, HttpCookie::SAMESITE_LAX);
+    }
+
+    private function cookieName(): string
+    {
+        return (string) config('hr-applications.status_cookie', 'kpone_career_status');
+    }
+
+    private function cookiePath(): string
+    {
+        return '/careers/status';
     }
 }
