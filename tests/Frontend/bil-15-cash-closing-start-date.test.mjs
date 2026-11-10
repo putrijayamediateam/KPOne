@@ -71,9 +71,23 @@ test('a start date moved later is announced on the month page (owner decision 20
 
 test('the error and the allowed range are tied to the date field for screen readers (Siti)', () => {
     assert.ok(
-        page.includes('aria-describedby="start-date-hint start-date-error"'),
+        page.includes(
+            'aria-describedby="start-date-hint start-date-echo start-date-error"',
+        ),
     );
     assert.ok(page.includes('id="start-date-error"'));
     assert.ok(page.includes('Today or earlier, or up to one year ahead.'));
     assert.ok(page.includes('Starts on <strong>'));
+});
+
+test('the change form is closed by default, reopens on an error, and read-only viewers are told who can change it (Daniel)', () => {
+    assert.ok(page.includes('data-testid="start-date-change"'));
+    assert.ok(page.includes('const changeOpen = ref(false);'));
+    assert.ok(page.includes('changeOpen.value = true;'));
+    assert.ok(
+        page.includes('A Director or Finance Officer can change this date.'),
+    );
+    assert.ok(page.includes('border-warning/25 bg-warning/10'));
+    assert.ok(!page.includes('amber-'));
+    assert.ok(page.includes('= ${inputInWords}'));
 });
