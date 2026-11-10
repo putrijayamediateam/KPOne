@@ -2,11 +2,13 @@
 
 namespace Tests\Feature\Billing;
 
+use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelStatementUpload;
+use App\Domain\Visit\Billing\Services\PanelStatementService;
 use App\Domain\Visit\Models\Panel;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -151,6 +153,36 @@ class PanelStatementTest extends BillingTestCase
                 ->where('statement.rows.9.result', 'not_found')
                 ->where('statement.rows.10.result', 'not_found'));
         $this->assertSame(0, DB::table('panel_claim_payments')->where('panel_claim_id', '!=', $paid->id)->count(), 'Nothing is recorded.');
+    }
+
+    public function test_the_page_says_so_when_near_matches_looked_at_only_the_oldest_open_claims(): void
+    {
+        // PNL-20: the near-match pass compares a fixed number of the oldest open claims. Two here, so the cut is cheap to reach.
+        $this->app->bind(PanelStatementService::class, fn ($app) => new class($app->make(TransactionalActorAuthority::class), $app->make(AuditRecorder::class)) extends PanelStatementService
+        {
+            protected function nearCandidateLimit(): int
+            {
+                return 2;
+            }
+        });
+        $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id, 'code' => 'SYNTH-CUT']);
+        [$a, , $c] = $this->acceptedClaims($panel, 3);
+        $format = static fn (PanelClaim $claim): string => strtolower(str_replace('-', ' ', $claim->invoice_number));
+        $this->selectBranch($this->officer(), $this->branch);
+
+        // Row 0 is found among the two oldest; row 1 belongs to the third claim, which the near pass never compares.
+        $this->post(route('panel-remittances.statements.store'), $this->upload($panel, "Invoice,Amount\n{$format($a)},30.00\n{$format($c)},30.00"))->assertSessionHasNoErrors();
+        $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => PanelStatementUpload::query()->latest('id')->value('public_id')]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page
+                ->where('statement.nearCut', true)->where('statement.nearLimit', 2)
+                ->where('statement.rows.0.result', 'near_match')->where('statement.rows.0.claim.publicId', $a->public_id)
+                ->where('statement.rows.1.result', 'not_found'));
+
+        // Every row matched exactly: the near pass never ran, so no note is needed.
+        PanelStatementUpload::query()->delete();
+        $this->post(route('panel-remittances.statements.store'), $this->upload($panel, "Invoice,Amount\n{$c->invoice_number},30.00"))->assertSessionHasNoErrors();
+        $this->get(route('panel-remittances.index', ['panel' => $panel->code, 'statement' => PanelStatementUpload::query()->latest('id')->value('public_id')]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('statement.nearCut', false)->where('statement.rows.0.result', 'matched'));
     }
 
     public function test_files_that_are_not_a_usable_csv_are_refused_and_nothing_is_kept(): void
