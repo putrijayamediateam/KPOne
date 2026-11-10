@@ -335,7 +335,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   received cannot be below it, because an approved pay-later balance cannot grow back); a receipt with a refund, or
   that pays more than one invoice, cannot be corrected. The replacement receipt carries the correction date, so the
   original shows as reversed on its own day and the replacement on the day of the correction. Before completion
-  the existing reversal still applies.
+  the existing reversal still applies. Money left due after a correction is collected on the completed visit (paid before any
+  pay-later) and shows in outstanding bills, not in the pay-later collection list.
 
 ## 8. Rules (every task)
 

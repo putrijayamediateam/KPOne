@@ -14,6 +14,7 @@ use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PaymentReversal;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -133,7 +134,13 @@ class ReceiptCorrectionService
             $correction = new PaymentCorrection;
             $correction->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id, 'invoice_id' => $invoice->id,
                 'original_payment_id' => $payment->id, 'payment_reversal_id' => $reversal->id, 'replacement_payment_id' => $replacement?->id, 'received_sen' => $received,
-                'corrected_by_user_id' => $actor->id, 'idempotency_key' => $a['idempotency_key'], 'payload_hash' => $hash, 'created_at' => now()->utc()])->save();
+                'corrected_by_user_id' => $actor->id, 'idempotency_key' => $a['idempotency_key'], 'payload_hash' => $hash, 'created_at' => now()->utc()]);
+            try {
+                $correction->save();
+            } catch (UniqueConstraintViolationException) {
+                // The same key raced on another invoice; the first one won.
+                throw ValidationException::withMessages(['idempotency_key' => 'This request was already used for a different correction. Reload and try again.']);
+            }
             $invoice->forceFill(['lock_version' => $invoice->lock_version + 1])->save();
             $this->ledger->state($invoice);
             $this->audit->record('billing.receipt_corrected', $invoice, ['record_version' => $invoice->lock_version, 'reversed_sen' => (int) $allocation->amount_sen,

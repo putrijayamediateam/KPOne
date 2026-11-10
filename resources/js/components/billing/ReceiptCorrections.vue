@@ -49,6 +49,7 @@ const errorMessage = computed(
         errors.value.correction ??
         errors.value.received_sen ??
         errors.value.method ??
+        errors.value.reference ??
         errors.value.reason ??
         errors.value.recording_error_only ??
         errors.value.invoice ??

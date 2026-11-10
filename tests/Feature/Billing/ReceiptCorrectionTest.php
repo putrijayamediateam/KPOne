@@ -67,6 +67,31 @@ class ReceiptCorrectionTest extends BillingTestCase
         $this->assertNull(PaymentCorrection::query()->latest('id')->firstOrFail()->replacement_payment_id);
         $this->assertSame(['total' => 4000, 'self_pay' => 0, 'panel' => 0, 'deferred' => 0, 'due_now' => 4000], $this->state($f['invoice']));
         $this->assertSame(Visit::STATUS_COMPLETED, $f['visit']->refresh()->status);
+
+        // Owner decision 2026-11-10: the money now due is collected on the completed visit, never more than is due.
+        $this->selectBranch($f['ca']);
+        $this->get(route('billing.show', $f['visit']))->assertInertia(fn (Assert $page) => $page->where('billing.can.pay', true));
+        $this->post(route('billing.payment', [$f['visit'], $f['invoice']]), ['expected_branch_id' => $f['visit']->branch_id, 'lock_version' => $f['invoice']->refresh()->lock_version, 'amount_sen' => '4001', 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('amount_sen');
+        $this->post(route('billing.payment', [$f['visit'], $f['invoice']]), ['expected_branch_id' => $f['visit']->branch_id, 'lock_version' => $f['invoice']->refresh()->lock_version, 'amount_sen' => '4000', 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->assertSame(['total' => 4000, 'self_pay' => 4000, 'panel' => 0, 'deferred' => 0, 'due_now' => 0], $this->state($f['invoice']));
+    }
+
+    public function test_money_due_after_correcting_a_receipt_beside_pay_later_is_collected_first_and_pay_later_still_works(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $cash = $this->cashMethod($visit);
+        $debt = $this->payTenAndDeferThirty($ca, $visit, $invoice);
+        $first = Payment::query()->sole();
+        $f = ['visit' => $visit, 'invoice' => $invoice->refresh(), 'receipt' => $first, 'cash' => $cash];
+        $this->selectBranch($this->actor('finance_officer'));
+        $this->post(route('billing.receipt.correct', [$visit, $invoice, $first]), $this->input($f, '500', 'cash'))->assertSessionHasNoErrors();
+        $this->assertSame(['total' => 4000, 'self_pay' => 500, 'panel' => 0, 'deferred' => 3000, 'due_now' => 500], $this->state($invoice));
+        // The next receipt pays the RM5.00 due first, then RM10.00 of the pay-later.
+        $this->selectBranch($ca);
+        $this->post(route('billing.payment', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => '1500', 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->assertSame(['total' => 4000, 'self_pay' => 2000, 'panel' => 0, 'deferred' => 2000, 'due_now' => 0], $this->state($invoice));
+        $this->assertSame(2000, $debt->refresh()->remaining_sen);
+        $this->assertSame(1000, (int) DB::table('payment_allocations')->latest('id')->value('deferment_applied_sen'));
     }
 
     public function test_only_a_finance_officer_who_did_not_record_it_corrects_and_only_after_completion(): void
@@ -146,19 +171,7 @@ class ReceiptCorrectionTest extends BillingTestCase
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();
         $cash = $this->cashMethod($visit);
-        $supervisor = $this->actor('ca_supervisor');
-        $director = $this->actor('director');
-        $this->selectBranch($director);
-        $this->post(route('billing-approval-limits.store'), ['expected_branch_id' => $this->branch->id, 'user_id' => $supervisor->id, 'capability' => 'deferment', 'limit_sen' => 5000])->assertSessionHasNoErrors();
-        $this->selectBranch($ca);
-        $this->post(route('billing.payment', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => '1000', 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
-        $this->post(route('billing.propose', [$visit, $invoice, 'deferment']), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version,
-            'amount_sen' => '3000', 'due_date' => now($this->branch->timezone)->addDays(7)->toDateString(), 'reason' => 'Synthetic pay later reason'])->assertSessionHasNoErrors();
-        $debt = PatientReceivable::query()->sole();
-        $this->selectBranch($supervisor);
-        $this->post(route('billing.approve', [$visit, $invoice, 'deferment', $debt->public_id]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'proposal_lock_version' => $debt->lock_version])->assertSessionHasNoErrors();
-        $this->selectBranch($ca);
-        $this->post(route('billing.complete', $visit), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'visit_lock_version' => $visit->refresh()->lock_version])->assertSessionHasNoErrors();
+        $debt = $this->payTenAndDeferThirty($ca, $visit, $invoice);
         $this->post(route('billing.payment', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => '2000', 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $instalment = Payment::query()->latest('id')->firstOrFail();
         $f = ['visit' => $visit, 'invoice' => $invoice->refresh(), 'receipt' => $instalment, 'cash' => $cash];
@@ -195,7 +208,10 @@ class ReceiptCorrectionTest extends BillingTestCase
         $fresh = ['public_id' => (string) Str::uuid(), 'idempotency_key' => (string) Str::uuid()];
         $this->assertDatabaseRefuses('23505', fn () => DB::table('payment_corrections')->insert([...$row, ...$fresh]));
         $replacement = Payment::query()->whereKey($correction->replacement_payment_id)->sole();
-        $this->assertDatabaseRefuses('23514', fn () => DB::table('payment_corrections')->insert([...$row, ...$fresh, 'original_payment_id' => $replacement->id]), 'reversal of a receipt someone else recorded');
+        $this->assertDatabaseRefuses('23514', fn () => DB::table('payment_corrections')->insert([...$row, ...$fresh, 'original_payment_id' => $replacement->id]), 'reversal, after completion');
+        // The guard runs before the unique keys: more than the receipt, or an amount that is not the replacement's.
+        $this->assertDatabaseRefuses('23514', fn () => DB::table('payment_corrections')->insert([...$row, ...$fresh, 'received_sen' => 4001]), 'more than the reversed receipt');
+        $this->assertDatabaseRefuses('23514', fn () => DB::table('payment_corrections')->insert([...$row, ...$fresh, 'received_sen' => 3000]), 'keeping its pay-later part');
     }
 
     /** @return array{ca: User, visit: Visit, invoice: Invoice, receipt: Payment, cash: PaymentMethod} */
@@ -209,6 +225,26 @@ class ReceiptCorrectionTest extends BillingTestCase
         $this->assertSame(Visit::STATUS_COMPLETED, $visit->refresh()->status);
 
         return ['ca' => $ca, 'visit' => $visit, 'invoice' => $invoice->refresh(), 'receipt' => Payment::query()->latest('id')->firstOrFail(), 'cash' => $cash];
+    }
+
+    /** RM10.00 paid by the CA, RM30.00 pay-later approved by a CA Supervisor, then the visit completed. */
+    private function payTenAndDeferThirty(User $ca, Visit $visit, Invoice $invoice): PatientReceivable
+    {
+        $supervisor = $this->actor('ca_supervisor');
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $this->post(route('billing-approval-limits.store'), ['expected_branch_id' => $this->branch->id, 'user_id' => $supervisor->id, 'capability' => 'deferment', 'limit_sen' => 5000])->assertSessionHasNoErrors();
+        $this->selectBranch($ca);
+        $this->post(route('billing.payment', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'amount_sen' => '1000', 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->post(route('billing.propose', [$visit, $invoice, 'deferment']), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version,
+            'amount_sen' => '3000', 'due_date' => now($this->branch->timezone)->addDays(7)->toDateString(), 'reason' => 'Synthetic pay later reason'])->assertSessionHasNoErrors();
+        $debt = PatientReceivable::query()->sole();
+        $this->selectBranch($supervisor);
+        $this->post(route('billing.approve', [$visit, $invoice, 'deferment', $debt->public_id]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'proposal_lock_version' => $debt->lock_version])->assertSessionHasNoErrors();
+        $this->selectBranch($ca);
+        $this->post(route('billing.complete', $visit), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version, 'visit_lock_version' => $visit->refresh()->lock_version])->assertSessionHasNoErrors();
+
+        return $debt;
     }
 
     /** @param array{visit: Visit, invoice: Invoice, receipt: Payment} $f

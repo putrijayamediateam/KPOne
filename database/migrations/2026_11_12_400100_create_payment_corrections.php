@@ -50,8 +50,11 @@ BEGIN
    OR o.organisation_id <> NEW.organisation_id OR o.branch_id <> NEW.branch_id
    OR r.approved_by_user_id <> NEW.corrected_by_user_id OR o.recorded_by_user_id = NEW.corrected_by_user_id
    OR NOT EXISTS (SELECT 1 FROM invoices i JOIN visits v ON v.id = i.visit_id WHERE i.id = NEW.invoice_id
-     AND i.organisation_id = NEW.organisation_id AND i.branch_id = NEW.branch_id AND i.status = 'finalized' AND v.status = 'completed') THEN
-  RAISE EXCEPTION 'A receipt correction needs the reversal of a receipt someone else recorded on a completed visit' USING ERRCODE = '23514';
+     AND i.organisation_id = NEW.organisation_id AND i.branch_id = NEW.branch_id AND i.status = 'finalized' AND v.status = 'completed'
+     AND r.reversed_at >= v.completed_at)
+   OR EXISTS (SELECT 1 FROM payment_refunds f WHERE f.payment_id = o.id
+     AND NOT EXISTS (SELECT 1 FROM payment_refund_decisions d WHERE d.payment_refund_id = f.id AND d.decision = 'rejected')) THEN
+  RAISE EXCEPTION 'A receipt correction needs the reversal, after completion, of a receipt someone else recorded and nobody refunded' USING ERRCODE = '23514';
  END IF;
  IF NEW.received_sen < 0 OR NEW.received_sen > o.amount_sen THEN
   RAISE EXCEPTION 'A correction cannot record more than the reversed receipt' USING ERRCODE = '23514';
@@ -63,8 +66,10 @@ BEGIN
  SELECT * INTO n FROM payments WHERE id = NEW.replacement_payment_id;
  IF n.id IS NULL OR n.status <> 'posted' OR n.amount_sen <> NEW.received_sen OR n.recorded_by_user_id <> NEW.corrected_by_user_id
    OR n.organisation_id <> NEW.organisation_id OR n.branch_id <> NEW.branch_id OR n.patient_id <> o.patient_id
-   OR NOT EXISTS (SELECT 1 FROM payment_allocations a WHERE a.payment_id = n.id AND a.invoice_id = NEW.invoice_id) THEN
-  RAISE EXCEPTION 'The replacement receipt must be the corrector''s posted receipt for what was received, on the same invoice' USING ERRCODE = '23514';
+   OR n.received_at < r.reversed_at
+   OR NOT EXISTS (SELECT 1 FROM payment_allocations a JOIN payment_allocations oa ON oa.payment_id = o.id
+     WHERE a.payment_id = n.id AND a.invoice_id = NEW.invoice_id AND a.deferment_applied_sen = oa.deferment_applied_sen) THEN
+  RAISE EXCEPTION 'The replacement receipt must be the corrector''s new posted receipt for what was received, on the same invoice, keeping its pay-later part' USING ERRCODE = '23514';
  END IF;
  RETURN NEW;
 END $$;

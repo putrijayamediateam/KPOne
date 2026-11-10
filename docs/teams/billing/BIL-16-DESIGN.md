@@ -71,3 +71,24 @@ Status: owner request 2026-11-10 in the Billing session ("start with 1", after B
 3. **Any time**; an approved cash closing day shows "changed after approval".
 4. **Replace in one step**: the wrong receipt is reversed and the right one recorded together; only money really not
    received becomes due.
+5. **Money due after a correction is collected on the completed visit** (answered after Kumar's review): a normal
+   payment pays what is due first, then any approved pay-later, never more than both together. It shows in the
+   patient's outstanding bills; the pay-later collection list stays for approved pay-later only.
+
+## 7. Built (2026-11-10)
+
+- `ReceiptCorrectionService::correct()`: one transaction locks the patient, visit, invoice, ledger, receipt and
+  pay-later in the same order as `PaymentService::add`. It then reverses the receipt (the existing
+  `payment_reversals` evidence), records the replacement receipt with the same pay-later part, and writes a
+  `payment_corrections` row and the audit event `billing.receipt_corrected`.
+- `PaymentService::add`: on a completed visit, a payment may now cover money due as well as approved pay-later
+  (decision 5). Before BIL-16 a completed visit could never have money due, so no existing case changes.
+- Migration `2026_11_12_400100`: an append-only `payment_corrections` table. Its PostgreSQL guard requires all of:
+  - a reversal made after completion, by someone other than the recorder;
+  - no live refund;
+  - a replacement that is the corrector's new posted receipt on the same invoice, for no more than the original,
+    with the same pay-later part.
+- "Correct a receipt" panel on a completed visit's Billing page and Manage payments, for Finance Officers.
+  - Each receipt's form is closed by default.
+  - It shows what will become due and the pay-later floor, and why a receipt cannot be corrected.
+- No new permission, no existing assertion changed.
