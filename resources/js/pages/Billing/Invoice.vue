@@ -414,7 +414,6 @@ const totals = computed(() => {
                                     kept
                                 </p>
                                 <p
-                                    v-if="payment.recordedBy"
                                     class="mt-1 text-[11px] break-words text-muted-foreground"
                                     data-testid="payment-recorded-by"
                                 >

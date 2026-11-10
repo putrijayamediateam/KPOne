@@ -31,10 +31,16 @@ test('each receipt row shows the received time and a muted Recorded by line', ()
     }
 
     assert.ok(row.includes('Recorded by {{ payment.recordedBy }}'));
-    assert.match(
-        row,
-        /class="mt-1 text-\[11px\] break-words text-muted-foreground" data-testid="payment-recorded-by"/,
-    );
+    const line = row
+        .split('data-testid="payment-recorded-by"')[0]
+        .split('<p')
+        .at(-1);
+
+    for (const cls of ['text-[11px]', 'break-words', 'text-muted-foreground']) {
+        assert.ok(line.includes(cls), cls);
+    }
+
+    assert.ok(!line.includes('v-if'), 'the line is always shown');
 });
 
 test('the payment type carries the two new screen-only fields', () => {

@@ -18,7 +18,9 @@ The name follows the BIL-2 rule. It is the staff member's name when the viewer m
 for everyone. Names are looked up in one query per page.
 
 `VisitHistoryService::financial()` adds `receivedAt` and `recordedBy` to each payment. That projection is shared by
-the Invoice page and Visit history, so both payloads carry the two fields; only the Invoice page shows them.
+the Invoice page and Visit history, so both payloads carry the two fields (to the same billing viewers who already
+see those receipts); only the Invoice page shows them, and the history page's one extra name lookup was judged not
+worth a separate code path.
 `VisitHistoryService` is a shared Visit file that Billing has edited before (BIL-10). Prints are unchanged and never
 carry the name.
 
