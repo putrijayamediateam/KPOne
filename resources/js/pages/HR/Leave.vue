@@ -15,6 +15,7 @@ import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -2032,11 +2033,9 @@ const calendarDays = computed(() =>
                 >
                     <div class="grid gap-2">
                         <Label for="holiday-date">Date</Label>
-                        <Input
+                        <DateField
                             id="holiday-date"
                             v-model="holidayForm.holiday_date"
-                            type="date"
-                            class="h-11 sm:h-9"
                         />
                         <InputError
                             :message="holidayForm.errors.holiday_date"
@@ -2267,11 +2266,9 @@ const calendarDays = computed(() =>
                     <div class="grid gap-4 sm:grid-cols-2 sm:items-start">
                         <div class="grid gap-2">
                             <Label for="apply-start">Start date *</Label>
-                            <Input
+                            <DateField
                                 id="apply-start"
                                 v-model="applyForm.start_date"
-                                type="date"
-                                class="h-11 sm:h-9"
                                 :aria-invalid="
                                     applyForm.errors.start_date
                                         ? 'true'
@@ -2288,11 +2285,9 @@ const calendarDays = computed(() =>
                         </div>
                         <div class="grid gap-2">
                             <Label for="apply-end">End date *</Label>
-                            <Input
+                            <DateField
                                 id="apply-end"
                                 v-model="applyForm.end_date"
-                                type="date"
-                                class="h-11 sm:h-9"
                                 :min="applyForm.start_date || undefined"
                                 :aria-invalid="
                                     applyForm.errors.end_date
