@@ -6,7 +6,7 @@ A short list of what only the owner can decide, or that needs a code or setup ch
 
 | # | Decision | Why it matters |
 |---|---|---|
-| 1 | **Who is the data protection officer / contact?** Decided by the owner on 2026-11-10: the **HR Manager** (role only here; the name and contact are kept outside the repository). Check whether the DPO must be registered with the Commissioner **[CONFIRM]** | The amended Act expects one; every notice and procedure names them |
+| 1 | **Who is the data protection officer / contact?** | **Decided (owner, 2026-11-10): Data Protection Officer: HR Manager** (role; the owner keeps the name and contact outside the repository). Every notice and procedure names the role. Check whether the DPO must be registered with the Commissioner **[CONFIRM]** |
 | 2 | **Registered company name and branch addresses** for the notices | Placeholders in 02 |
 | 3 | **Hosting provider and country** | Drives the cross-border answer and the notice |
 | 4 | **Retention periods** (table in 04), especially patient records and signed paper MCs (1 year is probably too short) | Cannot go live without them |
@@ -16,8 +16,11 @@ A short list of what only the owner can decide, or that needs a code or setup ch
 | 8 | **How to flag "do not contact by WhatsApp"** | KPOne has no contact-preference field |
 | 9 | **Do you ever want patient messaging?** | It is not authorised; it would need its own review |
 | 10 | **Will the owner use "Ask KPOne" with real data?** | Masked results still reach Anthropic through Claude. Keep it synthetic until reviewed |
-| 11 | **Public job application form: turn on or leave off** | Off by default; needs the applicant notice approved first |
+| 11 | **Public job application form: turn on or leave off** | Off by default; needs the applicant notice approved first, including the optional talent-pool tick wording (each tick stores its wording version) and whether the notice needs a pool paragraph |
 | 12 | **Email, SMS and WhatsApp providers for staff messages** | None chosen |
+| 13 | **MTD disability flags on pay profiles: encrypt, or hold outside KPOne?** | They are health data and are stored unencrypted today (see 01, B) |
+| 14 | **A handling rule for HR files downloaded from KPOne** (payroll bank and accountant CSVs, outside HR export) | Once downloaded, where they go is outside KPOne (see 01, F) |
+| 15 | **Retention for HR records KPOne never deletes** (leave, attendance, claims and receipts, credentials, memos, interview documents) | See 04 |
 
 ## B. Setup and security items (IT owner)
 
@@ -41,6 +44,8 @@ A short list of what only the owner can decide, or that needs a code or setup ch
 | 4 | A reviewed anonymise or delete path for patient records past retention | Retention duty |
 | 5 | Audit-log archiving rule | Retention |
 | 6 | Optional alert on unusual access | Breach detection |
+| 7 | Encrypt the MTD details on pay profiles, if decision 13 says so | Health data |
+| 8 | A purge for staff claim receipts and memo files once their periods are decided | Retention |
 
 ## D. Sign-off record
 
