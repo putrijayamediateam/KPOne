@@ -6,6 +6,7 @@ use App\Domain\HR\Applications\HiringTemplates;
 use App\Domain\HR\Applications\Services\CandidateLink;
 use App\Domain\HR\Applications\Services\HiringDeadlines;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
+use App\Domain\HR\Applications\Services\JobApplicationService;
 use App\Mail\HiringMessageMail;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -199,9 +200,16 @@ class HiringMessagesTest extends VisitTestCase
             ->where('applications.needsYou.closing.count', 1)->where('applications.needsYou.closing.rows.0.id', $id)->where('applications.needsYou.new.count', 0)
             ->where('applications.needsYou.noWorkingDays', false)->where('applications.applications.rows.0.autoRejectOn', 'Tue 17 Nov 2026'));
 
+        // Nothing is sent at night: the closing waits for 08:00 branch time.
         $this->runAt('2026-11-17 00:20');
+        $this->assertSame([0, 0], $this->lastRun);
+        $this->runAt('2026-11-17 08:20');
         $this->assertSame([0, 1], $this->lastRun);
         $this->assertSame('auto_rejected', $row()->status);
+        // The candidate's own list says "Not taken forward", never that nobody decided.
+        $view = app(CandidateLink::class)->view($row());
+        $this->assertSame('Not taken forward', $view['stageLabel']);
+        $this->assertSame('Not taken forward', $view['messages'][0]['label']);
         $this->assertNotNull($row()->closed_at);
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'hr.applications.auto_rejected')->count());
         Mail::assertSent(HiringMessageMail::class, fn (HiringMessageMail $mail): bool => $mail->hasTo('applicant@example.test') && str_contains($mail->subjectLine, 'Synthetic Assistant'));
@@ -227,11 +235,28 @@ class HiringMessagesTest extends VisitTestCase
         $this->assertSame(['remind' => '2027-01-05', 'reject' => '2027-01-06'],
             app(HiringDeadlines::class)->deadlines(DB::table('hr_job_applications')->where('public_id', $id)->first()));
         $this->runAt('2027-01-05 07:00');
+        $this->assertSame([0, 0], $this->lastRun); // before 08:00
+        $this->runAt('2027-01-05 09:00');
         $this->assertSame([1, 0], $this->lastRun);
-        $this->runAt('2027-01-06 07:00');
+        $this->runAt('2027-01-06 09:00');
         $this->assertSame([0, 1], $this->lastRun);
         // No mailbox set: the reminder was shown in KPOne only.
         $this->assertSame('off', DB::table('hr_job_application_messages')->where('template', 'auto_reject_reminder')->value('status'));
+    }
+
+    public function test_a_missed_reminder_goes_first_and_the_closing_waits_a_working_day(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $this->workingDays($hr, [1, 2, 3, 4, 5]);
+        $id = $this->filed($hr, 'Synthetic Assistant'); // Tuesday 10 Nov: reminder Fri 13, closing Mon 16
+        // The scheduler was down until Wednesday 18 Nov: the reminder goes now, and nothing closes the same day.
+        $this->runAt('2026-11-18 09:00');
+        $this->assertSame([1, 0], $this->lastRun);
+        $this->runAt('2026-11-18 16:00');
+        $this->assertSame([0, 0], $this->lastRun);
+        $this->assertSame('new', DB::table('hr_job_applications')->where('public_id', $id)->value('status'));
+        $this->runAt('2026-11-19 09:00');
+        $this->assertSame([0, 1], $this->lastRun);
     }
 
     public function test_the_purge_clears_the_link_and_postgresql_keeps_the_link_and_clock_honest(): void
@@ -247,11 +272,12 @@ class HiringMessagesTest extends VisitTestCase
         $this->assertDatabaseRefuses(fn () => DB::table('hr_job_applications')->where('id', $id)->update(['status_token_hash' => str_repeat('a', 64)]));
         $this->assertDatabaseRefuses(fn () => DB::table('hr_job_applications')->where('id', $id)->update(['status_token_hash' => null]));
         $this->assertDatabaseRefuses(fn () => DB::table('hr_job_applications')->where('id', $id)->update(['stage_entered_at' => now()->subYear()]));
+        $this->assertDatabaseRefuses(fn () => DB::table('hr_job_applications')->where('id', $id)->update(['status' => 'phone_screening', 'stage_entered_at' => now()->subDay()]));
 
         $this->actingAs($hr);
         $this->move($hr, (string) DB::table('hr_job_applications')->value('public_id'), 'not_taken_forward', 1)->assertSessionHasNoErrors();
         $this->travel(3651)->days();
-        app(\App\Domain\HR\Applications\Services\JobApplicationService::class)->purgeExpired();
+        app(JobApplicationService::class)->purgeExpired();
         $this->assertNull(DB::table('hr_job_applications')->value('status_token_hash'));
         auth()->logout();
         $this->withCookie('kpone_career_status', $token)->get(route('hr-applications.status'))->assertInertia(fn (Assert $p) => $p->where('application', null));

@@ -12,12 +12,17 @@ use Illuminate\Support\Facades\Log;
  * at New or Phone screening counts the working days of its branch (the position's branch, or the first active branch
  * when the position is for any branch) after the day it entered the stage: the HR-2a working days less that branch's
  * public holidays. On the third working day one reminder goes to the hiring mailbox (and shows in "Needs you"); from
- * the fourth the daily check closes it as Auto-rejected and tells the candidate. A branch with no working days set
- * never auto-rejects, and "Needs you" says so.
+ * the fourth the daily check closes it as Auto-rejected and tells the candidate. Nothing is closed before its reminder:
+ * when the reminder was missed (the scheduler was down), it goes first and the closing waits for the next working day
+ * (Suresh, HR-17b). Both happen from 08:00 branch time, so nobody gets mail at midnight. A branch with no working days
+ * set never auto-rejects, and "Needs you" says so.
  */
 final class HiringDeadlines
 {
     public const WAITING = ['new', 'phone_screening'];
+
+    /** The branch-local hour from which reminders and closings are sent. */
+    public const FROM_HOUR = 8;
 
     /** How far ahead the count may look, so a branch with very few working days still ends. */
     private const HORIZON_DAYS = 90;
@@ -102,11 +107,20 @@ final class HiringDeadlines
                 return null;
             }
             $deadlines = $this->deadlines($row);
-            $today = $this->today($row);
-            if ($deadlines === null || $today === null || $today < $deadlines['remind']) {
+            $branch = $this->branchFor($row);
+            if ($deadlines === null || $branch === null) {
                 return null;
             }
-            if ($today >= $deadlines['reject']) {
+            $now = CarbonImmutable::now($branch['zone']);
+            $today = $now->toDateString();
+            if ($today < $deadlines['remind'] || $now->hour < self::FROM_HOUR) {
+                return null;
+            }
+            $reminder = DB::table('hr_job_application_messages')->where('application_id', $row->id)->where('template', 'auto_reject_reminder')
+                ->where('stage', $row->status)->value('created_at');
+            $remindedOn = $reminder === null ? null : CarbonImmutable::parse($reminder)->setTimezone($branch['zone'])->toDateString();
+            // Closed only once the reminder has had a working day of its own.
+            if ($today >= $deadlines['reject'] && $remindedOn !== null && $remindedOn < $today && $this->workingDayBetween($row, $remindedOn, $today)) {
                 $now = now()->utc();
                 DB::table('hr_job_applications')->where('id', $row->id)->update(['status' => 'auto_rejected', 'closed_at' => $now, 'stage_entered_at' => $now,
                     'lock_version' => (int) $row->lock_version + 1, 'updated_at' => $now]);
@@ -121,8 +135,7 @@ final class HiringDeadlines
 
                 return 'rejected';
             }
-            $before = DB::table('hr_job_application_messages')->where('application_id', $row->id)->where('template', 'auto_reject_reminder')->where('stage', $row->status)->exists();
-            if ($before) {
+            if ($reminder !== null) {
                 return null;
             }
             $this->messenger->record($row, 'auto_reject_reminder', (string) $row->status, null, ['reference' => HiringMessenger::reference((string) $row->public_id),
@@ -130,6 +143,19 @@ final class HiringDeadlines
 
             return 'reminded';
         }, 3);
+    }
+
+    /** Whether $to is a working day after $from at the application's branch (so a late reminder still gets its day). */
+    private function workingDayBetween(\stdClass $application, string $from, string $to): bool
+    {
+        $branch = $this->branchFor($application);
+        if ($branch === null || $branch['weekdays'] === null) {
+            return false;
+        }
+        $day = CarbonImmutable::parse($to);
+        $holiday = DB::table('hr_public_holidays')->where('branch_id', $branch['id'])->whereDate('holiday_date', $day->toDateString())->exists();
+
+        return $to > $from && in_array($day->isoWeekday(), $branch['weekdays'], true) && ! $holiday;
     }
 
     /** @return array{id:int, zone:string, weekdays:?list<int>}|null */

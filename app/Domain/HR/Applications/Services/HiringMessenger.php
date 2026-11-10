@@ -20,6 +20,9 @@ use Illuminate\Support\Facades\Mail;
  */
 final class HiringMessenger
 {
+    /** Set after the first failed send in this instance, so the hourly check does not wait on a mail service that is down (Suresh, HR-17b). */
+    private bool $broken = false;
+
     public static function emailEnabled(): bool
     {
         return (bool) config('hr-applications.email_enabled', false);
@@ -125,6 +128,11 @@ final class HiringMessenger
     /** @param array{subject:string, body:string} $message */
     private function send(int $id, int $applicationId, bool $toMailbox, array $message): void
     {
+        if ($this->broken) {
+            DB::table('hr_job_application_messages')->where('id', $id)->where('status', 'sending')->update(['status' => 'failed', 'error_code' => 'send_skipped', 'updated_at' => now()->utc()]);
+
+            return;
+        }
         try {
             $address = $toMailbox ? self::mailbox() : $this->candidateEmail($applicationId);
             if ($address === null) {
@@ -136,6 +144,9 @@ final class HiringMessenger
                 'provider_message_id' => is_string($providerId) && $providerId !== '' ? mb_substr($providerId, 0, 200) : null, 'updated_at' => now()->utc()]);
         } catch (\Throwable $e) {
             $code = $e->getMessage() === 'no_address' ? 'no_address' : 'send_failed';
+            if ($code === 'send_failed') {
+                $this->broken = true;
+            }
             try {
                 DB::table('hr_job_application_messages')->where('id', $id)->where('status', 'sending')->update(['status' => 'failed', 'error_code' => $code, 'updated_at' => now()->utc()]);
             } catch (\Throwable) {

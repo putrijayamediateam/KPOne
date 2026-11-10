@@ -21,8 +21,9 @@ return new class extends Migration
             $t->char('status_token_hash', 64)->nullable()->unique('hr_job_apps_status_token');
             $t->timestampTz('stage_entered_at')->nullable();
         });
-        // Every open application starts its clock now; a closed one keeps none.
-        DB::statement('UPDATE hr_job_applications SET stage_entered_at = coalesce(closed_at, updated_at, submitted_at)');
+        // Each open application starts its clock now, so the first run closes nothing older (Suresh, HR-17b); a closed
+        // one keeps the time it closed.
+        DB::statement('UPDATE hr_job_applications SET stage_entered_at = CASE WHEN closed_at IS NULL THEN now() ELSE closed_at END');
         DB::statement('ALTER TABLE hr_job_applications ALTER COLUMN stage_entered_at SET NOT NULL');
 
         Schema::create('hr_job_application_messages', function (Blueprint $t): void {
@@ -82,8 +83,9 @@ BEGIN
     AND NOT (NEW.status_token_hash IS NULL AND NEW.purged_at IS NOT NULL) THEN
   RAISE EXCEPTION 'A private link is cleared only by the purge' USING ERRCODE = 'P0001';
  END IF;
- IF NEW.stage_entered_at IS DISTINCT FROM OLD.stage_entered_at AND NEW.status = OLD.status THEN
-  RAISE EXCEPTION 'The stage clock moves only with the stage' USING ERRCODE = 'P0001';
+ IF (NEW.stage_entered_at IS DISTINCT FROM OLD.stage_entered_at AND NEW.status = OLD.status)
+    OR (NEW.status <> OLD.status AND NEW.stage_entered_at < OLD.stage_entered_at) THEN
+  RAISE EXCEPTION 'The stage clock moves only with the stage, and never back' USING ERRCODE = 'P0001';
  END IF;
  RETURN NEW;
 END $$;

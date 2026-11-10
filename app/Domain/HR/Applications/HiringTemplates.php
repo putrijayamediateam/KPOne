@@ -15,7 +15,7 @@ final class HiringTemplates
 {
     public const CLINIC = 'Klinik Putrijaya';
 
-    /** @var array<string, array{label:string, subject:string, body:string}> */
+    /** @var array<string, array{label:string, subject:string, body:string, candidate_label?:string}> */
     public const TEMPLATES = [
         'received' => [
             'label' => 'Application received',
@@ -37,6 +37,8 @@ final class HiringTemplates
         ],
         'auto_rejected' => [
             'label' => 'Closed without a decision',
+            // What the candidate's own list says: the email never tells them nobody decided (Suresh, HR-17b).
+            'candidate_label' => 'Not taken forward',
             'subject' => 'Your application for {position} / Permohonan anda untuk {position}',
             'body' => "Thank you for applying for {position}. We are not able to take your application forward this time. You are welcome to apply again.\n\n"
                 .'Terima kasih kerana memohon jawatan {position}. Kami tidak dapat meneruskan permohonan anda kali ini. Anda dialu-alukan untuk memohon semula.',
@@ -83,6 +85,14 @@ final class HiringTemplates
     public static function label(string $template): string
     {
         return (self::TEMPLATES[$template] ?? throw new InvalidArgumentException('Unknown hiring template.'))['label'];
+    }
+
+    /** The label on the candidate's own page; the same as HR's except where HR's words say more than the email. */
+    public static function candidateLabel(string $template): string
+    {
+        $fixed = self::TEMPLATES[$template] ?? throw new InvalidArgumentException('Unknown hiring template.');
+
+        return $fixed['candidate_label'] ?? $fixed['label'];
     }
 
     /**
