@@ -653,7 +653,7 @@ const saveRetention = () => {
                     <span aria-hidden="true">·</span>
                     <Button
                         variant="link"
-                        class="h-auto p-0 max-lg:min-h-11"
+                        class="h-auto p-0 underline underline-offset-4 max-lg:min-h-11"
                         data-test="needs-you-new-show"
                         @click="filter({ status: 'new' })"
                         >Show</Button
@@ -668,7 +668,7 @@ const saveRetention = () => {
                 Showing one application.
                 <Button
                     variant="link"
-                    class="h-auto p-0 max-lg:min-h-11"
+                    class="h-auto p-0 underline underline-offset-4 max-lg:min-h-11"
                     @click="showAll"
                     >Show all open applications</Button
                 >
