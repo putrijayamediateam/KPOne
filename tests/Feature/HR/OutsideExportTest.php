@@ -76,8 +76,10 @@ class OutsideExportTest extends VisitTestCase
         // Leave touching November, approved only, with all of its days; never the reason.
         $leave = $this->rows($this->download('leave', '2026-11')->assertOk()->streamedContent());
         $this->assertSame('Days', $leave[1][0]);
-        $this->assertSame(['KPOne ID', 'Name', 'Leave type', 'From', 'To', 'Days in request', 'Paid'], $leave[4]);
-        $this->assertSame([[(string) $worker->public_id, $this->ca->name, 'Annual leave', '2026-10-30', '2026-11-02 (am)', '2.5', 'Yes']], array_slice($leave, 5));
+        $this->assertSame(['KPOne ID', 'Name', 'Leave', 'From', 'To', 'Days in request', 'Paid'], $leave[4]);
+        $this->assertSame([[(string) $worker->public_id, $this->ca->name, 'On leave', '2026-10-30', '2026-11-02 (am)', '2.5', 'Yes']], array_slice($leave, 5));
+        // "On leave only" (owner, 2026-11-10): the leave type's name never reaches the file.
+        $this->assertStringNotContainsString('Annual leave', implode(',', array_merge(...$leave)));
         // A request crossing months is in each month's file, with all of its days.
         $october = $this->rows($this->download('leave', '2026-10')->assertOk()->streamedContent());
         $this->assertSame('2.5', $october[5][5] ?? null);
