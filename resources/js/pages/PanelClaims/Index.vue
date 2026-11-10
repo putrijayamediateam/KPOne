@@ -595,7 +595,7 @@ const visitTypeLabel = (value: string) =>
                 <template v-if="work.filters.range === 'custom'">
                     <span class="flex items-center gap-1.5">
                         <label
-                            class="text-xs font-medium text-muted-foreground"
+                            class="w-9 text-xs font-medium text-muted-foreground"
                             for="claims-from"
                             >From</label
                         >
@@ -609,7 +609,7 @@ const visitTypeLabel = (value: string) =>
                     </span>
                     <span class="flex items-center gap-1.5">
                         <label
-                            class="text-xs font-medium text-muted-foreground"
+                            class="w-9 text-xs font-medium text-muted-foreground"
                             for="claims-to"
                             >To</label
                         >
