@@ -21,6 +21,7 @@ A short list of what only the owner can decide, or that needs a code or setup ch
 | 13 | **MTD disability flags on pay profiles: encrypt, or hold outside KPOne?** | They are health data and are stored unencrypted today (see 01, B) |
 | 14 | **A handling rule for HR files downloaded from KPOne** (payroll bank and accountant CSVs, outside HR export) | Once downloaded, where they go is outside KPOne (see 01, F) |
 | 15 | **Retention for HR records KPOne never deletes** (leave, attendance, claims and receipts, credentials, memos, interview documents) | See 04 |
+| 16 | **Location check at clock-in (HR-16a)**: approve the consent text (EN and BM), name the first branch and the radius, and decide how long results are kept | Before any real staff use. Off by default at every branch |
 
 ## B. Setup and security items (IT owner)
 

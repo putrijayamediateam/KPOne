@@ -25,6 +25,7 @@ anonymise it when the purpose is over **[CONFIRM wording]**. Medical, tax and em
 | Issued MC / referral / attendance copies (encrypted snapshots) | Kept | Same as patient records |
 | Signed paper MC copies | Owner set **1 year** | Probably too short against medical-record rules **[CONFIRM and update]** |
 | Staff employment records | Kept | Employment and tax law periods **[CONFIRM]** |
+| Location check results (inside, outside or not available; accuracy band) and consent acknowledgements, per press and per settings version (HR-16a) | Kept with the attendance records, append-only; no purge | Same period as attendance **[CONFIRM]**; consider a shorter period for location results **[DECIDE]** |
 | Payroll, payslips | Kept, append-only: pay profiles (including the unencrypted MTD details), runs, lines, totals and encrypted payslip snapshots. There is no purge | Statutory period **[CONFIRM with the accountant]** |
 | Leave requests, the leave ledger, attendance sessions and corrections, overtime requests | Kept, append-only | Employment-law period **[CONFIRM]** |
 | Staff claims and their **receipt files** | Kept; no purge exists | Tax and accounting period **[CONFIRM with the accountant]** |
