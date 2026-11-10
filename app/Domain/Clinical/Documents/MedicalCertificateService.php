@@ -88,8 +88,19 @@ final class MedicalCertificateService
                 if ($branch->organisation->code !== 'KLINIK_PUTRIJAYA' || $prefix === null) {
                     throw ValidationException::withMessages(['certificate' => 'MC numbering has not been configured for this organisation and branch.']);
                 }
+                // One instant for the number's year, the printed issue date and the stored issue time. It is read after
+                // the number lock is held, so a wait on the lock that crosses local midnight on 31 December cannot give
+                // a number from one year and an issue time from the next.
                 $year = (int) now()->setTimezone($branch->timezone)->format('Y');
-                DB::select('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', ["mc-number:{$branch->organisation_id}:{$branch->id}:{$year}"]);
+                while (true) {
+                    DB::select('SELECT pg_advisory_xact_lock(hashtextextended(?, 0))', ["mc-number:{$branch->organisation_id}:{$branch->id}:{$year}"]);
+                    $issuedInstant = now()->utc();
+                    $instantYear = (int) $issuedInstant->setTimezone($branch->timezone)->format('Y');
+                    if ($instantYear === $year) {
+                        break;
+                    }
+                    $year = $instantYear;
+                }
                 $counter = DB::table('mc_number_counters')->where('organisation_id', $branch->organisation_id)->where('branch_id', $branch->id)->where('year', $year)->lockForUpdate()->first();
                 $sequence = ($counter ? $counter->last_number : 0) + 1;
                 if ($sequence > 999999) {
@@ -98,7 +109,7 @@ final class MedicalCertificateService
                 $counter ? DB::table('mc_number_counters')->where('id', $counter->id)->update(['last_number' => $sequence])
                     : DB::table('mc_number_counters')->insert(['organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id, 'year' => $year, 'last_number' => $sequence]);
                 $number = sprintf('MC/KP/%s/%d/%06d', $prefix, $year, $sequence);
-                $issuedAt = now()->utc()->format('Y-m-d H:i:s.uP');
+                $issuedAt = $issuedInstant->format('Y-m-d H:i:s.uP');
                 $snapshot = $this->snapshots->create($branch, $visit, $encounter, $credential, $input, $number, $issuedAt);
                 $encrypted = Crypt::encryptString(json_encode($snapshot, JSON_THROW_ON_ERROR));
                 $documentId = DB::table('medical_certificates')->insertGetId(['organisation_id' => $branch->organisation_id, 'branch_id' => $branch->id,
