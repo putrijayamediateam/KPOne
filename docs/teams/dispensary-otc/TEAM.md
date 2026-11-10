@@ -106,7 +106,7 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-13 | Index `dispensary_return_branch_waiting_index` on `dispensary_returns (organisation_id, branch_id, recorded_at, id)` for the Returns to check list (migration `2026_11_06_200400`, no data change), and two tests: a CA Supervisor of another organisation sees none of these returns (even with the session pointed at this branch), and a recorder the viewer may not see shows as "Staff member" | #389 (merged `41944e9`) |
 | DSP-14 | Allergy match ignores strengths, dose forms and extra words: a "core" of each side drops tokens that start with a digit, units, dose forms and salt words (and, on the allergy side, wrapper, reaction, symptom and filler words); an allergy part's core inside a medicine name (whole words below 5 characters) or the medicine name's core inside the allergy text's core (whole words) also matches. Only adds matches; still warns, never blocks. Backend only | #428 (merged) |
 | DSP-15 | Quarantine one return across several batches: on a line dispensed from 2+ batches the check panel shows one box per batch (earliest expiry first, "Available: N", never prefilled, "Fill from earliest expiry" helper), a running "Placed X of Y" line, the shares in the confirm dialog and the batches on the history row. New append-only `dispensary_return_check_batches` (one STK-11 movement per share); PostgreSQL repeats the pairing, per-batch, can't-grow and exact-total rules. Migration `2026_11_07_000600` (decision 36) | #430 (merged) |
-| DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | #439 |
+| DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | #439 (merged) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -399,7 +399,7 @@ order, each its own PR:
 14. **DSP-13 Returns list index and tests — merged in #389.** Decision 32.
 15. **DSP-14 Allergy match with strengths — merged in #428.** Decision 34.
 16. **DSP-15 Quarantine one return across batches — merged in #430.** Decisions 35 and 36.
-17. **DSP-16 Race test for split quarantines — PR #439.** Decision 37.
+17. **DSP-16 Race test for split quarantines — PR #439 (merged).** Decision 37.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
