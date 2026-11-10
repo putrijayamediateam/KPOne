@@ -2,7 +2,7 @@
 // HR-13 /hr/applications (Director, HR Manager): applications from the public form, the open positions and the
 // retention. HR-PLAN 15.2, with HR-17a's position types, form answers, phone screening and call checklist (HR-PLAN 19). Every CV open is recorded by the server before any byte is sent.
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed, onMounted, reactive, ref } from 'vue';
+import { computed, onMounted, reactive, ref, watch } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -221,6 +221,18 @@ const moving = reactive({
     processing: false,
     confirm: false,
 });
+// Opens the application "Needs you" pointed at, on first load and after an Inertia visit to the same page.
+watch(
+    () => list.value?.filters.focus,
+    (focus) => {
+        const focused = focus ? list.value?.rows[0] : null;
+
+        if (focused) {
+            openApplication(focused);
+        }
+    },
+    { flush: 'post' },
+);
 onMounted(() => {
     const focused = list.value?.filters.focus ? list.value.rows[0] : null;
 

@@ -86,7 +86,7 @@ class HiringMessagesTest extends VisitTestCase
             $this->assertStringNotContainsString($private, $json);
         }
         // The message shown again never carries the link.
-        $this->assertStringContainsString('shown when you applied', $json);
+        $this->assertStringContainsString('shown once, when you applied', $json);
     }
 
     public function test_messages_are_shown_in_kpone_while_email_is_off_and_emailed_once_when_it_is_on(): void
@@ -199,6 +199,9 @@ class HiringMessagesTest extends VisitTestCase
         $this->get(route('hr.applications.index'))->assertInertia(fn (Assert $page) => $page
             ->where('applications.needsYou.closing.count', 1)->where('applications.needsYou.closing.rows.0.id', $id)->where('applications.needsYou.new.count', 0)
             ->where('applications.needsYou.noWorkingDays', false)->where('applications.applications.rows.0.autoRejectOn', 'Tue 17 Nov 2026'));
+        // "Open" shows just that application.
+        $this->get(route('hr.applications.index', ['status' => 'new', 'focus' => $id]))->assertInertia(fn (Assert $page) => $page
+            ->where('applications.applications.filters.focus', $id)->has('applications.applications.rows', 1)->where('applications.applications.rows.0.id', $id));
 
         // Nothing is sent at night: the closing waits for 08:00 branch time.
         $this->runAt('2026-11-17 00:20');

@@ -20,8 +20,9 @@ final class HiringTemplates
         'received' => [
             'label' => 'Application received',
             'subject' => 'We received your application / Permohonan anda telah diterima',
-            'body' => "Thank you for applying for {position} at {clinic}. We will look at your application and contact you. You can follow it with your private link: {link}\n\n"
-                .'Terima kasih kerana memohon jawatan {position} di {clinic}. Kami akan menyemak permohonan anda dan menghubungi anda. Anda boleh mengikutinya melalui pautan peribadi anda: {link}',
+            'body' => "Thank you for applying for {position} at {clinic}. We will look at your application and contact you. You can follow it with your private link below.\n\n"
+                ."Terima kasih kerana memohon jawatan {position} di {clinic}. Kami akan menyemak permohonan anda dan menghubungi anda. Anda boleh mengikutinya melalui pautan peribadi anda di bawah.\n\n"
+                .'Your private link / Pautan peribadi anda: {link}',
         ],
         'screening_passed' => [
             'label' => 'Invited to an interview',
@@ -71,13 +72,13 @@ final class HiringTemplates
     public const FOOTER = 'This is an automatic message from KPOne for Klinik Putrijaya. Mesej ini dihantar secara automatik.';
 
     /** What a candidate sees in place of the private link when an email is shown again (the token is never kept). */
-    public const LINK_SHOWN_ONCE = '(your private link, shown when you applied / pautan peribadi anda, ditunjukkan semasa anda memohon)';
+    public const LINK_SHOWN_ONCE = 'shown once, when you applied / ditunjukkan sekali, semasa anda memohon';
 
     /** @var array<string, string> each placeholder and the only shape its value may take */
     public const PLACEHOLDERS = [
         'position' => '/\A[^\r\n<>{}]{3,80}\z/u',
         'clinic' => '/\AKlinik Putrijaya\z/',
-        'link' => '/\A(https?:\/\/[^\s<>]{1,200}#[A-Za-z0-9_-]{43}|\(your private link, shown when you applied \/ pautan peribadi anda, ditunjukkan semasa anda memohon\))\z/',
+        'link' => '/\A(https?:\/\/[^\s<>]{1,200}#[A-Za-z0-9_-]{43}|shown once, when you applied \/ ditunjukkan sekali, semasa anda memohon)\z/',
         'reference' => '/\A[0-9A-F]{8}\z/',
         'stage' => '/\A(New|Phone screening)\z/',
     ];
