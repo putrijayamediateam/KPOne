@@ -9,6 +9,7 @@ import {
     Volume2,
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { statusAnnouncement } from '@/lib/public-intake-announcement';
 
 const props = defineProps<{
     status: {
@@ -61,6 +62,18 @@ const currentStep = computed(() => {
     }
 
     return props.status.state === 'under_review' ? 1 : 0;
+});
+// A screen reader hears only the key facts when they change (see statusAnnouncement). A call to the room is
+// announced by its own alert, so nothing is announced here then. The text stays empty until the first change, so
+// the page is not read twice when it opens.
+const announcement = computed(() =>
+    statusAnnouncement(props.status, called.value),
+);
+const announced = ref('');
+watch(announcement, (text) => {
+    if (text !== null) {
+        announced.value = text;
+    }
 });
 const soundOn = ref(false);
 let audio: AudioContext | undefined;
@@ -209,8 +222,16 @@ onBeforeUnmount(() => {
     >
         <section
             class="w-full min-w-0 space-y-6 rounded-3xl border bg-white p-6 shadow-xl sm:p-9 dark:bg-zinc-900"
-            aria-live="polite"
         >
+            <p
+                class="sr-only"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                data-test="status-announcer"
+            >
+                {{ announced }}
+            </p>
             <header class="flex items-center gap-3">
                 <img
                     src="/kp-mark.png"
