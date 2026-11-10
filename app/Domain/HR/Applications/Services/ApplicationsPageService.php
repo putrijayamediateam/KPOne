@@ -85,6 +85,7 @@ final class ApplicationsPageService
             'applications' => $tab === 'applications' ? $this->applications($actor, $query, $zone) : null,
             'settings' => $this->settings($actor, $zone),
             'checklist' => $this->checklist($actor),
+            'interviewDocuments' => InterviewDocuments::settings((int) $actor->organisation_id, $zone),
             'needsYou' => $this->needsYou($actor, $zone),
             'email' => ['enabled' => HiringMessenger::emailEnabled(), 'mailbox' => HiringMessenger::mailbox() !== null],
         ];
@@ -251,7 +252,9 @@ final class ApplicationsPageService
             ->where('i.status', 'confirmed')->first(['i.starts_at', 'b.name']);
 
         return ['round' => (int) $a->interview_round, 'branch' => $interview?->name, 'picks' => [],
-            'confirmed' => $interview === null ? null : $label((string) $interview->starts_at)];
+            'confirmed' => $interview === null ? null : $label((string) $interview->starts_at),
+            // HR-17d: which interview documents the candidate has downloaded.
+            'documents' => InterviewDocuments::downloadsFor($a, $zone)];
     }
 
     /** Whether the daily check closes a waiting application at the start of the next working day (Daniel, HR-17b). */
