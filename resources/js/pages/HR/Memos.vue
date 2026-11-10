@@ -299,7 +299,25 @@ watch(
     { immediate: true, deep: true },
 );
 
+// Where it goes, in words, so "none ticked means all" cannot be missed.
+const audienceWords = computed(() => {
+    const branches = props.memos.options.branches
+        .filter((b) => form.branches.includes(b.value))
+        .map((b) => b.label);
+    const roles = props.memos.options.roles
+        .filter((r) => form.roles.includes(r.value))
+        .map((r) => r.label);
+
+    return `${branches.length ? branches.join(', ') : 'all branches'}, ${roles.length ? roles.join(', ') : 'all roles'}`;
+});
+const peopleWords = computed(() =>
+    preview.count === null
+        ? 'checking…'
+        : `${preview.count} ${preview.count === 1 ? 'person' : 'people'}`,
+);
+const confirmPublish = ref(false);
 const sendForm = () => {
+    confirmPublish.value = false;
     form.processing = true;
     router.post(
         '/hr/memos',
@@ -624,7 +642,7 @@ const withdrawn = computed(() =>
                         class="max-lg:min-h-11"
                         :disabled="opening === memo.id"
                         @click="openMemo(memo, false)"
-                        >Read</Button
+                        >Open</Button
                     >
                     <Button
                         v-if="memo.hasPdf"
@@ -769,7 +787,7 @@ const withdrawn = computed(() =>
                 </SheetHeader>
                 <form
                     class="flex flex-col gap-4 px-4 pb-6"
-                    @submit.prevent="sendForm"
+                    @submit.prevent="confirmPublish = true"
                 >
                     <ErrorState v-if="failure" :message="failure" />
                     <div class="grid gap-1.5">
@@ -856,11 +874,8 @@ const withdrawn = computed(() =>
                         role="status"
                         data-test="memo-audience-count"
                     >
-                        <template v-if="preview.count !== null"
-                            >Who will see this: {{ preview.count }}
-                            {{ preview.count === 1 ? 'person' : 'people' }}
-                        </template>
-                        <template v-else>Who will see this: checking…</template>
+                        This memo goes to: {{ audienceWords }} (about
+                        {{ peopleWords }})
                     </p>
                     <InputError :message="errors.audience" />
                     <div class="grid gap-1.5">
@@ -924,11 +939,22 @@ const withdrawn = computed(() =>
         </Sheet>
 
         <OperationalConfirmDialog
+            :open="confirmPublish"
+            title="Publish this memo?"
+            :description="`${form.title}. It goes to ${audienceWords} (about ${peopleWords}). A published memo cannot be edited; to correct it you publish a new memo that replaces it.`"
+            confirm-label="Publish memo"
+            processing-label="Publishing…"
+            :processing="form.processing"
+            @update:open="(v: boolean) => (confirmPublish = v)"
+            @confirm="sendForm"
+        />
+
+        <OperationalConfirmDialog
             :open="withdrawing !== null"
             title="Withdraw this memo?"
             :description="
                 withdrawing
-                    ? `${withdrawing.title}. It leaves everyone's list. Every read already given is kept. It cannot come back; publish a new memo instead.`
+                    ? `${withdrawing.title}. Staff will no longer see it in their memos, and it takes no new reads. Every read already given is kept. It cannot come back; publish a new memo instead.`
                     : ''
             "
             confirm-label="Withdraw"

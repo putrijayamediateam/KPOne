@@ -104,7 +104,11 @@ test('The publish form: title hint, plain text with a count, audience with a liv
     assert.match(page, /Branches \(none ticked means all\)/);
     assert.match(page, /Roles \(none ticked means all\)/);
     assert.match(page, /a ticked branch and a ticked role/);
-    assert.match(page, /Who will see this: \{\{ preview\.count \}\}/);
+    assert.match(page, /This memo goes to: \{\{ audienceWords \}\} \(about/);
+    assert.match(page, /title="Publish this memo\?"/);
+    assert.match(page, /A published memo cannot be edited; to correct it/);
+    assert.match(page, /@submit\.prevent="confirmPublish = true"/);
+    assert.match(page, /<legend/);
     assert.match(script, /\/hr\/memos\/audience\?/);
     assert.match(page, /Open until \(optional\)/);
     assert.match(page, /:min="memos\.options\.today"/);
