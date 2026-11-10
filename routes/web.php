@@ -24,6 +24,7 @@ use App\Http\Controllers\ClinicalAllergyController;
 use App\Http\Controllers\ClinicalEncounterController;
 use App\Http\Controllers\ClinicalProblemController;
 use App\Http\Controllers\ClinicalServiceCatalogueController;
+use App\Http\Controllers\ClinicComplianceController;
 use App\Http\Controllers\ClinicianCredentialController;
 use App\Http\Controllers\ClinicInsightsController;
 use App\Http\Controllers\ClinicManagementController;
@@ -38,7 +39,9 @@ use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
 use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
+use App\Http\Controllers\HR\DashboardController as HrDashboardController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
 use App\Http\Controllers\HR\OutsideExportController as HrOutsideExportController;
 use App\Http\Controllers\HR\PayrollController as HrPayrollController;
@@ -199,6 +202,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
     });
 
+    // HR-9 HR dashboard (docs/teams/hr/HR-9-DESIGN.md). Read-only aggregates; each section needs its own existing HR permission.
+    Route::get('hr/dashboard', [HrDashboardController::class, 'index'])
+        ->middleware(['permission:hr.roster.manage.organisation,hr.attendance.review.organisation,hr.leave.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('hr.dashboard.index');
+
     // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time only; no location or photo.
     Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.attendance.clock.own,hr.attendance.review.organisation')->name('hr.attendance.index');
@@ -274,6 +281,20 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('records/{record}/{decision}', 'decide')->whereUuid('record')->whereIn('decision', ['accept', 'reject'])->name('hr.credentials.decide');
             Route::post('types', 'saveType')->name('hr.credentials.types.save');
             Route::post('types/{type}/archive', 'archiveType')->whereUuid('type')->name('hr.credentials.types.archive');
+        });
+    });
+
+    // HR-11a clinic licences (owner, 2026-11-10: "yes, order is fine, go ahead"). Clinic data, not HR data; see HR-11-DESIGN.md.
+    Route::prefix('clinic-compliance')->controller(ClinicComplianceController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::middleware(['permission:compliance.licences.manage.organisation'])->group(function (): void {
+            Route::get('/', 'index')->name('clinic-compliance.index');
+            Route::get('files/{file}', 'openFile')->whereUuid('file')->middleware('throttle:30,1')->name('clinic-compliance.files.open');
+            Route::middleware('throttle:60,1')->group(function (): void {
+                Route::post('types', 'saveType')->name('clinic-compliance.types.save');
+                Route::post('types/{type}/archive', 'archiveType')->whereUuid('type')->name('clinic-compliance.types.archive');
+                Route::post('licences', 'record')->name('clinic-compliance.licences.store');
+                Route::post('versions/{version}/error', 'markInError')->whereUuid('version')->name('clinic-compliance.versions.error');
+            });
         });
     });
 
@@ -372,6 +393,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/', 'publish')->name('hr.sops.publish');
             Route::post('{sop}/versions', 'replace')->whereUuid('sop')->name('hr.sops.replace');
             Route::post('{sop}/withdraw', 'withdraw')->whereUuid('sop')->name('hr.sops.withdraw');
+        });
+    });
+
+    // HR-8 announcements and memos (owner, via B.E.R.N.I.S.S, 2026-11-10). In KPOne only; nothing is sent.
+    Route::prefix('hr/memos')->controller(HrMemosController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.memos.read.own,hr.memos.publish.organisation')->name('hr.memos.index');
+        Route::post('{memo}/open', 'open')->whereUuid('memo')
+            ->middleware(['permission:hr.memos.read.own,hr.memos.publish.organisation', 'throttle:60,1'])->name('hr.memos.open');
+        Route::get('{memo}/pdf', 'pdf')->whereUuid('memo')
+            ->middleware(['permission:hr.memos.read.own,hr.memos.publish.organisation', 'throttle:60,1'])->name('hr.memos.pdf');
+        Route::post('{memo}/acknowledge', 'acknowledge')->whereUuid('memo')
+            ->middleware(['permission:hr.memos.read.own', 'throttle:30,1'])->name('hr.memos.acknowledge');
+        Route::middleware(['permission:hr.memos.publish.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::get('audience', 'audience')->name('hr.memos.audience');
+            Route::post('/', 'publish')->name('hr.memos.publish');
+            Route::post('{memo}/withdraw', 'withdraw')->whereUuid('memo')->name('hr.memos.withdraw');
         });
     });
 

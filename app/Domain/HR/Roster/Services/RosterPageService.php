@@ -321,13 +321,14 @@ final class RosterPageService
     }
 
     /**
-     * One line per short day. A "Full day" shift also counts towards Morning and Afternoon.
+     * One line per short day. A "Full day" shift also counts towards Morning and Afternoon. The HR dashboard (HR-9,
+     * HrDashboardService) depends on this method so that it can never disagree with the Planner: keep its output shape.
      *
      * @param  Collection<int, RosterShift>  $shifts
      * @param  Collection<int, User>  $people
      * @return list<array{date:string, day:string, message:string}>
      */
-    private function shortfalls(Branch $branch, CarbonImmutable $weekStart, Collection $shifts, Collection $people): array
+    public function shortfalls(Branch $branch, CarbonImmutable $weekStart, Collection $shifts, Collection $people): array
     {
         $minimums = $this->minimums->minimums($branch);
         $out = [];
