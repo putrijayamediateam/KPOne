@@ -41,6 +41,7 @@ use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\DashboardController as HrDashboardController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
 use App\Http\Controllers\HR\OutsideExportController as HrOutsideExportController;
 use App\Http\Controllers\HR\PayrollController as HrPayrollController;
@@ -385,6 +386,22 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('/', 'publish')->name('hr.sops.publish');
             Route::post('{sop}/versions', 'replace')->whereUuid('sop')->name('hr.sops.replace');
             Route::post('{sop}/withdraw', 'withdraw')->whereUuid('sop')->name('hr.sops.withdraw');
+        });
+    });
+
+    // HR-8 announcements and memos (owner, via B.E.R.N.I.S.S, 2026-11-10). In KPOne only; nothing is sent.
+    Route::prefix('hr/memos')->controller(HrMemosController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.memos.read.own,hr.memos.publish.organisation')->name('hr.memos.index');
+        Route::post('{memo}/open', 'open')->whereUuid('memo')
+            ->middleware(['permission:hr.memos.read.own,hr.memos.publish.organisation', 'throttle:60,1'])->name('hr.memos.open');
+        Route::get('{memo}/pdf', 'pdf')->whereUuid('memo')
+            ->middleware(['permission:hr.memos.read.own,hr.memos.publish.organisation', 'throttle:60,1'])->name('hr.memos.pdf');
+        Route::post('{memo}/acknowledge', 'acknowledge')->whereUuid('memo')
+            ->middleware(['permission:hr.memos.read.own', 'throttle:30,1'])->name('hr.memos.acknowledge');
+        Route::middleware(['permission:hr.memos.publish.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::get('audience', 'audience')->name('hr.memos.audience');
+            Route::post('/', 'publish')->name('hr.memos.publish');
+            Route::post('{memo}/withdraw', 'withdraw')->whereUuid('memo')->name('hr.memos.withdraw');
         });
     });
 
