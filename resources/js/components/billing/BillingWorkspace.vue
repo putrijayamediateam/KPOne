@@ -48,7 +48,7 @@ const props = withDefaults(
 const responsibilityTotals: Array<[keyof BillingState, string]> = [
     ['self_pay', 'Self-pay received'],
     ['panel', 'Panel responsibility'],
-    ['deferred', 'Approved pay later'],
+    ['deferred', 'Pay later still owed'],
 ];
 const invoiceTabs = [
     { value: 'all', label: 'All' },
