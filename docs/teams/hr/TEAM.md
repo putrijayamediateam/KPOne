@@ -434,7 +434,9 @@ check items, keep them"). The rest stand unless the owner changes them.
       number only). Showing them only to a Director, or naming a clinical reviewer role, waits for the owner.
 91. HR-15 migrations: `2026_11_10_004800` to `005499` (B.E.R.N.I.S.S, 2026-11-10); HR-16 continues from `005500`.
 92. HR-15a `locum` role (B.E.R.N.I.S.S for the owner, 2026-11-10): exactly `profile.view.own` (own password,
-    two-factor and sessions) and `hr.roster.view.own`, with `hr.open_shifts.request.own` from HR-15b; no
+    two-factor and sessions), `branch_context.switch.branch` (a choice among the locum's own assigned branches only,
+    as the TV account has; no data comes with it; approved by B.E.R.N.I.S.S for the owner so the existing Inventory
+    tests that select a branch for every role stay unchanged) and `hr.roster.view.own`, with `hr.open_shifts.request.own` from HR-15b; no
     `dashboard.view.own`, no `staff.view.own`, no Insights, and not in `RosterPermissions::HUMAN_ROLES`. Pinned by a
     test. The existing role lists in `RosterTest` and the nav-02 top-bar test gain `locum`, and the hub map will gain
     `/hr/open-shifts` in HR-15b (approved by B.E.R.N.I.S.S for the owner).
@@ -443,6 +445,10 @@ check items, keep them"). The rest stand unless the owner changes them.
     email, no staff file and no other link, can be linked (service and PostgreSQL). `StaffRoleService` refuses Locum
     combined with any other role, and any other role on a linked account ("A locum sign-in holds the Locum role
     only."), approved by B.E.R.N.I.S.S for the owner as a tightening only.
+94. Locum accounts are created by the Director only, the same as CA Supervisor accounts (B.E.R.N.I.S.S for the owner,
+    2026-11-10). From HR-15b the role holds `hr.open_shifts.request.own`, which Technical Admin does not cover, so
+    `canAssignRoles` refuses it to Technical Admin; Technical Admin still administers and links existing locum accounts.
+    The authority rules are unchanged, and Technical Admin is never given HR permissions to work around this.
 
 ## 7. Open items and known limits
 
