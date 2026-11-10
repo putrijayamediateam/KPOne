@@ -98,7 +98,21 @@ const pick = (month: number): void => {
     commit(value);
     emit('change', value);
 };
-const pickThisMonth = (): void => pick(Number(todayIso().slice(5, 7)));
+const thisMonthValue = (): string => todayIso().slice(0, 7);
+const thisMonthAllowed = computed(() => inRange(thisMonthValue()));
+const pickThisMonth = (): void => {
+    const value = thisMonthValue();
+
+    if (!inRange(value)) {
+        return;
+    }
+
+    text.value = formatDisplayMonth(value);
+    problem.value = '';
+    open.value = false;
+    commit(value);
+    emit('change', value);
+};
 const onClear = (): void => {
     text.value = '';
     problem.value = '';
@@ -202,7 +216,8 @@ const inputAttrs = computed(() => {
                             <div class="flex items-center justify-between gap-2 border-t pt-2">
                                 <button
                                     type="button"
-                                    class="min-h-11 rounded-md px-3 text-brand-strong hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:min-h-9"
+                                    class="min-h-11 rounded-md px-3 text-brand-strong hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-40 sm:min-h-9"
+                                    :disabled="!thisMonthAllowed"
                                     @click="pickThisMonth"
                                 >
                                     {{ words.thisMonth }}
