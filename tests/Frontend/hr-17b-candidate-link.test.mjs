@@ -61,6 +61,8 @@ test('the thank-you page shows the link once with a copy button that falls back 
     assert.match(s, /v-if="statusLink"/);
     assert.match(s, /navigator\.clipboard\.writeText/);
     assert.match(s, /linkBox\.value\?\.select\(\)/);
+    // A refused copy says so in words, not only by the selection (Daniel, HR-17b).
+    assert.match(s, /data-test="apply-status-copy-failed"/);
     assert.match(s, /It is shown\s+only now\./);
     assert.match(s, /Ia\s+ditunjukkan sekarang sahaja\./);
 });

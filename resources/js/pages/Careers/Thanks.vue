@@ -7,6 +7,7 @@ import { ref } from 'vue';
 const props = defineProps<{ clinicName: string; statusLink?: string | null }>();
 
 const copied = ref(false);
+const copyFailed = ref(false);
 const linkBox = ref<HTMLInputElement | null>(null);
 const copy = async () => {
     if (!props.statusLink) {
@@ -16,7 +17,10 @@ const copy = async () => {
     try {
         await navigator.clipboard.writeText(props.statusLink);
         copied.value = true;
+        copyFailed.value = false;
     } catch {
+        copied.value = false;
+        copyFailed.value = true;
         // Some browsers refuse the clipboard: select the link so it can be copied by hand.
         linkBox.value?.select();
     }
@@ -112,6 +116,15 @@ const copy = async () => {
                             role="status"
                             class="text-sm text-zinc-600 dark:text-zinc-400"
                             >Copied. / Disalin.</span
+                        >
+                        <span
+                            v-if="copyFailed"
+                            role="status"
+                            class="text-sm text-zinc-600 dark:text-zinc-400"
+                            data-test="apply-status-copy-failed"
+                            >Your browser did not copy it. Select the link above
+                            and copy it. / Pelayar anda tidak menyalinnya. Pilih
+                            pautan di atas dan salin.</span
                         >
                     </div>
                 </div>
