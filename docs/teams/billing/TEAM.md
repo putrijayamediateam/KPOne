@@ -115,6 +115,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-15 | Cash closing start date per branch: a Director or Finance Officer sets the first day the monthly cash closing (BIL-7) expects daily counts, on the cash closing month page; without one the start stays the first count. Append-only revisions, audited; a start date moved later is announced on the page and never hides counts already made. New permission `payments.cash_closing.start_date.manage.branch` (finance_officer, director; additive migration `2026_11_12_200100`). No change to counts, approvals or amounts | PR #408 |
 | BIL-16 | Correct a receipt recorded in error on a completed visit, in one step: a Finance Officer who did not record it reverses it and records what was really received; only money not received becomes due (owner decisions). Never a refund. Append-only `payment_corrections` evidence (migration `2026_11_12_400100`), no new permission. Design note: `BIL-16-DESIGN.md` | PR #415 |
 | BIL-17 | Billing page display fixes: a fully paid pay-later reads "Paid in full · nothing left to collect"; voided invoices stay visible (number, total, who and when, receipts; never the reason); the "Use amount due" shortcut also shows on a completed visit with money due; the pay-later list notes money due now (paid first). Display only. Design note: `BIL-17-DESIGN.md` | PR #431 |
+| BIL-18 | Pay-later list on phones and summary wording: below 1024 px the pay-later collection list is cards (amount and past-due chip first, the due-now note beside it, a 44 px Open billing); the Billing, Invoice and Visit history summary row "Approved pay later" reads "Pay later still owed" (prints unchanged). Layout and wording only. Design note: `BIL-18-DESIGN.md` | PR #471 |
 | BIL-20 | PostgreSQL race tests for receipt corrections (BIL-16): two people correcting one receipt at once record one correction (one reversal, one replacement, one audit; the other is refused), and a correction racing a refund on the same receipt never both win, with no deadlock (both lock the patient and visit, then the invoice and the receipt); both orders are also forced in turn, and the same request sent twice at once records one correction. The race test cleanup also removes payment corrections. Test only. | PR #474 |
 
 ## 6. Owner decisions already made (never ask again)
@@ -243,6 +244,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 36. BIL-16 correct a receipt after completion (2026-11-10, the owner in the Billing session): a Finance Officer only,
     never the person who recorded it; takes effect at once; any date (an approved cash closing day shows "changed
     after approval"); replace in one step, so only money not really received becomes due.
+37. BIL-18 (2026-11-10, the owner through B.E.R.N.I.S.S, "i want to start all that"): take Daniel's two Billing debt
+    items, the pay-later list on phones and the "Approved pay later" summary row wording; layout and wording only.
+    The owner also approved changing the existing assertion so the past-due chip reads "1 day" / "N days" (2026-11-10).
 
 ## 7. Open items and known limits
 
@@ -278,6 +282,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - The pay-later collection list (BIL-3) is not audited per view, like the Finance / Billing work list and the
   Registration board; it shows patient name and KP number only. Payments are still recorded on each patient's
   Billing page.
+- Pay-later list on phones (BIL-18): "1 records" comes from the shared pagination component. "Return to
+  Workspace" is title case (sentence case per the UI guide); it is a shared string, logged for its owner, not fixed here.
 - The pay-later collection list (BIL-3) shows approved pay later only, not everything a patient owes. If a payment
   that paid off part of a pay-later debt is reversed, that amount moves back into the invoice's due now (pay later
   never grows back), so it shows on the Billing page but not on this list. The page says so.
