@@ -71,11 +71,6 @@ final class HiringDeadlines
     }
 
     /**
-     * When the current count started: the later of the stage start (the invitation, a cancelled interview, or the move to
-     * New or Phone screening), HR's latest "ask for new times" at Scheduling, and HR's latest "give 3 more working days"
-     * (follow-up b). Null means the stage start itself.
-     */
-    /**
      * How many times HR gave this stage (at Scheduling, this round) more time: the HR reminder comes once per count, so
      * an application never closes without a reminder of its own (Suresh M1).
      */
@@ -91,6 +86,11 @@ final class HiringDeadlines
             ->where('created_at', '>', CarbonImmutable::parse($start)->utc())->count();
     }
 
+    /**
+     * When the current count started: the later of the stage start (the invitation, a cancelled interview, or the move to
+     * New or Phone screening), HR's latest "ask for new times" at Scheduling, and HR's latest "give 3 more working days"
+     * (follow-up b). Null means the stage start itself.
+     */
     public static function countStart(\stdClass $application): ?string
     {
         $actions = $application->status === self::AWAITING_PICKS ? ['picks_declined', 'deadline_extended'] : ['deadline_extended'];

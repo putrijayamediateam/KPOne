@@ -295,7 +295,7 @@ class InterviewSlotsTest extends VisitTestCase
         // HR gives both more time on Mon 16: Tue 17, Wed 18, Thu 19 = new last day, Fri 20 = closes.
         $key = (string) Str::uuid();
         $lock = $this->row($waiting)->lock_version;
-        $this->extend($waiting, $key)->assertSessionHasNoErrors();
+        $this->extend($waiting, $key)->assertSessionHasNoErrors()->assertInertiaFlash('toast.message', 'More time given. New closing date: Fri 20 Nov 2026.');
         $this->extend($waiting, $key, $lock)->assertSessionHasNoErrors(); // the same press again: replayed, not a second extension
         $this->extend($invited)->assertSessionHasNoErrors();
         $this->assertSame(2, DB::table('hr_job_application_events')->where('action', 'deadline_extended')->count());
@@ -318,6 +318,9 @@ class InterviewSlotsTest extends VisitTestCase
             ->orderBy('application_id')->orderBy('extension')->get(['application_id', 'extension'])->groupBy('application_id')
             ->map(fn ($rows): array => $rows->pluck('extension')->map(fn ($e): int => (int) $e)->all())->values()->all());
         $this->assertSame([0, 0], $run('2026-11-19 20:00')); // a reminder has a working day of its own before the close
+        // PostgreSQL: a sent reminder keeps its round and extension.
+        $this->assertDatabaseRefuses(fn () => DB::table('hr_job_application_messages')->where('template', 'auto_reject_reminder')->where('extension', 1)->update(['extension' => 0]));
+        $this->assertDatabaseRefuses(fn () => DB::table('hr_job_application_messages')->where('template', 'pick_reminder')->where('extension', 1)->update(['round' => 9]));
         $this->assertSame([0, 2], $run('2026-11-20 08:20'));
         $this->assertSame(['auto_rejected', 'auto_rejected'], [$this->row($waiting)->status, $this->row($invited)->status]);
 

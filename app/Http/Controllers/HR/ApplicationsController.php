@@ -11,6 +11,7 @@ use App\Domain\HR\Applications\Services\JobApplicationService;
 use App\Domain\HR\Applications\Services\StaffAccountRequests;
 use App\Domain\HR\Applications\Services\TalentPool;
 use App\Http\Controllers\Controller;
+use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -73,7 +74,8 @@ class ApplicationsController extends Controller
     /** HR-17c follow-up (b): 3 more working days before the daily check closes a waiting application. */
     public function extendDeadline(Request $request, DeadlineExtensions $extensions, string $application): RedirectResponse
     {
-        return $this->run($request, $this->back($request), 'More time given. Open the application to see the new closing date.',
+        return $this->run($request, $this->back($request),
+            fn (mixed $closesOn): string => is_string($closesOn) ? 'More time given. New closing date: '.CarbonImmutable::parse($closesOn)->format('D j M Y').'.' : 'More time given.',
             fn () => $extensions->extend($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
@@ -206,17 +208,18 @@ class ApplicationsController extends Controller
         ]);
     }
 
-    private function run(Request $request, string $back, string $message, callable $action): RedirectResponse
+    /** @param  string|\Closure(mixed): string  $message  a closure gets the action's result (follow-up b: the new date) */
+    private function run(Request $request, string $back, string|\Closure $message, callable $action): RedirectResponse
     {
         try {
-            $action();
+            $result = $action();
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
         } catch (AuthorizationException $e) {
             app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
             throw ValidationException::withMessages(['applications' => $e->getMessage() !== '' ? $e->getMessage() : 'You may not do this.'])->redirectTo($back);
         }
-        Inertia::flash('toast', ['type' => 'success', 'message' => $message]);
+        Inertia::flash('toast', ['type' => 'success', 'message' => $message instanceof \Closure ? $message($result) : $message]);
 
         return redirect($back);
     }

@@ -35,15 +35,19 @@ final class DeadlineExtensions
             && ! DB::table('hr_job_interview_picks')->where('application_id', $application->id)->where('round', $application->interview_round)->exists();
     }
 
-    /** @param  array<string, mixed>  $input */
-    public function extend(User $actor, string $applicationId, array $input): void
+    /**
+     * @param  array<string, mixed>  $input
+     * @return string|null the new branch-local closing date (Y-m-d), for HR's toast
+     */
+    public function extend(User $actor, string $applicationId, array $input): ?string
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
-        DB::transaction(function () use ($actor, $applicationId, $input, $key): void {
+
+        return DB::transaction(function () use ($actor, $applicationId, $input, $key): ?string {
             $actor = $this->support->lock($actor, ApplicationPermissions::MANAGE);
             $hash = $this->support->hash([$actor->id, 'job_deadline_extend', $applicationId]);
             if ($this->support->replay($actor, $key, 'job_deadline_extend', $hash) !== null) {
-                return;
+                return null;
             }
             if (! Str::isUuid($applicationId)) {
                 abort(404);
@@ -64,6 +68,8 @@ final class DeadlineExtensions
             $this->support->remember($actor, $key, 'job_deadline_extend', $hash, $applicationId);
             $this->support->audit->record('hr.applications.deadline_extended', null, ['application_id' => (int) $application->id,
                 'stage' => (string) $application->status, 'closes_on' => $deadlines === null ? null : $deadlines['reject']], $actor, null, $actor->organisation_id);
+
+            return $deadlines === null ? null : $deadlines['reject'];
         }, 3);
     }
 }
