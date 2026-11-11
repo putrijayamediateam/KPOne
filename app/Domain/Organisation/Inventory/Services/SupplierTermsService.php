@@ -159,13 +159,16 @@ final class SupplierTermsService
                 't.is_preferred', 't.is_active', 't.lock_version', 'sup.name as supplier_name', 'sup.public_id as supplier_public_id',
                 's.sku_code', 's.public_id as sku_public_id', 's.stock_unit', 'i.generic_name as item_name'], 'page', (int) ($data['page'] ?? 1));
 
+        /** @var list<\stdClass> $items */
+        $items = $rows->items();
+
         return [
             'branchName' => $branch->name,
             'expectedBranchId' => $branch->id,
             'canManage' => $actor->can(self::PERMISSION),
             'canSeeCost' => $cost,
             'filters' => ['q' => $data['q'] ?? '', 'status' => $data['status'] ?? 'active'],
-            'rows' => collect($rows->items())->map(fn (object $row): array => [
+            'rows' => array_map(fn (\stdClass $row): array => [
                 'publicId' => $row->public_id, 'supplier' => $row->supplier_name, 'supplierPublicId' => $row->supplier_public_id,
                 'skuCode' => $row->sku_code, 'skuPublicId' => $row->sku_public_id, 'itemName' => $row->item_name, 'stockUnit' => $row->stock_unit,
                 'packDescription' => $row->pack_description, 'packQuantity' => (string) $row->pack_quantity,
@@ -173,7 +176,7 @@ final class SupplierTermsService
                 ...($cost ? ['packPriceSen' => $row->pack_price_sen === null ? null : (int) $row->pack_price_sen] : []),
                 'leadTimeDays' => (int) $row->lead_time_days, 'minimumOrderPacks' => $row->minimum_order_packs === null ? null : (int) $row->minimum_order_packs,
                 'preferred' => (bool) $row->is_preferred, 'active' => (bool) $row->is_active, 'lockVersion' => (int) $row->lock_version,
-            ])->all(),
+            ], $items),
             'page' => $rows->currentPage(), 'lastPage' => $rows->lastPage(), 'total' => $rows->total(),
         ];
     }
@@ -260,7 +263,7 @@ final class SupplierTermsService
     /**
      * Ids, version and field names only: never the price.
      *
-     * @param  list<string>  $fields
+     * @param  array<int, string>  $fields
      * @return array<string, mixed>
      */
     private function auditFields(InventorySupplierSkuTerm $term, array $fields): array
@@ -285,7 +288,8 @@ final class SupplierTermsService
             throw ValidationException::withMessages(['pack_price_sen' => 'Only a Director or Finance Officer may set a supplier price.']);
         }
 
-        return $requested && $now;
+        // A permission gained after the request was checked is not used: the request was validated without it.
+        return $requested;
     }
 
     private function assertActiveReferences(InventorySupplierSkuTerm $term): void
