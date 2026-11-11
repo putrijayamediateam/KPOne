@@ -806,13 +806,13 @@ watch(
                             v-model="drafts[lot.id].quantity"
                             inputmode="decimal"
                             :disabled="!drafts[lot.id].include"
-                            class="min-h-11 w-full rounded border bg-background px-3"
+                            class="min-h-11 w-full rounded border bg-background px-3 disabled:opacity-50"
                     /></label>
                     <label class="grid gap-1 text-sm"
                         >Reason<select
                             v-model="drafts[lot.id].reason"
                             :disabled="!drafts[lot.id].include"
-                            class="min-h-11 w-full rounded border bg-background px-2"
+                            class="min-h-11 w-full rounded border bg-background px-2 disabled:opacity-50"
                         >
                             <option
                                 v-for="reason in returns.reasons"

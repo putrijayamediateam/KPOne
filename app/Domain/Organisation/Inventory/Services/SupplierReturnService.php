@@ -9,6 +9,7 @@ use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -444,7 +445,7 @@ final class SupplierReturnService
         $deliveryLots = [];
         if ($canRequest) {
             // STK-17: deliveries that still have something to return, newest first, for the multi-lot form.
-            $deliveries = array_map(fn (stdClass $row): array => (array) $row, $this->returnableLots($actor, $branch)->join('inventory_suppliers as sup', 'sup.id', '=', 'delivery.supplier_id')
+            $deliveries = array_map(fn (stdClass $row): array => [...(array) $row, 'received_at' => $row->received_at === null ? null : CarbonImmutable::parse((string) $row->received_at, 'UTC')->toIso8601String()], $this->returnableLots($actor, $branch)->join('inventory_suppliers as sup', 'sup.id', '=', 'delivery.supplier_id')
                 ->groupBy('receipt.id', 'delivery.delivery_reference', 'delivery.received_at', 'sup.name')
                 ->orderByDesc('receipt.id')->limit(50)
                 ->get(['receipt.id', 'delivery.delivery_reference', 'delivery.received_at', 'sup.name as supplier', DB::raw('COUNT(lot.id) as lots')])->all());
