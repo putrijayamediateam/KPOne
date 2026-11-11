@@ -217,6 +217,19 @@ type HrHome = {
     links: Array<{ title: string; href: string }>;
 };
 
+type ManagementHome = {
+    branchName: string | null;
+    asOf: string | null;
+    staff: { active: number; inactive: number } | null;
+    documents: {
+        text: string;
+        warning: boolean;
+        attention: Array<{ name: string; text: string }>;
+    } | null;
+    primaryAction: { title: string; href: string } | null;
+    links: Array<{ title: string; href: string }>;
+};
+
 type Pharmacy = {
     branchName: string | null;
     asOf: string | null;
@@ -255,6 +268,7 @@ const props = defineProps<{
     panel?: PanelSpaceHome | null;
     stock?: StockHome | null;
     hr?: HrHome | null;
+    management?: ManagementHome | null;
 }>();
 
 const page = usePage();
@@ -277,6 +291,7 @@ const primaryAction = computed(
         props.panel?.primaryAction ??
         props.stock?.primaryAction ??
         props.hr?.primaryAction ??
+        props.management?.primaryAction ??
         null,
 );
 
@@ -1673,6 +1688,84 @@ onMounted(async () => {
                         !hr.away &&
                         !hr.roster &&
                         !hr.links.length
+                    "
+                    class="space-card"
+                >
+                    <p class="space-muted">
+                        Nothing to show here for your role. Your existing
+                        screens are unchanged.
+                    </p>
+                    <p v-if="existing" class="space-existing">
+                        <Link :href="existing.href"
+                            >Open the existing
+                            {{ existing.title }} screens</Link
+                        >
+                    </p>
+                </section>
+            </template>
+            <template v-else-if="management">
+                <SpaceAsOf
+                    v-if="management.branchName"
+                    :branch-name="management.branchName"
+                    :as-of="management.asOf"
+                    only="management"
+                />
+                <section
+                    v-if="management.staff"
+                    class="space-card"
+                    aria-labelledby="mg-staff"
+                >
+                    <h2 id="mg-staff">Staff accounts</h2>
+                    <ul class="space-stats is-glance">
+                        <li>
+                            <strong>{{ management.staff.active }}</strong>
+                            <span class="space-muted">active</span>
+                        </li>
+                        <li>
+                            <strong>{{ management.staff.inactive }}</strong>
+                            <span class="space-muted">inactive</span>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="management.documents"
+                    class="space-card"
+                    aria-labelledby="mg-docs"
+                >
+                    <h2 id="mg-docs">Letters and footers</h2>
+                    <p
+                        :class="
+                            management.documents.warning
+                                ? 'space-wait is-amber'
+                                : 'space-muted'
+                        "
+                    >
+                        {{ management.documents.text }}
+                    </p>
+                </section>
+                <section
+                    v-if="management.links.length"
+                    class="space-card"
+                    aria-labelledby="mg-open"
+                >
+                    <h2 id="mg-open">Open</h2>
+                    <ul class="space-list">
+                        <li v-for="l in management.links" :key="l.href">
+                            <Link :href="l.href" class="space-row">
+                                <span>{{ l.title }}</span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="
+                        !management.staff &&
+                        !management.documents &&
+                        !management.links.length
                     "
                     class="space-card"
                 >
