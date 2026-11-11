@@ -21,6 +21,10 @@ final class SpaceQuestions
         'pharmacy.longest_waiting' => ['space' => 'pharmacy', 'label' => 'Who has waited longest?', 'permission' => 'dispensary.view.branch', 'date' => self::NOW, 'builder' => 'longestWaiting', 'patientLevel' => true],
         'pharmacy.returns_waiting' => ['space' => 'pharmacy', 'label' => 'Which returns wait for a check?', 'permission' => 'dispensary.view.branch', 'date' => self::NOW, 'builder' => 'returnsWaiting', 'patientLevel' => false],
         'pharmacy.stock_attention' => ['space' => 'pharmacy', 'label' => 'What stock needs attention?', 'permission' => 'inventory.view.branch', 'date' => self::NOW, 'builder' => 'stockAttention', 'patientLevel' => false],
+        'front_desk.waited_over_30' => ['space' => 'front_desk', 'label' => 'Who has waited over 30 minutes?', 'permission' => 'visits.view.branch', 'date' => self::NOW, 'builder' => 'frontDeskWaitedOver30', 'patientLevel' => true],
+        'front_desk.not_ready' => ['space' => 'front_desk', 'label' => 'Which patients are not ready to call?', 'permission' => 'visits.view.branch', 'date' => self::NOW, 'builder' => 'frontDeskNotReady', 'patientLevel' => true],
+        'front_desk.awaiting_billing' => ['space' => 'front_desk', 'label' => 'Which visits are awaiting billing?', 'permission' => 'billing.view.branch', 'date' => self::NOW, 'builder' => 'frontDeskAwaitingBilling', 'patientLevel' => true],
+        'front_desk.qr_pending' => ['space' => 'front_desk', 'label' => 'QR check-ins to review?', 'permission' => 'public_intakes.review.branch', 'date' => self::NOW, 'builder' => 'frontDeskQrPending', 'patientLevel' => false],
     ];
 
     /** @return array<string, array{space: string, label: string, permission: string, date: string, builder: string, patientLevel: bool}> */

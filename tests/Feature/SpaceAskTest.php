@@ -90,4 +90,48 @@ class SpaceAskTest extends VisitTestCase
             ->assertOk()->assertJsonPath('sentence', 'No stock needs attention.')->assertJsonPath('rows', []);
         $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.longest_waiting'])->assertForbidden();
     }
+
+    public function test_front_desk_questions_are_offered_to_a_ca_and_answered_from_the_registration_services(): void
+    {
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+
+        $this->get('/spaces/front_desk')->assertInertia(fn (Assert $p) => $p->has('questions', 4)
+            ->where('questions.3', ['key' => 'front_desk.qr_pending', 'label' => 'QR check-ins to review?']));
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.waited_over_30'])
+            ->assertOk()->assertJsonPath('sentence', 'Nobody has waited over 30 minutes.')->assertJsonPath('href', '/registration');
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.not_ready'])
+            ->assertOk()->assertJsonPath('sentence', 'No patient is marked not ready to call.');
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.awaiting_billing'])
+            ->assertOk()->assertJsonPath('sentence', 'No visit is awaiting billing.');
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.qr_pending'])
+            ->assertOk()->assertJsonPath('sentence', 'No QR check-ins are waiting for review.')->assertJsonPath('href', '/registration?tab=qr-intake');
+    }
+
+    public function test_the_billing_question_is_only_for_billing_holders_and_the_director_does_not_get_it(): void
+    {
+        $this->selectBranch($this->actor('director'));
+        $this->get('/spaces/front_desk')->assertInertia(fn (Assert $p) => $p->has('questions', 3));
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.awaiting_billing'])->assertForbidden();
+    }
+
+    public function test_a_wait_over_30_minutes_is_listed_with_the_waiting_words(): void
+    {
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+        $visit = $this->register($ca, $this->patient($ca, ['full_name' => 'Ahmad Ismail bin Ali']));
+        $entry = app(OtcQueueService::class)->enter($ca, $visit, ['expected_branch_id' => $this->branch->id]);
+        DB::table('otc_queue_entries')->where('id', $entry->id)->update(['queued_at' => now()->utc()->subMinutes(70)]);
+
+        $json = $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.waited_over_30'])->assertOk()->json();
+        $this->assertSame('1 patient has waited over 30 minutes.', $json['sentence']);
+        $this->assertSame(['B-001', 'Ahmad I.', 'Waiting 70 min, Very long wait'], $json['rows'][0]);
+        $this->assertStringNotContainsString('Ismail', json_encode($json));
+    }
+
+    public function test_a_doctor_cannot_ask_front_desk_questions(): void
+    {
+        $this->selectBranch($this->actor('resident_doctor'));
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.waiting_counts'])->assertForbidden();
+    }
 }

@@ -99,7 +99,7 @@ test('DS-3: a Pharmacy space with no widgets still links to the existing screens
                 /Open the existing\s+\{\{ existing\.title \}\} screens/g,
             ) ?? []
         ).length,
-        2,
+        3,
     );
 });
 
@@ -175,4 +175,51 @@ test('DS-3a: short names never wrap in the phone table and Retry shares the row 
         read('resources/js/components/spaces/SpaceAskPanel.vue'),
         /class="space-ask-failed"/,
     );
+});
+
+test('DS-4: the Front desk shows waiting, a glance, QR count only, open links and an empty fallback', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    assert.match(page, /v-else-if="frontDesk"/);
+    assert.match(page, /v-if="frontDesk\.waiting"/);
+    assert.match(page, /Today at a glance/);
+    assert.match(page, /QR check-ins to review/);
+    assert.match(page, /No QR check-ins are waiting for review\./);
+    assert.doesNotMatch(
+        page,
+        /frontDesk\.[a-zA-Z.]*patientName|qrPending\.(summary|items)/,
+    );
+});
+
+test('DS-4: Refresh reloads only the Front desk data, with no polling', () => {
+    const page = read('resources/js/components/spaces/SpaceAsOf.vue');
+    assert.match(page, /router\.reload\(\{\s*only: \[props\.only\]/);
+    assert.match(page, /Refreshing…/);
+    assert.doesNotMatch(page, /setInterval|setTimeout/);
+    const show = read('resources/js/pages/Spaces/Show.vue');
+    assert.match(show, /only="frontDesk"/);
+    assert.match(show, /only="pharmacy"/);
+    assert.match(
+        read('resources/css/space-shell-layout.css'),
+        /\.space-refresh \{[^}]*min-height: 44px/,
+    );
+});
+
+test('DS-4: the primary action sits in the header, rows and buttons stack on phones, the glance is 2x2 and a failed refresh says so', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    const css = read('resources/css/space-shell-layout.css');
+    assert.match(page, /class="space-primary"/);
+    assert.match(
+        read('resources/js/components/spaces/SpaceAsOf.vue'),
+        /Could not refresh\. Still showing the update from/,
+    );
+    assert.match(page, /space-stats is-glance/);
+    assert.match(
+        css,
+        /@media \(max-width: 479px\)[\s\S]*\.space-primary \{\s*width: 100%/,
+    );
+    assert.match(
+        css,
+        /\.space-stats\.is-glance \{\s*grid-template-columns: repeat\(2/,
+    );
+    assert.match(css, /\.space-ask-list \{\s*flex-direction: column/);
 });
