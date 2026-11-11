@@ -14,10 +14,10 @@ const panel = readFileSync(
 // so nothing relies on placeholder text that is cut off at 1440 px.
 test('every Post receipt field has a visible label and its accessible name contains the visible label (WCAG 2.5.3)', () => {
     for (const [label, name] of [
-        ['Batch number', 'received batch number'],
-        ['Expiry date', 'expiry date'],
+        ['Batch number \\(required\\)', 'received batch number'],
+        ['Expiry date \\(required\\)', 'expiry date'],
         [
-            'Quantity this receipt \\(\\{\\{ line\\.stockUnit \\}\\}\\)',
+            'Quantity this receipt \\(\\{\\{ line\\.stockUnit \\}\\}, required\\)',
             'quantity this receipt',
         ],
     ]) {

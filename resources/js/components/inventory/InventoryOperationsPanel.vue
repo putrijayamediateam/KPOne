@@ -913,20 +913,21 @@ const saveReorder = () =>
                                 · Base stock unit: {{ line.stockUnit }}
                             </legend>
                             <label class="grid min-w-0 gap-1 text-xs"
-                                >Batch number
+                                >Batch number (required)
                                 <Input
                                     v-model="receipt[line.publicId].batchNumber"
                                     :aria-label="`${line.sku} received batch number`"
                             /></label>
                             <label class="grid min-w-0 gap-1 text-xs"
-                                >Expiry date
+                                >Expiry date (required)
                                 <DateField
                                     v-model="receipt[line.publicId].expiryDate"
                                     :aria-label="`${line.sku} expiry date`"
                                     :echo="false"
                             /></label>
                             <label class="grid min-w-0 gap-1 text-xs"
-                                >Quantity this receipt ({{ line.stockUnit }})
+                                >Quantity this receipt ({{ line.stockUnit }},
+                                required)
                                 <Input
                                     v-model="receipt[line.publicId].quantity"
                                     :aria-label="`${line.sku} quantity this receipt`"
