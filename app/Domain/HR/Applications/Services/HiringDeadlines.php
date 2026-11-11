@@ -84,7 +84,7 @@ final class HiringDeadlines
     /**
      * Owner, 2026-11-11 (#484 follow-up): the last day the candidate may still choose times, shown on their page. It is the
      * day of the HR reminder; the application closes from the next working day. Null when nothing will close it (no
-     * working days set) or the candidate has already picked this round.
+     * working days set), the candidate has already picked this round, or the day has passed.
      */
     public function pickBy(\stdClass $application): ?string
     {
@@ -93,7 +93,11 @@ final class HiringDeadlines
             return null;
         }
 
-        return $this->deadlines($application, self::pickRoundStart($application))['remind'] ?? null;
+        $by = $this->deadlines($application, self::pickRoundStart($application))['remind'] ?? null;
+        $today = $this->today($application);
+
+        // Once the day has passed the line goes (Suresh m3): picking stays open until the daily check closes it.
+        return $by === null || ($today !== null && $today > $by) ? null : $by;
     }
 
     /** The branch's local date today for an application. */

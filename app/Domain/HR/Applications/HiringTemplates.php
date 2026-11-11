@@ -27,8 +27,8 @@ final class HiringTemplates
         'screening_passed' => [
             'label' => 'Invited to an interview',
             'subject' => 'Interview for {position} / Temu duga untuk {position}',
-            'body' => "Thank you for speaking with us. We would like to invite you to an interview for {position}. Please choose three times that suit you on your private page. Please choose within 3 working days; after that the application closes.\n\n"
-                .'Terima kasih kerana bercakap dengan kami. Kami ingin menjemput anda ke temu duga untuk jawatan {position}. Sila pilih tiga masa yang sesuai di halaman peribadi anda. Sila pilih dalam masa 3 hari bekerja; selepas itu permohonan ini ditutup.',
+            'body' => "Thank you for speaking with us. We would like to invite you to an interview for {position}. Please choose three times that suit you on your private page. Please choose within {days} working days; after that the application closes.\n\n"
+                .'Terima kasih kerana bercakap dengan kami. Kami ingin menjemput anda ke temu duga untuk jawatan {position}. Sila pilih tiga masa yang sesuai di halaman peribadi anda. Sila pilih dalam masa {days} hari bekerja; selepas itu permohonan ini ditutup.',
         ],
         'not_taken_forward' => [
             'label' => 'Not taken forward',
@@ -71,14 +71,14 @@ final class HiringTemplates
         'pick_again' => [
             'label' => 'Asked for new times',
             'subject' => 'Please choose new interview times / Sila pilih masa temu duga yang baharu',
-            'body' => "The times you chose for {position} do not suit the clinic. Please choose three new times on your private page. Please choose within 3 working days; after that the application closes.\n\n"
-                .'Masa yang anda pilih untuk jawatan {position} tidak sesuai dengan klinik. Sila pilih tiga masa baharu di halaman peribadi anda. Sila pilih dalam masa 3 hari bekerja; selepas itu permohonan ini ditutup.',
+            'body' => "The times you chose for {position} do not suit the clinic. Please choose three new times on your private page. Please choose within {days} working days; after that the application closes.\n\n"
+                .'Masa yang anda pilih untuk jawatan {position} tidak sesuai dengan klinik. Sila pilih tiga masa baharu di halaman peribadi anda. Sila pilih dalam masa {days} hari bekerja; selepas itu permohonan ini ditutup.',
         ],
         'interview_cancelled' => [
             'label' => 'Interview cancelled',
             'subject' => 'Your interview on {date} was cancelled / Temu duga anda pada {date} dibatalkan',
-            'body' => "Your interview for {position} on {date} at {time} has been cancelled. Please choose three new times on your private page. Please choose within 3 working days; after that the application closes.\n\n"
-                .'Temu duga anda untuk jawatan {position} pada {date} jam {time} telah dibatalkan. Sila pilih tiga masa baharu di halaman peribadi anda. Sila pilih dalam masa 3 hari bekerja; selepas itu permohonan ini ditutup.',
+            'body' => "Your interview for {position} on {date} at {time} has been cancelled. Please choose three new times on your private page. Please choose within {days} working days; after that the application closes.\n\n"
+                .'Temu duga anda untuk jawatan {position} pada {date} jam {time} telah dibatalkan. Sila pilih tiga masa baharu di halaman peribadi anda. Sila pilih dalam masa {days} hari bekerja; selepas itu permohonan ini ditutup.',
         ],
         'pool_invited' => [
             'label' => 'Invited from the talent pool',
@@ -118,6 +118,7 @@ final class HiringTemplates
         'date' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/', // Tue 17 Nov 2026
         'time' => '/\A\d{1,2}:00 (AM|PM)\z/',
         'branch' => '/\A[^\r\n<>{}]{2,60}\z/u',
+        'days' => '/\A[1-9]\d?\z/', // filled by render() from the auto-reject setting, never by a caller
     ];
 
     public static function label(string $template): string
@@ -140,7 +141,12 @@ final class HiringTemplates
     public static function render(string $template, array $params): array
     {
         $fixed = self::TEMPLATES[$template] ?? throw new InvalidArgumentException('Unknown hiring template.');
-        $params = [...(str_contains($fixed['body'], '{clinic}') ? ['clinic' => self::CLINIC] : []), ...$params];
+        $params = [
+            ...(str_contains($fixed['body'], '{clinic}') ? ['clinic' => self::CLINIC] : []),
+            // The pick deadline in the email comes from the same setting the auto-reject uses, so they cannot disagree.
+            ...(str_contains($fixed['body'], '{days}') ? ['days' => (string) (int) config('hr-applications.auto_reject_working_days', 3)] : []),
+            ...$params,
+        ];
         $needed = self::placeholders($template);
         if (array_diff($needed, array_keys($params)) !== [] || array_diff(array_keys($params), $needed) !== []) {
             throw new InvalidArgumentException('Hiring placeholders do not match the template.');

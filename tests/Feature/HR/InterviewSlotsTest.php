@@ -263,6 +263,10 @@ class InterviewSlotsTest extends VisitTestCase
             $this->assertStringContainsString('Please choose within 3 working days; after that the application closes.', $body, $template);
             $this->assertStringContainsString('Sila pilih dalam masa 3 hari bekerja; selepas itu permohonan ini ditutup.', $body, $template);
         }
+        // The number follows the auto-reject setting, so the email and the closing cannot disagree.
+        config(['hr-applications.auto_reject_working_days' => 5]);
+        $this->assertStringContainsString('Please choose within 5 working days;', HiringTemplates::render('pick_again', ['position' => 'Synthetic Assistant'])['body']);
+        config(['hr-applications.auto_reject_working_days' => 3]);
 
         // Invited on Tuesday 10 Nov: Wed 11, Thu 12, (Fri 13 holiday), Mon 16 is the last day to choose.
         [$id, $token] = $this->scheduled('Synthetic Assistant');
@@ -275,6 +279,9 @@ class InterviewSlotsTest extends VisitTestCase
         $this->askAgain($id)->assertSessionHasNoErrors();
         auth()->logout();
         $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Tue 17 Nov 2026'));
+        // The day after, the line goes; picking stays open until the daily check closes the application.
+        $this->travelTo(CarbonImmutable::parse('2026-11-18 09:00', $this->branch->timezone));
+        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', null)->where('application.stage', 'scheduling'));
     }
 
     /** @return list<string> every slot start offered now */
