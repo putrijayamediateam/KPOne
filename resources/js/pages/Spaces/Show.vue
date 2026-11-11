@@ -727,13 +727,6 @@ onMounted(async () => {
                     >
                         Changed after approval. Check the figures.
                     </p>
-                    <p class="space-existing">
-                        <Link
-                            :href="billing.cashClosing.href"
-                            class="space-link"
-                            >Open cash closing</Link
-                        >
-                    </p>
                 </section>
                 <section
                     v-if="billing.awaiting"
