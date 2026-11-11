@@ -536,3 +536,28 @@
         text-align: left;
     }
 }
+
+.space-shell .space-pill {
+    display: inline-block;
+    padding: 2px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--space-line);
+    font-weight: 650;
+}
+.space-shell .space-pill.is-approved {
+    color: var(--space-ok);
+}
+.space-shell .space-pill.is-waiting,
+.space-shell .space-pill.is-not_counted {
+    color: var(--space-warn);
+}
+.space-shell .space-pill.is-returned {
+    color: var(--space-bad);
+}
+.space-shell .space-row-static {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 6px 4px;
+    border-top: 1px solid var(--space-line);
+}

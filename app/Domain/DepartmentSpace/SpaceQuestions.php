@@ -25,6 +25,10 @@ final class SpaceQuestions
         'front_desk.not_ready' => ['space' => 'front_desk', 'label' => 'Which patients are not ready to call?', 'permission' => 'visits.view.branch', 'date' => self::NOW, 'builder' => 'frontDeskNotReady', 'patientLevel' => true],
         'front_desk.awaiting_billing' => ['space' => 'front_desk', 'label' => 'Which visits are awaiting billing?', 'permission' => 'billing.view.branch', 'date' => self::NOW, 'builder' => 'frontDeskAwaitingBilling', 'patientLevel' => true],
         'front_desk.qr_pending' => ['space' => 'front_desk', 'label' => 'QR check-ins to review?', 'permission' => 'public_intakes.review.branch', 'date' => self::NOW, 'builder' => 'frontDeskQrPending', 'patientLevel' => false],
+        'billing.overdue' => ['space' => 'billing', 'label' => 'Which bills are overdue?', 'permission' => 'outstanding.view.branch', 'date' => self::NOW, 'builder' => 'billingOverdue', 'patientLevel' => true],
+        'billing.overdue_total' => ['space' => 'billing', 'label' => 'How much is overdue?', 'permission' => 'outstanding.view.branch', 'date' => self::NOW, 'builder' => 'billingOverdueTotal', 'patientLevel' => false],
+        'billing.closings_waiting' => ['space' => 'billing', 'label' => 'Which cash closings wait for approval?', 'permission' => 'payments.cash_closing.approve.branch', 'date' => self::NOW, 'builder' => 'billingClosingsWaiting', 'patientLevel' => false],
+        'billing.closings_missing' => ['space' => 'billing', 'label' => 'Which days this month have no cash count?', 'permission' => 'payments.reconcile.branch', 'date' => self::NOW, 'builder' => 'billingClosingsMissing', 'patientLevel' => false],
     ];
 
     /** @return array<string, array{space: string, label: string, permission: string, date: string, builder: string, patientLevel: bool}> */

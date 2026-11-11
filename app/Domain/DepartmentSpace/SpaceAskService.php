@@ -22,9 +22,13 @@ final class SpaceAskService
         'front_desk.not_ready' => ['registration.index', []],
         'front_desk.awaiting_billing' => ['registration.index', []],
         'front_desk.qr_pending' => ['registration.index', ['tab' => 'qr-intake']],
+        'billing.overdue' => ['billing.pay-later-collections', []],
+        'billing.overdue_total' => ['billing.pay-later-collections', []],
+        'billing.closings_waiting' => ['cash-closings.month', []],
+        'billing.closings_missing' => ['cash-closings.month', []],
     ];
 
-    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private AuditRecorder $audit) {}
+    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private AuditRecorder $audit) {}
 
     /**
      * The questions this person may ask in a space. A question they cannot ask is absent, never greyed.
@@ -79,6 +83,8 @@ final class SpaceAskService
             'front_desk.waited_over_30', 'front_desk.not_ready' => $this->frontDesk->waiting($actor) !== null,
             'front_desk.awaiting_billing' => $this->frontDesk->awaitingBilling($actor) !== null,
             'front_desk.qr_pending' => $this->frontDesk->qrPending($actor) !== null,
+            'billing.overdue', 'billing.overdue_total' => $this->billing->overdue($actor) !== null,
+            'billing.closings_waiting', 'billing.closings_missing' => $this->billing->monthDays($actor) !== null,
             default => false,
         };
     }
@@ -202,6 +208,69 @@ final class SpaceAskService
 
         return [
             'sentence' => $total === 0 ? 'No QR check-ins are waiting for review.' : ($total === 1 ? '1 QR check-in is waiting for review.' : $total.' QR check-ins are waiting for review.'),
+            'columns' => [],
+            'rows' => [],
+        ];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function billingOverdue(User $actor): array
+    {
+        $overdue = $this->billing->overdue($actor);
+        abort_if($overdue === null, 403);
+        if ($overdue['rows'] === []) {
+            return ['sentence' => 'No bill is overdue.', 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        foreach ($overdue['rows'] as $row) {
+            $rows[] = [(string) $row['invoiceNumber'], (string) $row['patient'], (string) $row['amountText'], (string) $row['dueText']];
+        }
+        $n = $overdue['count'];
+
+        return [
+            'sentence' => ($n === 1 ? '1 bill is' : $n.' bills are').' overdue.'.($n > count($rows) ? ' The '.count($rows).' most overdue are shown.' : ''),
+            'columns' => ['Invoice', 'Patient', 'Remaining', 'Due'],
+            'rows' => $rows,
+        ];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function billingOverdueTotal(User $actor): array
+    {
+        $overdue = $this->billing->overdue($actor);
+        abort_if($overdue === null, 403);
+        $n = $overdue['count'];
+
+        return [
+            'sentence' => $n === 0 ? 'Nothing is overdue.' : SpaceDisplay::rm($overdue['sen']).' is overdue across '.($n === 1 ? '1 bill.' : $n.' bills.'),
+            'columns' => [],
+            'rows' => [],
+        ];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function billingClosingsWaiting(User $actor): array
+    {
+        $days = $this->billing->monthDays($actor);
+        abort_if($days === null, 403);
+        $dates = array_values(array_map(fn (array $d): string => $d['date'], array_filter($days, fn (array $d): bool => $d['status'] === 'waiting')));
+
+        return [
+            'sentence' => $dates === [] ? 'No cash closing is waiting for approval this month.' : (count($dates) === 1 ? '1 cash closing is' : count($dates).' cash closings are').' waiting for approval: '.implode(', ', $dates).'.',
+            'columns' => [],
+            'rows' => [],
+        ];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function billingClosingsMissing(User $actor): array
+    {
+        $days = $this->billing->monthDays($actor);
+        abort_if($days === null, 403);
+        $dates = array_values(array_map(fn (array $d): string => $d['date'], array_filter($days, fn (array $d): bool => $d['status'] === 'not_counted')));
+
+        return [
+            'sentence' => $dates === [] ? 'Every day this month has a cash count.' : (count($dates) === 1 ? '1 day has' : count($dates).' days have').' no cash count: '.implode(', ', $dates).'.',
             'columns' => [],
             'rows' => [],
         ];
