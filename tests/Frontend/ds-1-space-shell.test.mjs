@@ -7,10 +7,12 @@ const read = (p) =>
 
 test('the space shell page uses the server list and has no menu link or mutation', () => {
     const page = read('resources/js/pages/Spaces/Show.vue');
-    assert.match(page, /defineProps<\{ space: Space; spaces: Space\[\] \}>/);
+    assert.match(page, /defineProps<\{\s*space: Space;\s*spaces: Space\[\];/);
     assert.match(page, /aria-current/);
     assert.match(page, /id="main-content"/);
-    assert.doesNotMatch(page, /router\.(post|put|patch|delete)|fetch\(/);
+    assert.doesNotMatch(page, /router\.(put|patch|delete)|fetch\(/);
+    assert.equal((page.match(/router\.post\(/g) ?? []).length, 1);
+    assert.match(page, /router\.post\(\s*'\/branch-context'/);
     assert.match(page, /defineOptions\(\{ layout:/);
 });
 
@@ -40,4 +42,16 @@ test('the shell layout css is imported and every selector is scoped to the space
             assert.match(part.trim(), /^\.space-shell\b/, part);
         }
     }
+});
+
+test('DS-1: the shell has a named nav, a branch switcher, an account menu, a way back to the existing screens and a right-edge fade', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    const css = read('resources/css/space-shell-layout.css');
+    assert.match(page, /<nav aria-label="Spaces"/);
+    assert.match(page, /id="space-branch"/);
+    assert.match(page, /UserMenuContent/);
+    assert.match(page, /Open the existing \{\{ existing\.title \}\} screens/);
+    assert.match(page, /scrollIntoView/);
+    assert.match(css, /\.has-more/);
+    assert.match(css, /\.space-select,[\s\S]*min-height: 44px/);
 });

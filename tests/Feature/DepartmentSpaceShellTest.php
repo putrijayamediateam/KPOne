@@ -19,6 +19,9 @@ class DepartmentSpaceShellTest extends VisitTestCase
             ->where('space.key', 'front_desk')
             ->where('spaces.0.key', 'front_desk')
             ->has('spaces', 4));
+        $this->get('/spaces/front_desk')->assertInertia(fn (Assert $p) => $p
+            ->where('existing.title', 'Front desk')
+            ->where('existing.href', '/registration'));
         $this->get('/spaces/stock')->assertForbidden();
         $this->get('/spaces/management')->assertForbidden();
         $this->get('/spaces/nonsense')->assertNotFound();
