@@ -88,15 +88,30 @@ const toneByStatus: Record<string, StatusTone> = {
     void: 'danger',
 };
 
+// Words that keep their capitals inside a sentence-case label: KPOne's own term "Panel" and acronyms. The status
+// value arrives in lower case, so they are put back by name.
+const keptWords: Record<string, string> = {
+    mc: 'MC',
+    panel: 'Panel',
+    po: 'PO',
+    tpa: 'TPA',
+};
+
 export const formatStatusLabel = (status: string): string => {
     const normalized = status.trim().toLocaleLowerCase().replaceAll('-', '_');
 
-    return (
-        statusLabels[normalized] ??
-        normalized
-            .replaceAll('_', ' ')
-            .replace(/^\p{L}/u, (character) => character.toLocaleUpperCase())
-    );
+    if (statusLabels[normalized]) {
+        return statusLabels[normalized];
+    }
+
+    const words = normalized
+        .split('_')
+        .filter((word) => word !== '')
+        .map((word) => keptWords[word] ?? word);
+
+    return words
+        .join(' ')
+        .replace(/^\p{L}/u, (character) => character.toLocaleUpperCase());
 };
 
 export const statusTone = (status: string): StatusTone =>
