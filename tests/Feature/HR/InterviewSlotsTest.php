@@ -271,14 +271,14 @@ class InterviewSlotsTest extends VisitTestCase
         // Invited on Tuesday 10 Nov: Wed 11, Thu 12, (Fri 13 holiday), Mon 16 is the last day to choose.
         [$id, $token] = $this->scheduled('Synthetic Assistant');
         $page = fn () => $this->withCookie('kpone_career_status', $token)->get(route('hr-applications.status'));
-        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Mon 16 Nov 2026'));
+        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Mon 16 Nov 2026')->where('application.interview.chooseByMs', 'Isnin 16 Nov 2026'));
         $this->pick($token, array_slice($this->starts($id), 0, 3))->assertSessionHasNoErrors();
         $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', null)); // picked: HR's turn
         // HR asks for new times on Wed 11: Thu 12, Mon 16, Tue 17.
         $this->travelTo(CarbonImmutable::parse('2026-11-11 10:00', $this->branch->timezone));
         $this->askAgain($id)->assertSessionHasNoErrors();
         auth()->logout();
-        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Tue 17 Nov 2026'));
+        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Tue 17 Nov 2026')->where('application.interview.chooseByMs', 'Selasa 17 Nov 2026'));
         // The day after, the line goes; picking stays open until the daily check closes the application.
         $this->travelTo(CarbonImmutable::parse('2026-11-18 09:00', $this->branch->timezone));
         $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', null)->where('application.stage', 'scheduling'));
