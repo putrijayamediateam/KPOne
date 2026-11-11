@@ -207,14 +207,14 @@ watch(
 <template>
     <Head title="Supplier returns" />
     <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
-        <PageHeader title="Supplier returns" :description="returns.branchName">
-            <template #actions>
-                <ActionLink href="/inventory" variant="ghost" class="min-h-11"
-                    ><ArrowLeft class="size-4" aria-hidden="true" />
-                    Inventory</ActionLink
-                >
-            </template>
-        </PageHeader>
+        <ActionLink href="/inventory" variant="ghost" class="-ml-3 min-h-11"
+            ><ArrowLeft class="size-4" aria-hidden="true" />
+            Inventory</ActionLink
+        >
+        <PageHeader
+            title="Supplier returns"
+            :description="returns.branchName"
+        />
         <p class="text-sm text-muted-foreground">
             A CA Supervisor requests a return from a verified delivery. A
             Finance Officer or Director who did not request it approves or

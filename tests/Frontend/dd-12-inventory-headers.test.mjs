@@ -47,15 +47,32 @@ test('every governed Inventory page uses the page header with one small back lin
         const page = template(read(`resources/js/pages/Inventory/${name}.vue`));
         assert.match(page, /<PageHeader/, name);
         assert.doesNotMatch(page, /<h1/, name);
+        // Design review (Daniel): the back link sits alone above the title; any sibling link goes in a row below.
         assert.ok(
-            page.indexOf('<PageHeader') < page.indexOf('href="/inventory"'),
+            page.indexOf('href="/inventory"') < page.indexOf('<PageHeader'),
             name,
         );
+        assert.doesNotMatch(page, /<template #actions>/, name);
         assert.match(
             page,
-            /<ActionLink\s+href="\/inventory"\s+variant="ghost"\s+class="min-h-11"\s*><ArrowLeft class="size-4" aria-hidden="true" \/>\s*Inventory<\/ActionLink/,
+            /<ActionLink\s+href="\/inventory"\s+variant="ghost"\s+class="-ml-3 min-h-11"\s*><ArrowLeft class="size-4" aria-hidden="true" \/>\s*Inventory<\/ActionLink/,
             name,
         );
         assert.doesNotMatch(page, /<nav class="flex flex-wrap gap-4">/, name);
     }
+});
+
+test('Stock count and Write-off link to each other in a row below the header', () => {
+    const page = template(
+        read('resources/js/pages/Inventory/GovernedStock.vue'),
+    );
+    const header = page.indexOf('<PageHeader');
+    const row = page.indexOf(
+        '<nav aria-label="Other stock control" class="kp-control-group">',
+    );
+    assert.ok(header > -1 && row > header);
+    assert.match(
+        page,
+        /stock\.mode === 'count'\s+\? '\/inventory\/writeoffs'\s+: '\/inventory\/counts'/,
+    );
 });

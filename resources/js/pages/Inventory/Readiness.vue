@@ -126,17 +126,14 @@ watch(
     <main
         class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-5 p-4 md:p-7"
     >
+        <ActionLink href="/inventory" variant="ghost" class="-ml-3 min-h-11"
+            ><ArrowLeft class="size-4" aria-hidden="true" />
+            Inventory</ActionLink
+        >
         <PageHeader
             title="Pilot readiness"
             :description="`${readiness.branchName} · Review only. No import, balance correction or pilot go-live approval.`"
-        >
-            <template #actions>
-                <ActionLink href="/inventory" variant="ghost" class="min-h-11"
-                    ><ArrowLeft class="size-4" aria-hidden="true" />
-                    Inventory</ActionLink
-                >
-            </template>
-        </PageHeader>
+        />
         <section class="space-y-2 rounded-lg border bg-card p-4 text-sm">
             <p>
                 One base stock unit per SKU. Quantities use exactly up to three

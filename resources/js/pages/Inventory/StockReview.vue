@@ -131,18 +131,16 @@ watch(
 <template>
     <Head title="Stock review" />
     <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
+        <ActionLink href="/inventory" variant="ghost" class="-ml-3 min-h-11"
+            ><ArrowLeft class="size-4" aria-hidden="true" />
+            Inventory</ActionLink
+        >
         <PageHeader title="Stock review">
             <template #description>
                 {{ review.branchName }} · Branch-local date:
                 <span class="whitespace-nowrap">{{
                     formatDate(review.today)
                 }}</span>
-            </template>
-            <template #actions>
-                <ActionLink href="/inventory" variant="ghost" class="min-h-11"
-                    ><ArrowLeft class="size-4" aria-hidden="true" />
-                    Inventory</ActionLink
-                >
             </template>
         </PageHeader>
         <p class="text-sm text-muted-foreground">

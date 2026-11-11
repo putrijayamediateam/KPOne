@@ -228,26 +228,25 @@ watch(
 <template>
     <Head :title="title" />
     <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
-        <PageHeader :title="title" :description="stock.branchName">
-            <template #actions>
-                <ActionLink href="/inventory" variant="ghost" class="min-h-11"
-                    ><ArrowLeft class="size-4" aria-hidden="true" />
-                    Inventory</ActionLink
-                >
-                <ActionLink
-                    :href="
-                        stock.mode === 'count'
-                            ? '/inventory/writeoffs'
-                            : '/inventory/counts'
-                    "
-                    variant="outline"
-                    class="min-h-11"
-                    >{{
-                        stock.mode === 'count' ? 'Write-off' : 'Stock count'
-                    }}</ActionLink
-                >
-            </template>
-        </PageHeader>
+        <ActionLink href="/inventory" variant="ghost" class="-ml-3 min-h-11"
+            ><ArrowLeft class="size-4" aria-hidden="true" />
+            Inventory</ActionLink
+        >
+        <PageHeader :title="title" :description="stock.branchName" />
+        <nav aria-label="Other stock control" class="kp-control-group">
+            <ActionLink
+                :href="
+                    stock.mode === 'count'
+                        ? '/inventory/writeoffs'
+                        : '/inventory/counts'
+                "
+                variant="outline"
+                class="min-h-11"
+                >{{
+                    stock.mode === 'count' ? 'Write-off' : 'Stock count'
+                }}</ActionLink
+            >
+        </nav>
         <p class="rounded border border-amber-500 p-3 text-sm">
             Stock controls: {{ stock.legacyLimit }}
         </p>
