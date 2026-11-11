@@ -94,6 +94,7 @@ use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationSettingsController;
 use App\Http\Controllers\RoomCallController;
+use App\Http\Controllers\SkuEditController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
@@ -872,6 +873,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/supplier-returns', [SupplierReturnController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-returns');
         Route::post('inventory/supplier-returns', [SupplierReturnController::class, 'store'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.store');
         Route::post('inventory/supplier-returns/{supplierReturn}/{action}', [SupplierReturnController::class, 'act'])->whereNumber('supplierReturn')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.act');
+        Route::get('inventory/skus', [SkuEditController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.skus');
+        Route::put('inventory/skus/{sku}', [SkuEditController::class, 'update'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.update');
         Route::get('inventory/treatment-usage', [TreatmentUsageController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.treatment-usage');
         Route::post('inventory/treatment-usage', [TreatmentUsageController::class, 'store'])->middleware(['permission:inventory.usage.record.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.treatment-usage.store');
         Route::post('inventory/treatment-usage/{treatmentUsage}/reverse', [TreatmentUsageController::class, 'reverse'])->whereNumber('treatmentUsage')->middleware(['permission:inventory.variances.approve.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.treatment-usage.reverse');
