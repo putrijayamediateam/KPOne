@@ -55,7 +55,8 @@ test('the privacy line says only the time is recorded', () => {
         template,
         /KPOne records the time only\. No location or photo\./,
     );
-    assert.doesNotMatch(source, /geolocation|getUserMedia|capture=/);
+    // HR-16a reads a location once at the press (pinned in hr-16a-location-check.test.mjs); still no camera or photo.
+    assert.doesNotMatch(source, /getUserMedia|capture=/);
 });
 
 test('flags are warning chips with text, never danger; corrections show recorded beside new', () => {

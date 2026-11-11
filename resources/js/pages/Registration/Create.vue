@@ -17,6 +17,7 @@ import PhoneInput from '@/components/patient/PhoneInput.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
@@ -27,6 +28,7 @@ import {
     identityError,
     focusInvalidField,
 } from '@/lib/patient-registration';
+import { formatDate } from '@/lib/presentation';
 import type { PatientRegistrationSummary, VisitOptions } from '@/types';
 import type { RegistrationRequirements } from '@/types/registration-settings';
 
@@ -472,7 +474,11 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         class="font-mono text-xs text-slate-600 dark:text-slate-300"
                     >
                         {{ selectedPatient.patientNumber }} ·
-                        {{ selectedPatient.dateOfBirth ?? 'DOB not recorded' }}
+                        {{
+                            selectedPatient.dateOfBirth
+                                ? formatDate(selectedPatient.dateOfBirth)
+                                : 'DOB not recorded'
+                        }}
                     </div>
                     <div
                         class="mt-0.5 text-xs text-slate-600 dark:text-slate-300"
@@ -573,7 +579,9 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 class="shrink-0 text-right text-xs text-muted-foreground"
                             >
                                 <span class="block">{{
-                                    patient.dateOfBirth ?? 'DOB unknown'
+                                    patient.dateOfBirth
+                                        ? formatDate(patient.dateOfBirth)
+                                        : 'DOB unknown'
                                 }}</span>
                                 <span>{{
                                     patient.identifier?.maskedValue ??
@@ -705,14 +713,12 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             ? 'DOB *'
                             : 'DOB (optional)'
                     }}</span
-                    ><input
+                    ><DateField
                         v-model="quick.date_of_birth"
                         :required="requirements.requireDateOfBirth"
                         :aria-invalid="
                             !!errorFor('quick_patient.date_of_birth')
-                        "
-                        type="date"
-                        class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
+                        " /><InputError
                         :message="errorFor('quick_patient.date_of_birth')"
                 /></label>
                 <AdultConfirmation

@@ -36,7 +36,8 @@ class StaffDirectoryService
                 'staffProfile.branchAssignments' => fn ($query) => $query
                     ->with('branch:id,code,name')
                     ->orderByDesc('is_primary')
-                    ->orderBy('valid_from'),
+                    ->orderBy('valid_from')
+                    ->orderBy('id'),
             ]);
 
         $search = trim((string) ($filters['search'] ?? ''));
@@ -87,7 +88,11 @@ class StaffDirectoryService
         $subject->load([
             'roles:id,name',
             'staffProfile.department:id,name',
-            'staffProfile.branchAssignments.branch:id,code,name',
+            'staffProfile.branchAssignments' => fn ($query) => $query
+                ->with('branch:id,code,name')
+                ->orderByDesc('is_primary')
+                ->orderBy('valid_from')
+                ->orderBy('id'),
         ]);
 
         $profile = $subject->staffProfile;

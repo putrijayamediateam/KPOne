@@ -6,6 +6,7 @@ import { computed, reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatRoleLabel } from '@/lib/displayLabels';
@@ -177,11 +178,9 @@ const save = () => {
             </div>
             <div class="grid gap-1">
                 <Label for="overtime-effective-from">Applies from *</Label>
-                <Input
+                <DateField
                     id="overtime-effective-from"
                     v-model="form.effective_from"
-                    type="date"
-                    class="min-h-11 w-48 sm:min-h-9"
                     aria-describedby="overtime-effective-help"
                 />
                 <p
