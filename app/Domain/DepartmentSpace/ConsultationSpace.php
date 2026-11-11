@@ -31,12 +31,29 @@ final class ConsultationSpace
         return [
             'branchName' => $branch?->name,
             'asOf' => $branch ? now()->setTimezone($branch->timezone)->format('g:i A') : null,
-            'waiting' => $snapshot === null ? null : ['total' => $snapshot['waitingTotal'], 'limit' => self::LIST_LIMIT, 'seeAllHref' => $seeAll, 'rows' => array_map(fn (array $r): array => array_diff_key($r, ['notReady' => 1]), array_slice($snapshot['waiting'], 0, self::LIST_LIMIT))],
+            'waiting' => $snapshot === null ? null : ['total' => $snapshot['waitingTotal'], 'limit' => self::LIST_LIMIT, 'seeAllHref' => $seeAll, 'rows' => array_slice($snapshot['waiting'], 0, self::LIST_LIMIT)],
             'held' => $snapshot === null ? null : ['total' => count($snapshot['held']), 'limit' => self::LIST_LIMIT, 'seeAllHref' => $seeAll, 'rows' => array_slice($snapshot['held'], 0, self::LIST_LIMIT)],
-            'next' => $snapshot['next'] ?? null,
+            'next' => $this->nextLine($snapshot),
             'primaryAction' => $snapshot === null ? null : ['title' => 'Open my queue', 'href' => $seeAll],
             'links' => [],
         ];
+    }
+
+    /**
+     * The Call next status, left out when it only repeats the first row of the list (Call next skips patients
+     * marked not ready, so the candidate is never one of those).
+     *
+     * @param  array{waiting: list<array<string, mixed>>, next: array<string, mixed>|null}|null  $snapshot
+     * @return array{ready: bool, text: string}|null
+     */
+    private function nextLine(?array $snapshot): ?array
+    {
+        $next = $snapshot['next'] ?? null;
+        if ($next === null || ($next['ready'] && ($snapshot['waiting'][0]['queueNumber'] ?? null) === ($next['number'] ?? null))) {
+            return null;
+        }
+
+        return ['ready' => (bool) $next['ready'], 'text' => (string) $next['text']];
     }
 
     /**
@@ -70,7 +87,7 @@ final class ConsultationSpace
             $held[] = [
                 'queueNumber' => (string) $r['queueNumber'],
                 'patient' => SpaceDisplay::shortName((string) $r['patientName']),
-                'heldText' => 'On hold '.$minutes.' min'.(($r['isHeldTooLong'] ?? false) ? ' (long)' : ''),
+                'heldText' => 'On hold '.SpaceDisplay::duration($minutes).(($r['isHeldTooLong'] ?? false) ? '. Held for more than 30 minutes' : ''),
                 'tooLong' => (bool) ($r['isHeldTooLong'] ?? false),
                 'href' => route('visits.show', ['visit' => $r['visitNumber']], absolute: false),
             ];
@@ -80,6 +97,7 @@ final class ConsultationSpace
             $c = $data['callNext']['candidate'] ?? null;
             $next = [
                 'ready' => ($data['callNext']['state'] ?? null) === 'ready',
+                'number' => is_array($c) ? (string) $c['queueNumber'] : null,
                 'text' => is_array($c)
                     ? 'Next: '.$c['queueNumber'].' '.SpaceDisplay::shortName((string) $c['patientName'])
                     : (string) ($data['callNext']['reason'] ?? ''),

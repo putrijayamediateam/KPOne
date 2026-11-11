@@ -92,6 +92,7 @@ type Consultation = {
             queueNumber: string;
             patient: string;
             urgent: boolean;
+            notReady: string | null;
             minutes: number;
             href: string;
         }>;
@@ -170,8 +171,19 @@ const primaryAction = computed(
         null,
 );
 
+const waitDuration = (minutes: number): string => {
+    if (minutes < 1440) {
+        return `${minutes} min`;
+    }
+
+    const days = Math.floor(minutes / 1440);
+    const hours = Math.floor((minutes % 1440) / 60);
+
+    return `${days} ${days === 1 ? 'day' : 'days'}${hours > 0 ? ` ${hours} h` : ''}`;
+};
+
 const waitHead = (minutes: number): string =>
-    `Waiting ${minutes} min${waitLabel(minutes) ? ',' : ''}`;
+    `Waiting ${waitDuration(minutes)}${waitLabel(minutes) ? ',' : ''}`;
 
 const groups = computed(() => {
     const layout: Array<[string, string[]]> = [
@@ -907,6 +919,12 @@ onMounted(async () => {
                                                     v-if="row.urgent"
                                                     class="space-wait is-red"
                                                     >Urgent
+                                                </span>
+                                                <span
+                                                    v-if="row.notReady"
+                                                    class="space-wait is-amber"
+                                                    >Not ready to call:
+                                                    {{ row.notReady }}
                                                 </span>
                                                 <span
                                                     :class="`space-wait is-${waitingTone(row.minutes)}`"
