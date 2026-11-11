@@ -20,6 +20,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { DateField } from '@/components/ui/date-field';
 import OperationalSelect from '@/components/ui/select/OperationalSelect.vue';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
@@ -364,14 +365,12 @@ watch(
                             class="h-10 rounded-md border bg-background px-3" /><InputError
                             :message="correction.errors.full_name"
                     /></label>
-                    <div class="grid grid-cols-2 gap-3">
+                    <div class="grid grid-cols-2 items-start gap-3">
                         <label class="grid gap-1"
                             ><span class="text-sm font-medium"
                                 >Date of birth</span
-                            ><input
-                                v-model="correction.date_of_birth"
-                                type="date"
-                                class="h-10 rounded-md border bg-background px-3" /><InputError
+                            ><DateField
+                                v-model="correction.date_of_birth" /><InputError
                                 :message="
                                     correction.errors.date_of_birth
                                 " /></label

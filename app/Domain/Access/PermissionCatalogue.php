@@ -7,12 +7,17 @@ use App\Domain\Clinical\Documents\AttendancePermissions;
 use App\Domain\Clinical\Documents\MedicalCertificatePermissions;
 use App\Domain\Clinical\Documents\ReferralPermissions;
 use App\Domain\HR\Applications\ApplicationPermissions;
+use App\Domain\HR\Appraisals\AppraisalPermissions;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Claims\ClaimPermissions;
 use App\Domain\HR\Credentials\CredentialPermissions;
+use App\Domain\HR\Discipline\DisciplinePermissions;
+use App\Domain\HR\Incidents\IncidentPermissions;
 use App\Domain\HR\Leave\LeavePermissions;
+use App\Domain\HR\Letters\LetterPermissions;
 use App\Domain\HR\Memos\MemoPermissions;
 use App\Domain\HR\Messages\MessagePermissions;
+use App\Domain\HR\OpenShifts\OpenShiftPermissions;
 use App\Domain\HR\Payroll\PayrollPermissions;
 use App\Domain\HR\Records\RecordPermissions;
 use App\Domain\HR\Roster\RosterPermissions;
@@ -44,6 +49,13 @@ final class PermissionCatalogue
 
     public const QUEUE_DISPLAY_ROLE = 'queue_display';
 
+    /**
+     * HR-15a (HR-PLAN 21.3; B.E.R.N.I.S.S for the owner, 2026-11-10): a locum's own sign-in. Their own account settings
+     * and their own approved shifts only; never patient, clinical, billing, inventory, Insights or staff-directory access.
+     * HR-PLAN 21.3 pins the list exactly (tested).
+     */
+    public const LOCUM_ROLE = 'locum';
+
     /** The clinic manager's operational settings account; never patient, clinical or finance-approval access. */
     public const ADMINISTRATOR_ROLE = 'administrator';
 
@@ -67,6 +79,11 @@ final class PermissionCatalogue
             ...array_keys(CredentialPermissions::grants()),
             ...array_keys(SopPermissions::grants()),
             ...array_keys(MemoPermissions::grants()),
+            ...array_keys(LetterPermissions::grants()),
+            ...array_keys(AppraisalPermissions::grants()),
+            ...array_keys(DisciplinePermissions::grants()),
+            ...array_keys(IncidentPermissions::grants()),
+            ...array_keys(OpenShiftPermissions::grants()),
             ...array_keys(ClaimPermissions::grants()),
             ...array_keys(PayrollPermissions::grants()),
             ...array_keys(ApplicationPermissions::grants()),
@@ -438,6 +455,10 @@ final class PermissionCatalogue
             'queue.display.branch',
         ];
 
+        // HR-15a: a locum sees their own settings and chooses among their own assigned branches (as the TV account
+        // does; no data comes with it); their own shifts come with the HR roster grants below.
+        $roles[self::LOCUM_ROLE] = ['profile.view.own', 'branch_context.switch.branch'];
+
         foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
             $roles[$holder][] = 'inventory.batch_holds.place.branch';
         }
@@ -472,7 +493,7 @@ final class PermissionCatalogue
         }
 
         // HR-1 (B.E.R.N.I.S.S for the owner, 2026-11-05): roster planning; never people or access authority.
-        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
+        foreach ([...RosterPermissions::grants(), ...LeavePermissions::grants(), ...ClockPermissions::grants(), ...RecordPermissions::grants(), ...CredentialPermissions::grants(), ...SopPermissions::grants(), ...MemoPermissions::grants(), ...LetterPermissions::grants(), ...AppraisalPermissions::grants(), ...DisciplinePermissions::grants(), ...IncidentPermissions::grants(), ...OpenShiftPermissions::grants(), ...ClaimPermissions::grants(), ...PayrollPermissions::grants(), ...ApplicationPermissions::grants(), ...MessagePermissions::grants(), ...CompliancePermissions::grants()] as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
             }

@@ -4,8 +4,10 @@ import { computed, ref, watch } from 'vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
+import { formatDate } from '@/lib/presentation';
 import { myr, toSen } from '@/types/billing';
 
 type ClaimData = {
@@ -356,7 +358,7 @@ const eventTitle = (type: string) =>
                     </h1>
                     <p class="mt-1 text-sm text-muted-foreground">
                         <template v-if="claim.submittedOn">
-                            Submitted on {{ claim.submittedOn }}
+                            Submitted on {{ formatDate(claim.submittedOn) }}
                         </template>
                         <template v-else>
                             Created on {{ claim.createdAt }}
@@ -986,12 +988,7 @@ const eventTitle = (type: string) =>
                         </label>
                         <label class="block space-y-1 text-sm">
                             <span>Date received</span>
-                            <input
-                                v-model="remittanceDate"
-                                type="date"
-                                required
-                                class="w-full rounded-md border bg-background px-3 py-2"
-                            />
+                            <DateField v-model="remittanceDate" required />
                         </label>
                         <label class="block space-y-1 text-sm">
                             <span>Panel payment reference (optional)</span>

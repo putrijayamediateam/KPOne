@@ -56,7 +56,9 @@ test('Panel claim page wraps long references, document names and notes', () => {
 
 test('Panel Claims date and amount filter pairs wrap on a narrow phone', () => {
     const pairs = [
-        ...claimsIndex.matchAll(/<span class="mt-1 ([^"]*)">\s*<input/g),
+        ...claimsIndex.matchAll(
+            /<span class="mt-1 ([^"]*)">\s*<(?:input|DateField)/g,
+        ),
     ].map(([, classes]) => classes);
     assert.equal(pairs.length, 3);
 

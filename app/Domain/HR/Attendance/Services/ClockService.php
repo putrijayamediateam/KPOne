@@ -15,21 +15,23 @@ use Illuminate\Validation\ValidationException;
 
 /**
  * HR-3a Clock in and Clock out on the staff member's own account. The time is the server's; no location, IP address,
- * photo or device data is stored (TEAM.md decision 6). One open session per person (service and PostgreSQL). A press
+ * photo or device data is stored (TEAM.md decision 6). HR-16a: where a Director has turned the location check on for the
+ * branch, the press also keeps a result (inside, outside or not available), never the position itself. One open session per person (service and PostgreSQL). A press
  * within a minute of the last one is a double tap and is refused. A clock-in older than 16 hours, or one whose shift
  * ended more than the forgotten window ago when the person's next shift that day is about to start (a split shift), is
  * not closed by the button: the next clock-in marks it "missing its clock-out", fixed by a correction someone else approves.
  */
 final class ClockService
 {
-    public function __construct(private AttendanceSupport $support, private BranchAccessService $branches, private AttendanceDays $days) {}
+    public function __construct(private AttendanceSupport $support, private BranchAccessService $branches, private AttendanceDays $days,
+        private LocationCheckService $location) {}
 
     /** @param array<string, mixed> $input */
     public function clockIn(User $actor, array $input): ClockSession
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
 
-        return $this->transaction(function () use ($actor, $key): ClockSession {
+        return $this->transaction(function () use ($actor, $key, $input): ClockSession {
             $actor = $this->support->lock($actor, ClockPermissions::CLOCK_OWN);
             $hash = $this->support->hash([$actor->id, 'in']);
             if (($replay = $this->support->replay($actor, $key, 'clock_in', $hash)) !== null) {
@@ -58,6 +60,7 @@ final class ClockService
                 'branch_id' => $branch->id, 'local_date' => $local->toDateString(), 'timezone' => $branch->timezone,
                 'clock_in_at' => $now, 'status' => 'open'])->save();
             $this->event($session, 'in', $now, $actor);
+            $this->location->recordPress($actor, $session, 'in', $input); // HR-16a: only when on at this branch
             $this->support->remember($actor, $key, 'clock_in', $hash, $session->public_id);
             $this->support->audit->record('hr.attendance.clocked_in', $session, ['local_date' => $session->local_date->toDateString()], $actor, $branch);
 
@@ -70,7 +73,7 @@ final class ClockService
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
 
-        return $this->transaction(function () use ($actor, $key): ClockSession {
+        return $this->transaction(function () use ($actor, $key, $input): ClockSession {
             $actor = $this->support->lock($actor, ClockPermissions::CLOCK_OWN);
             $hash = $this->support->hash([$actor->id, 'out']);
             if (($replay = $this->support->replay($actor, $key, 'clock_out', $hash)) !== null) {
@@ -89,6 +92,7 @@ final class ClockService
             }
             $session->forceFill(['clock_out_at' => $now, 'status' => 'closed', 'lock_version' => $session->lock_version + 1])->save();
             $this->event($session, 'out', $now, $actor);
+            $this->location->recordPress($actor, $session, 'out', $input); // HR-16a: only when on at the session's branch
             $this->support->remember($actor, $key, 'clock_out', $hash, $session->public_id);
             $this->support->audit->record('hr.attendance.clocked_out', $session, ['minutes' => (int) $session->clock_in_at->diffInMinutes($now)], $actor,
                 Branch::query()->find($session->branch_id));

@@ -6,6 +6,7 @@ use App\Domain\HR\Applications\Services\CandidateLink;
 use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
+use App\Domain\HR\Applications\Services\TalentPool;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -28,7 +29,7 @@ class JobApplicationController extends Controller
     public function submit(Request $request, JobApplicationIntake $intake): RedirectResponse
     {
         try {
-            $token = $intake->submit($request->only(['form_token', 'position', 'name', 'phone', 'email', 'message', 'privacy_accepted', 'preferred_branch', 'start_date', 'education', 'years_experience', 'languages', 'institution', 'programme', 'intern_from', 'intern_to', 'availability', 'mmc_number', 'apc_year', 'apc_expiry', JobApplicationIntake::HONEYPOT]), $request->file('cv'));
+            $token = $intake->submit($request->only(['form_token', 'position', 'name', 'phone', 'email', 'message', 'privacy_accepted', 'talent_pool', 'preferred_branch', 'start_date', 'education', 'years_experience', 'languages', 'institution', 'programme', 'intern_from', 'intern_to', 'availability', 'mmc_number', 'apc_year', 'apc_expiry', JobApplicationIntake::HONEYPOT]), $request->file('cv'));
         } catch (ValidationException $e) {
             // Errors only, never the input: nothing the applicant typed goes into the session (Suresh, HR-13 M3). The
             // page keeps the typed fields in the browser; the CV is chosen again.
@@ -108,6 +109,19 @@ class JobApplicationController extends Controller
             'Content-Security-Policy' => "sandbox; default-src 'none'",
             'Cache-Control' => 'no-store, private',
         ]);
+    }
+
+    /** HR-17e: the candidate leaves the talent pool; recorded once and never undone. */
+    public function leavePool(Request $request, JobApplicationIntake $intake, CandidateLink $links, TalentPool $pool): RedirectResponse
+    {
+        $intake->ensureEnabled();
+        try {
+            $pool->leave($request->cookie($this->cookieName()), $links);
+        } catch (ValidationException $e) {
+            return redirect()->route('hr-applications.status')->withErrors($e->errors());
+        }
+
+        return redirect()->route('hr-applications.status');
     }
 
     public function withdraw(Request $request, JobApplicationIntake $intake, CandidateLink $links): RedirectResponse

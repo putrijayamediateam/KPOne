@@ -271,3 +271,10 @@ export const formatWaitingMinutes = (minutes: number): string => {
         ? presentationFallback
         : `Waiting ${elapsed}`;
 };
+
+/** "10/11" (day first) for a chart axis; any value that is not yyyy-mm-dd comes back unchanged. */
+export const formatDayMonth = (value: string): string => {
+    const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value);
+
+    return match ? `${Number(match[3])}/${Number(match[2])}` : value;
+};

@@ -7,8 +7,11 @@ use App\Domain\HR\Applications\Services\ApplicationsPageService;
 use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationService;
+use App\Domain\HR\Applications\Services\StaffAccountRequests;
+use App\Domain\HR\Applications\Services\TalentPool;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
@@ -89,6 +92,40 @@ class ApplicationsController extends Controller
             fn () => $applications->setRetention($request->user(), $request->only(['retention_days', 'expected_version', 'idempotency_key'])));
     }
 
+    /** HR-17e: how long a pool candidate is kept after closing. */
+    public function poolDays(Request $request, TalentPool $pool): RedirectResponse
+    {
+        return $this->run($request, route('hr.applications.index', ['tab' => 'settings']), 'Talent pool period saved.',
+            fn () => $pool->setDays($request->user(), $request->only(['pool_days', 'expected_version', 'idempotency_key'])));
+    }
+
+    /** HR-17e: invite a pool candidate to an open position of the same type. The new private link is shown to HR once. */
+    public function invite(Request $request, TalentPool $pool, string $application): RedirectResponse
+    {
+        $link = null;
+        $response = $this->run($request, route('hr.applications.index', ['tab' => 'pool']), 'Invited. A new application starts at phone screening.',
+            function () use ($request, $pool, $application, &$link): void {
+                $link = $pool->invite($request->user(), $application, $request->only(['position', 'expected_lock_version', 'idempotency_key']));
+            });
+        if ($link !== null) {
+            Inertia::flash('invitationLink', $link);
+        }
+
+        return $response;
+    }
+
+    public function requestAccount(Request $request, StaffAccountRequests $requests, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'Staff account asked for. The account administrator sees it on the Staff page.',
+            fn () => $requests->request($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function cancelAccountRequest(Request $request, StaffAccountRequests $requests, string $accountRequest): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'Request cancelled.',
+            fn () => $requests->cancel($request->user(), $accountRequest, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
     /** HR-17d: a PDF the candidate can download once their interview is confirmed. */
     public function addDocument(Request $request, InterviewDocuments $documents): RedirectResponse
     {
@@ -121,6 +158,23 @@ class ApplicationsController extends Controller
             'Content-Security-Policy' => "sandbox; default-src 'none'",
             'Cache-Control' => 'no-store, private',
         ]);
+    }
+
+    /** An applicant's phone or email, shown once the view is audited (TEAM.md section 7 hardening). */
+    public function showContact(Request $request, JobApplicationService $applications, string $application): JsonResponse
+    {
+        try {
+            $value = $applications->showContact($request->user(), $application, $request->input('field'));
+        } catch (ValidationException $e) {
+            return response()->json(['errors' => array_map(fn (array $m): string => $m[0], $e->errors())], 422);
+        } catch (AuthorizationException) {
+            // As the CV and document handlers do (Suresh, m3).
+            app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
+
+            return response()->json(['errors' => ['field' => 'You can no longer show this.']], 403);
+        }
+
+        return response()->json(['value' => $value, 'shownAt' => now()->toIso8601String()])->header('Cache-Control', 'no-store, private');
     }
 
     /** The CV downloads; the open is recorded first. */
