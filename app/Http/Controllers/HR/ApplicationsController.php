@@ -4,6 +4,7 @@ namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Applications\Services\ApplicationsPageService;
+use App\Domain\HR\Applications\Services\DeadlineExtensions;
 use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationService;
@@ -67,6 +68,13 @@ class ApplicationsController extends Controller
     {
         return $this->run($request, $this->back($request), 'New times asked for. The candidate is told.',
             fn () => $slots->askAgain($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    /** HR-17c follow-up (b): 3 more working days before the daily check closes a waiting application. */
+    public function extendDeadline(Request $request, DeadlineExtensions $extensions, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'More time given. Open the application to see the new closing date.',
+            fn () => $extensions->extend($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
     public function cancelInterview(Request $request, InterviewSlots $slots, string $application): RedirectResponse

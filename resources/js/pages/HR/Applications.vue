@@ -69,6 +69,7 @@ type Application = {
     }[];
     autoRejectOn: string | null;
     autoRejectSoon: boolean;
+    extendDays: number;
     // HR-17c: the candidate's three times at Scheduling, or the confirmed one at Interview.
     interview: {
         round: number;
@@ -302,6 +303,32 @@ const interviewPost = (path: string, data: Record<string, string> = {}) => {
                 confirming.value = null;
             },
             onFinish: () => (interviewAction.processing = false),
+        },
+    );
+};
+const extending = ref(false);
+const extendError = ref<string | undefined>(undefined);
+const extendDeadline = () => {
+    if (!viewing.value) {
+        return;
+    }
+
+    extending.value = true;
+    extendError.value = undefined;
+    router.post(
+        `/hr/applications/${viewing.value.id}/extend-deadline`,
+        {
+            expected_lock_version: viewing.value.lockVersion,
+            idempotency_key: crypto.randomUUID(),
+            ...(list.value?.filters ?? {}),
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (viewing.value = null),
+            onError: (errors) =>
+                (extendError.value =
+                    errors.extend ?? errors.expected_lock_version),
+            onFinish: () => (extending.value = false),
         },
     );
 };
@@ -1703,11 +1730,38 @@ const removeDocument = () => {
                             aria-hidden="true"
                         />
                         <span
-                            >Without a decision, KPOne closes this as
-                            Auto-rejected on {{ viewing.autoRejectOn }} and
-                            tells the candidate.</span
+                            >{{
+                                viewing.status === 'scheduling'
+                                    ? 'If the candidate does not choose times,'
+                                    : 'Without a decision,'
+                            }}
+                            KPOne closes this as Auto-rejected on
+                            {{ viewing.autoRejectOn }} and tells the
+                            candidate.</span
                         >
                     </p>
+                    <!-- HR-17c follow-up (b): HR gives more time; the count restarts from today. -->
+                    <div
+                        v-if="viewing.autoRejectOn"
+                        class="flex flex-col gap-1"
+                    >
+                        <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            class="min-h-11 self-start sm:min-h-9"
+                            :disabled="extending"
+                            data-test="application-extend"
+                            @click="extendDeadline"
+                        >
+                            Give {{ viewing.extendDays }} more working days
+                        </Button>
+                        <p class="text-xs text-muted-foreground">
+                            Counts again from today. Nothing is sent to the
+                            candidate.
+                        </p>
+                        <InputError :message="extendError" />
+                    </div>
 
                     <!-- HR-17c: the candidate's times at Scheduling, the confirmed interview at Interview. -->
                     <section
