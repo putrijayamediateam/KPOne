@@ -43,6 +43,16 @@ final class SpaceDisplay
         return $days.($days === 1 ? ' day' : ' days').($hours > 0 ? ' '.$hours.' h' : '');
     }
 
+    /** "Due 3 Nov 2026, 9 days overdue (very overdue)": the words as well as the colour; very overdue from 30 days. */
+    public static function dueText(string $dueDate, int $daysOverdue): string
+    {
+        if ($daysOverdue <= 0) {
+            return 'Due '.$dueDate;
+        }
+
+        return 'Due '.$dueDate.', '.$daysOverdue.($daysOverdue === 1 ? ' day' : ' days').' overdue'.($daysOverdue >= 30 ? ' (very overdue)' : '');
+    }
+
     /** "RM 1,250.50" from sen. */
     public static function rm(int $sen): string
     {
