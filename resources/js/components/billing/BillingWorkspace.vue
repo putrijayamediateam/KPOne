@@ -59,7 +59,8 @@ const invoiceTabs = [
 ];
 const page = usePage();
 const busy = ref(false);
-// BIL-25 (Siti): a reversed receipt is a settled correction, so it stays grey whatever the shared map says.
+// BIL-25 (Siti): a reversed receipt is a settled correction, so it stays grey.
+// 'reversed' has no tone in presentation.ts today; this keeps it grey if one is added.
 const receiptTone = (status: string) =>
     status === 'reversed' ? ('neutral' as const) : undefined;
 const contextCleared = ref(false);
@@ -1049,7 +1050,7 @@ const reverse = (receipt: Receipt) =>
                             </div>
                             <p
                                 v-if="receipt.refundedSen"
-                                class="text-xs text-muted-foreground tabular-nums"
+                                class="mt-1 text-xs text-muted-foreground tabular-nums"
                                 data-testid="payment-refunded"
                             >
                                 Refunded {{ myr(receipt.refundedSen) }} ·
@@ -1060,7 +1061,7 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="text-[11px] break-words text-muted-foreground"
+                                class="mt-1 text-[11px] break-words text-muted-foreground"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>

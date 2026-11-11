@@ -16,7 +16,8 @@ import type { CompletedInvoicePage } from '@/types/completedInvoice';
 
 const props = defineProps<{ invoice: CompletedInvoicePage }>();
 const tab = ref('all');
-// BIL-25 (Siti): a reversed receipt is a settled correction, so it stays grey whatever the shared map says.
+// BIL-25 (Siti): a reversed receipt is a settled correction, so it stays grey.
+// 'reversed' has no tone in presentation.ts today; this keeps it grey if one is added.
 const receiptTone = (status: string) =>
     status === 'reversed' ? ('neutral' as const) : undefined;
 // BIL-5: billing prints are recorded; the old print address only redirects to Issued copies (BIL-14).
