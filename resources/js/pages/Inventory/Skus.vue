@@ -541,7 +541,6 @@ const errorFor = (field: string) =>
         </ul>
         <CompactPagination
             v-if="skus.total > 0"
-            class="[&_button]:h-11! lg:[&_button]:h-8!"
             :current-page="skus.page"
             :last-page="skus.lastPage"
             :total="skus.total"
