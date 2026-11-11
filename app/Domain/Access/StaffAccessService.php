@@ -2,6 +2,7 @@
 
 namespace App\Domain\Access;
 
+use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
 
@@ -22,9 +23,10 @@ class StaffAccessService
             // The branch's own calendar day, as BranchAccessService::hasEffectiveAssignment() uses (BIL-21).
             $today = now()->setTimezone($branch->timezone)->toDateString();
 
-            return $query->whereHas('staffProfile.branchAssignments', fn ($assignment) => $assignment
-                ->effectiveAt($today)
-                ->where('branch_id', $branch->id));
+            return $query->whereHas('staffProfile.branchAssignments', function (Builder $assignment) use ($today, $branch): void {
+                /** @var Builder<StaffBranchAssignment> $assignment */
+                $assignment->effectiveAt($today)->where('branch_id', $branch->id);
+            });
         }
 
         return $query->whereKey($viewer->id);
