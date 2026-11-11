@@ -31,6 +31,7 @@ final class DepartmentSpaceController extends Controller
             'space' => collect($spaces)->firstWhere('key', $space),
             'spaces' => $spaces,
             'pharmacy' => $space === 'pharmacy' ? $pharmacy->home($request->user()) : null,
+            'existing' => $navigation->existingHome($request->user(), $space),
         ]);
     }
 }

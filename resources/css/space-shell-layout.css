@@ -106,9 +106,6 @@
         overflow-x: auto;
         padding: 8px 12px;
     }
-    .space-shell .space-side nav {
-        display: contents;
-    }
     .space-shell .space-item {
         white-space: nowrap;
         flex: none;
@@ -116,6 +113,89 @@
     .space-shell .space-group,
     .space-shell .space-logo {
         display: none;
+    }
+}
+
+.space-shell .space-nav {
+    display: grid;
+    gap: 4px;
+}
+.space-shell .space-block {
+    display: grid;
+    gap: 4px;
+}
+.space-shell .space-top {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.space-shell .space-branch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.space-shell .space-select,
+.space-shell .space-account {
+    min-height: 44px;
+    border-radius: var(--space-radius-control);
+    border: 1px solid var(--space-line);
+    background: var(--space-surface);
+    color: var(--space-fg);
+    padding: 0 12px;
+    font: inherit;
+}
+.space-shell .space-account {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+.space-shell .space-account-name {
+    max-width: 14ch;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.space-shell .space-select:focus-visible,
+.space-shell .space-account:focus-visible,
+.space-shell .space-existing a:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+.space-shell .space-existing {
+    margin: 10px 0 0;
+}
+.space-shell .space-existing a {
+    color: var(--space-accent);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+}
+@media (max-width: 767px) {
+    .space-shell .space-nav {
+        display: contents;
+    }
+    .space-shell .space-block {
+        display: contents;
+    }
+    .space-shell .space-side {
+        position: relative;
+    }
+    /* A fade on the right edge while more items are hidden (the DD-30 pattern). */
+    .space-shell .space-side.has-more {
+        -webkit-mask-image: linear-gradient(
+            to right,
+            #000 calc(100% - 40px),
+            transparent
+        );
+        mask-image: linear-gradient(
+            to right,
+            #000 calc(100% - 40px),
+            transparent
+        );
     }
 }
 

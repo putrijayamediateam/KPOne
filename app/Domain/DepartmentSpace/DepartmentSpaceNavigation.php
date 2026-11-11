@@ -3,6 +3,7 @@
 namespace App\Domain\DepartmentSpace;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Access\PermissionCatalogue;
 use App\Models\User;
 
@@ -79,5 +80,36 @@ final class DepartmentSpaceNavigation
         }
 
         return false;
+    }
+
+    /**
+     * The existing screen a person should be sent to from an empty space, so nobody is stranded (Daniel, DS-1).
+     * First candidate whose permission the person holds; null when none applies.
+     *
+     * @return array{title: string, href: string}|null
+     */
+    public function existingHome(User $actor, string $space): ?array
+    {
+        $title = $space === 'me' ? 'Me' : (self::SPACES[$space][0] ?? $space);
+        $candidates = match ($space) {
+            'front_desk', 'pharmacy' => [['visits.view.branch', 'registration.index']],
+            'billing' => [['finance.work.view.branch', 'billing.work'], ['visits.view.branch', 'registration.index']],
+            'consultation' => [['queue.view.own', 'queue.index']],
+            'panel' => [['panel.claims.manage.branch', 'panel-claims.index']],
+            'stock' => [['inventory.view.branch', 'inventory.index']],
+            'hr' => [['hr.roster.manage.organisation', 'hr.dashboard.index'], ['hr.leave.manage.organisation', 'hr.dashboard.index'], ['hr.attendance.review.organisation', 'hr.dashboard.index']],
+            'me' => [['hr.roster.view.own', 'hr.roster.index']],
+            default => [],
+        };
+        foreach ($candidates as [$permission, $route]) {
+            if ($actor->can($permission)) {
+                return ['title' => $title, 'href' => route($route, absolute: false)];
+            }
+        }
+        if (app(ClinicManagementNavigation::class)->hasDestinations($actor)) {
+            return ['title' => $title, 'href' => route('clinic-management.index', absolute: false)];
+        }
+
+        return null;
     }
 }

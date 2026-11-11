@@ -10,7 +10,9 @@ test('the space shell page uses the server list and has no menu link or mutation
     assert.match(page, /defineProps<\{\s*space: Space;\s*spaces: Space\[\];/);
     assert.match(page, /aria-current/);
     assert.match(page, /id="main-content"/);
-    assert.doesNotMatch(page, /router\.(post|put|patch|delete)|fetch\(/);
+    assert.doesNotMatch(page, /router\.(put|patch|delete)|fetch\(/);
+    assert.equal((page.match(/router\.post\(/g) ?? []).length, 1);
+    assert.match(page, /router\.post\(\s*'\/branch-context'/);
     assert.match(page, /defineOptions\(\{ layout:/);
 });
 
@@ -53,12 +55,20 @@ test('DS-2: the switch lives in the user menu, defaults off and sends the lock v
     assert.match(menu, /v-if="page\.props\.workspace\?\.spaces\?\.offered"/);
 });
 
+test('DS-1: the shell has a named nav, a branch switcher, an account menu, a way back to the existing screens and a right-edge fade', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    const css = read('resources/css/space-shell-layout.css');
+    assert.match(page, /<nav aria-label="Spaces"/);
+    assert.match(page, /id="space-branch"/);
+    assert.match(page, /UserMenuContent/);
+    assert.match(page, /Open the existing \{\{ existing\.title \}\} screens/);
+    assert.match(page, /scrollIntoView/);
+    assert.match(css, /\.has-more/);
+    assert.match(css, /\.space-select,[\s\S]*min-height: 44px/);
+});
+
 test('DS-3: the Pharmacy widgets render only what the server sent and mutate nothing', () => {
     const page = read('resources/js/pages/Spaces/Show.vue');
-    assert.match(
-        page,
-        /v-if="pharmacy\.toDispense"|v-if=\s*"pharmacy\.toDispense"/,
-    );
+    assert.match(page, /v-if="pharmacy\.toDispense"/);
     assert.match(page, /v-if="pharmacy\.returnsToCheck"/);
-    assert.doesNotMatch(page, /router\.|fetch\(/);
 });
