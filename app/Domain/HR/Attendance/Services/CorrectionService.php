@@ -157,7 +157,9 @@ final class CorrectionService
             if ($correction->status !== 'pending') {
                 throw ValidationException::withMessages(['attendance' => 'This correction was already decided. Reload the page.']);
             }
-            $correction->forceFill(['status' => 'cancelled', 'lock_version' => $correction->lock_version + 1])->save();
+            // Who withdrew it and when are kept in the row as well as in the audit log (TEAM.md section 7 hardening).
+            $correction->forceFill(['status' => 'cancelled', 'withdrawn_by_user_id' => $actor->id, 'withdrawn_at' => now()->utc(),
+                'lock_version' => $correction->lock_version + 1])->save();
             $this->support->remember($actor, $key, 'attendance_cancel', $hash, $correction->public_id);
             $this->support->audit->record('hr.attendance.correction_cancelled', $correction, ['subject_user_id' => $correction->user_id, 'kind' => $correction->kind],
                 $actor, Branch::query()->find($correction->branch_id));
