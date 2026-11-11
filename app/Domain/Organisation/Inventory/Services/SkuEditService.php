@@ -4,6 +4,7 @@ namespace App\Domain\Organisation\Inventory\Services;
 
 use App\Domain\Organisation\Inventory\Models\InventoryItem;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
+use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -40,19 +41,25 @@ final class SkuEditService
         return DB::transaction(function () use ($actor, $sku, $item, $data, $itemInput, $skuInput): InventorySku {
             $itemVersion = (int) $data['item_lock_version'];
             $skuVersion = (int) $data['sku_lock_version'];
+            // Decide once, under lock, whether the screen was current. A stale screen keeps its old versions for every
+            // step, so any step that would change something is refused; a pure retry of saved values still passes.
+            // Same lock order as every reference writer: organisation, then the rows.
+            Organisation::query()->whereKey($actor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
+            $current = (int) InventoryItem::query()->whereKey($item->id)->lockForUpdate()->value('lock_version') === $itemVersion
+                && (int) InventorySku::query()->whereKey($sku->id)->lockForUpdate()->value('lock_version') === $skuVersion;
             // An item is activated before its SKU can be; a SKU is deactivated before its item can be.
             if ((bool) $data['item_active'] && ! $item->is_active) {
                 $item = $this->references->activateItem($actor, $item, $itemVersion);
-                $itemVersion = (int) $item->lock_version;
+                $itemVersion = ($current ? (int) $item->lock_version : $itemVersion);
             }
             $item = $this->references->updateItem($actor, $item, [...$itemInput, 'expected_lock_version' => $itemVersion]);
-            $itemVersion = (int) $item->lock_version;
+            $itemVersion = ($current ? (int) $item->lock_version : $itemVersion);
             if (! (bool) $data['sku_active'] && $sku->is_active) {
                 $sku = $this->references->deactivateSku($actor, $sku, $skuVersion);
-                $skuVersion = (int) $sku->lock_version;
+                $skuVersion = ($current ? (int) $sku->lock_version : $skuVersion);
             }
             $sku = $this->references->updateSku($actor, $sku, [...$skuInput, 'expected_lock_version' => $skuVersion]);
-            $skuVersion = (int) $sku->lock_version;
+            $skuVersion = ($current ? (int) $sku->lock_version : $skuVersion);
             if ((bool) $data['sku_active'] && ! $sku->is_active) {
                 $sku = $this->references->activateSku($actor, $sku, $skuVersion);
             }

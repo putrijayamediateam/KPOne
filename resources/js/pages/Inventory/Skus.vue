@@ -294,6 +294,7 @@ const errorFor = (field: string) =>
                         <label class="grid min-w-0 gap-1 text-sm"
                             >Generic name (required)
                             <Input
+                                class="h-11 lg:h-9"
                                 v-model="form.generic_name"
                                 maxlength="300"
                                 required
@@ -337,6 +338,7 @@ const errorFor = (field: string) =>
                         <label class="grid min-w-0 gap-1 text-sm"
                             >Minimum temperature °C (optional)
                             <Input
+                                class="h-11 lg:h-9"
                                 v-model="form.minimum_temperature"
                                 inputmode="decimal"
                             />
@@ -347,6 +349,7 @@ const errorFor = (field: string) =>
                         <label class="grid min-w-0 gap-1 text-sm"
                             >Maximum temperature °C (optional)
                             <Input
+                                class="h-11 lg:h-9"
                                 v-model="form.maximum_temperature"
                                 inputmode="decimal"
                             />
@@ -400,6 +403,7 @@ const errorFor = (field: string) =>
                         <label class="grid min-w-0 gap-1 text-sm"
                             >SKU code (required)
                             <Input
+                                class="h-11 lg:h-9"
                                 v-model="form.sku_code"
                                 maxlength="64"
                                 :disabled="sku.unitsLocked"
@@ -410,6 +414,7 @@ const errorFor = (field: string) =>
                         <label class="grid min-w-0 gap-1 text-sm"
                             >Stock unit (required)
                             <Input
+                                class="h-11 lg:h-9"
                                 v-model="form.stock_unit"
                                 maxlength="100"
                                 :disabled="sku.unitsLocked"
@@ -420,6 +425,7 @@ const errorFor = (field: string) =>
                         <label class="grid min-w-0 gap-1 text-sm"
                             >Dispensing unit (required)
                             <Input
+                                class="h-11 lg:h-9"
                                 v-model="form.dispensing_unit"
                                 maxlength="100"
                                 :disabled="sku.unitsLocked"
@@ -432,6 +438,7 @@ const errorFor = (field: string) =>
                         <label class="grid min-w-0 gap-1 text-sm"
                             >Unit conversion (required)
                             <Input
+                                class="h-11 lg:h-9"
                                 v-model="form.unit_conversion"
                                 inputmode="decimal"
                                 :disabled="sku.unitsLocked"
@@ -476,6 +483,7 @@ const errorFor = (field: string) =>
                         <label class="grid min-w-0 gap-1 text-sm"
                             >Pack size
                             <Input
+                                class="h-11 lg:h-9"
                                 v-model="form.pack_size"
                                 inputmode="decimal"
                                 :disabled="sku.unitsLocked"
@@ -485,6 +493,7 @@ const errorFor = (field: string) =>
                         <label class="grid min-w-0 gap-1 text-sm"
                             >Purchase unit
                             <Input
+                                class="h-11 lg:h-9"
                                 v-model="form.purchase_unit"
                                 maxlength="100"
                                 :disabled="sku.unitsLocked"

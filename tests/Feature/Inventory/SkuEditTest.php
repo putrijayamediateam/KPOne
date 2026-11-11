@@ -88,6 +88,23 @@ final class SkuEditTest extends VisitTestCase
         $this->assertSame([true, true], [$sku->refresh()->is_active, $item->refresh()->is_active]);
     }
 
+    public function test_a_stale_screen_cannot_undo_someone_elses_status_change(): void
+    {
+        [$sku, $item, $actor] = $this->freshSku();
+        $service = app(SkuEditService::class);
+        $stale = $this->input($sku, $item);
+        // B deactivates the SKU; A then saves the old, unchanged form with "SKU active" still ticked.
+        $service->save($actor('director'), $sku->public_id, $this->input($sku, $item, ['sku_active' => false]));
+        $this->assertThrows(fn () => $service->save($actor('ca_supervisor'), $sku->public_id, $stale), ValidationException::class);
+        $this->assertFalse($sku->refresh()->is_active);
+
+        // Likewise an old screen with "Item active" unticked cannot deactivate an item someone has since renamed.
+        $service->save($actor('director'), $sku->public_id, $this->input($sku->refresh(), $item->refresh(), ['sku_active' => false, 'generic_name' => 'Synthetic renamed']));
+        $old = $this->input($sku->refresh(), $item, ['sku_active' => false, 'item_active' => false, 'generic_name' => 'Synthetic renamed']);
+        $this->assertThrows(fn () => $service->save($actor('ca_supervisor'), $sku->public_id, $old), ValidationException::class);
+        $this->assertTrue($item->refresh()->is_active);
+    }
+
     public function test_postgresql_raises_the_version_on_every_update_and_refuses_a_skipped_one(): void
     {
         [$sku] = $this->freshSku();
