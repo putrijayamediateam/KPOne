@@ -10,6 +10,7 @@ use App\Domain\Organisation\Inventory\Services\InventoryStockReviewService;
 use App\Domain\Organisation\Inventory\Services\ReorderSuggestionService;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 
 /**
  * DS-8: the Stock space home. Every widget calls the Inventory page's own service (Stock review, Reorder
@@ -39,7 +40,6 @@ final class StockSpace
     {
         $branch = $this->branches->activeBranch($actor);
         $watch = $this->watch($actor);
-        $reorder = $this->reorderNeeded($actor);
         $readiness = $this->openingsWaiting($actor);
         $links = [];
         if ($branch !== null && $actor->can('inventory.view.branch')) {
@@ -60,18 +60,15 @@ final class StockSpace
             'branchName' => $branch?->name,
             'asOf' => $branch ? now()->setTimezone($branch->timezone)->format('g:i A') : null,
             'watch' => $watch === null ? null : [
+                'showLocation' => $watch['showLocation'],
                 'lists' => array_map(fn (array $l): array => [
                     'key' => $l['key'], 'title' => $l['title'], 'total' => $l['total'], 'limit' => self::LIST_LIMIT,
                     'seeAllHref' => route('inventory.stock-review', absolute: false), 'rows' => array_slice($l['rows'], 0, self::LIST_LIMIT),
                 ], $watch['lists']),
             ],
             'overdueReviews' => $watch === null || ! $watch['canManage'] ? null : [
-                'total' => count($watch['overdue']), 'limit' => 3, 'seeAllHref' => route('inventory.stock-review', absolute: false),
-                'rows' => array_slice($watch['overdue'], 0, 3),
-            ],
-            'reorder' => $reorder === null ? null : [
-                'total' => $reorder['total'], 'limit' => self::LIST_LIMIT, 'seeAllHref' => route('inventory.reorder-suggestions', absolute: false),
-                'rows' => array_slice($reorder['rows'], 0, self::LIST_LIMIT),
+                'total' => count($watch['overdue']), 'limit' => self::LIST_LIMIT, 'seeAllHref' => route('inventory.stock-review', absolute: false),
+                'rows' => array_slice($watch['overdue'], 0, self::LIST_LIMIT),
             ],
             'readiness' => $readiness === null ? null : ['openings' => $readiness['openings'], 'limited' => $readiness['limited'], 'href' => route('inventory.readiness', absolute: false)],
             'primaryAction' => $primary,
@@ -89,12 +86,16 @@ final class StockSpace
      * The three Stock review worklists (read up to four pages of 25 rows each), rows ordered for display, and the
      * overdue review-by dates carried on those rows.
      *
-     * @return array{canManage: bool, lists: list<array{key: string, title: string, total: int, rows: list<array<string, mixed>>}>, overdue: list<array<string, mixed>>}|null
+     * @return array{canManage: bool, showLocation: bool, lists: list<array{key: string, title: string, total: int, rows: list<array<string, mixed>>}>, overdue: list<array<string, mixed>>}|null
      */
     public function watch(User $actor): ?array
     {
         if ($this->branches->activeBranch($actor) === null || ! $actor->can('inventory.view.branch')) {
             return null;
+        }
+        $suggested = [];
+        foreach ((array) ($this->reorder->page($actor, ['need' => 'order'])['rows'] ?? []) as $q) {
+            $suggested[(string) $q['key']] = (string) $q['suggestedQuantity'];
         }
         $titles = ['low_stock' => 'Low stock', 'expiring' => 'Expiring within 90 days', 'expired' => 'Expired on hand'];
         $first = $this->review->page($actor, []);
@@ -116,26 +117,50 @@ final class StockSpace
             if ($key !== 'low_stock') {
                 usort($rows, fn (array $a, array $b): int => strcmp((string) $a['expiry'], (string) $b['expiry']));
             }
-            $lists[] = ['key' => $key, 'title' => $title, 'total' => (int) $first['lists'][$key]['total'], 'rows' => array_map(fn (array $r): array => $this->watchRow($key, $r, $today), $rows)];
+            $lists[] = ['key' => $key, 'title' => $title, 'total' => (int) $first['lists'][$key]['total'], 'rows' => array_map(fn (array $r): array => $this->watchRow($key, $r, $today, $suggested), $rows)];
         }
         usort($overdue, fn (array $a, array $b): int => strcmp($a['reviewBy'], $b['reviewBy']));
-        $overdue = array_map(fn (array $o): array => ['sku' => $o['sku'], 'item' => $o['item'], 'text' => 'Review was due '.CarbonImmutable::parse($o['reviewBy'])->format('j M Y')], $overdue);
+        $todayDate = CarbonImmutable::parse($today)->startOfDay();
+        $overdue = array_map(function (array $o) use ($todayDate): array {
+            $due = CarbonImmutable::parse($o['reviewBy'])->startOfDay();
+            $days = max(1, (int) $due->diffInDays($todayDate));
 
-        return ['canManage' => (bool) $first['canManage'], 'lists' => $lists, 'overdue' => $overdue];
+            return ['sku' => $o['sku'], 'item' => $o['item'], 'text' => SpaceDisplay::dueText($due->format('j M Y'), $days, 'Review due'), 'tone' => $days >= 30 ? 'red' : 'amber'];
+        }, $overdue);
+
+        return ['canManage' => (bool) $first['canManage'], 'showLocation' => $this->branchHasSeveralLocations($actor), 'lists' => $lists, 'overdue' => $overdue];
     }
 
     /**
      * @param  array<string, mixed>  $r
+     * @param  array<string, string>  $suggested
      * @return array<string, string>
      */
-    private function watchRow(string $key, array $r, string $today): array
+    private function watchRow(string $key, array $r, string $today, array $suggested): array
     {
         $unit = (string) ($r['stock_unit'] ?? '');
-        $detail = $key === 'low_stock'
-            ? self::qty((string) $r['quantity']).' '.$unit.' on hand, reorder level '.self::qty((string) $r['reorder_level'])
-            : SpaceDisplay::expiryText((string) $r['expiry'], $today).' · '.self::qty((string) $r['quantity']).' '.$unit;
+        $quantity = (float) $r['quantity'];
+        if ($key === 'low_stock') {
+            $level = self::qty((string) $r['reorder_level']);
+            $onHand = $quantity <= 0 ? 'Out of stock' : SpaceDisplay::quantityText((string) $r['quantity'], $unit).' on hand';
+            $order = $suggested[$r['location_id'].':'.$r['sku_id']] ?? null;
+            $detail = ($order !== null && (float) $order > 0 ? 'Order '.self::qty($order).' · ' : '').$onHand.', reorder level '.$level;
+            $tone = $quantity <= 0 ? 'red' : 'amber';
+        } else {
+            $detail = SpaceDisplay::expiryText((string) $r['expiry'], $today).' · '.SpaceDisplay::quantityText((string) $r['quantity'], $unit);
+            $tone = $key === 'expired' ? 'red' : 'amber';
+        }
 
-        return ['sku' => (string) $r['sku_code'], 'item' => (string) $r['item'], 'location' => (string) $r['location'], 'detail' => $detail, 'tone' => $key === 'low_stock' ? 'amber' : ($key === 'expired' || str_contains($detail, 'Expired') ? 'red' : 'amber')];
+        return ['sku' => (string) $r['sku_code'], 'item' => (string) $r['item'], 'location' => (string) $r['location'], 'detail' => $detail, 'tone' => $tone];
+    }
+
+    /** The location line only matters once the branch keeps stock in more than one location. */
+    private function branchHasSeveralLocations(User $actor): bool
+    {
+        $branch = $this->branches->activeBranch($actor);
+
+        return $branch !== null && DB::table('inventory_locations')->where('organisation_id', $actor->organisation_id)
+            ->where('branch_id', $branch->id)->where('is_active', true)->count() > 1;
     }
 
     /**
@@ -152,7 +177,7 @@ final class StockSpace
         $page = $this->reorder->page($actor, ['need' => 'order']);
         $rows = array_map(fn (array $r): array => [
             'sku' => (string) $r['skuCode'], 'item' => (string) $r['itemName'], 'location' => (string) $r['location'],
-            'detail' => self::qty((string) $r['onHand']).' '.$r['stockUnit'].' on hand, reorder level '.self::qty((string) $r['reorderLevel']).', suggest '.self::qty((string) $r['suggestedQuantity']),
+            'detail' => SpaceDisplay::quantityText((string) $r['onHand'], (string) $r['stockUnit']).' on hand, reorder level '.self::qty((string) $r['reorderLevel']).'. Suggested order: '.self::qty((string) $r['suggestedQuantity']),
         ], array_values((array) $page['rows']));
 
         return ['total' => (int) $page['total'], 'rows' => $rows, 'all' => array_values((array) $page['rows'])];
@@ -189,7 +214,7 @@ final class StockSpace
             $result = $this->holds->page($actor, ['page' => $page]);
             foreach ((array) $result['rows'] as $r) {
                 if (($r['reason'] ?? null) !== null) {
-                    $held[] = ['sku' => (string) $r['sku_code'], 'batch' => (string) $r['batch_number'], 'reason' => ucfirst(str_replace('_', ' ', (string) $r['reason']))];
+                    $held[] = ['key' => (string) $r['public_id'], 'sku' => (string) $r['sku_code'], 'batch' => (string) $r['batch_number'], 'reason' => ucfirst(str_replace('_', ' ', (string) $r['reason'])), 'since' => ''];
                 }
             }
             if ($page >= (int) $result['lastPage']) {
@@ -198,6 +223,19 @@ final class StockSpace
             if ($page === self::PAGES) {
                 $complete = false;
             }
+        }
+
+        if ($held !== []) {
+            $branch = $this->branches->activeBranch($actor);
+            $since = DB::table('inventory_batch_hold_states as h')->join('inventory_batch_hold_actions as a', 'a.id', '=', 'h.active_action_id')
+                ->join('inventory_batches as b', 'b.id', '=', 'h.inventory_batch_id')
+                ->where('h.branch_id', $branch->id)->where('b.organisation_id', $actor->organisation_id)
+                ->whereIn('b.public_id', array_column($held, 'key'))->pluck('a.created_at', 'b.public_id');
+            foreach ($held as &$h) {
+                $at = $since[$h['key']] ?? null;
+                $h['since'] = $at === null ? '' : CarbonImmutable::parse((string) $at, 'UTC')->setTimezone($branch->timezone)->format('j M Y');
+            }
+            unset($h);
         }
 
         return ['rows' => $held, 'complete' => $complete];

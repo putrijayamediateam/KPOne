@@ -111,7 +111,7 @@ final class SpaceAskService
         }
         $rows = [];
         foreach (array_slice($held['rows'], 0, 10) as $r) {
-            $rows[] = [$r['sku'], 'Batch '.$r['batch'], $r['reason']];
+            $rows[] = [$r['sku'], 'Batch '.$r['batch'], ($r['since'] !== '' ? 'On hold since '.$r['since'].' · ' : '').$r['reason']];
         }
         $n = count($held['rows']);
 
@@ -146,7 +146,7 @@ final class SpaceAskService
         }
         $rows = [];
         foreach (array_slice($none, 0, 10) as $r) {
-            $rows[] = [(string) $r['skuCode'], (string) $r['location'], rtrim(rtrim(number_format((float) $r['onHand'], 3, '.', ''), '0'), '.').' on hand, level '.rtrim(rtrim(number_format((float) $r['reorderLevel'], 3, '.', ''), '0'), '.')];
+            $rows[] = [(string) $r['skuCode'], (string) $r['location'], SpaceDisplay::quantityText((string) $r['onHand'], (string) ($r['stockUnit'] ?? '')).' on hand, level '.rtrim(rtrim(number_format((float) $r['reorderLevel'], 3, '.', ''), '0'), '.')];
         }
         $n = count($none);
 

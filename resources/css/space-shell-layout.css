@@ -182,12 +182,12 @@
     .space-shell .space-side.has-more {
         -webkit-mask-image: linear-gradient(
             to right,
-            #000 calc(100% - 40px),
+            #000 calc(100% - 64px),
             transparent
         );
         mask-image: linear-gradient(
             to right,
-            #000 calc(100% - 40px),
+            #000 calc(100% - 64px),
             transparent
         );
     }
@@ -583,4 +583,11 @@
         border-top: 1px solid var(--space-line);
         min-width: 0;
     }
+}
+
+/* A secondary line in a row (a location, a Panel): its own muted line, no separator dot. */
+.space-shell .space-row-sub {
+    display: block;
+    color: var(--space-muted);
+    font-size: 13px;
 }

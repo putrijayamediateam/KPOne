@@ -18,7 +18,6 @@ class StockSpaceTest extends VisitTestCase
             ->where('stock.watch.lists.0.title', 'Low stock')
             ->where('stock.watch.lists.0.total', 0)
             ->where('stock.overdueReviews.total', 0)
-            ->where('stock.reorder.total', 0)
             ->where('stock.primaryAction', ['title' => 'Open Stock review', 'href' => '/inventory/stock-review'])
             ->has('questions', 3));
     }

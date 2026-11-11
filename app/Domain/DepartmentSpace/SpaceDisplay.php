@@ -45,13 +45,13 @@ final class SpaceDisplay
     }
 
     /** "Due 3 Nov 2026, 9 days overdue (very overdue)": the words as well as the colour; very overdue from 30 days. */
-    public static function dueText(string $dueDate, int $daysOverdue): string
+    public static function dueText(string $dueDate, int $daysOverdue, string $label = 'Due'): string
     {
         if ($daysOverdue <= 0) {
-            return 'Due '.$dueDate;
+            return $label.' '.$dueDate;
         }
 
-        return 'Due '.$dueDate.', '.$daysOverdue.($daysOverdue === 1 ? ' day' : ' days').' overdue'.($daysOverdue >= 30 ? ' (very overdue)' : '');
+        return $label.' '.$dueDate.', '.$daysOverdue.($daysOverdue === 1 ? ' day' : ' days').' overdue'.($daysOverdue >= 30 ? ' (very overdue)' : '');
     }
 
     /** "Expires 3 Dec 2026, in 22 days" or "Expired 9 days ago": the words as well as the colour. */
@@ -69,6 +69,29 @@ final class SpaceDisplay
         }
 
         return 'Expired '.abs($days).(abs($days) === 1 ? ' day' : ' days').' ago';
+    }
+
+    /** "225 tablets", "1 tablet", "0 capsules": the unit takes a plural unless the quantity is exactly 1. */
+    public static function quantityText(string $quantity, string $unit): string
+    {
+        $number = (float) $quantity;
+        $text = rtrim(rtrim(number_format($number, 3, '.', ''), '0'), '.');
+
+        return $text.' '.($number === 1.0 ? $unit : self::plural($unit));
+    }
+
+    /** A unit in the plural: "tablet" to "tablets", "box" to "boxes"; short abbreviations such as "ml" stay as they are. */
+    public static function plural(string $unit): string
+    {
+        $word = trim($unit);
+        if ($word === '' || mb_strlen($word) <= 2 || str_ends_with($word, 's')) {
+            return $word;
+        }
+        if (preg_match('/(x|ch|sh|z)$/i', $word) === 1) {
+            return $word.'es';
+        }
+
+        return $word.'s';
     }
 
     /** "RM 1,250.50" from sen. */

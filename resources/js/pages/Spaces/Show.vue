@@ -162,6 +162,7 @@ type StockHome = {
     branchName: string | null;
     asOf: string | null;
     watch: {
+        showLocation: boolean;
         lists: Array<{
             key: string;
             title: string;
@@ -175,17 +176,11 @@ type StockHome = {
         total: number;
         limit: number;
         seeAllHref: string;
-        rows: Array<{ sku: string; item: string; text: string }>;
-    } | null;
-    reorder: {
-        total: number;
-        limit: number;
-        seeAllHref: string;
         rows: Array<{
             sku: string;
             item: string;
-            location: string;
-            detail: string;
+            text: string;
+            tone: string;
         }>;
     } | null;
     readiness: { openings: number; limited: boolean; href: string } | null;
@@ -1160,10 +1155,12 @@ onMounted(async () => {
                                 <Link :href="row.href" class="space-row">
                                     <span class="space-row-body">
                                         <span class="space-row-text">
-                                            <span class="space-row-main"
-                                                >{{ row.patient }} ·
-                                                {{ row.panel }}</span
-                                            >
+                                            <span class="space-row-main">{{
+                                                row.patient
+                                            }}</span>
+                                            <span class="space-row-sub">{{
+                                                row.panel
+                                            }}</span>
                                             <span class="space-row-meta">
                                                 {{ row.amountText }}
                                                 <span
@@ -1223,10 +1220,12 @@ onMounted(async () => {
                                 <Link :href="row.href" class="space-row">
                                     <span class="space-row-body">
                                         <span class="space-row-text">
-                                            <span class="space-row-main"
-                                                >{{ row.patient }} ·
-                                                {{ row.panel }}</span
-                                            >
+                                            <span class="space-row-main">{{
+                                                row.patient
+                                            }}</span>
+                                            <span class="space-row-sub">{{
+                                                row.panel
+                                            }}</span>
                                             <span class="space-row-meta">
                                                 <span class="space-nowrap">{{
                                                     row.status
@@ -1336,12 +1335,16 @@ onMounted(async () => {
                                                     >{{ row.sku }} ·
                                                     {{ row.item }}</span
                                                 >
-                                                <span class="space-row-meta"
-                                                    >{{ row.location }} ·
-                                                    <span
-                                                        :class="`space-wait is-${row.tone}`"
-                                                        >{{ row.detail }}</span
-                                                    ></span
+                                                <span
+                                                    v-if="
+                                                        stock.watch.showLocation
+                                                    "
+                                                    class="space-row-sub"
+                                                    >{{ row.location }}</span
+                                                >
+                                                <span
+                                                    :class="`space-row-meta space-wait is-${row.tone}`"
+                                                    >{{ row.detail }}</span
                                                 >
                                             </span>
                                         </span>
@@ -1395,7 +1398,7 @@ onMounted(async () => {
                                             {{ row.item }}</span
                                         >
                                         <span
-                                            class="space-row-meta space-wait is-amber"
+                                            :class="`space-row-meta space-wait is-${row.tone}`"
                                             >{{ row.text }}</span
                                         >
                                     </span>
@@ -1407,65 +1410,21 @@ onMounted(async () => {
                             </Link>
                         </li>
                     </ul>
-                </section>
-                <section
-                    v-if="stock.reorder"
-                    class="space-card"
-                    aria-labelledby="st-reorder"
-                >
-                    <h2 id="st-reorder">
-                        To reorder ({{ stock.reorder.total }})
-                    </h2>
                     <p
-                        v-if="stock.reorder.rows.length === 0"
+                        v-if="
+                            stock.overdueReviews.total >
+                            stock.overdueReviews.rows.length
+                        "
                         class="space-muted"
                     >
-                        Nothing needs an order.
-                    </p>
-                    <template v-else>
-                        <ul class="space-list">
-                            <li
-                                v-for="(row, i) in stock.reorder.rows"
-                                :key="`${row.sku}-${i}`"
-                            >
-                                <Link
-                                    :href="stock.reorder.seeAllHref"
-                                    class="space-row"
-                                >
-                                    <span class="space-row-body">
-                                        <span class="space-row-text">
-                                            <span class="space-row-main"
-                                                >{{ row.sku }} ·
-                                                {{ row.item }}</span
-                                            >
-                                            <span class="space-row-meta"
-                                                >{{ row.location }} ·
-                                                {{ row.detail }}</span
-                                            >
-                                        </span>
-                                    </span>
-                                    <ChevronRight
-                                        class="space-chevron"
-                                        aria-hidden="true"
-                                    />
-                                </Link>
-                            </li>
-                        </ul>
-                        <p
-                            v-if="
-                                stock.reorder.total > stock.reorder.rows.length
-                            "
-                            class="space-muted"
+                        Showing {{ stock.overdueReviews.rows.length }} of
+                        {{ stock.overdueReviews.total }} ·
+                        <Link
+                            :href="stock.overdueReviews.seeAllHref"
+                            class="space-link"
+                            >See all</Link
                         >
-                            Showing {{ stock.reorder.rows.length }} of
-                            {{ stock.reorder.total }} ·
-                            <Link
-                                :href="stock.reorder.seeAllHref"
-                                class="space-link"
-                                >See all</Link
-                            >
-                        </p>
-                    </template>
+                    </p>
                 </section>
                 <section
                     v-if="stock.readiness"
