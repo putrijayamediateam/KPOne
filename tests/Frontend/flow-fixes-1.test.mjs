@@ -254,6 +254,7 @@ const requireMap = {
     },
     '@/components/registration/QrIntakeTable.vue': { default: NullStub },
     '@/components/ui/button': { Button: ButtonStub },
+    '@/components/ui/date-field': { DateField: NullStub },
     '@/components/ui/select': { OperationalSelect: OperationalSelectStub },
     '@/components/ui/tabs/OperationalTabs.vue': {
         default: OperationalTabsStub,

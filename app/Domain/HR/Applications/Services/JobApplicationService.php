@@ -200,6 +200,40 @@ final class JobApplicationService
     }
 
     /**
+     * Show an applicant's phone or email (TEAM.md section 7 hardening: the list shows them masked). The audit row is
+     * written inside the transaction, and the value is returned only once it has committed. A purged application has
+     * nothing to show.
+     */
+    public function showContact(User $actor, string $applicationId, mixed $field): string
+    {
+        if (! in_array($field, ['phone', 'email'], true)) {
+            throw ValidationException::withMessages(['field' => 'Choose what to show.']);
+        }
+
+        return DB::transaction(function () use ($actor, $applicationId, $field): string {
+            $actor = $this->support->authority->lock($actor, ApplicationPermissions::MANAGE);
+            $application = $this->application($actor, $applicationId, false);
+            $encrypted = $application->{$field.'_encrypted'} ?? null;
+            $value = null;
+            if (is_string($encrypted)) {
+                try {
+                    $value = Crypt::decryptString($encrypted);
+                } catch (DecryptException) {
+                    $value = null;
+                }
+            }
+            if ($value === null || $value === '') {
+                throw ValidationException::withMessages(['field' => 'There is nothing to show. It may have been deleted after the retention period.']);
+            }
+            // Ids and the field only, never the value.
+            $this->support->audit->record('hr.applications.contact_shown', null, ['application_id' => (int) $application->id, 'field' => $field],
+                $actor, null, $actor->organisation_id);
+
+            return $value;
+        }, 3);
+    }
+
+    /**
      * Records the open, then returns the decrypted CV. Nothing is returned if the record cannot be written.
      *
      * @return array{content:string, filename:string}
