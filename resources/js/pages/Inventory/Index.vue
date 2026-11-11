@@ -227,6 +227,12 @@ const clearFilters = () => {
                 >Stock review</ActionLink
             >
             <ActionLink
+                href="/inventory/reorder-suggestions"
+                variant="outline"
+                class="min-h-11"
+                >Reorder suggestions</ActionLink
+            >
+            <ActionLink
                 href="/inventory/batch-holds"
                 variant="outline"
                 class="min-h-11"
