@@ -108,6 +108,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-15 | Quarantine one return across several batches: on a line dispensed from 2+ batches the check panel shows one box per batch (earliest expiry first, "Available: N", never prefilled, "Fill from earliest expiry" helper), a running "Placed X of Y" line, the shares in the confirm dialog and the batches on the history row. New append-only `dispensary_return_check_batches` (one STK-11 movement per share); PostgreSQL repeats the pairing, per-batch, can't-grow and exact-total rules. Migration `2026_11_07_000600` (decision 36) | #430 (merged) |
 | DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | #439 (merged) |
 | DSP-17 | Scan to pick the batch: on an open case, a scan that matches a saved line (or a scan-to-add pick) scrolls that line's batch dropdown into view (instantly with reduced motion), gives it a brand ring and adds "Pick the batch printed on the box." to its "Selected" line in a `role="status"` span. Nothing is selected or saved; the hint clears on a batch change, a save, any new scan (refused or unknown codes too) or when the line goes away. Focus stays in the scan box. Frontend only | #498 (merged `d61a69c`) |
+| DSP-18 | GS1 batch and expiry at the scan: the shared parser `Inventory\Support\Gs1ElementString` (bracketed and raw forms, FNC1 as GS, symbology prefixes; AIs 01/02 with the check digit, 10, 17 with DD=00 as the month's last day and the GS1 century window in the branch time zone) feeds `GET /inventory/scan`, which also looks up the GTIN's barcode forms and returns a `gs1` block. On the Dispensary page the batch hint names the box ("Box: batch X, exp …"), marks matching options "Matches the box · " and warns when no batch matches, the expiry differs or the batch is on hold; "The selected batch is not the one on the box." is added when the dropdown shows another batch. It never selects a batch. A batch read with no separator is used only when it matches exactly. Zulkifli reviewed the parser | #530 (merged `6fb266e`) |
+| DSP-19 | Check this return panel on tablets: the outcome and reason tiles, the location picker and the four action buttons follow DD-24 (44 px and stacked below 1024 px, side by side from there), as does the record-a-return form; one-line reason tiles centre the radio. Batch labels in the panel show the expiry as "10 Jul 2027" (was dd/mm/yyyy) | #531 (merged `c78566b`) |
 | Exception wording | An earlier partial dispense reads in plain words ("waiting for the doctor to acknowledge", "acknowledged by the doctor", "replaced by a later change", else "status unknown") instead of the stored code (Daniel, guide section 15). Frontend only | #495 (merged) |
 
 ## 6. Owner decisions already made (never ask again)
@@ -271,6 +273,13 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     reselects itself after each scan for the next box (B.E.R.N.I.S.S and Daniel agreed; the shared component is not
     changed). A keyboard-only focus move, if ever needed, is a separate change with the Inventory team.
 39. Exception wording (2026-11-11): B.E.R.N.I.S.S: display wording only, so no owner decision was needed.
+40. DSP-18 GS1 batch and expiry (2026-11-11): approved as planned by B.E.R.N.I.S.S for the owner under the owner's "so a
+    until g will be build right? u have my approval", and the ship-it relayed the same way. The parser lives in the
+    Inventory domain and Zulkifli reviewed it. DD=00 means the last day of that month. Warn only and never select a
+    batch: the CA still picks it. Daniel: OK after the same-batch, different-expiry case stopped adding the "selected
+    batch" clause.
+41. DSP-19 return panel on tablets (2026-11-11): B.E.R.N.I.S.S: "go with your order", then "ship it for DSP-19".
+    Layout only, plus the batch date format. Daniel: OK; the dark native radios are shared design debt DD-67.
 
 ## 7. Open items and known limits
 
@@ -303,9 +312,12 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
   Supervisor to link it. A barcode on more than one medicine shows the list. Auto-pick happens only for one medicine
   with stock and no allergy match.
 - **Stale returns note (fixed in PR #424):** the Completed page's Medicine returns note now says "Recording a return gives no money back." and points to Refunds on the visit's billing page (BIL-10), where a CA Supervisor or Finance Officer records a refund and someone else approves it; the CA guide matches.
-- **Check this return panel (design debt, agreed with Daniel 2026-11-10):** DSP-15's new boxes and helper follow
-  DD-24 (44 px below 1024 px), but the rest of the panel still switches below 640 px (sm). Moving it to max-lg is a
-  separate small fix.
+- **Check this return panel (design debt, agreed with Daniel 2026-11-10):** fixed in DSP-19 (PR #531): the whole
+  panel and the record-a-return form now switch at 1024 px. The native radios still look light in dark mode (shared
+  DD-67, not ours).
+- **GS1 limits (DSP-18):** only AIs 01, 02, 10 and 17 are read; other fields are skipped. A raw code with no GS
+  separator cannot show where the batch ends, so its batch is compared only and never shown. A box's GTIN must be
+  saved as a SKU barcode to be found.
 - **DD-57 (dark mode, 2026-11-11):** the Dispensary attention panel and the Dispensary page now give every pale
   warning colour a `dark:` style (PR #476, Daniel: OK). The other DD-57 files belong to other teams.
 - **Raw status code on the Dispensary page (Daniel, 2026-11-11):** fixed in PR #495: a line with an earlier partial
@@ -413,6 +425,8 @@ order, each its own PR:
 16. **DSP-15 Quarantine one return across batches — merged in #430.** Decisions 35 and 36.
 17. **DSP-16 Race test for split quarantines — PR #439 (merged).** Decision 37.
 18. **DSP-17 Scan to pick the batch — merged in #498.** Decision 38.
+19. **DSP-18 GS1 batch and expiry at the scan — merged in #530.** Decision 40.
+20. **DSP-19 Return panel on tablets — merged in #531.** Decision 41.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
