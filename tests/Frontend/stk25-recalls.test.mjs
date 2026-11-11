@@ -11,10 +11,16 @@ const page = readFileSync(
 test('STK-25: starting a recall sends a retry key and says how many batches it blocks', () => {
     assert.match(page, /idempotency_key: start\.key/);
     assert.match(page, /batch_public_ids: start\.batches/);
-    assert.match(
-        page,
-        /This blocks \{\{ batchWord\(start\.batches\.length\) \}\} at\s+every branch\./,
-    );
+    // Daniel: "N batches at M branches will be blocked" above Start recall.
+    assert.match(page, /will be blocked\./);
+    assert.match(page, /\{\{ startSummary \}\}/);
+    // A search with at most 10 batches shown, "Showing N of M", and ticked batches kept as chips.
+    assert.match(page, /const BATCH_CAP = 10;/);
+    assert.match(page, /Showing \{\{ visibleOptions\.length \}\} of/);
+    assert.match(page, /aria-label="Ticked batches"/);
+    // The shared tabs, and the paired "Write off stock" link.
+    assert.match(page, /<OperationalTabs/);
+    assert.match(page, />Write off stock</);
     assert.match(page, /v-if="recalls\.can\.start"/);
     // An already recalled batch cannot be ticked again.
     assert.match(page, /:disabled="option\.recalled"/);

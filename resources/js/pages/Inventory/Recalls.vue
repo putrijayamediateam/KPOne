@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { StatusBadge } from '@/components/ui/status';
+import { OperationalTabs } from '@/components/ui/tabs';
 import { requestJson } from '@/lib/json-client';
 
 // STK-25: a recall blocks named batches of one SKU at every branch at once. It moves no stock.
@@ -108,6 +109,26 @@ const start = reactive({
     key: crypto.randomUUID(),
 });
 const options = ref<BatchOption[]>([]);
+// Daniel: search the SKU's batches instead of a long list; at most 10 shown, ticked ones stay as chips.
+const batchSearch = ref('');
+const BATCH_CAP = 10;
+const matchingOptions = computed(() => {
+    const term = batchSearch.value.trim().toLowerCase();
+
+    return term
+        ? options.value.filter((o) =>
+              o.batchNumber.toLowerCase().includes(term),
+          )
+        : options.value;
+});
+const visibleOptions = computed(() =>
+    matchingOptions.value.slice(0, BATCH_CAP),
+);
+const selectedOptions = computed(() =>
+    options.value.filter((o) => start.batches.includes(o.publicId)),
+);
+const unselect = (publicId: string) =>
+    (start.batches = start.batches.filter((id) => id !== publicId));
 const optionsError = ref('');
 const startErrors = ref<Record<string, string>>({});
 const busy = ref(false);
@@ -117,6 +138,7 @@ watch(
     async (sku) => {
         const request = ++batchRequest;
         start.batches = [];
+        batchSearch.value = '';
         options.value = [];
         optionsError.value = '';
 
@@ -296,6 +318,27 @@ const liftGeneral = computed(
         null,
 );
 const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
+// "N batches at M branches will be blocked": M counts the places holding the ticked batches now.
+const startSummary = computed(() => {
+    const places = new Set(
+        selectedOptions.value.flatMap((o) => o.onHand.map((h) => h.branch)),
+    ).size;
+
+    return places
+        ? `${batchWord(start.batches.length)} at ${places === 1 ? '1 branch' : `${places} branches`} will be blocked.`
+        : `${batchWord(start.batches.length)} will be blocked. None is on hand now.`;
+});
+const liftBatches = computed(() => {
+    const names = lifting.value?.batches.map((b) => b.batchNumber) ?? [];
+
+    return names.length > 3
+        ? batchWord(names.length)
+        : `${names.length === 1 ? 'Batch' : 'Batches'} ${names.join(', ')}`;
+});
+const tabs = computed(() => [
+    { value: 'active', label: 'Active', count: props.recalls.counts.active },
+    { value: 'lifted', label: 'Lifted', count: props.recalls.counts.lifted },
+]);
 </script>
 
 <template>
@@ -313,20 +356,13 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
             :description="`A recall blocks named batches at every branch. It moves no stock. ${recalls.allBranches ? 'Stock is shown for every branch.' : `Stock is shown for ${recalls.branchName}.`}`"
         />
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <nav class="flex gap-2" aria-label="Recall status">
-                <Button
-                    v-for="tab in ['active', 'lifted'] as const"
-                    :key="tab"
-                    type="button"
-                    :variant="recalls.tab === tab ? 'default' : 'outline'"
-                    class="min-h-11"
-                    :aria-current="recalls.tab === tab ? 'page' : undefined"
-                    @click="visit({ tab })"
-                    >{{ tab === 'active' ? 'Active' : 'Lifted' }} ({{
-                        recalls.counts[tab]
-                    }})</Button
-                >
-            </nav>
+            <OperationalTabs
+                :model-value="recalls.tab"
+                :tabs="tabs"
+                label="Recall status"
+                class="min-w-0 max-lg:[&>button]:h-11 max-sm:[&>button]:px-2.5"
+                @update:model-value="(tab) => visit({ tab })"
+            />
             <Button
                 v-if="recalls.can.start"
                 type="button"
@@ -471,7 +507,7 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                             href="/inventory/writeoffs"
                             variant="outline"
                             class="min-h-11 lg:min-h-9"
-                            >Write off (governed)</ActionLink
+                            >Write off stock</ActionLink
                         >
                         <ActionLink
                             href="/inventory/supplier-returns"
@@ -557,11 +593,52 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                                 : undefined
                         "
                     >
+                        <legend class="text-sm font-medium">Batches</legend>
                         <p class="text-sm text-muted-foreground">
                             Every batch of this item with a ticked number is
                             blocked, in any pack size.
                         </p>
-                        <legend class="text-sm font-medium">Batches</legend>
+                        <ul
+                            v-if="selectedOptions.length"
+                            class="flex flex-wrap gap-2"
+                            aria-label="Ticked batches"
+                        >
+                            <li
+                                v-for="option in selectedOptions"
+                                :key="option.publicId"
+                                class="flex items-center gap-1 rounded-md border bg-muted pl-2 text-sm"
+                            >
+                                {{ option.batchNumber }}
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    class="size-11 lg:size-9"
+                                    :aria-label="`Remove batch ${option.batchNumber}`"
+                                    @click="unselect(option.publicId)"
+                                    >×</Button
+                                >
+                            </li>
+                        </ul>
+                        <Input
+                            v-model="batchSearch"
+                            type="search"
+                            class="min-h-11"
+                            aria-label="Search batches by number"
+                            placeholder="Search batches by number"
+                        />
+                        <p
+                            v-if="options.length"
+                            class="text-sm text-muted-foreground"
+                            data-testid="recall-batches-showing"
+                        >
+                            Showing {{ visibleOptions.length }} of
+                            {{ matchingOptions.length }}
+                            {{
+                                matchingOptions.length === 1
+                                    ? 'batch'
+                                    : 'batches'
+                            }}
+                        </p>
                         <p
                             v-if="optionsError"
                             role="alert"
@@ -576,7 +653,7 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                             This SKU has no batches.
                         </p>
                         <label
-                            v-for="option in options"
+                            v-for="option in visibleOptions"
                             :key="option.publicId"
                             class="flex min-h-11 items-start gap-3 rounded-md border p-2 text-sm"
                             :class="option.recalled ? 'opacity-60' : ''"
@@ -712,8 +789,7 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                         class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
                         data-testid="recall-confirm"
                     >
-                        This blocks {{ batchWord(start.batches.length) }} at
-                        every branch.
+                        {{ startSummary }}
                     </p>
                     <div
                         class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"
@@ -745,9 +821,9 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                 <DialogHeader>
                     <DialogTitle>Lift recall</DialogTitle>
                     <DialogDescription
-                        >{{ lifting?.medicine }}: the batches can be used again
-                        at every branch, unless something else blocks
-                        them.</DialogDescription
+                        >{{ lifting?.medicine }}. {{ liftBatches }} can be used
+                        again at every branch, unless something else blocks
+                        it.</DialogDescription
                     >
                 </DialogHeader>
                 <form class="space-y-3" novalidate @submit.prevent="submitLift">
