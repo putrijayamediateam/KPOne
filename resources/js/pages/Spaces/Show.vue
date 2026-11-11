@@ -81,6 +81,38 @@ type FrontDesk = {
     links: Array<{ title: string; href: string }>;
 };
 
+type Consultation = {
+    branchName: string | null;
+    asOf: string | null;
+    waiting: {
+        total: number;
+        limit: number;
+        seeAllHref: string;
+        rows: Array<{
+            queueNumber: string;
+            patient: string;
+            urgent: boolean;
+            minutes: number;
+            href: string;
+        }>;
+    } | null;
+    held: {
+        total: number;
+        limit: number;
+        seeAllHref: string;
+        rows: Array<{
+            queueNumber: string;
+            patient: string;
+            heldText: string;
+            tooLong: boolean;
+            href: string;
+        }>;
+    } | null;
+    next: { ready: boolean; text: string } | null;
+    primaryAction: { title: string; href: string } | null;
+    links: Array<{ title: string; href: string }>;
+};
+
 type Pharmacy = {
     branchName: string | null;
     asOf: string | null;
@@ -115,6 +147,7 @@ const props = defineProps<{
     pharmacy?: Pharmacy | null;
     frontDesk?: FrontDesk | null;
     billing?: Billing | null;
+    consultation?: Consultation | null;
 }>();
 
 const page = usePage();
@@ -131,7 +164,10 @@ const waitLabel = (minutes: number): string | null =>
 
 const primaryAction = computed(
     () =>
-        props.frontDesk?.primaryAction ?? props.billing?.primaryAction ?? null,
+        props.frontDesk?.primaryAction ??
+        props.billing?.primaryAction ??
+        props.consultation?.primaryAction ??
+        null,
 );
 
 const waitHead = (minutes: number): string =>
@@ -815,6 +851,162 @@ onMounted(async () => {
                     "
                     class="space-card"
                 >
+                    <p class="space-muted">
+                        Nothing to show here for your role. Your existing
+                        screens are unchanged.
+                    </p>
+                    <p v-if="existing" class="space-existing">
+                        <Link :href="existing.href"
+                            >Open the existing
+                            {{ existing.title }} screens</Link
+                        >
+                    </p>
+                </section>
+            </template>
+            <template v-else-if="consultation">
+                <SpaceAsOf
+                    v-if="consultation.branchName"
+                    :branch-name="consultation.branchName"
+                    :as-of="consultation.asOf"
+                    only="consultation"
+                />
+                <section
+                    v-if="consultation.waiting"
+                    class="space-card"
+                    aria-labelledby="cn-waiting"
+                >
+                    <h2 id="cn-waiting">
+                        Waiting for me ({{ consultation.waiting.total }})
+                    </h2>
+                    <p v-if="consultation.next" class="space-muted">
+                        {{ consultation.next.text }}
+                    </p>
+                    <p
+                        v-if="consultation.waiting.rows.length === 0"
+                        class="space-muted"
+                    >
+                        Nobody is waiting for you.
+                    </p>
+                    <template v-else>
+                        <ul class="space-list">
+                            <li
+                                v-for="row in consultation.waiting.rows"
+                                :key="row.queueNumber"
+                            >
+                                <Link :href="row.href" class="space-row">
+                                    <span class="space-row-body">
+                                        <span class="space-qno">{{
+                                            row.queueNumber
+                                        }}</span>
+                                        <span class="space-row-text">
+                                            <span class="space-row-main">{{
+                                                row.patient
+                                            }}</span>
+                                            <span class="space-row-meta">
+                                                <span
+                                                    v-if="row.urgent"
+                                                    class="space-wait is-red"
+                                                    >Urgent
+                                                </span>
+                                                <span
+                                                    :class="`space-wait is-${waitingTone(row.minutes)}`"
+                                                    ><span
+                                                        class="space-nowrap"
+                                                        >{{
+                                                            waitHead(
+                                                                row.minutes,
+                                                            )
+                                                        }}</span
+                                                    >{{ ' '
+                                                    }}<span
+                                                        v-if="
+                                                            waitLabel(
+                                                                row.minutes,
+                                                            )
+                                                        "
+                                                        class="space-nowrap"
+                                                        >{{
+                                                            waitLabel(
+                                                                row.minutes,
+                                                            )
+                                                        }}</span
+                                                    ></span
+                                                >
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <ChevronRight
+                                        class="space-chevron"
+                                        aria-hidden="true"
+                                    />
+                                </Link>
+                            </li>
+                        </ul>
+                        <p
+                            v-if="
+                                consultation.waiting.total >
+                                consultation.waiting.rows.length
+                            "
+                            class="space-muted"
+                        >
+                            Showing {{ consultation.waiting.rows.length }} of
+                            {{ consultation.waiting.total }} ·
+                            <Link
+                                :href="consultation.waiting.seeAllHref"
+                                class="space-link"
+                                >See all</Link
+                            >
+                        </p>
+                    </template>
+                </section>
+                <section
+                    v-if="consultation.held"
+                    class="space-card"
+                    aria-labelledby="cn-held"
+                >
+                    <h2 id="cn-held">
+                        On hold ({{ consultation.held.total }})
+                    </h2>
+                    <p
+                        v-if="consultation.held.rows.length === 0"
+                        class="space-muted"
+                    >
+                        None of your consultations is on hold.
+                    </p>
+                    <ul v-else class="space-list">
+                        <li
+                            v-for="row in consultation.held.rows"
+                            :key="row.queueNumber"
+                        >
+                            <Link :href="row.href" class="space-row">
+                                <span class="space-row-body">
+                                    <span class="space-qno">{{
+                                        row.queueNumber
+                                    }}</span>
+                                    <span class="space-row-text">
+                                        <span class="space-row-main">{{
+                                            row.patient
+                                        }}</span>
+                                        <span
+                                            class="space-row-meta"
+                                            :class="
+                                                row.tooLong
+                                                    ? 'space-wait is-amber'
+                                                    : ''
+                                            "
+                                            >{{ row.heldText }}</span
+                                        >
+                                    </span>
+                                </span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section v-if="!consultation.waiting" class="space-card">
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
                         screens are unchanged.

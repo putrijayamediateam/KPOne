@@ -22,13 +22,15 @@ final class SpaceAskService
         'front_desk.not_ready' => ['registration.index', []],
         'front_desk.awaiting_billing' => ['registration.index', []],
         'front_desk.qr_pending' => ['registration.index', ['tab' => 'qr-intake']],
+        'consultation.waiting_for_me' => ['queue.index', []],
+        'consultation.on_hold' => ['queue.index', []],
         'billing.over_60' => ['billing.pay-later-collections', []],
         'billing.owes_most' => ['billing.pay-later-collections', []],
         'billing.closings_waiting' => ['cash-closings.month', []],
         'billing.closings_missing' => ['cash-closings.month', []],
     ];
 
-    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private AuditRecorder $audit) {}
+    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private ConsultationSpace $consultation, private AuditRecorder $audit) {}
 
     /**
      * The questions this person may ask in a space. A question they cannot ask is absent, never greyed.
@@ -85,8 +87,36 @@ final class SpaceAskService
             'front_desk.qr_pending' => $this->frontDesk->qrPending($actor) !== null,
             'billing.over_60', 'billing.owes_most' => $this->billing->payLaterRead($actor) !== null,
             'billing.closings_waiting', 'billing.closings_missing' => $this->billing->monthDays($actor) !== null,
+            'consultation.waiting_for_me', 'consultation.on_hold' => $this->consultation->snapshot($actor) !== null,
             default => false,
         };
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function consultationWaiting(User $actor): array
+    {
+        $snap = $this->consultation->snapshot($actor);
+        abort_if($snap === null, 403);
+        $n = $snap['waitingTotal'];
+
+        return ['sentence' => $n === 0 ? 'Nobody is waiting for you.' : ($n === 1 ? '1 patient is waiting for you.' : $n.' patients are waiting for you.'), 'columns' => [], 'rows' => []];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function consultationOnHold(User $actor): array
+    {
+        $snap = $this->consultation->snapshot($actor);
+        abort_if($snap === null, 403);
+        if ($snap['held'] === []) {
+            return ['sentence' => 'None of your consultations is on hold.', 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        foreach ($snap['held'] as $r) {
+            $rows[] = [(string) $r['queueNumber'], (string) $r['patient'], (string) $r['heldText']];
+        }
+        $n = count($rows);
+
+        return ['sentence' => ($n === 1 ? '1 consultation is' : $n.' consultations are').' on hold.', 'columns' => ['Number', 'Patient', 'Held'], 'rows' => $rows];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */

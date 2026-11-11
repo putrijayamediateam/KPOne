@@ -29,6 +29,8 @@ final class SpaceQuestions
         'billing.owes_most' => ['space' => 'billing', 'label' => 'Who owes the most?', 'permission' => 'outstanding.view.branch', 'date' => self::NOW, 'builder' => 'billingOwesMost', 'patientLevel' => true],
         'billing.closings_waiting' => ['space' => 'billing', 'label' => 'Which cash closings wait for approval?', 'permission' => 'payments.cash_closing.approve.branch', 'date' => self::NOW, 'builder' => 'billingClosingsWaiting', 'patientLevel' => false],
         'billing.closings_missing' => ['space' => 'billing', 'label' => 'Which days this month have no cash count?', 'permission' => 'payments.reconcile.branch', 'date' => self::NOW, 'builder' => 'billingClosingsMissing', 'patientLevel' => false],
+        'consultation.waiting_for_me' => ['space' => 'consultation', 'label' => 'How many are waiting for me?', 'permission' => 'queue.view.own', 'date' => self::NOW, 'builder' => 'consultationWaiting', 'patientLevel' => false],
+        'consultation.on_hold' => ['space' => 'consultation', 'label' => 'Which of my consultations are on hold?', 'permission' => 'queue.view.own', 'date' => self::NOW, 'builder' => 'consultationOnHold', 'patientLevel' => true],
     ];
 
     /** @return array<string, array{space: string, label: string, permission: string, date: string, builder: string, patientLevel: bool}> */
