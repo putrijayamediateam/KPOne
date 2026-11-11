@@ -116,6 +116,7 @@ const statusOptions = [
     { value: '', label: 'All statuses' },
     { value: 'active', label: 'Available' },
     { value: 'inactive', label: 'Unavailable' },
+    { value: 'returns', label: 'Patient returns only' },
 ];
 const movementOptions = [
     { value: '', label: 'All movement types' },
