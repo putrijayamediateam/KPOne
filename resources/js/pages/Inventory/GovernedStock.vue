@@ -167,6 +167,19 @@ function startCount(row: CycleRow) {
 const cycleError = computed(
     () => (usePage().props.errors as Record<string, string> | undefined)?.cycle,
 );
+// Daniel: the list shows the 10 most overdue; "See all" pages through every row.
+const dueCap = 10;
+const showAllDue = ref((props.stock.cycle?.page ?? 1) > 1);
+const visibleCycleRows = computed(() =>
+    showAllDue.value
+        ? (props.stock.cycle?.rows ?? [])
+        : (props.stock.cycle?.rows ?? []).slice(0, dueCap),
+);
+// Amber from the due date, red from 30 days overdue or never counted; the words always say which.
+const dueTone = (row: CycleRow) =>
+    row.overdueDays === null || row.overdueDays >= 30
+        ? 'font-medium text-destructive'
+        : 'font-medium text-warning-strong';
 const dueLabel = (row: CycleRow) =>
     row.overdueDays === null
         ? 'Never counted'
@@ -351,16 +364,14 @@ watch(
             </p>
             <ul v-else class="space-y-2" aria-label="Counts due">
                 <li
-                    v-for="row in stock.cycle.rows"
+                    v-for="row in visibleCycleRows"
                     :key="`${row.skuPublicId}:${row.locationPublicId}`"
-                    class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3"
+                    class="flex min-w-0 flex-col gap-3 rounded-lg border bg-card p-3 sm:flex-row sm:items-center sm:justify-between"
                 >
-                    <div class="min-w-0 flex-1">
-                        <p class="break-words">
-                            <span class="font-medium">{{ row.item }}</span>
-                            <span class="text-muted-foreground">
-                                · {{ row.skuCode }} · {{ row.location }}</span
-                            >
+                    <div class="min-w-0 flex-1 space-y-1">
+                        <p class="font-medium break-words">{{ row.item }}</p>
+                        <p class="text-sm break-words text-muted-foreground">
+                            {{ row.skuCode }} · {{ row.location }}
                         </p>
                         <p class="flex flex-wrap items-center gap-2 text-sm">
                             <StatusBadge
@@ -369,12 +380,8 @@ watch(
                                 :tone="row.class === 'A' ? 'accent' : 'neutral'"
                             />
                             <span
-                                :class="
-                                    row.overdueDays === null ||
-                                    row.overdueDays > 0
-                                        ? 'font-medium text-warning-strong'
-                                        : 'text-muted-foreground'
-                                "
+                                :class="dueTone(row)"
+                                data-testid="due-label"
                                 >{{ dueLabel(row) }}</span
                             >
                             <span class="text-muted-foreground">{{
@@ -384,13 +391,16 @@ watch(
                             }}</span>
                         </p>
                     </div>
-                    <p v-if="row.open" class="text-sm text-muted-foreground">
+                    <p
+                        v-if="row.open"
+                        class="text-sm text-muted-foreground sm:text-right"
+                    >
                         Counts open below
                     </p>
                     <button
                         v-else-if="stock.canPropose"
                         type="button"
-                        class="min-h-11 rounded border px-3 disabled:opacity-40 lg:min-h-9"
+                        class="min-h-11 w-full rounded border px-3 disabled:opacity-40 sm:w-auto lg:min-h-9"
                         :disabled="starting !== null"
                         :aria-busy="
                             starting ===
@@ -403,8 +413,23 @@ watch(
                     </button>
                 </li>
             </ul>
+            <p
+                v-if="!showAllDue && stock.cycle.total > dueCap"
+                class="text-sm"
+                data-testid="due-cap"
+            >
+                Showing {{ visibleCycleRows.length }} of
+                {{ stock.cycle.total }} ·
+                <button
+                    type="button"
+                    class="min-h-11 px-1 underline lg:min-h-9"
+                    @click="showAllDue = true"
+                >
+                    See all
+                </button>
+            </p>
             <div
-                v-if="stock.cycle.lastPage > 1"
+                v-if="showAllDue && stock.cycle.lastPage > 1"
                 class="flex justify-between gap-2"
             >
                 <button
@@ -586,7 +611,8 @@ watch(
                     >
                         Propose reversal</button
                     ><button
-                        class="min-h-11 px-2 underline"
+                        type="button"
+                        class="inline-flex min-h-11 items-center px-2 underline lg:min-h-9"
                         @click="history = row"
                     >
                         Evidence history

@@ -24,3 +24,18 @@ test('blind counts show no expected quantity or on hand while counting', () => {
     assert.match(page, /row\.quantity !== undefined/);
     assert.match(page, /the expected quantity is not shown/);
 });
+
+test('design round 2: ten rows, phone row pattern, overdue tones in words', () => {
+    assert.match(page, /const dueCap = 10;/);
+    assert.match(page, /Showing \{\{ visibleCycleRows\.length \}\} of/);
+    assert.match(page, /row\.overdueDays >= 30/);
+    assert.match(page, /'font-medium text-destructive'/);
+    assert.match(
+        page,
+        /min-h-11 w-full rounded border px-3 disabled:opacity-40 sm:w-auto lg:min-h-9/,
+    );
+    assert.match(
+        page,
+        /inline-flex min-h-11 items-center px-2 underline lg:min-h-9/,
+    );
+});
