@@ -33,12 +33,17 @@ const secret = reactive({
     password: '',
     confirm: '',
     show: false,
+    // Each message sits under the field it is about (Daniel); `error` is for the server and the connection.
+    passwordError: '',
+    confirmError: '',
     error: '',
 });
 const forget = () => {
     secret.password = '';
     secret.confirm = '';
     secret.show = false;
+    secret.passwordError = '';
+    secret.confirmError = '';
     secret.error = '';
 };
 // The dialog opens from code, so focus goes back by hand to the button that opened it (Daniel). The clicked button
@@ -81,20 +86,25 @@ const download = async () => {
         return;
     }
 
+    secret.passwordError = '';
+    secret.confirmError = '';
+    secret.error = '';
+
     if (secret.password.length < MIN_PASSWORD) {
-        secret.error = `Type a password of at least ${MIN_PASSWORD} characters for the file.`;
+        secret.passwordError = `Type a password of at least ${MIN_PASSWORD} characters for the file.`;
 
         return;
     }
 
     if (!/^[\x21-\x7E]+$/.test(secret.password)) {
-        secret.error = 'Use only letters, numbers and symbols, with no spaces.';
+        secret.passwordError =
+            'Use only letters, numbers and symbols, with no spaces.';
 
         return;
     }
 
     if (secret.password !== secret.confirm) {
-        secret.error = 'The two passwords do not match.';
+        secret.confirmError = 'The two passwords do not match.';
 
         return;
     }
@@ -133,10 +143,28 @@ const download = async () => {
 
         if (!response.ok) {
             const payload = await response.json().catch(() => null);
+            const errors: Record<string, string[]> = {
+                ...(payload?.errors ?? {}),
+            };
+            const first = (key: string) => {
+                const message = (errors[key] ?? []).join(' ');
+                delete errors[key];
+
+                return message;
+            };
+            secret.passwordError = first('file_password');
+            secret.confirmError = first('file_password_confirmation');
+            const rest = Object.values(errors).flat().join(' ');
+
+            if (secret.passwordError || secret.confirmError) {
+                secret.error = rest;
+
+                return;
+            }
 
             throw new Error(
-                payload?.errors
-                    ? Object.values(payload.errors).flat().join(' ')
+                rest
+                    ? rest
                     : response.status === 429
                       ? 'Too many downloads. Try again in a minute.'
                       : 'Unable to prepare the file. Try again.',
@@ -334,6 +362,7 @@ const download = async () => {
             <DialogContent
                 class="sm:max-w-md"
                 data-test="export-password"
+                :show-close-button="!busy"
                 @close-auto-focus="returnFocus"
             >
                 <DialogHeader>
@@ -356,8 +385,8 @@ const download = async () => {
                 >
                     <div class="flex flex-col gap-1">
                         <Label for="export-file-password"
-                            >Password (at least {{ MIN_PASSWORD }} letters,
-                            numbers and symbols)</Label
+                            >Password (at least
+                            {{ MIN_PASSWORD }} characters)</Label
                         >
                         <Input
                             id="export-file-password"
@@ -365,9 +394,15 @@ const download = async () => {
                             :type="secret.show ? 'text' : 'password'"
                             autocomplete="new-password"
                             class="max-lg:min-h-11"
-                            :aria-invalid="secret.error ? 'true' : undefined"
+                            :aria-invalid="
+                                secret.passwordError ? 'true' : undefined
+                            "
                             aria-describedby="export-file-password-error"
                             data-test="export-password-input"
+                        />
+                        <InputError
+                            id="export-file-password-error"
+                            :message="secret.passwordError"
                         />
                     </div>
                     <div class="flex flex-col gap-1">
@@ -380,7 +415,15 @@ const download = async () => {
                             :type="secret.show ? 'text' : 'password'"
                             autocomplete="new-password"
                             class="max-lg:min-h-11"
+                            :aria-invalid="
+                                secret.confirmError ? 'true' : undefined
+                            "
+                            aria-describedby="export-file-password-again-error"
                             data-test="export-password-again"
+                        />
+                        <InputError
+                            id="export-file-password-again-error"
+                            :message="secret.confirmError"
                         />
                     </div>
                     <label class="flex min-h-11 items-center gap-2 text-sm">
@@ -392,7 +435,7 @@ const download = async () => {
                         Show password
                     </label>
                     <InputError
-                        id="export-file-password-error"
+                        id="export-file-error"
                         :message="secret.error"
                     />
                     <div

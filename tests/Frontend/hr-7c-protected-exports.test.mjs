@@ -72,3 +72,25 @@ test('focus goes back to the clicked button only while it is on the page, and a 
     );
     assert.doesNotMatch(tab, /Nothing was downloaded/);
 });
+
+test('each message sits under its own field, and the close button hides while the file is made', () => {
+    assert.match(
+        tab,
+        /Password \(at least\s+\{\{ MIN_PASSWORD \}\} characters\)/,
+    );
+    assert.doesNotMatch(tab, /letters,\s+numbers and symbols\)/);
+    assert.match(
+        tab,
+        /id="export-file-password-error"\s+:message="secret\.passwordError"/,
+    );
+    assert.match(
+        tab,
+        /id="export-file-password-again-error"\s+:message="secret\.confirmError"/,
+    );
+    assert.match(tab, /aria-describedby="export-file-password-again-error"/);
+    assert.match(
+        tab,
+        /secret\.confirmError = 'The two passwords do not match\.';/,
+    );
+    assert.match(tab, /:show-close-button="!busy"/);
+});
