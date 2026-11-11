@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ArrowLeft } from '@lucide/vue';
+import { ArrowLeft, Lock } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 
@@ -29,6 +30,8 @@ type Sku = {
     active: boolean;
     lockVersion: number;
     unitsLocked: boolean;
+    onHand: boolean;
+    barcodeShared: boolean;
     item: {
         publicId: string;
         code: string;
@@ -124,6 +127,21 @@ const startEdit = (sku: Sku) => {
         item_lock_version: sku.item.lockVersion,
     });
 };
+// Daniel's review: deactivating a SKU (or its item) that still has stock asks first, in the shared dialog.
+const confirming = ref<Sku | null>(null);
+const submit = (sku: Sku) => {
+    const deactivates =
+        (sku.active && !form.sku_active) ||
+        (sku.item.active && !form.item_active);
+
+    if (sku.onHand && deactivates && confirming.value === null) {
+        confirming.value = sku;
+
+        return;
+    }
+
+    save(sku);
+};
 const save = (sku: Sku) => {
     form.transform((data) => {
         const sent: Record<string, unknown> = {
@@ -162,8 +180,19 @@ const save = (sku: Sku) => {
         onSuccess: () => {
             editing.value = null;
         },
+        onFinish: () => {
+            confirming.value = null;
+        },
     });
 };
+const lockedRows = (sku: Sku) => [
+    ['SKU code', sku.skuCode],
+    ['Stock unit', sku.stockUnit],
+    ['Dispensing unit', sku.dispensingUnit],
+    ['Unit conversion', sku.unitConversion],
+    ['Batch tracking', sku.batchTrackingRequired ? 'Yes' : 'No'],
+    ['Expiry tracking', sku.expiryTrackingRequired ? 'Yes' : 'No'],
+];
 const errorFor = (field: string) =>
     (form.errors as Record<string, string | undefined>)[field];
 </script>
@@ -182,6 +211,13 @@ const errorFor = (field: string) =>
             title="SKUs"
             :description="`${skus.branchName} · Names, barcode, storage and active status for each stock item.`"
         />
+        <p
+            v-if="!skus.canManage"
+            class="text-sm text-muted-foreground"
+            data-testid="view-only-note"
+        >
+            You can view SKUs but not change them.
+        </p>
 
         <form
             class="flex flex-wrap items-end gap-2"
@@ -230,6 +266,11 @@ const errorFor = (field: string) =>
                             Stock unit: {{ sku.stockUnit }}
                             <span v-if="sku.barcode">
                                 · Barcode {{ sku.barcode }}</span
+                            ><span
+                                v-if="sku.barcodeShared"
+                                class="ml-1 rounded border border-amber-600 px-1.5 py-0.5 text-xs text-amber-800 dark:border-amber-400 dark:text-amber-200"
+                                >Barcode also on another SKU. Fix it on Pilot
+                                readiness.</span
                             >
                             <span
                                 v-if="!sku.active"
@@ -288,7 +329,7 @@ const errorFor = (field: string) =>
                     </div>
                 </dl>
 
-                <form v-else class="space-y-4" @submit.prevent="save(sku)">
+                <form v-else class="space-y-4" @submit.prevent="submit(sku)">
                     <fieldset class="grid gap-3 sm:grid-cols-2">
                         <legend class="mb-2 text-sm font-semibold">Item</legend>
                         <label class="grid min-w-0 gap-1 text-sm"
@@ -400,76 +441,93 @@ const errorFor = (field: string) =>
                             batches, stock, a medicine link or dispensing
                             records.
                         </p>
-                        <label class="grid min-w-0 gap-1 text-sm"
-                            >SKU code (required)
-                            <Input
-                                class="h-11 lg:h-9"
-                                v-model="form.sku_code"
-                                maxlength="64"
-                                :disabled="sku.unitsLocked"
-                                required
-                            />
-                            <InputError :message="errorFor('sku_code')" />
-                        </label>
-                        <label class="grid min-w-0 gap-1 text-sm"
-                            >Stock unit (required)
-                            <Input
-                                class="h-11 lg:h-9"
-                                v-model="form.stock_unit"
-                                maxlength="100"
-                                :disabled="sku.unitsLocked"
-                                required
-                            />
-                            <InputError :message="errorFor('stock_unit')" />
-                        </label>
-                        <label class="grid min-w-0 gap-1 text-sm"
-                            >Dispensing unit (required)
-                            <Input
-                                class="h-11 lg:h-9"
-                                v-model="form.dispensing_unit"
-                                maxlength="100"
-                                :disabled="sku.unitsLocked"
-                                required
-                            />
-                            <InputError
-                                :message="errorFor('dispensing_unit')"
-                            />
-                        </label>
-                        <label class="grid min-w-0 gap-1 text-sm"
-                            >Unit conversion (required)
-                            <Input
-                                class="h-11 lg:h-9"
-                                v-model="form.unit_conversion"
-                                inputmode="decimal"
-                                :disabled="sku.unitsLocked"
-                                required
-                            />
-                            <InputError
-                                :message="errorFor('unit_conversion')"
-                            />
-                        </label>
-                        <div
-                            class="flex flex-wrap items-center gap-x-6 sm:col-span-2"
+                        <template v-if="!sku.unitsLocked">
+                            <label class="grid min-w-0 gap-1 text-sm"
+                                >SKU code (required)
+                                <Input
+                                    class="h-11 lg:h-9"
+                                    v-model="form.sku_code"
+                                    maxlength="64"
+                                    required
+                                />
+                                <InputError :message="errorFor('sku_code')" />
+                            </label>
+                            <label class="grid min-w-0 gap-1 text-sm"
+                                >Stock unit (required)
+                                <Input
+                                    class="h-11 lg:h-9"
+                                    v-model="form.stock_unit"
+                                    maxlength="100"
+                                    required
+                                />
+                                <InputError :message="errorFor('stock_unit')" />
+                            </label>
+                            <label class="grid min-w-0 gap-1 text-sm"
+                                >Dispensing unit (required)
+                                <Input
+                                    class="h-11 lg:h-9"
+                                    v-model="form.dispensing_unit"
+                                    maxlength="100"
+                                    required
+                                />
+                                <InputError
+                                    :message="errorFor('dispensing_unit')"
+                                />
+                            </label>
+                            <label class="grid min-w-0 gap-1 text-sm"
+                                >Unit conversion (required)
+                                <Input
+                                    class="h-11 lg:h-9"
+                                    v-model="form.unit_conversion"
+                                    inputmode="decimal"
+                                    required
+                                />
+                                <InputError
+                                    :message="errorFor('unit_conversion')"
+                                />
+                            </label>
+                            <div
+                                class="flex flex-wrap items-center gap-x-6 sm:col-span-2"
+                            >
+                                <label
+                                    class="flex min-h-11 items-center gap-2 text-sm"
+                                    ><input
+                                        v-model="form.batch_tracking_required"
+                                        type="checkbox"
+                                        class="size-5"
+                                    />Batch tracking</label
+                                >
+                                <label
+                                    class="flex min-h-11 items-center gap-2 text-sm"
+                                    ><input
+                                        v-model="form.expiry_tracking_required"
+                                        type="checkbox"
+                                        class="size-5"
+                                    />Expiry tracking</label
+                                >
+                            </div>
+                        </template>
+                        <dl
+                            v-else
+                            class="grid gap-x-6 gap-y-2 text-sm sm:col-span-2 sm:grid-cols-2"
                         >
-                            <label
-                                class="flex min-h-11 items-center gap-2 text-sm"
-                                ><input
-                                    v-model="form.batch_tracking_required"
-                                    type="checkbox"
-                                    class="size-5"
-                                    :disabled="sku.unitsLocked"
-                                />Batch tracking</label
+                            <div
+                                v-for="[label, value] in lockedRows(sku)"
+                                :key="label"
+                                class="flex items-start gap-2"
                             >
-                            <label
-                                class="flex min-h-11 items-center gap-2 text-sm"
-                                ><input
-                                    v-model="form.expiry_tracking_required"
-                                    type="checkbox"
-                                    class="size-5"
-                                    :disabled="sku.unitsLocked"
-                                />Expiry tracking</label
-                            >
-                        </div>
+                                <Lock
+                                    class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                                    aria-hidden="true"
+                                />
+                                <div class="min-w-0">
+                                    <dt class="text-muted-foreground">
+                                        {{ label }}
+                                    </dt>
+                                    <dd class="break-words">{{ value }}</dd>
+                                </div>
+                            </div>
+                        </dl>
                     </fieldset>
 
                     <fieldset class="grid gap-3 sm:grid-cols-2">
@@ -480,46 +538,95 @@ const errorFor = (field: string) =>
                             Kept from before verified stock units. Supplier pack
                             sizes and prices belong on the Supplier price list.
                         </p>
-                        <label class="grid min-w-0 gap-1 text-sm"
-                            >Pack size
-                            <Input
-                                class="h-11 lg:h-9"
-                                v-model="form.pack_size"
-                                inputmode="decimal"
-                                :disabled="sku.unitsLocked"
-                            />
-                            <InputError :message="errorFor('pack_size')" />
-                        </label>
-                        <label class="grid min-w-0 gap-1 text-sm"
-                            >Purchase unit
-                            <Input
-                                class="h-11 lg:h-9"
-                                v-model="form.purchase_unit"
-                                maxlength="100"
-                                :disabled="sku.unitsLocked"
-                            />
-                            <InputError :message="errorFor('purchase_unit')" />
-                        </label>
+                        <template v-if="!sku.unitsLocked">
+                            <label class="grid min-w-0 gap-1 text-sm"
+                                >Pack size
+                                <Input
+                                    class="h-11 lg:h-9"
+                                    v-model="form.pack_size"
+                                    inputmode="decimal"
+                                />
+                                <InputError :message="errorFor('pack_size')" />
+                            </label>
+                            <label class="grid min-w-0 gap-1 text-sm"
+                                >Purchase unit
+                                <Input
+                                    class="h-11 lg:h-9"
+                                    v-model="form.purchase_unit"
+                                    maxlength="100"
+                                />
+                                <InputError
+                                    :message="errorFor('purchase_unit')"
+                                />
+                            </label>
+                        </template>
+                        <dl
+                            v-else
+                            class="grid gap-x-6 gap-y-2 text-sm sm:col-span-2 sm:grid-cols-2"
+                        >
+                            <div
+                                v-for="[label, value] in [
+                                    ['Pack size', sku.packSize],
+                                    ['Purchase unit', sku.purchaseUnit],
+                                ]"
+                                :key="label"
+                                class="flex items-start gap-2"
+                            >
+                                <Lock
+                                    class="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                                    aria-hidden="true"
+                                />
+                                <div class="min-w-0">
+                                    <dt class="text-muted-foreground">
+                                        {{ label }}
+                                    </dt>
+                                    <dd class="break-words">{{ value }}</dd>
+                                </div>
+                            </div>
+                        </dl>
                     </fieldset>
 
-                    <fieldset class="flex flex-wrap items-center gap-x-6">
+                    <fieldset class="grid gap-3 sm:grid-cols-2">
                         <legend class="mb-1 text-sm font-semibold">
                             Status
                         </legend>
-                        <label class="flex min-h-11 items-center gap-2 text-sm"
-                            ><input
-                                v-model="form.sku_active"
-                                type="checkbox"
-                                class="size-5"
-                            />SKU active</label
-                        >
-                        <label class="flex min-h-11 items-center gap-2 text-sm"
-                            ><input
-                                v-model="form.item_active"
-                                type="checkbox"
-                                class="size-5"
-                            />Item active</label
-                        >
+                        <div class="grid gap-1">
+                            <label
+                                class="flex min-h-11 items-center gap-2 text-sm"
+                                ><input
+                                    v-model="form.sku_active"
+                                    type="checkbox"
+                                    class="size-5"
+                                    aria-describedby="sku-active-help"
+                                />SKU active</label
+                            >
+                            <p
+                                id="sku-active-help"
+                                class="text-xs text-muted-foreground"
+                            >
+                                An inactive SKU cannot be ordered, received or
+                                dispensed. Its stock and history stay.
+                            </p>
+                        </div>
+                        <div class="grid gap-1">
+                            <label
+                                class="flex min-h-11 items-center gap-2 text-sm"
+                                ><input
+                                    v-model="form.item_active"
+                                    type="checkbox"
+                                    class="size-5"
+                                    aria-describedby="item-active-help"
+                                />Item active</label
+                            >
+                            <p
+                                id="item-active-help"
+                                class="text-xs text-muted-foreground"
+                            >
+                                Item active affects every SKU of this item. Turn
+                                off its SKUs first; an inactive item's SKUs
+                                cannot be used.
+                            </p>
+                        </div>
                     </fieldset>
                     <InputError
                         :message="
@@ -554,6 +661,19 @@ const errorFor = (field: string) =>
             :last-page="skus.lastPage"
             :total="skus.total"
             @change="(page) => visit(page)"
+        />
+        <OperationalConfirmDialog
+            :open="confirming !== null"
+            title="Turn this off while it has stock?"
+            :description="`${confirming?.skuCode ?? ''} still has stock on hand. Turning it off stops ordering, receiving and dispensing; the stock and its history stay. Use a governed write-off or transfer to move the stock.`"
+            confirm-label="Save and turn off"
+            processing-label="Saving…"
+            :processing="form.processing"
+            destructive
+            @update:open="
+                (open: boolean) => (confirming = open ? confirming : null)
+            "
+            @confirm="confirming && save(confirming)"
         />
     </main>
 </template>

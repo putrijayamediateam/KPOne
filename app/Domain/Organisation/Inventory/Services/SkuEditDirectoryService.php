@@ -50,6 +50,14 @@ final class SkuEditDirectoryService
         foreach ($items as $row) {
             $locked[(int) $row->id] = $this->references->skuUnitsLocked(InventorySku::query()->findOrFail((int) $row->id));
         }
+        $ids = array_map(fn (\stdClass $row): int => (int) $row->id, $items);
+        // Stock on hand anywhere in the organisation: deactivating such a SKU asks for confirmation on screen.
+        $onHand = DB::table('inventory_stock_balances')->where('organisation_id', $actor->organisation_id)->whereIn('inventory_sku_id', $ids)
+            ->where('quantity', '>', 0)->distinct()->pluck('inventory_sku_id')->map(fn ($id) => (int) $id)->all();
+        // A barcode another active SKU also has (legacy data from before STK-9's one-barcode rule).
+        $codes = array_values(array_filter(array_map(fn (\stdClass $row): ?string => $row->barcode === null ? null : (string) $row->barcode, $items)));
+        $shared = $codes === [] ? [] : DB::table('inventory_skus')->where('organisation_id', $actor->organisation_id)->whereIn('barcode', $codes)
+            ->groupBy('barcode')->havingRaw('count(*) > 1')->pluck('barcode')->map(fn ($code) => (string) $code)->all();
 
         return [
             'branchName' => $branch->name,
@@ -65,6 +73,7 @@ final class SkuEditDirectoryService
                 'coldChainRequired' => (bool) $row->cold_chain_required, 'doNotFreeze' => (bool) $row->do_not_freeze, 'protectFromLight' => (bool) $row->protect_from_light,
                 'batchTrackingRequired' => (bool) $row->batch_tracking_required, 'expiryTrackingRequired' => (bool) $row->expiry_tracking_required,
                 'active' => (bool) $row->is_active, 'lockVersion' => (int) $row->lock_version, 'unitsLocked' => $locked[(int) $row->id],
+                'onHand' => in_array((int) $row->id, $onHand, true), 'barcodeShared' => $row->barcode !== null && in_array((string) $row->barcode, $shared, true),
                 'item' => ['publicId' => $row->item_public_id, 'code' => $row->item_code, 'genericName' => $row->generic_name, 'brandName' => $row->brand_name,
                     'active' => (bool) $row->item_active, 'lockVersion' => (int) $row->item_lock_version],
             ], $items),
