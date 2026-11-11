@@ -39,6 +39,11 @@ final class AttendanceRetentionPurge
                         ->orWhereColumn('c.created_session_id', 's.id'))->whereRaw("c.created_at >= {$cutoff}"))
                     ->whereNotExists(fn ($q) => $q->from('hr_overtime_requests as o')->whereColumn('o.clock_session_id', 's.id')->whereRaw("o.created_at >= {$cutoff}"))
                     ->whereNotExists(fn ($q) => $q->from('hr_clock_events as e')->whereColumn('e.clock_session_id', 's.id')->whereRaw("e.created_at >= {$cutoff}"))
+                    // A correction of this session with an event on another session would block the correction's delete (a
+                    // foreign key) and roll the whole purge back every day; such a session waits (Suresh, m1).
+                    ->whereNotExists(fn ($q) => $q->from('hr_clock_events as e2')->join('hr_attendance_corrections as c2', 'c2.id', '=', 'e2.correction_id')
+                        ->where(fn ($q) => $q->whereColumn('c2.clock_session_id', 's.id')->orWhereColumn('c2.created_session_id', 's.id'))
+                        ->whereColumn('e2.clock_session_id', '<>', 's.id'))
                     ->orderBy('s.id')->lockForUpdate()->pluck('s.id')->map(fn ($id): int => (int) $id)->all();
                 $corrections = 0;
                 foreach (array_chunk($sessions, 500) as $ids) {
@@ -48,8 +53,9 @@ final class AttendanceRetentionPurge
                     $corrections += DB::table('hr_attendance_corrections')->where(fn ($q) => $q->whereIn('clock_session_id', $ids)->orWhereIn('created_session_id', $ids))->delete();
                     DB::table('hr_clock_sessions')->whereIn('id', $ids)->delete();
                 }
-                $corrections += DB::table('hr_attendance_corrections')->where('organisation_id', $organisationId)->whereNull('clock_session_id')
-                    ->whereNull('created_session_id')->whereRaw("created_at < {$cutoff}")->delete();
+                $corrections += DB::table('hr_attendance_corrections as c')->where('c.organisation_id', $organisationId)->whereNull('c.clock_session_id')
+                    ->whereNull('c.created_session_id')->whereRaw("c.created_at < {$cutoff}")
+                    ->whereNotExists(fn ($q) => $q->from('hr_clock_events as e')->whereColumn('e.correction_id', 'c.id'))->delete();
                 $consents = DB::table('hr_location_consents')->where('organisation_id', $organisationId)->whereRaw("acknowledged_at < {$cutoff}")->delete();
                 // Switched off again, so even inside an outer transaction nothing after the purge can delete (Suresh).
                 DB::statement("SELECT set_config('kpone.hr_attendance_purge', '', true), set_config('kpone.hr_location_purge', '', true)");
