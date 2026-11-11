@@ -28,6 +28,9 @@ type Application = {
         }[];
         picks?: number;
         zone?: string;
+        // Owner, 2026-11-11: the last day to choose before the application closes.
+        chooseBy?: string | null;
+        chooseByMs?: string | null;
         confirmed?: string;
     } | null;
     // HR-17d: the clinic's documents for a confirmed interview.
@@ -364,6 +367,22 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             >
                                 Tandakan tiga masa satu jam yang sesuai. Klinik
                                 akan mengesahkan satu.
+                            </p>
+                            <p
+                                v-if="application.interview.chooseBy"
+                                class="text-sm"
+                                data-test="status-choose-by"
+                            >
+                                Choose by the end of
+                                {{ application.interview.chooseBy }}. After
+                                that, the application closes.
+                                <span
+                                    lang="ms"
+                                    class="block text-zinc-600 dark:text-zinc-400"
+                                    >Pilih hingga akhir
+                                    {{ application.interview.chooseByMs }}.
+                                    Selepas itu, permohonan ini ditutup.</span
+                                >
                             </p>
                             <p
                                 v-if="errors.starts"

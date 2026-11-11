@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import { ActionLink } from '@/components/ui/action-link';
 import { DateField } from '@/components/ui/date-field';
 import {
     Dialog,
@@ -10,6 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatDate } from '@/lib/presentation';
 type Review = {
     id: number;
@@ -128,16 +131,21 @@ watch(
 <template>
     <Head title="Stock review" />
     <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
-        <a href="/inventory" class="inline-flex min-h-11 items-center underline"
-            >Inventory</a
+        <ActionLink
+            href="/inventory"
+            variant="ghost"
+            class="-ml-3 min-h-11 self-start"
+            ><ArrowLeft class="size-4" aria-hidden="true" />
+            Inventory</ActionLink
         >
-        <h1 class="text-2xl font-semibold">Stock review</h1>
-        <p>
-            {{ review.branchName }} · Branch-local date:
-            <span class="whitespace-nowrap">{{
-                formatDate(review.today)
-            }}</span>
-        </p>
+        <PageHeader title="Stock review">
+            <template #description>
+                {{ review.branchName }} · Branch-local date:
+                <span class="whitespace-nowrap">{{
+                    formatDate(review.today)
+                }}</span>
+            </template>
+        </PageHeader>
         <p class="text-sm text-muted-foreground">
             Review evidence only. Acknowledgements do not change stock, send
             messages, place orders or hide unresolved conditions. Thresholds are
