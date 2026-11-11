@@ -1,10 +1,16 @@
 <script setup lang="ts">
-// HR-11a clinic licences: Overview, Licences and Settings (licence types). Statuses come from the server, worked out
+// Clinic compliance: licences (HR-11a), fridge log (HR-11b), audits and tasks (HR-11c), and Settings. Statuses come from the server, worked out
 // when the page opens; this page only shows them. Warnings only: nothing here blocks clinical work.
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { ChevronDown, TriangleAlert } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
+import AuditSettings from '@/components/compliance/AuditSettings.vue';
+import AuditsTab from '@/components/compliance/AuditsTab.vue';
+import type {
+    AuditSettings as AuditSettingsData,
+    AuditsTabData,
+} from '@/components/compliance/auditTypes';
 import FridgeSettings from '@/components/compliance/FridgeSettings.vue';
 import FridgeTab from '@/components/compliance/FridgeTab.vue';
 import type {
@@ -93,7 +99,10 @@ type Compliance = {
     settings: {
         types: LicenceType[] | null;
         fridges: FridgeSetting[] | null;
+        audit: AuditSettingsData | null;
     } | null;
+    audits: AuditsTabData | null;
+    canManageChecklists: boolean;
     fridge: FridgeTabData | null;
     canManageFridges: boolean;
 };
@@ -108,6 +117,7 @@ const labels: Record<string, string> = {
     overview: 'Overview',
     licences: 'Licences',
     fridge: 'Fridge log',
+    audits: 'Audits',
     settings: 'Settings',
 };
 const tabs = computed(() =>
@@ -672,6 +682,12 @@ const unusedSuggestions = computed(() => {
             :set-up-hint="compliance.canManageFridges"
         />
 
+        <!-- Audits -->
+        <AuditsTab
+            v-else-if="compliance.tab === 'audits' && compliance.audits"
+            :audits="compliance.audits"
+        />
+
         <!-- Settings -->
         <div
             v-else-if="compliance.tab === 'settings' && compliance.settings"
@@ -761,6 +777,10 @@ const unusedSuggestions = computed(() => {
                     </li>
                 </ul>
             </section>
+            <AuditSettings
+                v-if="compliance.settings.audit"
+                :audit="compliance.settings.audit"
+            />
             <FridgeSettings
                 v-if="compliance.settings.fridges"
                 :fridges="compliance.settings.fridges"
