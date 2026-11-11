@@ -337,6 +337,22 @@ class InterviewSlotsTest extends VisitTestCase
         [$stale] = $this->filedWithToken('Synthetic Stale');
         $this->extend($stale, null, $this->row($stale)->lock_version - 1)->assertSessionHasErrors();
         $this->assertSame(2, DB::table('hr_job_application_events')->where('action', 'deadline_extended')->count());
+        // Owner, 2026-11-11 ("(b)"): at most 2 extensions in one stage, counted from the events; a third is refused.
+        [$capped] = $this->filedWithToken('Synthetic Capped');
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.applications.index', ['status' => 'new']))->assertInertia(fn (Assert $p) => $p
+            ->where('applications.applications.rows.0.extensionsUsed', 0)->where('applications.applications.rows.0.extensionsMax', 2));
+        $this->extend($capped)->assertSessionHasNoErrors();
+        $this->extend($capped)->assertSessionHasNoErrors();
+        $this->extend($capped)->assertSessionHasErrors(['extend' => 'More time has been given twice in this stage. Close the application or move it on; for a real exception, ask the Director.']);
+        $this->assertSame(2, DB::table('hr_job_application_events')->where('action', 'deadline_extended')->where('application_id', $this->row($capped)->id)->count());
+        $this->get(route('hr.applications.index', ['status' => 'new']))->assertInertia(fn (Assert $p) => $p
+            ->where('applications.applications.rows.0.extensionsUsed', 2));
+        // A new stage starts its own count.
+        $this->travel(1)->minutes();
+        $this->post(route('hr.applications.move', $capped), ['to' => 'phone_screening', 'expected_lock_version' => $this->row($capped)->lock_version,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->extend($capped)->assertSessionHasNoErrors();
         // Only hiring managers give more time.
         $this->actingAs($this->actor('ca'));
         $this->post(route('hr.applications.extend-deadline', $stale), ['expected_lock_version' => $this->row($stale)->lock_version,

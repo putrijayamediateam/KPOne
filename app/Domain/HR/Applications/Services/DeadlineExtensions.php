@@ -19,6 +19,9 @@ use Illuminate\Validation\ValidationException;
  */
 final class DeadlineExtensions
 {
+    /** Owner, 2026-11-11 ("(b)"): at most 2 extensions in one stage; then HR closes or moves the application on. */
+    public const MAX_PER_STAGE = 2;
+
     public function __construct(private RecordSupport $support, private HiringDeadlines $deadlines) {}
 
     /** Whether the application is waiting for the daily auto-reject, so HR may give it more time. */
@@ -33,6 +36,13 @@ final class DeadlineExtensions
 
         return $application->status === HiringDeadlines::AWAITING_PICKS
             && ! DB::table('hr_job_interview_picks')->where('application_id', $application->id)->where('round', $application->interview_round)->exists();
+    }
+
+    /** How many times HR gave this application more time since it entered its current stage. */
+    public static function used(\stdClass $application): int
+    {
+        return DB::table('hr_job_application_events')->where('application_id', $application->id)->where('action', 'deadline_extended')
+            ->where('created_at', '>=', $application->stage_entered_at)->count();
     }
 
     /**
@@ -57,6 +67,10 @@ final class DeadlineExtensions
             $this->support->assertLock($application, $input);
             if (! self::waiting($application) || $this->deadlines->deadlines($application) === null) {
                 throw ValidationException::withMessages(['extend' => 'This application is not waiting to close. Reload the page.']);
+            }
+            // Counted from the append-only events under the application's row lock, so two presses cannot both pass.
+            if (self::used($application) >= self::MAX_PER_STAGE) {
+                throw ValidationException::withMessages(['extend' => 'More time has been given twice in this stage. Close the application or move it on; for a real exception, ask the Director.']);
             }
             $now = now()->utc();
             DB::table('hr_job_applications')->where('id', $application->id)->update(['lock_version' => (int) $application->lock_version + 1, 'updated_at' => $now]);

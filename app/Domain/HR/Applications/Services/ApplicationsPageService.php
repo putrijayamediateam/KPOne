@@ -206,6 +206,8 @@ final class ApplicationsPageService
                     ($messages[$a->id] ?? collect())->all()),
                 ...$this->autoReject($a),
                 'extendDays' => (int) config('hr-applications.auto_reject_working_days', 3),
+                'extensionsUsed' => DeadlineExtensions::waiting($a) ? DeadlineExtensions::used($a) : 0,
+                'extensionsMax' => DeadlineExtensions::MAX_PER_STAGE,
                 'interview' => $this->interview($a, $zone),
                 'hasCv' => $a->cv_path !== null,
                 'cvKb' => (int) ceil((int) $a->cv_bytes / 1024),

@@ -22,4 +22,13 @@ test('the application panel offers more working days beside the closing date', (
     );
     assert.match(page, /expected_lock_version: viewing\.value\.lockVersion/);
     assert.match(page, /If the candidate does not choose times,/);
+    // Owner "(b)": at most 2 in one stage, shown as "1 of 2 extensions used", then disabled with a reason.
+    assert.match(page, /extensionsUsed: number;/);
+    assert.match(
+        page,
+        /\{\{ viewing\.extensionsUsed \}\} of\s+\{\{ viewing\.extensionsMax \}\} extensions used\./,
+    );
+    assert.match(page, /viewing\.extensionsUsed >= viewing\.extensionsMax/);
+    assert.match(page, /ask the Director\./);
+    assert.match(page, /aria-describedby="application-extend-help"/);
 });

@@ -13,13 +13,13 @@ use Illuminate\Support\Facades\Schema;
  */
 return new class extends Migration
 {
-    /** Copied from 003600, with round and extension now fixed too (Suresh, follow-up b). */
+    /** Copied from 003600, with round, extension and the emailed deadline now fixed too (Suresh, follow-up b). */
     private const MESSAGE_GUARD = <<<'SQL'
 CREATE OR REPLACE FUNCTION guard_hr_job_application_message() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  IF NEW.id <> OLD.id OR NEW.organisation_id <> OLD.organisation_id OR NEW.application_id <> OLD.application_id
    OR NEW.template <> OLD.template OR NEW.recipient <> OLD.recipient OR NEW.stage <> OLD.stage OR NEW.created_at IS DISTINCT FROM OLD.created_at
-   OR NEW.round <> OLD.round OR NEW.extension <> OLD.extension THEN
+   OR NEW.round <> OLD.round OR NEW.extension <> OLD.extension OR NEW.choose_by IS DISTINCT FROM OLD.choose_by THEN
   RAISE EXCEPTION 'A hiring message keeps what it refers to' USING ERRCODE = 'P0001';
  END IF;
  IF NEW.status IS DISTINCT FROM OLD.status AND NOT (OLD.status = 'sending' AND NEW.status IN ('sent', 'failed')) THEN

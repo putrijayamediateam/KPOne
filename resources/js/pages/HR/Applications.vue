@@ -70,6 +70,8 @@ type Application = {
     autoRejectOn: string | null;
     autoRejectSoon: boolean;
     extendDays: number;
+    extensionsUsed: number;
+    extensionsMax: number;
     // HR-17c: the candidate's three times at Scheduling, or the confirmed one at Interview.
     interview: {
         round: number;
@@ -1750,15 +1752,37 @@ const removeDocument = () => {
                             variant="outline"
                             size="sm"
                             class="min-h-11 self-start sm:min-h-9"
-                            :disabled="extending"
+                            :disabled="
+                                extending ||
+                                viewing.extensionsUsed >= viewing.extensionsMax
+                            "
+                            aria-describedby="application-extend-help"
                             data-test="application-extend"
                             @click="extendDeadline"
                         >
                             Give {{ viewing.extendDays }} more working days
                         </Button>
-                        <p class="text-xs text-muted-foreground">
-                            Counts again from today. Nothing is sent to the
-                            candidate.
+                        <p
+                            id="application-extend-help"
+                            class="text-xs text-muted-foreground"
+                            data-test="application-extend-help"
+                        >
+                            <template
+                                v-if="
+                                    viewing.extensionsUsed >=
+                                    viewing.extensionsMax
+                                "
+                                >More time has been given
+                                {{ viewing.extensionsMax }} times in this stage.
+                                Close the application or move it on; for a real
+                                exception, ask the Director.</template
+                            >
+                            <template v-else
+                                >{{ viewing.extensionsUsed }} of
+                                {{ viewing.extensionsMax }} extensions used.
+                                Counts again from today. Nothing is sent to the
+                                candidate.</template
+                            >
                         </p>
                         <InputError :message="extendError" />
                     </div>
