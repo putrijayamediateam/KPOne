@@ -18,8 +18,21 @@ class ManagementSpaceTest extends VisitTestCase
             ->has('management.staff.inactive')
             ->has('management.documents.text')
             ->where('management.primaryAction', ['title' => 'Open Staff directory', 'href' => '/staff'])
-            ->has('management.links')
+            ->has('management.documents.warning')
+            ->where('management.links', fn ($l) => collect($l)->pluck('title')->all() === ['Branches', 'Roles and access', 'Clinician credentials', 'Registration settings'])
             ->has('questions', 2));
+    }
+
+    public function test_the_open_rows_follow_each_pages_own_permission(): void
+    {
+        $this->selectBranch($this->actor('administrator'));
+        $this->get('/spaces/management')->assertOk()->assertInertia(fn (Assert $p) => $p
+            ->where('management.links', fn ($l) => ! collect($l)->pluck('title')->contains('Roles and access')));
+
+        $this->selectBranch($this->actor('technical_admin'));
+        $this->get('/spaces/management')->assertOk()->assertInertia(fn (Assert $p) => $p
+            ->where('management.documents', null)
+            ->where('management.links', fn ($l) => ! collect($l)->pluck('title')->contains('Registration settings')));
     }
 
     public function test_the_questions_answer_in_plain_sentences_and_a_ca_is_refused_the_space(): void

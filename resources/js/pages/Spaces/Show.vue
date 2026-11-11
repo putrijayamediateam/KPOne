@@ -220,11 +220,11 @@ type HrHome = {
 type ManagementHome = {
     branchName: string | null;
     asOf: string | null;
-    staff: { active: number; inactive: number; href: string } | null;
+    staff: { active: number; inactive: number } | null;
     documents: {
         text: string;
+        warning: boolean;
         attention: Array<{ name: string; text: string }>;
-        href: string;
     } | null;
     primaryAction: { title: string; href: string } | null;
     links: Array<{ title: string; href: string }>;
@@ -1722,11 +1722,6 @@ onMounted(async () => {
                             <span class="space-muted">inactive</span>
                         </li>
                     </ul>
-                    <p class="space-muted">
-                        <Link :href="management.staff.href" class="space-link"
-                            >Open Staff directory</Link
-                        >
-                    </p>
                 </section>
                 <section
                     v-if="management.documents"
@@ -1734,13 +1729,14 @@ onMounted(async () => {
                     aria-labelledby="mg-docs"
                 >
                     <h2 id="mg-docs">Letters and footers</h2>
-                    <p class="space-muted">{{ management.documents.text }}</p>
-                    <p class="space-muted">
-                        <Link
-                            :href="management.documents.href"
-                            class="space-link"
-                            >Open Business details</Link
-                        >
+                    <p
+                        :class="
+                            management.documents.warning
+                                ? 'space-wait is-amber'
+                                : 'space-muted'
+                        "
+                    >
+                        {{ management.documents.text }}
                     </p>
                 </section>
                 <section

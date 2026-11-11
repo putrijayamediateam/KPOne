@@ -3,7 +3,6 @@
 namespace App\Domain\DepartmentSpace;
 
 use App\Domain\Access\BranchAccessService;
-use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Identity\Services\StaffDirectoryService;
 use App\Domain\Organisation\BusinessDetails\DocumentReadinessService;
 use App\Models\User;
@@ -22,7 +21,6 @@ final class ManagementSpace
         private BranchAccessService $branches,
         private StaffDirectoryService $staff,
         private DocumentReadinessService $documents,
-        private ClinicManagementNavigation $hub,
     ) {}
 
     /**
@@ -33,16 +31,7 @@ final class ManagementSpace
         $branch = $this->branches->activeBranch($actor);
         $staff = $this->staffCounts($actor);
         $documents = $this->documentSummary($actor);
-        $links = [];
-        if ($branch !== null) {
-            foreach ($this->hub->groups($actor) as $group) {
-                if ($group['title'] === 'Staff & branches') {
-                    foreach ($group['links'] as $link) {
-                        $links[] = ['title' => (string) $link['title'], 'href' => (string) $link['href']];
-                    }
-                }
-            }
-        }
+        $links = $this->links($actor, (bool) $branch);
         $primary = $branch !== null && $actor->can('staff.view.organisation')
             ? ['title' => 'Open Staff directory', 'href' => route('staff.index', absolute: false)]
             : ($branch !== null && $actor->can('catalogue.settings.manage.organisation') ? ['title' => 'Open Business details', 'href' => route('business-details.index', absolute: false)] : null);
@@ -50,11 +39,38 @@ final class ManagementSpace
         return [
             'branchName' => $branch?->name,
             'asOf' => $branch ? now()->setTimezone($branch->timezone)->format('g:i A') : null,
-            'staff' => $staff === null ? null : $staff + ['href' => route('staff.index', absolute: false)],
-            'documents' => $documents === null ? null : ['text' => $documents['text'], 'attention' => $documents['attention'], 'href' => route('business-details.index', absolute: false)],
+            'staff' => $staff,
+            'documents' => $documents === null ? null : ['text' => $documents['text'], 'warning' => $documents['warning'], 'attention' => $documents['attention']],
             'primaryAction' => $primary,
-            'links' => array_slice($links, 0, self::LINK_LIMIT),
+            'links' => $links,
         ];
+    }
+
+    /**
+     * Fixed rows, each under its own permission. The header action and the cards carry their own links.
+     *
+     * @return list<array{title: string, href: string}>
+     */
+    private function links(User $actor, bool $hasBranch): array
+    {
+        if (! $hasBranch) {
+            return [];
+        }
+        $rows = [];
+        if ($actor->can('branches.view.branch') || $actor->can('branches.view.organisation')) {
+            $rows[] = ['title' => 'Branches', 'href' => route('branches.index', absolute: false)];
+        }
+        if ($actor->can('access.view.organisation')) {
+            $rows[] = ['title' => 'Roles and access', 'href' => route('access-control.index', absolute: false)];
+        }
+        if ($actor->can('clinician_credentials.manage.organisation')) {
+            $rows[] = ['title' => 'Clinician credentials', 'href' => route('clinician-credentials.index', absolute: false)];
+        }
+        if ($actor->can('catalogue.settings.manage.organisation')) {
+            $rows[] = ['title' => 'Registration settings', 'href' => route('registration-settings.index', absolute: false)];
+        }
+
+        return $rows;
     }
 
     /**
@@ -101,7 +117,7 @@ final class ManagementSpace
     /**
      * One line from Document readiness, and the branches that need attention with what is missing.
      *
-     * @return array{text: string, attention: list<array{name: string, text: string}>}|null
+     * @return array{text: string, warning: bool, attention: list<array{name: string, text: string}>}|null
      */
     public function documentSummary(User $actor): ?array
     {
@@ -109,10 +125,11 @@ final class ManagementSpace
             return null;
         }
         $rows = $this->documents->branches($actor);
+        $n = count($rows);
         $ready = 0;
         $footer = 0;
         $blocked = 0;
-        $attention = [];
+        $groups = [];
         foreach ($rows as $r) {
             if ($r['status'] === 'ready') {
                 $ready++;
@@ -121,18 +138,32 @@ final class ManagementSpace
             }
             if ($r['status'] === 'needs_footer') {
                 $footer++;
-                $attention[] = ['name' => (string) $r['name'], 'text' => 'Needs its invoice and receipt footer'];
+                $groups['footer|'][] = (string) $r['name'];
 
                 continue;
             }
             $blocked++;
-            $attention[] = ['name' => (string) $r['name'], 'text' => 'Letters blocked: '.implode(', ', (array) $r['blockedLetters']).'. Missing: '.implode(', ', (array) $r['missing'])];
+            $missing = implode(', ', array_map(fn ($m) => (string) $m, (array) $r['missing']));
+            $groups['blocked|'.$missing][] = (string) $r['name'];
         }
-        $n = count($rows);
+        $attention = [];
+        foreach ($groups as $key => $names) {
+            $attention[] = ['name' => implode(', ', $names), 'text' => str_starts_with($key, 'footer|')
+                ? 'Needs its invoice and receipt footer'
+                : 'Letters blocked. Missing: '.substr($key, 8)];
+        }
+        $clauses = [];
+        if ($blocked > 0) {
+            $clauses[] = $blocked.' of '.$n.($n === 1 ? ' branch has' : ' branches have').' letters blocked';
+        }
+        if ($footer > 0) {
+            $clauses[] = $footer.' need'.($footer === 1 ? 's' : '').' a footer';
+        }
+        if ($ready > 0 && $clauses !== []) {
+            $clauses[] = $ready.' ready';
+        }
+        $text = $clauses === [] ? 'All '.$n.($n === 1 ? ' branch is' : ' branches are').' ready for letters.' : implode(' · ', $clauses);
 
-        return [
-            'text' => $ready.' of '.$n.($n === 1 ? ' branch is' : ' branches are').' ready, '.$footer.' need'.($footer === 1 ? 's' : '').' a footer, '.$blocked.($blocked === 1 ? ' has' : ' have').' letters blocked.',
-            'attention' => $attention,
-        ];
+        return ['text' => $text, 'warning' => $clauses !== [], 'attention' => $attention];
     }
 }

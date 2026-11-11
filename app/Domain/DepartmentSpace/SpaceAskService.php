@@ -122,7 +122,7 @@ final class SpaceAskService
             $rows[] = [$r['name'], $r['text']];
         }
 
-        return ['sentence' => $docs['text'], 'columns' => ['Branch', 'What is needed'], 'rows' => $rows];
+        return ['sentence' => 'Branches that need attention.', 'columns' => ['Branch', 'What is needed'], 'rows' => $rows];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
