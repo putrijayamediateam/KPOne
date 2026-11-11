@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Domain\DepartmentSpace\DepartmentSpaceNavigation;
+use App\Domain\DepartmentSpace\PharmacySpace;
+use App\Domain\DepartmentSpace\SpaceAskService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -19,7 +21,7 @@ final class DepartmentSpaceController extends Controller
         return to_route('spaces.show', ['space' => $spaces[0]['key']]);
     }
 
-    public function show(Request $request, string $space, DepartmentSpaceNavigation $navigation): Response
+    public function show(Request $request, string $space, DepartmentSpaceNavigation $navigation, PharmacySpace $pharmacy, SpaceAskService $ask): Response
     {
         abort_unless(array_key_exists($space, DepartmentSpaceNavigation::SPACES) || $space === 'me', 404);
         abort_unless($navigation->canEnter($request->user(), $space), 403);
@@ -29,6 +31,8 @@ final class DepartmentSpaceController extends Controller
         return Inertia::render('Spaces/Show', [
             'space' => collect($spaces)->firstWhere('key', $space),
             'spaces' => $spaces,
+            'pharmacy' => $space === 'pharmacy' ? $pharmacy->home($request->user()) : null,
+            'questions' => $ask->offered($request->user(), $space),
             'existing' => $navigation->existingHome($request->user(), $space),
         ]);
     }

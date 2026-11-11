@@ -97,6 +97,7 @@ use App\Http\Controllers\RegistrationSettingsController;
 use App\Http\Controllers\ReorderSuggestionController;
 use App\Http\Controllers\RoomCallController;
 use App\Http\Controllers\SkuEditController;
+use App\Http\Controllers\SpaceAskController;
 use App\Http\Controllers\SpacePreferenceController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
@@ -191,6 +192,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // DS-1 department spaces (the new front door; no menu link until the DS-2 switch).
     Route::put('spaces/preference', [SpacePreferenceController::class, 'update'])->middleware(['sensitive.no-store', 'throttle:20,1'])->name('spaces.preference');
+    Route::post('spaces/{space}/ask', [SpaceAskController::class, 'ask'])->where('space', '[a-z_]+')->middleware(['sensitive.no-store', 'throttle:60,1'])->name('spaces.ask');
     Route::get('spaces', [DepartmentSpaceController::class, 'index'])->middleware('sensitive.no-store')->name('spaces.index');
     Route::get('spaces/{space}', [DepartmentSpaceController::class, 'show'])->where('space', '[a-z_]+')->middleware('sensitive.no-store')->name('spaces.show');
 
