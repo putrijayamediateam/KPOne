@@ -12,8 +12,11 @@ const tab = readFileSync(
 );
 
 test('a download first asks for a password, sent once in the POST body and never kept', () => {
-    assert.match(tab, /@click="ask\(run, 'bank'\)"/);
-    assert.match(tab, /@click="ask\(run, 'accountant'\)"/);
+    assert.match(tab, /@click="ask\(run, 'bank', \$event\.currentTarget\)"/);
+    assert.match(
+        tab,
+        /@click="ask\(run, 'accountant', \$event\.currentTarget\)"/,
+    );
     assert.match(tab, /data-test="export-password"/);
     assert.match(tab, /file_password: secret\.password/);
     assert.match(tab, /file_password_confirmation: secret\.confirm/);
@@ -51,5 +54,21 @@ test('the dialog cannot close while the file is being made, and focus goes back 
     );
     assert.match(tab, /:disabled="!!busy"\s+@click="dismiss"\s+>Cancel</);
     assert.match(tab, /@close-auto-focus="returnFocus"/);
-    assert.match(tab, /opener\?\.focus\(\)/);
+    assert.match(tab, /opener\.focus\(\);/);
+});
+
+test('focus goes back to the clicked button only while it is on the page, and a stalled download times out', () => {
+    assert.match(tab, /ask\(run, 'bank', \$event\.currentTarget\)/);
+    assert.match(tab, /ask\(run, 'accountant', \$event\.currentTarget\)/);
+    assert.match(
+        tab,
+        /if \(opener\?\.isConnected\) \{\s+event\.preventDefault\(\);/,
+    );
+    assert.match(tab, /const TIMEOUT_MS = 60_000;/);
+    assert.match(tab, /signal: controller\.signal/);
+    assert.match(
+        tab,
+        /The file is taking too long\. Check the connection and try again\./,
+    );
+    assert.doesNotMatch(tab, /Nothing was downloaded/);
 });

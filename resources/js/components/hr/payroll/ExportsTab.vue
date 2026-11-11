@@ -41,13 +41,15 @@ const forget = () => {
     secret.show = false;
     secret.error = '';
 };
-// The dialog opens from code, so focus goes back by hand to the button that opened it (Daniel).
+// The dialog opens from code, so focus goes back by hand to the button that opened it (Daniel). The clicked button
+// itself, as Safari does not focus a button on a mouse click (Suresh).
 let opener: HTMLElement | null = null;
-const ask = (run: ExportRun, kind: 'bank' | 'accountant') => {
-    opener =
-        document.activeElement instanceof HTMLElement
-            ? document.activeElement
-            : null;
+const ask = (
+    run: ExportRun,
+    kind: 'bank' | 'accountant',
+    from: EventTarget | null,
+) => {
+    opener = from instanceof HTMLElement ? from : null;
     forget();
     failure.value = '';
     asking.value = { run, kind };
@@ -59,10 +61,16 @@ const dismiss = () => {
     }
 };
 const returnFocus = (event: Event) => {
-    event.preventDefault();
-    opener?.focus();
+    // A button no longer on the page (its run gone) leaves focus to the dialog's own default.
+    if (opener?.isConnected) {
+        event.preventDefault();
+        opener.focus();
+    }
+
     opener = null;
 };
+// A stalled connection must not hold the dialog for minutes with Cancel off (Suresh).
+const TIMEOUT_MS = 60_000;
 const close = () => {
     asking.value = null;
     forget();
@@ -96,11 +104,15 @@ const download = async () => {
     failure.value = '';
     secret.error = '';
 
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
+
     try {
         const response = await fetch(
             `/hr/payroll/runs/${run.id}/export/${kind}`,
             {
                 method: 'POST',
+                signal: controller.signal,
                 credentials: 'same-origin',
                 cache: 'no-store',
                 headers: {
@@ -134,7 +146,9 @@ const download = async () => {
         const disposition = response.headers.get('Content-Disposition') ?? '';
         const name =
             /filename="?([^";]+)"?/.exec(disposition)?.[1] ?? `${kind}.zip`;
-        const url = URL.createObjectURL(await response.blob());
+        const blob = await response.blob();
+        clearTimeout(timer);
+        const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
         link.download = name;
@@ -142,11 +156,14 @@ const download = async () => {
         setTimeout(() => URL.revokeObjectURL(url), 1000);
         close();
     } catch (error) {
-        secret.error =
-            error instanceof Error
-                ? error.message
-                : 'Unable to prepare the file.';
+        // A timed-out request may still have been recorded as a download, so this never says nothing was downloaded.
+        secret.error = controller.signal.aborted
+            ? 'The file is taking too long. Check the connection and try again.'
+            : error instanceof Error
+              ? error.message
+              : 'Unable to prepare the file.';
     } finally {
+        clearTimeout(timer);
         busy.value = null;
     }
 };
@@ -222,7 +239,7 @@ const download = async () => {
                     class="max-lg:min-h-11"
                     :disabled="!!busy || run.missingBank.length === run.people"
                     data-test="export-bank"
-                    @click="ask(run, 'bank')"
+                    @click="ask(run, 'bank', $event.currentTarget)"
                     >{{
                         busy === `${run.id}:bank`
                             ? 'Preparing…'
@@ -234,7 +251,7 @@ const download = async () => {
                     class="max-lg:min-h-11"
                     :disabled="!!busy"
                     data-test="export-accountant"
-                    @click="ask(run, 'accountant')"
+                    @click="ask(run, 'accountant', $event.currentTarget)"
                     >{{
                         busy === `${run.id}:accountant`
                             ? 'Preparing…'
