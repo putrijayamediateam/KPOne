@@ -265,3 +265,24 @@
         color: #000 !important;
     }
 }
+
+/*
+ * DD-55: respect the device's "reduce motion" setting. Transitions and decorative animation (dialogs,
+ * sheets, skeleton pulses, walking figures, scrolling text) stop; a spinner keeps turning, slowly,
+ * because it is the only sign that work is in progress.
+ */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+
+    .animate-spin {
+        animation-duration: 2s !important;
+        animation-iteration-count: infinite !important;
+    }
+}
