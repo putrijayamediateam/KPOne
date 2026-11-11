@@ -1779,9 +1779,9 @@ const removeDocument = () => {
                             >
                             <template v-else
                                 >{{ viewing.extensionsUsed }} of
-                                {{ viewing.extensionsMax }} extensions used.
-                                Counts again from today. Nothing is sent to the
-                                candidate.</template
+                                {{ viewing.extensionsMax }} extensions used. The
+                                3 working days count again from today. Nothing
+                                is sent to the candidate.</template
                             >
                         </p>
                         <InputError :message="extendError" />
