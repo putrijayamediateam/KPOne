@@ -36,6 +36,7 @@ Jika penapis atau halaman tertentu sedang aktif, kedudukannya kekal selepas tind
 
 - Tab pada halaman “Registration” (“All”, “Waiting”, “Serving Now”, “Dispensary”, “Awaiting Billing”, “Completed”, “Cancelled”, “QR Intake”) menunjukkan bilangan dalam bulatan kecil. Bilangan mengikut penapis yang telah digunakan (bukan tab yang sedang dibuka) dan dikemas kini setiap kali papan menyegar semula. Pengecualian: “Dispensary” hanya mengira kes yang belum bermula atau sedang disediakan, dan hanya mengikut carian nama atau nombor KP, bukan tarikh atau penapis lain; “QR Intake” menunjukkan semua pendaftaran QR yang menunggu semakan.
 - Pada baris pesakit yang sedang menunggu, label “Waiting N min” bertukar kuning (amber) dari 30 minit dan merah dari 60 minit, dengan tulisan lebih tebal. Ini juga berlaku pada papan “Consultation”. Warna hanya peringatan; susunan giliran tidak berubah. Pesakit yang ditahan (held), sedang dirawat atau dibatalkan tidak diwarnakan.
+- Pada papan “Consultation”, tab “Serving Now” dan “Consultation Completed” hanya menyenaraikan 25 pesakit terkini walaupun bilangan pada tab lebih besar. Jika demikian, baris kecil di bawah senarai menyatakan, contohnya, “Showing the latest 25 of 31”. Cara mencari pesakit yang lebih awal: [PERLU DISAHKAN].
 
 ## Tandakan pesakit belum bersedia dipanggil
 
@@ -47,7 +48,7 @@ Jika penapis atau halaman tertentu sedang aktif, kedudukannya kekal selepas tind
 ## Daftar dan sediakan pesakit OTC
 
 1. Dalam “Register Visit”, pilih jenis lawatan “OTC”, lengkapkan pendaftaran dan pilih “Register Visit”.
-2. Pada baris pesakit di “Registration”, pilih “Dispense”. Panggilan ke farmasi tidak perlu dibuat dahulu.
+2. Pada baris pesakit di “Registration”, pilih “Dispense”. Panggilan ke farmasi tidak perlu dibuat dahulu. Untuk memanggil pesakit ke farmasi melalui TV, gunakan “Call to Dispensary” pada menu baris pesakit.
 3. Pada halaman “Dispensary”, kad “Ask the patient about allergies” menunjukkan “Recorded allergies” dahulu. Tiada pilihan dibuat pada mulanya; anda mesti memilih sendiri.
     - Jika pesakit tiada alahan, pilih “Patient reports no allergy”, kemudian “Confirm”.
     - Jika pesakit ada alahan, pilih “Patient reports an allergy”. Dalam “Allergy details”, isi “Allergen (required)”, dan jika diketahui “Category (optional)”, “Severity (optional)” dan “Reaction (optional)”. Pilih “Add allergy” (atau “Add another allergy” untuk alahan seterusnya), kemudian “Confirm”. Alahan disimpan dalam profil alahan pesakit; hanya doktor boleh mengubah atau membuangnya.
@@ -61,7 +62,30 @@ Jika penapis atau halaman tertentu sedang aktif, kedudukannya kekal selepas tind
 2. Semak dengan pesakit atau doktor. Kemudian tandakan “I have checked with the patient/doctor”. Butang “Save line”, “Put back” atau “Add to list” hanya boleh ditekan selepas kotak ini ditanda.
 3. Tanda ini untuk satu simpanan sahaja dan hilang selepas disimpan.
 
-Semakan ini hanya membandingkan teks alahan dengan nama ubat, nama generik dan kumpulan ubat dalam katalog. Ia boleh terlepas nama jenama, kumpulan ubat yang tidak ditanda atau ejaan berbeza. Sentiasa baca senarai alahan penuh.
+Semakan ini hanya membandingkan teks alahan dengan nama ubat, nama generik, kumpulan ubat dan “Other names” (nama jenama atau ejaan lain) dalam katalog. Ia boleh terlepas kumpulan ubat atau nama lain yang belum dimasukkan dalam katalog. Sentiasa baca senarai alahan penuh.
+
+## Panggil pesakit ke farmasi (konsultasi)
+
+Pada kes “Dispensary” konsultasi yang sedang menunggu atau sedang disediakan, pilih “Call patient” untuk memaparkan panggilan ke farmasi di TV. Jika cawangan ada lebih daripada satu bilik farmasi, pilih bilik dahulu. Butang ini tiada pada kes OTC; untuk OTC, gunakan “Call to Dispensary” pada menu baris pesakit di “Registration”.
+
+## Cari ubat dengan imbasan (“Scan to add”)
+
+1. Pada kes “Dispensary”, di bahagian “Add a medicine”, pilih “Scan to add”. Kotak “Scan or type barcode” dibuka.
+2. Imbas kotak ubat atau taip kod, kemudian pilih “Look up”.
+3. Jika satu ubat sahaja sepadan, ada stok dan tiada padanan alahan, ubat itu dipilih dalam borang tambah dan kursor berada pada kuantiti. Skrin menyatakan, contohnya, “Found Demo Panadol 200mg. Set the quantity and batch, then press Add.”
+4. Jika ada padanan alahan, kotak merah muncul dan senarai ubat dipaparkan; semak senarai alahan dahulu sebelum memilih “Choose”. Jika beberapa ubat sepadan, atau tiada stok, pilih sendiri daripada senarai.
+5. Imbasan hanya mencari ubat; ia tidak menyimpan apa-apa. Anda masih perlu mengisi kuantiti, arahan dan batch, kemudian memilih “Add to list”.
+6. Jika skrin menyatakan kod itu “is not linked to a catalogue medicine”, cari ubat menggunakan nama, atau minta CA Supervisor memautkan kod itu.
+7. Pilih “Close scan” atau tekan Escape untuk menutup kotak imbasan.
+
+Imbasan ditolak semasa simpanan sedang berjalan, atau jika anda sudah menaip arahan untuk ubat yang sedang ditambah. Selesaikan atau batalkan ubat itu dahulu.
+
+## Semak ubat dengan imbasan sebelum diserahkan
+
+1. Pada kes “Dispensary” yang masih terbuka, klik dalam kotak “Scan or type barcode”, kemudian imbas kotak ubat yang telah anda ambil.
+2. Jika kotak itu sepadan dengan baris ubat yang disimpan, baris itu ditanda “Checked by scan”. Mesej di bawah kotak imbasan menyatakan, contohnya, “Matches: … 1 of 2 lines checked by scan. Shown on this screen only.”, dan ringkasan di sebelah kanan menunjukkan “Checked by scan” dengan “1 of 2 (not saved)”.
+3. Jika kotak itu bukan untuk kes ini, panel merah menyatakan “Not on this case: …”. Jika kotak itu hanya pada baris yang telah dibuang, panel merah menyatakan “On this case but removed: …”. Semak sama ada anda mengambil ubat atau kekuatan yang betul.
+4. Tanda ini hanya pada skrin dan tidak disimpan; ia hilang selepas muat semula. Imbasan tidak menyemak kuantiti atau batch, dan tidak menghalang “Complete Dispensary”.
 
 ## Cetak label ubat
 
@@ -80,6 +104,13 @@ Perkara lain pada label:
 - Jika skrin menyatakan “The saved dispensing record or access changed. Reload and review before printing.”, muat semula halaman dan semak sebelum mencetak.
 
 Label melintang ini bersaiz 100 × 62 mm dan masih bersifat sementara (“provisional”). Pencetak sebenar dan stok pelekat sebenar masih perlu diuji dengan cetakan ujian: [PERLU DISAHKAN].
+
+## Pulangan ubat selepas dispensing
+
+1. Buka kes “Dispensary” yang telah selesai (“Dispensary completed”). Di bahagian “Medicine returns”, pilih “Record a return” pada baris ubat yang dipulangkan.
+2. Masukkan “Quantity returned” (tidak lebih daripada yang dibekalkan, tolak pulangan terdahulu), pilih “Reason” (contohnya “Patient did not use it” atau “Wrong medicine or strength given”) dan “Condition seen” (“Sealed and in date”, “Opened or damaged” atau “Cannot tell”). Jika sebab ialah “Other”, tulis nota ringkas tanpa maklumat klinikal yang tidak perlu.
+3. Pilih “Record return”. Tiada perubahan stok pada langkah ini. Skrin menyatakan “Return recorded. It now waits for a check by someone else.”
+4. CA Supervisor yang lain akan menyemak pulangan itu (lihat panduan Penyelia CA). Bahagian ini menyatakan “Recording a return gives no money back.” Merekod pulangan ubat tidak memulangkan wang. Jika pesakit patut menerima wang semula, CA Supervisor atau Finance Officer merekodnya di bawah “Refunds” pada halaman bil lawatan itu (sebab “Medicine returned”), dan orang lain meluluskannya. CA tidak merekod bayaran balik (lihat panduan Penyelia CA).
 
 ## Bil, pelarasan dan bayaran
 
@@ -110,12 +141,17 @@ Setiap resit pada tab “Documents”, senarai bayaran dan halaman “Payments�
 3. Keluarkan wang apungan (float) dahulu, kemudian kira hanya kutipan tunai hari itu. Masukkan jumlah dalam “Counted cash takings (RM)”. Jika lebih banyak wang dipulangkan daripada diterima, masukkan amaun negatif (contohnya -20.00).
 4. Jika ada beza (“short” atau “over”), tulis “Reason for the difference”. Jangan tulis nama atau pengenalan pesakit.
 5. Pilih “Record count”. Orang lain (CA Supervisor, Finance Officer atau Director) mesti meluluskan atau memulangkannya untuk dikira semula. Anda tidak boleh meluluskan kiraan anda sendiri.
+6. Untuk melihat semua hari dalam sebulan, pilih “Month view”. Halaman “Monthly cash closing” menunjukkan status setiap hari (contohnya “Approved” atau “Not counted”) dan beza kiraan. Halaman ini untuk bacaan sahaja.
 
 ## Cetak invois dan resit
 
-1. Pada “Patient Billing”, buka tab “Documents” dan pilih “Print Invoice”.
-2. Untuk resit, pilih “Print Receipt” pada resit yang berkenaan dalam tab “Documents”.
-3. Semak dokumen yang dibuka, kemudian gunakan dialog cetak pelayar.
+1. Pada “Patient Billing” (atau halaman “Payments”, atau halaman invois lawatan yang telah selesai), pilih “Print invoice”. Untuk resit, pilih “Print receipt” pada resit yang berkenaan.
+2. Butang menunjukkan “Issuing…” seketika. KPOne menyimpan salinan tetap dokumen itu, kemudian membuka halaman cetakan.
+3. Cetakan pertama ditanda “ORIGINAL”. Cetakan semula kandungan yang sama ditanda “COPY”. Jika invois telah berubah (contohnya pelarasan, bayaran atau “Bill to”), invois dicetak sebagai “REVISED (version n)”.
+4. Semak dokumen, kemudian gunakan dialog cetak pelayar. Pilih “Back to …” untuk kembali ke halaman asal.
+5. Senarai “Issued copies” pada tab “Documents” menunjukkan setiap dokumen yang telah dikeluarkan, versi, siapa yang mengeluarkannya dan bilangan cetakan. Pilih “Reprint” untuk mencetak salinan.
+
+Halaman pratonton lama (“PREVIEW”) telah ditutup. Jika anda membuka pautan cetakan lama, anda akan dibawa ke “Issued copies” dengan mesej “Print from here so the copy is recorded.”; tiada apa-apa dicetak atau direkod. Dokumen yang berbilang halaman mempunyai nombor halaman di bahagian bawah.
 
 ## Langkah rawatan (contohnya nebuliser)
 
@@ -124,7 +160,7 @@ Setiap resit pada tab “Documents”, senarai bayaran dan halaman “Payments�
 3. Apabila selesai, pilih “Mark done” pada label langkah, kemudian “Mark done” sekali lagi. Doktor akan dimaklumkan untuk menyambung konsultasi, dan label menunjukkan “Ready to resume”.
 4. Jika langkah salah dimasukkan, pilih “Entered in error?”, pilih “Reason *” (Wrong patient, Wrong step atau Marked too early), kemudian “Cancel step”. Tiada apa-apa yang dipadam.
 
-Langkah baharu tidak boleh dimulakan selagi langkah yang selesai masih menunggu doktor.
+Langkah seterusnya boleh dimulakan walaupun langkah yang selesai masih menunggu doktor: buka dialog langkah dan pilih “Start next step”. Hanya satu langkah boleh berjalan pada satu masa untuk setiap pesakit; langkah yang selesai terus menunggu doktor.
 
 ## Penggunaan stok di bilik rawatan
 
