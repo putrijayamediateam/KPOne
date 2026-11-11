@@ -9,6 +9,7 @@ use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Crypt;
@@ -20,8 +21,9 @@ use Illuminate\Validation\ValidationException;
 use stdClass;
 
 /**
- * STK-25 (owner programme 2026-11-11, plan approved by B.E.R.N.I.S.S): a recall blocks named batches of one SKU at
- * every branch at once, today and for stock that arrives later, through the shared batch eligibility rule
+ * STK-25 (owner programme 2026-11-11, plan approved by B.E.R.N.I.S.S): a recall blocks named batch numbers of one
+ * item at every branch at once, today and for stock that arrives later (another expiry or pack size included),
+ * through the shared batch eligibility rule
  * ({@see InventoryBatchEligibility}). No stock moves; recalled stock is removed through the governed write-off or a
  * supplier return. Independent of STK-2 branch holds. A Director starts a recall; it is lifted once, never by the
  * person who started it (service and PostgreSQL). Notes are encrypted and never audited.
@@ -78,8 +80,12 @@ final class InventoryRecallService
                 if ($rows->count() !== count($batches)) {
                     throw ValidationException::withMessages(['batch_public_ids' => 'A ticked batch is not one of this SKU\'s batches. Reload and try again.']);
                 }
-                $ids = $rows->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
-                if (DB::table('inventory_recall_batches')->whereIn('inventory_batch_id', $ids)->where('active', true)->exists()) {
+                // One recall line per batch number (two ticked batches can share a number with different expiries).
+                $keys = [];
+                foreach (DB::table('inventory_batches')->whereIn('id', $rows->pluck('id'))->orderBy('id')->get(['id', 'batch_number']) as $batch) {
+                    $keys[Str::upper(trim((string) $batch->batch_number))] ??= (int) $batch->id;
+                }
+                if (DB::table('inventory_recall_batches')->where('inventory_item_id', $sku->inventory_item_id)->whereIn('batch_key', array_keys($keys))->where('active', true)->exists()) {
                     throw ValidationException::withMessages(['batch_public_ids' => 'A ticked batch is already under an active recall. Reload to see it.']);
                 }
                 $publicId = (string) Str::uuid();
@@ -88,10 +94,14 @@ final class InventoryRecallService
                     'reference' => $reference === '' ? null : $reference, 'note_encrypted' => $note === '' ? null : Crypt::encryptString($note), 'status' => 'active',
                     'started_by_user_id' => $actor->id, 'started_at' => now()->utc(), 'lock_version' => 1, 'idempotency_key' => $key, 'request_hash' => $hash,
                 ]);
-                DB::table('inventory_recall_batches')->insert(array_map(fn (int $batch): array => ['organisation_id' => $actor->organisation_id, 'recall_id' => $id,
-                    'inventory_batch_id' => $batch, 'active' => true], $ids));
+                $lines = [];
+                foreach ($keys as $batchKey => $batch) {
+                    $lines[] = ['organisation_id' => $actor->organisation_id, 'recall_id' => $id, 'inventory_item_id' => $sku->inventory_item_id, 'batch_key' => (string) $batchKey,
+                        'inventory_batch_id' => $batch, 'active' => true];
+                }
+                DB::table('inventory_recall_batches')->insert($lines);
                 // Ids and codes only: no reference or note text.
-                abort_if($this->audit->record('inventory.recall.started', $sku, ['recall_id' => $id, 'inventory_sku_id' => $sku->id, 'batches' => count($ids), 'reason' => $data['reason']], $actor) === null,
+                abort_if($this->audit->record('inventory.recall.started', $sku, ['recall_id' => $id, 'inventory_sku_id' => $sku->id, 'batches' => count($keys), 'reason' => $data['reason']], $actor) === null,
                     503, 'The recall could not be recorded, so nothing was saved.');
 
                 return $publicId;
@@ -106,7 +116,7 @@ final class InventoryRecallService
     public function lift(User $actor, string $publicId, array $input): void
     {
         $data = Validator::make($input, [
-            'expected_branch_id' => ['required', 'integer'], 'lock_version' => ['required', 'integer', 'min:1'],
+            'expected_branch_id' => ['required', 'integer'], 'lock_version' => ['required', 'integer', 'min:1'], 'retry_key' => ['required', 'uuid'],
             'reason' => ['required', Rule::in(self::LIFT_REASONS)], 'note' => ['nullable', 'string', 'max:300', 'not_regex:/[\p{Cc}\p{Cf}<>]/u'],
         ], ['reason.required' => 'Choose a reason.', 'reason.in' => 'Choose a reason.'])->validate();
         $note = trim((string) ($data['note'] ?? ''));
@@ -114,14 +124,24 @@ final class InventoryRecallService
             throw ValidationException::withMessages(['note' => 'Add a note to explain why the recall is lifted.']);
         }
         $this->authority->activeBranch($actor, $data);
+        $key = strtolower((string) $data['retry_key']);
+        $hash = hash('sha256', json_encode([strtolower($publicId), (int) $data['lock_version'], $data['reason'], $note], JSON_THROW_ON_ERROR));
 
-        DB::transaction(function () use ($actor, $publicId, $data, $note): void {
+        DB::transaction(function () use ($actor, $publicId, $data, $note, $key, $hash): void {
             $actor = $this->authority->lockForOrganisation($actor, self::LIFT);
             $recall = DB::table('inventory_recalls')->where('organisation_id', $actor->organisation_id)->where('public_id', strtolower($publicId))->first(['id', 'inventory_sku_id']);
             abort_unless($recall !== null, 404);
             // The SKU first, then the recall, as when a recall starts.
             $sku = InventorySku::query()->whereKey((int) $recall->inventory_sku_id)->lockForUpdate()->firstOrFail();
             $recall = DB::table('inventory_recalls')->where('id', $recall->id)->lockForUpdate()->sole();
+            // A lift sent twice (a double press or a lost reply) is the same lift.
+            if ($recall->lift_idempotency_key !== null && strtolower((string) $recall->lift_idempotency_key) === $key) {
+                if ($recall->lift_request_hash !== $hash || (int) $recall->lifted_by_user_id !== $actor->id) {
+                    throw ValidationException::withMessages(['retry_key' => 'This page was already used for a different lift. Reload and try again.']);
+                }
+
+                return;
+            }
             if ((int) $recall->lock_version !== (int) $data['lock_version']) {
                 throw ValidationException::withMessages(['lock_version' => 'This recall changed. Reload and review it again.']);
             }
@@ -132,7 +152,8 @@ final class InventoryRecallService
                 throw new AuthorizationException('You started this recall, so another person must lift it.');
             }
             DB::table('inventory_recalls')->where('id', $recall->id)->update(['status' => 'lifted', 'lifted_by_user_id' => $actor->id, 'lifted_at' => now()->utc(),
-                'lift_reason' => $data['reason'], 'lift_note_encrypted' => $note === '' ? null : Crypt::encryptString($note), 'lock_version' => (int) $recall->lock_version + 1]);
+                'lift_reason' => $data['reason'], 'lift_note_encrypted' => $note === '' ? null : Crypt::encryptString($note), 'lift_idempotency_key' => $key, 'lift_request_hash' => $hash,
+                'lock_version' => (int) $recall->lock_version + 1]);
             DB::table('inventory_recall_batches')->where('recall_id', $recall->id)->where('active', true)->update(['active' => false]);
             abort_if($this->audit->record('inventory.recall.lifted', $sku, ['recall_id' => (int) $recall->id, 'inventory_sku_id' => $sku->id, 'reason' => $data['reason']], $actor) === null,
                 503, 'The lift could not be recorded, so nothing was changed.');
@@ -161,13 +182,16 @@ final class InventoryRecallService
         $recalls = $page->items();
         $ids = array_map(fn (stdClass $row): int => (int) $row->id, $recalls);
         $batches = DB::table('inventory_recall_batches as rb')->join('inventory_batches as b', 'b.id', '=', 'rb.inventory_batch_id')->whereIn('rb.recall_id', $ids === [] ? [0] : $ids)
-            ->orderBy('b.batch_number')->get(['rb.recall_id', 'b.id', 'b.batch_number', 'b.expiry_date'])->groupBy('recall_id');
-        $batchIds = $batches->flatten(1)->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
-        $stock = DB::table('inventory_stock_balances as bal')->join('inventory_locations as l', 'l.id', '=', 'bal.inventory_location_id')->join('branches as br', 'br.id', '=', 'l.branch_id')
-            ->join('inventory_batches as b', 'b.id', '=', 'bal.inventory_batch_id')->whereIn('bal.inventory_batch_id', $batchIds === [] ? [0] : $batchIds)->where('bal.quantity', '>', 0)
+            ->orderBy('rb.batch_key')->get(['rb.recall_id', 'rb.id', 'rb.batch_key', 'b.batch_number', 'b.expiry_date'])->groupBy('recall_id');
+        // Every batch of the item with a recalled number, in any pack size; shared stores (no branch) included.
+        $stock = DB::table('inventory_recall_batches as rb')->join('inventory_skus as s', 's.inventory_item_id', '=', 'rb.inventory_item_id')
+            ->join('inventory_batches as b', fn ($q) => $q->on('b.inventory_sku_id', '=', 's.id')->on(DB::raw('upper(btrim(b.batch_number))'), '=', 'rb.batch_key'))
+            ->join('inventory_stock_balances as bal', 'bal.inventory_batch_id', '=', 'b.id')->join('inventory_locations as l', 'l.id', '=', 'bal.inventory_location_id')
+            ->leftJoin('branches as br', 'br.id', '=', 'l.branch_id')
+            ->whereIn('rb.recall_id', $ids === [] ? [0] : $ids)->where('bal.quantity', '>', 0)
             ->when(! $wide, fn (Builder $q) => $q->where('l.branch_id', $branch->id))
             ->orderBy('br.name')->orderBy('l.name')->orderBy('b.batch_number')
-            ->get(['bal.inventory_batch_id', 'br.name as branch', 'l.name as location', 'l.type as location_type', 'b.batch_number', 'bal.quantity']);
+            ->get(['rb.recall_id', 'br.name as branch', 'l.name as location', 'l.type as location_type', 's.sku_code', 'b.batch_number', 'bal.quantity', 's.stock_unit']);
         $people = array_values(array_unique(array_filter(array_merge(array_map(fn (stdClass $r): int => (int) $r->started_by_user_id, $recalls), array_map(fn (stdClass $r): int => (int) $r->lifted_by_user_id, $recalls)))));
         $names = $people === [] ? collect() : $this->staff->visibleUsers($actor)->whereIn('id', $people)->pluck('name', 'id');
         $local = fn (?string $value): ?string => $value === null ? null : CarbonImmutable::parse($value, 'UTC')->setTimezone($branch->timezone)->format('j M Y, g:i A');
@@ -177,20 +201,20 @@ final class InventoryRecallService
             'counts' => ['active' => (int) ($counts['active'] ?? 0), 'lifted' => (int) ($counts['lifted'] ?? 0)],
             'recalls' => ['page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total(), 'rows' => array_map(function (stdClass $row) use ($batches, $stock, $names, $local, $actor, $wide): array {
                 $own = collect($batches->get($row->id, []));
-                $ownIds = $own->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
 
                 return [
                     'publicId' => $row->public_id, 'medicine' => trim($row->generic_name.' '.($row->strength ?? '')), 'skuCode' => $row->sku_code, 'stockUnit' => $row->stock_unit,
-                    'reason' => $row->reason, 'reference' => $row->reference, 'status' => $row->status, 'lockVersion' => (int) $row->lock_version,
-                    'note' => $wide && $row->note_encrypted !== null ? Crypt::decryptString((string) $row->note_encrypted) : null,
+                    'reason' => $row->reason, 'reference' => $wide ? $row->reference : null, 'status' => $row->status, 'lockVersion' => (int) $row->lock_version,
+                    'note' => $wide ? self::decrypt($row->note_encrypted) : null,
                     'startedBy' => $names->get((int) $row->started_by_user_id, 'Staff member'), 'startedOn' => $local((string) $row->started_at),
                     'startedByYou' => (int) $row->started_by_user_id === $actor->id,
                     'liftedBy' => $row->lifted_by_user_id === null ? null : $names->get((int) $row->lifted_by_user_id, 'Staff member'), 'liftedOn' => $local($row->lifted_at),
-                    'liftReason' => $row->lift_reason, 'liftNote' => $wide && $row->lift_note_encrypted !== null ? Crypt::decryptString((string) $row->lift_note_encrypted) : null,
-                    'batches' => $own->map(fn (stdClass $b): array => ['batchNumber' => $b->batch_number, 'expiry' => $b->expiry_date === null ? null : CarbonImmutable::parse((string) $b->expiry_date)->format('j M Y')])->values()->all(),
-                    'whereIs' => $stock->filter(fn (stdClass $s): bool => in_array((int) $s->inventory_batch_id, $ownIds, true))->map(fn (stdClass $s): array => [
-                        'branch' => $s->branch, 'location' => $s->location, 'returns' => $s->location_type === 'dispensary_returns', 'batchNumber' => $s->batch_number,
-                        'quantity' => self::quantity(StockUnitQuantity::scaled((string) $s->quantity, true)),
+                    'liftReason' => $row->lift_reason, 'liftNote' => $wide ? self::decrypt($row->lift_note_encrypted) : null,
+                    'batches' => $own->map(fn (stdClass $b): array => ['key' => (string) $b->id, 'batchNumber' => $b->batch_number,
+                        'expiry' => $b->expiry_date === null ? null : CarbonImmutable::parse((string) $b->expiry_date)->format('j M Y')])->values()->all(),
+                    'whereIs' => $stock->filter(fn (stdClass $s): bool => (int) $s->recall_id === (int) $row->id)->map(fn (stdClass $s): array => [
+                        'branch' => $s->branch ?? 'Shared store', 'location' => $s->location, 'returns' => $s->location_type === 'dispensary_returns', 'batchNumber' => $s->batch_number,
+                        'skuCode' => $s->sku_code, 'stockUnit' => $s->stock_unit, 'quantity' => self::quantity(StockUnitQuantity::scaled((string) $s->quantity, true)),
                     ])->values()->all(),
                 ];
             }, $recalls)],
@@ -198,8 +222,8 @@ final class InventoryRecallService
     }
 
     /**
-     * The start form's batch list for one SKU: every batch with stock anywhere, or a later expiry, with on hand per
-     * branch and whether it is already recalled. For starters only (organisation-wide).
+     * The start form's batch list for one SKU, at most 100: batches with stock first, then the latest expiry, with on
+     * hand per branch (or shared store) and whether the number is already recalled. For starters only.
      *
      * @return list<array<string, mixed>>
      */
@@ -209,18 +233,32 @@ final class InventoryRecallService
         $sku = InventorySku::query()->where('organisation_id', $actor->organisation_id)->where('public_id', strtolower($skuPublicId))->first();
         abort_unless($sku !== null, 404);
         $batches = DB::table('inventory_batches as b')->where('b.organisation_id', $actor->organisation_id)->where('b.inventory_sku_id', $sku->id)
+            ->orderByRaw('CASE WHEN EXISTS (SELECT 1 FROM inventory_stock_balances x WHERE x.inventory_batch_id = b.id AND x.quantity > 0) THEN 0 ELSE 1 END')
             ->orderByDesc('b.expiry_date')->orderBy('b.batch_number')->limit(100)->get(['b.id', 'b.public_id', 'b.batch_number', 'b.expiry_date']);
         $ids = $batches->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
-        $stock = DB::table('inventory_stock_balances as bal')->join('inventory_locations as l', 'l.id', '=', 'bal.inventory_location_id')->join('branches as br', 'br.id', '=', 'l.branch_id')
+        $stock = DB::table('inventory_stock_balances as bal')->join('inventory_locations as l', 'l.id', '=', 'bal.inventory_location_id')->leftJoin('branches as br', 'br.id', '=', 'l.branch_id')
             ->whereIn('bal.inventory_batch_id', $ids === [] ? [0] : $ids)->where('bal.quantity', '>', 0)->groupBy('bal.inventory_batch_id', 'br.name')
-            ->selectRaw('bal.inventory_batch_id as batch, br.name as branch, sum(round(bal.quantity * 1000))::bigint as milli')->orderBy('br.name')->get()->groupBy('batch');
-        $recalled = DB::table('inventory_recall_batches')->whereIn('inventory_batch_id', $ids === [] ? [0] : $ids)->where('active', true)->pluck('inventory_batch_id')->map(fn (mixed $id): int => (int) $id)->all();
+            ->selectRaw("bal.inventory_batch_id as batch, coalesce(br.name, 'Shared store') as branch, sum(round(bal.quantity * 1000))::bigint as milli")->orderBy('branch')->get()->groupBy('batch');
+        $recalled = DB::table('inventory_recall_batches')->where('inventory_item_id', $sku->inventory_item_id)->where('active', true)->pluck('batch_key')->all();
 
         return array_values($batches->map(fn (stdClass $b): array => [
             'publicId' => $b->public_id, 'batchNumber' => $b->batch_number, 'expiry' => $b->expiry_date === null ? null : CarbonImmutable::parse((string) $b->expiry_date)->format('j M Y'),
-            'recalled' => in_array((int) $b->id, $recalled, true),
+            'recalled' => in_array(Str::upper(trim((string) $b->batch_number)), $recalled, true),
             'onHand' => collect($stock->get($b->id, []))->map(fn (stdClass $s): array => ['branch' => $s->branch, 'quantity' => self::quantity((int) $s->milli)])->values()->all(),
         ])->all());
+    }
+
+    /** A note that can no longer be read (for example after a key change) does not take the page down. */
+    private static function decrypt(mixed $value): ?string
+    {
+        if ($value === null) {
+            return null;
+        }
+        try {
+            return Crypt::decryptString((string) $value);
+        } catch (DecryptException) {
+            return 'This note can no longer be read.';
+        }
     }
 
     private static function quantity(int $milli): string

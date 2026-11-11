@@ -25,6 +25,8 @@ type Where = {
     location: string;
     returns: boolean;
     batchNumber: string;
+    skuCode: string;
+    stockUnit: string;
     quantity: string;
 };
 type Recall = {
@@ -44,7 +46,7 @@ type Recall = {
     liftedOn: string | null;
     liftReason: string | null;
     liftNote: string | null;
-    batches: { batchNumber: string; expiry: string | null }[];
+    batches: { key: string; batchNumber: string; expiry: string | null }[];
     whereIs: Where[];
 };
 type BatchOption = {
@@ -109,9 +111,11 @@ const options = ref<BatchOption[]>([]);
 const optionsError = ref('');
 const startErrors = ref<Record<string, string>>({});
 const busy = ref(false);
+let batchRequest = 0;
 watch(
     () => start.sku,
     async (sku) => {
+        const request = ++batchRequest;
         start.batches = [];
         options.value = [];
         optionsError.value = '';
@@ -124,8 +128,16 @@ watch(
             const response = await requestJson<{ data: BatchOption[] }>(
                 `/inventory/recalls/batches?sku=${encodeURIComponent(String(sku))}`,
             );
-            options.value = response.data;
+
+            // A slower answer for an SKU chosen earlier is ignored.
+            if (request === batchRequest) {
+                options.value = response.data;
+            }
         } catch {
+            if (request !== batchRequest) {
+                return;
+            }
+
             optionsError.value =
                 'The batches could not be loaded. Choose the SKU again.';
         }
@@ -198,11 +210,12 @@ const startGeneral = computed(() =>
 
 // Lift a recall.
 const lifting = ref<Recall | null>(null);
-const lift = reactive({ reason: '', note: '' });
+const lift = reactive({ reason: '', note: '', key: crypto.randomUUID() });
 const liftErrors = ref<Record<string, string>>({});
 const openLift = (recall: Recall) => {
     lift.reason = '';
     lift.note = '';
+    lift.key = crypto.randomUUID();
     liftErrors.value = {};
     lifting.value = recall;
 };
@@ -231,6 +244,7 @@ const submitLift = () => {
         {
             expected_branch_id: props.recalls.expectedBranchId,
             lock_version: recall.lockVersion,
+            retry_key: lift.key,
             reason: lift.reason,
             note: lift.note.trim() || null,
         },
@@ -244,8 +258,11 @@ const submitLift = () => {
         },
     );
 };
-const liftGeneral = computed(() =>
-    generalError(liftErrors.value, ['reason', 'note']),
+const liftGeneral = computed(
+    () =>
+        generalError(liftErrors.value, ['reason', 'note', 'retry_key']) ??
+        liftErrors.value.retry_key ??
+        null,
 );
 const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
 </script>
@@ -329,7 +346,7 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                 <ul class="flex flex-wrap gap-2" aria-label="Recalled batches">
                     <li
                         v-for="batch in recall.batches"
-                        :key="batch.batchNumber"
+                        :key="batch.key"
                         class="rounded-md border px-2 py-1 text-sm"
                     >
                         {{ batch.batchNumber
@@ -403,8 +420,8 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                             <span class="min-w-0 break-words"
                                 ><span v-if="recalls.allBranches"
                                     >{{ where.branch }} · </span
-                                >{{ where.location }} · batch
-                                {{ where.batchNumber
+                                >{{ where.location }} · {{ where.skuCode }} ·
+                                batch {{ where.batchNumber
                                 }}<span
                                     v-if="where.returns"
                                     class="text-muted-foreground"
@@ -414,7 +431,7 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                             >
                             <span class="font-medium tabular-nums"
                                 >{{ where.quantity }}
-                                {{ recall.stockUnit }}</span
+                                {{ where.stockUnit }}</span
                             >
                         </li>
                     </ul>
@@ -492,8 +509,26 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                         context="operations"
                         :expected-branch-id="recalls.expectedBranchId"
                     />
-                    <InputError :message="startErrors.sku_public_id" />
-                    <fieldset v-if="start.sku" class="space-y-2">
+                    <InputError
+                        id="recall-sku-error"
+                        :message="startErrors.sku_public_id"
+                    />
+                    <fieldset
+                        v-if="start.sku"
+                        class="space-y-2"
+                        :aria-invalid="
+                            startErrors.batch_public_ids ? 'true' : undefined
+                        "
+                        :aria-describedby="
+                            startErrors.batch_public_ids
+                                ? 'recall-batches-error'
+                                : undefined
+                        "
+                    >
+                        <p class="text-sm text-muted-foreground">
+                            Every batch of this item with a ticked number is
+                            blocked, in any pack size.
+                        </p>
                         <legend class="text-sm font-medium">Batches</legend>
                         <p
                             v-if="optionsError"
@@ -552,7 +587,10 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                                 >
                             </span>
                         </label>
-                        <InputError :message="startErrors.batch_public_ids" />
+                        <InputError
+                            id="recall-batches-error"
+                            :message="startErrors.batch_public_ids"
+                        />
                     </fieldset>
                     <label class="block text-sm font-medium" for="recall-reason"
                         >Reason</label
@@ -562,6 +600,11 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                         v-model="start.reason"
                         class="min-h-11 w-full rounded-md border bg-background px-3 text-sm text-foreground"
                         :aria-invalid="startErrors.reason ? 'true' : undefined"
+                        :aria-describedby="
+                            startErrors.reason
+                                ? 'recall-reason-error'
+                                : undefined
+                        "
                     >
                         <option value="" disabled>Choose a reason</option>
                         <option
@@ -572,19 +615,38 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                             {{ label }}
                         </option>
                     </select>
-                    <InputError :message="startErrors.reason" />
+                    <InputError
+                        id="recall-reason-error"
+                        :message="startErrors.reason"
+                    />
                     <label
                         class="block text-sm font-medium"
                         for="recall-reference"
                         >Notice reference (optional)</label
                     >
+                    <p
+                        id="recall-reference-hint"
+                        class="text-sm text-muted-foreground"
+                    >
+                        The supplier's or regulator's notice number. No patient
+                        names or IC numbers. Only those who start or lift
+                        recalls see it.
+                    </p>
                     <Input
                         id="recall-reference"
                         v-model="start.reference"
                         maxlength="60"
                         class="min-h-11"
+                        :aria-describedby="
+                            startErrors.reference
+                                ? 'recall-reference-hint recall-reference-error'
+                                : 'recall-reference-hint'
+                        "
                     />
-                    <InputError :message="startErrors.reference" />
+                    <InputError
+                        id="recall-reference-error"
+                        :message="startErrors.reference"
+                    />
                     <label class="block text-sm font-medium" for="recall-note"
                         >Note{{
                             start.reason === 'other' ? '' : ' (optional)'
@@ -602,10 +664,17 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                         maxlength="300"
                         rows="3"
                         class="w-full rounded-md border bg-background p-3 text-sm text-foreground"
-                        aria-describedby="recall-note-hint"
+                        :aria-describedby="
+                            startErrors.note
+                                ? 'recall-note-hint recall-note-error'
+                                : 'recall-note-hint'
+                        "
                         :aria-invalid="startErrors.note ? 'true' : undefined"
                     />
-                    <InputError :message="startErrors.note" />
+                    <InputError
+                        id="recall-note-error"
+                        :message="startErrors.note"
+                    />
                     <p
                         v-if="start.batches.length"
                         class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
@@ -665,6 +734,9 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                         v-model="lift.reason"
                         class="min-h-11 w-full rounded-md border bg-background px-3 text-sm text-foreground"
                         :aria-invalid="liftErrors.reason ? 'true' : undefined"
+                        :aria-describedby="
+                            liftErrors.reason ? 'lift-reason-error' : undefined
+                        "
                     >
                         <option value="" disabled>Choose a reason</option>
                         <option
@@ -675,7 +747,10 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                             {{ label }}
                         </option>
                     </select>
-                    <InputError :message="liftErrors.reason" />
+                    <InputError
+                        id="lift-reason-error"
+                        :message="liftErrors.reason"
+                    />
                     <label class="block text-sm font-medium" for="lift-note"
                         >Note{{
                             lift.reason === 'other' ? '' : ' (optional)'
@@ -693,10 +768,17 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                         maxlength="300"
                         rows="3"
                         class="w-full rounded-md border bg-background p-3 text-sm text-foreground"
-                        aria-describedby="lift-note-hint"
+                        :aria-describedby="
+                            liftErrors.note
+                                ? 'lift-note-hint lift-note-error'
+                                : 'lift-note-hint'
+                        "
                         :aria-invalid="liftErrors.note ? 'true' : undefined"
                     />
-                    <InputError :message="liftErrors.note" />
+                    <InputError
+                        id="lift-note-error"
+                        :message="liftErrors.note"
+                    />
                     <div
                         class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"
                     >

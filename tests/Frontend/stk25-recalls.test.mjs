@@ -30,5 +30,10 @@ test('STK-25: notes carry the no-patient hint and the starter is told someone el
         /You started this recall, so another person must\s+lift it\./,
     );
     assert.match(page, /lock_version: recall\.lockVersion/);
+    // A lift sent twice is the same lift; a slow batch list for an earlier SKU is ignored.
+    assert.match(page, /retry_key: lift\.key/);
+    assert.match(page, /if \(request === batchRequest\)/);
+    // The reference carries the same hint and says who sees it.
+    assert.match(page, /id="recall-reference-hint"/);
     assert.match(page, /v-if="recalls\.can\.lift"/);
 });

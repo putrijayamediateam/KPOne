@@ -6,9 +6,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 /**
- * STK-25 (owner programme 2026-11-11, plan approved by B.E.R.N.I.S.S): a recall blocks named batches of one SKU at
- * every branch at once, through the shared batch eligibility rule. It is independent of STK-2 branch holds. A recall
- * is started by a Director and lifted once, never by the person who started it. Nothing is deleted.
+ * STK-25 (owner programme 2026-11-11, plan approved by B.E.R.N.I.S.S): a recall blocks named batch numbers of one
+ * item at every branch at once, through the shared batch eligibility rule. It matches by item and batch number, so
+ * the same batch received later with another expiry or in another pack size is blocked too. It is independent of
+ * STK-2 branch holds. A recall is started by a Director and lifted once, never by the person who started it.
+ * Nothing is deleted.
  */
 return new class extends Migration
 {
@@ -29,6 +31,8 @@ return new class extends Migration
             $t->timestamp('lifted_at')->nullable();
             $t->string('lift_reason', 30)->nullable();
             $t->text('lift_note_encrypted')->nullable();
+            $t->uuid('lift_idempotency_key')->nullable();
+            $t->char('lift_request_hash', 64)->nullable();
             $t->unsignedInteger('lock_version')->default(1);
             $t->uuid('idempotency_key');
             $t->char('request_hash', 64);
@@ -39,9 +43,13 @@ return new class extends Migration
             $t->id();
             $t->foreignId('organisation_id')->constrained()->restrictOnDelete();
             $t->foreignId('recall_id')->constrained('inventory_recalls')->restrictOnDelete();
+            $t->foreignId('inventory_item_id')->constrained('inventory_items')->restrictOnDelete();
+            // The batch number as matched: trimmed and in capitals.
+            $t->string('batch_key', 100);
+            // The batch the Director ticked, kept as evidence.
             $t->foreignId('inventory_batch_id')->constrained('inventory_batches')->restrictOnDelete();
             $t->boolean('active');
-            $t->unique(['recall_id', 'inventory_batch_id'], 'inventory_recall_batches_unique');
+            $t->unique(['recall_id', 'batch_key'], 'inventory_recall_batches_unique');
         });
 
         if (DB::connection()->getDriverName() !== 'pgsql') {
@@ -49,8 +57,8 @@ return new class extends Migration
         }
 
         DB::unprepared(<<<'SQL'
--- One active recall per batch, at most.
-CREATE UNIQUE INDEX inventory_recall_batches_one_active ON inventory_recall_batches (inventory_batch_id) WHERE active;
+-- One active recall per item and batch number, at most.
+CREATE UNIQUE INDEX inventory_recall_batches_one_active ON inventory_recall_batches (inventory_item_id, batch_key) WHERE active;
 ALTER TABLE inventory_recalls ADD CONSTRAINT inventory_recalls_shape CHECK (
  reason IN ('supplier_recall', 'regulator_notice', 'quality_issue', 'other')
  AND (reason <> 'other' OR note_encrypted IS NOT NULL)
@@ -62,6 +70,7 @@ ALTER TABLE inventory_recalls ADD CONSTRAINT inventory_recalls_shape CHECK (
  AND (lift_reason IS DISTINCT FROM 'other' OR lift_note_encrypted IS NOT NULL)
  AND (lift_note_encrypted IS NULL OR lifted_by_user_id IS NOT NULL)
  AND (lifted_by_user_id IS NULL OR lifted_by_user_id <> started_by_user_id)
+ AND ((lifted_by_user_id IS NULL) = (lift_idempotency_key IS NULL) AND (lifted_by_user_id IS NULL) = (lift_request_hash IS NULL))
 );
 CREATE OR REPLACE FUNCTION guard_inventory_recall() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -99,18 +108,30 @@ BEGIN
  SELECT * INTO recall FROM inventory_recalls r WHERE r.id = NEW.recall_id;
  IF TG_OP = 'INSERT' THEN
   IF recall.status IS DISTINCT FROM 'active' OR NOT NEW.active OR recall.organisation_id <> NEW.organisation_id
-   OR NOT EXISTS (SELECT 1 FROM inventory_batches b WHERE b.id = NEW.inventory_batch_id AND b.organisation_id = NEW.organisation_id AND b.inventory_sku_id = recall.inventory_sku_id) THEN
+   OR NOT EXISTS (SELECT 1 FROM inventory_batches b JOIN inventory_skus s ON s.id = b.inventory_sku_id
+     WHERE b.id = NEW.inventory_batch_id AND b.organisation_id = NEW.organisation_id AND b.inventory_sku_id = recall.inventory_sku_id
+       AND s.inventory_item_id = NEW.inventory_item_id AND upper(btrim(b.batch_number)) = NEW.batch_key) THEN
    RAISE EXCEPTION 'A recalled batch belongs to the recall''s SKU and starts active' USING ERRCODE = '23514';
   END IF;
   RETURN NEW;
  END IF;
  -- The only change: a batch stops being recalled once its recall is lifted.
  IF NOT OLD.active OR NEW.active OR recall.status <> 'lifted'
-  OR (NEW.organisation_id, NEW.recall_id, NEW.inventory_batch_id) IS DISTINCT FROM (OLD.organisation_id, OLD.recall_id, OLD.inventory_batch_id) THEN
+  OR (NEW.organisation_id, NEW.recall_id, NEW.inventory_item_id, NEW.batch_key, NEW.inventory_batch_id)
+   IS DISTINCT FROM (OLD.organisation_id, OLD.recall_id, OLD.inventory_item_id, OLD.batch_key, OLD.inventory_batch_id) THEN
   RAISE EXCEPTION 'A recalled batch is released only when its recall is lifted' USING ERRCODE = '23514';
  END IF;
  RETURN NEW;
 END $$;
+-- At commit, a lifted recall has released every batch number.
+CREATE OR REPLACE FUNCTION check_inventory_recall_released() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF NEW.status = 'lifted' AND EXISTS (SELECT 1 FROM inventory_recall_batches rb WHERE rb.recall_id = NEW.id AND rb.active) THEN
+  RAISE EXCEPTION 'A lifted recall releases all its batches' USING ERRCODE = '23514';
+ END IF;
+ RETURN NULL;
+END $$;
+CREATE CONSTRAINT TRIGGER inventory_recalls_released AFTER UPDATE ON inventory_recalls DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION check_inventory_recall_released();
 CREATE OR REPLACE FUNCTION refuse_inventory_recall_truncate() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
  RAISE EXCEPTION 'Recalls are kept' USING ERRCODE = '23514';
@@ -125,13 +146,13 @@ SQL);
     public function down(): void
     {
         if (DB::connection()->getDriverName() === 'pgsql') {
-            DB::unprepared('DROP TRIGGER IF EXISTS inventory_recall_batches_no_truncate ON inventory_recall_batches; DROP TRIGGER IF EXISTS inventory_recalls_no_truncate ON inventory_recalls;
+            DB::unprepared('DROP TRIGGER IF EXISTS inventory_recalls_released ON inventory_recalls; DROP TRIGGER IF EXISTS inventory_recall_batches_no_truncate ON inventory_recall_batches; DROP TRIGGER IF EXISTS inventory_recalls_no_truncate ON inventory_recalls;
                 DROP TRIGGER IF EXISTS inventory_recall_batches_guard ON inventory_recall_batches; DROP TRIGGER IF EXISTS inventory_recalls_guard ON inventory_recalls;');
         }
         Schema::dropIfExists('inventory_recall_batches');
         Schema::dropIfExists('inventory_recalls');
         if (DB::connection()->getDriverName() === 'pgsql') {
-            DB::unprepared('DROP FUNCTION IF EXISTS refuse_inventory_recall_truncate(); DROP FUNCTION IF EXISTS guard_inventory_recall_batch(); DROP FUNCTION IF EXISTS guard_inventory_recall();');
+            DB::unprepared('DROP FUNCTION IF EXISTS check_inventory_recall_released(); DROP FUNCTION IF EXISTS refuse_inventory_recall_truncate(); DROP FUNCTION IF EXISTS guard_inventory_recall_batch(); DROP FUNCTION IF EXISTS guard_inventory_recall();');
         }
     }
 };

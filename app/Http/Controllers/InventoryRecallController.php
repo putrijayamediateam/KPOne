@@ -44,7 +44,7 @@ final class InventoryRecallController extends Controller
     public function lift(Request $request, string $recall, InventoryRecallService $service): RedirectResponse
     {
         try {
-            $service->lift($request->user(), $recall, $request->only(['expected_branch_id', 'lock_version', 'reason', 'note']));
+            $service->lift($request->user(), $recall, $request->only(['expected_branch_id', 'lock_version', 'retry_key', 'reason', 'note']));
         } catch (ValidationException $e) {
             throw $e->redirectTo(route('inventory.recalls'));
         } catch (AuthorizationException $e) {

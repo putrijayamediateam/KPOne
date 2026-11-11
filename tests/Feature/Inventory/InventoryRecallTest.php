@@ -4,6 +4,7 @@ namespace Tests\Feature\Inventory;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Inventory\Services\GovernedStockService;
 use App\Domain\Organisation\Inventory\Services\InventoryBatchEligibility;
 use App\Domain\Organisation\Inventory\Services\InventoryBatchHoldService;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
@@ -78,7 +79,7 @@ final class InventoryRecallTest extends VisitTestCase
         }
         // Pickers still show it, marked as held for "recall", like an STK-2 hold.
         $row = app(InventoryBatchEligibility::class)->query($other->organisation_id, $other)->where('eligibility.id', $f['batch']->id)->first();
-        $this->assertSame('recall', $row->hold_reason);
+        $this->assertSame('all_branch_recall', $row->hold_reason);
 
         // The Director sees the stock at both branches; a branch viewer sees only their branch. Notes only for starters.
         app(BranchAccessService::class)->select($director, $this->branch);
@@ -103,7 +104,7 @@ final class InventoryRecallTest extends VisitTestCase
         $starter = $this->actorAt('director');
         $this->actingAs($starter)->post(route('inventory.recalls.store'), $this->startInput($f))->assertSessionHasNoErrors();
         $recall = DB::table('inventory_recalls')->sole();
-        $lift = ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'reason' => 'supplier_cleared'];
+        $lift = ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'retry_key' => (string) Str::uuid(), 'reason' => 'supplier_cleared'];
 
         $this->actingAs($starter)->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), $lift)
             ->assertSessionHasErrors(['status' => 'You started this recall, so another person must lift it.']);
@@ -114,10 +115,12 @@ final class InventoryRecallTest extends VisitTestCase
         $other = $this->actorAt('director');
         $this->actingAs($other)->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), $lift)
             ->assertRedirect(route('inventory.recalls', ['tab' => 'lifted']))->assertSessionHasNoErrors();
+        // The same press sent again (a lost reply or a double press) is the same lift, not an error.
+        $this->actingAs($other)->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), $lift)->assertSessionHasNoErrors();
         $this->assertNull($this->reason($this->branch, $f['batch']->id));
         $this->assertSame([false], DB::table('inventory_recall_batches')->pluck('active')->map(fn ($v) => (bool) $v)->all());
-        // Lifting twice, or with an old page, is refused.
-        $this->actingAs($other)->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), $lift)
+        // Lifting again from an old page is refused.
+        $this->actingAs($other)->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), [...$lift, 'retry_key' => (string) Str::uuid()])
             ->assertSessionHasErrors(['lock_version' => 'This recall changed. Reload and review it again.']);
         // A batch can be recalled again once its recall is lifted.
         $this->actingAs($starter)->post(route('inventory.recalls.store'), $this->startInput($f))->assertSessionHasNoErrors();
@@ -154,16 +157,18 @@ final class InventoryRecallTest extends VisitTestCase
             ['expected_branch_id' => $this->branch->id, 'lock_version' => $version, 'retry_key' => (string) Str::uuid(), 'reason' => $reason]);
         $recalls = app(InventoryRecallService::class);
 
-        // Hold, then recall; releasing the hold leaves the recall in force.
+        // Hold, then recall: the recall is what shows, not the branch hold's reason.
         $hold($holder, 'place', 0, 'damaged');
         $recalls->start($this->actorAt('director'), $this->startInput($f));
+        $this->assertSame('all_branch_recall', app(InventoryBatchEligibility::class)->query($this->branch->organisation_id, $this->branch)->where('eligibility.id', $f['batch']->id)->value('hold_reason'));
+        // Releasing the hold leaves the recall in force.
         $hold($releaser, 'release', 1, 'inspection_passed');
         $this->assertSame('recalled', $this->reason($this->branch, $f['batch']->id));
 
         // Hold again, then lift the recall: the hold is still in force.
         $hold($holder, 'place', 2, 'damaged');
         $recall = DB::table('inventory_recalls')->sole();
-        $recalls->lift($this->actorAt('director'), $recall->public_id, ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'reason' => 'recall_withdrawn']);
+        $recalls->lift($this->actorAt('director'), $recall->public_id, ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'retry_key' => (string) Str::uuid(), 'reason' => 'recall_withdrawn']);
         $this->assertSame('held', $this->reason($this->branch, $f['batch']->id));
         $this->assertSame(3, (int) DB::table('inventory_batch_hold_states')->where('inventory_batch_id', $f['batch']->id)->value('lock_version'));
     }
@@ -186,10 +191,80 @@ final class InventoryRecallTest extends VisitTestCase
         $refused(fn () => DB::table('inventory_recalls')->update(['status' => 'lifted', 'lifted_by_user_id' => $starter->id, 'lifted_at' => now(), 'lift_reason' => 'supplier_cleared', 'lock_version' => 2]), 'inventory_recalls_shape');
         $refused(fn () => DB::table('inventory_recalls')->update(['reason' => 'quality_issue']), 'A recall is lifted once and otherwise never changes');
         $refused(fn () => DB::table('inventory_recall_batches')->update(['active' => false]), 'A recalled batch is released only when its recall is lifted');
-        $refused(fn () => DB::table('inventory_recall_batches')->insert(['organisation_id' => $recall->organisation_id, 'recall_id' => $recall->id,
-            'inventory_batch_id' => (new GovernedStockFixture($this->branch))->build('1.000')['batch']->id, 'active' => true]), 'A recalled batch belongs to the recall\'s SKU');
+        $stranger = (new GovernedStockFixture($this->branch))->build('1.000');
+        $refused(fn () => DB::table('inventory_recall_batches')->insert(['organisation_id' => $recall->organisation_id, 'recall_id' => $recall->id, 'inventory_item_id' => $stranger['item']->id,
+            'batch_key' => Str::upper($stranger['batch']->batch_number), 'inventory_batch_id' => $stranger['batch']->id, 'active' => true]), 'A recalled batch belongs to the recall\'s SKU');
+        // Lifting the recall row alone, without releasing its batches, fails at commit.
+        $lifter = $this->actorAt('director');
+        $refused(function () use ($lifter): void {
+            // The check runs at commit; the test's own transaction never commits, so it is asked for at once here.
+            DB::statement('SET CONSTRAINTS inventory_recalls_released IMMEDIATE');
+            DB::table('inventory_recalls')->update(['status' => 'lifted', 'lifted_by_user_id' => $lifter->id, 'lifted_at' => now(), 'lift_reason' => 'supplier_cleared',
+                'lift_idempotency_key' => (string) Str::uuid(), 'lift_request_hash' => str_repeat('a', 64), 'lock_version' => 2]);
+        }, 'A lifted recall releases all its batches');
+        $refused(fn () => DB::statement('TRUNCATE inventory_recall_batches'), 'Recalls are kept');
         $refused(fn () => DB::table('inventory_recalls')->delete(), 'Recalls are kept');
         $refused(fn () => DB::table('inventory_recall_batches')->delete(), 'Recalls are kept');
         $refused(fn () => DB::statement('TRUNCATE inventory_recalls CASCADE'), 'Recalls are kept');
+    }
+
+    public function test_the_same_batch_number_arriving_later_with_another_expiry_or_pack_size_is_blocked(): void
+    {
+        $f = (new GovernedStockFixture($this->branch))->build('10.000');
+        app(InventoryRecallService::class)->start($this->actorAt('director'), $this->startInput($f));
+        // The same number with another expiry (a new batch row) is blocked too.
+        $later = $f['batch']->replicate();
+        $later->forceFill(['public_id' => (string) Str::uuid(), 'batch_number' => ' '.strtolower($f['batch']->batch_number).' ', 'expiry_date' => now()->addDays(200)->toDateString()])->save();
+        $this->assertSame('recalled', $this->reason($this->branch, $later->id));
+        // And in another pack size (another SKU of the same item).
+        $pack = $f['sku']->replicate();
+        $pack->forceFill(['public_id' => (string) Str::uuid(), 'sku_code' => $f['sku']->sku_code.'-BOX'])->save();
+        $boxed = $f['batch']->replicate();
+        $boxed->forceFill(['public_id' => (string) Str::uuid(), 'inventory_sku_id' => $pack->id])->save();
+        $this->assertSame('recalled', $this->reason($this->branch, $boxed->id));
+        // Another number of the same item is not.
+        $other = $f['batch']->replicate();
+        $other->forceFill(['public_id' => (string) Str::uuid(), 'batch_number' => 'SYN-OTHER-NUMBER'])->save();
+        $this->assertNull($this->reason($this->branch, $other->id));
+    }
+
+    public function test_recalled_stock_can_still_be_written_off_and_moved_and_shared_stores_show(): void
+    {
+        $f = (new GovernedStockFixture($this->branch))->build('10.000');
+        $director = $this->actorAt('director');
+        app(InventoryRecallService::class)->start($director, $this->startInput($f, ['reference' => 'SUP-REF-9']));
+
+        // Moving it inside the branch still works.
+        $cupboard = new InventoryLocation;
+        $cupboard->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id, 'branch_id' => $this->branch->id, 'code' => 'SYN-QUAR-'.Str::upper(Str::random(4)),
+            'name' => 'Synthetic quarantine shelf', 'type' => 'store', 'is_active' => true])->save();
+        app(InventoryMovementService::class)->transfer($f['proposer'], ['expected_branch_id' => $this->branch->id, 'sku_public_id' => $f['sku']->public_id,
+            'batch_public_id' => $f['batch']->public_id, 'source_location_public_id' => $f['location']->public_id, 'destination_location_public_id' => $cupboard->public_id, 'quantity' => '3.000']);
+
+        // A governed write-off of recalled stock is proposed and approved as usual.
+        $governed = app(GovernedStockService::class);
+        $balance = DB::table('inventory_stock_balances')->where('inventory_location_id', $f['location']->id)->where('inventory_batch_id', $f['batch']->id)->sole();
+        $case = $governed->propose($f['proposer'], 'writeoff', ['expected_branch_id' => $this->branch->id, 'lock_version' => 0, 'retry_key' => (string) Str::uuid(), 'balance_id' => $balance->id,
+            'balance_version' => $balance->lock_version, 'unit' => 'unit', 'quantity' => '7.000', 'reason' => 'other_approved', 'disposal_reference' => 'Recall SUP-REF-9 disposal log']);
+        // A new case is at version 1, as in the STK-5 and STK-23 tests.
+        $governed->act($this->actorAt('finance_officer'), $case, 'approved', ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'retry_key' => (string) Str::uuid()]);
+        $this->assertSame('0.000', (string) DB::table('inventory_stock_balances')->where('id', $balance->id)->value('quantity'));
+
+        // Stock in a shared store (no branch) shows on the recall page for those who start or lift recalls.
+        $shared = new InventoryLocation;
+        $shared->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id, 'branch_id' => null, 'code' => 'SYN-CENTRAL-'.Str::upper(Str::random(4)),
+            'name' => 'Synthetic central store', 'type' => 'store', 'is_active' => true])->save();
+        DB::table('inventory_stock_balances')->insert(['organisation_id' => $this->branch->organisation_id, 'inventory_location_id' => $shared->id, 'inventory_sku_id' => $f['sku']->id,
+            'inventory_batch_id' => $f['batch']->id, 'quantity' => '2.000', 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        app(BranchAccessService::class)->select($director, $this->branch);
+        $row = $this->actingAs($director)->get(route('inventory.recalls'))->viewData('page')['props']['recalls']['recalls']['rows'][0];
+        $where = collect($row['whereIs'])->mapWithKeys(fn (array $w): array => [$w['branch'].' / '.$w['location'] => $w['quantity']])->all();
+        $this->assertSame('2', $where['Shared store / Synthetic central store']);
+        $this->assertSame('3', collect($row['whereIs'])->firstWhere('location', 'Synthetic quarantine shelf')['quantity']);
+        $this->assertSame('SUP-REF-9', $row['reference']);
+        // Branch staff see neither the reference nor other places.
+        $view = $this->actingAs($this->actorAt('ca'))->get(route('inventory.recalls'))->viewData('page')['props']['recalls']['recalls']['rows'][0];
+        $this->assertNull($view['reference']);
+        $this->assertNotContains('Synthetic central store', array_column($view['whereIs'], 'location'));
     }
 }
