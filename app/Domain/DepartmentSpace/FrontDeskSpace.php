@@ -33,6 +33,9 @@ final class FrontDeskSpace
         if ($branch !== null && $actor->can('visits.view.branch')) {
             $links[] = ['title' => 'Open Registration', 'href' => route('registration.index', absolute: false)];
         }
+        if ($branch !== null && $actor->can('patients.search.organisation')) {
+            $links[] = ['title' => 'Patient directory', 'href' => route('patients.index', absolute: false)];
+        }
 
         return [
             'branchName' => $branch?->name,

@@ -27,7 +27,7 @@ class FrontDeskSpaceTest extends VisitTestCase
             ->where('frontDesk.qrPending.total', 0)
             ->where('frontDesk.qrPending.href', '/registration?tab=qr-intake')
             ->where('frontDesk.primaryAction', ['title' => 'Register a visit', 'href' => '/registration/create'])
-            ->where('frontDesk.links', [['title' => 'Open Registration', 'href' => '/registration']])
+            ->where('frontDesk.links', [['title' => 'Open Registration', 'href' => '/registration'], ['title' => 'Patient directory', 'href' => '/patients']])
             ->has('frontDesk.glance.waiting'));
     }
 
