@@ -81,3 +81,10 @@ test('DS-2: below 640 px the branch select and an initials-only account button s
     );
     assert.match(css, /\.space-account > div \{\s*display: none;/);
 });
+
+test('DS-2: account menu rows are 44 px below 640 px', () => {
+    assert.match(
+        read('resources/js/pages/Spaces/Show.vue'),
+        /max-sm:\[&_\[role=menuitem\]\]:min-h-11/,
+    );
+});
