@@ -511,9 +511,11 @@ const activeBoxHint = computed((): BoxBatchHint | null => {
     );
 
     // Information only (Daniel): the dropdown still shows the earlier choice, so say when it is not the box's batch.
-    // A selected option with the box's batch number but another expiry is the same batch: no clause there.
-    return hint.named &&
-        (selected === undefined || !hint.sameBatch.includes(selected))
+    // A selected option with the box's batch number but another expiry is the same batch: no clause there, unless an
+    // option matches the box exactly (batch and expiry), in which case only those count as the box's batch (Hakim).
+    const boxs = hint.matches.length > 0 ? hint.matches : hint.sameBatch;
+
+    return hint.named && (selected === undefined || !boxs.includes(selected))
         ? {
               ...hint,
               message: `${hint.message} The selected batch is not the one on the box.`,

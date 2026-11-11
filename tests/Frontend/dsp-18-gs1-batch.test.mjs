@@ -183,7 +183,12 @@ test('the page names the box and marks options, and a GS1 scan never selects a b
     );
     assert.ok(
         flat.includes(
-            'hint.named && (selected === undefined || !hint.sameBatch.includes(selected))',
+            'hint.named && (selected === undefined || !boxs.includes(selected))',
+        ),
+    );
+    assert.ok(
+        flat.includes(
+            'const boxs = hint.matches.length > 0 ? hint.matches : hint.sameBatch;',
         ),
     );
     assert.equal(
