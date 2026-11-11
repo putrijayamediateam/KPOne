@@ -31,7 +31,7 @@ final class ConsultationSpace
         return [
             'branchName' => $branch?->name,
             'asOf' => $branch ? now()->setTimezone($branch->timezone)->format('g:i A') : null,
-            'waiting' => $snapshot === null ? null : ['total' => $snapshot['waitingTotal'], 'limit' => self::LIST_LIMIT, 'seeAllHref' => $seeAll, 'rows' => array_slice($snapshot['waiting'], 0, self::LIST_LIMIT)],
+            'waiting' => $snapshot === null ? null : ['total' => $snapshot['waitingTotal'], 'limit' => self::LIST_LIMIT, 'seeAllHref' => $seeAll, 'rows' => array_map(fn (array $r): array => array_diff_key($r, ['notReady' => 1]), array_slice($snapshot['waiting'], 0, self::LIST_LIMIT))],
             'held' => $snapshot === null ? null : ['total' => count($snapshot['held']), 'limit' => self::LIST_LIMIT, 'seeAllHref' => $seeAll, 'rows' => array_slice($snapshot['held'], 0, self::LIST_LIMIT)],
             'next' => $snapshot['next'] ?? null,
             'primaryAction' => $snapshot === null ? null : ['title' => 'Open my queue', 'href' => $seeAll],
@@ -57,6 +57,7 @@ final class ConsultationSpace
             'urgent' => ($r['priority'] ?? null) === 'urgent',
             'waitText' => $r['waitingMinutes'] === null ? null : SpaceDisplay::waitText((int) $r['waitingMinutes']),
             'minutes' => (int) ($r['waitingMinutes'] ?? 0),
+            'notReady' => is_array($r['callHold'] ?? null) && ($r['callHold']['active'] ?? false) ? (string) ($r['callHold']['reason'] ?? 'Not ready') : null,
             'href' => route('visits.show', ['visit' => $r['visitNumber']], absolute: false),
         ];
         $waiting = array_map($row, array_merge($this->all($data['waiting']['data']), $this->all($data['carryOver']['data'])));

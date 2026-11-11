@@ -48,13 +48,13 @@ class ConsultationSpaceTest extends QueueTestCase
         $doctor = $this->doctor();
         $this->selectBranch($doctor);
         $this->get('/spaces/consultation')->assertInertia(fn (Assert $p) => $p->has('questions', 2));
-        $this->postJson('/spaces/consultation/ask', ['question' => 'consultation.waiting_for_me'])
+        $this->postJson('/spaces/consultation/ask', ['question' => 'consultation.longest_waiting'])
             ->assertOk()->assertJsonPath('sentence', 'Nobody is waiting for you.')->assertJsonPath('href', '/queue');
-        $this->postJson('/spaces/consultation/ask', ['question' => 'consultation.on_hold'])
-            ->assertOk()->assertJsonPath('sentence', 'None of your consultations is on hold.');
+        $this->postJson('/spaces/consultation/ask', ['question' => 'consultation.not_ready'])
+            ->assertOk()->assertJsonPath('sentence', 'None of your waiting patients is marked not ready to call.');
 
         $this->selectBranch($this->actor('ca'));
         $this->get('/spaces/consultation')->assertForbidden();
-        $this->postJson('/spaces/consultation/ask', ['question' => 'consultation.waiting_for_me'])->assertForbidden();
+        $this->postJson('/spaces/consultation/ask', ['question' => 'consultation.longest_waiting'])->assertForbidden();
     }
 }

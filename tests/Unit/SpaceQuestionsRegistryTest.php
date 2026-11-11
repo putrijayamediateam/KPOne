@@ -25,8 +25,8 @@ final class SpaceQuestionsRegistryTest extends TestCase
             'billing.owes_most' => ['billing', 'outstanding.view.branch', true],
             'billing.closings_waiting' => ['billing', 'payments.cash_closing.approve.branch', false],
             'billing.closings_missing' => ['billing', 'payments.reconcile.branch', false],
-            'consultation.waiting_for_me' => ['consultation', 'queue.view.own', false],
-            'consultation.on_hold' => ['consultation', 'queue.view.own', true],
+            'consultation.longest_waiting' => ['consultation', 'queue.view.own', true],
+            'consultation.not_ready' => ['consultation', 'queue.view.own', true],
         ], array_map(fn (array $q): array => [$q['space'], $q['permission'], $q['patientLevel']], SpaceQuestions::REGISTRY));
     }
 
