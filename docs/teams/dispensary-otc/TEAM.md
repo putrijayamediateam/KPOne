@@ -298,6 +298,11 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 - **Check this return panel (design debt, agreed with Daniel 2026-11-10):** DSP-15's new boxes and helper follow
   DD-24 (44 px below 1024 px), but the rest of the panel still switches below 640 px (sm). Moving it to max-lg is a
   separate small fix.
+- **DD-57 (dark mode, 2026-11-11):** the Dispensary attention panel and the Dispensary page now give every pale
+  warning colour a `dark:` style (PR #476, Daniel: OK). The other DD-57 files belong to other teams.
+- **Raw status code on the Dispensary page (Daniel, 2026-11-11):** a line with an earlier partial dispense showed
+  "Earlier partial dispense: awaiting_acknowledgement". The fix shows plain words ("waiting for the doctor to
+  acknowledge") on branch `fix/dsp-exception-wording`, opened as a small PR after #476.
 - **CA Supervisor guide after DSP-15:** `docs/guides/ms/penyelia-ca.md` says to choose the original batch for a
   quarantine. Since #430 merged, it needs the split boxes ("Batches the units came from", "Fill from earliest expiry").
 - **Allergy matching is text only (DSP-1, DSP-1b, DSP-1c):** a CA add or edit that matches an active allergy record
