@@ -457,6 +457,22 @@ check items, keep them"). The rest stand unless the owner changes them.
     inside, outside or not available with an accuracy band (a reading rougher than 1 km is not available); a refusal never
     blocks; Review shows plain muted words; staff see their own latest result (Suresh, m3); the audit log records only that a
     press was checked, never the result (Suresh, M1). HR-16b (photo) is not built.
+96. Owner answers to the six open questions (owner, 2026-11-11: "that two works i approve use ur recommendation",
+    relayed by B.E.R.N.I.S.S):
+    - decision 90 stands as built: HR reads patient-care incident reports, and clinical review happens outside KPOne;
+    - retention: location-check results are kept 90 days, then deleted by `hr-location-checks:purge` (#482); attendance
+      records (sessions, events, corrections, overtime requests, location consents) are kept 7 years, then deleted by
+      `hr-attendance:purge` (built on #482, its PR follows); the accountant confirms the 7 years before real use; the PDPA
+      retention table (04) records both;
+    - applicants withdraw and delete their application themselves from their private link (HR-13; the whole talent-pool
+      pair goes together; an application at Offered is left for HR);
+    - HR-17c: an unanswered interview invitation is auto-rejected after 3 working days, counted at the interview branch,
+      only while the round has no picks; whether the candidate is told the deadline, and whether HR may give more time,
+      are with the owner (B.E.R.N.I.S.S, 2026-11-11);
+    - former staff with an inactive account have no payslip access in KPOne (as built: an inactive account cannot sign
+      in); HR sends a copy on request (a preparer opens the payslip; nothing records the hand-over);
+    - the one-Director case: the Director may rate and sign off the HR Manager's appraisal, shown as "signed off by the
+      same person" (and audited `same_person`).
 
 ## 7. Open items and known limits
 
