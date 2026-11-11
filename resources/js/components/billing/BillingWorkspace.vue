@@ -59,6 +59,9 @@ const invoiceTabs = [
 ];
 const page = usePage();
 const busy = ref(false);
+// BIL-25 (Siti): a reversed receipt is a settled correction, so it stays grey whatever the shared map says.
+const receiptTone = (status: string) =>
+    status === 'reversed' ? ('neutral' as const) : undefined;
 const contextCleared = ref(false);
 const completionOpen = ref(false);
 const paymentOpen = ref(false);
@@ -919,7 +922,10 @@ const reverse = (receipt: Receipt) =>
                                         {{ myr(receipt.amountSen) }}
                                     </td>
                                     <td class="p-3">
-                                        <StatusBadge :status="receipt.status" />
+                                        <StatusBadge
+                                            :status="receipt.status"
+                                            :tone="receiptTone(receipt.status)"
+                                        />
                                     </td>
                                     <td class="p-3">
                                         <div
@@ -989,7 +995,10 @@ const reverse = (receipt: Receipt) =>
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>
-                            <StatusBadge :status="receipt.status" />
+                            <StatusBadge
+                                :status="receipt.status"
+                                :tone="receiptTone(receipt.status)"
+                            />
                             <div class="flex flex-wrap gap-2">
                                 <IssuePrintButton
                                     v-if="billing.can.print"
@@ -1030,10 +1039,13 @@ const reverse = (receipt: Receipt) =>
                             </div>
                             <div class="mt-1 text-[11px] text-muted-foreground">
                                 {{ receipt.number }} ·
-                                {{ receipt.receivedAt }} ·
-                                <span class="capitalize">{{
-                                    receipt.status
-                                }}</span>
+                                {{ receipt.receivedAt }}
+                            </div>
+                            <div class="mt-1">
+                                <StatusBadge
+                                    :status="receipt.status"
+                                    :tone="receiptTone(receipt.status)"
+                                />
                             </div>
                             <p
                                 v-if="receipt.refundedSen"
