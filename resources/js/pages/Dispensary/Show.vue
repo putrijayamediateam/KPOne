@@ -26,9 +26,11 @@ import {
     scannableCount,
 } from '@/lib/dispensary-scan';
 import type { ScanCheckLine, ScanMarks } from '@/lib/dispensary-scan';
+import { boxBatchHint } from '@/lib/gs1-batch';
+import type { BoxBatchHint } from '@/lib/gs1-batch';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate, formatStatusLabel } from '@/lib/presentation';
-import type { ScannedSku } from '@/lib/scan';
+import type { Gs1Read, ScannedSku } from '@/lib/scan';
 import AllergyMatchWarning from '@/pages/Dispensary/Partials/AllergyMatchWarning.vue';
 import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
 
@@ -481,6 +483,55 @@ const describeScan = (sku: ScannedSku): string => scanOutcome(sku).message;
 // which keeps itself ready for the next box (STK-9's ScanInput).
 const batchHint = ref<string | null>(null);
 const BATCH_HINT = 'Pick the batch printed on the box.';
+// DSP-18: a GS1 code also says which batch and expiry are on the box. The hint names them and marks matching options,
+// and still never selects one: the CA picks the batch, as in DSP-17.
+const boxRead = ref<Gs1Read | null>(null);
+// One hint for the target the scan pointed at, computed once per change rather than per option (Hakim).
+const activeBoxHint = computed((): BoxBatchHint | null => {
+    const target = batchHint.value;
+
+    if (target === null) {
+        return null;
+    }
+
+    const availability =
+        target === 'add'
+            ? (chosen.value?.availability ?? [])
+            : (visibleItems.value.find((item) => item.publicId === target)
+                  ?.availability ?? []);
+    const selected =
+        target === 'add'
+            ? addForm.availabilityIndex
+            : forms[target]?.availabilityIndex;
+    const hint = boxBatchHint(
+        boxRead.value,
+        availability,
+        formatDate,
+        BATCH_HINT,
+    );
+
+    // Information only (Daniel): the dropdown still shows the earlier choice, so say when it is not the box's batch.
+    // A selected option with the box's batch number but another expiry is the same batch: no clause there, unless an
+    // option matches the box exactly (batch and expiry), in which case only those count as the box's batch (Hakim).
+    const boxs = hint.matches.length > 0 ? hint.matches : hint.sameBatch;
+
+    return hint.named && (selected === undefined || !boxs.includes(selected))
+        ? {
+              ...hint,
+              message: `${hint.message} The selected batch is not the one on the box.`,
+          }
+        : hint;
+});
+const boxHint = (target: string): BoxBatchHint =>
+    (batchHint.value === target ? activeBoxHint.value : null) ?? {
+        message: BATCH_HINT,
+        matches: [],
+        warn: false,
+        named: false,
+        sameBatch: [],
+    };
+const matchesBox = (target: string, index: number): boolean =>
+    batchHint.value === target && boxHint(target).matches.includes(index);
 const pointAtBatch = async (publicId: string) => {
     batchHint.value = publicId;
     await nextTick();
@@ -516,9 +567,10 @@ watch(visibleItems, (items) => {
         batchHint.value = null;
     }
 });
-const markScanned = (sku: ScannedSku) => {
+const markScanned = (sku: ScannedSku, gs1: Gs1Read | null = null) => {
     const outcome = scanOutcome(sku);
     batchHint.value = null;
+    boxRead.value = gs1;
 
     if (outcome.kind === 'match' || outcome.kind === 'already') {
         scanMarks.value = outcome.marks;
@@ -852,7 +904,7 @@ const pickMedicine = (medicine: Medicine) => {
     clearScanAdd();
     chooseMedicine(medicine);
 };
-const scanToAdd = async (sku: ScannedSku) => {
+const scanToAdd = async (sku: ScannedSku, gs1: Gs1Read | null = null) => {
     if (busy.value) {
         scanAddAllergy.value = false;
         scanAddMessage.value = 'Wait for the save to finish, then scan again.';
@@ -908,6 +960,7 @@ const scanToAdd = async (sku: ScannedSku) => {
             results.value = [outcome.medicine];
             chooseMedicine(outcome.medicine);
             batchHint.value = 'add';
+            boxRead.value = gs1;
             scanAddMessage.value = outcome.message;
             scanAddOpen.value = false;
             await nextTick();
@@ -1560,6 +1613,10 @@ const exceptionStatusLabels: Record<string, string> = {
                                         :disabled="stock.held"
                                     >
                                         {{
+                                            matchesBox(item.publicId, index)
+                                                ? 'Matches the box · '
+                                                : ''
+                                        }}{{
                                             batchOptionText(
                                                 stock,
                                                 item.sku?.unit ?? item.unit,
@@ -1578,12 +1635,18 @@ const exceptionStatusLabels: Record<string, string> = {
                                     class="block font-medium text-brand-strong empty:hidden"
                                     ><span
                                         v-if="batchHint === item.publicId"
-                                        class="inline-flex items-center gap-1"
+                                        class="inline-flex items-start gap-1"
+                                        :class="
+                                            boxHint(item.publicId).warn &&
+                                            'text-warning-strong'
+                                        "
                                         data-testid="batch-pick-hint"
                                         ><ScanLine
-                                            class="size-3.5"
+                                            class="mt-px size-3.5 shrink-0"
                                             aria-hidden="true"
-                                        />{{ BATCH_HINT }}</span
+                                        />{{
+                                            boxHint(item.publicId).message
+                                        }}</span
                                     ></span
                                 >
                                 {{
@@ -1986,6 +2049,10 @@ const exceptionStatusLabels: Record<string, string> = {
                                     :disabled="stock.held"
                                 >
                                     {{
+                                        matchesBox('add', index)
+                                            ? 'Matches the box · '
+                                            : ''
+                                    }}{{
                                         batchOptionText(
                                             stock,
                                             chosen.sku?.unit ?? chosen.unit,
@@ -2004,12 +2071,16 @@ const exceptionStatusLabels: Record<string, string> = {
                                 class="block font-medium text-brand-strong empty:hidden"
                                 ><span
                                     v-if="batchHint === 'add'"
-                                    class="inline-flex items-center gap-1"
+                                    class="inline-flex items-start gap-1"
+                                    :class="
+                                        boxHint('add').warn &&
+                                        'text-warning-strong'
+                                    "
                                     data-testid="batch-pick-hint"
                                     ><ScanLine
-                                        class="size-3.5"
+                                        class="mt-px size-3.5 shrink-0"
                                         aria-hidden="true"
-                                    />{{ BATCH_HINT }}</span
+                                    />{{ boxHint('add').message }}</span
                                 ></span
                             >
                             {{
