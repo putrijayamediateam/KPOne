@@ -13,6 +13,13 @@ use App\Models\User;
  */
 final class SpaceAskService
 {
+    /** The page that holds the full list behind each answer. */
+    private const FULL_LIST = [
+        'pharmacy.longest_waiting' => 'registration.index',
+        'pharmacy.returns_waiting' => 'dispensary.returns-to-check',
+        'pharmacy.stock_attention' => 'inventory.stock-review',
+    ];
+
     public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private AuditRecorder $audit) {}
 
     /**
@@ -32,7 +39,7 @@ final class SpaceAskService
         return $out;
     }
 
-    /** @return array{key: string, label: string, sentence: string, columns: list<string>, rows: list<list<string>>} */
+    /** @return array{key: string, label: string, sentence: string, columns: list<string>, rows: list<list<string>>, asOf: string, href: string} */
     public function ask(User $actor, string $space, string $key): array
     {
         $question = SpaceQuestions::find($key);
@@ -44,7 +51,15 @@ final class SpaceAskService
         $answer = $this->{$question['builder']}($actor);
         $this->audit->record('space_ask.answered', null, ['question' => $key], $actor, $branch, $actor->organisation_id);
 
-        return ['key' => $key, 'label' => $question['label'], 'sentence' => $answer['sentence'], 'columns' => $answer['columns'], 'rows' => $answer['rows']];
+        return [
+            'key' => $key,
+            'label' => $question['label'],
+            'sentence' => $answer['sentence'],
+            'columns' => $answer['columns'],
+            'rows' => $answer['rows'],
+            'asOf' => now()->setTimezone($branch->timezone)->format('g:i A'),
+            'href' => route(self::FULL_LIST[$key], absolute: false),
+        ];
     }
 
     private function allowed(User $actor, string $key): bool
@@ -54,7 +69,7 @@ final class SpaceAskService
         }
 
         return match ($key) {
-            'pharmacy.left_to_dispense' => $this->pharmacy->toDispense($actor) !== null,
+            'pharmacy.longest_waiting' => $this->pharmacy->toDispense($actor) !== null,
             'pharmacy.returns_waiting' => $this->pharmacy->returnsToCheck($actor) !== null,
             'pharmacy.stock_attention' => $this->pharmacy->stockWatch($actor) !== null,
             default => false,
@@ -62,20 +77,23 @@ final class SpaceAskService
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
-    private function leftToDispense(User $actor): array
+    private function longestWaiting(User $actor): array
     {
         $list = $this->pharmacy->toDispense($actor);
         abort_if($list === null, 403);
-        $total = (int) $list['total'];
-        $rows = [];
         /** @var list<array<string, mixed>> $shown */
-        $shown = $list['rows'];
-        foreach ($shown as $row) {
-            $rows[] = [(string) ($row['queueNumber'] ?? ''), (string) $row['patient'], $row['minutes'].' min'];
+        $shown = array_slice($list['rows'], 0, 3);
+        if ($shown === []) {
+            return ['sentence' => 'Nobody is waiting at Dispensary.', 'columns' => [], 'rows' => []];
         }
+        $rows = [];
+        foreach ($shown as $row) {
+            $rows[] = [(string) ($row['queueNumber'] ?? ''), (string) $row['patient'], $this->pharmacy->waitText((int) $row['minutes'])];
+        }
+        $first = $shown[0];
 
         return [
-            'sentence' => $total === 0 ? 'Nothing is waiting at Dispensary.' : ($total === 1 ? '1 patient is waiting at Dispensary.' : $total.' patients are waiting at Dispensary.').($total > count($rows) ? ' The '.count($rows).' longest waiting are shown.' : ''),
+            'sentence' => $first['patient'].($first['queueNumber'] ? ' ('.$first['queueNumber'].')' : '').' has waited longest: '.$this->pharmacy->waitText((int) $first['minutes']).'.',
             'columns' => ['Number', 'Patient', 'Waiting'],
             'rows' => $rows,
         ];

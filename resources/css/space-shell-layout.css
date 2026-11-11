@@ -395,3 +395,41 @@
     color: var(--space-muted);
     font-weight: 600;
 }
+
+.space-shell .space-ask-skeleton {
+    display: grid;
+    gap: 8px;
+}
+.space-shell .space-ask-skeleton span {
+    display: block;
+    height: 16px;
+    border-radius: 6px;
+    background: var(--space-hover);
+}
+.space-shell .space-ask-skeleton span:first-child {
+    width: 60%;
+}
+.space-shell .space-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+.space-shell .space-ask-meta {
+    margin: 8px 0 0;
+}
+@media (max-width: 639px) {
+    .space-shell .space-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .space-shell .space-stats strong {
+        font-size: 18px;
+    }
+    .space-shell .space-stats .space-muted {
+        font-size: 12px;
+    }
+}

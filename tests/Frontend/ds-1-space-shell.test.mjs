@@ -147,3 +147,16 @@ test('DS-3a: the Ask panel posts a preset question key only, with no free-text b
         /\.space-ask-btn \{[^}]*min-height: 44px/,
     );
 });
+
+test('DS-3a: Quick questions start unpicked and have loading, failed and answer states with an as-of stamp and a full-list link', () => {
+    const panel = read('resources/js/components/spaces/SpaceAskPanel.vue');
+    assert.match(panel, />Quick questions</);
+    assert.match(panel, /Fixed questions\. Nothing is typed\./);
+    assert.match(panel, /Pick a question/);
+    assert.match(panel, /space-ask-skeleton/);
+    assert.match(panel, /Could not load\. Try again\./);
+    assert.match(panel, /Retry/);
+    assert.match(panel, /as of \{\{ answer\.asOf \}\}/);
+    assert.match(panel, /Open the full list/);
+    assert.doesNotMatch(panel, /onMounted|immediate/);
+});

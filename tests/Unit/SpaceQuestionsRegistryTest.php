@@ -14,7 +14,7 @@ final class SpaceQuestionsRegistryTest extends TestCase
     public function test_the_registry_is_exactly_the_agreed_first_set(): void
     {
         $this->assertSame([
-            'pharmacy.left_to_dispense' => ['pharmacy', 'dispensary.view.branch', true],
+            'pharmacy.longest_waiting' => ['pharmacy', 'dispensary.view.branch', true],
             'pharmacy.returns_waiting' => ['pharmacy', 'dispensary.view.branch', false],
             'pharmacy.stock_attention' => ['pharmacy', 'inventory.view.branch', false],
         ], array_map(fn (array $q): array => [$q['space'], $q['permission'], $q['patientLevel']], SpaceQuestions::REGISTRY));

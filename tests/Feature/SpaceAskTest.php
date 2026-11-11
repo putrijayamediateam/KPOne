@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Domain\Audit\Models\AuditLog;
 use App\Domain\Clinical\Dispensary\Services\OtcDispensaryService;
 use App\Domain\Queue\Services\OtcQueueService;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
 
@@ -18,11 +19,11 @@ class SpaceAskTest extends VisitTestCase
 
         $this->get('/spaces/pharmacy')->assertInertia(fn (Assert $p) => $p
             ->where('questions', [
-                ['key' => 'pharmacy.left_to_dispense', 'label' => 'What is left to dispense?'],
+                ['key' => 'pharmacy.longest_waiting', 'label' => 'Who has waited longest?'],
                 ['key' => 'pharmacy.stock_attention', 'label' => 'What stock needs attention?'],
             ]));
-        $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.left_to_dispense'])
-            ->assertOk()->assertJsonPath('sentence', 'Nothing is waiting at Dispensary.');
+        $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.longest_waiting'])
+            ->assertOk()->assertJsonPath('sentence', 'Nobody is waiting at Dispensary.')->assertJsonPath('href', '/registration');
         $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.returns_waiting'])->assertForbidden();
         $this->assertSame(1, AuditLog::query()->where('event', 'space_ask.answered')->count());
     }
@@ -41,7 +42,7 @@ class SpaceAskTest extends VisitTestCase
     {
         foreach (['director', 'resident_doctor', 'panel_officer', 'finance_officer', 'marketing'] as $role) {
             $this->selectBranch($this->actor($role));
-            $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.left_to_dispense'])->assertForbidden();
+            $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.longest_waiting'])->assertForbidden();
         }
         foreach (['resident_doctor', 'panel_officer', 'marketing'] as $role) {
             $this->selectBranch($this->actor($role));
@@ -54,26 +55,27 @@ class SpaceAskTest extends VisitTestCase
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
         $this->postJson('/spaces/pharmacy/ask', ['question' => 'nonsense'])->assertNotFound();
-        $this->postJson('/spaces/front_desk/ask', ['question' => 'pharmacy.left_to_dispense'])->assertNotFound();
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'pharmacy.longest_waiting'])->assertNotFound();
         $this->postJson('/spaces/pharmacy/ask', [])->assertStatus(422);
         auth()->logout();
-        $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.left_to_dispense'])->assertUnauthorized();
+        $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.longest_waiting'])->assertUnauthorized();
     }
 
-    public function test_the_patient_level_answer_carries_only_what_the_page_row_carries(): void
+    public function test_the_patient_level_answer_carries_only_what_the_page_row_carries_with_the_waiting_words(): void
     {
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
         $visit = $this->register($ca, $this->patient($ca, ['full_name' => 'Ahmad Ismail bin Ali']));
         app(OtcQueueService::class)->enter($ca, $visit, ['expected_branch_id' => $this->branch->id]);
-        app(OtcDispensaryService::class)->open($ca, $visit, ['expected_branch_id' => $this->branch->id]);
+        $case = app(OtcDispensaryService::class)->open($ca, $visit, ['expected_branch_id' => $this->branch->id]);
+        DB::table('dispensary_cases')->where('id', $case->id)->update(['received_at' => now()->utc()->subMinutes(70)]);
 
-        $json = $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.left_to_dispense'])->assertOk()->json();
-        $this->assertSame('1 patient is waiting at Dispensary.', $json['sentence']);
+        $json = $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.longest_waiting'])->assertOk()->json();
+        $this->assertSame('Ahmad I. (B-001) has waited longest: Waiting 70 min, Very long wait.', $json['sentence']);
         $this->assertSame(['Number', 'Patient', 'Waiting'], $json['columns']);
-        $this->assertSame('B-001', $json['rows'][0][0]);
-        $this->assertSame('Ahmad I.', $json['rows'][0][1]);
-        $this->assertSame(['key', 'label', 'sentence', 'columns', 'rows'], array_keys($json));
+        $this->assertSame(['B-001', 'Ahmad I.', 'Waiting 70 min, Very long wait'], $json['rows'][0]);
+        $this->assertSame(['key', 'label', 'sentence', 'columns', 'rows', 'asOf', 'href'], array_keys($json));
+        $this->assertMatchesRegularExpression('/^\d{1,2}:\d{2} (AM|PM)$/', $json['asOf']);
         $this->assertStringNotContainsString('Ismail', json_encode($json));
     }
 
@@ -86,6 +88,6 @@ class SpaceAskTest extends VisitTestCase
             ->where('questions', [['key' => 'pharmacy.stock_attention', 'label' => 'What stock needs attention?']]));
         $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.stock_attention'])
             ->assertOk()->assertJsonPath('sentence', 'No stock needs attention.')->assertJsonPath('rows', []);
-        $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.left_to_dispense'])->assertForbidden();
+        $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.longest_waiting'])->assertForbidden();
     }
 }

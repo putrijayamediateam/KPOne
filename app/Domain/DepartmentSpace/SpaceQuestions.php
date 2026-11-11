@@ -18,7 +18,7 @@ final class SpaceQuestions
      * @var array<string, array{space: string, label: string, permission: string, date: string, builder: string, patientLevel: bool}>
      */
     public const REGISTRY = [
-        'pharmacy.left_to_dispense' => ['space' => 'pharmacy', 'label' => 'What is left to dispense?', 'permission' => 'dispensary.view.branch', 'date' => self::NOW, 'builder' => 'leftToDispense', 'patientLevel' => true],
+        'pharmacy.longest_waiting' => ['space' => 'pharmacy', 'label' => 'Who has waited longest?', 'permission' => 'dispensary.view.branch', 'date' => self::NOW, 'builder' => 'longestWaiting', 'patientLevel' => true],
         'pharmacy.returns_waiting' => ['space' => 'pharmacy', 'label' => 'Which returns wait for a check?', 'permission' => 'dispensary.view.branch', 'date' => self::NOW, 'builder' => 'returnsWaiting', 'patientLevel' => false],
         'pharmacy.stock_attention' => ['space' => 'pharmacy', 'label' => 'What stock needs attention?', 'permission' => 'inventory.view.branch', 'date' => self::NOW, 'builder' => 'stockAttention', 'patientLevel' => false],
     ];

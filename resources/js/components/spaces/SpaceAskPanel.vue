@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { Link } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { JsonRequestError, requestJson } from '@/lib/json-client';
 
@@ -9,6 +10,8 @@ type Answer = {
     sentence: string;
     columns: string[];
     rows: string[][];
+    asOf: string;
+    href: string;
 };
 
 const props = defineProps<{ space: string; questions: Question[] }>();
@@ -16,6 +19,7 @@ const props = defineProps<{ space: string; questions: Question[] }>();
 const answer = ref<Answer | null>(null);
 const busy = ref<string | null>(null);
 const error = ref('');
+const failed = ref<Question | null>(null);
 
 const csrf = () =>
     decodeURIComponent(
@@ -32,6 +36,7 @@ const ask = async (question: Question) => {
 
     busy.value = question.key;
     error.value = '';
+    failed.value = null;
 
     try {
         answer.value = await requestJson<Answer>(`/spaces/${props.space}/ask`, {
@@ -44,10 +49,12 @@ const ask = async (question: Question) => {
         });
     } catch (caught) {
         answer.value = null;
-        error.value =
-            caught instanceof JsonRequestError && caught.status === 403
-                ? 'You can no longer ask this question.'
-                : 'The answer could not be loaded. Try again.';
+        const refused =
+            caught instanceof JsonRequestError && caught.status === 403;
+        error.value = refused
+            ? 'You can no longer ask this question.'
+            : 'Could not load. Try again.';
+        failed.value = refused ? null : question;
     } finally {
         busy.value = null;
     }
@@ -56,7 +63,8 @@ const ask = async (question: Question) => {
 
 <template>
     <section class="space-card" aria-labelledby="space-ask">
-        <h2 id="space-ask">Ask</h2>
+        <h2 id="space-ask">Quick questions</h2>
+        <p class="space-muted">Fixed questions. Nothing is typed.</p>
         <div class="space-ask-list" role="group" aria-label="Questions">
             <button
                 v-for="q in questions"
@@ -64,17 +72,33 @@ const ask = async (question: Question) => {
                 type="button"
                 class="space-ask-btn"
                 :class="{ 'is-on': answer?.key === q.key }"
+                :aria-pressed="answer?.key === q.key"
                 :disabled="busy !== null"
                 @click="ask(q)"
             >
                 {{ q.label }}
             </button>
         </div>
-        <div class="space-ask-answer" aria-live="polite">
-            <p v-if="busy" class="space-muted">Loading…</p>
-            <p v-else-if="error" class="space-ask-error" role="alert">
-                {{ error }}
-            </p>
+        <div
+            class="space-ask-answer"
+            aria-live="polite"
+            :aria-busy="busy !== null"
+        >
+            <div v-if="busy" class="space-ask-skeleton" aria-hidden="true">
+                <span></span><span></span><span></span>
+            </div>
+            <p v-if="busy" class="space-visually-hidden">Loading…</p>
+            <div v-else-if="error" role="alert">
+                <p class="space-ask-error">{{ error }}</p>
+                <button
+                    v-if="failed"
+                    type="button"
+                    class="space-ask-btn"
+                    @click="ask(failed)"
+                >
+                    Retry
+                </button>
+            </div>
             <template v-else-if="answer">
                 <p class="space-ask-sentence">{{ answer.sentence }}</p>
                 <div v-if="answer.rows.length" class="space-ask-table">
@@ -99,7 +123,14 @@ const ask = async (question: Question) => {
                         </tbody>
                     </table>
                 </div>
+                <p class="space-ask-meta space-muted">
+                    as of {{ answer.asOf }} ·
+                    <Link :href="answer.href" class="space-link"
+                        >Open the full list</Link
+                    >
+                </p>
             </template>
+            <p v-else class="space-muted">Pick a question</p>
         </div>
     </section>
 </template>
