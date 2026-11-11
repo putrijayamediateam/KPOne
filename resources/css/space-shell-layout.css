@@ -433,3 +433,12 @@
         font-size: 12px;
     }
 }
+
+@media (max-width: 639px) {
+    .space-shell .space-ask-table th,
+    .space-shell .space-ask-table td {
+        white-space: normal;
+        padding-right: 8px;
+        vertical-align: top;
+    }
+}
