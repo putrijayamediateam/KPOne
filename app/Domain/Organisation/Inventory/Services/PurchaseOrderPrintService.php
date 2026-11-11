@@ -3,11 +3,13 @@
 namespace App\Domain\Organisation\Inventory\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\BusinessDetails\BranchLetterheadAssembler;
 use App\Domain\Organisation\Inventory\Models\PurchaseOrder;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Shared\PrintedPhone;
+use App\Domain\Visit\Billing\Services\ExactMoney;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -30,6 +32,7 @@ final class PurchaseOrderPrintService
         private BranchAccessService $branches,
         private BranchLetterheadAssembler $letterheads,
         private AuditRecorder $audit,
+        private StaffAccessService $staff,
     ) {}
 
     /** @return array<string, mixed> */
@@ -42,9 +45,11 @@ final class PurchaseOrderPrintService
             $locked = $this->lockPrinter($actor, $branch);
             $order = DB::table('inventory_purchase_orders as po')->join('inventory_locations as l', 'l.id', '=', 'po.destination_location_id')
                 ->join('inventory_suppliers as sup', 'sup.id', '=', 'po.supplier_id')
-                ->where('po.organisation_id', $locked->organisation_id)->where('po.public_id', $publicId)->where('l.branch_id', $branch->id)
+                ->where('po.organisation_id', $locked->organisation_id)->where('po.public_id', $publicId)
+                // Warehouse orders (no branch) print for holders of the warehouse permission, as the Inventory panel lists them.
+                ->where(fn ($where) => $where->where('l.branch_id', $branch->id)->when($locked->can(ProcurementService::WAREHOUSE_PERMISSION), fn ($w) => $w->orWhereNull('l.branch_id')))
                 ->first(['po.id', 'po.public_id', 'po.order_number', 'po.status', 'po.created_at', 'po.approved_at', 'po.created_by_user_id', 'po.approved_by_user_id', 'po.supplier_id',
-                    'l.name as location', 'sup.name as supplier', 'sup.contact_name', 'sup.business_phone', 'sup.business_email']);
+                    'l.name as location', 'l.branch_id as location_branch_id', 'sup.name as supplier', 'sup.contact_name', 'sup.business_phone', 'sup.business_email']);
             abort_unless($order !== null, 404);
             $cost = $locked->can(SupplierTermsService::COST_PERMISSION);
             /** @var list<stdClass> $lines */
@@ -53,7 +58,8 @@ final class PurchaseOrderPrintService
                 ->where('line.purchase_order_id', $order->id)->orderBy('line.id')->orderByDesc('t.is_preferred')->orderBy('t.id')
                 ->get(['line.id', 's.sku_code', 's.stock_unit', 'i.generic_name as item', 'line.ordered_quantity', 'line.estimated_unit_cost_sen', 't.pack_description', 't.pack_quantity', 't.is_preferred'])
                 ->unique('id')->values()->all();
-            $names = DB::table('users')->whereIn('id', array_filter([(int) $order->created_by_user_id, (int) $order->approved_by_user_id]))->pluck('name', 'id');
+            // Staff names follow the staff-visibility rule (BIL-2), with "Staff member" otherwise.
+            $names = $this->staff->visibleUsers($locked)->whereIn('id', array_filter([(int) $order->created_by_user_id, (int) $order->approved_by_user_id]))->pluck('name', 'id');
             $isOrder = in_array($order->status, self::ORDER_STATUSES, true);
             $timezone = $branch->timezone;
 
@@ -61,13 +67,13 @@ final class PurchaseOrderPrintService
             $totalSen = 0;
             $priced = true;
             foreach ($lines as $index => $line) {
-                $quantity = StockUnitQuantity::scaled((string) $line->ordered_quantity);
+                $quantity = StockUnitQuantity::scaled((string) $line->ordered_quantity, true);
                 $packs = null;
                 if ($line->pack_quantity !== null) {
                     $pack = StockUnitQuantity::scaled((string) $line->pack_quantity);
                     $packs = $pack > 0 && $quantity % $pack === 0 ? [intdiv($quantity, $pack), (string) $line->pack_description] : null;
                 }
-                $lineSen = $line->estimated_unit_cost_sen === null ? null : intdiv($quantity * (int) $line->estimated_unit_cost_sen + 999, 1000);
+                $lineSen = $line->estimated_unit_cost_sen === null || $quantity === 0 ? null : ExactMoney::line($quantity, (int) $line->estimated_unit_cost_sen);
                 if ($lineSen === null) {
                     $priced = false;
                 } else {
@@ -84,7 +90,7 @@ final class PurchaseOrderPrintService
             foreach (['phone', 'phone_secondary'] as $field) {
                 $letterhead['details'][$field] = PrintedPhone::format($letterhead['details'][$field] ?? null);
             }
-            abort_if($this->audit->record('inventory.purchase_order.printed', null, ['purchase_order_id' => (int) $order->id, 'status' => (string) $order->status, 'prices' => $cost], $locked, $branch) === null,
+            abort_if($this->audit->record('inventory.purchase_order.printed', PurchaseOrder::query()->whereKey((int) $order->id)->firstOrFail(), ['purchase_order_id' => (int) $order->id, 'status' => (string) $order->status, 'prices' => $cost], $locked, $branch) === null,
                 503, 'The print could not be recorded, so it was not shown.');
             $local = fn (?string $value, string $format): ?string => $value === null ? null : CarbonImmutable::parse($value, 'UTC')->setTimezone($timezone)->format($format);
 
@@ -93,9 +99,9 @@ final class PurchaseOrderPrintService
                 'order' => [
                     'publicId' => $order->public_id, 'number' => $order->order_number, 'status' => $order->status, 'isOrder' => $isOrder,
                     'orderDate' => $local((string) $order->created_at, 'd/m/Y'), 'approvedAt' => $local($order->approved_at, 'd/m/Y'),
-                    'preparedBy' => $names->get((int) $order->created_by_user_id), 'approvedBy' => $order->approved_by_user_id === null ? null : $names->get((int) $order->approved_by_user_id),
+                    'preparedBy' => $names->get((int) $order->created_by_user_id, 'Staff member'), 'approvedBy' => $order->approved_by_user_id === null ? null : $names->get((int) $order->approved_by_user_id, 'Staff member'),
                     'supplier' => ['name' => $order->supplier, 'contact' => $order->contact_name, 'phone' => PrintedPhone::format($order->business_phone), 'email' => $order->business_email],
-                    'deliverTo' => ['branch' => $branch->name, 'location' => $order->location],
+                    'deliverTo' => ['branch' => $order->location_branch_id === null ? 'Organisation warehouse' : $branch->name, 'location' => $order->location],
                     'lines' => $rows, 'showPrices' => $cost, 'totalSen' => $cost && $priced ? $totalSen : null,
                     'printedAt' => CarbonImmutable::now($timezone)->format('d/m/Y, g:i A'),
                 ],

@@ -245,7 +245,11 @@ const print = () => window.print();
             </div>
             <p v-if="order.showPrices" class="po-total">
                 <span>Estimated total</span>
-                <span class="tabular-nums">RM {{ rm(order.totalSen) }}</span>
+                <span class="tabular-nums">{{
+                    order.totalSen === null
+                        ? 'Not all lines have a price'
+                        : `RM ${rm(order.totalSen)}`
+                }}</span>
             </p>
             <p v-else class="mt-3" data-testid="po-no-prices">
                 Prices as agreed with the supplier.

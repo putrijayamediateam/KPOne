@@ -3,6 +3,7 @@
 namespace Tests\Feature\Inventory;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Inventory\Services\SupplierTermsService;
 use App\Domain\Organisation\Models\Branch;
@@ -74,5 +75,45 @@ final class PurchaseOrderPrintTest extends VisitTestCase
         $elsewhere = $this->staff('finance_officer', $other);
         $this->actingAs($elsewhere)->get(route('inventory.purchase-orders.print', $f['order']->public_id))->assertNotFound();
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'inventory.purchase_order.printed')->count());
+    }
+
+    public function test_rounding_packs_names_cancelled_and_warehouse_orders(): void
+    {
+        $f = (new VerifiedReceivingFixture($this->branch))->build('10.000');
+        $finance = $this->staff('finance_officer');
+        $service = app(ProcurementService::class);
+        $draft = fn (string $quantity, int $sen, ?string $location = null) => $service->create($finance, ['expected_branch_id' => $this->branch->id, 'supplier_public_id' => $f['supplier']->public_id,
+            'destination_location_public_id' => $location ?? $f['location']->public_id, 'lines' => [['sku_public_id' => $f['sku']->public_id, 'quantity' => $quantity, 'unit_cost_sen' => $sen]]]);
+
+        // Half a unit at RM 1.25 is 62.5 sen, which rounds half up to 63 sen, as other KPOne money does.
+        $half = $this->page($finance, $draft('0.500', 125)->public_id)['order'];
+        $this->assertSame([63, 63], [$half['lines'][0]['lineSen'], $half['totalSen']]);
+        $this->assertSame($finance->name, $half['preparedBy']);
+
+        // A pack that does not divide the quantity, or an inactive term, shows no pack.
+        $term = app(SupplierTermsService::class)->create($finance, ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(),
+            'supplier_public_id' => $f['supplier']->public_id, 'sku_public_id' => $f['sku']->public_id, 'pack_description' => 'Box of 3', 'pack_quantity' => '3',
+            'pack_price_sen' => null, 'lead_time_days' => 3, 'minimum_order_packs' => null, 'is_preferred' => true]);
+        $this->assertNull($this->page($finance, $f['order']->public_id)['order']['lines'][0]['packs']);
+        DB::table('inventory_supplier_sku_terms')->where('id', $term->id)->update(['pack_quantity' => '5.000', 'is_active' => false, 'is_preferred' => false, 'lock_version' => DB::raw('lock_version + 1')]);
+        $this->assertNull($this->page($finance, $f['order']->public_id)['order']['lines'][0]['packs']);
+
+        // A cancelled order is not an order.
+        $cancelled = $draft('1.000', 100);
+        $service->cancel($finance, $cancelled, ['expected_branch_id' => $this->branch->id, 'lock_version' => $cancelled->lock_version, 'reason' => 'Synthetic']);
+        $this->assertSame([false, 'cancelled'], [$this->page($finance, $cancelled->public_id)['order']['isOrder'], 'cancelled']);
+
+        // A warehouse order prints for a holder of the warehouse permission and says so.
+        $warehouse = new InventoryLocation;
+        $warehouse->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id, 'branch_id' => null, 'code' => 'WH-'.Str::upper(Str::random(6)), 'name' => 'Synthetic warehouse', 'type' => 'branch_store', 'is_active' => true])->save();
+        $finance->givePermissionTo(ProcurementService::WAREHOUSE_PERMISSION);
+        $finance = $finance->fresh();
+        $order = $draft('2.000', 100, $warehouse->public_id);
+        $printed = $this->page($finance, $order->public_id)['order'];
+        $this->assertSame(['branch' => 'Organisation warehouse', 'location' => 'Synthetic warehouse'], $printed['deliverTo']);
+        $this->actingAs($this->staff('finance_officer'))->get(route('inventory.purchase-orders.print', $order->public_id))->assertNotFound();
+
+        // An unknown logo is never served.
+        $this->actingAs($finance)->get(route('inventory.purchase-orders.letterhead-logo', (string) Str::uuid()))->assertNotFound();
     }
 }
