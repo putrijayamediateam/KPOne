@@ -117,6 +117,18 @@ const changeBranch = (event: Event) => {
 };
 
 // 390 px: the nav is one scrolling row. Fade the right edge while more is hidden and bring the current item into view.
+// Reloads only this space's data, so the front desk can update without leaving the page (no polling in this slice).
+const refreshing = ref(false);
+const refresh = () => {
+    refreshing.value = true;
+    router.reload({
+        only: ['frontDesk'],
+        onFinish: () => {
+            refreshing.value = false;
+        },
+    });
+};
+
 const side = ref<HTMLElement | null>(null);
 const more = ref(false);
 const measure = () => {
@@ -385,11 +397,21 @@ onMounted(async () => {
                 </section>
             </template>
             <template v-else-if="frontDesk">
-                <p v-if="frontDesk.branchName" class="space-muted">
-                    {{ frontDesk.branchName
-                    }}<template v-if="frontDesk.asOf">
-                        · as of {{ frontDesk.asOf }}</template
+                <p v-if="frontDesk.branchName" class="space-muted space-asof">
+                    <span
+                        >{{ frontDesk.branchName
+                        }}<template v-if="frontDesk.asOf">
+                            · as of {{ frontDesk.asOf }}</template
+                        ></span
                     >
+                    <button
+                        type="button"
+                        class="space-refresh"
+                        :disabled="refreshing"
+                        @click="refresh"
+                    >
+                        {{ refreshing ? 'Refreshing…' : 'Refresh' }}
+                    </button>
                 </p>
                 <section
                     v-if="frontDesk.waiting"

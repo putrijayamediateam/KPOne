@@ -189,3 +189,14 @@ test('DS-4: the Front desk shows waiting, a glance, QR count only, open links an
         /frontDesk\.[a-zA-Z.]*patientName|qrPending\.(summary|items)/,
     );
 });
+
+test('DS-4: Refresh reloads only the Front desk data, with no polling', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    assert.match(page, /router\.reload\(\{\s*only: \['frontDesk'\]/);
+    assert.match(page, /Refreshing…/);
+    assert.doesNotMatch(page, /setInterval|setTimeout/);
+    assert.match(
+        read('resources/css/space-shell-layout.css'),
+        /\.space-refresh \{[^}]*min-height: 44px/,
+    );
+});
