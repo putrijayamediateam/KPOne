@@ -808,6 +808,16 @@ class ClinicInsightsReportService
             ->tap(fn (Builder $query) => $this->scopePeriod($query, $periods, 'stock_movements.occurred_at', 'source_locations.branch_id'))
             ->sum('stock_movements.quantity');
         $wastage = (float) $stocktakeLoss + (float) $damageAdjustments;
+        // STK-15: treatment-room waste (STK-8), shown on its own line. An entry a supervisor later reversed is left out,
+        // whenever the reversal happened, so the figure belongs to the period of the original entry.
+        $treatmentWaste = DB::table('inventory_treatment_usages as usages')
+            ->leftJoin('inventory_treatment_usage_reversals as reversals', 'reversals.usage_id', '=', 'usages.id')
+            ->where('usages.organisation_id', $actor->organisation_id)
+            ->where('usages.kind', 'waste')
+            ->whereNull('reversals.id')
+            ->whereIn('usages.branch_id', $branchIds)
+            ->tap(fn (Builder $query) => $this->scopePeriod($query, $periods, 'usages.created_at', 'usages.branch_id'))
+            ->sum('usages.quantity');
         $medicines = DB::table('invoice_lines as lines')
             ->join('invoices', 'invoices.id', '=', 'lines.invoice_id')
             ->where('invoices.organisation_id', $actor->organisation_id)
@@ -821,6 +831,7 @@ class ClinicInsightsReportService
                 'lowStockItems' => $low,
                 'expiringBatchesNext30Days' => $expiring,
                 'wastageUnits' => $wastage,
+                'treatmentWasteUnits' => (float) $treatmentWaste,
                 'inventoryValueAvailable' => false,
                 'costOfInventorySoldAvailable' => false,
             ],

@@ -214,6 +214,11 @@ const cardRows = computed(() => {
                 value: `${value.summary.wastageUnits} units`,
             },
             {
+                label: 'Treatment-room waste',
+                value: `${value.summary.treatmentWasteUnits} units`,
+                note: 'Opened, spilled or broken stock recorded in treatment rooms. Reversed entries are left out.',
+            },
+            {
                 label: 'Inventory value',
                 value: 'Unavailable',
                 note: 'Inventory receipt costs are not recorded.',
