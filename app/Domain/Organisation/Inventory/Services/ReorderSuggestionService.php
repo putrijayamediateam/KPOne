@@ -109,7 +109,8 @@ final class ReorderSuggestionService
                 ],
                 'suggestedPacks' => $packs,
                 'suggestedQuantity' => StockUnitQuantity::format($suggested),
-                'coveredByOrders' => $suggested === 0,
+                // "Covered by orders" only when something is actually on its way; otherwise the level is simply met.
+                'coveredByOrders' => $suggested === 0 && $ordered + $coming > 0,
                 // Cost never leaves the server for someone without the cost permission.
                 ...($cost ? ['estimateSen' => ($packs === null || $priceSen === null) ? null : $packs * (int) $priceSen] : []),
             ];
@@ -187,7 +188,7 @@ final class ReorderSuggestionService
         if ($locationIds === []) {
             return [];
         }
-        $since = CarbonImmutable::now($timezone)->startOfDay()->subDays(self::LOOK_BACK_DAYS - 1)->utc()->toDateTimeString();
+        $since = CarbonImmutable::now($timezone)->startOfDay()->subDays(self::LOOK_BACK_DAYS - 1)->utc()->format('Y-m-d H:i:sP');
         $dispensed = $this->keyed(DB::table('stock_movements as m')
             ->where('m.organisation_id', $organisationId)->where('m.movement_type', StockMovement::TYPE_DISPENSE)
             ->whereIn('m.source_location_id', $locationIds)->whereIn('m.inventory_sku_id', $skuIds)

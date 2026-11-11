@@ -3,14 +3,18 @@
 namespace Tests\Feature\Inventory;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
+use App\Domain\Organisation\Inventory\Services\StockRequestService;
 use App\Domain\Organisation\Inventory\Services\StockUnitQuantity;
 use App\Domain\Organisation\Inventory\Services\SupplierTermsService;
 use App\Domain\Organisation\Inventory\Services\TreatmentUsageService;
+use App\Domain\Organisation\Models\Branch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\SupplierReturnFixture;
+use Tests\Support\TransferShortageFixture;
 use Tests\Support\VerifiedReceivingFixture;
 
 /** STK-16: read-only reorder suggestions (approved by B.E.R.N.I.S.S for the owner, 2026-11-11). */
@@ -42,10 +46,10 @@ final class ReorderSuggestionTest extends VisitTestCase
         $reversed = $usage->record($ca, $entry('1.000'));
         $usage->reverse($actors->actor('ca_supervisor'), $reversed, ['expected_branch_id' => $this->branch->id, 'retry_key' => (string) Str::uuid(), 'reason' => 'recorded_in_error']);
 
-        // Preferred supplier: packs of 10, at least 2 packs, RM 5.00 a pack, 10 days' lead time.
+        // Preferred supplier: packs of 10, at least 3 packs, RM 5.00 a pack, 10 days' lead time.
         app(SupplierTermsService::class)->create($actors->actor('finance_officer'), ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(),
             'supplier_public_id' => $f['supplier']->public_id, 'sku_public_id' => $f['sku']->public_id, 'pack_description' => 'Box of 10', 'pack_quantity' => '10',
-            'pack_price_sen' => 500, 'lead_time_days' => 10, 'minimum_order_packs' => 2, 'is_preferred' => true]);
+            'pack_price_sen' => 500, 'lead_time_days' => 10, 'minimum_order_packs' => 3, 'is_preferred' => true]);
 
         $onHand = StockUnitQuantity::scaled((string) DB::table('inventory_stock_balances')->where('inventory_location_id', $f['location']->id)->where('inventory_sku_id', $f['sku']->id)->sum('quantity'), true);
 
@@ -76,13 +80,23 @@ final class ReorderSuggestionTest extends VisitTestCase
         $rows = array_values(array_filter($this->page($finance)['rows'], fn (array $row) => $row['skuCode'] === $sku));
         $this->assertCount(1, $rows);
         $row = $rows[0];
-        // Need = (on hand + 20) − on hand − 6 on order − 0 incoming + ceil(3 used × 10 days ÷ 30) = 15, so 2 packs of 10.
-        $this->assertSame(['6.000', '0.000', '0.100', 2, '20.000', false, 1000], [$row['onOrder'], $row['incoming'], $row['averageDailyUse'], $row['suggestedPacks'], $row['suggestedQuantity'], $row['coveredByOrders'], $row['estimateSen']]);
+        // Need = (on hand + 20) − on hand − 6 on order − 0 incoming + ceil(3 used × 10 days ÷ 30) = 15: 2 packs of 10,
+        // raised to the supplier's minimum of 3 packs.
+        $this->assertSame(['6.000', '0.000', '0.100', 3, '30.000', false, 1500], [$row['onOrder'], $row['incoming'], $row['averageDailyUse'], $row['suggestedPacks'], $row['suggestedQuantity'], $row['coveredByOrders'], $row['estimateSen']]);
         $this->assertSame(10, $row['supplier']['leadTimeDays']);
 
         // Someone without the cost permission never receives the estimate.
         $supervisorRow = collect($this->page($f['actors']->actor('ca_supervisor'))['rows'])->firstWhere('skuCode', $sku);
         $this->assertArrayNotHasKey('estimateSen', $supervisorRow);
+
+        // The search narrows the list.
+        $this->assertNotNull(collect($this->page($finance, ['q' => $sku])['rows'])->firstWhere('skuCode', $sku));
+        $this->assertSame([], $this->page($finance, ['q' => 'NO-SUCH-SKU'])['rows']);
+
+        // Use older than 30 days no longer counts.
+        $this->travel(31)->days();
+        $later = collect($this->page($finance)['rows'])->firstWhere('skuCode', $sku);
+        $this->assertSame('0.000', $later['averageDailyUse']);
 
         // The page writes nothing.
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'like', 'inventory.reorder%')->count());
@@ -113,5 +127,47 @@ final class ReorderSuggestionTest extends VisitTestCase
         $this->assertSame([null, null, '2.000'], [$row['supplier'], $row['suggestedPacks'], $row['suggestedQuantity']]);
 
         $this->actingAs($f['actors']->actor('marketing'))->get(route('inventory.reorder-suggestions'))->assertForbidden();
+    }
+
+    public function test_incoming_transfers_count_and_other_branches_never_appear(): void
+    {
+        $this->travelTo(now($this->branch->timezone)->setTime(10, 0));
+        $transfers = new TransferShortageFixture($this->branch);
+        // 4 dispatched to an empty dispensary, then 3 more approved but not yet sent.
+        $f = $transfers->dispatched('4.000');
+        $service = app(StockRequestService::class);
+        $requester = $transfers->actor('ca');
+        $request = $service->create($requester, ['expected_branch_id' => $this->branch->id, 'source_location_public_id' => $f['location']->public_id,
+            'destination_location_public_id' => $f['destination']->public_id, 'lines' => [['sku_public_id' => $f['sku']->public_id, 'quantity' => '3.000']]]);
+        app(BranchAccessService::class)->select($f['supervisor'], $this->branch);
+        $service->approve($f['supervisor'], $request, ['expected_branch_id' => $this->branch->id, 'lock_version' => $request->lock_version]);
+        $finance = $transfers->actor('finance_officer');
+        $levels = fn (int $locationId, string $level) => DB::table('inventory_reorder_levels')->insert(['organisation_id' => $this->branch->organisation_id,
+            'inventory_location_id' => $locationId, 'inventory_sku_id' => $f['sku']->id, 'reorder_level' => $level, 'updated_by_user_id' => $finance->id, 'created_at' => now(), 'updated_at' => now()]);
+        $levels($f['destination']->id, '10.000');
+
+        // A low-stock row at another branch of the same organisation.
+        $other = Branch::query()->where('organisation_id', $this->branch->organisation_id)->whereKeyNot($this->branch->id)->firstOrFail();
+        $elsewhere = new InventoryLocation;
+        $elsewhere->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id, 'branch_id' => $other->id,
+            'code' => 'ELSE-'.Str::upper(Str::random(8)), 'name' => 'Synthetic other branch dispensary', 'type' => 'dispensary', 'is_active' => true])->save();
+        $levels($elsewhere->id, '50.000');
+
+        $rows = collect($this->page($finance, ['need' => 'all'])['rows'])->where('skuCode', $f['sku']->sku_code)->values();
+        $this->assertSame(['Synthetic receiving dispensary'], $rows->pluck('location')->all());
+        // Need = 10 − 0 on hand − 0 on order − (4 dispatched + 3 approved) = 3 whole units; not "covered".
+        $this->assertSame(['7.000', '3.000', false], [$rows[0]['incoming'], $rows[0]['suggestedQuantity'], $rows[0]['coveredByOrders']]);
+    }
+
+    public function test_stock_exactly_at_its_level_with_nothing_on_order_is_not_called_covered(): void
+    {
+        $this->travelTo(now($this->branch->timezone)->setTime(10, 0));
+        $f = (new TransferShortageFixture($this->branch))->dispatched('4.000');
+        $finance = (new SupplierReturnFixture($this->branch))->actor('finance_officer');
+        $onHand = (string) DB::table('inventory_stock_balances')->where('inventory_location_id', $f['location']->id)->where('inventory_sku_id', $f['sku']->id)->sum('quantity');
+        $this->setLevel(['location' => $f['location'], 'sku' => $f['sku'], 'finance' => $finance], StockUnitQuantity::scaled($onHand, true));
+
+        $row = collect($this->page($finance, ['need' => 'all'])['rows'])->firstWhere('location', $f['location']->name);
+        $this->assertSame(['0.000', false], [$row['suggestedQuantity'], $row['coveredByOrders']]);
     }
 }

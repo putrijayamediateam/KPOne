@@ -16,6 +16,7 @@ test('Reorder suggestions explains its method and writes nothing', () => {
         /rounded\s+up to whole packs and at least the supplier's minimum order\./,
     );
     assert.match(page, /Nothing is ordered from this page\./);
+    assert.match(page, /At reorder level, no order needed/);
     // Read only: no form posts anything.
     assert.doesNotMatch(page, /useForm|router\.(post|put|patch|delete)/);
     assert.match(page, /router\.get\(\s*'\/inventory\/reorder-suggestions'/);
@@ -23,7 +24,10 @@ test('Reorder suggestions explains its method and writes nothing', () => {
 
 test('Reorder suggestions keeps cost and tap targets in line with the design rules', () => {
     const page = read('resources/js/pages/Inventory/ReorderSuggestions.vue');
-    assert.match(page, /v-if="suggestions\.canSeeCost && row\.supplier"/);
+    assert.match(
+        page,
+        /suggestions\.canSeeCost &&\s+row\.supplier &&\s+row\.suggestedPacks !== null/,
+    );
     assert.match(
         page,
         /Estimated costs are shown only to a Director or Finance Officer\./,

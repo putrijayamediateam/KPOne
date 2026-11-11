@@ -97,7 +97,7 @@ const quantity = (value: string, unit: string) =>
             <label
                 class="grid min-w-0 basis-full gap-1 text-sm sm:flex-1 sm:basis-auto"
                 >Search SKU, item or location
-                <Input v-model="q" maxlength="100" />
+                <Input v-model="q" maxlength="100" class="h-11 lg:h-9" />
             </label>
             <label class="grid gap-1 text-sm"
                 >Show
@@ -139,12 +139,18 @@ const quantity = (value: string, unit: string) =>
                             {{ row.location }}
                         </p>
                     </div>
-                    <div class="text-right">
+                    <div class="sm:text-right">
                         <p
                             v-if="row.coveredByOrders"
                             class="rounded border px-2 py-0.5 text-sm"
                         >
                             Covered by orders
+                        </p>
+                        <p
+                            v-else-if="row.suggestedQuantity === '0.000'"
+                            class="rounded border px-2 py-0.5 text-sm"
+                        >
+                            At reorder level, no order needed
                         </p>
                         <template v-else>
                             <p class="text-xs text-muted-foreground">
@@ -245,7 +251,13 @@ const quantity = (value: string, unit: string) =>
                             </dd>
                         </div>
                     </template>
-                    <div v-if="suggestions.canSeeCost && row.supplier">
+                    <div
+                        v-if="
+                            suggestions.canSeeCost &&
+                            row.supplier &&
+                            row.suggestedPacks !== null
+                        "
+                    >
                         <dt class="text-muted-foreground">
                             Estimated cost (supplier price list)
                         </dt>
