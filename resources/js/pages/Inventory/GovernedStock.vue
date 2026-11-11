@@ -385,13 +385,18 @@ watch(
                         </p>
                     </div>
                     <p v-if="row.open" class="text-sm text-muted-foreground">
-                        Count open below
+                        Counts open below
                     </p>
                     <button
                         v-else-if="stock.canPropose"
                         type="button"
-                        class="min-h-11 rounded border px-3 lg:min-h-9"
+                        class="min-h-11 rounded border px-3 disabled:opacity-40 lg:min-h-9"
                         :disabled="starting !== null"
+                        :aria-busy="
+                            starting ===
+                            `${row.skuPublicId}:${row.locationPublicId}`
+                        "
+                        :aria-label="`Start count for ${row.skuCode} at ${row.location}`"
                         @click="startCount(row)"
                     >
                         Start count
@@ -403,6 +408,7 @@ watch(
                 class="flex justify-between gap-2"
             >
                 <button
+                    type="button"
                     class="min-h-11 rounded border px-4 disabled:opacity-40"
                     :disabled="stock.cycle.page <= 1"
                     @click="
@@ -415,6 +421,7 @@ watch(
                 >
                     Previous counts due</button
                 ><button
+                    type="button"
                     class="min-h-11 rounded border px-4 disabled:opacity-40"
                     :disabled="stock.cycle.page >= stock.cycle.lastPage"
                     @click="
