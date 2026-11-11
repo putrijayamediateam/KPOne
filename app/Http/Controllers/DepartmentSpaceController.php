@@ -29,6 +29,7 @@ final class DepartmentSpaceController extends Controller
         return Inertia::render('Spaces/Show', [
             'space' => collect($spaces)->firstWhere('key', $space),
             'spaces' => $spaces,
+            'existing' => $navigation->existingHome($request->user(), $space),
         ]);
     }
 }
