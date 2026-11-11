@@ -60,6 +60,8 @@ SQL);
         if (substr_count($function, $old) !== 1) {
             throw new RuntimeException('guard_supplier_return_action() does not have the expected credit-note rule; refusing to patch it.');
         }
+        // The body is the live function definition, patched by an exact one-time match checked above.
+        // @phpstan-ignore argument.type
         DB::unprepared(str_replace($old, $new, $function));
     }
 
