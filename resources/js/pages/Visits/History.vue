@@ -68,7 +68,7 @@ const totals = computed(() => {
               ['Total', state.total],
               ['Self-pay received', state.self_pay],
               ['Panel responsibility', state.panel],
-              ['Approved pay later', state.deferred],
+              ['Pay later still owed', state.deferred],
           ] as Array<[string, number]>)
         : [];
 });
