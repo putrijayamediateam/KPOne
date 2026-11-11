@@ -9,6 +9,7 @@ use App\Domain\HR\Records\RecordPermissions;
 use App\Domain\HR\Records\Services\LocumSignIns;
 use App\Domain\HR\Records\Services\StaffFileService;
 use App\Domain\HR\Roster\RosterPermissions;
+use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
@@ -100,8 +101,34 @@ class PostgresOpenShiftsContentionTest extends TestCase
         $this->assertSame('filled', DB::table('hr_open_shifts')->where('id', $shiftId)->value('status'));
     }
 
+    /**
+     * TEAM.md section 7 hardening (HR-15b known limit): two managers confirm two locums for two different open shifts in
+     * the same branch week, while that week has no draft roster yet. Both confirms take the week's advisory lock in
+     * nextDraft(); the test holds it until both are proven waiting. The first starts the draft, and the second finds it
+     * and uses it, so the week gets one draft holding both shifts, not two drafts or a duplicate-week error.
+     */
+    public function test_two_confirms_into_one_branch_week_with_no_draft_share_one_new_draft(): void
+    {
+        $f = $this->fixture(twoShifts: true);
+        $this->assertSame(0, DB::table('hr_roster_weeks')->where('branch_id', $f['branch']->id)->count());
+
+        $out = $this->raceOnAdvisoryLock($f['branch'], $f['date'], [
+            $this->worker($f['hr'], ['ask' => $f['asks'][0], 'expected_lock_version' => 1]),
+            $this->worker($f['hr2'], ['ask' => $f['asks'][1], 'expected_lock_version' => 1]),
+        ]);
+
+        $this->assertSame(2, substr_count($out, 'SUCCESS confirm'), $out);
+        $this->assertSame(1, DB::table('hr_roster_weeks')->where('branch_id', $f['branch']->id)->count());
+        $versions = DB::table('hr_roster_versions')->where('branch_id', $f['branch']->id)->get();
+        $this->assertCount(1, $versions);
+        $this->assertSame('draft', $versions[0]->status);
+        $this->assertSame(2, DB::table('hr_roster_shifts')->where('roster_version_id', $versions[0]->id)->count());
+        $this->assertSame(2, DB::table('hr_open_shifts')->where('organisation_id', $f['organisation']->id)->where('status', 'filled')->count());
+        $this->assertSame(2, DB::table('hr_open_shift_requests')->where('organisation_id', $f['organisation']->id)->where('status', 'confirmed')->count());
+    }
+
     /** @return array<string, mixed> */
-    private function fixture(): array
+    private function fixture(bool $twoShifts = false): array
     {
         $organisation = new Organisation;
         $organisation->forceFill(['code' => 'HR_OPS_'.Str::upper(Str::random(8)), 'name' => 'Synthetic Open Shift Organisation', 'is_active' => true])->save();
@@ -117,6 +144,9 @@ class PostgresOpenShiftsContentionTest extends TestCase
         $date = now('Asia/Kuala_Lumpur')->addDays(7)->toDateString();
         $shift = app(OpenShiftService::class)->post($hr, ['branch_id' => $branch->id, 'date' => $date, 'start_time' => '08:00', 'end_time' => '14:00',
             'break_minutes' => 0, 'session_type' => 'morning', 'role_needed' => 'resident_doctor', 'idempotency_key' => (string) Str::uuid()]);
+        // With $twoShifts, the second locum asks for a second shift on the same day (so the same branch week).
+        $shifts = [$shift, $twoShifts ? app(OpenShiftService::class)->post($hr, ['branch_id' => $branch->id, 'date' => $date, 'start_time' => '14:00', 'end_time' => '20:00',
+            'break_minutes' => 0, 'session_type' => 'evening', 'role_needed' => 'resident_doctor', 'idempotency_key' => (string) Str::uuid()]) : $shift];
         $asks = [];
         foreach ([1, 2] as $n) {
             $locum = $this->user($organisation, $branch, [OpenShiftPermissions::REQUEST_OWN, RosterPermissions::VIEW_OWN], PermissionCatalogue::LOCUM_ROLE);
@@ -124,11 +154,11 @@ class PostgresOpenShiftsContentionTest extends TestCase
             $signIns->request($hr, $worker->public_id, ['email' => $locum->email, 'idempotency_key' => (string) Str::uuid()]);
             $request = DB::table('hr_locum_sign_ins')->where('worker_id', $worker->id)->first();
             $signIns->link($admin, $request->public_id, ['user_id' => $locum->id, 'expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()]);
-            app(OpenShiftService::class)->ask($locum, $shift, ['idempotency_key' => (string) Str::uuid()]);
+            app(OpenShiftService::class)->ask($locum, $shifts[$n - 1], ['idempotency_key' => (string) Str::uuid()]);
             $asks[] = (string) DB::table('hr_open_shift_requests')->where('locum_user_id', $locum->id)->value('public_id');
         }
 
-        return ['organisation' => $organisation, 'branch' => $branch, 'hr' => $hr, 'hr2' => $hr2, 'shift' => $shift, 'asks' => $asks];
+        return ['organisation' => $organisation, 'branch' => $branch, 'hr' => $hr, 'hr2' => $hr2, 'shift' => $shift, 'asks' => $asks, 'date' => $date];
     }
 
     /** @param list<string> $permissions */
@@ -176,6 +206,45 @@ class PostgresOpenShiftsContentionTest extends TestCase
         DB::beginTransaction();
         try {
             DB::table($table)->where('id', $rowId)->lockForUpdate()->first();
+            $parentPid = (int) DB::scalar('select pg_backend_pid()');
+            foreach ($workers as $worker) {
+                $worker['process']->start();
+            }
+            $this->waitReady($workers);
+            foreach ($workers as $worker) {
+                $worker['input']->write("GO\n");
+                $worker['input']->close();
+            }
+            foreach ($workers as $worker) {
+                $this->waitForDatabaseBlock($worker['process'], $parentPid);
+            }
+            DB::commit();
+        } catch (\Throwable $exception) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            throw $exception;
+        }
+        foreach ($workers as $worker) {
+            $worker['process']->wait();
+            $this->assertSame(0, $worker['process']->getExitCode(), $this->processDiagnostics($worker['process']));
+        }
+
+        return implode('', array_map(fn ($worker) => $worker['process']->getOutput(), $workers));
+    }
+
+    /**
+     * Holds the branch week's advisory lock (the key nextDraft() takes), starts both workers, proves each is waiting
+     * behind this session, then releases.
+     *
+     * @param  list<WorkerProcess>  $workers
+     */
+    private function raceOnAdvisoryLock(Branch $branch, string $date, array $workers): string
+    {
+        $weekStart = app(RosterRules::class)->weekStart($branch, $date)->toDateString();
+        DB::beginTransaction();
+        try {
+            DB::select('select pg_advisory_xact_lock(hashtextextended(?, 0))', ['hr_open_shift_week:'.$branch->organisation_id.':'.$branch->id.':'.$weekStart]);
             $parentPid = (int) DB::scalar('select pg_backend_pid()');
             foreach ($workers as $worker) {
                 $worker['process']->start();

@@ -32,6 +32,7 @@ use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceCredit;
 use App\Domain\Visit\Billing\Models\Payment;
+use App\Domain\Visit\Billing\Models\PaymentCorrection;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Models\PaymentRefund;
 use App\Domain\Visit\Billing\Models\PaymentRefundDecision;
@@ -572,6 +573,82 @@ class PostgresBillingRegressionTest extends TestCase
         $this->assertSame(2, InvoiceCredit::query()->where('invoice_id', $f['invoice']->id)->count());
     }
 
+    public function test_two_people_correcting_one_receipt_at_once_record_one_correction(): void
+    {
+        // BIL-20: two Finance staff each correct the same RM 40.00 receipt of a completed visit at the same moment
+        // (one says RM 20.00 was really received, the other RM 30.00). The patient, visit and invoice row locks make
+        // them run one after the other, and the second sees the changed invoice and receipt and is refused, so the
+        // receipt is reversed once and replaced once.
+        $f = $this->correctionFixture();
+        $out = $this->race([
+            $this->billWorker($f, 'bill-correct', $this->correctionArgs($f, 2000), 'finance'),
+            $this->billWorker($f, 'bill-correct', $this->correctionArgs($f, 3000), 'director'),
+        ], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE invoice'), $out);
+        $this->assertSame(1, PaymentCorrection::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(1, DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->count());
+        $this->assertSame('reversed', $f['receipt']->refresh()->status);
+        $replacements = Payment::query()->where('organisation_id', $f['organisation']->id)->where('status', 'posted')->pluck('amount_sen')->all();
+        $this->assertCount(1, $replacements);
+        $this->assertContains($replacements[0], [2000, 3000]);
+        $state = app(FinancialLedger::class)->state($f['invoice']->refresh());
+        $this->assertSame([$replacements[0], 4000 - $replacements[0]], [$state['self_pay'], $state['due_now']]);
+        $this->assertSame(1, DB::table('audit_logs')->where('organisation_id', $f['organisation']->id)->where('event', 'billing.receipt_corrected')->count());
+    }
+
+    public function test_a_correction_and_a_refund_on_one_receipt_cannot_both_win(): void
+    {
+        // BIL-20: a refund after completion and a correction of the same receipt at the same moment. Both lock the
+        // patient and visit, then the invoice and the receipt, in the same order, so they run one after the other
+        // without deadlock: a refund first leaves the receipt with a refund (the correction is refused); a correction
+        // first reverses the receipt (the refund is refused).
+        $f = $this->correctionFixture();
+        $out = $this->race([
+            $this->billWorker($f, 'bill-correct', $this->correctionArgs($f, 2000), 'finance'),
+            $this->billWorker($f, 'bill-refund', $this->correctionRaceRefundArgs($f), 'supervisor'),
+        ], $f['patient']);
+        $this->assertCorrectionOrRefundWon($f, $out, PaymentCorrection::query()->where('organisation_id', $f['organisation']->id)->exists());
+    }
+
+    public function test_a_refund_held_first_makes_a_waiting_correction_refuse(): void
+    {
+        // BIL-20: the order fixed, refund first. The correction waits, then sees the refund and is refused.
+        $f = $this->correctionFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-refund', [...$this->correctionRaceRefundArgs($f), 'hold' => true], 'supervisor'),
+            $this->billWorker($f, 'bill-correct', $this->correctionArgs($f, 2000), 'finance'),
+        );
+        $this->assertCorrectionOrRefundWon($f, $out, false);
+    }
+
+    public function test_a_correction_held_first_makes_a_waiting_refund_refuse(): void
+    {
+        // BIL-20: the order fixed, correction first. The refund waits, then sees the reversed receipt and is refused.
+        $f = $this->correctionFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-correct', [...$this->correctionArgs($f, 2000), 'hold' => true], 'finance'),
+            $this->billWorker($f, 'bill-refund', $this->correctionRaceRefundArgs($f), 'supervisor'),
+        );
+        $this->assertCorrectionOrRefundWon($f, $out, true);
+    }
+
+    public function test_the_same_correction_sent_twice_at_once_is_recorded_once(): void
+    {
+        // BIL-20: a double click or retry with one request key: both requests succeed and one correction is recorded.
+        $f = $this->correctionFixture();
+        $args = $this->correctionArgs($f, 2000);
+        $out = $this->race([
+            $this->billWorker($f, 'bill-correct', $args, 'finance'),
+            $this->billWorker($f, 'bill-correct', $args, 'finance'),
+        ], $f['patient']);
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, PaymentCorrection::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(1, DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->count());
+        $this->assertSame(1, Payment::query()->where('organisation_id', $f['organisation']->id)->where('status', 'posted')->count());
+        $this->assertSame(1, DB::table('audit_logs')->where('organisation_id', $f['organisation']->id)->where('event', 'billing.receipt_corrected')->count());
+    }
+
     public function test_void_reissue_and_payment_cannot_both_win(): void
     {
         $f = $this->billingFixture();
@@ -736,6 +813,59 @@ class PostgresBillingRegressionTest extends TestCase
         $f['receipt']->refresh();
 
         return $f;
+    }
+
+    /**
+     * BIL-20: the BIL-13 completed visit (one RM 40.00 receipt recorded by the CA). A Finance Officer and a Director,
+     * neither of whom recorded it, may correct it (reverse and record).
+     */
+    private function correctionFixture(): array
+    {
+        $f = $this->completedRefundFixture();
+        $f['finance']->givePermissionTo(Permission::findOrCreate('payments.add.branch', 'web'));
+        $f['director'] = $this->user($f['organisation'], $f['branch'], null, ['payments.reverse.branch', 'payments.add.branch', 'branch_context.switch.branch']);
+
+        return $f;
+    }
+
+    /** @return array<string, mixed> */
+    private function correctionArgs(array $f, int $receivedSen): array
+    {
+        return ['payment' => $f['receipt']->public_id, 'payment_lock_version' => $f['receipt']->lock_version, 'received_sen' => (string) $receivedSen,
+            'method' => 'cash', 'recording_error_only' => '1', 'reason' => 'Synthetic: less was really received', 'idempotency_key' => (string) Str::uuid()];
+    }
+
+    /** @return array<string, mixed> */
+    private function correctionRaceRefundArgs(array $f): array
+    {
+        return [...$this->refundArgs($f), 'reason_code' => 'goodwill', 'amount_sen' => 1000];
+    }
+
+    /** BIL-20: exactly one of a correction and a refund on one receipt won, with only its own evidence. */
+    private function assertCorrectionOrRefundWon(array $f, string $out, bool $correctionWon): void
+    {
+        $organisation = $f['organisation']->id;
+        $audits = fn (string $event): int => DB::table('audit_logs')->where('organisation_id', $organisation)->where('event', $event)->count();
+        $state = app(FinancialLedger::class)->state($f['invoice']->refresh());
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        if ($correctionWon) {
+            $this->assertSame(1, substr_count($out, 'STALE refund'), $out);
+            $this->assertSame([1, 0, 0], [PaymentCorrection::query()->where('organisation_id', $organisation)->count(),
+                PaymentRefund::query()->where('organisation_id', $organisation)->count(), InvoiceCredit::query()->where('invoice_id', $f['invoice']->id)->count()]);
+            $this->assertSame('reversed', $f['receipt']->refresh()->status);
+            $this->assertSame(1, DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->count());
+            $this->assertSame(1, Payment::query()->where('organisation_id', $organisation)->where('status', 'posted')->count());
+            $this->assertSame([1, 0], [$audits('billing.receipt_corrected'), $audits('billing.refund_recorded')]);
+            $this->assertSame([2000, 2000], [$state['self_pay'], $state['due_now']]);
+        } else {
+            $this->assertSame(1, substr_count($out, 'STALE correction'), $out);
+            $this->assertSame([0, 1, 1], [PaymentCorrection::query()->where('organisation_id', $organisation)->count(),
+                PaymentRefund::query()->where('organisation_id', $organisation)->count(), InvoiceCredit::query()->where('invoice_id', $f['invoice']->id)->count()]);
+            $this->assertSame('posted', $f['receipt']->refresh()->status);
+            $this->assertSame(0, DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->count());
+            $this->assertSame([0, 1], [$audits('billing.receipt_corrected'), $audits('billing.refund_recorded')]);
+            $this->assertSame([4000, 0], [$state['self_pay'], $state['due_now']]);
+        }
     }
 
     /** @return array<string, mixed> */
@@ -1206,7 +1336,7 @@ class PostgresBillingRegressionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic evidence.
-            foreach (['issued_billing_document_prints', 'issued_billing_documents', 'invoice_credits', 'payment_refund_decisions', 'payment_refunds', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
+            foreach (['payment_corrections', 'issued_billing_document_prints', 'issued_billing_documents', 'invoice_credits', 'payment_refund_decisions', 'payment_refunds', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");

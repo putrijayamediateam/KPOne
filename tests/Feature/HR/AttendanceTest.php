@@ -578,6 +578,41 @@ class AttendanceTest extends VisitTestCase
         $this->assertSame('pending', DB::table('hr_attendance_corrections')->where('public_id', $correctionId)->value('status'));
     }
 
+    public function test_a_withdrawal_records_who_withdrew_it_and_when_and_postgresql_holds_that_shape(): void
+    {
+        // TEAM.md section 7 hardening (HR-3a known limit): the row now says who withdrew a correction, not only the audit.
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $this->settings($hr)->assertSessionHasNoErrors();
+        $this->at('2027-03-08 08:00');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $session = ClockSession::query()->sole();
+        $this->at('2027-03-08 09:00');
+        $this->propose($ca, ['kind' => 'set_out', 'session_id' => $session->public_id, 'out_time' => '2027-03-08T08:45', 'reason_code' => 'forgot'])->assertSessionHasNoErrors();
+        $waiting = AttendanceCorrection::query()->sole();
+        $this->assertNull($waiting->withdrawn_by_user_id);
+        $this->assertNull($waiting->withdrawn_at);
+
+        // PostgreSQL refuses a withdrawal that does not name the proposer and the time, and a withdrawal on any other step.
+        $this->assertRefused('23514', fn () => DB::table('hr_attendance_corrections')->where('id', $waiting->id)->update(['status' => 'cancelled', 'lock_version' => 2]));
+        $this->assertRefused('23514', fn () => DB::table('hr_attendance_corrections')->where('id', $waiting->id)
+            ->update(['status' => 'cancelled', 'withdrawn_by_user_id' => $hr->id, 'withdrawn_at' => now(), 'lock_version' => 2]));
+        $this->assertRefused('23514', fn () => DB::table('hr_attendance_corrections')->where('id', $waiting->id)
+            ->update(['withdrawn_by_user_id' => $ca->id, 'withdrawn_at' => now()]));
+
+        $this->selectBranch($ca);
+        $this->post(route('hr.attendance.corrections.cancel', $waiting->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $waiting->refresh();
+        $this->assertSame('cancelled', $waiting->status);
+        $this->assertSame($ca->id, $waiting->withdrawn_by_user_id);
+        $this->assertSame('2027-03-08 01:00:00', $waiting->withdrawn_at?->utc()->format('Y-m-d H:i:s')); // 09:00 Kuala Lumpur
+        $this->assertNull($waiting->decided_by_user_id);
+
+        // A correction never starts withdrawn.
+        $this->assertRefused('23514', fn () => DB::table('hr_attendance_corrections')->insert([...collect((array) DB::table('hr_attendance_corrections')->where('id', $waiting->id)->first())
+            ->except(['id'])->all(), 'public_id' => (string) Str::uuid(), 'status' => 'pending', 'lock_version' => 1]));
+    }
+
     private function approvedLeave(User $person, User $hr, User $director): void
     {
         $type = DB::table('hr_leave_types')->insertGetId(['organisation_id' => $person->organisation_id, 'code' => 'AL', 'name' => 'Synthetic annual', 'is_paid' => true,

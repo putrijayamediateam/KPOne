@@ -97,9 +97,9 @@ const dateAttrs = computed(() => {
     return rest;
 });
 const selectClass =
-    'h-full rounded-md border border-input bg-card px-2 text-base shadow-xs outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 md:text-sm dark:bg-input/30';
+    'h-full rounded-md border border-input bg-card px-2 text-base shadow-xs outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 md:text-sm dark:bg-field-fill/30';
 const timeClass =
-    'h-full w-12 rounded-md border border-input bg-card px-2 text-center text-base shadow-xs outline-none placeholder:text-muted-foreground hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 aria-invalid:border-destructive md:text-sm dark:bg-input/30';
+    'h-full w-12 rounded-md border border-input bg-card px-2 text-center text-base shadow-xs outline-none placeholder:text-muted-foreground hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-70 aria-invalid:border-destructive md:text-sm dark:bg-field-fill/30';
 const echoText = computed(() => {
     if (!props.echo || !current()) {
         return '';
