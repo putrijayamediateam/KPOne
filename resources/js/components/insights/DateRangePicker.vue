@@ -38,7 +38,7 @@ const presets: { id: PresetId; label: string }[] = [
     { id: 'last-month', label: 'Last month' },
     { id: 'custom', label: 'Custom' },
 ];
-const weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
+const weekdayLabels = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
 const open = ref(false);
 const draftFrom = ref(props.from);
 const draftTo = ref(props.to);
@@ -66,7 +66,8 @@ const monthLabel = computed(() =>
 const calendarDays = computed(() => {
     const year = visibleMonth.value.getFullYear();
     const month = visibleMonth.value.getMonth();
-    const firstWeekday = new Date(year, month, 1).getDay();
+    // Monday-first, like every other date box in KPOne (UX-17).
+    const firstWeekday = (new Date(year, month, 1).getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     const cellCount = Math.ceil((firstWeekday + daysInMonth) / 7) * 7;
 
