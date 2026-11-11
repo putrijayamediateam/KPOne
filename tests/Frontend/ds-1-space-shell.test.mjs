@@ -7,7 +7,7 @@ const read = (p) =>
 
 test('the space shell page uses the server list and has no menu link or mutation', () => {
     const page = read('resources/js/pages/Spaces/Show.vue');
-    assert.match(page, /defineProps<\{ space: Space; spaces: Space\[\] \}>/);
+    assert.match(page, /defineProps<\{\s*space: Space;\s*spaces: Space\[\];/);
     assert.match(page, /aria-current/);
     assert.match(page, /id="main-content"/);
     assert.doesNotMatch(page, /router\.(post|put|patch|delete)|fetch\(/);
@@ -55,7 +55,10 @@ test('DS-2: the switch lives in the user menu, defaults off and sends the lock v
 
 test('DS-3: the Pharmacy widgets render only what the server sent and mutate nothing', () => {
     const page = read('resources/js/pages/Spaces/Show.vue');
-    assert.match(page, /v-if="pharmacy\.toDispense"/);
+    assert.match(
+        page,
+        /v-if="pharmacy\.toDispense"|v-if=\s*"pharmacy\.toDispense"/,
+    );
     assert.match(page, /v-if="pharmacy\.returnsToCheck"/);
     assert.doesNotMatch(page, /router\.|fetch\(/);
 });

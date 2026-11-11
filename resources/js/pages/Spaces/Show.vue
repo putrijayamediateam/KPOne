@@ -72,7 +72,78 @@ const groups = computed(() => {
         </aside>
         <main id="main-content" class="space-main" tabindex="-1">
             <h1 class="space-title">{{ space.title }}</h1>
-            <section class="space-card" aria-labelledby="work-now">
+            <template v-if="pharmacy">
+                <p v-if="pharmacy.branchName" class="space-muted">
+                    {{ pharmacy.branchName }}
+                </p>
+                <section
+                    v-if="pharmacy.toDispense"
+                    class="space-card"
+                    aria-labelledby="to-dispense"
+                >
+                    <h2 id="to-dispense">
+                        To dispense ({{ pharmacy.toDispense.total }})
+                    </h2>
+                    <p
+                        v-if="pharmacy.toDispense.rows.length === 0"
+                        class="space-muted"
+                    >
+                        Nothing is waiting at Dispensary.
+                    </p>
+                    <ul v-else class="space-list">
+                        <li
+                            v-for="row in pharmacy.toDispense.rows"
+                            :key="row.visitNumber"
+                        >
+                            <Link :href="row.href" class="space-row">
+                                <span class="space-row-main">
+                                    {{ row.patientName }}
+                                    <span class="space-muted">{{
+                                        row.visitNumber
+                                    }}</span>
+                                </span>
+                                <span class="space-muted">
+                                    {{ row.medicineCount }} medicine(s),
+                                    {{ row.minutes }} min
+                                </span>
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="pharmacy.returnsToCheck"
+                    class="space-card"
+                    aria-labelledby="returns"
+                >
+                    <h2 id="returns">
+                        Returns to check ({{ pharmacy.returnsToCheck.total }})
+                    </h2>
+                </section>
+                <section
+                    v-if="pharmacy.links.length"
+                    class="space-card"
+                    aria-labelledby="open-pages"
+                >
+                    <h2 id="open-pages">Open</h2>
+                    <ul class="space-list">
+                        <li v-for="l in pharmacy.links" :key="l.href">
+                            <Link :href="l.href" class="space-row">{{
+                                l.title
+                            }}</Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="!pharmacy.toDispense && !pharmacy.returnsToCheck"
+                    class="space-card"
+                >
+                    <p class="space-muted">
+                        Nothing to show here for your role. Your existing
+                        screens are unchanged.
+                    </p>
+                </section>
+            </template>
+            <section v-else class="space-card" aria-labelledby="work-now">
                 <h2 id="work-now">Work now</h2>
                 <p class="space-muted">
                     This space is being built. Your existing screens are
