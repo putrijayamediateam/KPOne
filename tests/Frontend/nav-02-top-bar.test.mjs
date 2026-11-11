@@ -115,6 +115,8 @@ const expected = {
     hr_manager: ['Insights', 'Staff', 'Clinic management'],
     marketing: ['Insights', 'Clinic management'],
     business_development: ['Insights', 'Clinic management'],
+    // HR-15a: a locum lands on My roster; the hub holds their one HR link.
+    locum: ['Clinic management'],
 };
 
 test('every standard role gets exactly its approved daily list in both page contexts', () => {
@@ -212,7 +214,7 @@ test('direct grants only affect permitted daily items and management links stay 
                 'Branches',
                 'Access Control',
                 'Audit Logs',
-                'Public Check-In',
+                'QR check-in links',
                 'Queue Display (TV)',
             ]) {
                 if (

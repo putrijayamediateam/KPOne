@@ -9,6 +9,7 @@ import TransferDifferences from '@/components/inventory/TransferDifferences.vue'
 import TransferReceiptForm from '@/components/inventory/TransferReceiptForm.vue';
 import VerifiedReceivingForm from '@/components/inventory/VerifiedReceivingForm.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { StatusBadge } from '@/components/ui/status';
@@ -16,6 +17,7 @@ import {
     purchaseOrderActionAllowed,
     stockRequestActionAllowed,
 } from '@/lib/inventory-operation-transitions';
+import { formatDate } from '@/lib/presentation';
 import type { TransferReceiptLinePayload } from '@/lib/transfer-receipt';
 import type {
     InventoryDocument as DocumentRow,
@@ -178,7 +180,15 @@ const canPurchase = (
         row.status,
         action,
         props.operations.permissions,
-    );
+    ) && !needsAnotherApprover(row, action);
+// STK-19: whoever raised or submitted an order never approves it, or cancels it once approved.
+const needsAnotherApprover = (
+    row: DocumentRow,
+    action: 'submit' | 'approve' | 'receive' | 'close' | 'cancel',
+) =>
+    row.raisedByYou === true &&
+    (action === 'approve' ||
+        (action === 'cancel' && row.status === 'approved'));
 const canRequest = (
     row: DocumentRow,
     action: 'decide' | 'dispatch' | 'receive',
@@ -290,7 +300,7 @@ const batchOptions = (sku?: string) =>
         .filter((item) => !sku || item.skuPublicId === sku)
         .map((item) => ({
             value: item.publicId,
-            label: `${item.batchNumber} · ${item.expiryDate}`,
+            label: `${item.batchNumber} · ${formatDate(item.expiryDate)}`,
         }));
 
 type RequestPayload = Parameters<typeof router.post>[1];
@@ -874,6 +884,45 @@ const saveReorder = () =>
                             "
                             >Cancel</Button
                         >
+                        <a
+                            v-if="
+                                operations.permissions.createPurchaseOrders ||
+                                operations.permissions.approvePurchaseOrders
+                            "
+                            :href="`/inventory/purchase-orders/${row.publicId}/print`"
+                            class="inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium lg:min-h-9"
+                            :aria-label="`Print purchase order ${row.number}`"
+                            >Print PO</a
+                        >
+                        <p
+                            v-if="
+                                needsAnotherApprover(row, 'approve') &&
+                                purchaseOrderActionAllowed(
+                                    row.status,
+                                    'approve',
+                                    operations.permissions,
+                                )
+                            "
+                            class="w-full text-sm text-muted-foreground"
+                        >
+                            You raised or submitted this order, so a different
+                            Finance Officer or Director must approve it.
+                        </p>
+                        <p
+                            v-if="
+                                needsAnotherApprover(row, 'cancel') &&
+                                purchaseOrderActionAllowed(
+                                    row.status,
+                                    'cancel',
+                                    operations.permissions,
+                                )
+                            "
+                            class="w-full text-sm text-muted-foreground"
+                        >
+                            You raised or submitted this order, so a different
+                            Finance Officer or Director must cancel it now that
+                            it is approved.
+                        </p>
                         <Button
                             v-if="canPurchase(row, 'close')"
                             size="sm"
@@ -915,10 +964,10 @@ const saveReorder = () =>
                                 :aria-label="`${line.sku} received batch number`"
                                 placeholder="Batch number"
                             />
-                            <Input
+                            <DateField
                                 v-model="receipt[line.publicId].expiryDate"
                                 :aria-label="`${line.sku} received batch expiry`"
-                                type="date"
+                                :echo="false"
                             />
                             <Input
                                 v-model="receipt[line.publicId].quantity"

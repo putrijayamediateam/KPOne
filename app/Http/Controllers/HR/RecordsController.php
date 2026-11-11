@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\HR;
 
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\HR\Letters\Services\LettersPageService;
+use App\Domain\HR\Memos\Services\MemosPageService;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\BankDetailService;
 use App\Domain\HR\Records\Services\ChecklistService;
 use App\Domain\HR\Records\Services\DocumentService;
+use App\Domain\HR\Records\Services\LocumSignIns;
 use App\Domain\HR\Records\Services\RecordCorrectionService;
 use App\Domain\HR\Records\Services\RecordsPageService;
 use App\Domain\HR\Records\Services\StaffFileService;
@@ -32,7 +35,11 @@ class RecordsController extends Controller
     {
         return Inertia::render('HR/Records', ['records' => $pages->page($request->user(), $request->only(['tab', 'q', 'branch', 'type', 'status'])),
             // HR-5c: how many SOPs you still have to read, linking to /hr/sops.
-            'sopsToRead' => app(SopsPageService::class)->toRead($request->user())]);
+            'sopsToRead' => app(SopsPageService::class)->toRead($request->user()),
+            // HR-8: how many memos you still have to read, linking to /hr/memos.
+            'memosToRead' => app(MemosPageService::class)->toRead($request->user()),
+            // HR-10a: how many current letters HR issued to you, linking to /hr/letters.
+            'lettersMine' => app(LettersPageService::class)->mineCount($request->user())]);
     }
 
     public function show(Request $request, RecordsPageService $pages, string $worker): Response
@@ -80,6 +87,18 @@ class RecordsController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => 'Locum added.']);
 
         return redirect()->route('hr.records.show', ['worker' => $worker->public_id]);
+    }
+
+    public function askSignIn(Request $request, LocumSignIns $signIns, string $worker): RedirectResponse
+    {
+        return $this->run($request, $this->file($worker, 'employment'), 'Sign-in asked for. The account administrator sees it on the Staff page.',
+            fn () => $signIns->request($request->user(), $worker, $request->only(['email', 'idempotency_key'])));
+    }
+
+    public function cancelSignIn(Request $request, LocumSignIns $signIns, string $worker, string $signIn): RedirectResponse
+    {
+        return $this->run($request, $this->file($worker, 'employment'), 'Sign-in request cancelled.',
+            fn () => $signIns->cancel($request->user(), $signIn, $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
     public function addPeriod(Request $request, StaffFileService $files, string $worker): RedirectResponse

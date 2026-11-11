@@ -9,6 +9,7 @@ import {
     Volume2,
 } from '@lucide/vue';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { statusAnnouncement } from '@/lib/public-intake-announcement';
 
 const props = defineProps<{
     status: {
@@ -61,6 +62,18 @@ const currentStep = computed(() => {
     }
 
     return props.status.state === 'under_review' ? 1 : 0;
+});
+// A screen reader hears only the key facts when they change (see statusAnnouncement). A call to the room is
+// announced by its own alert, so nothing is announced here then. The text stays empty until the first change, so
+// the page is not read twice when it opens.
+const announcement = computed(() =>
+    statusAnnouncement(props.status, called.value),
+);
+const announced = ref('');
+watch(announcement, (text) => {
+    if (text !== null) {
+        announced.value = text;
+    }
 });
 const soundOn = ref(false);
 let audio: AudioContext | undefined;
@@ -205,11 +218,20 @@ onBeforeUnmount(() => {
     /></Head>
     <main
         class="mx-auto grid min-h-svh max-w-xl grid-cols-1 place-items-center px-4 py-8"
+        lang="ms"
     >
         <section
             class="w-full min-w-0 space-y-6 rounded-3xl border bg-white p-6 shadow-xl sm:p-9 dark:bg-zinc-900"
-            aria-live="polite"
         >
+            <p
+                class="sr-only"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+                data-test="status-announcer"
+            >
+                {{ announced }}
+            </p>
             <header class="flex items-center gap-3">
                 <img
                     src="/kp-mark.png"
@@ -323,7 +345,12 @@ onBeforeUnmount(() => {
                 class="grid grid-cols-4 gap-2 text-center text-xs"
                 aria-label="Kemajuan pendaftaran"
             >
-                <li v-for="(label, i) in steps" :key="label" class="space-y-1">
+                <li
+                    v-for="(label, i) in steps"
+                    :key="label"
+                    class="space-y-1"
+                    :aria-current="i === currentStep ? 'step' : undefined"
+                >
                     <span
                         class="mx-auto block h-1.5 rounded-full"
                         :class="
@@ -338,7 +365,10 @@ onBeforeUnmount(() => {
                                 ? 'font-semibold text-zinc-900 dark:text-zinc-100'
                                 : 'text-zinc-500'
                         "
-                        >{{ label }}</span
+                        >{{ label
+                        }}<span v-if="i < currentStep" class="sr-only">
+                            (selesai)</span
+                        ></span
                     >
                 </li>
             </ol>
@@ -431,6 +461,7 @@ onBeforeUnmount(() => {
                             <a
                                 v-if="branch.mapUrl"
                                 :href="branch.mapUrl"
+                                :aria-label="`Buka peta ${branch.name} (tab baharu)`"
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 class="text-xs font-medium text-pink-700 underline"

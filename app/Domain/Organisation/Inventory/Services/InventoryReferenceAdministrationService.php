@@ -71,18 +71,18 @@ class InventoryReferenceAdministrationService
         }, 'inventory_item.updated');
     }
 
-    public function activateItem(User $actor, InventoryItem $item): InventoryItem
+    public function activateItem(User $actor, InventoryItem $item, mixed $expectedVersion = null): InventoryItem
     {
-        return $this->setActive($actor, $item, true, 'inventory_item.activated');
+        return $this->setActive($actor, $item, true, 'inventory_item.activated', null, $expectedVersion);
     }
 
-    public function deactivateItem(User $actor, InventoryItem $item): InventoryItem
+    public function deactivateItem(User $actor, InventoryItem $item, mixed $expectedVersion = null): InventoryItem
     {
         return $this->setActive($actor, $item, false, 'inventory_item.deactivated', function (InventoryItem $locked): void {
             if (InventorySku::query()->where('organisation_id', $locked->organisation_id)->where('inventory_item_id', $locked->id)->where('is_active', true)->exists()) {
                 $this->invalid('item', 'Deactivate this Inventory Item’s active SKUs first.');
             }
-        });
+        }, $expectedVersion);
     }
 
     /** @param array<string, mixed> $attributes */
@@ -133,23 +133,23 @@ class InventoryReferenceAdministrationService
         }, 'inventory_sku.updated');
     }
 
-    public function activateSku(User $actor, InventorySku $sku): InventorySku
+    public function activateSku(User $actor, InventorySku $sku, mixed $expectedVersion = null): InventorySku
     {
         return $this->setActive($actor, $sku, true, 'inventory_sku.activated', function (InventorySku $locked) use ($actor): void {
             $activeItem = InventoryItem::query()->whereKey($locked->inventory_item_id)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->exists();
             if (! $activeItem) {
                 $this->invalid('inventory_item', 'Activate the Inventory Item before activating its SKU.');
             }
-        });
+        }, $expectedVersion);
     }
 
-    public function deactivateSku(User $actor, InventorySku $sku): InventorySku
+    public function deactivateSku(User $actor, InventorySku $sku, mixed $expectedVersion = null): InventorySku
     {
         return $this->setActive($actor, $sku, false, 'inventory_sku.deactivated', function (InventorySku $locked): void {
             if (MedicineCatalogueInventorySku::query()->where('organisation_id', $locked->organisation_id)->where('inventory_sku_id', $locked->id)->where('is_active', true)->exists()) {
                 $this->invalid('sku', 'Deactivate this SKU’s active Medicine mapping first.');
             }
-        });
+        }, $expectedVersion);
     }
 
     /** @param array<string, mixed> $attributes */
@@ -367,12 +367,14 @@ class InventoryReferenceAdministrationService
             $locked = $this->lockOwned($actor, $reference);
             $changes = $evaluate($locked, $attributes);
             if ($changes === []) {
+                // Already saved (for example a retried request): nothing to do, whatever version was sent.
                 return $locked;
             }
+            $this->assertVersion($locked, $attributes['expected_lock_version'] ?? null);
             $locked->forceFill($changes)->save();
             $this->record($event, $locked, $actor, array_keys($changes));
 
-            return $locked;
+            return $this->reloadVersion($locked);
         }, 3);
     }
 
@@ -381,24 +383,55 @@ class InventoryReferenceAdministrationService
      * @param  null|callable(T): void  $before
      * @return T
      */
-    private function setActive(User $actor, Model $reference, bool $active, string $event, ?callable $before = null): Model
+    private function setActive(User $actor, Model $reference, bool $active, string $event, ?callable $before = null, mixed $expectedVersion = null): Model
     {
         $this->authorize($actor);
 
-        return DB::transaction(function () use ($actor, $reference, $active, $event, $before): Model {
+        return DB::transaction(function () use ($actor, $reference, $active, $event, $before, $expectedVersion): Model {
             $this->lockOrganisation($actor);
             $locked = $this->lockOwned($actor, $reference);
             if ((bool) $locked->getAttribute('is_active') === $active) {
                 return $locked;
             }
+            $this->assertVersion($locked, $expectedVersion);
             if ($before !== null) {
                 $before($locked);
             }
             $locked->forceFill(['is_active' => $active])->save();
             $this->record($event, $locked, $actor, ['is_active']);
 
-            return $locked;
+            return $this->reloadVersion($locked);
         }, 3);
+    }
+
+    /**
+     * STK-14: an edit screen sends the version it showed; existing callers send none and are unchanged. Only items
+     * and SKUs carry a lock_version (PostgreSQL raises it on every update).
+     */
+    private function assertVersion(Model $locked, mixed $expected): void
+    {
+        if ($expected === null || ! ($locked instanceof InventoryItem || $locked instanceof InventorySku)) {
+            return;
+        }
+        if (filter_var($expected, FILTER_VALIDATE_INT) !== (int) $locked->getAttribute('lock_version')) {
+            $this->invalid('expected_lock_version', $locked instanceof InventorySku ? 'This SKU changed. Reload and try again.' : 'This item changed. Reload and try again.');
+        }
+    }
+
+    /**
+     * @template T of Model
+     *
+     * @param  T  $model
+     * @return T
+     */
+    private function reloadVersion(Model $model): Model
+    {
+        if ($model instanceof InventoryItem || $model instanceof InventorySku) {
+            $model->setAttribute('lock_version', DB::table($model->getTable())->where('id', $model->getKey())->value('lock_version'));
+            $model->syncOriginalAttribute('lock_version');
+        }
+
+        return $model;
     }
 
     private function authorize(User $actor): void
@@ -483,6 +516,12 @@ class InventoryReferenceAdministrationService
         if ($holder !== null) {
             $this->invalid('barcode', 'This barcode is already used by SKU '.$holder.'. Each barcode can belong to one SKU only.');
         }
+    }
+
+    /** STK-14: whether a SKU's identity and unit fields are locked by batch, mapping, stock or Dispensary evidence. */
+    public function skuUnitsLocked(InventorySku $sku): bool
+    {
+        return $this->skuHasEvidence($sku);
     }
 
     private function skuHasEvidence(InventorySku $sku): bool

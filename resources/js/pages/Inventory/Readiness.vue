@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { ref, watch } from 'vue';
+import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
 
 type Row = {
     id: number;
@@ -123,14 +126,17 @@ watch(
     <main
         class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-5 p-4 md:p-7"
     >
-        <div>
-            <a href="/inventory" class="text-sm underline">Inventory</a>
-            <h1 class="mt-3 text-2xl font-semibold">Pilot readiness</h1>
-            <p class="text-sm text-muted-foreground">
-                {{ readiness.branchName }} · Review only. No import, balance
-                correction or pilot go-live approval.
-            </p>
-        </div>
+        <ActionLink
+            href="/inventory"
+            variant="ghost"
+            class="-ml-3 min-h-11 self-start"
+            ><ArrowLeft class="size-4" aria-hidden="true" />
+            Inventory</ActionLink
+        >
+        <PageHeader
+            title="Pilot readiness"
+            :description="`${readiness.branchName} · Review only. No import, balance correction or pilot go-live approval.`"
+        />
         <section class="space-y-2 rounded-lg border bg-card p-4 text-sm">
             <p>
                 One base stock unit per SKU. Quantities use exactly up to three

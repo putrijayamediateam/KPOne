@@ -10,6 +10,7 @@ import {
     CardHeader,
     CardTitle,
 } from '@/components/ui/card';
+import { DateField } from '@/components/ui/date-field';
 import { PageHeader } from '@/components/ui/page-header';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import type { StaffOptions } from '@/types';
@@ -297,7 +298,7 @@ const submit = () => form.post('/staff');
                                 >
                             </div>
                             <div
-                                class="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+                                class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-4"
                             >
                                 <div class="grid gap-2 xl:col-span-2">
                                     <label
@@ -361,11 +362,9 @@ const submit = () => form.post('/staff');
                                         :for="`staff-assignment-${index}-from`"
                                         class="text-xs font-medium"
                                         >Valid from</label
-                                    ><input
+                                    ><DateField
                                         :id="`staff-assignment-${index}-from`"
                                         v-model="assignment.valid_from"
-                                        type="date"
-                                        class="h-9 rounded-md border bg-background px-3 text-sm"
                                     /><InputError
                                         :message="
                                             errorFor(
@@ -379,11 +378,9 @@ const submit = () => form.post('/staff');
                                         :for="`staff-assignment-${index}-until`"
                                         class="text-xs font-medium"
                                         >Valid through (inclusive)</label
-                                    ><input
+                                    ><DateField
                                         :id="`staff-assignment-${index}-until`"
                                         v-model="assignment.valid_until"
-                                        type="date"
-                                        class="h-9 rounded-md border bg-background px-3 text-sm"
                                     /><InputError
                                         :message="
                                             errorFor(

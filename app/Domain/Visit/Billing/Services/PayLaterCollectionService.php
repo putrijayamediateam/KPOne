@@ -4,6 +4,7 @@ namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
+use App\Domain\Visit\Billing\Models\Invoice;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
@@ -18,7 +19,7 @@ final class PayLaterCollectionService
 {
     public const PER_PAGE = 20;
 
-    public function __construct(private BranchAccessService $branches, private TransactionalActorAuthority $authority) {}
+    public function __construct(private BranchAccessService $branches, private TransactionalActorAuthority $authority, private FinancialLedger $ledger) {}
 
     /** @return array<string, mixed> */
     public function page(User $actor, int $page, bool $overdueOnly): array
@@ -37,7 +38,7 @@ final class PayLaterCollectionService
             $shown = $this->totals(clone $query, $today);
             $lastPage = max(1, (int) ceil($shown['count'] / self::PER_PAGE));
             $page = min(max(1, $page), $lastPage);
-            $rows = $query->select(['r.id', 'r.amount_sen', 'r.remaining_sen', 'r.due_date', 'i.invoice_number', 'v.visit_number', 'v.registered_at', 'p.full_name', 'p.patient_number',
+            $rows = $query->select(['r.id', 'i.id as invoice_id', 'r.amount_sen', 'r.remaining_sen', 'r.due_date', 'i.invoice_number', 'v.visit_number', 'v.registered_at', 'p.full_name', 'p.patient_number',
                 // REG-5: a bill of a merged-away record lists under the kept record, noting the old KP number.
                 'kp.full_name as kept_full_name', 'kp.patient_number as kept_patient_number'])
                 ->orderBy('r.due_date')->orderBy('r.approved_at')->orderBy('r.id')
@@ -45,6 +46,17 @@ final class PayLaterCollectionService
 
             return ['branch' => $branch->name, 'today' => $today->format('j M Y'), 'overdueOnly' => $overdueOnly,
                 'all' => $all, 'shown' => $shown, 'currentPage' => $page, 'lastPage' => $lastPage,
+                // BIL-17: money due after a receipt correction (BIL-16) is paid before pay-later, so the list says so. Kept
+                // beside the rows (visit number => sen, only when above zero) so each row keeps its fields.
+                'dueNow' => (function () use ($rows): array {
+                    if ($rows->isEmpty()) {
+                        return [];
+                    }
+                    $states = $this->ledger->states(Invoice::query()->whereIn('id', $rows->pluck('invoice_id'))->get());
+
+                    return $rows->mapWithKeys(fn (object $row): array => [(string) $row->visit_number => (int) ($states[(int) $row->invoice_id]['due_now'] ?? 0)])
+                        ->filter(fn (int $sen): bool => $sen > 0)->all();
+                })(),
                 'data' => $rows->map(function (object $row) use ($branch, $today): array {
                     $due = CarbonImmutable::parse($row->due_date, $branch->timezone)->startOfDay();
 
