@@ -2,6 +2,7 @@
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 
@@ -126,11 +127,11 @@ const canDownload = computed(() => props.ready && props.total > 0);
         >
             <label class="grid min-w-0 gap-1 text-xs">
                 Visit date from
-                <Input v-model="form.from" type="date" />
+                <DateField v-model="form.from" :echo="false" />
             </label>
             <label class="grid min-w-0 gap-1 text-xs">
                 Visit date to
-                <Input v-model="form.to" type="date" />
+                <DateField v-model="form.to" :echo="false" />
             </label>
             <label class="grid min-w-0 gap-1 text-xs">
                 Time from

@@ -369,6 +369,7 @@ test('Clinical action triggers open the custom dialog with the matching action c
                 default: dialogStub,
             },
             '@/components/ui/button': { Button: passthrough('button') },
+            '@/components/ui/date-field': { DateField: passthrough('input') },
             '@/components/ui/select': {
                 OperationalSelect: passthrough('button'),
             },

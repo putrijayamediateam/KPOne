@@ -355,11 +355,7 @@ const removePoster = (posterId: string) => {
                                         >
                                         <Button
                                             size="sm"
-                                            :variant="
-                                                room.isActive
-                                                    ? 'destructive'
-                                                    : 'default'
-                                            "
+                                            variant="outline"
                                             @click="toggleRoom(room)"
                                         >
                                             {{

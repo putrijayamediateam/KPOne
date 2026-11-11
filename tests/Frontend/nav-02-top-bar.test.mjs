@@ -115,6 +115,8 @@ const expected = {
     hr_manager: ['Insights', 'Staff', 'Clinic management'],
     marketing: ['Insights', 'Clinic management'],
     business_development: ['Insights', 'Clinic management'],
+    // HR-15a: a locum lands on My roster; the hub holds their one HR link.
+    locum: ['Clinic management'],
 };
 
 test('every standard role gets exactly its approved daily list in both page contexts', () => {

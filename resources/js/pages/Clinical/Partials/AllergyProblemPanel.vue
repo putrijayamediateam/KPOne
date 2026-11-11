@@ -4,8 +4,9 @@ import { AlertTriangle, Check, Plus } from '@lucide/vue';
 import { computed, ref, useId } from 'vue';
 import ClinicalSafetyConfirmDialog from '@/components/clinical/ClinicalSafetyConfirmDialog.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
-import { formatDateTime } from '@/lib/presentation';
+import { formatDate, formatDateTime } from '@/lib/presentation';
 import type {
     ClinicalAllergyRecord,
     ClinicalAllergySafety,
@@ -540,7 +541,11 @@ const saveProblem = () => {
                                     {{ record.conditionCode }} ·
                                 </span>
                                 Onset:
-                                {{ record.onsetDate ?? 'Not recorded' }}
+                                {{
+                                    record.onsetDate
+                                        ? formatDate(record.onsetDate)
+                                        : 'Not recorded'
+                                }}
                             </div>
                         </div>
                         <div
@@ -665,7 +670,9 @@ const saveProblem = () => {
                                     ><span class="text-foreground">Active</span
                                     ><template v-if="record.onsetDate">
                                         · Onset:
-                                        {{ record.onsetDate }}</template
+                                        {{
+                                            formatDate(record.onsetDate)
+                                        }}</template
                                     ></template
                                 >
                                 <template v-else
@@ -682,7 +689,7 @@ const saveProblem = () => {
 
                 <form
                     v-if="showProblemForm && problems.canUpdate"
-                    class="grid gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-2"
+                    class="grid items-start gap-2 rounded-md border bg-muted/20 p-3 sm:grid-cols-2"
                     @submit.prevent="saveProblem"
                 >
                     <label class="text-sm sm:col-span-2">
@@ -712,11 +719,7 @@ const saveProblem = () => {
                     </label>
                     <label class="text-sm">
                         Onset date
-                        <input
-                            v-model="problemForm.onset_date"
-                            type="date"
-                            class="mt-1 h-9 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
-                        />
+                        <DateField v-model="problemForm.onset_date" />
                     </label>
                     <p
                         v-if="Object.keys(problemForm.errors).length"
