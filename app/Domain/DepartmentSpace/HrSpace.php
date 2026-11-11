@@ -5,6 +5,7 @@ namespace App\Domain\DepartmentSpace;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\HR\Attendance\Services\AttendancePageService;
 use App\Domain\HR\Claims\Services\ClaimsPageService;
+use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Domain\HR\Leave\Services\LeavePageService;
 use App\Domain\HR\Roster\Services\RosterPageService;
 use App\Models\User;
@@ -26,6 +27,7 @@ final class HrSpace
         private AttendancePageService $attendance,
         private ClaimsPageService $claims,
         private RosterPageService $roster,
+        private CredentialsPageService $credentials,
     ) {}
 
     /**
@@ -40,7 +42,7 @@ final class HrSpace
         $links = [];
         $hasBranch = $branch !== null;
         foreach ([
-            [$actor->can('hr.roster.manage.organisation') || $actor->can('hr.leave.manage.organisation') || $actor->can('hr.attendance.review.organisation'), 'HR dashboard', 'hr.dashboard.index'],
+            [$actor->can('hr.roster.manage.organisation') || $actor->can('hr.leave.manage.organisation') || $actor->can('hr.attendance.review.organisation'), 'Who is on duty today', 'hr.dashboard.index'],
             [$actor->can('hr.roster.manage.organisation') || $actor->can('hr.roster.approve.organisation'), 'Roster', 'hr.roster.index'],
             [$actor->can('hr.leave.approve.organisation') || $actor->can('hr.leave.manage.organisation'), 'Leave', 'hr.leave.index'],
             [$actor->can('hr.attendance.review.organisation'), 'Attendance', 'hr.attendance.index'],
@@ -50,11 +52,13 @@ final class HrSpace
                 $links[] = ['title' => $title, 'href' => route($route, absolute: false)];
             }
         }
-        $first = $approvals === null ? null : collect($approvals['kinds'])->firstWhere('count', '>', 0);
+        $first = $approvals === null ? null : collect($approvals['kinds'])->first();
+        $canRoster = $hasBranch && $actor->can('hr.roster.manage.organisation');
         $primary = $first !== null
             ? ['title' => 'Open approvals', 'href' => $first['href']]
-            : ($hasBranch && ($actor->can('hr.roster.manage.organisation') || $actor->can('hr.leave.manage.organisation') || $actor->can('hr.attendance.review.organisation'))
-                ? ['title' => 'Open HR dashboard', 'href' => route('hr.dashboard.index', absolute: false)] : null);
+            : ($canRoster ? ['title' => 'Open roster', 'href' => route('hr.roster.index', absolute: false)]
+                : ($hasBranch && ($actor->can('hr.leave.manage.organisation') || $actor->can('hr.attendance.review.organisation'))
+                    ? ['title' => 'Open HR dashboard', 'href' => route('hr.dashboard.index', absolute: false)] : null));
 
         return [
             'branchName' => $branch?->name,
@@ -70,7 +74,7 @@ final class HrSpace
     /**
      * Waiting approvals per kind, each from its own page service and permission.
      *
-     * @return array{total: int, kinds: list<array{key: string, title: string, count: int, href: string}>}|null
+     * @return array{total: int, kinds: list<array<string, mixed>>}|null
      */
     public function approvals(User $actor): ?array
     {
@@ -95,16 +99,43 @@ final class HrSpace
             $claims = $this->claims->page($actor, $branch, ['tab' => 'approvals']);
             $kinds[] = ['key' => 'claims', 'title' => 'Staff claims', 'count' => count((array) ($claims['approvals']['claims'] ?? [])), 'href' => route('hr.claims.index', ['tab' => 'approvals'], absolute: false)];
         }
-        if ($kinds === []) {
+        if ($kinds === [] && ! $this->mayApprove($actor)) {
             return null;
         }
+        $kinds = array_values(array_filter($kinds, fn (array $k): bool => $k['count'] > 0));
+        foreach ($kinds as &$k) {
+            $k['detail'] = $k['key'] === 'leave' ? $this->earliestLeave($actor) : null;
+        }
+        unset($k);
 
         return ['total' => array_sum(array_column($kinds, 'count')), 'kinds' => $kinds];
     }
 
+    private function mayApprove(User $actor): bool
+    {
+        return $actor->can('hr.leave.approve.organisation') || $actor->can('hr.attendance.review.organisation') || $actor->can('hr.overtime.approve.organisation') || $actor->can('hr.claims.approve.organisation');
+    }
+
     /**
-     * Who is on leave today and this week at the active branch, from the leave page's own team calendar: "On leave" or
-     * "half day" only, never the type or reason.
+     * When the earliest waiting leave starts, from the leave Approvals tab's own rows (ordered by start date). The page
+     * rows carry no sent-at time, so how long a request has waited is not known here.
+     */
+    private function earliestLeave(User $actor): ?string
+    {
+        $page = $this->leave->page($actor, ['tab' => 'approvals']);
+        $first = ((array) ($page['approvals']['pending'] ?? []))[0] ?? null;
+        if (! is_array($first) || ! isset($first['startDate'])) {
+            return null;
+        }
+        $days = (int) CarbonImmutable::parse((string) $page['today'])->startOfDay()->diffInDays(CarbonImmutable::parse((string) $first['startDate'])->startOfDay(), false);
+
+        return $days <= 0 ? 'Earliest leave started or starts today' : 'Earliest leave starts in '.$days.($days === 1 ? ' day' : ' days');
+    }
+
+    /**
+     * Who is on leave today and this week at the active branch, from the leave page's own team calendar (one month at a
+     * time, so the other month is read too when the week crosses a month edge): "On leave until ..." or "Half day"
+     * only, never the type or reason. People are kept apart by calendar row, not by short name.
      *
      * @return array{today: list<array{name: string, text: string}>, week: list<array{name: string, text: string}>}|null
      */
@@ -118,34 +149,67 @@ final class HrSpace
         $today = CarbonImmutable::parse((string) $page['today'])->startOfDay();
         $weekStart = $today->startOfWeek();
         $weekEnd = $today->endOfWeek()->startOfDay();
+        // Cells per calendar row (full name as the key), merged across the months the week and the leave touch.
+        $people = [];
+        $merge = function (array $calendar) use (&$people): void {
+            foreach ((array) ($calendar['rows'] ?? []) as $row) {
+                $key = (string) $row['name'];
+                $people[$key] = ((array) ($people[$key] ?? [])) + (array) $row['cells'];
+            }
+        };
+        $merge((array) $page['calendar']);
+        $otherMonths = [];
+        foreach ([$weekStart, $weekEnd, $today->addDays(14)] as $d) {
+            if ($d->format('Y-m') !== $today->format('Y-m')) {
+                $otherMonths[$d->format('Y-m')] = true;
+            }
+        }
+        foreach (array_keys($otherMonths) as $month) {
+            $merge((array) ($this->leave->page($actor, ['tab' => 'calendar', 'branch' => $branch->id, 'month' => $month])['calendar'] ?? []));
+        }
+
         $todayRows = [];
-        $weekRows = [];
-        foreach ((array) ($page['calendar']['rows'] ?? []) as $row) {
-            $cells = (array) $row['cells'];
-            $name = SpaceDisplay::shortName((string) $row['name']);
-            if (isset($cells[$today->toDateString()])) {
-                $todayRows[] = ['name' => $name, 'text' => $cells[$today->toDateString()] === 'half' ? 'Half day' : 'On leave'];
+        $week = [];
+        foreach ($people as $fullName => $cells) {
+            ksort($cells);
+            $name = SpaceDisplay::shortName((string) $fullName);
+            $mine = $cells[$today->toDateString()] ?? null;
+            if ($mine !== null) {
+                $todayRows[] = ['name' => $name, 'text' => $mine === 'half' ? 'Half day' : 'On leave until '.$this->runEnd($cells, $today)->format('j M Y')];
             }
             $days = 0;
+            $halves = 0;
             foreach ($cells as $date => $kind) {
                 $d = CarbonImmutable::parse((string) $date);
                 if ($d->greaterThanOrEqualTo($weekStart) && $d->lessThanOrEqualTo($weekEnd)) {
-                    $days += $kind === 'half' ? 0 : 1;
-                    $weekRows[$name]['half'] = ($weekRows[$name]['half'] ?? 0) + ($kind === 'half' ? 1 : 0);
+                    $kind === 'half' ? $halves++ : $days++;
                 }
             }
-            if ($days > 0 || ($weekRows[$name]['half'] ?? 0) > 0) {
-                $weekRows[$name]['days'] = $days;
+            if ($days > 0 || $halves > 0) {
+                $week[] = ['name' => $name, 'text' => trim(($days > 0 ? $days.($days === 1 ? ' day' : ' days') : '').($days > 0 && $halves > 0 ? ' and ' : '').($halves > 0 ? $halves.($halves === 1 ? ' half day' : ' half days') : ''))];
             }
-        }
-        $week = [];
-        foreach ($weekRows as $name => $v) {
-            $d = (int) ($v['days'] ?? 0);
-            $h = (int) ($v['half'] ?? 0);
-            $week[] = ['name' => (string) $name, 'text' => trim(($d > 0 ? $d.($d === 1 ? ' day' : ' days') : '').($d > 0 && $h > 0 ? ' and ' : '').($h > 0 ? $h.($h === 1 ? ' half day' : ' half days') : ''))];
         }
 
         return ['today' => $todayRows, 'week' => $week];
+    }
+
+    /**
+     * The last day of the run of leave that includes `$from`: cells are working days only, so a weekend or holiday gap
+     * of up to three days does not end the run.
+     *
+     * @param  array<string, string>  $cells
+     */
+    private function runEnd(array $cells, CarbonImmutable $from): CarbonImmutable
+    {
+        $end = $from;
+        foreach (array_keys($cells) as $date) {
+            $d = CarbonImmutable::parse((string) $date);
+            if ($d->greaterThan($end) && (int) $end->diffInDays($d) <= 3) {
+                $end = $d;
+            }
+        }
+
+        return $end;
     }
 
     /**
@@ -161,8 +225,39 @@ final class HrSpace
         }
         $page = $this->roster->page($actor, ['tab' => 'planner']);
         $planner = (array) $page['planner'];
-        $status = ($planner['approvedVersion'] ?? null) !== null ? 'Approved' : (($planner['openVersion'] ?? null) !== null ? 'Draft' : 'No roster yet');
+        $open = $planner['openVersion'] ?? null;
+        $status = ($planner['approvedVersion'] ?? null) !== null ? 'Approved'
+            : (is_array($open) ? (($open['status'] ?? '') === 'draft' ? 'Draft, not sent for approval' : 'Waiting for approval') : 'No roster yet');
 
         return ['label' => (string) $page['week']['label'], 'status' => $status, 'shortDays' => count((array) ($planner['shortDays'] ?? [])), 'href' => route('hr.roster.index', absolute: false)];
+    }
+
+    /**
+     * Credentials due for renewal soon, from the credentials register's own "expiring" filter: name, credential and expiry
+     * date only (no reference). How soon is each credential type's own warning window.
+     *
+     * @return list<array{name: string, credential: string, expires: string}>|null
+     */
+    public function credentialsDue(User $actor): ?array
+    {
+        if ($this->branches->activeBranch($actor) === null || ! $actor->can('hr.credentials.manage.organisation')) {
+            return null;
+        }
+        $register = (array) ($this->credentials->page($actor, ['tab' => 'register', 'status' => 'expiring'])['register'] ?? []);
+        $types = [];
+        foreach ((array) ($register['types'] ?? []) as $t) {
+            $types[(string) $t['typeId']] = (string) $t['name'];
+        }
+        $due = [];
+        foreach ((array) ($register['rows'] ?? []) as $row) {
+            foreach ((array) $row['cells'] as $typeId => $cell) {
+                if (is_array($cell) && ($cell['status']['code'] ?? '') === 'expiring' && ($cell['expiresOn'] ?? null) !== null) {
+                    $due[] = ['name' => SpaceDisplay::shortName((string) $row['name']), 'credential' => $types[(string) $typeId] ?? 'Credential', 'expires' => CarbonImmutable::parse((string) $cell['expiresOn'])->format('j M Y'), 'on' => (string) $cell['expiresOn']];
+                }
+            }
+        }
+        usort($due, fn (array $a, array $b): int => strcmp($a['on'], $b['on']));
+
+        return array_map(fn (array $d): array => ['name' => $d['name'], 'credential' => $d['credential'], 'expires' => $d['expires']], $due);
     }
 }

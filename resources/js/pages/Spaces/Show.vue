@@ -198,6 +198,7 @@ type HrHome = {
             title: string;
             count: number;
             href: string;
+            detail: string | null;
         }>;
     } | null;
     away: {
@@ -1544,13 +1545,28 @@ onMounted(async () => {
                     <h2 id="hr-approvals">
                         Approvals waiting ({{ hr.approvals.total }})
                     </h2>
-                    <ul class="space-list">
+                    <p
+                        v-if="hr.approvals.kinds.length === 0"
+                        class="space-muted"
+                    >
+                        Nothing is waiting for approval.
+                    </p>
+                    <ul v-else class="space-list">
                         <li v-for="k in hr.approvals.kinds" :key="k.key">
                             <Link :href="k.href" class="space-row">
-                                <span
-                                    >{{ k.title }}:
-                                    <strong>{{ k.count }}</strong></span
-                                >
+                                <span class="space-row-body">
+                                    <span class="space-row-text">
+                                        <span class="space-row-main"
+                                            >{{ k.title }}:
+                                            <strong>{{ k.count }}</strong></span
+                                        >
+                                        <span
+                                            v-if="k.detail"
+                                            class="space-row-sub"
+                                            >{{ k.detail }}</span
+                                        >
+                                    </span>
+                                </span>
                                 <ChevronRight
                                     class="space-chevron"
                                     aria-hidden="true"
@@ -1628,7 +1644,9 @@ onMounted(async () => {
                                     "
                                     >{{
                                         hr.roster.shortDays === 0
-                                            ? 'No day is short'
+                                            ? hr.roster.status === 'Approved'
+                                                ? 'No day is short'
+                                                : 'No day is short so far'
                                             : hr.roster.shortDays === 1
                                               ? '1 day is short'
                                               : `${hr.roster.shortDays} days are short`

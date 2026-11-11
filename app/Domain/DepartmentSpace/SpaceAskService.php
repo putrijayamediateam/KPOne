@@ -30,9 +30,13 @@ final class SpaceAskService
         'stock.written_off' => ['inventory.governed-writeoffs', []],
         'stock.no_order' => ['inventory.reorder-suggestions', []],
         'hr.away_this_week' => ['hr.leave.index', ['tab' => 'calendar']],
+<<<<<<< HEAD
         'hr.short_days' => ['hr.roster.index', []],
         'management.documents_attention' => ['business-details.index', []],
         'management.inactive_staff' => ['staff.index', ['status' => 'inactive']],
+=======
+        'hr.credentials_due' => ['hr.credentials.index', ['tab' => 'register']],
+>>>>>>> ds9-work
         'billing.over_60' => ['billing.pay-later-collections', []],
         'billing.owes_most' => ['billing.pay-later-collections', []],
         'billing.closings_waiting' => ['cash-closings.month', []],
@@ -102,9 +106,13 @@ final class SpaceAskService
             'stock.written_off' => $this->stock->writtenOffThisMonth($actor) !== null,
             'stock.no_order' => $this->stock->reorderNeeded($actor) !== null,
             'hr.away_this_week' => $this->hr->away($actor) !== null,
+<<<<<<< HEAD
             'hr.short_days' => $this->hr->rosterWeek($actor) !== null,
             'management.documents_attention' => $this->management->documentSummary($actor) !== null,
             'management.inactive_staff' => $this->management->inactiveStaff($actor) !== null,
+=======
+            'hr.credentials_due' => $this->hr->credentialsDue($actor) !== null,
+>>>>>>> ds9-work
             default => false,
         };
     }
@@ -160,13 +168,20 @@ final class SpaceAskService
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
-    private function hrShortDays(User $actor): array
+    private function hrCredentialsDue(User $actor): array
     {
-        $week = $this->hr->rosterWeek($actor);
-        abort_if($week === null, 403);
-        $n = $week['shortDays'];
+        $due = $this->hr->credentialsDue($actor);
+        abort_if($due === null, 403);
+        if ($due === []) {
+            return ['sentence' => 'No credential is due for renewal soon.', 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        foreach (array_slice($due, 0, 10) as $r) {
+            $rows[] = [$r['name'], $r['credential'], $r['expires']];
+        }
+        $n = count($due);
 
-        return ['sentence' => 'The roster for '.$week['label'].' is '.strtolower($week['status']).'. '.($n === 0 ? 'No day is short.' : ($n === 1 ? '1 day is' : $n.' days are').' short of the minimum staffing.'), 'columns' => [], 'rows' => []];
+        return ['sentence' => ($n === 1 ? '1 credential is' : $n.' credentials are').' due for renewal soon.'.($n > 10 ? ' The first 10 are shown.' : ''), 'columns' => ['Staff', 'Credential', 'Expires'], 'rows' => $rows];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */

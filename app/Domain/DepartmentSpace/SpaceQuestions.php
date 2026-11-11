@@ -37,9 +37,13 @@ final class SpaceQuestions
         'stock.written_off' => ['space' => 'stock', 'label' => 'What was written off this month?', 'permission' => 'inventory.view.branch', 'date' => self::NOW, 'builder' => 'stockWrittenOff', 'patientLevel' => false],
         'stock.no_order' => ['space' => 'stock', 'label' => 'Which low-stock items have nothing on order?', 'permission' => 'inventory.view.branch', 'date' => self::NOW, 'builder' => 'stockNoOrder', 'patientLevel' => false],
         'hr.away_this_week' => ['space' => 'hr', 'label' => 'Who is away this week?', 'permission' => 'hr.leave.manage.organisation', 'date' => self::NOW, 'builder' => 'hrAwayThisWeek', 'patientLevel' => false],
+<<<<<<< HEAD
         'hr.short_days' => ['space' => 'hr', 'label' => 'Is this week\'s roster short anywhere?', 'permission' => 'hr.roster.manage.organisation', 'date' => self::NOW, 'builder' => 'hrShortDays', 'patientLevel' => false],
         'management.documents_attention' => ['space' => 'management', 'label' => 'Which branches need their letters or footer fixed?', 'permission' => 'catalogue.settings.manage.organisation', 'date' => self::NOW, 'builder' => 'managementDocuments', 'patientLevel' => false],
         'management.inactive_staff' => ['space' => 'management', 'label' => 'Which staff accounts are inactive?', 'permission' => 'staff.view.organisation', 'date' => self::NOW, 'builder' => 'managementInactiveStaff', 'patientLevel' => false],
+=======
+        'hr.credentials_due' => ['space' => 'hr', 'label' => 'Whose credentials are due for renewal soon?', 'permission' => 'hr.credentials.manage.organisation', 'date' => self::NOW, 'builder' => 'hrCredentialsDue', 'patientLevel' => false],
+>>>>>>> ds9-work
     ];
 
     /** @return array<string, array{space: string, label: string, permission: string, date: string, builder: string, patientLevel: bool}> */
