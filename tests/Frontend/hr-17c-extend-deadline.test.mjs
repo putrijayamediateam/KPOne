@@ -14,7 +14,7 @@ test('the application panel offers more working days beside the closing date', (
     assert.match(page, /Give \{\{ viewing\.extendDays \}\} more working days/);
     assert.match(
         page,
-        /The 3 working days count again from today\.\s+Nothing is sent to the candidate\./,
+        /extensions used\.\s+The\s+3\s+working\s+days\s+count\s+again\s+from\s+today\.\s+Nothing\s+is\s+sent\s+to\s+the\s+candidate\./,
     );
     assert.match(
         page,
