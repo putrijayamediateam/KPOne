@@ -165,6 +165,36 @@ class AppraisalsTest extends VisitTestCase
         $this->assertGreaterThanOrEqual(3, DB::table('audit_logs')->where('event', 'authorization.denied')->count());
     }
 
+    public function test_the_one_director_case_shows_as_signed_off_by_the_same_person(): void
+    {
+        // Owner decision 2026-11-11: with one Director, the Director rates and signs off the HR Manager's appraisal, and it
+        // is recorded visibly as signed off by the same person. An appraisal HR rated and a Director signed off is not.
+        $otherHr = $this->actor('hr_manager');
+        $staff = $this->actor('ca');
+        $hrFile = $this->file($otherHr, $this->director);
+        $caFile = $this->file($staff);
+        $this->criteria([['title' => 'Teamwork']]);
+        $this->cycle([$hrFile, $caFile]);
+        $rows = DB::table('hr_appraisals')->orderBy('id')->get()->keyBy('worker_id');
+        $this->selectBranch($this->hr);
+        $this->rate($rows[$caFile->id], [[4, '']], true, 1)->assertSessionHasNoErrors();
+        $this->selectBranch($this->director);
+        $this->rate($rows[$hrFile->id], [[4, '']], true, 1)->assertSessionHasNoErrors();
+        $this->travel(7)->days();
+
+        $page = fn (\stdClass $row) => $this->get(route('hr.appraisals.show', $row->public_id));
+        $page($rows[$hrFile->id])->assertInertia(fn (Assert $p) => $p->where('appraisal.ratedByYou', true)->where('appraisal.sameSigner', false));
+        $page($rows[$caFile->id])->assertInertia(fn (Assert $p) => $p->where('appraisal.ratedByYou', false));
+        foreach ([$hrFile, $caFile] as $file) {
+            $this->post(route('hr.appraisals.sign-off', $rows[$file->id]->public_id), ['expected_lock_version' => 2, 'idempotency_key' => (string) Str::uuid()])
+                ->assertSessionHasNoErrors();
+        }
+        $page($rows[$hrFile->id])->assertInertia(fn (Assert $p) => $p->where('appraisal.sameSigner', true)->where('appraisal.signedOffBy', $this->director->name));
+        $page($rows[$caFile->id])->assertInertia(fn (Assert $p) => $p->where('appraisal.sameSigner', false));
+        $this->assertSame([true, false], DB::table('audit_logs')->where('event', 'hr.appraisals.signed_off')->orderBy('id')->pluck('metadata')
+            ->map(fn ($m): bool => (bool) json_decode((string) $m, true)['same_person'])->all());
+    }
+
     public function test_criteria_and_cycles_are_validated_and_closing_stops_drafts(): void
     {
         $this->selectBranch($this->hr);
