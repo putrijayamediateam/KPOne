@@ -475,18 +475,10 @@ const acceptScan = (sku: ScannedSku): string | null => {
 };
 const describeScan = (sku: ScannedSku): string => scanOutcome(sku).message;
 // DSP-17: a scan that matches a saved line points at that line's batch dropdown. Barcodes carry no batch, so the CA
-// still picks the batch printed on the box: nothing is selected, saved or completed here.
+// still picks the batch printed on the box: nothing is selected, saved or completed here. Focus stays in the scan box,
+// which keeps itself ready for the next box (STK-9's ScanInput).
 const batchHint = ref<string | null>(null);
 const BATCH_HINT = 'Pick the batch printed on the box.';
-const scanSource = () => {
-    const active = document.activeElement;
-
-    return (
-        active === null ||
-        active === document.body ||
-        active.id.startsWith('scan-')
-    );
-};
 const pointAtBatch = async (publicId: string) => {
     batchHint.value = publicId;
     await nextTick();
@@ -505,11 +497,6 @@ const pointAtBatch = async (publicId: string) => {
         block: 'center',
         behavior: reduced ? 'auto' : 'smooth',
     });
-
-    // Never pull focus away from a field the CA is typing in.
-    if (scanSource()) {
-        select.focus({ preventScroll: true });
-    }
 };
 const markScanned = (sku: ScannedSku) => {
     const outcome = scanOutcome(sku);

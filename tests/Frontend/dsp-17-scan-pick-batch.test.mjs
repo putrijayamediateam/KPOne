@@ -18,9 +18,8 @@ test('a matching scan points at the line batch dropdown and never selects a batc
     assert.ok(flat.includes('void pointAtBatch(line.publicId);'));
     assert.ok(flat.includes("block: 'center'"));
     assert.ok(flat.includes("behavior: reduced ? 'auto' : 'smooth'"));
-    assert.ok(flat.includes('select.focus({ preventScroll: true });'));
-    // Focus moves only from the scan box or the page, never away from a field being typed in.
-    assert.ok(flat.includes("active.id.startsWith('scan-')"));
+    // Focus stays in the scan box so the next box can be scanned straight away.
+    assert.equal(flat.includes('select.focus('), false);
     // The scan never changes the selection.
     const point = show.slice(
         show.indexOf('const pointAtBatch'),
