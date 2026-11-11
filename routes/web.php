@@ -32,6 +32,7 @@ use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DepartmentSpaceController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
@@ -186,6 +187,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('clinician-credentials', [ClinicianCredentialController::class, 'index'])->middleware(['permission:clinician_credentials.manage.organisation', 'sensitive.no-store'])->name('clinician-credentials.index');
     Route::post('clinician-credentials/{subject}', [ClinicianCredentialController::class, 'save'])->whereNumber('subject')->middleware(['permission:clinician_credentials.manage.organisation', 'sensitive.no-store', 'throttle:20,1'])->name('clinician-credentials.save');
     Route::get('medical-certificate-templates', [ClinicianCredentialController::class, 'templates'])->middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->name('medical-certificate-templates.index');
+
+    // DS-1 department spaces (the new front door; no menu link until the DS-2 switch).
+    Route::get('spaces', [DepartmentSpaceController::class, 'index'])->middleware('sensitive.no-store')->name('spaces.index');
+    Route::get('spaces/{space}', [DepartmentSpaceController::class, 'show'])->where('space', '[a-z_]+')->middleware('sensitive.no-store')->name('spaces.show');
 
     Route::get('clinic-management', ClinicManagementController::class)
         ->middleware('sensitive.no-store')->name('clinic-management.index');
