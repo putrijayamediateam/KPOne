@@ -32,5 +32,8 @@ test('every Post receipt field has a visible label and keeps its accessible name
 
     assert.doesNotMatch(panel, /placeholder="Batch number"/);
     assert.doesNotMatch(panel, /placeholder="Quantity this receipt"/);
-    assert.match(panel, /sm:grid-cols-2 lg:grid-cols-4/);
+    assert.match(
+        panel,
+        /class="grid items-start gap-2 rounded-lg border p-2 sm:grid-cols-2"/,
+    );
 });

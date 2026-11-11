@@ -904,7 +904,7 @@ const saveReorder = () =>
                         <fieldset
                             v-for="line in row.lines"
                             :key="line.publicId"
-                            class="grid items-start gap-2 rounded-lg border p-2 sm:grid-cols-2 lg:grid-cols-4"
+                            class="grid items-start gap-2 rounded-lg border p-2 sm:grid-cols-2"
                         >
                             <legend class="px-1 text-xs font-medium">
                                 {{ line.sku }} · {{ line.receivedQuantity }}/{{
