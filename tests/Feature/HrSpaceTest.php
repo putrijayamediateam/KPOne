@@ -15,11 +15,11 @@ class HrSpaceTest extends VisitTestCase
         $this->get('/spaces/hr')->assertOk()->assertInertia(fn (Assert $p) => $p
             ->component('Spaces/Show')
             ->where('hr.approvals.total', 0)
-            ->has('hr.approvals.kinds', 4)
+            ->where('hr.approvals.kinds', [])
             ->where('hr.away.total', 0)
             ->where('hr.away.rows', [])
             ->where('hr.roster.shortDays', 0)
-            ->where('hr.primaryAction.title', 'Open HR dashboard')
+            ->where('hr.primaryAction.title', 'Open roster')
             ->has('hr.links')
             ->has('questions', 2));
     }
@@ -29,7 +29,8 @@ class HrSpaceTest extends VisitTestCase
         $this->selectBranch($this->actor('hr_manager'));
         $this->postJson('/spaces/hr/ask', ['question' => 'hr.away_this_week'])
             ->assertOk()->assertJsonPath('sentence', 'Nobody is away this week.')->assertJsonPath('href', '/hr/leave?tab=calendar');
-        $this->postJson('/spaces/hr/ask', ['question' => 'hr.short_days'])->assertOk();
+        $this->postJson('/spaces/hr/ask', ['question' => 'hr.credentials_due'])
+            ->assertOk()->assertJsonPath('sentence', 'No credential is due for renewal soon.');
 
         $this->selectBranch($this->actor('ca'));
         $this->get('/spaces/hr')->assertForbidden();
