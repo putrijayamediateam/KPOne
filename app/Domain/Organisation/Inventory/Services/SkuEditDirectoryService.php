@@ -44,13 +44,18 @@ final class SkuEditDirectoryService
                 's.batch_tracking_required', 's.expiry_tracking_required', 's.is_active', 's.lock_version',
                 'i.public_id as item_public_id', 'i.code as item_code', 'i.generic_name', 'i.brand_name', 'i.is_active as item_active', 'i.lock_version as item_lock_version'],
                 'page', (int) ($data['page'] ?? 1));
-        $locked = collect($rows->items())->mapWithKeys(fn (object $row) => [$row->id => $this->references->skuUnitsLocked(InventorySku::query()->findOrFail($row->id))]);
+        /** @var list<\stdClass> $items */
+        $items = $rows->items();
+        $locked = [];
+        foreach ($items as $row) {
+            $locked[(int) $row->id] = $this->references->skuUnitsLocked(InventorySku::query()->findOrFail((int) $row->id));
+        }
 
         return [
             'branchName' => $branch->name,
             'canManage' => $actor->can(InventoryReferenceAdministrationService::PERMISSION),
             'filters' => ['q' => $data['q'] ?? '', 'status' => $status],
-            'rows' => collect($rows->items())->map(fn (object $row): array => [
+            'rows' => array_map(fn (\stdClass $row): array => [
                 'publicId' => $row->public_id, 'skuCode' => $row->sku_code, 'barcode' => $row->barcode,
                 'packSize' => (string) $row->pack_size, 'purchaseUnit' => $row->purchase_unit, 'stockUnit' => $row->stock_unit,
                 'dispensingUnit' => $row->dispensing_unit, 'unitConversion' => (string) $row->unit_conversion,
@@ -59,10 +64,10 @@ final class SkuEditDirectoryService
                 'maximumTemperature' => $row->maximum_temperature === null ? null : (string) $row->maximum_temperature,
                 'coldChainRequired' => (bool) $row->cold_chain_required, 'doNotFreeze' => (bool) $row->do_not_freeze, 'protectFromLight' => (bool) $row->protect_from_light,
                 'batchTrackingRequired' => (bool) $row->batch_tracking_required, 'expiryTrackingRequired' => (bool) $row->expiry_tracking_required,
-                'active' => (bool) $row->is_active, 'lockVersion' => (int) $row->lock_version, 'unitsLocked' => $locked[$row->id],
+                'active' => (bool) $row->is_active, 'lockVersion' => (int) $row->lock_version, 'unitsLocked' => $locked[(int) $row->id],
                 'item' => ['publicId' => $row->item_public_id, 'code' => $row->item_code, 'genericName' => $row->generic_name, 'brandName' => $row->brand_name,
                     'active' => (bool) $row->item_active, 'lockVersion' => (int) $row->item_lock_version],
-            ])->all(),
+            ], $items),
             'page' => $rows->currentPage(), 'lastPage' => $rows->lastPage(), 'total' => $rows->total(),
         ];
     }

@@ -50,16 +50,16 @@ final class SkuEditService
             // An item is activated before its SKU can be; a SKU is deactivated before its item can be.
             if ((bool) $data['item_active'] && ! $item->is_active) {
                 $item = $this->references->activateItem($actor, $item, $itemVersion);
-                $itemVersion = ($current ? (int) $item->lock_version : $itemVersion);
+                $itemVersion = ($current ? (int) $item->getAttribute('lock_version') : $itemVersion);
             }
             $item = $this->references->updateItem($actor, $item, [...$itemInput, 'expected_lock_version' => $itemVersion]);
-            $itemVersion = ($current ? (int) $item->lock_version : $itemVersion);
+            $itemVersion = ($current ? (int) $item->getAttribute('lock_version') : $itemVersion);
             if (! (bool) $data['sku_active'] && $sku->is_active) {
                 $sku = $this->references->deactivateSku($actor, $sku, $skuVersion);
-                $skuVersion = ($current ? (int) $sku->lock_version : $skuVersion);
+                $skuVersion = ($current ? (int) $sku->getAttribute('lock_version') : $skuVersion);
             }
             $sku = $this->references->updateSku($actor, $sku, [...$skuInput, 'expected_lock_version' => $skuVersion]);
-            $skuVersion = ($current ? (int) $sku->lock_version : $skuVersion);
+            $skuVersion = ($current ? (int) $sku->getAttribute('lock_version') : $skuVersion);
             if ((bool) $data['sku_active'] && ! $sku->is_active) {
                 $sku = $this->references->activateSku($actor, $sku, $skuVersion);
             }
