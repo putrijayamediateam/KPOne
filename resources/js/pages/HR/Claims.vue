@@ -937,7 +937,7 @@ const dialogOpen = computed(
                             >Director approves claims above</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
+                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
                         >
                             <span
                                 class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
@@ -1333,7 +1333,7 @@ const dialogOpen = computed(
                             >Limit a claim (optional)</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
+                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
                         >
                             <span
                                 class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
@@ -1354,7 +1354,7 @@ const dialogOpen = computed(
                             >Limit a month for each person (optional)</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
+                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
                         >
                             <span
                                 class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
