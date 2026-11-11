@@ -191,6 +191,9 @@ class AppraisalsTest extends VisitTestCase
         }
         $page($rows[$hrFile->id])->assertInertia(fn (Assert $p) => $p->where('appraisal.sameSigner', true)->where('appraisal.signedOffBy', $this->director->name));
         $page($rows[$caFile->id])->assertInertia(fn (Assert $p) => $p->where('appraisal.sameSigner', false));
+        // The HR Manager appraised sees it too (Suresh, m2).
+        $this->selectBranch($otherHr);
+        $page($rows[$hrFile->id])->assertInertia(fn (Assert $p) => $p->where('appraisal.sameSigner', true));
         $this->assertSame([true, false], DB::table('audit_logs')->where('event', 'hr.appraisals.signed_off')->orderBy('id')->pluck('metadata')
             ->map(fn ($m): bool => (bool) json_decode((string) $m, true)['same_person'])->all());
     }

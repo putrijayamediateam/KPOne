@@ -96,7 +96,7 @@ final class AppraisalsPageService
             'signedOffOn' => $this->day($a->signed_off_at, $zone),
             // Owner decision 2026-11-11: with one Director, the Director may rate and sign off the HR Manager's appraisal;
             // it is recorded visibly as signed off by the same person.
-            'sameSigner' => $a->signed_off_by_user_id !== null && $a->signed_off_by_user_id === $a->appraiser_user_id,
+            'sameSigner' => $a->signed_off_by_user_id !== null && (int) $a->signed_off_by_user_id === (int) $a->appraiser_user_id,
             'ratedByYou' => $a->appraiser_user_id !== null && (int) $a->appraiser_user_id === $actor->id,
             'signOffFrom' => $a->status === 'sent' && $a->staff_commented_at === null && ! AppraisalService::canSignOffNow($a) ? AppraisalService::signOffFrom($a) : null,
             'commentDays' => AppraisalService::COMMENT_DAYS,
