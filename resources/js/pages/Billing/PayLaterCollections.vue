@@ -253,9 +253,7 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                                 v-if="row.daysOverdue > 0"
                                 class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
                                 >{{ row.daysOverdue }}
-                                {{
-                                    row.daysOverdue === 1 ? 'day' : 'days'
-                                }}
+                                {{ row.daysOverdue === 1 ? 'day' : 'days' }}
                                 past due</span
                             >
                         </td>
