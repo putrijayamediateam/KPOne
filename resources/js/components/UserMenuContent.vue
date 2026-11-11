@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Building2, LogOut, Settings } from '@lucide/vue';
+import { Building2, LayoutGrid, LogOut, Settings } from '@lucide/vue';
+import { computed } from 'vue';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -24,6 +25,17 @@ const handleLogout = () => {
 
 defineProps<Props>();
 const page = usePage();
+// In the new layout (switch on, or any space page) the same row always turns it off, so nobody is stuck.
+const inNewLayout = computed(
+    () =>
+        page.props.workspace?.spaces?.enabled === true ||
+        page.url.startsWith('/spaces'),
+);
+const switchSpaces = (enabled: boolean) =>
+    router.put('/spaces/preference', {
+        enabled,
+        lock_version: page.props.workspace?.spaces?.lockVersion ?? 0,
+    });
 </script>
 
 <template>
@@ -41,6 +53,23 @@ const page = usePage();
             <Link class="block w-full cursor-pointer" href="/clinic-management">
                 <Building2 class="mr-2 h-4 w-4" />Clinic management
             </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+            v-if="page.props.workspace?.spaces?.enabled"
+            :as-child="true"
+        >
+            <Link class="block w-full cursor-pointer" href="/spaces">
+                <LayoutGrid class="mr-2 h-4 w-4" />Spaces
+            </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+            v-if="page.props.workspace?.spaces?.offered"
+            class="cursor-pointer"
+            @select="switchSpaces(!inNewLayout)"
+        >
+            <LayoutGrid class="mr-2 h-4 w-4" />{{
+                inNewLayout ? 'Use the old layout' : 'Try the new layout'
+            }}
         </DropdownMenuItem>
         <DropdownMenuItem :as-child="true">
             <Link class="block w-full cursor-pointer" :href="edit()" prefetch>
