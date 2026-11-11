@@ -298,6 +298,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   invoice of a completed visit at the branch owes (three times: all totals, shown totals, page); fine for the pilot,
   but it grows with history. A follow-up should pre-filter candidates or inline the payable figure, proved on a
   20,000-invoice fixture as in the pilot scale limits work.
+  The "Owed on bills past due" total counts a whole bill once any part of it is past due, including pay later not yet
+  due on that bill (counting only the past-due part needs a backend change; a follow-up for the owner).
 - Daily cash closing (BIL-4): expected cash counts only payment methods classified Cash on the Payment Methods
   screen; a method left "Not classified" counts as non-cash. An approved day is final and keeps its snapshot: a
   receipt reversed after approval does not reopen it; the page shows a "changed after approval" notice and the

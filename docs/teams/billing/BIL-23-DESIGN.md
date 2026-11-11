@@ -32,7 +32,11 @@ BIL-3: no money rule, permission, route or stored-data change.
 - **Phone cards (BIL-18 layout).** "Still owed" leads, with the past-due or "since visit" chip. Under it come a Pay
   later / Due now breakdown, the "also due now, a payment pays that first" note on bills with both, the patient, and
   the details.
-- **Totals.** The totals cards read "Still owed" and "Past due", and count both kinds of money. The page help text
+- **Totals.** The totals cards read "Still owed" and "Owed on bills past due", and count both kinds of money. The
+  second counts a whole bill once any part of it is past due (Siti's review; counting only the past-due part is a
+  follow-up).
+- **Due date.** A bill with money due now shows "Now" as its due date; the agreed pay-later date stays beside the
+  pay-later amount. "Approved" reads "Approved pay later", hidden on a card with none. The page help text
   says a payment pays the money due now before pay later.
 - **Menu.** The Clinic management card is renamed to match.
 

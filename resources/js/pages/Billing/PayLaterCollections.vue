@@ -90,7 +90,7 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
             </div>
             <div class="rounded-xl border bg-card p-4">
                 <p class="text-xs text-muted-foreground">
-                    Past due date (today is {{ collections.today }})
+                    Owed on bills past due (today is {{ collections.today }})
                 </p>
                 <p class="mt-1 text-xl font-semibold tabular-nums">
                     {{ myr(collections.all.overdueSen) }}
@@ -116,8 +116,9 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
             </label>
             <p class="text-xs text-muted-foreground">
                 Open the patient's billing page to record the payment. This list
-                does not record anything. Money due now counts from the visit
-                day; a payment pays it before pay later.
+                does not record anything. Due now is money that should have been
+                paid at the visit; it counts from the visit day. A payment pays
+                due now before pay later.
             </p>
         </div>
 
@@ -151,13 +152,13 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                     </div>
                     <span
                         v-if="row.daysOverdue > 0 && dueNowOf(row) > 0"
-                        class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                        class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
                         data-testid="bill-days-since-visit"
                         >{{ daysSinceVisit(row.daysOverdue) }}</span
                     >
                     <span
                         v-else-if="row.daysOverdue > 0"
-                        class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                        class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
                         >{{ row.daysOverdue }}
                         {{ row.daysOverdue === 1 ? 'day' : 'days' }} past
                         due</span
@@ -216,7 +217,7 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                 <dl class="grid gap-1 text-xs">
                     <div class="flex flex-wrap justify-between gap-x-3">
                         <dt class="text-muted-foreground">Due date</dt>
-                        <dd>{{ row.dueDate }}</dd>
+                        <dd>{{ dueNowOf(row) > 0 ? 'Now' : row.dueDate }}</dd>
                     </div>
                     <div class="flex flex-wrap justify-between gap-x-3">
                         <dt class="text-muted-foreground">Visit date</dt>
@@ -230,8 +231,13 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         <dt class="text-muted-foreground">Invoice</dt>
                         <dd class="font-mono">{{ row.invoiceNumber }}</dd>
                     </div>
-                    <div class="flex flex-wrap justify-between gap-x-3">
-                        <dt class="text-muted-foreground">Approved</dt>
+                    <div
+                        v-if="row.approvedSen > 0"
+                        class="flex flex-wrap justify-between gap-x-3"
+                    >
+                        <dt class="text-muted-foreground">
+                            Approved pay later
+                        </dt>
                         <dd class="tabular-nums">
                             {{
                                 row.approvedSen > 0 ? myr(row.approvedSen) : '–'
@@ -262,7 +268,9 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         <th scope="col">Visit / Invoice</th>
                         <th scope="col">Visit date</th>
                         <th scope="col">Due date</th>
-                        <th scope="col" class="text-right">Approved</th>
+                        <th scope="col" class="text-right">
+                            Approved pay later
+                        </th>
                         <th scope="col" class="text-right">Pay later</th>
                         <th scope="col" class="text-right">Due now</th>
                         <th scope="col" class="text-right">Still owed</th>
@@ -298,15 +306,15 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         </td>
                         <td class="whitespace-nowrap">{{ row.visitDate }}</td>
                         <td class="whitespace-nowrap">
-                            {{ row.dueDate }}
+                            {{ dueNowOf(row) > 0 ? 'Now' : row.dueDate }}
                             <span
                                 v-if="row.daysOverdue > 0 && dueNowOf(row) > 0"
-                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
                                 >{{ daysSinceVisit(row.daysOverdue) }}</span
                             >
                             <span
                                 v-else-if="row.daysOverdue > 0"
-                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-100"
                                 >{{ row.daysOverdue }}
                                 {{ row.daysOverdue === 1 ? 'day' : 'days' }}
                                 past due</span

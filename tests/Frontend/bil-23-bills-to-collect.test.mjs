@@ -17,7 +17,7 @@ test('the page is named Bills to collect and says what it lists', () => {
     );
     assert.ok(
         page.includes(
-            'Money due now counts from the visit day; a payment pays it before pay later.',
+            'Due now is money that should have been paid at the visit; it counts from the visit day. A payment pays due now before pay later.',
         ),
     );
 });
@@ -72,4 +72,18 @@ test('a bill with money due now still shows its agreed pay-later date', () => {
     assert.ok(page.includes('data-testid="bill-card-pay-later-due"'));
     assert.ok(page.includes('data-testid="bill-pay-later-due"'));
     assert.ok(page.includes('aria-label="Bills to collect"'));
+});
+
+test('a bill with money due now reads Now in its due date, and the totals card says what it counts', () => {
+    assert.equal(
+        page.split("dueNowOf(row) > 0 ? 'Now' : row.dueDate").length - 1,
+        2,
+    );
+    assert.ok(
+        page.includes(
+            'Owed on bills past due (today is {{ collections.today }})',
+        ),
+    );
+    assert.match(page, />\s*Approved pay later\s*<\/th>/);
+    assert.ok(page.includes('v-if="row.approvedSen > 0"'));
 });
