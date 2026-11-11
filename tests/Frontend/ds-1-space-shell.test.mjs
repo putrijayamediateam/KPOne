@@ -44,6 +44,19 @@ test('the shell layout css is imported and every selector is scoped to the space
     }
 });
 
+test('DS-2: the switch lives in the user menu, defaults off and sends the lock version', () => {
+    const menu = read('resources/js/components/UserMenuContent.vue');
+    assert.match(menu, /router\.put\('\/spaces\/preference'/);
+    assert.match(
+        menu,
+        /lock_version: page\.props\.workspace\?\.spaces\?\.lockVersion/,
+    );
+    assert.match(menu, /Use the old layout/);
+    assert.match(menu, /page\.url\.startsWith\('\/spaces'\)/);
+    assert.match(menu, /switchSpaces\(!inNewLayout\)/);
+    assert.match(menu, /v-if="page\.props\.workspace\?\.spaces\?\.offered"/);
+});
+
 test('DS-1: the shell has a named nav, a branch switcher, an account menu, a way back to the existing screens and a right-edge fade', () => {
     const page = read('resources/js/pages/Spaces/Show.vue');
     const css = read('resources/css/space-shell-layout.css');
@@ -54,4 +67,27 @@ test('DS-1: the shell has a named nav, a branch switcher, an account menu, a way
     assert.match(page, /scrollIntoView/);
     assert.match(css, /\.has-more/);
     assert.match(css, /\.space-select,[\s\S]*min-height: 44px/);
+});
+
+test('DS-2: below 640 px the branch select and an initials-only account button share one row', () => {
+    const css = read('resources/css/space-shell-layout.css');
+    assert.match(
+        css,
+        /@media \(max-width: 639px\)[\s\S]*\.space-top[\s\S]*flex-wrap: nowrap/,
+    );
+    assert.match(css, /\.space-account > div \{\s*display: none;/);
+});
+
+test('DS-2: account menu rows are 44 px below 640 px', () => {
+    assert.match(
+        read('resources/js/pages/Spaces/Show.vue'),
+        /max-sm:\[&_\[role=menuitem\]\]:min-h-11/,
+    );
+});
+
+test('DS-2: the account button names the person', () => {
+    assert.match(
+        read('resources/js/pages/Spaces/Show.vue'),
+        /:aria-label="`Account menu, \$\{user\.name\}`"/,
+    );
 });

@@ -97,6 +97,7 @@ use App\Http\Controllers\RegistrationSettingsController;
 use App\Http\Controllers\ReorderSuggestionController;
 use App\Http\Controllers\RoomCallController;
 use App\Http\Controllers\SkuEditController;
+use App\Http\Controllers\SpacePreferenceController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
@@ -189,6 +190,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('medical-certificate-templates', [ClinicianCredentialController::class, 'templates'])->middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->name('medical-certificate-templates.index');
 
     // DS-1 department spaces (the new front door; no menu link until the DS-2 switch).
+    Route::put('spaces/preference', [SpacePreferenceController::class, 'update'])->middleware(['sensitive.no-store', 'throttle:20,1'])->name('spaces.preference');
     Route::get('spaces', [DepartmentSpaceController::class, 'index'])->middleware('sensitive.no-store')->name('spaces.index');
     Route::get('spaces/{space}', [DepartmentSpaceController::class, 'show'])->where('space', '[a-z_]+')->middleware('sensitive.no-store')->name('spaces.show');
 
