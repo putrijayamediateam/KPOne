@@ -35,6 +35,17 @@ class ManagementSpaceTest extends VisitTestCase
             ->assertJsonPath('rows.0.3', '5 Nov 2026');
     }
 
+    public function test_an_administrator_gets_no_date_column_even_when_accounts_have_a_date(): void
+    {
+        $gone = $this->actor('ca');
+        $gone->forceFill(['is_active' => false, 'deactivated_at' => '2026-11-05 03:00:00'])->save();
+        $this->selectBranch($this->actor('administrator'));
+
+        $this->postJson('/spaces/management/ask', ['question' => 'management.inactive_staff'])->assertOk()
+            ->assertJsonPath('columns', ['Staff', 'Role', 'Branch'])
+            ->assertJsonPath('rows.0', fn ($row) => count($row) === 3);
+    }
+
     public function test_the_open_rows_follow_each_pages_own_permission(): void
     {
         $this->selectBranch($this->actor('administrator'));

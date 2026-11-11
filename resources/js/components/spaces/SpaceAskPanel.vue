@@ -27,9 +27,17 @@ const cardOf = (cells: string[]): { title: string; line: string } => {
     const numbered = answer.value?.columns[0] === 'Number';
     const head = numbered ? 2 : 1;
 
+    // A date column reads like a join date at the end of a muted line, so its card text is prefixed with its heading.
+    const labelled = cells.map((cell, i) =>
+        answer.value?.columns[i] === 'Inactive since' &&
+        cell !== 'Date not recorded'
+            ? `Inactive since ${cell}`
+            : cell,
+    );
+
     return {
-        title: cells.slice(0, head).join(' '),
-        line: cells.slice(head).join(' · '),
+        title: labelled.slice(0, head).join(' '),
+        line: labelled.slice(head).join(' · '),
     };
 };
 
