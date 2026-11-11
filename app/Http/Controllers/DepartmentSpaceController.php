@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Domain\DepartmentSpace\BillingSpace;
+use App\Domain\DepartmentSpace\ConsultationSpace;
 use App\Domain\DepartmentSpace\DepartmentSpaceNavigation;
 use App\Domain\DepartmentSpace\FrontDeskSpace;
 use App\Domain\DepartmentSpace\PharmacySpace;
@@ -23,7 +24,7 @@ final class DepartmentSpaceController extends Controller
         return to_route('spaces.show', ['space' => $spaces[0]['key']]);
     }
 
-    public function show(Request $request, string $space, DepartmentSpaceNavigation $navigation, PharmacySpace $pharmacy, SpaceAskService $ask, FrontDeskSpace $frontDesk, BillingSpace $billing): Response
+    public function show(Request $request, string $space, DepartmentSpaceNavigation $navigation, PharmacySpace $pharmacy, SpaceAskService $ask, FrontDeskSpace $frontDesk, BillingSpace $billing, ConsultationSpace $consultation): Response
     {
         abort_unless(array_key_exists($space, DepartmentSpaceNavigation::SPACES) || $space === 'me', 404);
         abort_unless($navigation->canEnter($request->user(), $space), 403);
@@ -36,6 +37,7 @@ final class DepartmentSpaceController extends Controller
             'pharmacy' => $space === 'pharmacy' ? $pharmacy->home($request->user()) : null,
             'frontDesk' => $space === 'front_desk' ? $frontDesk->home($request->user()) : null,
             'billing' => $space === 'billing' ? $billing->home($request->user()) : null,
+            'consultation' => $space === 'consultation' ? $consultation->home($request->user()) : null,
             'questions' => $ask->offered($request->user(), $space),
             'existing' => $navigation->existingHome($request->user(), $space),
         ]);
