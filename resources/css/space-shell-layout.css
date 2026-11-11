@@ -442,3 +442,27 @@
         vertical-align: top;
     }
 }
+
+.space-shell .space-ask-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+.space-shell .space-ask-failed .space-ask-error {
+    margin: 0;
+}
+@media (min-width: 640px) {
+    .space-shell .space-ask-failed {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+}
+@media (max-width: 639px) {
+    /* A short name or number never breaks across lines; only the wait may wrap. */
+    .space-shell .space-ask-table td:nth-child(1),
+    .space-shell .space-ask-table td:nth-child(2) {
+        white-space: nowrap;
+    }
+}

@@ -88,7 +88,7 @@ const ask = async (question: Question) => {
                 <span></span><span></span><span></span>
             </div>
             <p v-if="busy" class="space-visually-hidden">Loading…</p>
-            <div v-else-if="error" role="alert">
+            <div v-else-if="error" role="alert" class="space-ask-failed">
                 <p class="space-ask-error">{{ error }}</p>
                 <button
                     v-if="failed"

@@ -160,3 +160,19 @@ test('DS-3a: Quick questions start unpicked and have loading, failed and answer 
     assert.match(panel, /Open the full list/);
     assert.doesNotMatch(panel, /onMounted|immediate/);
 });
+
+test('DS-3a: short names never wrap in the phone table and Retry shares the row with the message from 640 px', () => {
+    const css = read('resources/css/space-shell-layout.css');
+    assert.match(
+        css,
+        /\.space-ask-table td:nth-child\(2\) \{\s*white-space: nowrap;/,
+    );
+    assert.match(
+        css,
+        /@media \(min-width: 640px\) \{\s*\.space-shell \.space-ask-failed \{\s*flex-direction: row;/,
+    );
+    assert.match(
+        read('resources/js/components/spaces/SpaceAskPanel.vue'),
+        /class="space-ask-failed"/,
+    );
+});
