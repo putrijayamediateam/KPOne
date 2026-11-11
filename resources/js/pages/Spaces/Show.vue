@@ -1601,22 +1601,23 @@ onMounted(async () => {
                                 <span class="space-row-main">{{
                                     hr.roster.label
                                 }}</span>
-                                <span class="space-row-meta"
-                                    >{{ hr.roster.status }} ·
-                                    <span
-                                        :class="
-                                            hr.roster.shortDays > 0
-                                                ? 'space-wait is-amber'
-                                                : ''
-                                        "
-                                        >{{
-                                            hr.roster.shortDays === 0
-                                                ? 'No day is short'
-                                                : hr.roster.shortDays === 1
-                                                  ? '1 day is short'
-                                                  : `${hr.roster.shortDays} days are short`
-                                        }}</span
-                                    ></span
+                                <span class="space-row-sub">{{
+                                    hr.roster.status
+                                }}</span>
+                                <span
+                                    class="space-row-meta"
+                                    :class="
+                                        hr.roster.shortDays > 0
+                                            ? 'space-wait is-amber'
+                                            : ''
+                                    "
+                                    >{{
+                                        hr.roster.shortDays === 0
+                                            ? 'No day is short'
+                                            : hr.roster.shortDays === 1
+                                              ? '1 day is short'
+                                              : `${hr.roster.shortDays} days are short`
+                                    }}</span
                                 >
                             </span>
                         </span>
