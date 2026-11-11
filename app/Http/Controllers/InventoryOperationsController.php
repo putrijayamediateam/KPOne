@@ -120,6 +120,18 @@ class InventoryOperationsController extends Controller
         return $this->success('Purchase Order closed.');
     }
 
+    /** STK-21: close the rest of a partly received order. */
+    public function shortClosePurchaseOrder(Request $request, PurchaseOrder $purchaseOrder, ProcurementService $service): RedirectResponse
+    {
+        try {
+            $service->shortClose($request->user(), $purchaseOrder, $request->only(['expected_branch_id', 'lock_version', 'reason', 'note']));
+        } catch (ValidationException $exception) {
+            throw $this->stayOnInventory($exception);
+        }
+
+        return $this->success('The rest of the order is closed. Nothing more will be received on it.');
+    }
+
     public function receivePurchaseOrder(Request $request, PurchaseOrder $purchaseOrder, ProcurementService $service): RedirectResponse
     {
         try {

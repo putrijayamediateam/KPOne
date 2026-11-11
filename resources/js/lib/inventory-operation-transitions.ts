@@ -2,7 +2,8 @@ export type InventoryOperationPermissions = Record<string, boolean>;
 
 export const purchaseOrderActionAllowed = (
     status: string,
-    action: 'submit' | 'approve' | 'receive' | 'close' | 'cancel',
+    action:
+        'submit' | 'approve' | 'receive' | 'close' | 'short_close' | 'cancel',
     permissions: InventoryOperationPermissions,
 ): boolean => {
     if (action === 'submit') {
@@ -28,6 +29,14 @@ export const purchaseOrderActionAllowed = (
                 permissions.createPurchaseOrders === true) ||
             (status === 'approved' &&
                 permissions.approvePurchaseOrders === true)
+        );
+    }
+
+    // STK-21: "Close the rest" of a partly received order that will never be completed.
+    if (action === 'short_close') {
+        return (
+            status === 'partially_received' &&
+            permissions.approvePurchaseOrders === true
         );
     }
 

@@ -29,6 +29,9 @@ final class ProcurementService
 
     public const WAREHOUSE_PERMISSION = 'inventory.warehouse.organisation';
 
+    /** STK-21: why the rest of a partly received order will never come. */
+    public const SHORT_CLOSE_REASONS = ['supplier_cannot_supply', 'discontinued', 'ordered_elsewhere', 'other'];
+
     public function __construct(
         private InventoryAuthorityService $authority,
         private InventoryMovementService $movements,
@@ -141,7 +144,59 @@ final class ProcurementService
     /** @param array<string, mixed> $attributes */
     public function close(User $actor, PurchaseOrder $order, array $attributes): PurchaseOrder
     {
-        return $this->transition($actor, $order, $attributes, self::APPROVE_PERMISSION, PurchaseOrder::STATUS_FULLY_RECEIVED, PurchaseOrder::STATUS_CLOSED, 'closed', fn (PurchaseOrder $locked, User $lockedActor): array => ['closed_by_user_id' => $lockedActor->id, 'closed_at' => now()->utc()]);
+        return $this->transition($actor, $order, $attributes, self::APPROVE_PERMISSION, PurchaseOrder::STATUS_FULLY_RECEIVED, PurchaseOrder::STATUS_CLOSED, 'closed', fn (PurchaseOrder $locked, User $lockedActor): array => ['closed_by_user_id' => $lockedActor->id, 'closed_at' => now()->utc(), 'close_kind' => 'complete']);
+    }
+
+    /**
+     * STK-21: "Close the rest" of a partly received order that will never be completed. A fixed reason ("Other" also
+     * needs a note), never by whoever raised or submitted the order, and not while a receiving review on it is still
+     * waiting. Each line keeps what was not delivered. No stock moves and no money changes.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function shortClose(User $actor, PurchaseOrder $order, array $attributes): PurchaseOrder
+    {
+        $branch = $this->authority->activeBranch($actor, $attributes);
+        $reason = (string) ($attributes['reason'] ?? '');
+        if (! in_array($reason, self::SHORT_CLOSE_REASONS, true)) {
+            throw ValidationException::withMessages(['reason' => 'Choose why the rest of this order will not come.']);
+        }
+        $note = trim((string) ($attributes['note'] ?? ''));
+        if (mb_strlen($note) > 200) {
+            throw ValidationException::withMessages(['note' => 'The note may not be longer than 200 characters.']);
+        }
+        if ($reason === 'other' && $note === '') {
+            throw ValidationException::withMessages(['note' => 'Say why in a short note when the reason is Other.']);
+        }
+
+        return DB::transaction(function () use ($actor, $order, $attributes, $branch, $reason, $note): PurchaseOrder {
+            $lockedActor = $this->authority->lockForBranch($actor, $branch, self::APPROVE_PERMISSION);
+            $locked = $this->lockOrder($lockedActor, $order, $attributes);
+            $this->requireStatus($locked, [PurchaseOrder::STATUS_PARTIALLY_RECEIVED]);
+            if ($this->raisedBy($locked, $lockedActor)) {
+                throw new AuthorizationException('You raised or submitted this purchase order, so a different Finance Officer or Director must close the rest of it.');
+            }
+            $waiting = DB::table('inventory_receiving_reviews as r')->where('r.purchase_order_id', $locked->id)
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('inventory_receiving_consumptions as c')->whereColumn('c.review_id', 'r.id'))
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('inventory_receipt_corrections as x')->whereColumn('x.review_id', 'r.id'))
+                ->exists();
+            if ($waiting) {
+                throw ValidationException::withMessages(['purchase_order' => 'A receiving review on this order is still waiting. Post or finish it first.']);
+            }
+            $lines = PurchaseOrderLine::query()->where('purchase_order_id', $locked->id)->where('organisation_id', $locked->organisation_id)->orderBy('id')->lockForUpdate()->get();
+            $short = 0;
+            foreach ($lines as $line) {
+                $left = StockUnitQuantity::scaled((string) $line->ordered_quantity, true) - StockUnitQuantity::scaled((string) $line->received_quantity, true);
+                $line->forceFill(['not_delivered_quantity' => StockUnitQuantity::format($left)])->save();
+                $short += $left > 0 ? 1 : 0;
+            }
+            $locked->forceFill(['status' => PurchaseOrder::STATUS_CLOSED, 'close_kind' => 'short', 'short_close_reason' => $reason, 'short_close_note' => $note === '' ? null : $note,
+                'closed_by_user_id' => $lockedActor->id, 'closed_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1])->save();
+            // Ids and codes only; the note never reaches the audit.
+            $this->audit->record('inventory.purchase_order.short_closed', $locked, ['from' => PurchaseOrder::STATUS_PARTIALLY_RECEIVED, 'to' => PurchaseOrder::STATUS_CLOSED, 'reason' => $reason, 'lines_not_delivered' => $short], $lockedActor, $branch);
+
+            return $locked->refresh();
+        }, 3);
     }
 
     /** @param array<string, mixed> $attributes */

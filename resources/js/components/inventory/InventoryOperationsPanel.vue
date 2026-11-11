@@ -18,6 +18,7 @@ import {
     stockRequestActionAllowed,
 } from '@/lib/inventory-operation-transitions';
 import { formatDate } from '@/lib/presentation';
+import { trimQuantity } from '@/lib/supplier-terms';
 import type { TransferReceiptLinePayload } from '@/lib/transfer-receipt';
 import type {
     InventoryDocument as DocumentRow,
@@ -172,23 +173,89 @@ const stockRequest = reactive({
 });
 const dispatchBatch = reactive<Record<string, string>>({});
 const reorder = reactive({ location: '', sku: '', level: '' });
-const canPurchase = (
-    row: DocumentRow,
-    action: 'submit' | 'approve' | 'receive' | 'close' | 'cancel',
-) =>
+type PurchaseAction =
+    'submit' | 'approve' | 'receive' | 'close' | 'short_close' | 'cancel';
+const canPurchase = (row: DocumentRow, action: PurchaseAction) =>
     purchaseOrderActionAllowed(
         row.status,
         action,
         props.operations.permissions,
     ) && !needsAnotherApprover(row, action);
 // STK-19: whoever raised or submitted an order never approves it, or cancels it once approved.
-const needsAnotherApprover = (
-    row: DocumentRow,
-    action: 'submit' | 'approve' | 'receive' | 'close' | 'cancel',
-) =>
-    row.raisedByYou === true &&
-    (action === 'approve' ||
-        (action === 'cancel' && row.status === 'approved'));
+const needsAnotherApprover = (row: DocumentRow, action: PurchaseAction) =>
+    (row.raisedByYou === true &&
+        (action === 'approve' ||
+            (action === 'cancel' && row.status === 'approved'))) ||
+    shortCloseNeedsAnother(row, action);
+// STK-21: nor closes the rest of it short.
+const shortCloseNeedsAnother = (row: DocumentRow, action: PurchaseAction) =>
+    row.raisedByYou === true && action === 'short_close';
+const shortCloseReasons = [
+    { value: 'supplier_cannot_supply', label: 'Supplier cannot supply' },
+    { value: 'discontinued', label: 'Item discontinued' },
+    { value: 'ordered_elsewhere', label: 'Ordered elsewhere' },
+    { value: 'other', label: 'Other' },
+] as const;
+const shortCloseReasonLabel = (value?: string | null) =>
+    shortCloseReasons.find((reason) => reason.value === value)?.label ??
+    'Other';
+const shortClose = reactive<{
+    row: DocumentRow | null;
+    reason: string;
+    note: string;
+}>({ row: null, reason: '', note: '' });
+const shortCloseReady = computed(
+    () =>
+        shortClose.reason !== '' &&
+        (shortClose.reason !== 'other' || shortClose.note.trim() !== ''),
+);
+const openShortClose = (row: DocumentRow) => {
+    if (!busy.value) {
+        operationError.value = null;
+        Object.assign(shortClose, { row, reason: '', note: '' });
+    }
+};
+const submitShortClose = () => {
+    const row = shortClose.row;
+
+    if (!row || !shortCloseReady.value) {
+        return;
+    }
+
+    send(
+        'post',
+        `/inventory/purchase-orders/${row.publicId}/short-close`,
+        {
+            ...version(row),
+            reason: shortClose.reason,
+            note: shortClose.note.trim(),
+        },
+        () => (shortClose.row = null),
+    );
+};
+/** "SKU · Ordered 100 unit · Received 60 unit · Outstanding 40 unit" (STK-21). */
+const lineProgress = (row: DocumentRow, line: DocumentRow['lines'][number]) => {
+    const parts = [
+        line.sku,
+        `Ordered ${lineQuantity(line.orderedQuantity, line.stockUnit)}`,
+        `Received ${lineQuantity(line.receivedQuantity, line.stockUnit)}`,
+    ];
+
+    if (row.closeKind === 'short') {
+        parts.push(
+            `Not delivered ${lineQuantity(line.notDeliveredQuantity, line.stockUnit)}`,
+        );
+    } else if (['approved', 'partially_received'].includes(row.status)) {
+        parts.push(
+            `Outstanding ${lineQuantity(line.outstandingQuantity, line.stockUnit)}`,
+        );
+    }
+
+    return parts.join(' · ');
+};
+/** "40 unit" for a quantity in the line's stock unit, without trailing zeros. */
+const lineQuantity = (value: string | null | undefined, unit?: string) =>
+    `${trimQuantity(value ?? '0')}${unit ? ` ${unit}` : ''}`;
 const canRequest = (
     row: DocumentRow,
     action: 'decide' | 'dispatch' | 'receive',
@@ -804,10 +871,20 @@ const saveReorder = () =>
                         v-for="line in row.lines"
                         :key="line.publicId"
                         class="text-xs text-muted-foreground"
+                        data-testid="po-line-progress"
                     >
-                        {{ line.sku }} · {{ line.receivedQuantity }}/{{
-                            line.orderedQuantity
-                        }}
+                        {{ lineProgress(row, line) }}
+                    </p>
+                    <p
+                        v-if="row.closeKind === 'short'"
+                        class="text-sm"
+                        data-testid="po-short-closed"
+                    >
+                        Closed short:
+                        {{ shortCloseReasonLabel(row.shortCloseReason)
+                        }}<template v-if="row.shortCloseNote">
+                            · {{ row.shortCloseNote }}</template
+                        >
                     </p>
                     <form
                         v-if="
@@ -922,6 +999,28 @@ const saveReorder = () =>
                             You raised or submitted this order, so a different
                             Finance Officer or Director must cancel it now that
                             it is approved.
+                        </p>
+                        <Button
+                            v-if="canPurchase(row, 'short_close')"
+                            size="sm"
+                            variant="secondary"
+                            @click="openShortClose(row)"
+                            >Close the rest</Button
+                        >
+                        <p
+                            v-if="
+                                needsAnotherApprover(row, 'short_close') &&
+                                purchaseOrderActionAllowed(
+                                    row.status,
+                                    'short_close',
+                                    operations.permissions,
+                                )
+                            "
+                            class="w-full text-sm text-muted-foreground"
+                        >
+                            You raised or submitted this order, so a different
+                            Finance Officer or Director must close the rest of
+                            it.
                         </p>
                         <Button
                             v-if="canPurchase(row, 'close')"
@@ -1317,6 +1416,76 @@ const saveReorder = () =>
             @confirm="confirmPendingAction"
         >
             <template #icon><Boxes class="size-5" /></template>
+        </OperationalConfirmDialog>
+        <OperationalConfirmDialog
+            :open="shortClose.row !== null"
+            :title="`Close the rest of ${shortClose.row?.number ?? ''}?`"
+            description="Nothing more will be received on this order. Stock already received stays as it is, and no money changes."
+            confirm-label="Close the rest"
+            :processing="busy"
+            :error="shortClose.row ? (operationError ?? '') : ''"
+            @update:open="(open) => !open && (shortClose.row = null)"
+            @confirm="submitShortClose"
+        >
+            <template #icon><Boxes class="size-5" /></template>
+            <div class="space-y-3" data-testid="short-close-form">
+                <ul class="space-y-1 text-sm">
+                    <li
+                        v-for="line in shortClose.row?.lines ?? []"
+                        :key="line.publicId"
+                    >
+                        {{ line.sku }}: not delivered
+                        {{
+                            lineQuantity(
+                                line.outstandingQuantity,
+                                line.stockUnit,
+                            )
+                        }}
+                    </li>
+                </ul>
+                <fieldset class="space-y-1">
+                    <legend class="mb-1 text-sm font-medium">
+                        Why will the rest not come? (required)
+                    </legend>
+                    <label
+                        v-for="reason in shortCloseReasons"
+                        :key="reason.value"
+                        class="flex min-h-11 items-center gap-2 text-sm lg:min-h-9"
+                    >
+                        <input
+                            v-model="shortClose.reason"
+                            type="radio"
+                            name="short-close-reason"
+                            :value="reason.value"
+                            class="size-4"
+                        />
+                        {{ reason.label }}
+                    </label>
+                </fieldset>
+                <label class="grid gap-1 text-sm">
+                    <span
+                        >Note{{
+                            shortClose.reason === 'other'
+                                ? ' (required)'
+                                : ' (optional)'
+                        }}</span
+                    >
+                    <Input
+                        v-model="shortClose.note"
+                        maxlength="200"
+                        class="h-11 lg:h-9"
+                    />
+                    <span class="text-xs text-muted-foreground"
+                        >Up to 200 characters.</span
+                    >
+                </label>
+                <p
+                    v-if="!shortCloseReady && shortClose.reason === 'other'"
+                    class="text-xs text-muted-foreground"
+                >
+                    Say why in a short note when the reason is Other.
+                </p>
+            </div>
         </OperationalConfirmDialog>
     </section>
 </template>

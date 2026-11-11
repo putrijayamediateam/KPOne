@@ -18,6 +18,10 @@ export type InventoryDocumentLine = {
     sku: string;
     orderedQuantity?: string;
     receivedQuantity?: string;
+    /** STK-21: ordered less received, exact. */
+    outstandingQuantity?: string;
+    /** STK-21: frozen when the rest of the order was closed short. */
+    notDeliveredQuantity?: string | null;
     requestedQuantity?: string;
     dispatchedQuantity?: string | null;
     physicalQuantity?: string | null;
@@ -56,6 +60,9 @@ export type InventoryDocument = {
     lines: InventoryDocumentLine[];
     differences?: InventoryTransferDifference[];
     raisedByYou?: boolean;
+    closeKind?: 'complete' | 'short' | null;
+    shortCloseReason?: string | null;
+    shortCloseNote?: string | null;
 };
 
 export type InventoryOperations = {
