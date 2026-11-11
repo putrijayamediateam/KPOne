@@ -1184,9 +1184,12 @@ onMounted(async () => {
                                                 {{ row.panel }}</span
                                             >
                                             <span class="space-row-meta">
-                                                {{ row.status }} ·
-                                                <span
-                                                    class="space-wait is-amber"
+                                                <span class="space-nowrap">{{
+                                                    row.status
+                                                }}</span
+                                                >{{ ' '
+                                                }}<span
+                                                    class="space-wait is-amber space-nowrap"
                                                     >{{ row.sinceText }}</span
                                                 >
                                             </span>
