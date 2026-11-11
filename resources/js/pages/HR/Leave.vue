@@ -754,8 +754,12 @@ const openType = (row?: TypeRow) => {
     typeForm.is_active = row?.isActive ?? true;
     typeForm.accepts_evidence_files = row?.acceptsEvidenceFiles ?? false;
     typeForm.evidence_retention_days = row?.evidenceRetentionDays ?? '';
+    savedRetentionDays.value = Number(row?.evidenceRetentionDays ?? 0);
     typeOpen.value = true;
 };
+// PDPA 15 (owner, 2026-11-11: "cap at 7 years"): leave records go 7 years after their leave year, so files cannot be kept longer.
+const MAX_EVIDENCE_DAYS = 2555;
+const savedRetentionDays = ref(0);
 const saveType = () =>
     typeForm.put('/hr/leave/types', {
         preserveScroll: true,
@@ -2732,7 +2736,19 @@ const calendarDays = computed(() =>
                                 class="text-xs text-muted-foreground"
                             >
                                 Files are deleted after this. Requests and their
-                                history stay.
+                                history stay. At most 2,555 days (7 years).
+                            </p>
+                            <p
+                                v-if="savedRetentionDays > MAX_EVIDENCE_DAYS"
+                                class="text-xs text-muted-foreground"
+                                data-test="type-retention-over-cap"
+                            >
+                                This type was saved with
+                                {{ savedRetentionDays.toLocaleString('en-MY') }}
+                                days. Leave records are deleted 7 years after
+                                their leave year, and the files go with them, so
+                                the 7 years win. Enter 2,555 or fewer to save a
+                                change.
                             </p>
                             <InputError
                                 :message="

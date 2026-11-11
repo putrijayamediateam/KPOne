@@ -22,6 +22,9 @@ final class LeaveRetentionPurge
 {
     public const RETENTION_YEARS = 7;
 
+    /** A leave type keeps evidence files at most 7 years (owner, 2026-11-11: "cap at 7 years"); the leave records go then anyway. */
+    public const MAX_EVIDENCE_DAYS = 2555;
+
     private const OLD_YEAR = "year < extract(year FROM now() AT TIME ZONE 'UTC') - 7";
 
     public function __construct(private AuditRecorder $audit) {}
