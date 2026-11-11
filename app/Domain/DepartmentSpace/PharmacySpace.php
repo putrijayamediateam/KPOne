@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Models\User;
+use Illuminate\Support\Collection;
 
 /**
  * DS-3: the Pharmacy space home. Every widget calls the page's own service, which keeps its own permission and
@@ -25,8 +26,9 @@ final class PharmacySpace
         // Same rule as the Dispensary list: CA and CA Supervisor with dispensary.view.branch at the active branch.
         if ($branch !== null && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor'])) {
             $board = $this->dispensary->board($actor, []);
+            $source = $board['data'];
             /** @var list<array<string, mixed>> $data */
-            $data = array_values((array) $board['data']);
+            $data = array_values($source instanceof Collection ? $source->all() : (array) $source);
             $toDispense = [
                 'total' => (int) $board['total'],
                 'rows' => array_map(fn (array $r): array => [
