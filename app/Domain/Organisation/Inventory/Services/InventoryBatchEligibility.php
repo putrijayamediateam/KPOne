@@ -24,9 +24,13 @@ final class InventoryBatchEligibility
             ->join('inventory_items as i', fn ($q) => $q->on('i.id', '=', 's.inventory_item_id')->on('i.organisation_id', '=', 's.organisation_id'))
             ->leftJoin('inventory_batch_hold_states as h', fn ($q) => $q->on('h.inventory_batch_id', '=', 'b.id')->where('h.organisation_id', $organisationId)->where('h.branch_id', $branch->id))
             ->leftJoin('inventory_batch_hold_actions as a', 'a.id', '=', 'h.active_action_id')
+            // STK-25: an active recall blocks the batch at every branch, independently of any branch hold. It shows
+            // through the same "held" signal (reason "recall"), so every picker and page that shows holds shows it.
+            ->leftJoin('inventory_recall_batches as rb', fn ($q) => $q->on('rb.inventory_batch_id', '=', 'b.id')->where('rb.active', true))
             ->where('b.organisation_id', $organisationId)
-            ->select(['b.*', 's.is_active as sku_active', 'i.is_active as item_active', 'a.reason as hold_reason'])
-            ->selectRaw("CASE WHEN s.is_active IS NOT TRUE THEN 'inactive_sku' WHEN i.is_active IS NOT TRUE THEN 'inactive_item' WHEN b.status <> 'available' THEN 'unavailable_status' WHEN b.expiry_date IS NULL OR b.expiry_date <= ? THEN 'expiry' WHEN h.active_action_id IS NOT NULL THEN 'held' ELSE NULL END as eligibility_reason", [$this->localDate($branch)]), 'eligibility');
+            ->select(['b.*', 's.is_active as sku_active', 'i.is_active as item_active', 'rb.recall_id'])
+            ->selectRaw("COALESCE(a.reason, CASE WHEN rb.id IS NOT NULL THEN 'recall' END) as hold_reason")
+            ->selectRaw("CASE WHEN s.is_active IS NOT TRUE THEN 'inactive_sku' WHEN i.is_active IS NOT TRUE THEN 'inactive_item' WHEN b.status <> 'available' THEN 'unavailable_status' WHEN b.expiry_date IS NULL OR b.expiry_date <= ? THEN 'expiry' WHEN rb.id IS NOT NULL THEN 'recalled' WHEN h.active_action_id IS NOT NULL THEN 'held' ELSE NULL END as eligibility_reason", [$this->localDate($branch)]), 'eligibility');
     }
 
     public function assertEligible(int $organisationId, Branch $branch, int $batchId, string $medicine): void
@@ -37,6 +41,7 @@ final class InventoryBatchEligibility
             $message = match ($reason) {
                 'inactive_sku' => 'the stock SKU is inactive', 'inactive_item' => 'the inventory item is inactive',
                 'unavailable_status' => 'the batch status is not available', 'expiry' => 'the batch expiry must be after the branch-local current date',
+                'recalled' => 'the batch is under a recall at every branch',
                 'held' => 'the batch is held at this branch ('.$row->hold_reason.')', default => 'the inventory reference is unavailable',
             };
             throw ValidationException::withMessages(['allocations' => $medicine.': '.$message.'.']);

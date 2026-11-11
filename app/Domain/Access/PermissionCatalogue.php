@@ -165,6 +165,8 @@ final class PermissionCatalogue
             'inventory.supplier_returns.request.branch',
             'inventory.supplier_returns.approve.branch',
             'inventory.usage.record.branch',
+            'inventory.recalls.manage.organisation',
+            'inventory.recalls.lift.organisation',
             'inventory.cost.view.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
@@ -495,6 +497,11 @@ final class PermissionCatalogue
         // STK-19 (owner decision 2026-11-11, "agree all"): a Finance Officer approves purchase orders as well as the
         // Director, never one they raised or submitted (ProcurementService and PostgreSQL).
         $roles['finance_officer'][] = 'inventory.purchase_orders.approve.organisation';
+
+        // STK-25 (owner programme 2026-11-11): a Director starts a recall across branches. Lifting is its own
+        // permission, never used by the starter; Director only until the owner decides who else may lift.
+        $roles['director'][] = 'inventory.recalls.manage.organisation';
+        $roles['director'][] = 'inventory.recalls.lift.organisation';
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {

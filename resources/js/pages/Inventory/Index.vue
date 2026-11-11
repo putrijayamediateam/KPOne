@@ -215,6 +215,12 @@ const clearFilters = () => {
                 >Supplier returns</ActionLink
             >
             <ActionLink
+                href="/inventory/recalls"
+                variant="outline"
+                class="min-h-11"
+                >Recalls</ActionLink
+            >
+            <ActionLink
                 href="/inventory/treatment-usage"
                 variant="outline"
                 class="min-h-11"
