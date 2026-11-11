@@ -3,7 +3,6 @@
 namespace App\Domain\HR\Attendance\Services;
 
 use App\Domain\Audit\AuditRecorder;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -19,14 +18,15 @@ final class LocationResultPurge
 
     public function purgeExpired(): int
     {
-        // A minute of margin under PostgreSQL's own 90 days, so a row at the edge is never refused mid-purge.
-        $cutoff = CarbonImmutable::now('UTC')->subDays(self::RETENTION_DAYS)->subMinute();
+        // PostgreSQL's own clock, the one its delete trigger checks, with a minute of margin, so the two never disagree
+        // whatever the application server's clock says (Suresh, m1).
+        $cutoff = "created_at < now() - interval '".self::RETENTION_DAYS." days' - interval '1 minute'";
         $total = 0;
-        $organisations = DB::table('hr_clock_location_checks')->where('created_at', '<', $cutoff)->distinct()->pluck('organisation_id');
+        $organisations = DB::table('hr_clock_location_checks')->whereRaw($cutoff)->distinct()->pluck('organisation_id');
         foreach ($organisations as $organisationId) {
             $deleted = DB::transaction(function () use ($organisationId, $cutoff): int {
                 DB::statement("SELECT set_config('kpone.hr_location_purge', 'on', true)");
-                $count = DB::table('hr_clock_location_checks')->where('organisation_id', $organisationId)->where('created_at', '<', $cutoff)->delete();
+                $count = DB::table('hr_clock_location_checks')->where('organisation_id', $organisationId)->whereRaw($cutoff)->delete();
                 if ($count > 0) {
                     $this->audit->record('hr.attendance.location_results_purged', null, ['count' => $count, 'retention_days' => self::RETENTION_DAYS],
                         null, null, (int) $organisationId);
