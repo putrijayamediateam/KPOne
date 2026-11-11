@@ -1548,6 +1548,10 @@ onMounted(async () => {
                                         <span
                                             v-if="k.detail"
                                             class="space-row-sub"
+                                            :class="{
+                                                'space-wait is-amber':
+                                                    k.detail.endsWith('(soon)'),
+                                            }"
                                             >{{ k.detail }}</span
                                         >
                                     </span>
