@@ -44,12 +44,14 @@ type Register = {
         skuCode: string;
         stockUnit: string;
     };
-    filters: { from: string; to: string };
+    filters: { from: string; to: string; label: string };
     opening: string;
     closing: string;
     lines: { page: number; lastPage: number; total: number; rows: Line[] };
     balanceNow: string;
+    controlled: boolean;
     newestMovementId: number;
+    newestCheckSequence: number;
     movementsSinceCheck: number;
     checks: Check[];
     can: { check: boolean };
@@ -148,6 +150,7 @@ const submit = () => {
             expected_branch_id: props.register.expectedBranchId,
             idempotency_key: form.key,
             seen_movement_id: props.register.newestMovementId,
+            seen_check_sequence: props.register.newestCheckSequence,
             counted: form.counted.trim(),
             reason: differs.value ? form.reason : null,
             note: differs.value && form.note.trim() ? form.note.trim() : null,
@@ -166,15 +169,24 @@ const submit = () => {
                 errors.value = bag as Record<string, string>;
 
                 // A stale page or an earlier key needs a fresh one after the reload.
-                if (bag.seen_movement_id || bag.idempotency_key) {
+                if (
+                    bag.seen_movement_id ||
+                    bag.seen_check_sequence ||
+                    bag.idempotency_key
+                ) {
                     form.key = crypto.randomUUID();
                 }
             },
         },
     );
 };
+// Errors with no field of their own (a stale page, someone else's check, a branch change) show above the form.
+const fieldKeys = ['counted', 'reason', 'note'];
 const formError = computed(
-    () => errors.value.seen_movement_id ?? errors.value.idempotency_key ?? null,
+    () =>
+        Object.entries(errors.value).find(
+            ([key]) => !fieldKeys.includes(key),
+        )?.[1] ?? null,
 );
 </script>
 
@@ -339,7 +351,7 @@ const formError = computed(
                                 >
                                     {{ line.balance }}
                                 </td>
-                                <td class="p-3 break-all">
+                                <td class="p-3 whitespace-nowrap">
                                     {{ line.batch ?? '—' }}
                                 </td>
                                 <td class="p-3">{{ line.location }}</td>
@@ -428,7 +440,7 @@ const formError = computed(
                     <select
                         id="cd-reason"
                         v-model="form.reason"
-                        class="min-h-11 w-full rounded-md border bg-background px-3 text-sm"
+                        class="min-h-11 w-full rounded-md border bg-background px-3 text-sm text-foreground"
                         :aria-invalid="errors.reason ? 'true' : undefined"
                         :aria-describedby="
                             errors.reason ? 'cd-reason-error' : undefined
@@ -449,6 +461,9 @@ const formError = computed(
                             form.reason === 'other' ? '' : ' (optional)'
                         }}</label
                     >
+                    <p id="cd-note-hint" class="text-sm text-muted-foreground">
+                        Do not enter patient or prescriber details.
+                    </p>
                     <Input
                         id="cd-note"
                         v-model="form.note"
@@ -456,7 +471,9 @@ const formError = computed(
                         class="min-h-11"
                         :aria-invalid="errors.note ? 'true' : undefined"
                         :aria-describedby="
-                            errors.note ? 'cd-note-error' : undefined
+                            errors.note
+                                ? 'cd-note-hint cd-note-error'
+                                : 'cd-note-hint'
                         "
                     />
                     <InputError id="cd-note-error" :message="errors.note" />

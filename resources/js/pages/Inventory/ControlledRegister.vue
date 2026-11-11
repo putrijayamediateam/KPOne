@@ -12,7 +12,7 @@ type Row = {
     skuCode: string;
     stockUnit: string;
     balance: string;
-    status: 'checked' | 'moved_since' | 'never';
+    status: 'checked' | 'moved_since' | 'never' | 'no_longer_controlled';
     lastCheckedOn: string | null;
     lastOutcome: 'matches' | 'differs' | null;
 };
@@ -22,13 +22,19 @@ defineProps<{
 }>();
 
 const statusLabel = (row: Row) =>
-    row.status === 'never'
-        ? 'Never checked'
-        : row.status === 'checked'
-          ? 'Checked'
-          : `Not checked since ${row.lastCheckedOn}`;
+    row.status === 'no_longer_controlled'
+        ? 'No longer marked controlled'
+        : row.status === 'never'
+          ? 'Never checked'
+          : row.status === 'checked'
+            ? 'Checked'
+            : `Not checked since ${row.lastCheckedOn}`;
 const statusTone = (row: Row) =>
-    row.status === 'checked' ? 'success' : ('warning' as const);
+    row.status === 'checked'
+        ? ('success' as const)
+        : row.status === 'no_longer_controlled'
+          ? ('neutral' as const)
+          : ('warning' as const);
 </script>
 
 <template>

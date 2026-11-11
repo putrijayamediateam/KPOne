@@ -29,6 +29,10 @@ synthetic until go-live. This sheet is not legal advice.
   note). A check never changes stock; stock is corrected only through the governed stock count, which has its
   own independent approval.
 - **Kept:** checks cannot be changed or deleted, and the database refuses it too.
+- **Printed register:** lists the checks signed in its dates under the movements. Opening the print page
+  records nothing; pressing Print records who printed which register and dates.
+- **A medicine no longer marked controlled** keeps its register and checks, read only, labelled "No longer
+  marked controlled".
 
 ## 2. Sample printed register (synthetic)
 

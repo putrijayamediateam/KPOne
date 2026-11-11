@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
 
 // STK-24: an A4 print of one controlled medicine's register for a date range. Every printed page carries the draft
@@ -17,8 +18,19 @@ type Line = {
     recordedBy: string;
 };
 
-defineProps<{
+type Check = {
+    publicId: string;
+    outcome: 'matches' | 'differs';
+    reason: string | null;
+    ledger: string;
+    counted: string;
+    checkedBy: string;
+    checkedOn: string;
+};
+
+const props = defineProps<{
     register: {
+        expectedBranchId: number;
         branchName: string;
         sku: {
             publicId: string;
@@ -26,15 +38,68 @@ defineProps<{
             skuCode: string;
             stockUnit: string;
         };
-        filters: { from: string; to: string };
+        filters: { from: string; to: string; label: string };
         opening: string;
         closing: string;
         lines: { total: number; rows: Line[] };
         printedOn: string;
+        checksInRange: Check[];
     };
 }>();
 
-const print = () => window.print();
+const reasons: Record<string, string> = {
+    count_to_follow: 'A governed stock count will follow',
+    stock_elsewhere: 'Stock is held somewhere else',
+    investigate: 'Difference to investigate',
+    other: 'Other',
+};
+const busy = ref(false);
+const error = ref('');
+// Pressing Print records the print first (a POST, as DSP-6b); opening this page records nothing.
+const print = async () => {
+    if (busy.value) {
+        return;
+    }
+
+    busy.value = true;
+    error.value = '';
+
+    try {
+        const csrf =
+            document
+                .querySelector('meta[name="csrf-token"]')
+                ?.getAttribute('content') ?? '';
+        const response = await fetch(
+            `/inventory/controlled-register/${props.register.sku.publicId}/print`,
+            {
+                method: 'POST',
+                credentials: 'same-origin',
+                cache: 'no-store',
+                headers: {
+                    Accept: 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': csrf,
+                },
+                body: JSON.stringify({
+                    expected_branch_id: props.register.expectedBranchId,
+                    from: props.register.filters.from,
+                    to: props.register.filters.to,
+                }),
+            },
+        );
+
+        if (!response.ok) {
+            throw new Error('refused');
+        }
+
+        window.print();
+    } catch {
+        error.value =
+            'The print could not be recorded, so it was not printed. Reload and try again.';
+    } finally {
+        busy.value = false;
+    }
+};
 </script>
 
 <template>
@@ -60,6 +125,7 @@ const print = () => window.print();
                     type="button"
                     class="min-h-11 w-full sm:w-auto"
                     data-testid="cd-print-button"
+                    :disabled="busy"
                     @click="print"
                 >
                     Print or save as PDF
@@ -67,7 +133,10 @@ const print = () => window.print();
             </div>
             <p class="text-sm text-muted-foreground">
                 Use A4 paper. This shows the register as recorded now, and
-                opening it is recorded.
+                pressing Print is recorded.
+            </p>
+            <p v-if="error" role="alert" class="text-sm text-destructive">
+                {{ error }}
             </p>
         </section>
         <article
@@ -96,7 +165,7 @@ const print = () => window.print();
                 <div>
                     <dt>Dates</dt>
                     <dd>
-                        {{ register.filters.from }} to {{ register.filters.to }}
+                        {{ register.filters.label }}
                     </dd>
                 </div>
                 <div>
@@ -114,6 +183,12 @@ const print = () => window.print();
             <div class="cd-table-frame">
                 <table class="cd-table">
                     <thead>
+                        <!-- Repeats on every printed page in every browser, unlike the page-margin banner. -->
+                        <tr class="cd-repeat-banner">
+                            <th colspan="9">
+                                DRAFT REGISTER — PENDING PHARMACIST REVIEW
+                            </th>
+                        </tr>
                         <tr>
                             <th scope="col">Date and time</th>
                             <th scope="col">What happened</th>
@@ -150,6 +225,39 @@ const print = () => window.print();
                 <p class="mt-3 font-semibold">
                     Balance at the end: {{ register.closing }}
                 </p>
+                <h2 class="mt-5 font-bold">Checks in these dates</h2>
+                <p v-if="!register.checksInRange.length" class="mt-1">
+                    No check was signed in these dates.
+                </p>
+                <table v-else class="cd-table mt-1">
+                    <thead>
+                        <tr>
+                            <th scope="col">Checked</th>
+                            <th scope="col">By</th>
+                            <th scope="col" class="text-right">Register</th>
+                            <th scope="col" class="text-right">Counted</th>
+                            <th scope="col">Outcome</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="check in register.checksInRange"
+                            :key="check.publicId"
+                        >
+                            <td>{{ check.checkedOn }}</td>
+                            <td>{{ check.checkedBy }}</td>
+                            <td class="text-right">{{ check.ledger }}</td>
+                            <td class="text-right">{{ check.counted }}</td>
+                            <td>
+                                {{
+                                    check.outcome === 'matches'
+                                        ? 'Matches'
+                                        : `Differs: ${reasons[check.reason ?? ''] ?? check.reason}`
+                                }}
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
                 <p class="mt-4 text-xs">
                     Read from KPOne stock records. No patient or prescriber is
                     shown in this draft. Not a statutory register until a
@@ -243,6 +351,12 @@ const print = () => window.print();
 }
 .cd-table tr {
     break-inside: avoid;
+}
+.cd-table .cd-repeat-banner th {
+    border-bottom: 2px solid #000;
+    text-align: center;
+    font-weight: 800;
+    letter-spacing: 0.04em;
 }
 .cd-end {
     break-inside: avoid;

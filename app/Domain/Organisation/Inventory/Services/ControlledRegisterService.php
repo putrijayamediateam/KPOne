@@ -10,6 +10,7 @@ use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Query\Builder;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -36,7 +37,7 @@ final class ControlledRegisterService
 
     private const PAGE_SIZE = 50;
 
-    private const MAX_DAYS = 366;
+    private const MAX_DAYS = 365;
 
     private const LABELS = [
         'opening_balance' => 'Opening balance', 'purchase_receipt' => 'Received', 'dispense' => 'Dispensed', 'transfer' => 'Moved',
@@ -55,8 +56,9 @@ final class ControlledRegisterService
      */
     public function index(User $actor, Branch $branch): array
     {
-        $skus = $this->controlledSkus($actor)->get(['s.id', 's.public_id', 's.sku_code', 's.stock_unit', 'i.generic_name', 'i.strength']);
+        $skus = $this->registerSkus($actor, $branch)->get(['s.id', 's.public_id', 's.sku_code', 's.stock_unit', 'i.generic_name', 'i.strength']);
         $ids = $skus->pluck('id')->map(fn (mixed $id): int => (int) $id)->all();
+        $controlled = $this->controlledIds($actor);
         $ledger = $ids === [] ? collect() : $this->movements($actor, $branch)->whereIn('movement.inventory_sku_id', $ids)->groupBy('movement.inventory_sku_id')
             ->selectRaw('movement.inventory_sku_id as sku, '.$this->delta().' as balance, max(movement.id) as newest', $this->bind($branch))->get()->keyBy('sku');
         $checks = $ids === [] ? collect() : DB::table('inventory_controlled_register_checks as c')->where('c.branch_id', $branch->id)->whereIn('c.inventory_sku_id', $ids)
@@ -65,11 +67,12 @@ final class ControlledRegisterService
 
         return [
             'expectedBranchId' => $branch->id, 'branchName' => $branch->name,
-            'rows' => array_values($skus->map(function (stdClass $sku) use ($ledger, $checks, $branch): array {
+            'rows' => array_values($skus->map(function (stdClass $sku) use ($ledger, $checks, $branch, $controlled): array {
                 $row = $ledger->get($sku->id);
                 $check = $checks->get($sku->id);
                 $newest = $row === null ? 0 : (int) $row->newest;
                 $status = match (true) {
+                    ! in_array((int) $sku->id, $controlled, true) => 'no_longer_controlled',
                     $check === null => 'never',
                     (int) $check->through_movement_id === $newest => 'checked',
                     default => 'moved_since',
@@ -91,15 +94,17 @@ final class ControlledRegisterService
      */
     public function register(User $actor, Branch $branch, string $skuPublicId, array $query, bool $all = false): array
     {
-        $sku = $this->controlledSkus($actor)->where('s.public_id', strtolower($skuPublicId))->first(['s.id', 's.public_id', 's.sku_code', 's.stock_unit', 'i.generic_name', 'i.strength']);
+        $sku = $this->registerSkus($actor, $branch)->where('s.public_id', strtolower($skuPublicId))->first(['s.id', 's.public_id', 's.sku_code', 's.stock_unit', 'i.generic_name', 'i.strength']);
         abort_unless($sku !== null, 404);
+        $controlled = in_array((int) $sku->id, $this->controlledIds($actor), true);
         [$from, $to] = $this->range($branch, $query);
         $start = CarbonImmutable::parse($from, $branch->timezone)->startOfDay()->utc();
         $end = CarbonImmutable::parse($to, $branch->timezone)->addDay()->startOfDay()->utc();
         $scope = fn (): Builder => $this->movements($actor, $branch)->where('movement.inventory_sku_id', $sku->id);
         $opening = (int) ($scope()->where('movement.occurred_at', '<', $start)->selectRaw($this->delta().' as total', $this->bind($branch))->value('total') ?? 0);
-        // Light rows for the running balance across the whole range; details only for the lines shown.
-        $deltas = $scope()->where('movement.occurred_at', '>=', $start)->where('movement.occurred_at', '<', $end)->orderBy('movement.occurred_at')->orderBy('movement.id')
+        // Light rows for the running balance across the whole range, in ledger (id) order as the checks use;
+        // details only for the lines shown.
+        $deltas = $scope()->where('movement.occurred_at', '>=', $start)->where('movement.occurred_at', '<', $end)->orderBy('movement.id')
             ->selectRaw('movement.id, '.$this->rowDelta().' as delta', $this->bind($branch))->get();
         $total = $deltas->count();
         $lastPage = max(1, (int) ceil($total / self::PAGE_SIZE));
@@ -146,6 +151,7 @@ final class ControlledRegisterService
         $recorders = $scope()->where('movement.id', '>', $after)->whereNotNull('movement.actor_user_id')->distinct()->pluck('movement.actor_user_id')->map(fn (mixed $id): int => (int) $id)->all();
         $blocked = match (true) {
             ! $actor->can(self::CHECK) => null,
+            ! $controlled => 'This medicine is no longer marked controlled, so its register is read only.',
             $last !== null && (int) $last->checked_by_user_id === $actor->id => 'You did the previous check, so another person must check this register.',
             in_array($actor->id, $recorders, true) => 'You recorded a movement since the previous check, so another person must check this register.',
             default => null,
@@ -154,11 +160,11 @@ final class ControlledRegisterService
         return [
             'expectedBranchId' => $branch->id, 'branchName' => $branch->name,
             'sku' => ['publicId' => $sku->public_id, 'medicine' => trim($sku->generic_name.' '.($sku->strength ?? '')), 'skuCode' => $sku->sku_code, 'stockUnit' => $sku->stock_unit],
-            'filters' => ['from' => $from, 'to' => $to],
+            'filters' => ['from' => $from, 'to' => $to, 'label' => CarbonImmutable::parse($from)->format('j M Y').' to '.CarbonImmutable::parse($to)->format('j M Y')],
             'opening' => self::quantity($opening), 'closing' => self::quantity($closing),
             'lines' => ['page' => $page, 'lastPage' => $all ? 1 : $lastPage, 'total' => $total, 'rows' => $lines],
             'balanceNow' => self::quantity((int) ($scope()->selectRaw($this->delta().' as total', $this->bind($branch))->value('total') ?? 0)),
-            'newestMovementId' => $newest, 'movementsSinceCheck' => $scope()->where('movement.id', '>', $after)->count(),
+            'controlled' => $controlled, 'newestMovementId' => $newest, 'newestCheckSequence' => $last === null ? 0 : (int) $last->sequence, 'movementsSinceCheck' => $scope()->where('movement.id', '>', $after)->count(),
             'checks' => array_values($checks->map(fn (stdClass $check): array => [
                 'publicId' => $check->public_id, 'sequence' => (int) $check->sequence, 'outcome' => $check->outcome, 'reason' => $check->reason, 'note' => $check->note,
                 'ledger' => self::quantity(StockUnitQuantity::scaled((string) $check->ledger_quantity, true)), 'counted' => self::quantity(StockUnitQuantity::scaled((string) $check->counted_quantity, true)),
@@ -166,23 +172,43 @@ final class ControlledRegisterService
             ])->all()),
             'can' => ['check' => $actor->can(self::CHECK) && $blocked === null],
             'checkBlockedReason' => $blocked,
+            // The print lists every check signed in its dates.
+            ...($all ? ['checksInRange' => array_values(DB::table('inventory_controlled_register_checks')->where('branch_id', $branch->id)->where('inventory_sku_id', $sku->id)
+                ->where('checked_at', '>=', $start)->where('checked_at', '<', $end)->orderBy('sequence')
+                ->get(['public_id', 'outcome', 'reason', 'ledger_quantity', 'counted_quantity', 'checked_by_user_id', 'checked_at'])
+                ->map(fn (stdClass $check): array => ['publicId' => $check->public_id, 'outcome' => $check->outcome, 'reason' => $check->reason,
+                    'ledger' => self::quantity(StockUnitQuantity::scaled((string) $check->ledger_quantity, true)), 'counted' => self::quantity(StockUnitQuantity::scaled((string) $check->counted_quantity, true)),
+                    'checkedBy' => $this->staff->visibleUsers($actor)->where('id', (int) $check->checked_by_user_id)->value('name') ?? 'Staff member',
+                    'checkedOn' => $this->local($branch, (string) $check->checked_at)->format('j M Y, g:i A')])->all())] : []),
         ];
     }
 
     /**
-     * The printable register: the whole range on one page set; each print is audited with ids only.
+     * The printable register: the whole range on one page set. Opening it writes nothing; pressing Print records it
+     * through {@see recordPrint()}.
      *
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
      */
     public function printable(User $actor, Branch $branch, string $skuPublicId, array $query): array
     {
-        $register = $this->register($actor, $branch, $skuPublicId, $query, true);
+        return $this->register($actor, $branch, $skuPublicId, $query, true) + ['printedOn' => CarbonImmutable::now($branch->timezone)->format('j M Y, g:i A')];
+    }
+
+    /**
+     * Records one press of Print for a register and date range, with ids and dates only (a POST, as DSP-6b).
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function recordPrint(User $actor, string $skuPublicId, array $input): void
+    {
+        $data = Validator::make($input, ['expected_branch_id' => ['required', 'integer'], 'from' => ['required', 'date_format:Y-m-d'], 'to' => ['required', 'date_format:Y-m-d']])->validate();
+        $branch = $this->authority->activeBranch($actor, $data);
+        abort_unless($actor->can(self::VIEW), 403);
+        $register = $this->register($actor, $branch, $skuPublicId, ['from' => $data['from'], 'to' => $data['to']], true);
         $sku = InventorySku::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $register['sku']['publicId'])->firstOrFail();
         abort_if($this->audit->record('inventory.controlled_register.printed', $sku, ['inventory_sku_id' => $sku->id, 'from' => $register['filters']['from'], 'to' => $register['filters']['to'],
-            'lines' => $register['lines']['total']], $actor, $branch) === null, 503, 'The print could not be recorded, so it was not shown.');
-
-        return $register + ['printedOn' => CarbonImmutable::now($branch->timezone)->format('j M Y, g:i A')];
+            'lines' => $register['lines']['total']], $actor, $branch) === null, 503, 'The print could not be recorded, so it was not printed.');
     }
 
     /** @param array<string, mixed> $input */
@@ -190,7 +216,7 @@ final class ControlledRegisterService
     {
         $data = Validator::make($input, [
             'expected_branch_id' => ['required', 'integer'], 'idempotency_key' => ['required', 'uuid'], 'seen_movement_id' => ['required', 'integer', 'min:0'],
-            'counted' => ['required', 'string', 'max:20'], 'reason' => ['nullable', Rule::in(self::REASONS)], 'note' => ['nullable', 'string', 'max:200', 'not_regex:/[\p{Cc}\p{Cf}<>]/u'],
+            'seen_check_sequence' => ['required', 'integer', 'min:0'], 'counted' => ['required', 'string', 'max:20'], 'reason' => ['nullable', Rule::in(self::REASONS)], 'note' => ['nullable', 'string', 'max:200', 'not_regex:/[\p{Cc}\p{Cf}<>]/u'],
         ], ['counted.required' => 'Enter the quantity you counted.', 'reason.in' => 'Choose a reason.'], ['counted' => 'counted quantity'])->validate();
         try {
             $counted = StockUnitQuantity::scaled(trim((string) $data['counted']), true);
@@ -200,12 +226,18 @@ final class ControlledRegisterService
         $note = trim((string) ($data['note'] ?? ''));
         $branch = $this->authority->activeBranch($actor, $data);
         $key = strtolower((string) $data['idempotency_key']);
-        $hash = hash('sha256', json_encode([strtolower($skuPublicId), (int) $data['seen_movement_id'], $counted, $data['reason'] ?? null, $note], JSON_THROW_ON_ERROR));
+        $hash = hash('sha256', json_encode([strtolower($skuPublicId), (int) $data['seen_movement_id'], (int) $data['seen_check_sequence'], $counted, $data['reason'] ?? null, $note], JSON_THROW_ON_ERROR));
 
         try {
             return DB::transaction(fn (): string => $this->checkLocked($actor, $branch, strtolower($skuPublicId), $data, $counted, $note, $key, $hash), 3);
         } catch (UniqueConstraintViolationException) {
-            throw ValidationException::withMessages(['counted' => 'Someone else just checked this register. Reload and check again.']);
+            throw ValidationException::withMessages(['seen_check_sequence' => 'Someone else just checked this register. Reload and check again.']);
+        } catch (QueryException $e) {
+            // The database's own second-person and ledger rules (23514) only fire if a movement slipped past the locks.
+            if ($e->getCode() !== '23514') {
+                throw $e;
+            }
+            throw ValidationException::withMessages(['seen_movement_id' => 'The register changed. Reload and check again.']);
         }
     }
 
@@ -215,7 +247,14 @@ final class ControlledRegisterService
         $actor = $this->authority->lockForBranch($actor, $branch, self::CHECK);
         abort_unless($actor->can(self::VIEW), 403);
         $sku = InventorySku::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $skuPublicId)->lockForUpdate()->first();
-        abort_unless($sku !== null && $this->controlledSkus($actor)->where('s.id', $sku->id)->exists(), 404);
+        abort_unless($sku !== null && $this->registerSkus($actor, $branch)->where('s.id', $sku->id)->exists(), 404);
+        if (! in_array((int) $sku->id, $this->controlledIds($actor), true)) {
+            throw ValidationException::withMessages(['counted' => 'This medicine is no longer marked controlled, so its register is read only.']);
+        }
+        // Every movement writer locks the stock balance it changes, so waiting on this SKU's balances at the branch
+        // lets a movement already being written finish before the newest movement is read.
+        DB::table('inventory_stock_balances as b')->join('inventory_locations as l', 'l.id', '=', 'b.inventory_location_id')->where('b.inventory_sku_id', $sku->id)
+            ->where('l.branch_id', $branch->id)->orderBy('b.id')->lockForUpdate()->pluck('b.id');
         $existing = DB::table('inventory_controlled_register_checks')->where('organisation_id', $actor->organisation_id)->where('idempotency_key', $key)->first(['public_id', 'request_hash', 'checked_by_user_id']);
         if ($existing !== null) {
             if ($existing->request_hash !== $hash || (int) $existing->checked_by_user_id !== $actor->id) {
@@ -227,6 +266,9 @@ final class ControlledRegisterService
         $last = DB::table('inventory_controlled_register_checks')->where('branch_id', $branch->id)->where('inventory_sku_id', $sku->id)->orderByDesc('sequence')->lockForUpdate()->first(['sequence', 'through_movement_id', 'checked_by_user_id']);
         $scope = fn (): Builder => $this->movements($actor, $branch)->where('movement.inventory_sku_id', $sku->id);
         $newest = (int) ($scope()->max('movement.id') ?? 0);
+        if (($last === null ? 0 : (int) $last->sequence) !== (int) $data['seen_check_sequence']) {
+            throw ValidationException::withMessages(['seen_check_sequence' => 'Someone else just checked this register. Reload and check again.']);
+        }
         if ($newest !== (int) $data['seen_movement_id']) {
             throw ValidationException::withMessages(['seen_movement_id' => 'The register changed. Reload and check again.']);
         }
@@ -238,6 +280,9 @@ final class ControlledRegisterService
             throw new AuthorizationException('You recorded a movement since the previous check, so another person must check this register.');
         }
         $ledger = (int) ($scope()->selectRaw($this->delta().' as total', $this->bind($branch))->value('total') ?? 0);
+        if ($ledger < 0) {
+            throw ValidationException::withMessages(['counted' => 'The register shows a balance below zero. Correct it with a governed stock count first.']);
+        }
         $matches = $counted === $ledger;
         if (! $matches && ($data['reason'] ?? null) === null) {
             throw ValidationException::withMessages(['reason' => 'The count differs from the register. Choose a reason.']);
@@ -258,6 +303,25 @@ final class ControlledRegisterService
             'outcome' => $matches ? 'matches' : 'differs', 'reason' => $matches ? null : $data['reason']], $actor, $branch) === null, 503, 'The check could not be recorded, so nothing was saved.');
 
         return $publicId;
+    }
+
+    /**
+     * Registers shown at the branch: SKUs marked controlled now, and any SKU already checked here, so a medicine
+     * unmarked later keeps its register and signed checks (read only).
+     */
+    private function registerSkus(User $actor, Branch $branch): Builder
+    {
+        $ids = $this->controlledIds($actor);
+        $checked = DB::table('inventory_controlled_register_checks')->where('branch_id', $branch->id)->distinct()->pluck('inventory_sku_id')->map(fn (mixed $id): int => (int) $id)->all();
+
+        return DB::table('inventory_skus as s')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')->where('s.organisation_id', $actor->organisation_id)
+            ->whereIn('s.id', array_values(array_unique([...$ids, ...$checked])) ?: [0]);
+    }
+
+    /** @return list<int> */
+    private function controlledIds(User $actor): array
+    {
+        return array_values($this->controlledSkus($actor)->pluck('s.id')->map(fn (mixed $id): int => (int) $id)->all());
     }
 
     /** SKUs linked to an active medicine marked controlled, in the actor's organisation. */

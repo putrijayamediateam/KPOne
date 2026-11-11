@@ -36,7 +36,6 @@ return new class extends Migration
             $t->char('request_hash', 64);
             $t->unique(['organisation_id', 'idempotency_key'], 'controlled_register_checks_idempotency_unique');
             $t->unique(['branch_id', 'inventory_sku_id', 'sequence'], 'controlled_register_checks_sequence_unique');
-            $t->unique(['branch_id', 'inventory_sku_id', 'after_movement_id'], 'controlled_register_checks_range_unique');
         });
 
         if (DB::connection()->getDriverName() !== 'pgsql') {

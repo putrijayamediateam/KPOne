@@ -44,9 +44,12 @@ final class ControlledRegisterTest extends VisitTestCase
     }
 
     /** @return array<string, mixed> */
-    private function input(int $seen, string $counted, array $extra = []): array
+    private function input(int $seen, string $counted, array $extra = [], int $sequence = -1): array
     {
-        return ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(), 'seen_movement_id' => $seen, 'counted' => $counted, ...$extra];
+        // By default the newest check sequence is read back, as the page sends it.
+        $sequence = $sequence >= 0 ? $sequence : (int) DB::table('inventory_controlled_register_checks')->max('sequence');
+
+        return ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(), 'seen_movement_id' => $seen, 'seen_check_sequence' => $sequence, 'counted' => $counted, ...$extra];
     }
 
     /** More stock arrives as a new batch, because an opening balance is recorded once per batch and location. */
@@ -211,14 +214,92 @@ final class ControlledRegisterTest extends VisitTestCase
         }
     }
 
-    public function test_the_print_is_audited_and_holds_the_whole_range(): void
+    public function test_opening_the_print_records_nothing_and_pressing_print_is_audited(): void
     {
         $f = $this->controlled('10.000');
         $viewer = $this->actorAt('director');
         $props = $this->actingAs($viewer)->get(route('inventory.controlled-register.print', ['sku' => $f['sku']->public_id]))->assertOk()->viewData('page');
         $this->assertSame('Inventory/ControlledRegisterPrint', $props['component']);
-        $this->assertSame([1, '10'], [$props['props']['register']['lines']['total'], $props['props']['register']['closing']]);
+        $this->assertSame([1, '10', []], [$props['props']['register']['lines']['total'], $props['props']['register']['closing'], $props['props']['register']['checksInRange']]);
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'inventory.controlled_register.printed')->count());
+
+        $filters = $props['props']['register']['filters'];
+        $this->actingAs($viewer)->postJson(route('inventory.controlled-register.print.record', ['sku' => $f['sku']->public_id]),
+            ['expected_branch_id' => $this->branch->id, 'from' => $filters['from'], 'to' => $filters['to']])->assertOk()->assertJson(['recorded' => true]);
         $audit = DB::table('audit_logs')->where('event', 'inventory.controlled_register.printed')->sole();
         $this->assertSame((int) $viewer->id, (int) $audit->actor_user_id);
+
+        // Without the view permission: 403 on every register address; without a current assignment here: 404.
+        $ca = $this->actorAt('ca');
+        foreach (['inventory.controlled-register.show', 'inventory.controlled-register.print'] as $name) {
+            $this->actingAs($ca)->get(route($name, ['sku' => $f['sku']->public_id]))->assertForbidden();
+        }
+        $this->actingAs($ca)->postJson(route('inventory.controlled-register.print.record', ['sku' => $f['sku']->public_id]), ['expected_branch_id' => $this->branch->id, 'from' => $filters['from'], 'to' => $filters['to']])->assertForbidden();
+        DB::table('staff_branch_assignments')->where('staff_profile_id', DB::table('staff_profiles')->where('user_id', $viewer->id)->value('id'))->update(['valid_until' => now()->subDays(2)->toDateString(), 'valid_from' => now()->subDays(10)->toDateString()]);
+        $this->actingAs($viewer->fresh())->get(route('inventory.controlled-register.show', ['sku' => $f['sku']->public_id]))->assertNotFound();
+    }
+
+    public function test_a_check_with_nothing_new_still_lets_later_checks_follow(): void
+    {
+        $f = $this->controlled('10.000');
+        $url = route('inventory.controlled-register.check', ['sku' => $f['sku']->public_id]);
+        $seen = $this->registerPage($f['proposer'], $f['sku']->public_id)['newestMovementId'];
+        $this->actingAs($this->actorAt('finance_officer'))->post($url, $this->input($seen, '10'))->assertSessionHasNoErrors();
+        // Nothing moved: a second person still checks it.
+        $this->actingAs($this->actorAt('director'))->post($url, $this->input($seen, '10'))->assertSessionHasNoErrors();
+        // Stock arrives, and a third person checks again.
+        $this->receive($f, $f['proposer'], '2.000');
+        $third = $this->actorAt('finance_officer');
+        $page = $this->registerPage($third, $f['sku']->public_id);
+        $this->assertSame([2, 1, true], [$page['newestCheckSequence'], $page['movementsSinceCheck'], $page['can']['check']]);
+        $this->actingAs($third)->post($url, $this->input($page['newestMovementId'], '12', ['reason' => 'investigate']))->assertSessionHasNoErrors();
+        // A reason sent with a matching count is dropped.
+        $this->assertSame(['matches', null], array_values((array) DB::table('inventory_controlled_register_checks')->where('sequence', 3)->first(['outcome', 'reason'])));
+        $this->assertSame([3, $seen, $page['newestMovementId']], [DB::table('inventory_controlled_register_checks')->count(), (int) DB::table('inventory_controlled_register_checks')->where('sequence', 3)->value('after_movement_id'), (int) DB::table('inventory_controlled_register_checks')->where('sequence', 3)->value('through_movement_id')]);
+    }
+
+    public function test_two_people_on_the_same_page_cannot_both_check(): void
+    {
+        $f = $this->controlled('10.000');
+        $url = route('inventory.controlled-register.check', ['sku' => $f['sku']->public_id]);
+        $first = $this->actorAt('finance_officer');
+        $second = $this->actorAt('director');
+        $seen = $this->registerPage($first, $f['sku']->public_id)['newestMovementId'];
+        $this->actingAs($first)->post($url, $this->input($seen, '10', [], 0))->assertSessionHasNoErrors();
+        // The second opened the page before the first check, so it still shows no check.
+        $this->actingAs($second)->post($url, $this->input($seen, '10', [], 0))
+            ->assertSessionHasErrors(['seen_check_sequence' => 'Someone else just checked this register. Reload and check again.']);
+        $this->assertSame(1, DB::table('inventory_controlled_register_checks')->count());
+    }
+
+    public function test_a_medicine_unmarked_as_controlled_keeps_its_register_read_only(): void
+    {
+        $f = $this->controlled('10.000');
+        $checker = $this->actorAt('finance_officer');
+        $seen = $this->registerPage($checker, $f['sku']->public_id)['newestMovementId'];
+        $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $f['sku']->public_id]), $this->input($seen, '10'))->assertSessionHasNoErrors();
+        DB::table('medicine_catalogue_items')->where('id', $f['medicine']->id)->update(['is_controlled' => false]);
+
+        $viewer = $this->actorAt('director');
+        $row = $this->actingAs($viewer)->get(route('inventory.controlled-register'))->viewData('page')['props']['register']['rows'][0];
+        $this->assertSame([$f['sku']->public_id, 'no_longer_controlled'], [$row['skuPublicId'], $row['status']]);
+        $page = $this->registerPage($viewer, $f['sku']->public_id);
+        $this->assertSame([false, false, 1], [$page['controlled'], $page['can']['check'], count($page['checks'])]);
+        $this->assertSame('This medicine is no longer marked controlled, so its register is read only.', $page['checkBlockedReason']);
+        $this->actingAs($viewer)->post(route('inventory.controlled-register.check', ['sku' => $f['sku']->public_id]), $this->input($seen, '10'))
+            ->assertSessionHasErrors(['counted' => 'This medicine is no longer marked controlled, so its register is read only.']);
+    }
+
+    public function test_the_running_balance_carries_across_pages(): void
+    {
+        $f = $this->controlled('1.000');
+        for ($i = 0; $i < 51; $i++) {
+            $this->receive($f, $f['proposer'], '1.000');
+        }
+        $viewer = $this->actorAt('finance_officer');
+        $first = $this->registerPage($viewer, $f['sku']->public_id);
+        $this->assertSame([52, 2, 50, '50'], [$first['lines']['total'], $first['lines']['lastPage'], count($first['lines']['rows']), $first['lines']['rows'][49]['balance']]);
+        $second = $this->registerPage($viewer, $f['sku']->public_id, ['page' => 2]);
+        $this->assertSame(['51', '52', '52'], [$second['lines']['rows'][0]['balance'], $second['lines']['rows'][1]['balance'], $second['closing']]);
     }
 }

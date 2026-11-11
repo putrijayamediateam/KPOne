@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Inventory\Services\ControlledRegisterService;
 use App\Domain\Organisation\Models\Branch;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -30,11 +31,19 @@ final class ControlledRegisterController extends Controller
         return Inertia::render('Inventory/ControlledRegisterPrint', ['register' => $service->printable($request->user(), $this->branch($request, $branches), $sku, $request->query())]);
     }
 
+    /** STK-24: pressing Print records the print (a POST, as DSP-6b); opening the print page writes nothing. */
+    public function recordPrint(Request $request, string $sku, ControlledRegisterService $service): JsonResponse
+    {
+        $service->recordPrint($request->user(), $sku, $request->only(['expected_branch_id', 'from', 'to']));
+
+        return response()->json(['recorded' => true]);
+    }
+
     public function check(Request $request, string $sku, ControlledRegisterService $service): RedirectResponse
     {
         $back = route('inventory.controlled-register.show', ['sku' => $sku]);
         try {
-            $service->check($request->user(), $sku, $request->only(['expected_branch_id', 'idempotency_key', 'seen_movement_id', 'counted', 'reason', 'note']));
+            $service->check($request->user(), $sku, $request->only(['expected_branch_id', 'idempotency_key', 'seen_movement_id', 'seen_check_sequence', 'counted', 'reason', 'note']));
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
         } catch (AuthorizationException $e) {
