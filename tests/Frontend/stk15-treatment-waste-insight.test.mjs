@@ -11,6 +11,8 @@ test('Insights shows treatment-room waste beside recorded wastage', () => {
     assert.match(report, /label: 'Treatment-room waste'/);
     assert.match(report, /value\.summary\.treatmentWasteUnits/);
     assert.match(report, /Reversed entries are left out\./);
+    assert.match(report, /Stocktake losses and damage adjustments\./);
+    assert.match(report, /Not included in Recorded wastage\./);
     assert.match(
         read('resources/js/types/insights.ts'),
         /treatmentWasteUnits: number;/,
