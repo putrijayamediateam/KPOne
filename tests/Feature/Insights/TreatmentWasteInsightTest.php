@@ -15,6 +15,8 @@ final class TreatmentWasteInsightTest extends VisitTestCase
 {
     public function test_treatment_room_waste_counts_unreversed_waste_only(): void
     {
+        // Fixed branch-local morning, so "today" and "yesterday" never straddle Kuala Lumpur midnight.
+        $this->travelTo(now($this->branch->timezone)->setTime(10, 0));
         $fixture = new SupplierReturnFixture($this->branch);
         $f = $fixture->received('10.000');
         $ca = $fixture->actor('ca');
