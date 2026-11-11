@@ -2736,7 +2736,9 @@ const calendarDays = computed(() =>
                                 class="text-xs text-muted-foreground"
                             >
                                 Files are deleted after this. Requests and their
-                                history stay. At most 2,555 days (7 years).
+                                history stay. At most 2,555 days (7 years). When
+                                you lower the days, files already older than
+                                that are deleted the next night.
                             </p>
                             <p
                                 v-if="savedRetentionDays > MAX_EVIDENCE_DAYS"
