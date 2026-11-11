@@ -55,6 +55,7 @@ export type InventoryDocument = {
     location?: string;
     lines: InventoryDocumentLine[];
     differences?: InventoryTransferDifference[];
+    raisedByYou?: boolean;
 };
 
 export type InventoryOperations = {
