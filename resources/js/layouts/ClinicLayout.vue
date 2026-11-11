@@ -30,6 +30,7 @@ const toastPlacement = computed(() =>
         <WorkspaceHeader v-if="!focusMode" context="clinic" />
         <div
             ref="content"
+            id="main-content"
             class="flex min-h-0 w-full flex-1 flex-col"
             :role="role"
         >
