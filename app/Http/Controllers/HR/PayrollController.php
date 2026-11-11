@@ -16,6 +16,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response as HttpResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -42,18 +43,30 @@ class PayrollController extends Controller
         if (! is_string($password) || mb_strlen($password) < ProtectedZip::MIN_PASSWORD || mb_strlen($password) > 128) {
             throw ValidationException::withMessages(['file_password' => 'Type a password of at least '.ProtectedZip::MIN_PASSWORD.' characters for the file.'])->redirectTo($back);
         }
+        // Zip tools read a non-ASCII password differently, so only letters, numbers and symbols (Suresh).
+        if (preg_match('/\A[\x21-\x7E]+\z/', $password) !== 1) {
+            throw ValidationException::withMessages(['file_password' => 'Use only letters, numbers and symbols, with no spaces.'])->redirectTo($back);
+        }
         if ($request->input('file_password_confirmation') !== $password) {
             throw ValidationException::withMessages(['file_password' => 'The two passwords do not match.'])->redirectTo($back);
         }
         if (! ProtectedZip::supported()) {
             throw ValidationException::withMessages(['export' => 'This server cannot make protected files, so nothing was downloaded. Ask the IT owner.'])->redirectTo($back);
         }
+        // The zip is made inside the transaction that records the download, so a zip that cannot be made records nothing,
+        // and its failure is a plain refusal rather than an error page that could show the request (Suresh, m1).
         try {
-            $file = $kind === 'bank' ? $exports->bank($request->user(), $run) : $exports->accountant($request->user(), $run);
+            [$file, $zip] = DB::transaction(function () use ($exports, $request, $run, $kind, $password): array {
+                $file = $kind === 'bank' ? $exports->bank($request->user(), $run) : $exports->accountant($request->user(), $run);
+                try {
+                    return [$file, ProtectedZip::make($file['name'], $file['csv'], $password)];
+                } catch (\RuntimeException) {
+                    throw ValidationException::withMessages(['export' => 'The protected file could not be made. Nothing was downloaded.']);
+                }
+            });
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
         }
-        $zip = ProtectedZip::make($file['name'], $file['csv'], $password);
 
         return response($zip, 200, ['Content-Type' => 'application/zip', 'Cache-Control' => 'no-store, private',
             'Content-Disposition' => 'attachment; filename="'.preg_replace('/\.csv\z/', '.zip', $file['name']).'"']);

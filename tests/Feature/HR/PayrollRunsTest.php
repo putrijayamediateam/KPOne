@@ -512,6 +512,8 @@ class PayrollRunsTest extends VisitTestCase
         $export = fn (array $input) => $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']), $input);
         $export([])->assertStatus(422)->assertJsonPath('errors.file_password.0', 'Type a password of at least 12 characters for the file.');
         $export(['file_password' => 'short', 'file_password_confirmation' => 'short'])->assertStatus(422);
+        $export(['file_password' => 'Synthetic pass 2026', 'file_password_confirmation' => 'Synthetic pass 2026'])
+            ->assertStatus(422)->assertJsonPath('errors.file_password.0', 'Use only letters, numbers and symbols, with no spaces.');
         $export(['file_password' => 'Synthetic-file-pass-2026', 'file_password_confirmation' => 'Something-else-2026'])
             ->assertStatus(422)->assertJsonPath('errors.file_password.0', 'The two passwords do not match.');
         $this->assertSame(0, DB::table('hr_payroll_exports')->count()); // a refused password records nothing

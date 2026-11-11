@@ -62,6 +62,12 @@ const download = async () => {
         return;
     }
 
+    if (!/^[\x21-\x7E]+$/.test(secret.password)) {
+        secret.error = 'Use only letters, numbers and symbols, with no spaces.';
+
+        return;
+    }
+
     if (secret.password !== secret.confirm) {
         secret.error = 'The two passwords do not match.';
 
@@ -312,8 +318,8 @@ const download = async () => {
                 >
                     <div class="flex flex-col gap-1">
                         <Label for="export-file-password"
-                            >Password (at least
-                            {{ MIN_PASSWORD }} characters)</Label
+                            >Password (at least {{ MIN_PASSWORD }} letters,
+                            numbers and symbols)</Label
                         >
                         <Input
                             id="export-file-password"
