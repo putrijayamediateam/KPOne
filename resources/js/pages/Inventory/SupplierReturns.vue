@@ -13,7 +13,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/ui/page-header';
-import { formatDate } from '@/lib/presentation';
+import { formatDate, formatDateTime } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
 import {
     rmToSen,
@@ -148,6 +148,7 @@ const label = ref('');
 const endpoint = ref('');
 const operation = ref<'request' | SupplierReturnAction>('request');
 const history = ref<ReturnRow | null>(null);
+const isGroup = ref(false);
 const form = useForm({
     expected_branch_id: props.returns.branchId,
     retry_key: '',
@@ -201,10 +202,24 @@ const blankDrafts = () =>
         ]),
     ) as Record<number, GroupDraft>;
 const drafts = ref<Record<number, GroupDraft>>(blankDrafts());
+// Keep what was ticked and typed when the same delivery comes back (for example after a refusal), so each
+// line's error shows beside it; start again only when another delivery is chosen.
 watch(
     () => props.returns.deliveryLots,
-    () => {
-        drafts.value = blankDrafts();
+    (lots, previous) => {
+        const sameDelivery =
+            props.returns.delivery !== null &&
+            lots.length > 0 &&
+            previous?.some((lot) => lot.id === lots[0].id);
+        const fresh = blankDrafts();
+        drafts.value = sameDelivery
+            ? Object.fromEntries(
+                  lots.map((lot) => [
+                      lot.id,
+                      drafts.value[lot.id] ?? fresh[lot.id],
+                  ]),
+              )
+            : fresh;
     },
 );
 const chosenCount = computed(
@@ -256,6 +271,7 @@ function submitGroup() {
         }))
         .post('/inventory/supplier-return-groups', {
             preserveScroll: true,
+            preserveState: true,
             onSuccess: () => {
                 groupForm.reset();
                 groupForm.retry_key = crypto.randomUUID();
@@ -272,6 +288,7 @@ function showGroupAction(group: GroupRow, action: SupplierReturnAction) {
     label.value = `${group.groupNumber} · ${group.lines.length} lots · ${group.supplier} · delivery ${group.deliveryReference}`;
     operation.value = action;
     endpoint.value = `/inventory/supplier-return-groups/${group.id}/${action}`;
+    isGroup.value = true;
     open.value = true;
 }
 function showRequest(lot: Lot) {
@@ -296,6 +313,7 @@ function showAction(row: ReturnRow, action: SupplierReturnAction) {
     label.value = `${row.return_number} · ${row.sku_code} · batch ${row.batch_number} · ${row.quantity} ${row.base_unit} · ${row.supplier}`;
     operation.value = action;
     endpoint.value = `/inventory/supplier-returns/${row.id}/${action}`;
+    isGroup.value = false;
     open.value = true;
 }
 function submit() {
@@ -520,7 +538,7 @@ watch(
                             supplierReturnHistoryLabels[step.action] ??
                             step.action
                         }}
-                        · {{ step.createdAt }}
+                        · {{ formatDateTime(step.createdAt) }}
                         <span v-if="step.reasonCode">
                             ·
                             {{
@@ -1025,6 +1043,13 @@ watch(
                                     class="mt-1 min-h-11 w-full rounded border bg-background px-3"
                             /></label>
                             <InputError :message="errors.credit_amount_sen" />
+                            <p
+                                v-if="isGroup"
+                                class="text-sm text-muted-foreground"
+                            >
+                                One credit note for every lot in this return:
+                                enter the total amount.
+                            </p>
                         </template>
                         <p
                             v-if="operation === 'dispatched'"

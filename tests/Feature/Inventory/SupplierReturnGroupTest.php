@@ -5,11 +5,13 @@ namespace Tests\Feature\Inventory;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Inventory\Services\SupplierReturnService as Service;
+use App\Domain\Organisation\Models\Branch;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\SupplierReturnFixture;
 use Tests\Support\VerifiedReceivingFixture;
@@ -226,5 +228,87 @@ final class SupplierReturnGroupTest extends VisitTestCase
         $this->assertSame([], $page['returns']['rows']);
         $this->actingAs($f['finance'])->post(route('inventory.supplier-return-groups.act', [$groupId, 'approved']), $this->cmd($groupId))->assertRedirect(route('inventory.supplier-returns'));
         $this->assertSame(['approved', 'approved'], $this->states($groupId));
+    }
+
+    public function test_a_credit_reference_used_by_one_group_is_refused_for_another_group_and_a_single_return(): void
+    {
+        $f = $this->delivery();
+        $service = app(Service::class);
+        $credit = function (int $groupId, string $reference) use ($service, $f): void {
+            $service->actGroup($this->as($f['finance']), $groupId, 'approved', $this->cmd($groupId));
+            $service->actGroup($this->as($f['receiver']), $groupId, 'dispatched', $this->cmd($groupId, ['reference' => 'SYN-COURIER-'.$groupId]));
+            $service->actGroup($this->as($f['finance']), $groupId, 'credit_recorded', $this->cmd($groupId, ['reference' => $reference]));
+        };
+        $first = $service->requestGroup($this->as($f['receiver']), $this->request($f, ['1.000', '1.000']));
+        $credit($first, 'SYN-CN-GROUP');
+        $second = $service->requestGroup($this->as($f['receiver']), $this->request($f, ['1.000', '1.000']));
+        $this->assertThrows(fn () => $credit($second, 'syn-cn-group'), ValidationException::class);
+        $this->assertSame(['dispatched', 'dispatched'], $this->states($second));
+        // PostgreSQL refuses it too: a line of another group may not reuse the reference.
+        $line = (int) DB::table('inventory_supplier_returns')->where('group_id', $second)->min('id');
+        DB::beginTransaction();
+        try {
+            DB::table('inventory_supplier_return_actions')->insert(['organisation_id' => $this->branch->organisation_id, 'return_id' => $line, 'actor_user_id' => $f['finance']->id, 'action' => 'credit_recorded', 'state' => 'credited',
+                'lock_version' => 4, 'reference' => 'SYN-CN-GROUP', 'retry_key' => (string) Str::uuid(), 'payload_hash' => str_repeat('b', 64), 'created_at' => now()->utc()]);
+            $this->fail('PostgreSQL must refuse a reference already used by another group.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('already recorded', $e->getMessage());
+        } finally {
+            DB::rollBack();
+        }
+        // A later single-lot return may not reuse it either.
+        $single = $service->request($this->as($f['receiver']), ['expected_branch_id' => $this->branch->id, 'retry_key' => (string) Str::uuid(), 'receipt_lot_id' => $f['lots'][2]->id, 'unit' => $f['sku']->stock_unit, 'quantity' => '1.000', 'reason' => 'damaged']);
+        $one = fn (array $extra = []) => ['expected_branch_id' => $this->branch->id, 'lock_version' => (int) DB::table('inventory_supplier_return_actions')->where('return_id', $single)->max('lock_version'), 'retry_key' => (string) Str::uuid(), ...$extra];
+        $service->act($this->as($f['finance']), $single, 'approved', $one());
+        $service->act($this->as($f['receiver']), $single, 'dispatched', $one(['reference' => 'SYN-COURIER-S']));
+        $this->assertThrows(fn () => $service->act($this->as($f['finance']), $single, 'credit_recorded', $one(['reference' => 'SYN-CN-GROUP'])), ValidationException::class);
+    }
+
+    public function test_stale_versions_reversed_deliveries_and_other_branches_are_refused(): void
+    {
+        $f = $this->delivery();
+        $service = app(Service::class);
+        $groupId = $service->requestGroup($this->as($f['receiver']), $this->request($f, ['1.000', '1.000']));
+        $stale = $this->cmd($groupId);
+        $service->actGroup($this->as($f['finance']), $groupId, 'approved', $this->cmd($groupId));
+        try {
+            $service->actGroup($this->as($f['receiver']), $groupId, 'dispatched', [...$stale, 'reference' => 'SYN-COURIER-X']);
+            $this->fail('A stale version must be refused.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('lock_version', $e->errors());
+        }
+
+        // Another branch never finds the group.
+        $other = Branch::query()->where('organisation_id', $this->branch->organisation_id)->whereKeyNot($this->branch->id)->firstOrFail();
+        $elsewhere = (new SupplierReturnFixture($other))->actor('finance_officer', $other);
+        $this->assertThrows(fn () => $service->actGroup($elsewhere, $groupId, 'rejected', [...$this->cmd($groupId), 'expected_branch_id' => $other->id, 'reason_code' => 'other']), NotFoundHttpException::class);
+
+        // Once the delivery is reversed by a receipt correction, the group can no longer be dispatched.
+        $pending = $service->requestGroup($this->as($f['receiver']), $this->request($f, ['1.000', '1.000']));
+        $service->actGroup($this->as($f['receiver']), $groupId, 'cancelled', $this->cmd($groupId));
+        $service->actGroup($this->as($f['finance']), $pending, 'approved', $this->cmd($pending));
+        (new SupplierReturnFixture($this->branch))->reverse($f);
+        try {
+            $service->actGroup($this->as($f['receiver']), $pending, 'dispatched', $this->cmd($pending, ['reference' => 'SYN-COURIER-Y']));
+            $this->fail('A group on a reversed delivery must not be dispatched.');
+        } catch (ValidationException $e) {
+            $this->assertStringContainsString('reversed', (string) collect($e->errors())->flatten()->first());
+        }
+        // Nothing left the branch.
+        $this->assertSame(0, DB::table('stock_movements')->where('movement_type', 'supplier_return')->count());
+    }
+
+    public function test_a_replay_returns_the_group_even_after_the_delivery_was_reversed_and_bad_input_is_refused_cleanly(): void
+    {
+        $f = $this->delivery();
+        $service = app(Service::class);
+        $input = $this->request($f, ['1.000']);
+        $groupId = $service->requestGroup($this->as($f['receiver']), $input);
+        (new SupplierReturnFixture($this->branch))->reverse($f);
+        $this->assertSame($groupId, $service->requestGroup($this->as($f['receiver']), $input));
+        // A non-text quantity is a validation error, never a crash.
+        $bad = $this->request($f, ['1.000']);
+        $bad['lines'][0]['quantity'] = ['1'];
+        $this->assertThrows(fn () => $service->requestGroup($this->as($f['receiver']), $bad), ValidationException::class);
     }
 }

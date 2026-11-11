@@ -195,7 +195,7 @@ final class SupplierReturnService
             'supplier_reference' => ['nullable', 'string', 'max:100', 'not_regex:/[\p{Cc}\p{Cf}<>]/u'],
             'lines' => ['required', 'array', 'min:1', 'max:'.self::GROUP_MAX_LINES],
             'lines.*.receipt_lot_id' => ['required', 'integer', 'min:1', 'distinct'],
-            'lines.*.unit' => ['required', 'string', 'max:100'], 'lines.*.quantity' => ['required'],
+            'lines.*.unit' => ['required', 'string', 'max:100'], 'lines.*.quantity' => ['required', 'string', 'max:30'],
             'lines.*.reason' => ['required', 'string', Rule::in(self::REASONS)],
         ], [], ['lines.*.receipt_lot_id' => 'lot', 'lines.*.quantity' => 'quantity', 'lines.*.reason' => 'reason'])->validate();
         $data['supplier_reference'] = isset($data['supplier_reference']) ? trim((string) $data['supplier_reference']) : '';
@@ -206,18 +206,10 @@ final class SupplierReturnService
         return DB::transaction(function () use ($actor, $branch, $data, $lines, $hash): int {
             $actor = $this->authority->lockForBranch($actor, $branch, self::REQUEST);
             $lotIds = array_map(fn (array $line): int => (int) $line['receipt_lot_id'], $lines);
-            $candidates = $this->returnableLots($actor, $branch)->where('receipt.id', (int) $data['goods_receipt_id'])->whereIn('lot.id', $lotIds)
-                ->get(['lot.id', 'receipt.id as goods_receipt_id', 'delivery.supplier_id', 'po.destination_location_id', 'lot.inventory_batch_id'])->keyBy('id');
-            foreach ($lines as $i => $line) {
-                if (! $candidates->has((int) $line['receipt_lot_id'])) {
-                    $this->refuse("lines.$i.receipt_lot_id", 'Every lot must come from the chosen delivery and still be returnable here.');
-                }
-            }
-            // Receipt, then lots in id order, then SKUs and batches in id order: the shared inventory lock order.
-            DB::table('inventory_goods_receipts')->where('id', (int) $data['goods_receipt_id'])->lockForUpdate()->sole();
-            $sortedLots = $lotIds;
-            sort($sortedLots);
-            $lots = DB::table('inventory_receipt_lots')->whereIn('id', $sortedLots)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
+            // Receipt first: a receipt correction locks the same row, so "not corrected" below stays true until commit.
+            $receiptLocked = DB::table('inventory_goods_receipts')->where('id', (int) $data['goods_receipt_id'])->where('organisation_id', $actor->organisation_id)->lockForUpdate()->first();
+            abort_unless($receiptLocked !== null, 404);
+            // A replay returns the group it made, whatever has happened to the delivery since.
             $existing = DB::table('inventory_supplier_return_groups')->where('organisation_id', $actor->organisation_id)->where('requester_user_id', $actor->id)->where('retry_key', $data['retry_key'])->first();
             if ($existing !== null) {
                 if (! hash_equals((string) $existing->payload_hash, $hash)) {
@@ -226,6 +218,17 @@ final class SupplierReturnService
 
                 return (int) $existing->id;
             }
+            $candidates = $this->returnableLots($actor, $branch)->where('receipt.id', (int) $data['goods_receipt_id'])->whereIn('lot.id', $lotIds)
+                ->get(['lot.id', 'receipt.id as goods_receipt_id', 'delivery.supplier_id', 'po.destination_location_id', 'lot.inventory_batch_id'])->keyBy('id');
+            foreach ($lines as $i => $line) {
+                if (! $candidates->has((int) $line['receipt_lot_id'])) {
+                    $this->refuse("lines.$i.receipt_lot_id", 'Every lot must come from the chosen delivery and still be returnable here.');
+                }
+            }
+            // Then lots in id order, then SKUs and batches in id order: the shared inventory lock order.
+            $sortedLots = $lotIds;
+            sort($sortedLots);
+            $lots = DB::table('inventory_receipt_lots')->whereIn('id', $sortedLots)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             $batchIds = $lots->pluck('inventory_batch_id')->map(fn ($id): int => (int) $id)->unique()->sort()->values()->all();
             $skuIds = DB::table('inventory_batches')->whereIn('id', $batchIds)->pluck('inventory_sku_id')->map(fn ($id): int => (int) $id)->unique()->sort()->values()->all();
             $skus = InventorySku::query()->whereIn('id', $skuIds)->where('organisation_id', $actor->organisation_id)->orderBy('id')->lockForUpdate()->get()->keyBy('id');
@@ -445,7 +448,11 @@ final class SupplierReturnService
         $deliveryLots = [];
         if ($canRequest) {
             // STK-17: deliveries that still have something to return, newest first, for the multi-lot form.
-            $deliveries = array_map(fn (stdClass $row): array => [...(array) $row, 'received_at' => $row->received_at === null ? null : CarbonImmutable::parse((string) $row->received_at, 'UTC')->toIso8601String()], $this->returnableLots($actor, $branch)->join('inventory_suppliers as sup', 'sup.id', '=', 'delivery.supplier_id')
+            $stillCommitted = DB::table('inventory_supplier_returns as cr')->selectRaw('cr.receipt_lot_id, SUM(cr.quantity) as committed')
+                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('inventory_supplier_return_actions as ca')->whereColumn('ca.return_id', 'cr.id')->whereIn('ca.state', ['rejected', 'cancelled']))
+                ->groupBy('cr.receipt_lot_id');
+            $deliveries = array_map(fn (stdClass $row): array => [...(array) $row, 'lots' => (int) $row->lots, 'received_at' => $row->received_at === null ? null : CarbonImmutable::parse((string) $row->received_at, 'UTC')->toIso8601String()], $this->returnableLots($actor, $branch)->join('inventory_suppliers as sup', 'sup.id', '=', 'delivery.supplier_id')
+                ->leftJoinSub($stillCommitted, 'committed', 'committed.receipt_lot_id', '=', 'lot.id')->whereRaw('lot.quantity - COALESCE(committed.committed, 0) > 0')
                 ->groupBy('receipt.id', 'delivery.delivery_reference', 'delivery.received_at', 'sup.name')
                 ->orderByDesc('receipt.id')->limit(50)
                 ->get(['receipt.id', 'delivery.delivery_reference', 'delivery.received_at', 'sup.name as supplier', DB::raw('COUNT(lot.id) as lots')])->all());
