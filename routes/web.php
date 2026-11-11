@@ -31,6 +31,7 @@ use App\Http\Controllers\ClinicManagementController;
 use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
+use App\Http\Controllers\ControlledRegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentSpaceController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
@@ -882,6 +883,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/writeoffs', [GovernedStockController::class, 'writeoffs'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.governed-writeoffs');
         Route::post('inventory/governed/{kind}', [GovernedStockController::class, 'store'])->whereIn('kind', ['count', 'writeoff', 'reversal'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.store');
         Route::post('inventory/governed/{governedCase}/{action}', [GovernedStockController::class, 'act'])->whereNumber('governedCase')->whereIn('action', ['counted', 'recounted', 'approved'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.act');
+        Route::get('inventory/controlled-register', [ControlledRegisterController::class, 'index'])->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store'])->name('inventory.controlled-register');
+        Route::get('inventory/controlled-register/{sku}', [ControlledRegisterController::class, 'show'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store'])->name('inventory.controlled-register.show');
+        Route::get('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'print'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.print');
+        Route::post('inventory/controlled-register/{sku}/checks', [ControlledRegisterController::class, 'check'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.check');
         Route::get('inventory/supplier-returns', [SupplierReturnController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-returns');
         Route::post('inventory/supplier-returns', [SupplierReturnController::class, 'store'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.store');
         Route::post('inventory/supplier-returns/{supplierReturn}/{action}', [SupplierReturnController::class, 'act'])->whereNumber('supplierReturn')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.act');
