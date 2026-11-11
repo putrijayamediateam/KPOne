@@ -36,6 +36,8 @@ final class SpaceQuestions
         'stock.held_batches' => ['space' => 'stock', 'label' => 'Which batches are on hold?', 'permission' => 'inventory.view.branch', 'date' => self::NOW, 'builder' => 'stockHeldBatches', 'patientLevel' => false],
         'stock.written_off' => ['space' => 'stock', 'label' => 'What was written off this month?', 'permission' => 'inventory.view.branch', 'date' => self::NOW, 'builder' => 'stockWrittenOff', 'patientLevel' => false],
         'stock.no_order' => ['space' => 'stock', 'label' => 'Which low-stock items have nothing on order?', 'permission' => 'inventory.view.branch', 'date' => self::NOW, 'builder' => 'stockNoOrder', 'patientLevel' => false],
+        'hr.away_this_week' => ['space' => 'hr', 'label' => 'Who is away this week?', 'permission' => 'hr.leave.manage.organisation', 'date' => self::NOW, 'builder' => 'hrAwayThisWeek', 'patientLevel' => false],
+        'hr.short_days' => ['space' => 'hr', 'label' => 'Is this week\'s roster short anywhere?', 'permission' => 'hr.roster.manage.organisation', 'date' => self::NOW, 'builder' => 'hrShortDays', 'patientLevel' => false],
     ];
 
     /** @return array<string, array{space: string, label: string, permission: string, date: string, builder: string, patientLevel: bool}> */

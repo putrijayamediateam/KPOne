@@ -29,13 +29,15 @@ final class SpaceAskService
         'stock.held_batches' => ['inventory.batch-holds', []],
         'stock.written_off' => ['inventory.governed-writeoffs', []],
         'stock.no_order' => ['inventory.reorder-suggestions', []],
+        'hr.away_this_week' => ['hr.leave.index', ['tab' => 'calendar']],
+        'hr.short_days' => ['hr.roster.index', []],
         'billing.over_60' => ['billing.pay-later-collections', []],
         'billing.owes_most' => ['billing.pay-later-collections', []],
         'billing.closings_waiting' => ['cash-closings.month', []],
         'billing.closings_missing' => ['cash-closings.month', []],
     ];
 
-    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private ConsultationSpace $consultation, private PanelSpace $panel, private StockSpace $stock, private AuditRecorder $audit) {}
+    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private ConsultationSpace $consultation, private PanelSpace $panel, private StockSpace $stock, private HrSpace $hr, private AuditRecorder $audit) {}
 
     /**
      * The questions this person may ask in a space. A question they cannot ask is absent, never greyed.
@@ -97,8 +99,37 @@ final class SpaceAskService
             'stock.held_batches' => $this->stock->heldBatches($actor) !== null,
             'stock.written_off' => $this->stock->writtenOffThisMonth($actor) !== null,
             'stock.no_order' => $this->stock->reorderNeeded($actor) !== null,
+            'hr.away_this_week' => $this->hr->away($actor) !== null,
+            'hr.short_days' => $this->hr->rosterWeek($actor) !== null,
             default => false,
         };
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function hrAwayThisWeek(User $actor): array
+    {
+        $away = $this->hr->away($actor);
+        abort_if($away === null, 403);
+        if ($away['week'] === []) {
+            return ['sentence' => 'Nobody is away this week.', 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        foreach (array_slice($away['week'], 0, 10) as $r) {
+            $rows[] = [$r['name'], $r['text']];
+        }
+        $n = count($away['week']);
+
+        return ['sentence' => ($n === 1 ? '1 person is' : $n.' people are').' away this week.', 'columns' => ['Staff', 'Away'], 'rows' => $rows];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function hrShortDays(User $actor): array
+    {
+        $week = $this->hr->rosterWeek($actor);
+        abort_if($week === null, 403);
+        $n = $week['shortDays'];
+
+        return ['sentence' => 'The roster for '.$week['label'].' is '.strtolower($week['status']).'. '.($n === 0 ? 'No day is short.' : ($n === 1 ? '1 day is' : $n.' days are').' short of the minimum staffing.'), 'columns' => [], 'rows' => []];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */

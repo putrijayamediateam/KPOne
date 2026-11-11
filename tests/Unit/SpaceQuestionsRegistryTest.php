@@ -32,6 +32,8 @@ final class SpaceQuestionsRegistryTest extends TestCase
             'stock.held_batches' => ['stock', 'inventory.view.branch', false],
             'stock.written_off' => ['stock', 'inventory.view.branch', false],
             'stock.no_order' => ['stock', 'inventory.view.branch', false],
+            'hr.away_this_week' => ['hr', 'hr.leave.manage.organisation', false],
+            'hr.short_days' => ['hr', 'hr.roster.manage.organisation', false],
         ], array_map(fn (array $q): array => [$q['space'], $q['permission'], $q['patientLevel']], SpaceQuestions::REGISTRY));
     }
 
