@@ -188,6 +188,48 @@ type StockHome = {
     links: Array<{ title: string; href: string }>;
 };
 
+type HrHome = {
+    branchName: string | null;
+    asOf: string | null;
+    approvals: {
+        total: number;
+        kinds: Array<{
+            key: string;
+            title: string;
+            count: number;
+            href: string;
+            detail: string | null;
+        }>;
+    } | null;
+    away: {
+        total: number;
+        limit: number;
+        seeAllHref: string;
+        rows: Array<{ name: string; text: string }>;
+    } | null;
+    roster: {
+        label: string;
+        status: string;
+        shortDays: number;
+        href: string;
+    } | null;
+    primaryAction: { title: string; href: string } | null;
+    links: Array<{ title: string; href: string }>;
+};
+
+type ManagementHome = {
+    branchName: string | null;
+    asOf: string | null;
+    staff: { active: number; inactive: number } | null;
+    documents: {
+        text: string;
+        warning: boolean;
+        attention: Array<{ name: string; text: string }>;
+    } | null;
+    primaryAction: { title: string; href: string } | null;
+    links: Array<{ title: string; href: string }>;
+};
+
 type Pharmacy = {
     branchName: string | null;
     asOf: string | null;
@@ -225,6 +267,8 @@ const props = defineProps<{
     consultation?: Consultation | null;
     panel?: PanelSpaceHome | null;
     stock?: StockHome | null;
+    hr?: HrHome | null;
+    management?: ManagementHome | null;
 }>();
 
 const page = usePage();
@@ -246,6 +290,8 @@ const primaryAction = computed(
         props.consultation?.primaryAction ??
         props.panel?.primaryAction ??
         props.stock?.primaryAction ??
+        props.hr?.primaryAction ??
+        props.management?.primaryAction ??
         null,
 );
 
@@ -1470,6 +1516,257 @@ onMounted(async () => {
                 </section>
                 <section
                     v-if="!stock.watch && !stock.links.length"
+                    class="space-card"
+                >
+                    <p class="space-muted">
+                        Nothing to show here for your role. Your existing
+                        screens are unchanged.
+                    </p>
+                    <p v-if="existing" class="space-existing">
+                        <Link :href="existing.href"
+                            >Open the existing
+                            {{ existing.title }} screens</Link
+                        >
+                    </p>
+                </section>
+            </template>
+            <template v-else-if="hr">
+                <SpaceAsOf
+                    v-if="hr.branchName"
+                    :branch-name="hr.branchName"
+                    :as-of="hr.asOf"
+                    only="hr"
+                />
+                <section
+                    v-if="hr.approvals"
+                    class="space-card"
+                    aria-labelledby="hr-approvals"
+                >
+                    <h2 id="hr-approvals">
+                        Approvals waiting ({{ hr.approvals.total }})
+                    </h2>
+                    <p
+                        v-if="hr.approvals.kinds.length === 0"
+                        class="space-muted"
+                    >
+                        Nothing is waiting for approval.
+                    </p>
+                    <ul v-else class="space-list">
+                        <li v-for="k in hr.approvals.kinds" :key="k.key">
+                            <Link :href="k.href" class="space-row">
+                                <span class="space-row-body">
+                                    <span class="space-row-text">
+                                        <span class="space-row-main"
+                                            >{{ k.title }}:
+                                            <strong>{{ k.count }}</strong></span
+                                        >
+                                        <span
+                                            v-if="k.detail"
+                                            class="space-row-sub"
+                                            :class="{
+                                                'space-wait is-amber':
+                                                    k.detail.endsWith('(soon)'),
+                                            }"
+                                            >{{ k.detail }}</span
+                                        >
+                                    </span>
+                                </span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="hr.away"
+                    class="space-card"
+                    aria-labelledby="hr-away"
+                >
+                    <h2 id="hr-away">Away today ({{ hr.away.total }})</h2>
+                    <p v-if="hr.away.rows.length === 0" class="space-muted">
+                        Nobody is on leave today.
+                    </p>
+                    <template v-else>
+                        <ul class="space-list">
+                            <li v-for="(row, i) in hr.away.rows" :key="i">
+                                <Link
+                                    :href="hr.away.seeAllHref"
+                                    class="space-row"
+                                >
+                                    <span class="space-row-body">
+                                        <span class="space-row-text">
+                                            <span class="space-row-main">{{
+                                                row.name
+                                            }}</span>
+                                            <span class="space-row-meta">{{
+                                                row.text
+                                            }}</span>
+                                        </span>
+                                    </span>
+                                    <ChevronRight
+                                        class="space-chevron"
+                                        aria-hidden="true"
+                                    />
+                                </Link>
+                            </li>
+                        </ul>
+                        <p
+                            v-if="hr.away.total > hr.away.rows.length"
+                            class="space-muted"
+                        >
+                            Showing {{ hr.away.rows.length }} of
+                            {{ hr.away.total }} ·
+                            <Link :href="hr.away.seeAllHref" class="space-link"
+                                >See all</Link
+                            >
+                        </p>
+                    </template>
+                </section>
+                <section
+                    v-if="hr.roster"
+                    class="space-card"
+                    aria-labelledby="hr-roster"
+                >
+                    <h2 id="hr-roster">Roster this week</h2>
+                    <Link :href="hr.roster.href" class="space-row">
+                        <span class="space-row-body">
+                            <span class="space-row-text">
+                                <span class="space-row-main">{{
+                                    hr.roster.label
+                                }}</span>
+                                <span class="space-row-sub">{{
+                                    hr.roster.status
+                                }}</span>
+                                <span
+                                    class="space-row-meta"
+                                    :class="
+                                        hr.roster.shortDays > 0
+                                            ? 'space-wait is-amber'
+                                            : ''
+                                    "
+                                    >{{
+                                        hr.roster.shortDays === 0
+                                            ? hr.roster.status === 'Approved'
+                                                ? 'No day is short'
+                                                : 'No day is short so far'
+                                            : hr.roster.shortDays === 1
+                                              ? '1 day is short'
+                                              : `${hr.roster.shortDays} days are short`
+                                    }}</span
+                                >
+                            </span>
+                        </span>
+                        <ChevronRight
+                            class="space-chevron"
+                            aria-hidden="true"
+                        />
+                    </Link>
+                </section>
+                <section
+                    v-if="hr.links.length"
+                    class="space-card"
+                    aria-labelledby="hr-open"
+                >
+                    <h2 id="hr-open">Open</h2>
+                    <ul class="space-list">
+                        <li v-for="l in hr.links" :key="l.href">
+                            <Link :href="l.href" class="space-row">
+                                <span>{{ l.title }}</span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="
+                        !hr.approvals &&
+                        !hr.away &&
+                        !hr.roster &&
+                        !hr.links.length
+                    "
+                    class="space-card"
+                >
+                    <p class="space-muted">
+                        Nothing to show here for your role. Your existing
+                        screens are unchanged.
+                    </p>
+                    <p v-if="existing" class="space-existing">
+                        <Link :href="existing.href"
+                            >Open the existing
+                            {{ existing.title }} screens</Link
+                        >
+                    </p>
+                </section>
+            </template>
+            <template v-else-if="management">
+                <SpaceAsOf
+                    v-if="management.branchName"
+                    :branch-name="management.branchName"
+                    :as-of="management.asOf"
+                    only="management"
+                />
+                <section
+                    v-if="management.staff"
+                    class="space-card"
+                    aria-labelledby="mg-staff"
+                >
+                    <h2 id="mg-staff">Staff accounts</h2>
+                    <ul class="space-stats is-glance">
+                        <li>
+                            <strong>{{ management.staff.active }}</strong>
+                            <span class="space-muted">active</span>
+                        </li>
+                        <li>
+                            <strong>{{ management.staff.inactive }}</strong>
+                            <span class="space-muted">inactive</span>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="management.documents"
+                    class="space-card"
+                    aria-labelledby="mg-docs"
+                >
+                    <h2 id="mg-docs">Letters and footers</h2>
+                    <p
+                        :class="
+                            management.documents.warning
+                                ? 'space-wait is-amber'
+                                : 'space-muted'
+                        "
+                    >
+                        {{ management.documents.text }}
+                    </p>
+                </section>
+                <section
+                    v-if="management.links.length"
+                    class="space-card"
+                    aria-labelledby="mg-open"
+                >
+                    <h2 id="mg-open">Open</h2>
+                    <ul class="space-list">
+                        <li v-for="l in management.links" :key="l.href">
+                            <Link :href="l.href" class="space-row">
+                                <span>{{ l.title }}</span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="
+                        !management.staff &&
+                        !management.documents &&
+                        !management.links.length
+                    "
                     class="space-card"
                 >
                     <p class="space-muted">

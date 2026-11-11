@@ -218,12 +218,26 @@ final class GovernedStockService
         foreach ($p->items() as $row) {
             $history = $histories->get($row->id, collect());
             $excluded = [$row->proposer_user_id, ...$history->whereIn('action', ['counted', 'recounted'])->pluck('actor_user_id')->all(), ...$involved->get($row->reverses_case_id, collect())->pluck('actor_user_id')->all()];
-            $rows[] = [...(array) $row, 'history' => $history->all(), 'canCount' => $actor->can(InventoryControlService::STOCKTAKE_PERMISSION) && in_array($row->state, ['awaiting_count', 'awaiting_recount'], true) && ($row->state !== 'awaiting_recount' || $history->firstWhere('action', 'counted')?->actor_user_id !== $actor->id), 'canApprove' => $actor->can(self::APPROVE) && $row->state === 'awaiting_approval' && ! in_array($actor->id, $excluded, true), 'canReverse' => $actor->can(InventoryControlService::ADJUST_PERMISSION) && $row->state === 'posted' && $row->kind !== 'reversal' && ! in_array($row->id, $reversed, true)];
+            $values = (array) $row;
+            $historyRows = $history->all();
+            // STK-23 blind counts: while a count or recount waits, no quantity for that case leaves the server for
+            // anyone (snapshot, first count or history), so the counter and recounter count without being steered.
+            if ($row->kind === 'count' && in_array($row->state, ['awaiting_count', 'awaiting_recount'], true)) {
+                unset($values['expected_quantity'], $values['last_quantity'], $values['quantity']);
+                $historyRows = array_map(function (object $entry): object {
+                    $copy = clone $entry;
+                    unset($copy->quantity);
+
+                    return $copy;
+                }, $historyRows);
+            }
+            $rows[] = [...$values, 'blind' => $row->kind === 'count' && in_array($row->state, ['awaiting_count', 'awaiting_recount'], true), 'history' => $historyRows, 'canCount' => $actor->can(InventoryControlService::STOCKTAKE_PERMISSION) && in_array($row->state, ['awaiting_count', 'awaiting_recount'], true) && ($row->state !== 'awaiting_recount' || $history->firstWhere('action', 'counted')?->actor_user_id !== $actor->id), 'canApprove' => $actor->can(self::APPROVE) && $row->state === 'awaiting_approval' && ! in_array($actor->id, $excluded, true), 'canReverse' => $actor->can(InventoryControlService::ADJUST_PERMISSION) && $row->state === 'posted' && $row->kind !== 'reversal' && ! in_array($row->id, $reversed, true)];
         }
         $targets = DB::table('inventory_stock_balances as r')->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')->join('inventory_batches as b', 'b.id', '=', 'r.inventory_batch_id')
             ->where('r.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('s.is_active', true)->where('i.is_active', true);
         $this->search($targets, $data['q'] ?? '');
-        $t = $targets->orderBy('s.sku_code')->orderBy('b.expiry_date')->orderBy('r.id')->paginate(25, ['r.id', 'r.quantity', 'r.lock_version', 's.sku_code', 's.stock_unit', 'b.batch_number', 'b.expiry_date', 'l.name as location'], 'targets_page', (int) ($data['targets_page'] ?? 1));
+        // STK-23: in count mode the list to count from carries no on-hand quantity (blind counts).
+        $t = $targets->orderBy('s.sku_code')->orderBy('b.expiry_date')->orderBy('r.id')->paginate(25, [...($mode === 'count' ? [] : ['r.quantity']), 'r.id', 'r.lock_version', 's.sku_code', 's.stock_unit', 'b.batch_number', 'b.expiry_date', 'l.name as location'], 'targets_page', (int) ($data['targets_page'] ?? 1));
 
         return ['branchId' => $branch->id, 'branchName' => $branch->name, 'mode' => $mode, 'q' => $data['q'] ?? '', 'state' => $data['state'] ?? '', 'legacyLimit' => self::LEGACY_LIMIT, 'canPropose' => $actor->can($mode === 'count' ? InventoryControlService::STOCKTAKE_PERMISSION : InventoryControlService::ADJUST_PERMISSION), 'cases' => ['rows' => $rows, 'total' => $p->total(), 'page' => $p->currentPage(), 'lastPage' => $p->lastPage()], 'targets' => ['rows' => $t->items(), 'total' => $t->total(), 'page' => $t->currentPage(), 'lastPage' => $t->lastPage()]];
     }
