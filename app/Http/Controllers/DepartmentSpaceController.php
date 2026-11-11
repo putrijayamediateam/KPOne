@@ -6,9 +6,11 @@ use App\Domain\DepartmentSpace\BillingSpace;
 use App\Domain\DepartmentSpace\ConsultationSpace;
 use App\Domain\DepartmentSpace\DepartmentSpaceNavigation;
 use App\Domain\DepartmentSpace\FrontDeskSpace;
+use App\Domain\DepartmentSpace\HrSpace;
 use App\Domain\DepartmentSpace\PanelSpace;
 use App\Domain\DepartmentSpace\PharmacySpace;
 use App\Domain\DepartmentSpace\SpaceAskService;
+use App\Domain\DepartmentSpace\StockSpace;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -25,7 +27,7 @@ final class DepartmentSpaceController extends Controller
         return to_route('spaces.show', ['space' => $spaces[0]['key']]);
     }
 
-    public function show(Request $request, string $space, DepartmentSpaceNavigation $navigation, PharmacySpace $pharmacy, SpaceAskService $ask, FrontDeskSpace $frontDesk, BillingSpace $billing, ConsultationSpace $consultation, PanelSpace $panel): Response
+    public function show(Request $request, string $space, DepartmentSpaceNavigation $navigation, PharmacySpace $pharmacy, SpaceAskService $ask, FrontDeskSpace $frontDesk, BillingSpace $billing, ConsultationSpace $consultation, PanelSpace $panel, StockSpace $stock, HrSpace $hr): Response
     {
         abort_unless(array_key_exists($space, DepartmentSpaceNavigation::SPACES) || $space === 'me', 404);
         abort_unless($navigation->canEnter($request->user(), $space), 403);
@@ -40,6 +42,8 @@ final class DepartmentSpaceController extends Controller
             'billing' => $space === 'billing' ? $billing->home($request->user()) : null,
             'consultation' => $space === 'consultation' ? $consultation->home($request->user()) : null,
             'panel' => $space === 'panel' ? $panel->home($request->user()) : null,
+            'stock' => $space === 'stock' ? $stock->home($request->user()) : null,
+            'hr' => $space === 'hr' ? $hr->home($request->user()) : null,
             'questions' => $ask->offered($request->user(), $space),
             'existing' => $navigation->existingHome($request->user(), $space),
         ]);
