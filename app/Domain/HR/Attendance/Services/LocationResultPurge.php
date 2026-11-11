@@ -27,6 +27,8 @@ final class LocationResultPurge
             $deleted = DB::transaction(function () use ($organisationId, $cutoff): int {
                 DB::statement("SELECT set_config('kpone.hr_location_purge', 'on', true)");
                 $count = DB::table('hr_clock_location_checks')->where('organisation_id', $organisationId)->whereRaw($cutoff)->delete();
+                // Switched off again, so even inside an outer transaction nothing after the purge can delete.
+                DB::statement("SELECT set_config('kpone.hr_location_purge', '', true)");
                 if ($count > 0) {
                     $this->audit->record('hr.attendance.location_results_purged', null, ['count' => $count, 'retention_days' => self::RETENTION_DAYS],
                         null, null, (int) $organisationId);

@@ -221,6 +221,7 @@ class LocationCheckTest extends VisitTestCase
         $this->assertSame([['count' => 2, 'retention_days' => 90]], DB::table('audit_logs')->where('event', 'hr.attendance.location_results_purged')
             ->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
         $this->artisan('hr-location-checks:purge')->expectsOutputToContain('Deleted 0 location-check results.')->assertSuccessful();
+        $this->assertSame('', DB::selectOne("SELECT current_setting('kpone.hr_location_purge', true) AS v")->v); // switched off again
 
         // It runs daily from the scheduler.
         $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
