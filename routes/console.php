@@ -3,6 +3,7 @@
 use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\AutoRejectJobApplications;
 use App\Console\Commands\CleanupPublicPatientIntakes;
+use App\Console\Commands\PurgeAttendanceRecords;
 use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
@@ -47,6 +48,13 @@ Schedule::command(PurgeJobApplications::class)
 
 // HR-16a retention (owner, 2026-11-11): location-check results are deleted after 90 days; the clock presses stay.
 Schedule::command(PurgeLocationResults::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// HR-3a retention (owner, 2026-11-11; the accountant confirms the 7 years before real use): attendance records older
+// than 7 years are deleted.
+Schedule::command(PurgeAttendanceRecords::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
