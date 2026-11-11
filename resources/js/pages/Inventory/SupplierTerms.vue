@@ -9,7 +9,11 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
-import { formatRinggit, ringgitToSen } from '@/lib/supplier-terms';
+import {
+    formatRinggit,
+    ringgitToSen,
+    trimQuantity,
+} from '@/lib/supplier-terms';
 
 type Row = {
     publicId: string;
@@ -197,7 +201,8 @@ const submitEdit = (row: Row) => {
                 class="grid gap-3 sm:grid-cols-2"
                 @submit.prevent="submitCreate"
             >
-                <div class="min-w-0">
+                <div class="grid min-w-0 gap-1">
+                    <p class="text-sm">Supplier (required)</p>
                     <InventorySearchSelect
                         v-model="create.supplier_public_id"
                         :options="[]"
@@ -207,7 +212,8 @@ const submitEdit = (row: Row) => {
                     />
                     <InputError :message="create.errors.supplier_public_id" />
                 </div>
-                <div class="min-w-0">
+                <div class="grid min-w-0 gap-1">
+                    <p class="text-sm">SKU (required)</p>
                     <InventorySearchSelect
                         v-model="create.sku_public_id"
                         :options="[]"
@@ -291,7 +297,8 @@ const submitEdit = (row: Row) => {
             role="search"
             @submit.prevent="visit()"
         >
-            <label class="grid min-w-0 flex-1 gap-1 text-sm"
+            <label
+                class="grid min-w-0 basis-full gap-1 text-sm sm:flex-1 sm:basis-auto"
                 >Search SKU, item or supplier
                 <Input v-model="q" maxlength="100" />
             </label>
@@ -354,7 +361,9 @@ const submitEdit = (row: Row) => {
                     <div>
                         <dt class="text-muted-foreground">Pack</dt>
                         <dd>
-                            {{ row.packDescription }} ({{ row.packQuantity }}
+                            {{ row.packDescription }} ({{
+                                trimQuantity(row.packQuantity)
+                            }}
                             {{ row.stockUnit }})
                         </dd>
                     </div>

@@ -27,3 +27,7 @@ export const formatRinggit = (sen: number | null | undefined): string =>
     sen === null || sen === undefined
         ? ''
         : `${Math.trunc(sen / 100)}.${String(sen % 100).padStart(2, '0')}`;
+
+/** "100" for "100.000" and "2.5" for "2.500": an exact stock quantity without trailing zeros. */
+export const trimQuantity = (value: string): string =>
+    value.includes('.') ? value.replace(/0+$/, '').replace(/\.$/, '') : value;

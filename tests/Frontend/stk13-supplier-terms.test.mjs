@@ -54,3 +54,9 @@ test('the price is shown and sent only for a cost holder', () => {
     );
     assert.match(page, /v-if="terms\.canManage"/);
 });
+
+test('a pack size shows without trailing zeros', () => {
+    assert.equal(lib.trimQuantity('100.000'), '100');
+    assert.equal(lib.trimQuantity('2.500'), '2.5');
+    assert.equal(lib.trimQuantity('0.125'), '0.125');
+});
