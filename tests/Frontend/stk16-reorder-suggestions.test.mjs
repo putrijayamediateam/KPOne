@@ -17,6 +17,8 @@ test('Reorder suggestions explains its method and writes nothing', () => {
     );
     assert.match(page, /Nothing is ordered from this page\./);
     assert.match(page, /At reorder level, no order needed/);
+    assert.match(page, /v-if="row\.onHand === '0\.000'"[\s\S]*?>Out of stock</);
+    assert.match(page, /min-\[480px\]:grid-cols-2 lg:grid-cols-4/);
     // Read only: no form posts anything.
     assert.doesNotMatch(page, /useForm|router\.(post|put|patch|delete)/);
     assert.match(page, /router\.get\(\s*'\/inventory\/reorder-suggestions'/);

@@ -137,6 +137,12 @@ const quantity = (value: string, unit: string) =>
                         </p>
                         <p class="text-sm text-muted-foreground">
                             {{ row.location }}
+                            <span
+                                v-if="row.onHand === '0.000'"
+                                class="ml-1 rounded border px-1.5 py-0.5 text-xs text-foreground"
+                                data-testid="out-of-stock"
+                                >Out of stock</span
+                            >
                         </p>
                     </div>
                     <div class="sm:text-right">
@@ -183,7 +189,7 @@ const quantity = (value: string, unit: string) =>
                     </div>
                 </div>
                 <dl
-                    class="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2 lg:grid-cols-4"
+                    class="grid gap-x-6 gap-y-1 text-sm min-[480px]:grid-cols-2 lg:grid-cols-4"
                 >
                     <div>
                         <dt class="text-muted-foreground">On hand (usable)</dt>
