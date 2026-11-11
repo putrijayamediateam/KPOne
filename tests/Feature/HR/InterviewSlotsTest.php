@@ -311,9 +311,13 @@ class InterviewSlotsTest extends VisitTestCase
         $this->withCookie('kpone_career_status', $invitedToken)->get(route('hr-applications.status'))
             ->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Thu 19 Nov 2026'));
 
-        // Nothing closes on the old day; the reminder already sent is not sent again, and both close on Fri 20.
+        // Nothing closes on the old day; HR gets a reminder of its own on the new last day (Suresh M1), and both close on Fri 20.
         $this->assertSame([0, 0], $run('2026-11-17 09:00'));
-        $this->assertSame([0, 0], $run('2026-11-19 09:00'));
+        $this->assertSame([2, 0], $run('2026-11-19 09:00'));
+        $this->assertSame([[0, 1], [0, 1]], DB::table('hr_job_application_messages')->whereIn('template', ['auto_reject_reminder', 'pick_reminder'])
+            ->orderBy('application_id')->orderBy('extension')->get(['application_id', 'extension'])->groupBy('application_id')
+            ->map(fn ($rows): array => $rows->pluck('extension')->map(fn ($e): int => (int) $e)->all())->values()->all());
+        $this->assertSame([0, 0], $run('2026-11-19 20:00')); // a reminder has a working day of its own before the close
         $this->assertSame([0, 2], $run('2026-11-20 08:20'));
         $this->assertSame(['auto_rejected', 'auto_rejected'], [$this->row($waiting)->status, $this->row($invited)->status]);
 

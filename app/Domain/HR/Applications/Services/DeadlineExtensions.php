@@ -14,8 +14,8 @@ use Illuminate\Validation\ValidationException;
  * the daily auto-reject 3 more working days (the auto-reject setting's number). The count restarts from the press: the
  * reminder moves to the third working day after today and the closing to the fourth. Waiting means New or Phone
  * screening, or Scheduling while the current round has no picks. Each press is one append-only event and one audit row;
- * nothing is sent to the candidate (their private page shows the new "Choose by" date at Scheduling). A reminder already
- * sent for this stage or round is not sent again.
+ * nothing is sent to the candidate (their private page shows the new "Choose by" date at Scheduling). The HR reminder comes
+ * again on the new reminder day (one per extension), so the closing always follows a reminder of its own.
  */
 final class DeadlineExtensions
 {
@@ -59,10 +59,11 @@ final class DeadlineExtensions
             DB::table('hr_job_application_events')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
                 'action' => 'deadline_extended', 'from_status' => $application->status, 'to_status' => $application->status,
                 'actor_user_id' => $actor->id, 'created_at' => $now]);
-            $deadlines = $this->deadlines->deadlines($application);
+            // Read again, so it counts from the new event.
+            $deadlines = $this->deadlines->deadlines(clone $application);
             $this->support->remember($actor, $key, 'job_deadline_extend', $hash, $applicationId);
             $this->support->audit->record('hr.applications.deadline_extended', null, ['application_id' => (int) $application->id,
-                'stage' => (string) $application->status, 'closes_on' => $deadlines['reject']], $actor, null, $actor->organisation_id);
+                'stage' => (string) $application->status, 'closes_on' => $deadlines === null ? null : $deadlines['reject']], $actor, null, $actor->organisation_id);
         }, 3);
     }
 }

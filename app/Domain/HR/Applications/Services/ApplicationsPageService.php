@@ -204,8 +204,7 @@ final class ApplicationsPageService
                 'messages' => array_map(fn (\stdClass $m): array => [...HiringMessenger::shown($m, (string) $a->public_id, HiringMessenger::positionTitle((int) $a->position_id)),
                     'statusLabel' => self::MESSAGE_STATUSES[$m->status] ?? (string) $m->status, 'atLabel' => self::local($m->created_at, $zone)],
                     ($messages[$a->id] ?? collect())->all()),
-                'autoRejectOn' => $this->autoRejectOn($a),
-                'autoRejectSoon' => $this->autoRejectSoon($a),
+                ...$this->autoReject($a),
                 'extendDays' => (int) config('hr-applications.auto_reject_working_days', 3),
                 'interview' => $this->interview($a, $zone),
                 'hasCv' => $a->cv_path !== null,
@@ -223,16 +222,23 @@ final class ApplicationsPageService
         ];
     }
 
-    /** The branch-local date the daily check closes a waiting application, as words, or null. */
-    private function autoRejectOn(\stdClass $a): ?string
+    /**
+     * The branch-local date the daily check closes a waiting application, as words, and whether that is at the start of
+     * the next working day (Daniel, HR-17b). Worked out once per row (Suresh m1).
+     *
+     * @return array{autoRejectOn:?string, autoRejectSoon:bool}
+     */
+    private function autoReject(\stdClass $a): array
     {
         // Follow-up (b): also at Scheduling while the candidate has not picked, so HR sees the date it may extend.
-        if (! DeadlineExtensions::waiting($a)) {
-            return null;
+        $deadlines = DeadlineExtensions::waiting($a) ? $this->deadlines->deadlines($a) : null;
+        if ($deadlines === null) {
+            return ['autoRejectOn' => null, 'autoRejectSoon' => false];
         }
-        $deadlines = $this->deadlines->deadlines($a);
+        $today = $this->deadlines->today($a);
 
-        return $deadlines === null ? null : CarbonImmutable::parse($deadlines['reject'])->format('D j M Y');
+        return ['autoRejectOn' => CarbonImmutable::parse($deadlines['reject'])->format('D j M Y'),
+            'autoRejectSoon' => $today !== null && $today >= $deadlines['remind']];
     }
 
     /**
@@ -265,18 +271,6 @@ final class ApplicationsPageService
             'confirmed' => $interview === null ? null : $label((string) $interview->starts_at),
             // HR-17d: which interview documents the candidate has downloaded.
             'documents' => InterviewDocuments::downloadsFor($a, $zone)];
-    }
-
-    /** Whether the daily check closes a waiting application at the start of the next working day (Daniel, HR-17b). */
-    private function autoRejectSoon(\stdClass $a): bool
-    {
-        if (! DeadlineExtensions::waiting($a)) {
-            return false;
-        }
-        $deadlines = $this->deadlines->deadlines($a);
-        $today = $this->deadlines->today($a);
-
-        return $deadlines !== null && $today !== null && $today >= $deadlines['remind'];
     }
 
     /** @return array<string, mixed> */
