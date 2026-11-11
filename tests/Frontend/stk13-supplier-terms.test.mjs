@@ -60,3 +60,25 @@ test('a pack size shows without trailing zeros', () => {
     assert.equal(lib.trimQuantity('2.500'), '2.5');
     assert.equal(lib.trimQuantity('0.125'), '0.125');
 });
+
+test('a pack reads naturally: no repeated count, plural units', () => {
+    assert.equal(lib.packLabel('Box of 100', '100.000', 'unit'), 'Box of 100');
+    assert.equal(
+        lib.packLabel('Strip', '10.000', 'tablet'),
+        'Strip (10 tablets)',
+    );
+    assert.equal(lib.packLabel('Single', '1.000', 'vial'), 'Single (1 vial)');
+    assert.equal(lib.packLabel('Bottle', '100.000', 'ml'), 'Bottle (100 ml)');
+    assert.equal(
+        lib.packLabel('Box of 1000', '100.000', 'unit'),
+        'Box of 1000 (100 units)',
+    );
+});
+
+test('buttons are 44 px tall below 1024 px (design guide section 12)', () => {
+    assert.ok((page.match(/class="h-11 lg:h-9"/g) ?? []).length >= 5);
+    assert.equal(
+        (page.match(/\[&_button\]:h-11 lg:\[&_button\]:h-9/g) ?? []).length,
+        2,
+    );
+});

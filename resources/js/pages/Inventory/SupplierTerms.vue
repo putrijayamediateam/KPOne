@@ -9,11 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
-import {
-    formatRinggit,
-    ringgitToSen,
-    trimQuantity,
-} from '@/lib/supplier-terms';
+import { formatRinggit, packLabel, ringgitToSen } from '@/lib/supplier-terms';
 
 type Row = {
     publicId: string;
@@ -201,7 +197,9 @@ const submitEdit = (row: Row) => {
                 class="grid gap-3 sm:grid-cols-2"
                 @submit.prevent="submitCreate"
             >
-                <div class="grid min-w-0 gap-1">
+                <div
+                    class="grid min-w-0 gap-1 [&_button]:h-11 lg:[&_button]:h-9"
+                >
                     <p class="text-sm">Supplier (required)</p>
                     <InventorySearchSelect
                         v-model="create.supplier_public_id"
@@ -212,7 +210,9 @@ const submitEdit = (row: Row) => {
                     />
                     <InputError :message="create.errors.supplier_public_id" />
                 </div>
-                <div class="grid min-w-0 gap-1">
+                <div
+                    class="grid min-w-0 gap-1 [&_button]:h-11 lg:[&_button]:h-9"
+                >
                     <p class="text-sm">SKU (required)</p>
                     <InventorySearchSelect
                         v-model="create.sku_public_id"
@@ -277,7 +277,8 @@ const submitEdit = (row: Row) => {
                     />
                     <InputError :message="create.errors.minimum_order_packs" />
                 </label>
-                <label class="flex min-h-11 items-center gap-2 text-sm"
+                <label
+                    class="flex min-h-11 items-center gap-2 text-sm sm:col-span-2"
                     ><input
                         v-model="create.is_preferred"
                         type="checkbox"
@@ -285,7 +286,10 @@ const submitEdit = (row: Row) => {
                     />Preferred supplier for this SKU</label
                 >
                 <div class="sm:col-span-2">
-                    <Button type="submit" :disabled="create.processing"
+                    <Button
+                        type="submit"
+                        class="h-11 lg:h-9"
+                        :disabled="create.processing"
                         >Add row</Button
                     >
                 </div>
@@ -312,7 +316,7 @@ const submitEdit = (row: Row) => {
                     <option value="inactive">Inactive rows</option>
                 </select>
             </label>
-            <Button type="submit" variant="outline" class="min-h-11"
+            <Button type="submit" variant="outline" class="h-11 lg:h-9"
                 >Search</Button
             >
         </form>
@@ -348,7 +352,7 @@ const submitEdit = (row: Row) => {
                     <Button
                         v-if="terms.canManage && editing !== row.publicId"
                         variant="outline"
-                        class="min-h-11"
+                        class="h-11 lg:h-9"
                         :aria-label="`Edit ${row.skuCode} from ${row.supplier}`"
                         @click="startEdit(row)"
                         >Edit</Button
@@ -361,10 +365,13 @@ const submitEdit = (row: Row) => {
                     <div>
                         <dt class="text-muted-foreground">Pack</dt>
                         <dd>
-                            {{ row.packDescription }} ({{
-                                trimQuantity(row.packQuantity)
+                            {{
+                                packLabel(
+                                    row.packDescription,
+                                    row.packQuantity,
+                                    row.stockUnit,
+                                )
                             }}
-                            {{ row.stockUnit }})
                         </dd>
                     </div>
                     <div v-if="terms.canSeeCost">
@@ -457,7 +464,9 @@ const submitEdit = (row: Row) => {
                             :message="edit.errors.minimum_order_packs"
                         />
                     </label>
-                    <div class="grid gap-1">
+                    <div
+                        class="flex flex-wrap items-center gap-x-6 sm:col-span-2"
+                    >
                         <label class="flex min-h-11 items-center gap-2 text-sm"
                             ><input
                                 v-model="edit.is_preferred"
@@ -469,6 +478,10 @@ const submitEdit = (row: Row) => {
                             ><input
                                 v-model="edit.is_active"
                                 type="checkbox"
+                                @change="
+                                    edit.is_preferred =
+                                        edit.is_active && edit.is_preferred
+                                "
                                 class="size-5"
                             />Active</label
                         >
@@ -480,12 +493,16 @@ const submitEdit = (row: Row) => {
                         />
                     </div>
                     <div class="flex flex-wrap gap-2 sm:col-span-2">
-                        <Button type="submit" :disabled="edit.processing"
+                        <Button
+                            type="submit"
+                            class="h-11 lg:h-9"
+                            :disabled="edit.processing"
                             >Save changes</Button
                         >
                         <Button
                             type="button"
                             variant="outline"
+                            class="h-11 lg:h-9"
                             @click="editing = null"
                             >Cancel</Button
                         >

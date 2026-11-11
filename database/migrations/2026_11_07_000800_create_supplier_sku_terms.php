@@ -54,6 +54,7 @@ return new class extends Migration
             $t->timestamp('created_at');
             $t->foreign('inventory_supplier_sku_term_id', 'supplier_sku_term_revisions_term_fk')
                 ->references('id')->on('inventory_supplier_sku_terms')->restrictOnDelete();
+            $t->foreign('organisation_id', 'supplier_sku_term_revisions_org_fk')->references('id')->on('organisations')->restrictOnDelete();
             $t->foreign('actor_user_id', 'supplier_sku_term_revisions_actor_fk')->references('id')->on('users')->restrictOnDelete();
             $t->unique(['inventory_supplier_sku_term_id', 'revision'], 'supplier_sku_term_revisions_unique');
         });
@@ -69,6 +70,8 @@ return new class extends Migration
             $t->timestamp('created_at');
             $t->foreign('inventory_supplier_sku_term_id', 'supplier_sku_term_commands_term_fk')
                 ->references('id')->on('inventory_supplier_sku_terms')->restrictOnDelete();
+            $t->foreign('organisation_id', 'supplier_sku_term_commands_org_fk')->references('id')->on('organisations')->restrictOnDelete();
+            $t->foreign('branch_id', 'supplier_sku_term_commands_branch_fk')->references('id')->on('branches')->restrictOnDelete();
             $t->unique(['organisation_id', 'idempotency_key'], 'supplier_sku_term_commands_key_unique');
         });
 
@@ -76,7 +79,7 @@ return new class extends Migration
             return;
         }
 
-        $shape = 'length(trim(pack_description)) > 0 AND pack_quantity > 0 AND lead_time_days <= 365 AND (minimum_order_packs IS NULL OR minimum_order_packs >= 1)';
+        $shape = 'length(trim(pack_description)) > 0 AND pack_quantity > 0 AND (pack_price_sen IS NULL OR pack_price_sen >= 0) AND lead_time_days BETWEEN 0 AND 365 AND (minimum_order_packs IS NULL OR minimum_order_packs >= 1)';
         DB::statement("ALTER TABLE inventory_supplier_sku_terms ADD CONSTRAINT supplier_sku_terms_shape CHECK ({$shape} AND lock_version >= 1 AND (is_active OR NOT is_preferred))");
         DB::statement("ALTER TABLE inventory_supplier_sku_term_revisions ADD CONSTRAINT supplier_sku_term_revisions_shape CHECK ({$shape} AND revision >= 1 AND action IN ('created','updated','deactivated','activated') AND (is_active OR NOT is_preferred))");
         // At most one preferred supplier per SKU.

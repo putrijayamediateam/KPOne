@@ -31,3 +31,27 @@ export const formatRinggit = (sen: number | null | undefined): string =>
 /** "100" for "100.000" and "2.5" for "2.500": an exact stock quantity without trailing zeros. */
 export const trimQuantity = (value: string): string =>
     value.includes('.') ? value.replace(/0+$/, '').replace(/\.$/, '') : value;
+
+/**
+ * "Box of 100" when the pack name already gives the count; otherwise "Strip (10 tablets)". A unit of one or two
+ * letters (ml, g) or one already ending in "s" is not made plural.
+ */
+export const packLabel = (
+    description: string,
+    quantity: string,
+    unit: string,
+): string => {
+    const count = trimQuantity(quantity);
+
+    if (
+        new RegExp(`(^|\\D)${count.replace('.', '\\.')}(\\D|$)`).test(
+            description,
+        )
+    ) {
+        return description;
+    }
+
+    const plural = count !== '1' && unit.length > 2 && !/s$/i.test(unit);
+
+    return `${description} (${count} ${plural ? `${unit}s` : unit})`;
+};

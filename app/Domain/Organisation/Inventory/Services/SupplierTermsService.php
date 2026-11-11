@@ -33,14 +33,16 @@ final class SupplierTermsService
     /** @param array<string, mixed> $input */
     public function create(User $actor, array $input): InventorySupplierSkuTerm
     {
-        $data = $this->validate($actor, $input, [
+        $cost = $this->canSeeCost($actor);
+        $data = $this->validate($cost, $input, [
             'supplier_public_id' => ['required', 'uuid'],
             'sku_public_id' => ['required', 'uuid'],
         ]);
-        $hash = $this->hash('create', $data);
+        $hash = $this->hash($actor, 'create', $data);
 
-        return DB::transaction(function () use ($actor, $data, $hash): InventorySupplierSkuTerm {
+        return DB::transaction(function () use ($actor, $data, $hash, $cost): InventorySupplierSkuTerm {
             [$actor, $branchId] = $this->context($actor, $data['expected_branch_id']);
+            $cost = $this->confirmCost($actor, $cost);
             if ($replayed = $this->replay($actor, $branchId, $data['idempotency_key'], 'create', $hash)) {
                 return $replayed;
             }
@@ -65,7 +67,7 @@ final class SupplierTermsService
             $term->forceFill([
                 'public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id,
                 'inventory_supplier_id' => $supplier->id, 'inventory_sku_id' => $sku->id,
-                ...$this->terms($data, null, $this->canSeeCost($actor)), 'is_active' => true, 'lock_version' => 1,
+                ...$this->terms($data, null, $cost), 'is_active' => true, 'lock_version' => 1,
             ])->save();
             $this->revision($actor, $term, 'created');
             $this->remember($actor, $branchId, $term, $data['idempotency_key'], 'create', $hash);
@@ -78,14 +80,16 @@ final class SupplierTermsService
     /** @param array<string, mixed> $input */
     public function update(User $actor, string $publicId, array $input): InventorySupplierSkuTerm
     {
-        $data = $this->validate($actor, $input, [
+        $cost = $this->canSeeCost($actor);
+        $data = $this->validate($cost, $input, [
             'lock_version' => ['required', 'integer', 'min:1'],
             'is_active' => ['required', 'boolean'],
         ]);
-        $hash = $this->hash('update:'.$publicId, $data);
+        $hash = $this->hash($actor, 'update:'.$publicId, $data);
 
-        return DB::transaction(function () use ($actor, $publicId, $data, $hash): InventorySupplierSkuTerm {
+        return DB::transaction(function () use ($actor, $publicId, $data, $hash, $cost): InventorySupplierSkuTerm {
             [$actor, $branchId] = $this->context($actor, $data['expected_branch_id']);
+            $cost = $this->confirmCost($actor, $cost);
             if ($replayed = $this->replay($actor, $branchId, $data['idempotency_key'], 'update', $hash)) {
                 return $replayed;
             }
@@ -98,13 +102,20 @@ final class SupplierTermsService
             if ($data['is_preferred'] && ! $active) {
                 throw ValidationException::withMessages(['is_preferred' => 'An inactive row cannot be the preferred supplier.']);
             }
+            if ($active && ! $term->is_active) {
+                $this->assertActiveReferences($term);
+            }
+            $before = $term->only(['pack_description', 'pack_quantity', 'pack_price_sen', 'lead_time_days', 'minimum_order_packs', 'is_preferred', 'is_active']);
+            $after = [...$this->terms($data, $term, $cost), 'is_active' => $active];
+            $changed = array_keys(array_filter($after, fn ($value, $key) => (string) $value !== (string) $before[$key], ARRAY_FILTER_USE_BOTH));
+            if ($changed === []) {
+                // Nothing to save: no new version, history row or audit entry.
+                return $term;
+            }
             if ($data['is_preferred'] && ! $term->is_preferred) {
                 $this->clearPreferred($actor, $term->inventory_sku_id, $term->id);
             }
-            $before = $term->only(['pack_description', 'pack_quantity', 'pack_price_sen', 'lead_time_days', 'minimum_order_packs', 'is_preferred', 'is_active']);
-            $term->forceFill([...$this->terms($data, $term, $this->canSeeCost($actor)), 'is_active' => $active, 'lock_version' => $term->lock_version + 1])->save();
-            $after = $term->only(array_keys($before));
-            $changed = array_keys(array_filter($after, fn ($value, $key) => (string) $value !== (string) $before[$key], ARRAY_FILTER_USE_BOTH));
+            $term->forceFill([...$after, 'lock_version' => $term->lock_version + 1])->save();
             $action = $before['is_active'] && ! $active ? 'deactivated' : (! $before['is_active'] && $active ? 'activated' : 'updated');
             $this->revision($actor, $term, $action);
             $this->remember($actor, $branchId, $term, $data['idempotency_key'], 'update', $hash);
@@ -177,11 +188,9 @@ final class SupplierTermsService
      * @param  array<string, mixed>  $extra
      * @return array<string, mixed>
      */
-    private function validate(User $actor, array $input, array $extra): array
+    private function validate(bool $cost, array $input, array $extra): array
     {
-        $cost = $this->canSeeCost($actor);
-
-        return Validator::make($input, [
+        $data = Validator::make($input, [
             'expected_branch_id' => ['required', 'integer', 'min:1'],
             'idempotency_key' => ['required', 'uuid'],
             'pack_description' => ['required', 'string', 'max:60', 'regex:/\S/'],
@@ -196,6 +205,14 @@ final class SupplierTermsService
             'pack_price_sen.prohibited' => 'Only a Director or Finance Officer may set a supplier price.',
             'pack_description.regex' => 'Describe the pack, for example "Box of 100".',
         ])->validate();
+        try {
+            StockUnitQuantity::scaled($data['pack_quantity']);
+        } catch (ValidationException $e) {
+            // StockUnitQuantity files its message under "quantity"; show it beside the pack field.
+            throw ValidationException::withMessages(['pack_quantity' => collect($e->errors())->flatten()->first() ?? 'Enter the stock units in one pack.']);
+        }
+
+        return $data;
     }
 
     /**
@@ -210,7 +227,8 @@ final class SupplierTermsService
             'pack_description' => trim((string) $data['pack_description']),
             'pack_quantity' => $packQuantity,
             // Without the cost permission the price is neither shown nor changed.
-            'pack_price_sen' => $cost ? ($data['pack_price_sen'] ?? null) : $existing?->pack_price_sen,
+            // Only an explicit value (or an explicit null) from a cost holder changes the price.
+            'pack_price_sen' => $cost && array_key_exists('pack_price_sen', $data) ? $data['pack_price_sen'] : $existing?->pack_price_sen,
             'lead_time_days' => (int) $data['lead_time_days'],
             'minimum_order_packs' => isset($data['minimum_order_packs']) ? (int) $data['minimum_order_packs'] : null,
             'is_preferred' => (bool) $data['is_preferred'],
@@ -251,12 +269,35 @@ final class SupplierTermsService
     }
 
     /** @param array<string, mixed> $data */
-    private function hash(string $operation, array $data): string
+    private function hash(User $actor, string $operation, array $data): string
     {
         unset($data['idempotency_key']);
         ksort($data);
 
-        return hash('sha256', json_encode([$operation, $data], JSON_THROW_ON_ERROR));
+        return hash('sha256', json_encode([$operation, $actor->id, $data], JSON_THROW_ON_ERROR));
+    }
+
+    /** The cost permission is checked on the request and again on the locked actor; both must agree. */
+    private function confirmCost(User $locked, bool $requested): bool
+    {
+        $now = $this->canSeeCost($locked);
+        if ($requested && ! $now) {
+            throw ValidationException::withMessages(['pack_price_sen' => 'Only a Director or Finance Officer may set a supplier price.']);
+        }
+
+        return $requested && $now;
+    }
+
+    private function assertActiveReferences(InventorySupplierSkuTerm $term): void
+    {
+        $supplier = InventorySupplier::query()->whereKey($term->inventory_supplier_id)->where('organisation_id', $term->organisation_id)->lockForUpdate()->first();
+        $sku = InventorySku::query()->whereKey($term->inventory_sku_id)->where('organisation_id', $term->organisation_id)->lockForUpdate()->first();
+        if (! $supplier?->is_active) {
+            throw ValidationException::withMessages(['is_active' => 'Activate the supplier before this row.']);
+        }
+        if (! $sku?->is_active) {
+            throw ValidationException::withMessages(['is_active' => 'Activate the SKU before this row.']);
+        }
     }
 
     /** @return array{0: User, 1: int} */

@@ -123,6 +123,41 @@ final class SupplierTermsTest extends VisitTestCase
         $this->assertThrows(fn () => InventorySupplierSkuTerm::query()->findOrFail($first->id)->delete(), \LogicException::class);
     }
 
+    public function test_review_fixes_bad_pack_size_kept_price_and_no_empty_saves(): void
+    {
+        [$f, $actor] = $this->setUpTerms();
+        $finance = $actor('finance_officer');
+        $service = app(SupplierTermsService::class);
+        foreach (['0', '1.2345', 'abc'] as $bad) {
+            try {
+                $service->create($finance, $this->input($f, ['pack_quantity' => $bad]));
+                $this->fail("Pack quantity {$bad} was accepted");
+            } catch (ValidationException $e) {
+                $this->assertArrayHasKey('pack_quantity', $e->errors(), $bad);
+            }
+        }
+        $term = $service->create($finance, $this->input($f));
+
+        // A cost holder who leaves the price out keeps it; an explicit null clears it.
+        $input = $this->input($f, ['lead_time_days' => 9]);
+        unset($input['pack_price_sen']);
+        $service->update($finance, $term->public_id, [...$input, 'lock_version' => 1, 'is_active' => true]);
+        $this->assertSame([1234, 9, 2], [$term->refresh()->pack_price_sen, $term->lead_time_days, $term->lock_version]);
+
+        // Saving the same values writes no version, history or audit.
+        $audits = DB::table('audit_logs')->count();
+        $service->update($finance, $term->public_id, [...$input, 'idempotency_key' => (string) Str::uuid(), 'lock_version' => 2, 'is_active' => true]);
+        $this->assertSame([2, 2, $audits], [$term->refresh()->lock_version, DB::table('inventory_supplier_sku_term_revisions')->where('inventory_supplier_sku_term_id', $term->id)->count(), DB::table('audit_logs')->count()]);
+
+        $service->update($finance, $term->public_id, [...$this->input($f, ['pack_price_sen' => null, 'lead_time_days' => 9]), 'lock_version' => 2, 'is_active' => true]);
+        $this->assertNull($term->refresh()->pack_price_sen);
+
+        // A row cannot come back while its supplier is inactive.
+        $service->update($finance, $term->public_id, [...$this->input($f, ['is_preferred' => false, 'lead_time_days' => 9, 'pack_price_sen' => null]), 'lock_version' => 3, 'is_active' => false]);
+        DB::table('inventory_suppliers')->where('id', $f['supplier']->id)->update(['is_active' => false, 'lock_version' => DB::raw('lock_version + 1')]);
+        $this->assertThrows(fn () => $service->update($finance, $term->public_id, [...$this->input($f, ['is_preferred' => false, 'lead_time_days' => 9, 'pack_price_sen' => null]), 'lock_version' => 4, 'is_active' => true]), ValidationException::class);
+    }
+
     public function test_the_migration_replays_and_rolls_back(): void
     {
         $migration = require database_path('migrations/2026_11_07_000800_create_supplier_sku_terms.php');
