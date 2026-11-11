@@ -1,24 +1,32 @@
 <?php
 
 use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 /**
  * HR-17c (owner, 2026-11-11, relayed by B.E.R.N.I.S.S): an interview invitation the candidate leaves unanswered is
  * auto-rejected after 3 working days, as New and Phone screening already are (HR-17b). The application guard gains one
  * step, Scheduling to Auto-rejected, and only while the candidate has no picks in the current round. Everything else in
  * the guard is as HR-17e left it. The HR reminder at Scheduling gets its own template, so the messages shape gains it.
+ * The pick-times emails keep the last day to choose that they were sent with (Daniel), so the text shown later is the
+ * text that was sent; only those three templates carry it.
  */
 return new class extends Migration
 {
     public function up(): void
     {
+        Schema::table('hr_job_application_messages', function (Blueprint $t): void {
+            $t->date('choose_by')->nullable(); // branch-local last day to choose interview times
+        });
         // The HR reminder at Scheduling has its own wording (Suresh, M1); like the other reminder it goes to the mailbox.
         DB::statement('ALTER TABLE hr_job_application_messages DROP CONSTRAINT hr_job_app_msgs_shape');
         DB::statement("ALTER TABLE hr_job_application_messages ADD CONSTRAINT hr_job_app_msgs_shape CHECK (
             template IN ('received', 'screening_passed', 'not_taken_forward', 'auto_rejected', 'withdrawn', 'passed', 'failed', 'auto_reject_reminder',
                 'interview_confirmed', 'pick_again', 'interview_cancelled', 'pool_invited', 'pick_reminder')
             AND recipient IN ('candidate', 'mailbox') AND ((template IN ('auto_reject_reminder', 'pick_reminder')) = (recipient = 'mailbox'))
+            AND (choose_by IS NULL OR template IN ('screening_passed', 'pick_again', 'interview_cancelled'))
             AND status IN ('sending', 'sent', 'failed', 'off')
             AND stage IN ('new', 'phone_screening', 'scheduling', 'interview', 'passed', 'failed', 'not_taken_forward', 'auto_rejected', 'withdrawn'))");
         DB::unprepared(<<<'SQL'

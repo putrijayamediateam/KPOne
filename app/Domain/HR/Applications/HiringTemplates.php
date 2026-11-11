@@ -15,6 +15,11 @@ final class HiringTemplates
 {
     public const CLINIC = 'Klinik Putrijaya';
 
+    /** The pick-times deadline sentences, the same words as the candidate's page (Daniel, #484). */
+    public const DEADLINE_EN = 'Choose by the end of {deadline}. After that, the application closes.';
+
+    public const DEADLINE_MS = 'Pilih hingga akhir {tarikh}. Selepas itu, permohonan ini ditutup.';
+
     /** @var array<string, array{label:string, subject:string, body:string, candidate_label?:string}> */
     public const TEMPLATES = [
         'received' => [
@@ -27,8 +32,8 @@ final class HiringTemplates
         'screening_passed' => [
             'label' => 'Invited to an interview',
             'subject' => 'Interview for {position} / Temu duga untuk {position}',
-            'body' => "Thank you for speaking with us. We would like to invite you to an interview for {position}. Please choose three times that suit you on your private page. Please choose within {days} working days; after that the application closes.\n\n"
-                .'Terima kasih kerana bercakap dengan kami. Kami ingin menjemput anda ke temu duga untuk jawatan {position}. Sila pilih tiga masa yang sesuai di halaman peribadi anda. Sila pilih dalam masa {days} hari bekerja; selepas itu permohonan ini ditutup.',
+            'body' => "Thank you for speaking with us. We would like to invite you to an interview for {position}. Please choose three times that suit you on your private page. Choose by the end of {deadline}. After that, the application closes.\n\n"
+                .'Terima kasih kerana bercakap dengan kami. Kami ingin menjemput anda ke temu duga untuk jawatan {position}. Sila pilih tiga masa yang sesuai di halaman peribadi anda. Pilih hingga akhir {tarikh}. Selepas itu, permohonan ini ditutup.',
         ],
         'not_taken_forward' => [
             'label' => 'Not taken forward',
@@ -71,14 +76,14 @@ final class HiringTemplates
         'pick_again' => [
             'label' => 'Asked for new times',
             'subject' => 'Please choose new interview times / Sila pilih masa temu duga yang baharu',
-            'body' => "The times you chose for {position} do not suit the clinic. Please choose three new times on your private page. Please choose within {days} working days; after that the application closes.\n\n"
-                .'Masa yang anda pilih untuk jawatan {position} tidak sesuai dengan klinik. Sila pilih tiga masa baharu di halaman peribadi anda. Sila pilih dalam masa {days} hari bekerja; selepas itu permohonan ini ditutup.',
+            'body' => "The times you chose for {position} do not suit the clinic. Please choose three new times on your private page. Choose by the end of {deadline}. After that, the application closes.\n\n"
+                .'Masa yang anda pilih untuk jawatan {position} tidak sesuai dengan klinik. Sila pilih tiga masa baharu di halaman peribadi anda. Pilih hingga akhir {tarikh}. Selepas itu, permohonan ini ditutup.',
         ],
         'interview_cancelled' => [
             'label' => 'Interview cancelled',
             'subject' => 'Your interview on {date} was cancelled / Temu duga anda pada {date} dibatalkan',
-            'body' => "Your interview for {position} on {date} at {time} has been cancelled. Please choose three new times on your private page. Please choose within {days} working days; after that the application closes.\n\n"
-                .'Temu duga anda untuk jawatan {position} pada {date} jam {time} telah dibatalkan. Sila pilih tiga masa baharu di halaman peribadi anda. Sila pilih dalam masa {days} hari bekerja; selepas itu permohonan ini ditutup.',
+            'body' => "Your interview for {position} on {date} at {time} has been cancelled. Please choose three new times on your private page. Choose by the end of {deadline}. After that, the application closes.\n\n"
+                .'Temu duga anda untuk jawatan {position} pada {date} jam {time} telah dibatalkan. Sila pilih tiga masa baharu di halaman peribadi anda. Pilih hingga akhir {tarikh}. Selepas itu, permohonan ini ditutup.',
         ],
         'pool_invited' => [
             'label' => 'Invited from the talent pool',
@@ -118,7 +123,9 @@ final class HiringTemplates
         'date' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/', // Tue 17 Nov 2026
         'time' => '/\A\d{1,2}:00 (AM|PM)\z/',
         'branch' => '/\A[^\r\n<>{}]{2,60}\z/u',
-        'days' => '/\A[1-9]\d?\z/', // filled by render() from the auto-reject setting, never by a caller
+        // The last day to choose interview times, as on the candidate's page (Daniel): English and Malay weekday, same date.
+        'deadline' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/',
+        'tarikh' => '/\A(Isnin|Selasa|Rabu|Khamis|Jumaat|Sabtu|Ahad) \d{1,2} [A-Z][a-z]{2} \d{4}\z/',
     ];
 
     public static function label(string $template): string
@@ -141,13 +148,15 @@ final class HiringTemplates
     public static function render(string $template, array $params): array
     {
         $fixed = self::TEMPLATES[$template] ?? throw new InvalidArgumentException('Unknown hiring template.');
-        $params = [
-            ...(str_contains($fixed['body'], '{clinic}') ? ['clinic' => self::CLINIC] : []),
-            // The pick deadline in the email comes from the same setting the auto-reject uses, so they cannot disagree.
-            ...(str_contains($fixed['body'], '{days}') ? ['days' => (string) (int) config('hr-applications.auto_reject_working_days', 3)] : []),
-            ...$params,
-        ];
-        $needed = self::placeholders($template);
+        $params = [...(str_contains($fixed['body'], '{clinic}') ? ['clinic' => self::CLINIC] : []), ...$params];
+        // With no deadline (the branch has no working days set, so nothing will close the application), the deadline
+        // sentences are left out rather than promising a date.
+        if (str_contains($fixed['body'], '{deadline}') && ! isset($params['deadline'], $params['tarikh'])) {
+            unset($params['deadline'], $params['tarikh']);
+            $fixed['body'] = str_replace([' '.self::DEADLINE_EN, ' '.self::DEADLINE_MS], '', $fixed['body']);
+        }
+        preg_match_all('/\{([a-z]+)\}/', $fixed['subject'].' '.$fixed['body'], $m);
+        $needed = array_values(array_unique($m[1]));
         if (array_diff($needed, array_keys($params)) !== [] || array_diff(array_keys($params), $needed) !== []) {
             throw new InvalidArgumentException('Hiring placeholders do not match the template.');
         }

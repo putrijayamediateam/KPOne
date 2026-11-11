@@ -23,6 +23,9 @@ final class HiringMessenger
     /** The reminders that go to the hiring mailbox, never to the candidate. */
     public const TO_MAILBOX = ['auto_reject_reminder', 'pick_reminder'];
 
+    /** The emails that ask the candidate to choose interview times, each with the last day to choose. */
+    public const PICK_TIMES = ['screening_passed', 'pick_again', 'interview_cancelled'];
+
     /** Set after the first failed send in this instance, so the hourly check does not wait on a mail service that is down (Suresh, HR-17b). */
     private bool $broken = false;
 
@@ -47,7 +50,15 @@ final class HiringMessenger
     public function record(\stdClass $application, string $template, string $stage, ?string $link = null, array $extra = [], int $round = 0): void
     {
         $toMailbox = in_array($template, self::TO_MAILBOX, true);
-        $params = ['position' => self::positionTitle((int) $application->position_id), ...self::interviewParams($template, (int) $application->id, $round), ...$extra];
+        // The pick-times emails carry the same last day as the candidate's page, worked out from the application as it is
+        // now, and kept on the message so the text shown later never changes (Daniel, #484).
+        $chooseBy = null;
+        if (in_array($template, self::PICK_TIMES, true)) {
+            $fresh = DB::table('hr_job_applications')->where('id', $application->id)->first();
+            $chooseBy = $fresh === null ? null : (app(HiringDeadlines::class)->deadlines($fresh, HiringDeadlines::pickRoundStart($fresh))['remind'] ?? null);
+        }
+        $params = ['position' => self::positionTitle((int) $application->position_id), ...self::interviewParams($template, (int) $application->id, $round),
+            ...($chooseBy === null ? [] : HiringDeadlines::chooseByLabels($chooseBy)), ...$extra];
         if ($template === 'received') {
             $params['link'] = $link ?? HiringTemplates::LINK_SHOWN_ONCE;
         }
@@ -65,7 +76,7 @@ final class HiringMessenger
         $now = now()->utc();
         $inserted = DB::table('hr_job_application_messages')->insertOrIgnore(['organisation_id' => $application->organisation_id,
             'application_id' => $application->id, 'template' => $template, 'recipient' => $toMailbox ? 'mailbox' : 'candidate', 'stage' => $stage,
-            'status' => $off ? 'off' : 'sending', 'round' => $round, 'created_at' => $now, 'updated_at' => $now]);
+            'status' => $off ? 'off' : 'sending', 'round' => $round, 'choose_by' => $chooseBy, 'created_at' => $now, 'updated_at' => $now]);
         if ($inserted === 0 || $off) {
             return;
         }
@@ -115,6 +126,9 @@ final class HiringMessenger
             $params += ['reference' => self::reference($publicId)];
         }
         $params += self::interviewParams($template, (int) $row->application_id, (int) ($row->round ?? 0));
+        if (in_array($template, self::PICK_TIMES, true) && ($row->choose_by ?? null) !== null) {
+            $params += HiringDeadlines::chooseByLabels((string) $row->choose_by);
+        }
         try {
             $text = HiringTemplates::render($template, $params);
         } catch (\Throwable) {
