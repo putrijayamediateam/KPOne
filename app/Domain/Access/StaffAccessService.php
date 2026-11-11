@@ -19,14 +19,11 @@ class StaffAccessService
         }
 
         if ($viewer->can('staff.view.branch') && ($branch = $this->branches->activeBranch($viewer))) {
-            // The branch's own calendar day, as BranchAccessService and TransactionalActorAuthority use (BIL-21).
+            // The branch's own calendar day, as BranchAccessService::hasEffectiveAssignment() uses (BIL-21).
             $today = now()->setTimezone($branch->timezone)->toDateString();
 
             return $query->whereHas('staffProfile.branchAssignments', fn ($assignment) => $assignment
-                ->whereDate('valid_from', '<=', $today)
-                ->where(fn ($period) => $period
-                    ->whereNull('valid_until')
-                    ->orWhereDate('valid_until', '>=', $today))
+                ->effectiveAt($today)
                 ->where('branch_id', $branch->id));
         }
 

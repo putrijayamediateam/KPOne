@@ -5,7 +5,6 @@ namespace Tests\Feature\Billing;
 use App\Domain\Access\StaffAccessService;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Services\ExactMoney;
-use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -28,12 +27,15 @@ class StaffNameBranchDateTest extends BillingTestCase
         $this->pay($leaver, $visit, $invoice, '1500');
         $this->pay($starter, $visit, $invoice, '2500');
 
-        // 01:00 on 11 November in Kuala Lumpur is 17:00 on 10 November in UTC.
+        // 01:00 tomorrow in Kuala Lumpur is 17:00 today in UTC: the UTC date is the branch's yesterday. Built from the
+        // real clock, so the test never ages; every assignment below is set explicitly against that branch day.
+        $branchNow = now('Asia/Kuala_Lumpur')->addDay()->setTime(1, 0)->toImmutable();
         $this->assertSame('Asia/Kuala_Lumpur', $this->branch->timezone);
-        $this->travelTo(CarbonImmutable::parse('2026-11-11 01:00', 'Asia/Kuala_Lumpur'));
-        $this->assertSame('2026-11-10', now()->utc()->toDateString());
-        $this->assign($leaver, '2026-10-01', '2026-11-10'); // Last day at the branch: yesterday, branch time.
-        $this->assign($starter, '2026-11-11', null);        // First day at the branch: today, branch time.
+        $this->travelTo($branchNow);
+        $this->assertSame($branchNow->subDay()->toDateString(), now()->utc()->toDateString());
+        $this->assign($ca, '2000-01-01', null);                                              // The viewer: long assigned.
+        $this->assign($leaver, '2000-01-01', $branchNow->subDay()->toDateString());          // Last day: yesterday, branch time.
+        $this->assign($starter, $branchNow->toDateString(), null);                          // First day: today, branch time.
 
         $this->selectBranch($ca); // A CA sees staff of their own branch only.
         $visible = app(StaffAccessService::class)->visibleUsers($ca)->whereIn('id', [$leaver->id, $starter->id])->pluck('name')->all();
@@ -43,7 +45,7 @@ class StaffNameBranchDateTest extends BillingTestCase
             ->where('billing.payments.1.recordedBy', 'Synthetic Starter Today'));
 
         // Later the same branch day (UTC has caught up) gives the same answer.
-        $this->travelTo(CarbonImmutable::parse('2026-11-11 20:00', 'Asia/Kuala_Lumpur'));
+        $this->travelTo($branchNow->setTime(20, 0));
         $this->assertSame(['Synthetic Starter Today'], app(StaffAccessService::class)->visibleUsers($ca)->whereIn('id', [$leaver->id, $starter->id])->pluck('name')->all());
     }
 

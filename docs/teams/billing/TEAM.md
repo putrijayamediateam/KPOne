@@ -114,7 +114,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-14 | The old live invoice and receipt print addresses (PREVIEW pages) redirect to the visit's Billing page at Issued copies with "Print from here so the copy is recorded."; opening an old link prints and records nothing. Same permission and branch checks (owner decision). Tests that read the old page now read the recorded copy (15 checks, each approved by the owner 2026-11-10). No permission, migration or layout change. Design note: `BIL-14-DESIGN.md` | PR #406 |
 | BIL-15 | Cash closing start date per branch: a Director or Finance Officer sets the first day the monthly cash closing (BIL-7) expects daily counts, on the cash closing month page; without one the start stays the first count. Append-only revisions, audited; a start date moved later is announced on the page and never hides counts already made. New permission `payments.cash_closing.start_date.manage.branch` (finance_officer, director; additive migration `2026_11_12_200100`). No change to counts, approvals or amounts | PR #408 |
 | BIL-16 | Correct a receipt recorded in error on a completed visit, in one step: a Finance Officer who did not record it reverses it and records what was really received; only money not received becomes due (owner decisions). Never a refund. Append-only `payment_corrections` evidence (migration `2026_11_12_400100`), no new permission. Design note: `BIL-16-DESIGN.md` | PR #415 |
-| BIL-21 | Staff names by the branch day: a branch-level viewer sees a staff member's name while that person is assigned to the branch on the branch's own calendar day, as branch access already decides it. Between 00:00 and 08:00 Kuala Lumpur time the UTC date used to keep yesterday's leaver named and today's new starter hidden. One shared Access file (`StaffAccessService`), also used by the staff directory, Dispensary returns, patient history and Panel screens; their tests pass unchanged. | PR pending |
+| BIL-21 | Staff names by the branch day: a branch-level viewer sees a staff member's name while that person is assigned to the branch on the branch's own calendar day, as branch access already decides it. Between 00:00 and 08:00 Kuala Lumpur time the UTC date used to keep yesterday's leaver named and today's new starter hidden. One shared Access file (`StaffAccessService`), also used by the staff directory, Dispensary returns, patient history and Panel screens, and by who a branch-level viewer may open in the staff directory (`StaffPolicy`); their tests pass unchanged. | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -272,8 +272,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Receipt "Recorded by" names (BIL-2) are not on the completed-visit Invoice page, only on the Billing page and
   Manage payments. The stock receiving screen still shows "Receiver: staff #ID"; that screen belongs to the
   Inventory team.
-- Staff name visibility (`StaffAccessService`, shared by Billing and other screens) uses the branch's own calendar day
-  since BIL-21, as branch access does; before, between 00:00 and 08:00 Kuala Lumpur time it used the UTC date.
+- Staff name visibility (`StaffAccessService`) uses the branch's own calendar day since BIL-21. Still on the UTC date,
+  outside Billing: the staff directory's branch filter and its assignment state label (`StaffDirectoryService`), and
+  `StaffBranchAssignment::effectiveAt()` called without a date (primary-branch checks). Raised for their owner.
 - The pay-later collection list (BIL-3) is not audited per view, like the Finance / Billing work list and the
   Registration board; it shows patient name and KP number only. Payments are still recorded on each patient's
   Billing page.
