@@ -101,7 +101,11 @@ const ask = async (question: Question) => {
             </div>
             <template v-else-if="answer">
                 <p class="space-ask-sentence">{{ answer.sentence }}</p>
-                <div v-if="answer.rows.length" class="space-ask-table">
+                <div
+                    v-if="answer.rows.length"
+                    class="space-ask-table"
+                    :class="{ 'is-numbered': answer.columns[0] === 'Number' }"
+                >
                     <table>
                         <thead>
                             <tr>

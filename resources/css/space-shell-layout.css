@@ -461,8 +461,8 @@
 }
 @media (max-width: 639px) {
     /* A short name or number never breaks across lines; only the wait may wrap. */
-    .space-shell .space-ask-table td:nth-child(1),
-    .space-shell .space-ask-table td:nth-child(2) {
+    .space-shell .space-ask-table.is-numbered td:nth-child(1),
+    .space-shell .space-ask-table.is-numbered td:nth-child(2) {
         white-space: nowrap;
     }
 }

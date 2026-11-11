@@ -165,7 +165,7 @@ test('DS-3a: short names never wrap in the phone table and Retry shares the row 
     const css = read('resources/css/space-shell-layout.css');
     assert.match(
         css,
-        /\.space-ask-table td:nth-child\(2\) \{\s*white-space: nowrap;/,
+        /\.space-ask-table\.is-numbered td:nth-child\(2\) \{\s*white-space: nowrap;/,
     );
     assert.match(
         css,
