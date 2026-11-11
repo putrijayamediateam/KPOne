@@ -9,11 +9,13 @@ use Illuminate\Support\Facades\Storage;
 /**
  * PDPA 15 (owner, 2026-11-11; the accountant confirms the 7 years before real use): leave records are kept 7 years after
  * their leave year, then deleted. A leave year Y goes once the year is Y + 8 or later by PostgreSQL's clock, the clock
- * its delete guard also uses. For each organisation, in one transaction: the year's decided requests (approved, rejected
- * or cancelled) with their actions, evidence files and file events, the year's decided openings and adjustments, every
- * ledger line and entitlement of the year, and retry records older than 7 years. A request, opening or adjustment that is
- * still pending is never deleted, and neither is one that a ledger line of a later year still points at. Evidence file
- * bytes still on disk are deleted after the commit. Leave types, working days and public holidays are settings and stay.
+ * its delete guard also uses; the UTC year turns about 8 hours after Kuala Lumpur's, so the purge can only run late, never
+ * early. For each organisation, in one transaction: the year's requests (an 8-year-old pending one is abandoned and has no
+ * ledger line, so it goes too; Suresh) with their actions, evidence files and file events, the year's openings and
+ * adjustments, every ledger line and entitlement of the year, and retry records older than 7 years. One that a ledger
+ * line of a later year still points at waits. Evidence file bytes still on disk are deleted after the commit, and the
+ * leave retention wins over a longer evidence retention set on a leave type. Leave types, working days and public
+ * holidays are settings and stay.
  */
 final class LeaveRetentionPurge
 {
@@ -39,13 +41,12 @@ final class LeaveRetentionPurge
                 // delete by its foreign key and roll the whole purge back every day).
                 $kept = fn (string $column) => fn ($q) => $q->from('hr_leave_ledger as l')->whereColumn("l.{$column}", 'x.id')->whereRaw("NOT (l.{$old})");
                 $requests = DB::table('hr_leave_requests as x')->where('x.organisation_id', $organisationId)->whereRaw("x.{$old}")
-                    ->whereIn('x.status', ['approved', 'rejected', 'cancelled'])->whereNotExists($kept('leave_request_id'))
+                    ->whereNotExists($kept('leave_request_id'))
                     ->orderBy('x.id')->lockForUpdate()->pluck('x.id')->map(fn ($id): int => (int) $id)->all();
                 $entries = 0;
                 $paths = [];
                 foreach (['hr_leave_openings' => 'leave_opening_id', 'hr_leave_adjustments' => 'leave_adjustment_id'] as $table => $column) {
-                    $ids = DB::table("{$table} as x")->where('x.organisation_id', $organisationId)->whereRaw("x.{$old}")->whereIn('x.status', ['confirmed', 'rejected'])
-                        ->whereNotExists($kept($column))->orderBy('x.id')->lockForUpdate()->pluck('x.id')->all();
+                    $ids = DB::table("{$table} as x")->where('x.organisation_id', $organisationId)->whereRaw("x.{$old}")->whereNotExists($kept($column))->orderBy('x.id')->lockForUpdate()->pluck('x.id')->all();
                     foreach (array_chunk($ids, 500) as $chunk) {
                         DB::table('hr_leave_ledger')->whereIn($column, $chunk)->delete();
                         $entries += DB::table($table)->whereIn('id', $chunk)->delete();

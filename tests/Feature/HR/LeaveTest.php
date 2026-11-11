@@ -559,7 +559,7 @@ class LeaveTest extends VisitTestCase
             return $request;
         };
         $old = $year($gone);
-        // A request of the old year still waiting for a decision is never deleted.
+        // A request of the old year never decided is abandoned and goes too (Suresh).
         $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => "{$gone}-03-19", 'end_date' => "{$gone}-03-19"])->assertSessionHasNoErrors();
         $pending = LeaveRequest::query()->where('status', 'pending')->sole();
         // Evidence on the old request: the row, its event and the bytes all go.
@@ -572,17 +572,16 @@ class LeaveTest extends VisitTestCase
         $recent = $year($kept);
         $this->travelBack();
 
-        $this->artisan('hr-leave:purge')->expectsOutputToContain('Deleted 1 leave requests, 0 entries, 1 other ledger lines, 1 entitlements and 1 evidence files.')->assertSuccessful();
-        $this->assertSame([$pending->id, $recent->id], LeaveRequest::query()->orderBy('id')->pluck('id')->all());
-        $this->assertSame(0, DB::table('hr_leave_request_actions')->where('leave_request_id', $old->id)->count());
-        $this->assertSame(1, DB::table('hr_leave_request_actions')->where('leave_request_id', $pending->id)->count());
+        $this->artisan('hr-leave:purge')->expectsOutputToContain('Deleted 2 leave requests, 0 entries, 1 other ledger lines, 1 entitlements and 1 evidence files.')->assertSuccessful();
+        $this->assertSame([$recent->id], LeaveRequest::query()->orderBy('id')->pluck('id')->all());
+        $this->assertSame(0, DB::table('hr_leave_request_actions')->whereIn('leave_request_id', [$old->id, $pending->id])->count());
         $this->assertSame([$kept, $kept], DB::table('hr_leave_ledger')->orderBy('id')->pluck('year')->map(fn ($y): int => (int) $y)->all()); // grant and taken
         $this->assertSame([$kept], DB::table('hr_leave_entitlements')->pluck('year')->map(fn ($y): int => (int) $y)->all());
         $this->assertSame(0, DB::table('hr_leave_evidence_files')->count());
         $this->assertSame(0, DB::table('hr_leave_evidence_events')->count());
         $this->assertFalse(Storage::disk(LeaveEvidenceService::DISK)->exists('hr-leave-evidence/synthetic.bin'));
         $this->assertSame(1, LeaveType::query()->count()); // settings stay
-        $this->assertSame([['requests' => 1, 'entries' => 0, 'ledger' => 1, 'entitlements' => 1, 'files' => 1, 'retention_years' => 7]], DB::table('audit_logs')
+        $this->assertSame([['requests' => 2, 'entries' => 0, 'ledger' => 1, 'entitlements' => 1, 'files' => 1, 'retention_years' => 7]], DB::table('audit_logs')
             ->where('event', 'hr.leave.retention_purged')->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
         $this->artisan('hr-leave:purge')->expectsOutputToContain('Deleted 0 leave requests, 0 entries, 0 other ledger lines, 0 entitlements and 0 evidence files.')->assertSuccessful();
         $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
@@ -599,7 +598,7 @@ class LeaveTest extends VisitTestCase
                 $this->assertSame('P0001', $e->errorInfo[0] ?? null);
             }
         };
-        $refused(fn () => DB::table('hr_leave_requests')->where('id', $pending->id)->delete());
+        $refused(fn () => DB::table('hr_leave_requests')->where('id', $recent->id)->delete());
         $refused(function () use ($recent): void {
             DB::statement("SELECT set_config('kpone.hr_leave_purge', 'on', true)");
             DB::table('hr_leave_ledger')->where('leave_request_id', $recent->id)->delete();
@@ -609,7 +608,7 @@ class LeaveTest extends VisitTestCase
             DB::table('hr_leave_entitlements')->delete();
         });
         $refused(fn () => DB::statement('TRUNCATE hr_leave_ledger CASCADE'));
-        $this->assertSame(2, LeaveRequest::query()->count());
+        $this->assertSame(1, LeaveRequest::query()->count());
     }
 
     private function leaveType(User $manager, array $overrides = []): LeaveType
