@@ -20,6 +20,8 @@ export type InventoryDocumentLine = {
     receivedQuantity?: string;
     /** STK-21: ordered less received, exact. */
     outstandingQuantity?: string;
+    /** The item's name, shown before its SKU. */
+    item?: string;
     /** STK-21: frozen when the rest of the order was closed short. */
     notDeliveredQuantity?: string | null;
     requestedQuantity?: string;
@@ -63,6 +65,8 @@ export type InventoryDocument = {
     closeKind?: 'complete' | 'short' | null;
     shortCloseReason?: string | null;
     shortCloseNote?: string | null;
+    closedBy?: string;
+    closedOn?: string;
 };
 
 export type InventoryOperations = {

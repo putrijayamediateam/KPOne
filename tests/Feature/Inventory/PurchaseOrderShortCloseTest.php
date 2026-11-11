@@ -179,6 +179,11 @@ final class PurchaseOrderShortCloseTest extends VisitTestCase
         $this->actingAs($director)->post(route('inventory.purchase-orders.short-close', $f['order']->public_id), $this->cmd($f['order'], ['reason' => 'ordered_elsewhere']))->assertRedirect(route('inventory.index'));
         $row = $orders()->firstWhere('publicId', $f['order']->public_id);
         $this->assertSame(['closed', 'short', 'ordered_elsewhere', null, '8.000'], [$row['status'], $row['closeKind'], $row['shortCloseReason'], $row['shortCloseNote'], $row['lines'][0]['notDeliveredQuantity']]);
+        // Who closed it and when (branch-local date), with the item's name for the line; no user ids reach the page.
+        $this->assertSame($f['director']->name, $row['closedBy']);
+        $this->assertSame(now()->setTimezone($this->branch->timezone)->format('j M Y'), $row['closedOn']);
+        $this->assertSame($f['sku']->item()->value('generic_name'), $row['lines'][0]['item']);
+        $this->assertArrayNotHasKey('closed_by_user_id', $row);
         // The route is only for holders of the approval permission.
         $this->actingAs($this->as($f['receiver']))->post(route('inventory.purchase-orders.short-close', $f['order']->public_id), $this->cmd($f['order'], ['reason' => 'discontinued']))->assertForbidden();
     }

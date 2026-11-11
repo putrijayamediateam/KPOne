@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { router, useRemember } from '@inertiajs/vue3';
 import { Boxes } from '@lucide/vue';
-import { computed, reactive, ref, shallowRef, watchEffect } from 'vue';
+import {
+    computed,
+    nextTick,
+    reactive,
+    ref,
+    shallowRef,
+    watchEffect,
+} from 'vue';
 import type { Ref } from 'vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import ReceivingReviews from '@/components/inventory/ReceivingReviews.vue';
@@ -204,16 +211,13 @@ const shortClose = reactive<{
     reason: string;
     note: string;
 }>({ row: null, reason: '', note: '' });
-const shortCloseReady = computed(
-    () =>
-        shortClose.reason !== '' &&
-        (shortClose.reason !== 'other' || shortClose.note.trim() !== ''),
-);
-const shortCloseError = ref('');
+const shortCloseReasonError = ref('');
+const shortCloseNoteError = ref('');
 const openShortClose = (row: DocumentRow) => {
     if (!busy.value) {
         operationError.value = null;
-        shortCloseError.value = '';
+        shortCloseReasonError.value = '';
+        shortCloseNoteError.value = '';
         Object.assign(shortClose, { row, reason: '', note: '' });
     }
 };
@@ -224,16 +228,28 @@ const submitShortClose = () => {
         return;
     }
 
-    // Pressing Close the rest without a choice says what is missing instead of doing nothing.
-    if (!shortCloseReady.value) {
-        shortCloseError.value = shortClose.reason
-            ? 'Say why in a short note when the reason is Other.'
-            : 'Choose why the rest of this order will not come.';
+    // Pressing Close the rest with something missing says so under that field and moves focus to it.
+    shortCloseReasonError.value = shortClose.reason
+        ? ''
+        : 'Choose why the rest of this order will not come.';
+    shortCloseNoteError.value =
+        shortClose.reason === 'other' && shortClose.note.trim() === ''
+            ? 'Add a note to explain why.'
+            : '';
+
+    if (shortCloseReasonError.value || shortCloseNoteError.value) {
+        void nextTick(() =>
+            document
+                .getElementById(
+                    shortCloseReasonError.value
+                        ? 'short-close-reason'
+                        : 'short-close-note',
+                )
+                ?.focus(),
+        );
 
         return;
     }
-
-    shortCloseError.value = '';
 
     send(
         'post',
@@ -246,10 +262,9 @@ const submitShortClose = () => {
         () => (shortClose.row = null),
     );
 };
-/** "SKU · Ordered 100 unit · Received 60 unit · Outstanding 40 unit" (STK-21). */
+/** "Ordered 100 unit · Received 60 unit · Outstanding 40 unit" (STK-21). */
 const lineProgress = (row: DocumentRow, line: DocumentRow['lines'][number]) => {
     const parts = [
-        line.sku,
         `Ordered ${lineQuantity(line.orderedQuantity, line.stockUnit)}`,
         `Received ${lineQuantity(line.receivedQuantity, line.stockUnit)}`,
     ];
@@ -266,6 +281,19 @@ const lineProgress = (row: DocumentRow, line: DocumentRow['lines'][number]) => {
 
     return parts.join(' · ');
 };
+// Sentence case on the purchase order chip; a short close reads "Closed short".
+const purchaseOrderStatusLabel = (row: DocumentRow) =>
+    row.closeKind === 'short'
+        ? 'Closed short'
+        : ({
+              draft: 'Draft',
+              submitted: 'Submitted',
+              approved: 'Approved',
+              partially_received: 'Partially received',
+              fully_received: 'Fully received',
+              closed: 'Closed',
+              cancelled: 'Cancelled',
+          }[row.status] ?? undefined);
 /** "40 unit" for a quantity in the line's stock unit, without trailing zeros. */
 const lineQuantity = (value: string | null | undefined, unit?: string) =>
     `${trimQuantity(value ?? '0')}${unit ? ` ${unit}` : ''}`;
@@ -875,7 +903,10 @@ const saveReorder = () =>
                 >
                     <div class="flex items-center justify-between gap-2">
                         <span class="font-mono text-sm">{{ row.number }}</span
-                        ><StatusBadge :status="row.status" />
+                        ><StatusBadge
+                            :status="row.status"
+                            :label="purchaseOrderStatusLabel(row)"
+                        />
                     </div>
                     <p class="text-sm">
                         {{ row.supplier }} → {{ row.destination }}
@@ -886,19 +917,29 @@ const saveReorder = () =>
                         class="text-xs text-muted-foreground"
                         data-testid="po-line-progress"
                     >
-                        {{ lineProgress(row, line) }}
+                        <span class="text-foreground">{{
+                            line.item ?? line.sku
+                        }}</span>
+                        <template v-if="line.item"> · {{ line.sku }}</template>
+                        · {{ lineProgress(row, line) }}
                     </p>
-                    <p
+                    <div
                         v-if="row.closeKind === 'short'"
                         class="text-sm"
                         data-testid="po-short-closed"
                     >
-                        Closed short:
-                        {{ shortCloseReasonLabel(row.shortCloseReason)
-                        }}<template v-if="row.shortCloseNote">
-                            · {{ row.shortCloseNote }}</template
-                        >
-                    </p>
+                        <p>
+                            Closed short:
+                            {{ shortCloseReasonLabel(row.shortCloseReason)
+                            }}<template v-if="row.shortCloseNote">
+                                · {{ row.shortCloseNote }}</template
+                            >
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            Closed short by {{ row.closedBy }} on
+                            {{ row.closedOn }}
+                        </p>
+                    </div>
                     <form
                         v-if="
                             row.status === 'draft' &&
@@ -1017,7 +1058,7 @@ const saveReorder = () =>
                             v-if="canPurchase(row, 'short_close')"
                             size="sm"
                             variant="secondary"
-                            class="max-lg:min-h-11"
+                            class="min-h-11 lg:min-h-9"
                             @click="openShortClose(row)"
                             >Close the rest</Button
                         >
@@ -1437,9 +1478,7 @@ const saveReorder = () =>
             description="Nothing more will be received on this order. Stock already received stays as it is, and no money changes."
             confirm-label="Close the rest"
             :processing="busy"
-            :error="
-                shortClose.row ? shortCloseError || (operationError ?? '') : ''
-            "
+            :error="shortClose.row ? (operationError ?? '') : ''"
             @update:open="(open) => !open && (shortClose.row = null)"
             @confirm="submitShortClose"
         >
@@ -1450,7 +1489,12 @@ const saveReorder = () =>
                         v-for="line in shortClose.row?.lines ?? []"
                         :key="line.publicId"
                     >
-                        {{ line.sku }}: not delivered
+                        <span class="font-medium">{{
+                            line.item ?? line.sku
+                        }}</span>
+                        <span v-if="line.item" class="text-muted-foreground">
+                            · {{ line.sku }}</span
+                        >: not delivered
                         {{
                             lineQuantity(
                                 line.outstandingQuantity,
@@ -1461,26 +1505,41 @@ const saveReorder = () =>
                 </ul>
                 <fieldset
                     class="space-y-1"
-                    :aria-invalid="shortCloseError !== '' && !shortClose.reason"
+                    :aria-invalid="shortCloseReasonError !== ''"
+                    :aria-describedby="
+                        shortCloseReasonError
+                            ? 'short-close-reason-error'
+                            : undefined
+                    "
                 >
                     <legend class="mb-1 text-sm font-medium">
                         Why will the rest not come? (required)
                     </legend>
                     <label
-                        v-for="reason in shortCloseReasons"
+                        v-for="(reason, index) in shortCloseReasons"
                         :key="reason.value"
                         class="flex min-h-11 items-center gap-2 text-sm lg:min-h-9"
                     >
                         <input
+                            :id="index === 0 ? 'short-close-reason' : undefined"
                             v-model="shortClose.reason"
                             type="radio"
                             name="short-close-reason"
                             :value="reason.value"
                             required
                             class="size-4"
+                            @change="shortCloseReasonError = ''"
                         />
                         {{ reason.label }}
                     </label>
+                    <p
+                        v-if="shortCloseReasonError"
+                        id="short-close-reason-error"
+                        role="alert"
+                        class="text-sm text-destructive"
+                    >
+                        {{ shortCloseReasonError }}
+                    </p>
                 </fieldset>
                 <label class="grid gap-1 text-sm" for="short-close-note">
                     <span
@@ -1496,24 +1555,32 @@ const saveReorder = () =>
                         name="note"
                         maxlength="200"
                         :required="shortClose.reason === 'other'"
-                        :aria-invalid="
-                            shortCloseError !== '' &&
-                            shortClose.reason === 'other' &&
-                            !shortClose.note.trim()
+                        :aria-invalid="shortCloseNoteError !== ''"
+                        :aria-describedby="
+                            shortCloseNoteError
+                                ? 'short-close-note-error short-close-note-help'
+                                : 'short-close-note-help'
                         "
-                        aria-describedby="short-close-note-help"
                         class="h-11 lg:h-9"
+                        @input="shortCloseNoteError = ''"
                     />
                     <span
                         id="short-close-note-help"
                         class="text-xs text-muted-foreground"
-                        >Up to 200 characters.<template
-                            v-if="shortClose.reason === 'other'"
-                        >
-                            Say why when the reason is Other.</template
-                        ></span
+                        >Up to 200 characters.</span
+                    >
+                    <span
+                        v-if="shortCloseNoteError"
+                        id="short-close-note-error"
+                        role="alert"
+                        class="text-sm text-destructive"
+                        >{{ shortCloseNoteError }}</span
                     >
                 </label>
+                <p class="text-sm font-medium" data-testid="short-close-final">
+                    This cannot be undone. To get the rest later, raise a new
+                    order.
+                </p>
             </div>
         </OperationalConfirmDialog>
     </section>
