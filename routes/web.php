@@ -317,6 +317,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('fridges/{fridge}/archive', 'archiveFridge')->whereUuid('fridge')->name('clinic-compliance.fridges.archive');
             Route::post('readings/{reading}/error', 'readingError')->whereUuid('reading')->name('clinic-compliance.readings.error');
         });
+        // HR-11c monthly audits and supervisor tasks: the checklist and settings are organisation-wide; audits and tasks are checked at their branch in the service.
+        Route::middleware(['permission:compliance.checklists.manage.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('checklist', 'saveChecklist')->name('clinic-compliance.checklist.save');
+            Route::post('audit-settings', 'saveAuditSettings')->name('clinic-compliance.audit-settings.save');
+        });
+        Route::middleware(['permission:compliance.audits.perform.branch', 'throttle:60,1'])->group(function (): void {
+            Route::post('audits', 'startAudit')->name('clinic-compliance.audits.start');
+            Route::post('audits/{audit}/answers', 'saveAnswers')->whereUuid('audit')->name('clinic-compliance.audits.answers');
+            Route::post('audits/{audit}/submit', 'submitAudit')->whereUuid('audit')->name('clinic-compliance.audits.submit');
+            Route::post('audits/{audit}/items/{item}/photos', 'addAuditPhoto')->whereUuid(['audit', 'item'])->name('clinic-compliance.audits.photos.store');
+            Route::post('audits/{audit}/photos/{photo}/remove', 'removeAuditPhoto')->whereUuid(['audit', 'photo'])->name('clinic-compliance.audits.photos.remove');
+            Route::post('tasks/{task}/done', 'taskDone')->whereUuid('task')->name('clinic-compliance.tasks.done');
+            Route::post('tasks/{task}/verify', 'taskVerify')->whereUuid('task')->name('clinic-compliance.tasks.verify');
+            Route::post('tasks/{task}/cancel', 'taskCancel')->whereUuid('task')->name('clinic-compliance.tasks.cancel');
+            Route::post('tasks/{task}/photos', 'addTaskPhoto')->whereUuid('task')->name('clinic-compliance.tasks.photos.store');
+        });
+        Route::middleware(['permission:compliance.audits.perform.branch,compliance.checklists.manage.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::get('audit-photos/{photo}', 'openAuditPhoto')->whereUuid('photo')->name('clinic-compliance.audit-photos.open');
+            Route::get('task-photos/{photo}', 'openTaskPhoto')->whereUuid('photo')->name('clinic-compliance.task-photos.open');
+        });
         Route::post('readings', 'recordReading')->middleware(['permission:compliance.fridge.record.branch', 'throttle:60,1'])->name('clinic-compliance.readings.store');
         Route::post('readings/{reading}/review', 'reviewReading')->whereUuid('reading')->middleware(['permission:compliance.fridge.review.branch', 'throttle:60,1'])->name('clinic-compliance.readings.review');
     });
