@@ -15,6 +15,7 @@ type Application = {
     stageLabel: string;
     stageLabelMs: string;
     open: boolean;
+    canDelete: boolean;
     submittedOn: string;
     messages: Message[];
     // HR-17c: the slot picker at Scheduling, the confirmed time at Interview.
@@ -39,6 +40,7 @@ type Application = {
 const props = defineProps<{
     clinicName: string;
     application: Application | null;
+    erased?: boolean;
 }>();
 
 const page = usePage();
@@ -61,6 +63,34 @@ const keepIt = async () => {
     withdrawButton.value?.focus();
 };
 const withdrawing = ref(false);
+// Owner decision 2026-11-11: the candidate deletes their application and its details themselves.
+const deleting = ref(false);
+const askingDelete = ref(false);
+const deleteButton = ref<HTMLButtonElement | null>(null);
+const deletePanel = ref<HTMLElement | null>(null);
+const askDelete = async () => {
+    askingDelete.value = true;
+    await nextTick();
+    deletePanel.value?.focus();
+};
+const keepDetails = async () => {
+    askingDelete.value = false;
+    await nextTick();
+    deleteButton.value?.focus();
+};
+const erase = () => {
+    deleting.value = true;
+    router.post(
+        '/careers/status/delete',
+        {},
+        {
+            onFinish: () => {
+                deleting.value = false;
+                askingDelete.value = false;
+            },
+        },
+    );
+};
 
 onMounted(() => {
     const token = window.location.hash.slice(1);
@@ -701,6 +731,90 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             </div>
                         </div>
                     </section>
+                    <section
+                        v-if="application.canDelete"
+                        class="space-y-3 border-t border-zinc-200 pt-5 dark:border-zinc-800"
+                        data-test="status-delete"
+                    >
+                        <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                            You can delete your application and the details you
+                            sent us, including your CV.
+                            <span lang="ms" class="block"
+                                >Anda boleh memadam permohonan anda dan butiran
+                                yang anda hantar, termasuk CV anda.</span
+                            >
+                        </p>
+                        <p
+                            v-if="errors.erase"
+                            role="alert"
+                            class="text-sm text-red-700 dark:text-red-400"
+                        >
+                            {{ errors.erase }}
+                        </p>
+                        <button
+                            v-if="!askingDelete"
+                            ref="deleteButton"
+                            type="button"
+                            class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium hover:bg-zinc-50 focus-visible:ring-2 focus-visible:ring-pink-500 focus-visible:outline-none dark:border-zinc-700 dark:hover:bg-zinc-800"
+                            data-test="status-delete-ask"
+                            @click="askDelete"
+                        >
+                            Delete my application / Padam permohonan saya
+                        </button>
+                        <div
+                            v-else
+                            ref="deletePanel"
+                            class="space-y-3 rounded-xl border border-red-200 bg-red-50 p-4 dark:border-red-900/60 dark:bg-red-950/30"
+                            tabindex="-1"
+                            role="group"
+                            aria-labelledby="delete-confirm-title"
+                            data-test="status-delete-confirm"
+                            @keydown.esc="keepDetails"
+                        >
+                            <p
+                                id="delete-confirm-title"
+                                class="text-sm font-medium"
+                            >
+                                Delete your application?
+                                {{
+                                    application.open
+                                        ? 'It is withdrawn first. '
+                                        : ''
+                                }}Your details and CV are removed, this link
+                                stops working, and this cannot be undone.
+                            </p>
+                            <p
+                                lang="ms"
+                                class="text-sm text-zinc-700 dark:text-zinc-300"
+                            >
+                                Padam permohonan anda?
+                                {{
+                                    application.open
+                                        ? 'Ia ditarik balik dahulu. '
+                                        : ''
+                                }}Butiran dan CV anda dibuang, pautan ini tidak
+                                lagi berfungsi, dan ini tidak boleh dibatalkan.
+                            </p>
+                            <div class="flex flex-wrap gap-3">
+                                <button
+                                    type="button"
+                                    class="inline-flex min-h-11 items-center rounded-lg bg-red-700 px-4 text-sm font-medium text-white hover:bg-red-800 focus-visible:ring-2 focus-visible:ring-red-500 focus-visible:ring-offset-2 focus-visible:outline-none disabled:opacity-60"
+                                    :disabled="deleting"
+                                    data-test="status-delete-yes"
+                                    @click="erase"
+                                >
+                                    Delete / Padam
+                                </button>
+                                <button
+                                    type="button"
+                                    class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
+                                    @click="keepDetails"
+                                >
+                                    Keep it / Kekalkan
+                                </button>
+                            </div>
+                        </div>
+                    </section>
                 </template>
 
                 <template v-else>
@@ -718,6 +832,17 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         class="text-sm text-zinc-600 dark:text-zinc-400"
                     >
                         Opening your application… / Membuka permohonan anda…
+                    </p>
+                    <p
+                        v-else-if="erased"
+                        role="status"
+                        class="text-sm font-medium"
+                        data-test="status-erased"
+                    >
+                        Your application and its details have been deleted.
+                        <span lang="ms" class="block font-normal"
+                            >Permohonan anda dan butirannya telah dipadam.</span
+                        >
                     </p>
                     <template v-else>
                         <p

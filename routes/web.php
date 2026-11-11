@@ -155,6 +155,9 @@ Route::post('careers/status/leave-pool', [JobApplicationController::class, 'leav
 Route::post('careers/status/withdraw', [JobApplicationController::class, 'withdraw'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.withdraw');
+Route::post('careers/status/delete', [JobApplicationController::class, 'erase'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.status.delete');
 
 Route::get('check-in', PublicCheckInController::class)
     ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store:no-referrer'])
