@@ -24,6 +24,8 @@ const props = defineProps<{
         shown: Totals;
         currentPage: number;
         lastPage: number;
+        /** BIL-17: money due after a receipt correction, by visit number; it is paid before pay-later. */
+        dueNow?: Record<string, number>;
         data: Array<{
             patientName: string;
             patientNumber: string;
@@ -72,7 +74,8 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                     {{ myr(collections.all.totalSen) }}
                 </p>
                 <p class="text-xs text-muted-foreground">
-                    {{ collections.all.count }} patient bill(s)
+                    {{ collections.all.count }} patient
+                    {{ collections.all.count === 1 ? 'bill' : 'bills' }}
                 </p>
             </div>
             <div class="rounded-xl border bg-card p-4">
@@ -83,7 +86,8 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                     {{ myr(collections.all.overdueSen) }}
                 </p>
                 <p class="text-xs text-muted-foreground">
-                    {{ collections.all.overdueCount }} patient bill(s)
+                    {{ collections.all.overdueCount }} patient
+                    {{ collections.all.overdueCount === 1 ? 'bill' : 'bills' }}
                 </p>
             </div>
         </section>
@@ -177,6 +181,17 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         class="text-right font-semibold whitespace-nowrap tabular-nums"
                     >
                         {{ myr(row.remainingSen) }}
+                        <span
+                            v-if="
+                                (collections.dueNow?.[row.visitNumber] ?? 0) > 0
+                            "
+                            class="block text-xs font-normal text-muted-foreground"
+                            data-testid="pay-later-due-now"
+                            >{{
+                                myr(collections.dueNow?.[row.visitNumber] ?? 0)
+                            }}
+                            is also due now. A payment pays that first.</span
+                        >
                     </td>
                     <td class="text-right">
                         <ActionLink

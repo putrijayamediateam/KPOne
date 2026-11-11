@@ -2,6 +2,7 @@
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
+import { formatDateTime } from '@/lib/presentation';
 import { profileFields, weekdays } from '@/types/website';
 import type { Language, Profile, Revision } from '@/types/website';
 import DraftPreview from './DraftPreview.vue';
@@ -351,7 +352,7 @@ const inputClass =
                                             ? ' · unreviewed seed'
                                             : ''
                                     }}
-                                    · {{ revision.createdAt }} UTC
+                                    · {{ formatDateTime(revision.createdAt) }}
                                 </button>
                             </li>
                         </ul>

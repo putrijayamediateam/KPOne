@@ -9,6 +9,7 @@ import TransferDifferences from '@/components/inventory/TransferDifferences.vue'
 import TransferReceiptForm from '@/components/inventory/TransferReceiptForm.vue';
 import VerifiedReceivingForm from '@/components/inventory/VerifiedReceivingForm.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { StatusBadge } from '@/components/ui/status';
@@ -16,6 +17,7 @@ import {
     purchaseOrderActionAllowed,
     stockRequestActionAllowed,
 } from '@/lib/inventory-operation-transitions';
+import { formatDate } from '@/lib/presentation';
 import type { TransferReceiptLinePayload } from '@/lib/transfer-receipt';
 import type {
     InventoryDocument as DocumentRow,
@@ -290,7 +292,7 @@ const batchOptions = (sku?: string) =>
         .filter((item) => !sku || item.skuPublicId === sku)
         .map((item) => ({
             value: item.publicId,
-            label: `${item.batchNumber} · ${item.expiryDate}`,
+            label: `${item.batchNumber} · ${formatDate(item.expiryDate)}`,
         }));
 
 type RequestPayload = Parameters<typeof router.post>[1];
@@ -915,10 +917,10 @@ const saveReorder = () =>
                                 :aria-label="`${line.sku} received batch number`"
                                 placeholder="Batch number"
                             />
-                            <Input
+                            <DateField
                                 v-model="receipt[line.publicId].expiryDate"
                                 :aria-label="`${line.sku} received batch expiry`"
-                                type="date"
+                                :echo="false"
                             />
                             <Input
                                 v-model="receipt[line.publicId].quantity"

@@ -114,6 +114,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-14 | The old live invoice and receipt print addresses (PREVIEW pages) redirect to the visit's Billing page at Issued copies with "Print from here so the copy is recorded."; opening an old link prints and records nothing. Same permission and branch checks (owner decision). Tests that read the old page now read the recorded copy (15 checks, each approved by the owner 2026-11-10). No permission, migration or layout change. Design note: `BIL-14-DESIGN.md` | PR #406 |
 | BIL-15 | Cash closing start date per branch: a Director or Finance Officer sets the first day the monthly cash closing (BIL-7) expects daily counts, on the cash closing month page; without one the start stays the first count. Append-only revisions, audited; a start date moved later is announced on the page and never hides counts already made. New permission `payments.cash_closing.start_date.manage.branch` (finance_officer, director; additive migration `2026_11_12_200100`). No change to counts, approvals or amounts | PR #408 |
 | BIL-16 | Correct a receipt recorded in error on a completed visit, in one step: a Finance Officer who did not record it reverses it and records what was really received; only money not received becomes due (owner decisions). Never a refund. Append-only `payment_corrections` evidence (migration `2026_11_12_400100`), no new permission. Design note: `BIL-16-DESIGN.md` | PR #415 |
+| BIL-17 | Billing page display fixes: a fully paid pay-later reads "Paid in full · nothing left to collect"; voided invoices stay visible (number, total, who and when, receipts; never the reason); the "Use amount due" shortcut also shows on a completed visit with money due; the pay-later list notes money due now (paid first). Display only. Design note: `BIL-17-DESIGN.md` | PR #431 |
 | BIL-21 | Staff names by the branch day: a branch-level viewer sees a staff member's name while that person is assigned to the branch on the branch's own calendar day, as branch access already decides it. Between 00:00 and 08:00 Kuala Lumpur time the UTC date used to keep yesterday's leaver named and today's new starter hidden. One shared Access file (`StaffAccessService`), also used by the staff directory, Dispensary returns, patient history and Panel screens, and by who a branch-level viewer may open in the staff directory (`StaffPolicy`); their tests pass unchanged. | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
@@ -256,10 +257,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - **Corrections after completion:** since BIL-16 a receipt recorded in error on a completed visit is corrected on
   its Billing page (reverse and replace in one step). Voiding still needs a Registered visit (pinned by a refusal
   test in BIL-1).
-- After a void, the Billing page shows only the replacement invoice; the voided invoice and its reversed
-  receipt stay in the records but are not listed on that page.
-- A fully settled pay-later card still reads "Pay later · Approved · Due <date>" with no settled label; the
-  financial summary correctly shows RM 0.00 approved pay later.
+- After a void, the Billing page lists the voided invoice and its receipts under "Voided invoices" (BIL-17), without
+  the void reason.
+- A fully settled pay-later card reads "Paid in full · nothing left to collect" (BIL-17).
 - Issued copies (BIL-5): a print from the Billing or Invoice page is recorded and shows the frozen copy. The old
   live print pages still open and print, marked "PREVIEW — not an issued copy"; nothing in KPOne links to them
   any more (BIL-5b). Each version stores its own logo copy (up to
@@ -349,8 +349,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   original shows as reversed on its own day and the replacement on the day of the correction. Before completion
   the existing reversal still applies. Money left due after a correction is collected on the completed visit (paid before any
   pay-later) and shows in outstanding bills, not in the pay-later collection list. On such an invoice the pay-later list
-  shows only the pay-later balance, while a payment pays the due money first (the Billing page shows both). The
-  "Use amount due" shortcut is not offered on a completed visit, so staff type the amount. A refund after completion
+  notes the money due now, which a payment clears first (BIL-17); the "Use amount due" shortcut is offered. A refund after completion
   (BIL-10) can still be recorded on the replacement receipt while money is due; the amount due does not change. A
   correction refused for a changed branch or a reused request key can also show that message at the top of Refunds.
 

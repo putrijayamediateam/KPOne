@@ -26,6 +26,10 @@ type QrIntakeItem = {
     } | null;
 };
 
+function verifyLabel(item: QrIntakeItem): string {
+    return `Verify ${item.summary?.name ?? 'intake'}`;
+}
+
 const props = defineProps<{
     branch: { id: number; code: string; name: string };
     items: QrIntakeItem[];
@@ -157,6 +161,7 @@ const historyItems = computed(() =>
                                 >
                                     <Link
                                         :href="`/registration-review/${item.publicId}`"
+                                        :aria-label="verifyLabel(item)"
                                         >Verify</Link
                                     >
                                 </Button>
@@ -236,6 +241,7 @@ const historyItems = computed(() =>
                             >
                                 <Link
                                     :href="`/registration-review/${item.publicId}`"
+                                    :aria-label="verifyLabel(item)"
                                     >Verify</Link
                                 >
                             </Button>
@@ -313,7 +319,9 @@ const historyItems = computed(() =>
                         size="sm"
                         class="h-8 w-full"
                     >
-                        <Link :href="`/registration-review/${item.publicId}`"
+                        <Link
+                            :href="`/registration-review/${item.publicId}`"
+                            :aria-label="verifyLabel(item)"
                             >Verify</Link
                         >
                     </Button>
@@ -382,7 +390,9 @@ const historyItems = computed(() =>
                         size="sm"
                         class="h-8 w-full"
                     >
-                        <Link :href="`/registration-review/${item.publicId}`"
+                        <Link
+                            :href="`/registration-review/${item.publicId}`"
+                            :aria-label="verifyLabel(item)"
                             >Verify</Link
                         >
                     </Button>

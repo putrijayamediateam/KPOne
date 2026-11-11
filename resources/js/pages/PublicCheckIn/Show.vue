@@ -21,6 +21,7 @@ import {
     watch,
 } from 'vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
+import { DateField } from '@/components/ui/date-field';
 import { knownMinor } from '@/lib/guardian-contact';
 import {
     SESSION_WARNING_SECONDS,
@@ -354,7 +355,10 @@ onBeforeUnmount(() => {
     <Head :title="`Daftar di ${branchName}`"
         ><meta name="referrer" content="no-referrer"
     /></Head>
-    <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
+    <main
+        class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8"
+        lang="ms"
+    >
         <section
             class="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-xl shadow-zinc-950/5 dark:border-zinc-800 dark:bg-zinc-900"
         >
@@ -608,23 +612,27 @@ onBeforeUnmount(() => {
                                 >{{ errorFor('full_name') }}</span
                             ></label
                         >
-                        <div class="grid grid-cols-2 gap-3">
-                            <label class="grid gap-1.5" for="dob"
+                        <div class="grid grid-cols-2 items-start gap-3">
+                            <label
+                                class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                                for="dob"
                                 ><span class="text-sm font-medium"
                                     >Tarikh lahir *</span
-                                ><input
+                                ><DateField
                                     id="dob"
                                     v-model="form.date_of_birth"
-                                    type="date"
-                                    class="min-h-12 rounded-xl border px-3"
                                     :aria-invalid="!!errorFor('date_of_birth')"
+                                    locale="ms"
+                                    look="patient"
                                 /><span
                                     v-if="errorFor('date_of_birth')"
                                     class="text-sm text-red-700"
                                     role="alert"
                                     >{{ errorFor('date_of_birth') }}</span
                                 ></label
-                            ><label class="grid gap-1.5" for="sex"
+                            ><label
+                                class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                                for="sex"
                                 ><span class="text-sm font-medium"
                                     >Jantina *</span
                                 ><select

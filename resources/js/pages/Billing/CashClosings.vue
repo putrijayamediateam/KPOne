@@ -4,8 +4,10 @@ import { computed, reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
+import { formatDate } from '@/lib/presentation';
 import { myr } from '@/types/billing';
 
 type Closing = {
@@ -172,11 +174,11 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
             <form class="flex items-end gap-2" @submit.prevent="loadDate">
                 <label class="grid gap-1 text-sm font-medium" for="cash-date">
                     Business date
-                    <Input
+                    <DateField
                         id="cash-date"
                         v-model="selectedDate.value"
-                        type="date"
                         :max="day.today"
+                        :echo="false"
                     />
                 </label>
                 <Button type="submit" variant="outline">Load day</Button>
@@ -201,7 +203,10 @@ const decide = (closing: Closing, decision: 'approved' | 'returned') => {
                 data-testid="cash-expected"
             >
                 <p class="text-xs text-muted-foreground">
-                    Expected cash for {{ day.businessDate }}
+                    Expected cash for
+                    <span class="whitespace-nowrap">{{
+                        formatDate(day.businessDate)
+                    }}</span>
                 </p>
                 <p class="mt-1 text-2xl font-semibold tabular-nums">
                     {{ money(day.expected.cashSen) }}

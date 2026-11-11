@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Payroll\Services;
 
+use App\Domain\HR\Payroll\PayProfileMtd;
 use App\Domain\HR\Payroll\PayrollPermissions;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\RecordSupport;
@@ -358,8 +359,11 @@ final class PayrollSetupService
             $id = DB::table('hr_pay_profiles')->insertGetId(['public_id' => $publicId, 'organisation_id' => $actor->organisation_id, 'worker_id' => $worker->id,
                 'pay_group_id' => $group->id, 'pay_type' => $values['pay_type'], 'rate_encrypted' => Crypt::encryptString((string) $values['rate_sen']),
                 'epf' => $values['epf'], 'epf_category' => $values['epf_category'], 'socso' => $values['socso'], 'socso_category' => $values['socso_category'],
-                'eis' => $values['eis'], 'mtd' => $values['mtd'], 'hrd' => $values['hrd'], 'mtd_category' => $values['mtd_category'], 'mtd_children' => $values['mtd_children'],
-                'mtd_disabled_self' => $values['mtd_disabled_self'], 'mtd_disabled_spouse' => $values['mtd_disabled_spouse'], 'effective_from' => $values['effective_from'], 'status' => 'waiting',
+                'eis' => $values['eis'], 'mtd' => $values['mtd'], 'hrd' => $values['hrd'],
+                // HR-7e: the MTD details are encrypted as one value (health data: the disability flags).
+                'mtd_details_encrypted' => PayProfileMtd::encrypt($values['mtd_category'] === null ? null : ['category' => $values['mtd_category'],
+                    'children' => (int) $values['mtd_children'], 'disabled_self' => $values['mtd_disabled_self'], 'disabled_spouse' => $values['mtd_disabled_spouse']]),
+                'effective_from' => $values['effective_from'], 'status' => 'waiting',
                 'entered_by_user_id' => $actor->id, 'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
             foreach ($items as $i => $item) {
                 DB::table('hr_pay_profile_items')->insert(['organisation_id' => $actor->organisation_id, 'profile_id' => $id, 'position' => $i + 1,

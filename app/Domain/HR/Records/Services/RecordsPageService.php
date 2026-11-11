@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Records\Services;
 
+use App\Domain\HR\Applications\Services\JobApplicationService;
 use App\Domain\HR\Payroll\Services\PayslipService;
 use App\Domain\HR\Records\Models\BankDetail;
 use App\Domain\HR\Records\Models\ChecklistItem;
@@ -81,6 +82,8 @@ final class RecordsPageService
             'workers' => Worker::query()->where('organisation_id', $worker->organisation_id)->whereKeyNot($worker->id)->with('user')->get()
                 ->map(fn (Worker $w): array => ['id' => $w->public_id, 'name' => $w->name()])->sortBy('name')->values()->all(),
             'worker' => [...$this->header($worker, $periods, $today), 'lockVersion' => $worker->lock_version],
+            // HR-15a: a locum file's KPOne sign-in (none, asked for, or linked).
+            'signIn' => $worker->kind === 'locum' ? LocumSignIns::stateFor($worker, JobApplicationService::zone((int) $worker->organisation_id)) : null,
             'attention' => $this->attention($periods, $waiting !== null, $corrections->isNotEmpty(), $today),
             'periods' => $periods->map(fn (EmploymentPeriod $p): array => [
                 'id' => $p->public_id, 'type' => $p->type, 'typeLabel' => StaffFileService::TYPES[$p->type] ?? $p->type,

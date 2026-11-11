@@ -79,10 +79,18 @@ final class JobApplicationService
         'other' => 'Other',
     ];
 
+    /** @var array<string, string> the stage HR moves to and the fixed message the candidate gets (HR-17b) */
+    public const TELLS = [
+        'not_taken_forward' => 'not_taken_forward',
+        'withdrawn' => 'withdrawn',
+        'passed' => 'passed',
+        'failed' => 'failed',
+    ];
+
     /** A first or shorter retention waits this long before the purge may use it, so a mistake can be undone. */
     public const GRACE_DAYS = 7;
 
-    public function __construct(private RecordSupport $support) {}
+    public function __construct(private RecordSupport $support, private HiringMessenger $messenger) {}
 
     /** @param array<string, mixed> $input */
     public function addPosition(User $actor, array $input): string
@@ -167,15 +175,61 @@ final class JobApplicationService
                         ? 'Record the phone screening to move on to scheduling.'
                         : 'Choose one of the next steps shown.')]);
             }
+            // HR-17c: a result waits for the confirmed interview to have started (Suresh, HR-17c).
+            if (in_array($to, ['passed', 'failed'], true) && DB::table('hr_job_interviews')->where('application_id', $application->id)
+                ->where('status', 'confirmed')->where('starts_at', '>', now()->utc())->exists()) {
+                throw ValidationException::withMessages(['to' => 'The interview has not happened yet. Record the result after it.']);
+            }
             $closed = ! in_array($to, self::OPEN, true);
+            if ($to === 'withdrawn') {
+                InterviewSlots::releaseOnWithdraw((int) $application->id, $actor->id);
+            }
             DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $closed ? now()->utc() : null,
-                'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
+                'stage_entered_at' => now()->utc(), 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
             DB::table('hr_job_application_events')->insert(['organisation_id' => $actor->organisation_id, 'application_id' => $application->id,
                 'action' => 'status_changed', 'from_status' => $application->status, 'to_status' => $to, 'actor_user_id' => $actor->id,
                 'created_at' => now()->utc()]);
             $this->support->remember($actor, $key, 'job_application_move', $hash, $applicationId);
             $this->support->audit->record('hr.applications.moved', null, ['application_id' => (int) $application->id, 'from' => $application->status,
                 'to' => $to], $actor, null, $actor->organisation_id);
+            // HR-17b: the candidate is told of a decision (HR-PLAN 19.3 and 19.8).
+            if (isset(self::TELLS[$to])) {
+                $this->messenger->record($application, self::TELLS[$to], $to);
+            }
+        }, 3);
+    }
+
+    /**
+     * Show an applicant's phone or email (TEAM.md section 7 hardening: the list shows them masked). The audit row is
+     * written inside the transaction, and the value is returned only once it has committed. A purged application has
+     * nothing to show.
+     */
+    public function showContact(User $actor, string $applicationId, mixed $field): string
+    {
+        if (! in_array($field, ['phone', 'email'], true)) {
+            throw ValidationException::withMessages(['field' => 'Choose what to show.']);
+        }
+
+        return DB::transaction(function () use ($actor, $applicationId, $field): string {
+            $actor = $this->support->authority->lock($actor, ApplicationPermissions::MANAGE);
+            $application = $this->application($actor, $applicationId, false);
+            $encrypted = $application->{$field.'_encrypted'} ?? null;
+            $value = null;
+            if (is_string($encrypted)) {
+                try {
+                    $value = Crypt::decryptString($encrypted);
+                } catch (DecryptException) {
+                    $value = null;
+                }
+            }
+            if ($value === null || $value === '') {
+                throw ValidationException::withMessages(['field' => 'There is nothing to show. It may have been deleted after the retention period.']);
+            }
+            // Ids and the field only, never the value.
+            $this->support->audit->record('hr.applications.contact_shown', null, ['application_id' => (int) $application->id, 'field' => $field],
+                $actor, null, $actor->organisation_id);
+
+            return $value;
         }, 3);
     }
 
@@ -318,7 +372,7 @@ final class JobApplicationService
                 'reject_reason' => $reason,
                 'actor_user_id' => $actor->id, 'created_at' => $now]);
             DB::table('hr_job_applications')->where('id', $application->id)->update(['status' => $to, 'closed_at' => $to === 'scheduling' ? null : $now,
-                'lock_version' => (int) $application->lock_version + 1, 'updated_at' => $now]);
+                'stage_entered_at' => $now, 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => $now]);
             DB::table('hr_job_application_events')->insert([
                 ['organisation_id' => $actor->organisation_id, 'application_id' => $application->id, 'action' => 'screened', 'from_status' => null,
                     'to_status' => null, 'actor_user_id' => $actor->id, 'created_at' => $now],
@@ -328,6 +382,7 @@ final class JobApplicationService
             $this->support->remember($actor, $key, 'job_application_screen', $hash, $applicationId);
             $this->support->audit->record('hr.applications.screened', null, ['application_id' => (int) $application->id, 'outcome' => $outcome,
                 'reason' => $reason, 'ticked' => count($ticks)], $actor, null, $actor->organisation_id);
+            $this->messenger->record($application, $outcome === 'pass' ? 'screening_passed' : 'not_taken_forward', $to);
         }, 3);
     }
 
@@ -415,18 +470,34 @@ final class JobApplicationService
                 continue;
             }
             $cutoff = CarbonImmutable::parse($today, self::zone($organisationId))->subDays($days)->startOfDay()->utc();
+            // HR-17e: a pool candidate is kept until the pool period ends, if that is later than the retention.
+            $poolDays = TalentPool::daysOn($organisationId, $today);
+            $poolSince = $poolDays === null ? null : CarbonImmutable::parse($today, self::zone($organisationId))->subDays($poolDays)->startOfDay()->utc();
             DB::table('hr_job_applications')->where('organisation_id', $organisationId)->whereNull('purged_at')
-                ->whereRaw('coalesce(closed_at, submitted_at) < ?', [$cutoff])->select('id')->orderBy('id')->chunkById(200, function ($chunk) use (&$count, $organisationId, $cutoff): void {
+                ->whereRaw('coalesce(closed_at, submitted_at) < ?', [$cutoff])
+                ->when($poolSince !== null, fn ($q) => $q->whereNot(fn ($q) => $q->whereIn('status', TalentPool::RESULTS)->where('talent_pool_consent', true)
+                    ->whereNull('pool_withdrawn_at')->where('closed_at', '>=', $poolSince)))
+                ->select('id')->orderBy('id')->chunkById(200, function ($chunk) use (&$count, $organisationId, $cutoff, $poolSince, $poolDays): void {
                     foreach ($chunk as $candidate) {
-                        $path = DB::transaction(function () use ($candidate, $organisationId, $cutoff): ?string {
+                        $path = DB::transaction(function () use ($candidate, $organisationId, $cutoff, $poolSince, $poolDays): ?string {
                             $row = DB::table('hr_job_applications')->where('id', $candidate->id)->lockForUpdate()->first();
-                            if ($row === null || $row->purged_at !== null || CarbonImmutable::parse($row->closed_at ?? $row->submitted_at)->gte($cutoff)) {
+                            if ($row === null || $row->purged_at !== null || CarbonImmutable::parse($row->closed_at ?? $row->submitted_at)->gte($cutoff)
+                                || ($poolSince !== null && TalentPool::until($row, $poolDays) !== null)) {
                                 return null;
                             }
                             DB::table('hr_job_applications')->where('id', $row->id)->update(['name_encrypted' => null, 'phone_encrypted' => null,
-                                'email_encrypted' => null, 'message_encrypted' => null, 'details_encrypted' => null, 'cv_path' => null, 'purged_at' => now()->utc(),
+                                'email_encrypted' => null, 'message_encrypted' => null, 'details_encrypted' => null, 'cv_path' => null, 'status_token_hash' => null, 'purged_at' => now()->utc(),
                                 'lock_version' => (int) $row->lock_version + 1, 'updated_at' => now()->utc()]);
                             DB::table('hr_job_screenings')->where('application_id', $row->id)->whereNotNull('note_encrypted')->update(['note_encrypted' => null]);
+                            // HR-17e: an open staff-account request is cancelled first, with the reason recorded, so the Staff page
+                            // never lists a blank request (Suresh, HR-17e m3); then its name and email go with the application's.
+                            if (DB::table('hr_staff_account_requests')->where('application_id', $row->id)->where('status', 'open')
+                                ->update(['status' => 'cancelled', 'closed_at' => now()->utc(), 'updated_at' => now()->utc()]) > 0) {
+                                DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
+                                    'action' => 'account_cancelled', 'created_at' => now()->utc()]);
+                            }
+                            DB::table('hr_staff_account_requests')->where('application_id', $row->id)->whereNull('purged_at')
+                                ->update(['name_encrypted' => null, 'email_encrypted' => null, 'purged_at' => now()->utc(), 'updated_at' => now()->utc()]);
                             DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
                                 'action' => 'purged', 'created_at' => now()->utc()]);
                             $this->support->audit->record('hr.applications.purged', null, ['application_id' => (int) $row->id], null, null, $organisationId);
