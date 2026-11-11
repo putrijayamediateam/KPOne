@@ -337,14 +337,16 @@ const decisionError = computed(() =>
                     data-testid="record-invoice"
                     @submit.prevent="record"
                 >
-                    <div class="grid gap-3 md:grid-cols-2">
-                        <label class="grid gap-1 text-sm" for="invoice-order"
+                    <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
+                        <label
+                            class="grid min-w-0 gap-1 text-sm"
+                            for="invoice-order"
                             >Purchase order (required)
                             <select
                                 id="invoice-order"
                                 v-model="form.order"
                                 required
-                                class="h-11 rounded-md border bg-background px-3 lg:h-9"
+                                class="h-11 w-full min-w-0 rounded-md border bg-background px-3 lg:h-9"
                                 :aria-invalid="
                                     !!errors.purchase_order_public_id
                                 "
@@ -366,7 +368,9 @@ const decisionError = computed(() =>
                                 :message="errors.purchase_order_public_id"
                             />
                         </label>
-                        <label class="grid gap-1 text-sm" for="invoice-number"
+                        <label
+                            class="grid min-w-0 gap-1 text-sm"
+                            for="invoice-number"
                             >Invoice number (required)
                             <Input
                                 id="invoice-number"
@@ -382,7 +386,7 @@ const decisionError = computed(() =>
                                 :message="errors.invoice_number"
                             />
                         </label>
-                        <div class="grid gap-1 text-sm">
+                        <div class="grid min-w-0 gap-1 text-sm">
                             <span id="invoice-date-label"
                                 >Invoice date (required)</span
                             >
@@ -398,7 +402,9 @@ const decisionError = computed(() =>
                                 :message="errors.invoice_date"
                             />
                         </div>
-                        <label class="grid gap-1 text-sm" for="invoice-total"
+                        <label
+                            class="grid min-w-0 gap-1 text-sm"
+                            for="invoice-total"
                             >Invoice total, RM (optional)
                             <Input
                                 id="invoice-total"
