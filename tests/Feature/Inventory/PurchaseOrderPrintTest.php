@@ -3,7 +3,9 @@
 namespace Tests\Feature\Inventory;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Models\InventoryItem;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Inventory\Services\SupplierTermsService;
 use App\Domain\Organisation\Models\Branch;
@@ -115,5 +117,29 @@ final class PurchaseOrderPrintTest extends VisitTestCase
 
         // An unknown logo is never served.
         $this->actingAs($finance)->get(route('inventory.purchase-orders.letterhead-logo', (string) Str::uuid()))->assertNotFound();
+    }
+
+    public function test_a_two_page_draft_prints_every_line_and_stays_not_an_order(): void
+    {
+        $f = (new VerifiedReceivingFixture($this->branch))->build('10.000');
+        $supervisor = $this->staff('ca_supervisor');
+        // 22 distinct synthetic SKUs (a test fixture), enough to run onto a second A4 page.
+        $lines = [['sku_public_id' => $f['sku']->public_id, 'quantity' => '10.000', 'unit_cost_sen' => 25]];
+        for ($i = 2; $i <= 22; $i++) {
+            $item = InventoryItem::query()->findOrFail($f['sku']->inventory_item_id)->replicate();
+            $item->forceFill(['public_id' => (string) Str::uuid(), 'code' => 'PV20T-'.$i])->save();
+            $sku = InventorySku::query()->findOrFail($f['sku']->id)->replicate();
+            $sku->forceFill(['public_id' => (string) Str::uuid(), 'inventory_item_id' => $item->id, 'sku_code' => 'PV20T-'.$i, 'barcode' => null])->save();
+            $lines[] = ['sku_public_id' => $sku->public_id, 'quantity' => (10 * $i).'.000', 'unit_cost_sen' => 25 + 5 * ($i - 1)];
+        }
+        $draft = app(ProcurementService::class)->create($supervisor, ['expected_branch_id' => $this->branch->id, 'supplier_public_id' => $f['supplier']->public_id,
+            'destination_location_public_id' => $f['location']->public_id, 'lines' => $lines]);
+
+        $order = $this->page($this->staff('finance_officer'), $draft->public_id)['order'];
+        $this->assertSame([false, 'draft', null], [$order['isOrder'], $order['status'], $order['approvedBy']]);
+        $this->assertCount(22, $order['lines']);
+        $this->assertSame(range(1, 22), array_column($order['lines'], 'number'));
+        // RM 2,403.50 in whole sen; the page adds the thousands separator.
+        $this->assertSame(240350, $order['totalSen']);
     }
 }

@@ -2,7 +2,7 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
-import { formatRinggit, trimQuantity } from '@/lib/supplier-terms';
+import { trimQuantity } from '@/lib/supplier-terms';
 import type { PrintLetterhead } from '@/types/letterhead';
 
 // STK-20: an A4 purchase order for the supplier, rendered live from the saved order. Prices print only for a
@@ -78,8 +78,29 @@ const statusLine = computed(() =>
         ? `Approved${props.order.approvedAt ? ` · ${props.order.approvedAt}` : ''}`
         : 'Not an order',
 );
-const rm = (sen: number | null | undefined) =>
-    sen === null || sen === undefined ? '—' : formatRinggit(sen);
+// Printed money uses a thousands separator ("2,403.50"), in whole sen with no float maths.
+const rm = (sen: number | null | undefined) => {
+    if (sen === null || sen === undefined) {
+        return '—';
+    }
+
+    const ringgit = String(Math.trunc(sen / 100)).replace(
+        /\B(?=(\d{3})+(?!\d))/g,
+        ',',
+    );
+
+    return `${ringgit}.${String(sen % 100).padStart(2, '0')}`;
+};
+// A sheet that is not an order repeats its banner at the top of every printed page (a named @page).
+const printPage = computed(() =>
+    props.order.isOrder
+        ? undefined
+        : props.order.status === 'submitted'
+          ? 'po-waiting'
+          : props.order.status === 'cancelled'
+            ? 'po-cancelled'
+            : 'po-not-approved',
+);
 const print = () => window.print();
 </script>
 
@@ -116,7 +137,11 @@ const print = () => window.print();
             </p>
         </section>
 
-        <article class="po-sheet document-print" aria-label="Purchase order">
+        <article
+            class="po-sheet document-print"
+            :style="printPage ? { page: printPage } : undefined"
+            aria-label="Purchase order"
+        >
             <p v-if="banner" class="po-banner" data-testid="po-banner">
                 {{ banner }}
             </p>
@@ -301,6 +326,28 @@ const print = () => window.print();
     @bottom-right {
         content: 'Page ' counter(page) ' of ' counter(pages);
         font-size: 8pt;
+    }
+}
+/* Every printed page of a sheet that is not an order carries its banner at the top. */
+@page po-not-approved {
+    @top-center {
+        content: 'NOT APPROVED, NOT AN ORDER';
+        font-size: 10pt;
+        font-weight: 700;
+    }
+}
+@page po-waiting {
+    @top-center {
+        content: 'WAITING FOR APPROVAL, NOT AN ORDER';
+        font-size: 10pt;
+        font-weight: 700;
+    }
+}
+@page po-cancelled {
+    @top-center {
+        content: 'CANCELLED, NOT AN ORDER';
+        font-size: 10pt;
+        font-weight: 700;
     }
 }
 /* The sheet stays white with black text on screen and on paper, in every theme (PRINT-1). */

@@ -39,6 +39,30 @@ test('only an approved order looks like an order (design review)', () => {
     assert.match(page, /class="po-narrow-price text-xs"/);
 });
 
+test('money prints with a thousands separator and the banner repeats on every page', () => {
+    const page = read('resources/js/pages/Inventory/PurchaseOrderPrint.vue');
+    assert.ok(page.includes('/\\B(?=(\\d{3})+(?!\\d))/g'));
+    assert.ok(page.includes("','"));
+    assert.doesNotMatch(page, /formatRinggit/);
+    assert.match(
+        page,
+        /:style="printPage \? \{ page: printPage \} : undefined"/,
+    );
+
+    for (const [name, text] of [
+        ['po-not-approved', 'NOT APPROVED, NOT AN ORDER'],
+        ['po-waiting', 'WAITING FOR APPROVAL, NOT AN ORDER'],
+        ['po-cancelled', 'CANCELLED, NOT AN ORDER'],
+    ]) {
+        assert.match(
+            page,
+            new RegExp(
+                `@page ${name} \\{\\s*@top-center \\{\\s*content: '${text}';`,
+            ),
+        );
+    }
+});
+
 test('the Inventory panel links each order to its print', () => {
     assert.match(
         read('resources/js/components/inventory/InventoryOperationsPanel.vue'),
