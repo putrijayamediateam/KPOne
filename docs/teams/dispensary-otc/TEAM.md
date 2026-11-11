@@ -107,6 +107,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-14 | Allergy match ignores strengths, dose forms and extra words: a "core" of each side drops tokens that start with a digit, units, dose forms and salt words (and, on the allergy side, wrapper, reaction, symptom and filler words); an allergy part's core inside a medicine name (whole words below 5 characters) or the medicine name's core inside the allergy text's core (whole words) also matches. Only adds matches; still warns, never blocks. Backend only | #428 (merged) |
 | DSP-15 | Quarantine one return across several batches: on a line dispensed from 2+ batches the check panel shows one box per batch (earliest expiry first, "Available: N", never prefilled, "Fill from earliest expiry" helper), a running "Placed X of Y" line, the shares in the confirm dialog and the batches on the history row. New append-only `dispensary_return_check_batches` (one STK-11 movement per share); PostgreSQL repeats the pairing, per-batch, can't-grow and exact-total rules. Migration `2026_11_07_000600` (decision 36) | #430 (merged) |
 | DSP-16 | Two-process race test: two CA Supervisors splitting two returns of one line at once; the loser waits on the case lock, then is refused over a batch's remaining capacity or succeeds when it fits. Fails with the case, item and location locks removed. Tests only | #439 (merged) |
+| DSP-17 | Scan to pick the batch: on an open case, a scan that matches a saved line (or a scan-to-add pick) scrolls that line's batch dropdown into view (instantly with reduced motion), gives it a brand ring and adds "Pick the batch printed on the box." to its "Selected" line in a `role="status"` span. Nothing is selected or saved; the hint clears on a batch change, a save, any new scan (refused or unknown codes too) or when the line goes away. Focus stays in the scan box. Frontend only | #498 (merged `d61a69c`) |
+| Exception wording | An earlier partial dispense reads in plain words ("waiting for the doctor to acknowledge", "acknowledged by the doctor", "replaced by a later change", else "status unknown") instead of the stored code (Daniel, guide section 15). Frontend only | #495 (merged) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -263,6 +265,12 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
     one-off (Inventory paused, slot unused), because the change must run after DSP-7's `2026_11_07_000500`. The same kind of
     exception as DSP-7's checks table.
 37. DSP-16 race test (2026-11-10): the owner chose it ("go with DSP-16") and said "ship it". Tests only.
+38. DSP-17 scan to pick the batch (2026-11-11): approved by B.E.R.N.I.S.S for the owner under the owner's "so a until g
+    will be build right? u have my approval"; frontend only and never selects a batch. Iman's sketch, Daniel: OK. The
+    plan moved focus to the batch dropdown; it stays in the scan box instead, because the shared STK-9 `ScanInput`
+    reselects itself after each scan for the next box (B.E.R.N.I.S.S and Daniel agreed; the shared component is not
+    changed). A keyboard-only focus move, if ever needed, is a separate change with the Inventory team.
+39. Exception wording (2026-11-11): B.E.R.N.I.S.S: display wording only, so no owner decision was needed.
 
 ## 7. Open items and known limits
 
@@ -300,9 +308,8 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
   separate small fix.
 - **DD-57 (dark mode, 2026-11-11):** the Dispensary attention panel and the Dispensary page now give every pale
   warning colour a `dark:` style (PR #476, Daniel: OK). The other DD-57 files belong to other teams.
-- **Raw status code on the Dispensary page (Daniel, 2026-11-11):** a line with an earlier partial dispense showed
-  "Earlier partial dispense: awaiting_acknowledgement". The fix shows plain words ("waiting for the doctor to
-  acknowledge") on branch `fix/dsp-exception-wording`, opened as a small PR after #476.
+- **Raw status code on the Dispensary page (Daniel, 2026-11-11):** fixed in PR #495: a line with an earlier partial
+  dispense now reads in plain words ("waiting for the doctor to acknowledge") instead of the stored code.
 - **CA Supervisor guide after DSP-15:** `docs/guides/ms/penyelia-ca.md` says to choose the original batch for a
   quarantine. Since #430 merged, it needs the split boxes ("Batches the units came from", "Fill from earliest expiry").
 - **Allergy matching is text only (DSP-1, DSP-1b, DSP-1c):** a CA add or edit that matches an active allergy record
@@ -405,6 +412,7 @@ order, each its own PR:
 15. **DSP-14 Allergy match with strengths — merged in #428.** Decision 34.
 16. **DSP-15 Quarantine one return across batches — merged in #430.** Decisions 35 and 36.
 17. **DSP-16 Race test for split quarantines — PR #439 (merged).** Decision 37.
+18. **DSP-17 Scan to pick the batch — merged in #498.** Decision 38.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
