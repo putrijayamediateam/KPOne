@@ -116,6 +116,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-16 | Correct a receipt recorded in error on a completed visit, in one step: a Finance Officer who did not record it reverses it and records what was really received; only money not received becomes due (owner decisions). Never a refund. Append-only `payment_corrections` evidence (migration `2026_11_12_400100`), no new permission. Design note: `BIL-16-DESIGN.md` | PR #415 |
 | BIL-17 | Billing page display fixes: a fully paid pay-later reads "Paid in full · nothing left to collect"; voided invoices stay visible (number, total, who and when, receipts; never the reason); the "Use amount due" shortcut also shows on a completed visit with money due; the pay-later list notes money due now (paid first). Display only. Design note: `BIL-17-DESIGN.md` | PR #431 |
 | BIL-18 | Pay-later list on phones and summary wording: below 1024 px the pay-later collection list is cards (amount and past-due chip first, the due-now note beside it, a 44 px Open billing); the Billing, Invoice and Visit history summary row "Approved pay later" reads "Pay later still owed" (prints unchanged). Layout and wording only. Design note: `BIL-18-DESIGN.md` | PR #471 |
+| BIL-23 | "Bills to collect": the pay-later collection list now shows every completed visit that still owes money, not only approved pay later: rows show Approved, Pay later, Due now and Still owed (the Billing page's Outstanding bill amount); money due now counts from the visit day and is past due from the next day ("N days since visit"); the page and its menu card are renamed (same link). Read-only. Design note: `BIL-23-DESIGN.md` | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -246,6 +247,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 37. BIL-18 (2026-11-10, the owner through B.E.R.N.I.S.S, "i want to start all that"): take Daniel's two Billing debt
     items, the pay-later list on phones and the "Approved pay later" summary row wording; layout and wording only.
     The owner also approved changing the existing assertion so the past-due chip reads "1 day" / "N days" (2026-11-10).
+39. BIL-23 "Bills to collect" (2026-11-11, the owner in the Billing session): list every completed visit that still
+    owes money (pay later plus money due now, the Outstanding bill amount); money due now is past due from the day
+    after the visit ("N days since visit"); rename the page "Bills to collect", same link; the one existing assertion
+    on the old title may change.
 
 ## 7. Open items and known limits
 
@@ -283,9 +288,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   Billing page.
 - Pay-later list on phones (BIL-18): "1 records" comes from the shared pagination component. "Return to
   Workspace" is title case (sentence case per the UI guide); it is a shared string, logged for its owner, not fixed here.
-- The pay-later collection list (BIL-3) shows approved pay later only, not everything a patient owes. If a payment
-  that paid off part of a pay-later debt is reversed, that amount moves back into the invoice's due now (pay later
-  never grows back), so it shows on the Billing page but not on this list. The page says so.
+- Bills to collect (BIL-23) lists completed visits that owe money and approved pay later (also on open visits); an
+  open visit's own due-now money is not listed (it is being paid at the counter). The Billing page's "View all
+  pay-later to collect" link keeps its wording (pinned by an existing assertion). No "Check bill" badge for invoices
+  under review on this list (it would add a row field).
 - Daily cash closing (BIL-4): expected cash counts only payment methods classified Cash on the Payment Methods
   screen; a method left "Not classified" counts as non-cash. An approved day is final and keeps its snapshot: a
   receipt reversed after approval does not reopen it; the page shows a "changed after approval" notice and the
@@ -353,8 +359,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   that pays more than one invoice, cannot be corrected. The replacement receipt carries the correction date, so the
   original shows as reversed on its own day and the replacement on the day of the correction. Before completion
   the existing reversal still applies. Money left due after a correction is collected on the completed visit (paid before any
-  pay-later) and shows in outstanding bills, not in the pay-later collection list. On such an invoice the pay-later list
-  notes the money due now, which a payment clears first (BIL-17); the "Use amount due" shortcut is offered. A refund after completion
+  pay-later) and shows in outstanding bills and, since BIL-23, on Bills to collect (Due now column; a bill with both
+  notes that a payment clears the due-now money first, BIL-17); the "Use amount due" shortcut is offered. A refund after completion
   (BIL-10) can still be recorded on the replacement receipt while money is due; the amount due does not change. A
   correction refused for a changed branch or a reused request key can also show that message at the top of Refunds.
 

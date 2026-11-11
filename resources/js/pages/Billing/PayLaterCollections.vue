@@ -42,6 +42,15 @@ const props = defineProps<{
     };
 }>();
 
+// BIL-23: money due now on a completed visit (after a receipt correction) and what the bill still owes in all.
+const dueNowOf = (row: { visitNumber: string }) =>
+    props.collections.dueNow?.[row.visitNumber] ?? 0;
+const owedOf = (row: { visitNumber: string; remainingSen: number }) =>
+    row.remainingSen + dueNowOf(row);
+// Money due now with no pay-later date counts from the visit day (owner decision, BIL-23).
+const daysSinceVisit = (days: number) =>
+    `${days} ${days === 1 ? 'day' : 'days'} since visit`;
+
 const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
     router.get(
         '/pay-later-collections',
@@ -51,11 +60,11 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
 </script>
 
 <template>
-    <Head title="Pay later to collect" />
+    <Head title="Bills to collect" />
     <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
         <PageHeader
-            title="Pay later to collect"
-            :description="`${collections.branch} · Approved pay-later amounts still to collect, oldest due first`"
+            title="Bills to collect"
+            :description="`${collections.branch} · Money patients still owe: approved pay later and money due on completed visits, oldest first`"
         >
             <template #actions>
                 <ActionLink href="/workspace" variant="secondary">
@@ -69,7 +78,7 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
             data-testid="pay-later-totals"
         >
             <div class="rounded-xl border bg-card p-4">
-                <p class="text-xs text-muted-foreground">Still to collect</p>
+                <p class="text-xs text-muted-foreground">Still owed</p>
                 <p class="mt-1 text-xl font-semibold tabular-nums">
                     {{ myr(collections.all.totalSen) }}
                 </p>
@@ -106,8 +115,8 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
             </label>
             <p class="text-xs text-muted-foreground">
                 Open the patient's billing page to record the payment. This list
-                does not record anything. It shows approved pay later only;
-                other amounts due appear on the billing page.
+                does not record anything. Money due now counts from the visit
+                day; a payment pays it before pay later.
             </p>
         </div>
 
@@ -116,8 +125,8 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
             title="Nothing to collect"
             :description="
                 collections.overdueOnly
-                    ? `No pay-later bill in ${collections.branch} is past its due date.`
-                    : `No approved pay-later amount is waiting in ${collections.branch}.`
+                    ? `No bill in ${collections.branch} is past due.`
+                    : `No patient owes money in ${collections.branch}.`
             "
         />
 
@@ -134,23 +143,48 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
             >
                 <div class="flex flex-wrap items-end justify-between gap-2">
                     <div>
-                        <p class="text-xs text-muted-foreground">
-                            Still to collect
-                        </p>
+                        <p class="text-xs text-muted-foreground">Still owed</p>
                         <p class="text-xl font-semibold tabular-nums">
-                            {{ myr(row.remainingSen) }}
+                            {{ myr(owedOf(row)) }}
                         </p>
                     </div>
                     <span
-                        v-if="row.daysOverdue > 0"
+                        v-if="row.daysOverdue > 0 && row.approvedSen === 0"
+                        class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                        data-testid="bill-days-since-visit"
+                        >{{ daysSinceVisit(row.daysOverdue) }}</span
+                    >
+                    <span
+                        v-else-if="row.daysOverdue > 0"
                         class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
                         >{{ row.daysOverdue }}
                         {{ row.daysOverdue === 1 ? 'day' : 'days' }} past
                         due</span
                     >
                 </div>
+                <dl
+                    class="grid gap-1 text-xs"
+                    data-testid="bill-card-breakdown"
+                >
+                    <div
+                        v-if="row.remainingSen > 0"
+                        class="flex flex-wrap justify-between gap-x-3"
+                    >
+                        <dt class="text-muted-foreground">Pay later</dt>
+                        <dd class="tabular-nums">
+                            {{ myr(row.remainingSen) }}
+                        </dd>
+                    </div>
+                    <div
+                        v-if="dueNowOf(row) > 0"
+                        class="flex flex-wrap justify-between gap-x-3"
+                    >
+                        <dt class="text-muted-foreground">Due now</dt>
+                        <dd class="tabular-nums">{{ myr(dueNowOf(row)) }}</dd>
+                    </div>
+                </dl>
                 <p
-                    v-if="(collections.dueNow?.[row.visitNumber] ?? 0) > 0"
+                    v-if="row.remainingSen > 0 && dueNowOf(row) > 0"
                     class="text-xs text-muted-foreground"
                     data-testid="pay-later-card-due-now"
                 >
@@ -187,7 +221,9 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                     <div class="flex flex-wrap justify-between gap-x-3">
                         <dt class="text-muted-foreground">Approved</dt>
                         <dd class="tabular-nums">
-                            {{ myr(row.approvedSen) }}
+                            {{
+                                row.approvedSen > 0 ? myr(row.approvedSen) : '–'
+                            }}
                         </dd>
                     </div>
                 </dl>
@@ -204,9 +240,9 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
 
         <div v-if="collections.data.length > 0" class="hidden min-w-0 lg:block">
             <OperationalTable
-                label="Pay later to collect"
-                :columns="7"
-                min-width="960px"
+                label="Bills to collect"
+                :columns="9"
+                min-width="1120px"
             >
                 <template #head>
                     <tr>
@@ -215,7 +251,9 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         <th scope="col">Visit date</th>
                         <th scope="col">Due date</th>
                         <th scope="col" class="text-right">Approved</th>
-                        <th scope="col" class="text-right">Still to collect</th>
+                        <th scope="col" class="text-right">Pay later</th>
+                        <th scope="col" class="text-right">Due now</th>
+                        <th scope="col" class="text-right">Still owed</th>
                         <th scope="col" class="text-right">Action</th>
                     </tr>
                 </template>
@@ -250,7 +288,14 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         <td class="whitespace-nowrap">
                             {{ row.dueDate }}
                             <span
-                                v-if="row.daysOverdue > 0"
+                                v-if="
+                                    row.daysOverdue > 0 && row.approvedSen === 0
+                                "
+                                class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
+                                >{{ daysSinceVisit(row.daysOverdue) }}</span
+                            >
+                            <span
+                                v-else-if="row.daysOverdue > 0"
                                 class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
                                 >{{ row.daysOverdue }}
                                 {{ row.daysOverdue === 1 ? 'day' : 'days' }}
@@ -258,28 +303,29 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                             >
                         </td>
                         <td class="text-right whitespace-nowrap tabular-nums">
-                            {{ myr(row.approvedSen) }}
+                            {{
+                                row.approvedSen > 0 ? myr(row.approvedSen) : '–'
+                            }}
+                        </td>
+                        <td class="text-right whitespace-nowrap tabular-nums">
+                            {{
+                                row.remainingSen > 0
+                                    ? myr(row.remainingSen)
+                                    : '–'
+                            }}
+                        </td>
+                        <td class="text-right whitespace-nowrap tabular-nums">
+                            <span
+                                v-if="dueNowOf(row) > 0"
+                                data-testid="pay-later-due-now"
+                                >{{ myr(dueNowOf(row)) }}</span
+                            >
+                            <span v-else>–</span>
                         </td>
                         <td
                             class="text-right font-semibold whitespace-nowrap tabular-nums"
                         >
-                            {{ myr(row.remainingSen) }}
-                            <span
-                                v-if="
-                                    (collections.dueNow?.[row.visitNumber] ??
-                                        0) > 0
-                                "
-                                class="block text-xs font-normal text-muted-foreground"
-                                data-testid="pay-later-due-now"
-                                >{{
-                                    myr(
-                                        collections.dueNow?.[row.visitNumber] ??
-                                            0,
-                                    )
-                                }}
-                                is also due now. A payment pays that
-                                first.</span
-                            >
+                            {{ myr(owedOf(row)) }}
                         </td>
                         <td class="text-right">
                             <ActionLink
