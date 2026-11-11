@@ -92,6 +92,12 @@ final class HiringTemplates
             'subject' => 'Hiring: application {reference} closes at the next working day',
             'body' => 'Application {reference} for {position} is waiting at {stage}. If nobody decides today, KPOne closes it as Auto-rejected at the start of the next working day and tells the candidate. Open KPOne, then KPOne HR applications.',
         ],
+        // HR-17c (owner, 2026-11-11): at Scheduling it is the candidate who has not chosen times (Suresh, M1).
+        'pick_reminder' => [
+            'label' => 'Reminder',
+            'subject' => 'Hiring: application {reference} closes at the next working day',
+            'body' => 'Application {reference} for {position} is waiting for the candidate to choose interview times. If they do not choose today, KPOne closes it as Auto-rejected at the start of the next working day and tells the candidate. You can contact the candidate through KPOne HR applications.',
+        ],
     ];
 
     public const FOOTER = 'This is an automatic message from KPOne for Klinik Putrijaya. Mesej ini dihantar secara automatik.';
@@ -108,7 +114,7 @@ final class HiringTemplates
         'clinic' => '/\AKlinik Putrijaya\z/',
         'link' => '/\A(https?:\/\/[^\s<>]{1,200}#[A-Za-z0-9_-]{43}|shown once, when you applied \/ ditunjukkan sekali, semasa anda memohon|sent once, with the invitation \/ dihantar sekali, bersama jemputan)\z/',
         'reference' => '/\A[0-9A-F]{8}\z/',
-        'stage' => '/\A(New|Phone screening|Scheduling)\z/',
+        'stage' => '/\A(New|Phone screening)\z/',
         'date' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/', // Tue 17 Nov 2026
         'time' => '/\A\d{1,2}:00 (AM|PM)\z/',
         'branch' => '/\A[^\r\n<>{}]{2,60}\z/u',

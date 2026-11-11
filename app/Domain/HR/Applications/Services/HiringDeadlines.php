@@ -133,7 +133,8 @@ final class HiringDeadlines
             if ($today < $deadlines['remind'] || $now->hour < self::FROM_HOUR) {
                 return null;
             }
-            $reminder = DB::table('hr_job_application_messages')->where('application_id', $row->id)->where('template', 'auto_reject_reminder')
+            $template = $row->status === self::AWAITING_PICKS ? 'pick_reminder' : 'auto_reject_reminder';
+            $reminder = DB::table('hr_job_application_messages')->where('application_id', $row->id)->where('template', $template)
                 ->where('stage', $row->status)->where('round', $round)->value('created_at');
             $remindedOn = $reminder === null ? null : CarbonImmutable::parse($reminder)->setTimezone($branch['zone'])->toDateString();
             // Closed only once the reminder has had a working day of its own.
@@ -155,8 +156,11 @@ final class HiringDeadlines
             if ($reminder !== null) {
                 return null;
             }
-            $this->messenger->record($row, 'auto_reject_reminder', (string) $row->status, null, ['reference' => HiringMessenger::reference((string) $row->public_id),
-                'stage' => JobApplicationService::STATUSES[$row->status]], $round);
+            $params = ['reference' => HiringMessenger::reference((string) $row->public_id)];
+            if ($template === 'auto_reject_reminder') {
+                $params['stage'] = JobApplicationService::STATUSES[$row->status];
+            }
+            $this->messenger->record($row, $template, (string) $row->status, null, $params, $round);
 
             return 'reminded';
         }, 3);
@@ -178,6 +182,12 @@ final class HiringDeadlines
     /** @return array{id:int, zone:string, weekdays:?list<int>}|null */
     private function branchFor(\stdClass $application): ?array
     {
+        // At Scheduling the candidate's days are counted at the interview branch, the one the slots use (Suresh, m2).
+        if ($application->status === self::AWAITING_PICKS) {
+            $branch = app(InterviewSlots::class)->branchFor($application);
+
+            return $branch === null ? null : ['id' => $branch['id'], 'zone' => $branch['zone'], 'weekdays' => $branch['weekdays']];
+        }
         $branchId = DB::table('hr_job_positions')->where('id', $application->position_id)->value('branch_id');
         $branchId ??= DB::table('branches')->where('organisation_id', $application->organisation_id)->where('is_active', true)->orderBy('id')->value('id');
         if ($branchId === null) {

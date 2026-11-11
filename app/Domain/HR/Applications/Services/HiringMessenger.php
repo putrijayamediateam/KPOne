@@ -20,6 +20,9 @@ use Illuminate\Support\Facades\Mail;
  */
 final class HiringMessenger
 {
+    /** The reminders that go to the hiring mailbox, never to the candidate. */
+    public const TO_MAILBOX = ['auto_reject_reminder', 'pick_reminder'];
+
     /** Set after the first failed send in this instance, so the hourly check does not wait on a mail service that is down (Suresh, HR-17b). */
     private bool $broken = false;
 
@@ -43,7 +46,7 @@ final class HiringMessenger
      */
     public function record(\stdClass $application, string $template, string $stage, ?string $link = null, array $extra = [], int $round = 0): void
     {
-        $toMailbox = $template === 'auto_reject_reminder';
+        $toMailbox = in_array($template, self::TO_MAILBOX, true);
         $params = ['position' => self::positionTitle((int) $application->position_id), ...self::interviewParams($template, (int) $application->id, $round), ...$extra];
         if ($template === 'received') {
             $params['link'] = $link ?? HiringTemplates::LINK_SHOWN_ONCE;
@@ -107,6 +110,9 @@ final class HiringMessenger
         }
         if ($template === 'auto_reject_reminder') {
             $params += ['reference' => self::reference($publicId), 'stage' => (string) (JobApplicationService::STATUSES[$row->stage] ?? 'New')];
+        }
+        if ($template === 'pick_reminder') {
+            $params += ['reference' => self::reference($publicId)];
         }
         $params += self::interviewParams($template, (int) $row->application_id, (int) ($row->round ?? 0));
         try {
