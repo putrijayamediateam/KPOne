@@ -4,6 +4,7 @@ use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\AutoRejectJobApplications;
 use App\Console\Commands\CleanupPublicPatientIntakes;
 use App\Console\Commands\PurgeCompliancePhotos;
+use App\Console\Commands\PurgeHrCredentials;
 use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
@@ -41,6 +42,13 @@ Schedule::command(PurgeHrDocuments::class)
 
 // HR-13: closed job applications are cleared after the clinic-entered retention (none shipped; nothing until HR sets one).
 Schedule::command(PurgeJobApplications::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// PDPA 15 (owner, 2026-11-11; the accountant confirms the 7 years before real use): credential records no longer in
+// force, and those of staff who left, are deleted after 7 years.
+Schedule::command(PurgeHrCredentials::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
