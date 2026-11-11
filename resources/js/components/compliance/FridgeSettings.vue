@@ -92,7 +92,11 @@ const archive = (f: FridgeSetting) =>
 </script>
 
 <template>
-    <section class="flex flex-col gap-3" aria-label="Fridges">
+    <section
+        id="vaccine-fridges"
+        class="flex scroll-mt-20 flex-col gap-3"
+        aria-label="Fridges"
+    >
         <div class="flex flex-wrap items-center justify-between gap-2">
             <div>
                 <h2 class="text-sm font-semibold">Vaccine fridges</h2>
