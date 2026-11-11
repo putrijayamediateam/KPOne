@@ -998,6 +998,13 @@ const changeLabel = (item: Item) =>
         unchanged: '',
     })[item.changeState];
 const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
+
+// Plain words for an earlier partial dispense, never the stored code (Daniel, guide section 15).
+const exceptionStatusLabels: Record<string, string> = {
+    awaiting_acknowledgement: 'waiting for the doctor to acknowledge',
+    acknowledged: 'acknowledged by the doctor',
+    superseded: 'replaced by a later change',
+};
 </script>
 
 <template>
@@ -1353,7 +1360,11 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 class="mt-1 text-xs text-amber-700 dark:text-amber-300"
                             >
                                 Earlier partial dispense:
-                                {{ item.exception.status }}
+                                {{
+                                    exceptionStatusLabels[
+                                        item.exception.status
+                                    ] ?? 'status unknown'
+                                }}
                             </p>
                             <Button
                                 v-if="
