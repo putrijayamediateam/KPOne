@@ -195,7 +195,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   Agent platform's AG-7b. Label batch and expiry is the Dispensary
   team's DSP-2 (merged).
 - **Parked review (2026-10-21):** no match against a supplier's invoice, no printable purchase order, reorder levels raise no alert by themselves (STK-4 worklists now show
-  low stock). `InventoryController::referenceData()` still projects all items, SKUs and locations unbounded.
+  low stock). Re-checked 2026-11-11: the Inventory page's reference data is bounded through
+  `InventoryPickerService::choices` (25 by default, at most 100, since the pilot-scale work in PR #176), so the
+  old "unbounded" note no longer applies; no printable purchase order and no supplier-invoice match are still true.
 - **Professional questions** for a pharmacist or the regulator: regulated items, registers, FEFO policy,
   retention.
 - Quarantine holds the whole batch at that branch; corrections reverse a whole untouched receipt; a wrong
