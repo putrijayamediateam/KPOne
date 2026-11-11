@@ -87,6 +87,7 @@ use App\Http\Controllers\PricingController;
 use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
 use App\Http\Controllers\PublicIntakeReviewController;
+use App\Http\Controllers\PurchaseOrderPrintController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\QueueDisplayController;
 use App\Http\Controllers\QueueDisplaySettingsController;
@@ -1087,6 +1088,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/suppliers', [InventoryOperationsController::class, 'createSupplier'])->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:30,1'])->name('inventory.suppliers.store');
         Route::patch('inventory/suppliers/{supplier}', [InventoryOperationsController::class, 'updateSupplier'])->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:30,1'])->name('inventory.suppliers.update');
         Route::patch('inventory/suppliers/{supplier}/status', [InventoryOperationsController::class, 'supplierStatus'])->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:20,1'])->name('inventory.suppliers.status');
+        Route::get('inventory/purchase-orders/{purchaseOrder}/print', [PurchaseOrderPrintController::class, 'show'])->whereUuid('purchaseOrder')->middleware(['permission:inventory.purchase_orders.create.organisation,inventory.purchase_orders.approve.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.purchase-orders.print');
+        Route::get('inventory/purchase-orders/print/logo/{asset}', [PurchaseOrderPrintController::class, 'logo'])->whereUuid('asset')->middleware(['permission:inventory.purchase_orders.create.organisation,inventory.purchase_orders.approve.organisation'])->name('inventory.purchase-orders.letterhead-logo');
         Route::post('inventory/purchase-orders', [InventoryOperationsController::class, 'createPurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'throttle:30,1'])->name('inventory.purchase-orders.store');
         Route::patch('inventory/purchase-orders/{purchaseOrder}', [InventoryOperationsController::class, 'updatePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'throttle:30,1'])->name('inventory.purchase-orders.update');
         Route::post('inventory/purchase-orders/{purchaseOrder}/submit', [InventoryOperationsController::class, 'submitPurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.submit');
