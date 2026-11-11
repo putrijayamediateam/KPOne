@@ -18,8 +18,9 @@ final class SpaceAskService
         'pharmacy.longest_waiting' => ['registration.index', []],
         'pharmacy.returns_waiting' => ['dispensary.returns-to-check', []],
         'pharmacy.stock_attention' => ['inventory.stock-review', []],
-        'front_desk.longest_waiting' => ['registration.index', []],
-        'front_desk.waiting_counts' => ['registration.index', []],
+        'front_desk.waited_over_30' => ['registration.index', []],
+        'front_desk.not_ready' => ['registration.index', []],
+        'front_desk.awaiting_billing' => ['registration.index', []],
         'front_desk.qr_pending' => ['registration.index', ['tab' => 'qr-intake']],
     ];
 
@@ -75,7 +76,8 @@ final class SpaceAskService
             'pharmacy.longest_waiting' => $this->pharmacy->toDispense($actor) !== null,
             'pharmacy.returns_waiting' => $this->pharmacy->returnsToCheck($actor) !== null,
             'pharmacy.stock_attention' => $this->pharmacy->stockWatch($actor) !== null,
-            'front_desk.longest_waiting', 'front_desk.waiting_counts' => $this->frontDesk->waiting($actor) !== null,
+            'front_desk.waited_over_30', 'front_desk.not_ready' => $this->frontDesk->waiting($actor) !== null,
+            'front_desk.awaiting_billing' => $this->frontDesk->awaitingBilling($actor) !== null,
             'front_desk.qr_pending' => $this->frontDesk->qrPending($actor) !== null,
             default => false,
         };
@@ -137,40 +139,58 @@ final class SpaceAskService
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
-    private function frontDeskLongestWaiting(User $actor): array
+    private function frontDeskWaitedOver30(User $actor): array
     {
         $waiting = $this->frontDesk->waiting($actor);
         abort_if($waiting === null, 403);
-        /** @var list<array<string, mixed>> $shown */
-        $shown = array_slice($waiting['rows'], 0, 3);
-        if ($shown === []) {
-            return ['sentence' => 'Nobody is waiting.', 'columns' => [], 'rows' => []];
+        $over = array_values(array_filter($waiting['all'], fn (array $r): bool => (int) $r['minutes'] >= SpaceDisplay::WAIT_LONG_MINUTES));
+        if ($over === []) {
+            return ['sentence' => 'Nobody has waited over 30 minutes.', 'columns' => [], 'rows' => []];
         }
         $rows = [];
-        foreach ($shown as $row) {
+        foreach (array_slice($over, 0, 10) as $row) {
             $rows[] = [(string) ($row['queueNumber'] ?? ''), (string) $row['patient'], SpaceDisplay::waitText((int) $row['minutes'])];
         }
-        $first = $shown[0];
+        $n = count($over);
 
         return [
-            'sentence' => $first['patient'].($first['queueNumber'] ? ' ('.$first['queueNumber'].')' : '').' has waited longest: '.SpaceDisplay::waitText((int) $first['minutes']).'.',
+            'sentence' => ($n === 1 ? '1 patient has' : $n.' patients have').' waited over 30 minutes.'.($n > count($rows) ? ' The '.count($rows).' longest are shown.' : ''),
             'columns' => ['Number', 'Patient', 'Waiting'],
             'rows' => $rows,
         ];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
-    private function frontDeskCounts(User $actor): array
+    private function frontDeskNotReady(User $actor): array
     {
         $waiting = $this->frontDesk->waiting($actor);
         abort_if($waiting === null, 403);
-        $counts = $waiting['counts'];
-        $parts = [($counts['waiting'] ?? 0).' waiting', ($counts['serving'] ?? 0).' being served', ($counts['completed'] ?? 0).' completed'];
-        if (isset($counts['billing'])) {
-            $parts[] = $counts['billing'].' awaiting billing';
+        $flagged = array_values(array_filter($waiting['all'], fn (array $r): bool => $r['notReady'] !== null));
+        if ($flagged === []) {
+            return ['sentence' => 'No patient is marked not ready to call.', 'columns' => [], 'rows' => []];
         }
+        $rows = [];
+        foreach (array_slice($flagged, 0, 10) as $row) {
+            $rows[] = [(string) ($row['queueNumber'] ?? ''), (string) $row['patient'], (string) $row['notReady']];
+        }
+        $n = count($flagged);
 
-        return ['sentence' => ucfirst(implode(', ', $parts)).'.', 'columns' => [], 'rows' => []];
+        return ['sentence' => ($n === 1 ? '1 patient is' : $n.' patients are').' not ready to call.', 'columns' => ['Number', 'Patient', 'Reason'], 'rows' => $rows];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function frontDeskAwaitingBilling(User $actor): array
+    {
+        $billing = $this->frontDesk->awaitingBilling($actor);
+        abort_if($billing === null, 403);
+        $visits = $billing['rows'];
+        if ($visits === []) {
+            return ['sentence' => 'No visit is awaiting billing.', 'columns' => [], 'rows' => []];
+        }
+        $rows = array_map(fn (array $v): array => [(string) ($v['queueNumber'] ?? '—'), $v['patient'], 'Registered '.$v['registeredAt']], $visits);
+        $n = $billing['total'];
+
+        return ['sentence' => ($n === 1 ? '1 visit is' : $n.' visits are').' awaiting billing.'.($n > count($rows) ? ' The first '.count($rows).' are shown.' : ''), 'columns' => ['Number', 'Patient', 'Registered'], 'rows' => $rows];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */

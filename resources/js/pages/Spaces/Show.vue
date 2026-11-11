@@ -35,6 +35,7 @@ type FrontDesk = {
     } | null;
     glance: Record<string, number> | null;
     qrPending: { total: number; href: string } | null;
+    primaryAction: { title: string; href: string } | null;
     links: Array<{ title: string; href: string }>;
 };
 
@@ -119,12 +120,19 @@ const changeBranch = (event: Event) => {
 // 390 px: the nav is one scrolling row. Fade the right edge while more is hidden and bring the current item into view.
 // Reloads only this space's data, so the front desk can update without leaving the page (no polling in this slice).
 const refreshing = ref(false);
+const refreshFailed = ref(false);
 const refresh = () => {
     refreshing.value = true;
+    refreshFailed.value = false;
+    let succeeded = false;
     router.reload({
         only: ['frontDesk'],
+        onSuccess: () => {
+            succeeded = true;
+        },
         onFinish: () => {
             refreshing.value = false;
+            refreshFailed.value = !succeeded;
         },
     });
 };
@@ -220,7 +228,15 @@ onMounted(async () => {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <h1 class="space-title">{{ space.title }}</h1>
+            <div class="space-head">
+                <h1 class="space-title">{{ space.title }}</h1>
+                <Link
+                    v-if="frontDesk?.primaryAction"
+                    :href="frontDesk.primaryAction.href"
+                    class="space-primary"
+                    >{{ frontDesk.primaryAction.title }}</Link
+                >
+            </div>
             <template v-if="pharmacy">
                 <p v-if="pharmacy.branchName" class="space-muted">
                     {{ pharmacy.branchName
@@ -412,6 +428,13 @@ onMounted(async () => {
                     >
                         {{ refreshing ? 'Refreshing…' : 'Refresh' }}
                     </button>
+                    <span
+                        v-if="refreshFailed"
+                        class="space-ask-error"
+                        role="status"
+                        >Could not refresh. Still showing the update from
+                        {{ frontDesk.asOf }}.</span
+                    >
                 </p>
                 <section
                     v-if="frontDesk.waiting"
@@ -502,7 +525,7 @@ onMounted(async () => {
                     aria-labelledby="fd-glance"
                 >
                     <h2 id="fd-glance">Today at a glance</h2>
-                    <ul class="space-stats">
+                    <ul class="space-stats is-glance">
                         <li>
                             <strong>{{ frontDesk.glance.waiting ?? 0 }}</strong>
                             <span class="space-muted">waiting</span>

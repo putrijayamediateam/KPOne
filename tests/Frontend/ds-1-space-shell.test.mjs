@@ -200,3 +200,20 @@ test('DS-4: Refresh reloads only the Front desk data, with no polling', () => {
         /\.space-refresh \{[^}]*min-height: 44px/,
     );
 });
+
+test('DS-4: the primary action sits in the header, rows and buttons stack on phones, the glance is 2x2 and a failed refresh says so', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    const css = read('resources/css/space-shell-layout.css');
+    assert.match(page, /class="space-primary"/);
+    assert.match(page, /Could not refresh\. Still showing the update from/);
+    assert.match(page, /space-stats is-glance/);
+    assert.match(
+        css,
+        /@media \(max-width: 479px\)[\s\S]*\.space-primary \{\s*width: 100%/,
+    );
+    assert.match(
+        css,
+        /\.space-stats\.is-glance \{\s*grid-template-columns: repeat\(2/,
+    );
+    assert.match(css, /\.space-ask-list \{\s*flex-direction: column/);
+});

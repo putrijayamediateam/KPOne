@@ -21,16 +21,15 @@ final class FrontDeskSpace
     public function __construct(private BranchAccessService $branches, private VisitDirectoryService $visits, private PublicIntakeReviewService $intakes) {}
 
     /**
-     * @return array{branchName: string|null, asOf: string|null, waiting: array<string, mixed>|null, glance: array<string, int>|null, qrPending: array<string, mixed>|null, links: list<array{title: string, href: string}>}
+     * @return array{branchName: string|null, asOf: string|null, waiting: array<string, mixed>|null, glance: array<string, int>|null, qrPending: array<string, mixed>|null, primaryAction: array{title: string, href: string}|null, links: list<array{title: string, href: string}>}
      */
     public function home(User $actor): array
     {
         $branch = $this->branches->activeBranch($actor);
         $waiting = $this->waiting($actor);
         $links = [];
-        if ($branch !== null && $actor->can('visits.create.branch')) {
-            $links[] = ['title' => 'Register a visit', 'href' => route('registration.create', absolute: false)];
-        }
+        $primary = $branch !== null && $actor->can('visits.create.branch')
+            ? ['title' => 'Register a visit', 'href' => route('registration.create', absolute: false)] : null;
         if ($branch !== null && $actor->can('visits.view.branch')) {
             $links[] = ['title' => 'Open Registration', 'href' => route('registration.index', absolute: false)];
         }
@@ -41,6 +40,7 @@ final class FrontDeskSpace
             'waiting' => $waiting === null ? null : ['total' => $waiting['total'], 'limit' => self::LIST_LIMIT, 'seeAllHref' => route('registration.index', absolute: false), 'rows' => $waiting['rows']],
             'glance' => $waiting['counts'] ?? null,
             'qrPending' => $this->qrPending($actor),
+            'primaryAction' => $primary,
             'links' => $links,
         ];
     }
@@ -49,7 +49,7 @@ final class FrontDeskSpace
      * The Registration board's own Waiting rows, longest first (the board lists newest first in pages of 25, so the
      * longest waiters sit on its last pages: read those too), plus its tab counts.
      *
-     * @return array{total: int, counts: array<string, int>, rows: list<array<string, mixed>>}|null
+     * @return array{total: int, counts: array<string, int>, rows: list<array<string, mixed>>, all: list<array<string, mixed>>}|null
      */
     public function waiting(User $actor): ?array
     {
@@ -68,17 +68,38 @@ final class FrontDeskSpace
         }
         $data = array_values($unique);
         usort($data, fn (array $a, array $b): int => (int) $b['durationMinutes'] <=> (int) $a['durationMinutes']);
-        $rows = array_map(fn (array $r): array => [
+        $all = array_map(fn (array $r): array => [
             'visitNumber' => $r['visitNumber'],
             'queueNumber' => $r['queueNumber'],
             'patient' => SpaceDisplay::shortName((string) $r['patientName']),
             'minutes' => (int) $r['durationMinutes'],
             'href' => route('visits.show', ['visit' => $r['visitNumber']], absolute: false),
-        ], array_slice($data, 0, self::LIST_LIMIT));
+            'notReady' => is_array($r['callHold'] ?? null) && ($r['callHold']['active'] ?? false) ? (string) ($r['callHold']['reason'] ?? 'Not ready') : null,
+        ], $data);
+        $rows = array_map(fn (array $r): array => array_diff_key($r, ['notReady' => 1]), array_slice($all, 0, self::LIST_LIMIT));
         /** @var array<string, int> $counts */
         $counts = $first['tabCounts'];
 
-        return ['total' => (int) $first['total'], 'counts' => array_map('intval', array_intersect_key($counts, array_flip(['waiting', 'serving', 'completed', 'billing']))), 'rows' => $rows];
+        return ['total' => (int) $first['total'], 'counts' => array_map('intval', array_intersect_key($counts, array_flip(['waiting', 'serving', 'completed', 'billing']))), 'rows' => $rows, 'all' => $all];
+    }
+
+    /**
+     * The visits awaiting billing, from the Registration board's own Billing tab: only for people who can open it.
+     *
+     * @return array{total: int, rows: list<array{queueNumber: string|null, patient: string, registeredAt: string}>}|null
+     */
+    public function awaitingBilling(User $actor): ?array
+    {
+        if ($this->branches->activeBranch($actor) === null || ! $actor->can('visits.view.branch') || ! $actor->can('billing.view.branch')) {
+            return null;
+        }
+        $result = $this->visits->search($actor, ['board_status' => 'billing']);
+
+        return ['total' => (int) $result['total'], 'rows' => array_map(fn (array $r): array => [
+            'queueNumber' => $r['queueNumber'],
+            'patient' => SpaceDisplay::shortName((string) $r['patientName']),
+            'registeredAt' => (string) $r['registeredAt'],
+        ], array_slice($this->rowsOf($result), 0, 10))];
     }
 
     /**

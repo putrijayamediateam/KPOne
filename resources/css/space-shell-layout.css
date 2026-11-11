@@ -491,3 +491,48 @@
     outline: 2px solid var(--space-accent);
     outline-offset: 2px;
 }
+
+.space-shell .space-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 16px;
+    flex-wrap: wrap;
+}
+.space-shell .space-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: var(--space-radius-control);
+    background: var(--space-accent);
+    color: var(--space-accent-fg);
+    font-weight: 650;
+    text-decoration: none;
+}
+.space-shell .space-primary:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+@media (max-width: 479px) {
+    /* The primary action is a full-width button under the title; every row puts the name first, the wait second. */
+    .space-shell .space-primary {
+        width: 100%;
+    }
+    .space-shell .space-row-text {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+    .space-shell .space-stats.is-glance {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .space-shell .space-ask-list {
+        flex-direction: column;
+    }
+    .space-shell .space-ask-btn {
+        width: 100%;
+        text-align: left;
+    }
+}

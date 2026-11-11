@@ -17,8 +17,9 @@ final class SpaceQuestionsRegistryTest extends TestCase
             'pharmacy.longest_waiting' => ['pharmacy', 'dispensary.view.branch', true],
             'pharmacy.returns_waiting' => ['pharmacy', 'dispensary.view.branch', false],
             'pharmacy.stock_attention' => ['pharmacy', 'inventory.view.branch', false],
-            'front_desk.longest_waiting' => ['front_desk', 'visits.view.branch', true],
-            'front_desk.waiting_counts' => ['front_desk', 'visits.view.branch', false],
+            'front_desk.waited_over_30' => ['front_desk', 'visits.view.branch', true],
+            'front_desk.not_ready' => ['front_desk', 'visits.view.branch', true],
+            'front_desk.awaiting_billing' => ['front_desk', 'billing.view.branch', true],
             'front_desk.qr_pending' => ['front_desk', 'public_intakes.review.branch', false],
         ], array_map(fn (array $q): array => [$q['space'], $q['permission'], $q['patientLevel']], SpaceQuestions::REGISTRY));
     }
