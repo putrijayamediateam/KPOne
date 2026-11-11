@@ -476,11 +476,11 @@ check items, keep them"). The rest stand unless the owner changes them.
   carry-forward stay in the closed year; a year carried forward is closed for new spending by that person and type
   (Reviewer finding, fixed); a grant that lowers an entitlement below what was already used is refused and needs an
   adjustment instead; the shared confirm dialog has no disabled state, so Approve and Reject say what is missing
-  instead of greying out; ledger and action foreign keys to requests, openings and adjustments are single-column
-  (organisation is checked in the service, not in PostgreSQL); no evidence files until HR-2b.
+  instead of greying out; ledger and action foreign keys to requests, openings and adjustments were single-column
+  (hardening item 7, #470, makes them and the HR-2b evidence file key carry the organisation); no evidence files until HR-2b.
 - HR-2b known limits: a PDF is checked only for its header and end marker, not sanitised (it is only ever downloaded,
-  with `nosniff` and a sandbox policy); no virus scanner is available; opening a file is a GET that records an event,
-  so a link from another site can add "opened" rows for a signed-in manager (throttled, as WA-01's redirect); photos are
+  with `nosniff` and a sandbox policy); no virus scanner is available; opening a file is a GET that records an event
+  (from hardening item 2, #464, a cross-site or same-site open is refused before anything is written); photos are
   refused above about 24 MP or when memory is short, with "Use a smaller photo or a PDF"; the photo tests need the GD
   extension, which the cloud container lacks, so they run in CI only; files keep their retention days even when a
   type stops taking files, and the days cannot be cleared while files remain; both purge rules delete on the day
@@ -489,16 +489,16 @@ check items, keep them"). The rest stand unless the owner changes them.
   (`max-sm:[&>button]:h-11`, the DD-30 pattern from #296); if that component changes its buttons the height quietly
   stops applying. A phone-height option in `OperationalTabs` (Staff Experience) would remove both overrides.
 
-- HR-3a known limits (Suresh's review, kept for later): a correction withdrawal records no actor in the row (only the
-  audit says who withdrew); the session overlap trigger relies on the subject's account lock, not an `EXCLUDE`
+- HR-3a known limits (Suresh's review, kept for later): a correction withdrawal recorded no actor in the row (hardening item 6, #468,
+  adds `withdrawn_by_user_id` and `withdrawn_at`; earlier withdrawals keep empty values); the session overlap trigger relies on the subject's account lock, not an `EXCLUDE`
   constraint; a settings version saved for today also changes today's earlier flags; a clock-in racing an approved
-  correction for the same person has no two-process test yet; Review loads shifts for one branch, so a split shift
-  across two branches shows the other branch's session as "Not on the roster"; the toast and the live region can
-  both read a successful Clock in.
+  correction now has a two-process test in both orders (hardening item 3, #465); Review loads shifts for one branch, so a split shift
+  across two branches shows the other branch's session as "Not on the roster"; a successful Clock in is now read once
+  (hardening item 8, #472: the live region stays quiet when the response carries a toast).
 
 - HR-7c known limits: a former staff member whose account is inactive cannot sign in to open their old payslips
   (HR opens them as a preparer); no logo on payslips in v1; opening a payslip is a GET that writes an open row each
-  time; statutory and export totals are summed in PHP over decrypted lines and are not load-tested; one generic bank
+  time (refused from another site, hardening item 2); statutory and export totals are summed in PHP over decrypted lines and are not load-tested; one generic bank
   file layout only; the "Exports" tab is cut at 390 px (the shared tab-edge fade, DD-40).
 
 - HR-7d known limits: TP1, TP3, zakat, additional remuneration and non-residents are not counted (a typed MTD
@@ -520,18 +520,19 @@ check items, keep them"). The rest stand unless the owner changes them.
 - HR-17c known limits: no deadline at Scheduling, so an application waiting for picks is never auto-rejected; a slot is
   one fixed hour, with no interview room or interviewer per branch.
 - HR-17d known limits: PDFs are stored as uploaded and never rendered in KPOne (shallow check); opening or downloading
-  is a GET that writes an event row each time; dummy PDFs only until the owner provides the real ones.
-- HR-10a known limits: opening a letter is a GET that writes an open row each time; a voided replacement leaves no
+  is a GET that writes an event row each time (refused from another site, including the candidate's download,
+  hardening item 2); dummy PDFs only until the owner provides the real ones.
+- HR-10a known limits: opening a letter is a GET that writes an open row each time (refused from another site, hardening item 2); a voided replacement leaves no
   current letter; the year in the number comes from the first active branch's time zone; letter wording needs the
   clinic's adviser before real use.
 - HR-10b known limits: with one Director, the same person writes the HR Manager's appraisal and signs it off; leave
   across the period edge is recounted with today's working days; PostgreSQL's 7-day check compares `signed_off_at`
   with `sent_at` (the service check is the real one); drafts left when a cycle closes stay unsent.
 - HR-10c known limits: opening a case or a file writes an audit row each time; a file added by mistake stays with the
-  case; the list reads the latest 300 cases before filtering; HR-10a's Issued list applies its 200-row limit before
-  its new filter.
-- HR-10d known limits: photos come only with the report, never later; the list reads the latest 500 reports before
-  the tabs; opening a report or a photo as a manager writes an audit row each time; patient-care reports are read by
+  case; the list now filters first and then caps at 300, with exact counts, and HR-10a's Issued list filters before its
+  200-row limit (hardening item 5, #467).
+- HR-10d known limits: photos come only with the report, never later; the tab and its counts are now filtered in PostgreSQL
+  before the 500-row limit (hardening item 5, #467); opening a report or a photo as a manager writes an audit row each time; patient-care reports are read by
   HR until the owner names a clinical reviewer.
 - HR-15a known limits: there is no PostgreSQL trigger on `model_has_roles` (shared by every role and the seeders), so
   the Locum-only rule after linking is held by `StaffRoleService` and the link guard; a trigger is a possible
@@ -544,11 +545,18 @@ check items, keep them"). The rest stand unless the owner changes them.
 - HR-15b known limits: a confirmed open shift points at an ordinary draft roster shift (no foreign key), so if HR
   later removes or moves that shift in the planner before approval, the open shift stays "Filled" with nobody
   rostered; HR posts it again. Two confirms into the same branch week take turns on an advisory lock so the second
-  uses the first's new draft; no two-process test covers that case (the race test covers two confirms of one shift).
+  uses the first's new draft; a two-process test now covers it (hardening item 4, #466). The asks on a shift now sort
+  by time and then id (#469), which fixed a flaky `OpenShiftsTest`.
 - HR-16a known limits: staff see their own latest result only while the check is on at that branch; results and
   consent rows have no purge (PDPA pack 04 and 08); browser location can be wrong indoors, so "outside" is a prompt for a
   conversation, never a decision; the existing `hr-3a-attendance.test.mjs` no-geolocation assertion needs B.E.R.N.I.S.S's
   approval to drop `geolocation` (camera and capture stay banned); approved by B.E.R.N.I.S.S for the owner, 2026-11-10.
+- Hardening pass (TEAM.md section 7, approved by B.E.R.N.I.S.S for the owner, 2026-11-10): one PR per item, Suresh
+  ready on each, a full gate per PR, no existing assertion changed. 1 HR-13 contact masking (#463); 2 cross-site
+  refusal on 16 HR open routes (#464; the HR dashboard stays off the list because an existing assertion pins its route
+  line, and its "viewed" row names no person); 3 clock-in against correction race (#465); 4 two confirms into one week
+  (#466); 5 filters before row limits (#467); 6 withdrawal actor, migration 005700 (#468); 7 scoped leave foreign
+  keys, migration 005800 (#470); 8 one Clock in announcement (#472); plus the asks-order fix (#469).
 - HR-3 tidy (Daniel, from HR-16a): the Review "Day" field has no "= 10 Nov 2026" echo under it (the heading below covers it).
 - HR-17e known limits: the pool tick wording and the invitation message are drafts (Malay included); a staff-account
   request is a note between people, and the account created is not linked back to the application; the pool offers
