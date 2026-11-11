@@ -307,6 +307,112 @@ cookie); `.dark` on `<html>` switches the tokens.
 - The coloured square icon next to a page title (Staff, Patients) is optional; if used, use a token fill
   (`bg-success/10 text-success`), not `bg-emerald-50`.
 
+## 18. Department spaces (version 2 direction)
+
+Owner-approved direction, 2026-11-11 ("agree map"): KPOne is organised as department **spaces** instead of one long
+menu. The clickable sketch (synthetic data, builds nothing) is the visual reference:
+<https://claude.ai/artifact/6SGv7ub1FTF2gDgfB6SY39>. The Staff Experience team builds it, plan first, and Daniel
+reviews every screen ([REVIEW.md](REVIEW.md)). This section is the direction for that work. It does not change a
+screen by itself, and it does not widen anyone's access: a space shows only what the person's existing permissions
+already allow, and the backend still decides.
+
+**Spaces and who sees them (owner decision, 2026-11-11):**
+
+| Role | Spaces |
+|---|---|
+| CA | Front desk, Pharmacy, Billing |
+| CA Supervisor | the same plus Stock |
+| Resident Doctor | Consultation |
+| Panel Officer | Panel |
+| Finance Officer | Billing, Panel, Stock |
+| HR Manager | HR |
+| Administrator | Stock (setup only), Management (settings only) |
+| Technical Admin | Management (staff and access only) |
+| Director | all eight |
+| Marketing, Business Development | none of the eight |
+| TV account | the TV only |
+| Everyone (not the TV) | **Me**: own roster, leave, claims, payslips |
+
+The eight spaces are Front desk, Consultation, Pharmacy, Billing, Panel, Stock, HR and Management. A space a person
+cannot open is **absent from the sidebar**, never greyed out. Server-side permission and branch checks stay the
+only authority (frontend visibility is a usability aid, as in `AGENTS.md`).
+
+**Layout**
+
+- **Do** use the shell from the sketch: a grouped sidebar (Clinic, Money, Back office, Oversight, then Me), a top
+  bar with a search or command bar, the branch switcher and the account button, and one page body.
+- **Do** keep one `h1` per space through `PageHeader` (name, one line of description, actions at the right), then a
+  segmented control for the space's tabs, then the work table, then the side panels.
+- **Do** put **Recent activity as a strip along the bottom** of the page, full width, not in a side column. It lists
+  only activity the person may already see in that space; Management shows all teams.
+- **Do** keep the main column for live work (table with timers) and the side column for "Needs attention" and
+  "Waiting for a second person". Below 720 px (container) the layout is one column and the table becomes cards
+  (section 6); the sidebar becomes a full-height sheet opened from the menu button.
+- **Do** show a count beside a space in the sidebar only for work waiting for **this person** (approvals, items to
+  act on), never a vanity total.
+
+**Work tables and timers**
+
+- **Do** show waiting as a ring plus words: amber from 30 minutes and red from 60 (the Q-1 rule, fixed for every
+  branch), with "long" or "very long" in the text. Colour is never the only signal (section 10).
+- **Do** use a status chip that carries a word and a dot (`StatusBadge` tokens), in the same order and wording on
+  the table, the card and the side panels.
+- **Don't** invent new timer rules per space. Use the same two thresholds, or show an age in days or hours as plain
+  text where a patient is not waiting.
+
+**Two-person approvals** (stock counts, write-offs, refunds, Panel payment reversals, leave, overtime, returns)
+
+- **Do** show who recorded it and who is still needed as an **avatar stack**: the recorder's initials, then a dashed
+  empty circle for the missing second person, filled once someone approves. The stack always has a text equivalent
+  ("Recorded by Siti Hajar. Needs a second person.") and an accessible name.
+- **Do** keep a refused action visible: if the viewer recorded the item, the Approve button is replaced by a
+  disabled-style note that says why ("You recorded this, so you cannot approve it. Ask a Finance Officer or
+  Director.", section 11). The server still refuses it.
+- **Do** put the Approve action in the card where the evidence is, never only in Management.
+- **Management** is an overview: it lists every team's waiting approvals and alerts, and each row opens the owning
+  space. It never becomes a second place to decide, unless the item's own permission is held there.
+
+**Alerts**
+
+- **Do** write every alert in three parts: **what** (title), **why** (one plain line) and **next step** (a button
+  that goes to the fix). No alert without a next step.
+- **Don't** use alerts for marketing, tips or "welcome" messages.
+
+**Look (Apple-like, calm, not decorative)**
+
+- **Do** use the system font stack (`-apple-system`, "SF Pro", Inter as fallback), a restrained type scale
+  (28 to 30 px page title, 15 px panel title, 14 px body), tabular figures for numbers and times, and generous
+  line height.
+- **Do** use solid token surfaces with a 0.5 to 1 px hairline, 10 to 14 px corners (consistent, not bubbly),
+  and very soft layering. Dark mode is neutral grey, not navy (section 13).
+- **Do** use one cobalt accent for selection, links and primary buttons. KPOne **pink stays the logo mark only**;
+  it is not an interface colour in the spaces. (The existing pink tokens elsewhere are unchanged until Daniel and
+  Kavitha agree a migration.)
+- **Do** use a segmented control for tabs and small filters, and Lucide icons only (section 17).
+- **Do** keep motion small and spring-like on hover and press, and switch it off under
+  `prefers-reduced-motion`.
+- **Don't** use purple-to-blue gradients, glow, glassmorphism or blur, sparkle or emoji icons, a "Welcome back!"
+  hero, giant rounded shadowed cards, or a stock-SaaS look.
+
+**Me**
+
+- **Do** give everyone (except the TV account) a **Me** area at the bottom of the sidebar. It shows only that
+  person's own records: roster, leave, claims and payslips. It never shows other people's records, and it is not a
+  place to approve anything.
+
+**Accessibility and phone (sections 12 and 16 still apply)**
+
+- Each space has a `main` landmark, a skip link and one `h1`. The sidebar is a `nav` with an accessible name, the
+  current space has `aria-current="page"`, and the segmented control is a real tab list.
+- Below 1024 px every target is at least 44 px tall. The phone sidebar opens from a 44 px menu button and closes
+  after a space is chosen.
+- A role sees at most the spaces in the table above plus Me; a CA sees three plus Me. Check the sidebar for each
+  role at 390 and 1440 px, in light and dark, before hand-off.
+
+**Open for the plan** (Kavitha's team decides with Daniel before building): how existing pages map into spaces and
+what stays reachable by direct link; whether the top bar keeps any current items; the command bar's scope (jump to
+spaces and recent patients only, no clinical search); and the dark-mode neutral greys and cobalt values as tokens.
+
 ---
 
 ## Appendix: survey notes (2026-11-05)
