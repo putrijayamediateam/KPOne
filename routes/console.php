@@ -8,6 +8,7 @@ use App\Console\Commands\PurgeHrCredentials;
 use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
+use App\Console\Commands\PurgeLocationResults;
 use App\Console\Commands\PurgePanelStatements;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -49,6 +50,12 @@ Schedule::command(PurgeJobApplications::class)
 // PDPA 15 (owner, 2026-11-11; the accountant confirms the 7 years before real use): credential records no longer in
 // force, and those of staff who left, are deleted after 7 years.
 Schedule::command(PurgeHrCredentials::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// HR-16a retention (owner, 2026-11-11): location-check results are deleted after 90 days; the clock presses stay.
+Schedule::command(PurgeLocationResults::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
