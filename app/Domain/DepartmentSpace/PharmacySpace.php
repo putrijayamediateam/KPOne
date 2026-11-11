@@ -23,6 +23,11 @@ final class PharmacySpace
 {
     public const LIST_LIMIT = 5;
 
+    /** The shared waiting-time rule (resources/js/lib/waiting-time.ts): amber from 30 minutes, red from 60. */
+    public const WAIT_LONG_MINUTES = 30;
+
+    public const WAIT_VERY_LONG_MINUTES = 60;
+
     public function __construct(private BranchAccessService $branches, private DispensaryDirectoryService $dispensary, private DispensaryReturnService $returns, private InventoryStockReviewService $stockReview) {}
 
     /**
@@ -31,56 +36,10 @@ final class PharmacySpace
     public function home(User $actor): array
     {
         $branch = $this->branches->activeBranch($actor);
-        $toDispense = null;
-        $returnsToCheck = null;
-        $stockWatch = null;
-
-        // Same rule as the Dispensary list: CA and CA Supervisor with dispensary.view.branch at the active branch.
-        if ($branch !== null && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor'])) {
-            $board = $this->dispensary->board($actor, []);
-            $data = $this->rowsOf($board);
-            // The board lists newest first in pages of 25, so the longest waiters sit on its last pages: read those
-            // too (at most two more pages) and show the longest-waiting patients, not the newest.
-            $lastPage = (int) $board['lastPage'];
-            for ($page = $lastPage, $reads = 0; $page > 1 && $reads < 2; $page--, $reads++) {
-                $data = array_merge($data, $this->rowsOf($this->dispensary->board($actor, ['page' => $page])));
-            }
-            $unique = [];
-            foreach ($data as $row) {
-                $unique[$row['visitNumber']] = $row;
-            }
-            $data = array_values($unique);
-            usort($data, fn (array $a, array $b): int => $b['durationMinutes'] <=> $a['durationMinutes']);
-            $shown = array_slice($data, 0, self::LIST_LIMIT);
-            $numbers = $this->queueNumbers($branch->organisation_id, $branch->id, array_column($shown, 'visitNumber'));
-            $toDispense = [
-                'total' => (int) $board['total'],
-                'limit' => self::LIST_LIMIT,
-                'seeAllHref' => route('registration.index', absolute: false),
-                'rows' => array_map(fn (array $r): array => [
-                    'visitNumber' => $r['visitNumber'],
-                    'queueNumber' => $numbers[$r['visitNumber']] ?? null,
-                    'patient' => $this->shortName((string) $r['patientName']),
-                    'minutes' => (int) $r['durationMinutes'],
-                    'medicineCount' => $r['medicineCount'],
-                    'href' => $r['dispensaryUrl'],
-                ], $shown),
-            ];
-        }
-        // Same rule as Returns to check (DSP-7b): the v1 checkers only.
-        if ($branch !== null && $this->returns->canCheckReturns($actor)) {
-            $returnsToCheck = ['total' => $this->returns->waitingList($actor, 1)['total']];
-        }
+        $toDispense = $this->toDispense($actor);
+        $returnsToCheck = $this->returnsToCheck($actor);
         // The Stock review's own counts, for anyone who can open that page (counts only; no item names here).
-        if ($branch !== null && $actor->can('inventory.view.branch')) {
-            $page = $this->stockReview->page($actor, []);
-            $stockWatch = [
-                'lowStock' => (int) $page['lists']['low_stock']['total'],
-                'expiring' => (int) $page['lists']['expiring']['total'],
-                'expired' => (int) $page['lists']['expired']['total'],
-                'windowDays' => (int) $page['windowDays'],
-            ];
-        }
+        $stockWatch = $this->stockWatch($actor);
 
         $links = [];
         if ($toDispense !== null) {
@@ -112,6 +71,89 @@ final class PharmacySpace
         $source = $board['data'];
 
         return array_values($source instanceof Collection ? $source->all() : (array) $source);
+    }
+
+    /**
+     * The Dispensary list's own rows for the longest-waiting patients, or null when this person cannot open that list.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function toDispense(User $actor): ?array
+    {
+        $branch = $this->branches->activeBranch($actor);
+        if ($branch === null || ! $actor->can('dispensary.view.branch') || ! $actor->hasAnyRole(['ca', 'ca_supervisor'])) {
+            return null;
+        }
+        $board = $this->dispensary->board($actor, []);
+        $data = $this->rowsOf($board);
+        // The board lists newest first in pages of 25, so the longest waiters sit on its last pages: read those
+        // too (at most two more pages) and show the longest-waiting patients, not the newest.
+        $lastPage = (int) $board['lastPage'];
+        for ($page = $lastPage, $reads = 0; $page > 1 && $reads < 2; $page--, $reads++) {
+            $data = array_merge($data, $this->rowsOf($this->dispensary->board($actor, ['page' => $page])));
+        }
+        $unique = [];
+        foreach ($data as $row) {
+            $unique[$row['visitNumber']] = $row;
+        }
+        $data = array_values($unique);
+        usort($data, fn (array $a, array $b): int => $b['durationMinutes'] <=> $a['durationMinutes']);
+        $shown = array_slice($data, 0, self::LIST_LIMIT);
+        $numbers = $this->queueNumbers($branch->organisation_id, $branch->id, array_column($shown, 'visitNumber'));
+        $toDispense = [
+            'total' => (int) $board['total'],
+            'limit' => self::LIST_LIMIT,
+            'seeAllHref' => route('registration.index', absolute: false),
+            'rows' => array_map(fn (array $r): array => [
+                'visitNumber' => $r['visitNumber'],
+                'queueNumber' => $numbers[$r['visitNumber']] ?? null,
+                'patient' => $this->shortName((string) $r['patientName']),
+                'minutes' => (int) $r['durationMinutes'],
+                'medicineCount' => $r['medicineCount'],
+                'href' => $r['dispensaryUrl'],
+            ], $shown),
+        ];
+
+        return $toDispense;
+    }
+
+    /**
+     * The Stock review's own counts (counts only, no item names), or null when this person cannot open Stock review.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function stockWatch(User $actor): ?array
+    {
+        if ($this->branches->activeBranch($actor) === null || ! $actor->can('inventory.view.branch')) {
+            return null;
+        }
+        $page = $this->stockReview->page($actor, []);
+
+        return [
+            'lowStock' => (int) $page['lists']['low_stock']['total'],
+            'expiring' => (int) $page['lists']['expiring']['total'],
+            'expired' => (int) $page['lists']['expired']['total'],
+            'windowDays' => (int) $page['windowDays'],
+        ];
+    }
+
+    /** @return array<string, mixed>|null */
+    public function returnsToCheck(User $actor): ?array
+    {
+        $branch = $this->branches->activeBranch($actor);
+        if ($branch === null || ! $this->returns->canCheckReturns($actor)) {
+            return null;
+        }
+
+        return ['total' => $this->returns->waitingList($actor, 1)['total']];
+    }
+
+    /** "Waiting 144 min, Very long wait": the words as well as the colour. */
+    public function waitText(int $minutes): string
+    {
+        $label = $minutes >= self::WAIT_VERY_LONG_MINUTES ? ', Very long wait' : ($minutes >= self::WAIT_LONG_MINUTES ? ', Long wait' : '');
+
+        return 'Waiting '.$minutes.' min'.$label;
     }
 
     /** "Ahmad I." from "Ahmad Ismail bin Ali": the first name and the initial of the next, never the full name. */

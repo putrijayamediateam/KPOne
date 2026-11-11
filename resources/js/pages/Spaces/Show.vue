@@ -2,6 +2,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref } from 'vue';
+import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -47,6 +48,7 @@ const props = defineProps<{
     space: Space;
     spaces: Space[];
     existing?: { title: string; href: string } | null;
+    questions?: Array<{ key: string; label: string }>;
     pharmacy?: Pharmacy | null;
 }>();
 
@@ -373,6 +375,11 @@ onMounted(async () => {
                     >
                 </p>
             </section>
+            <SpaceAskPanel
+                v-if="questions && questions.length"
+                :space="space.key"
+                :questions="questions"
+            />
             <section class="space-card space-recent" aria-labelledby="recent">
                 <h2 id="recent">Recent activity</h2>
                 <p class="space-muted">Recent activity will appear here.</p>

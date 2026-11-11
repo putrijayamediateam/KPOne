@@ -336,3 +336,133 @@
 .space-shell .space-wait {
     min-width: 0;
 }
+
+.space-shell .space-ask-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.space-shell .space-ask-btn {
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: var(--space-radius-control);
+    border: 1px solid var(--space-line);
+    background: var(--space-surface);
+    color: var(--space-fg);
+    font: inherit;
+    cursor: pointer;
+}
+.space-shell .space-ask-btn.is-on {
+    background: var(--space-accent-tint);
+    color: var(--space-accent);
+    font-weight: 600;
+}
+.space-shell .space-ask-btn:disabled {
+    cursor: progress;
+}
+.space-shell .space-ask-btn:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+.space-shell .space-ask-answer {
+    margin-top: 12px;
+    min-height: 24px;
+}
+.space-shell .space-ask-sentence {
+    margin: 0 0 8px;
+    font-weight: 600;
+}
+.space-shell .space-ask-error {
+    margin: 0;
+    color: var(--space-bad);
+}
+.space-shell .space-ask-table {
+    overflow-x: auto;
+}
+.space-shell .space-ask-table table {
+    border-collapse: collapse;
+    width: 100%;
+}
+.space-shell .space-ask-table th,
+.space-shell .space-ask-table td {
+    text-align: left;
+    padding: 8px 12px 8px 0;
+    border-top: 1px solid var(--space-line);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.space-shell .space-ask-table th {
+    color: var(--space-muted);
+    font-weight: 600;
+}
+
+.space-shell .space-ask-skeleton {
+    display: grid;
+    gap: 8px;
+}
+.space-shell .space-ask-skeleton span {
+    display: block;
+    height: 16px;
+    border-radius: 6px;
+    background: var(--space-hover);
+}
+.space-shell .space-ask-skeleton span:first-child {
+    width: 60%;
+}
+.space-shell .space-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+.space-shell .space-ask-meta {
+    margin: 8px 0 0;
+}
+@media (max-width: 639px) {
+    .space-shell .space-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .space-shell .space-stats strong {
+        font-size: 18px;
+    }
+    .space-shell .space-stats .space-muted {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 639px) {
+    .space-shell .space-ask-table th,
+    .space-shell .space-ask-table td {
+        white-space: normal;
+        padding-right: 8px;
+        vertical-align: top;
+    }
+}
+
+.space-shell .space-ask-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+.space-shell .space-ask-failed .space-ask-error {
+    margin: 0;
+}
+@media (min-width: 640px) {
+    .space-shell .space-ask-failed {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+}
+@media (max-width: 639px) {
+    /* A short name or number never breaks across lines; only the wait may wrap. */
+    .space-shell .space-ask-table td:nth-child(1),
+    .space-shell .space-ask-table td:nth-child(2) {
+        white-space: nowrap;
+    }
+}
