@@ -922,14 +922,14 @@ const saveReorder = () =>
                                 >Expiry date
                                 <DateField
                                     v-model="receipt[line.publicId].expiryDate"
-                                    :aria-label="`${line.sku} received batch expiry`"
+                                    :aria-label="`${line.sku} expiry date`"
                                     :echo="false"
                             /></label>
                             <label class="grid min-w-0 gap-1 text-xs"
                                 >Quantity this receipt ({{ line.stockUnit }})
                                 <Input
                                     v-model="receipt[line.publicId].quantity"
-                                    :aria-label="`${line.sku} receipt quantity`"
+                                    :aria-label="`${line.sku} quantity this receipt`"
                                     inputmode="decimal"
                             /></label>
                             <div class="grid min-w-0 gap-1">

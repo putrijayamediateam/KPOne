@@ -12,13 +12,13 @@ const panel = readFileSync(
 
 // DD-12 follow-up from the STK-10B design review: the Post receipt row shows a visible label on every field,
 // so nothing relies on placeholder text that is cut off at 1440 px.
-test('every Post receipt field has a visible label and keeps its accessible name', () => {
+test('every Post receipt field has a visible label and its accessible name contains the visible label (WCAG 2.5.3)', () => {
     for (const [label, name] of [
         ['Batch number', 'received batch number'],
-        ['Expiry date', 'received batch expiry'],
+        ['Expiry date', 'expiry date'],
         [
             'Quantity this receipt \\(\\{\\{ line\\.stockUnit \\}\\}\\)',
-            'receipt quantity',
+            'quantity this receipt',
         ],
     ]) {
         assert.match(
