@@ -164,7 +164,11 @@ final class PermissionCatalogue
             'inventory.variances.approve.branch',
             'inventory.supplier_returns.request.branch',
             'inventory.supplier_returns.approve.branch',
+            'inventory.supplier_invoices.record.branch',
+            'inventory.supplier_invoices.approve.branch',
             'inventory.usage.record.branch',
+            'inventory.controlled_register.view.branch',
+            'inventory.controlled_register.check.branch',
             'inventory.recalls.manage.organisation',
             'inventory.recalls.lift.organisation',
             'inventory.cost.view.organisation',
@@ -497,6 +501,22 @@ final class PermissionCatalogue
         // STK-19 (owner decision 2026-11-11, "agree all"): a Finance Officer approves purchase orders as well as the
         // Director, never one they raised or submitted (ProcurementService and PostgreSQL).
         $roles['finance_officer'][] = 'inventory.purchase_orders.approve.organisation';
+
+        // STK-22 (owner decisions 2026-11-11, "agree all"): a CA Supervisor or Finance Officer records a supplier
+        // invoice; a Finance Officer or Director, never the recorder, accepts or rejects a mismatch.
+        foreach (['ca_supervisor', 'finance_officer'] as $holder) {
+            $roles[$holder][] = 'inventory.supplier_invoices.record.branch';
+        }
+        foreach (['finance_officer', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.supplier_invoices.approve.branch';
+        }
+
+        // STK-24 (owner decisions 2026-11-11, "agree all"): the controlled-drug register (DRAFT pending pharmacist
+        // review) is viewed and checked by a CA Supervisor, Finance Officer or Director; the checker is a second person.
+        foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.controlled_register.view.branch';
+            $roles[$holder][] = 'inventory.controlled_register.check.branch';
+        }
 
         // STK-25 (owner programme 2026-11-11): a Director starts a recall across branches. Lifting is its own
         // permission, never used by the starter; Director only until the owner decides who else may lift.
