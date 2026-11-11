@@ -876,6 +876,16 @@ const saveReorder = () =>
                             "
                             >Cancel</Button
                         >
+                        <a
+                            v-if="
+                                operations.permissions.createPurchaseOrders ||
+                                operations.permissions.approvePurchaseOrders
+                            "
+                            :href="`/inventory/purchase-orders/${row.publicId}/print`"
+                            class="inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium lg:min-h-9"
+                            :aria-label="`Print purchase order ${row.number}`"
+                            >Print PO</a
+                        >
                         <Button
                             v-if="canPurchase(row, 'close')"
                             size="sm"
