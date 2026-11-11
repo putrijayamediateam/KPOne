@@ -138,9 +138,6 @@ onMounted(async () => {
                             aria-label="Account menu"
                         >
                             <UserInfo :user="user" />
-                            <span class="space-account-name">{{
-                                user.name
-                            }}</span>
                         </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="end" class="w-56">
