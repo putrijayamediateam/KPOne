@@ -32,5 +32,5 @@ test('every save carries the versions the screen showed', () => {
 });
 
 test('a storage value saved before this screen stays selectable', () => {
-    assert.match(page, /storageOptions\(\s*sku\.storageType\s*\)/);
+    assert.match(page, /storageOptions\(\s*sku\.storageType,?\s*\)/);
 });
