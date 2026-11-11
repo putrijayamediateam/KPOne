@@ -543,8 +543,10 @@ check items, keep them"). The rest stand unless the owner changes them.
   CA Supervisor request only the Director can finish; `StaffProvisioningService` refuses the role, and from HR-15b
   the card says "Only the Director can create a Locum account." (B.E.R.N.I.S.S: lists unchanged for v1).
 - HR-15b known limits: a confirmed open shift points at an ordinary draft roster shift (no foreign key), so if HR
-  later removes or moves that shift in the planner before approval, the open shift stays "Filled" with nobody
-  rostered; HR posts it again. Two confirms into the same branch week take turns on an advisory lock so the second
+  later removes or moves that shift in the planner before approval, the open shift now says "Needs posting again"
+  (worked out when the page opens, #475); HR posts it again. The locum is not told: their "Confirmed" line stays as it
+  was (Suresh's m2, a softer wording, is a possible later tweak; it changes an existing label, so it goes to the owner
+  with other items, B.E.R.N.I.S.S, 2026-11-11). Two confirms into the same branch week take turns on an advisory lock so the second
   uses the first's new draft; a two-process test now covers it (hardening item 4, #466). The asks on a shift now sort
   by time and then id (#469), which fixed a flaky `OpenShiftsTest`.
 - HR-16a known limits: staff see their own latest result only while the check is on at that branch; results and
