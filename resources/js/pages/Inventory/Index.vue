@@ -187,52 +187,57 @@ const clearFilters = () => {
 </script>
 
 <template>
-    <div class="flex flex-wrap gap-3 px-4">
-        <a
-            href="/inventory/counts"
-            class="inline-flex min-h-11 items-center underline"
-            >Stock count (governed)</a
-        ><a
-            href="/inventory/writeoffs"
-            class="inline-flex min-h-11 items-center underline"
-            >Write-off (governed)</a
-        ><a
-            href="/inventory/supplier-returns"
-            class="inline-flex min-h-11 items-center underline"
-            >Supplier returns</a
-        ><a
-            href="/inventory/treatment-usage"
-            class="inline-flex min-h-11 items-center underline"
-            >Treatment room usage</a
-        >
-    </div>
-    <a
-        href="/inventory/stock-review"
-        class="inline-flex min-h-11 items-center px-4 underline"
-        >Stock review</a
-    >
-    <a
-        href="/inventory/batch-holds"
-        class="mx-4 mt-4 inline-flex min-h-11 items-center self-start rounded-md border px-4 text-sm underline"
-        >Batch safety holds</a
-    >
-    <a
-        href="/inventory/readiness"
-        class="mx-4 mt-4 inline-flex min-h-11 items-center self-start rounded-md border px-4 text-sm"
-        >Pilot readiness</a
-    >
     <Head title="Inventory" />
     <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
         <PageHeader
             title="Inventory"
             :description="`Stock, batches and movement history for ${inventory.branch}.`"
-        >
-            <template #actions>
-                <ActionLink href="/workspace" variant="secondary">
-                    Return to Workspace
-                </ActionLink>
-            </template>
-        </PageHeader>
+        />
+
+        <nav aria-label="Inventory tasks" class="kp-control-group">
+            <ActionLink
+                href="/inventory/counts"
+                variant="outline"
+                class="min-h-11"
+                >Stock count (governed)</ActionLink
+            >
+            <ActionLink
+                href="/inventory/writeoffs"
+                variant="outline"
+                class="min-h-11"
+                >Write-off (governed)</ActionLink
+            >
+            <ActionLink
+                href="/inventory/supplier-returns"
+                variant="outline"
+                class="min-h-11"
+                >Supplier returns</ActionLink
+            >
+            <ActionLink
+                href="/inventory/treatment-usage"
+                variant="outline"
+                class="min-h-11"
+                >Treatment room usage</ActionLink
+            >
+            <ActionLink
+                href="/inventory/stock-review"
+                variant="outline"
+                class="min-h-11"
+                >Stock review</ActionLink
+            >
+            <ActionLink
+                href="/inventory/batch-holds"
+                variant="outline"
+                class="min-h-11"
+                >Batch safety holds</ActionLink
+            >
+            <ActionLink
+                href="/inventory/readiness"
+                variant="outline"
+                class="min-h-11"
+                >Pilot readiness</ActionLink
+            >
+        </nav>
 
         <section
             class="grid gap-3 sm:grid-cols-3"

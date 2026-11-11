@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import { ActionLink } from '@/components/ui/action-link';
 import {
     Dialog,
     DialogContent,
@@ -10,6 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
@@ -225,23 +228,26 @@ watch(
 <template>
     <Head :title="title" />
     <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
-        <nav class="flex flex-wrap gap-4">
-            <a
-                class="inline-flex min-h-11 items-center underline"
-                href="/inventory"
-                >Inventory</a
-            ><a
-                class="inline-flex min-h-11 items-center underline"
-                href="/inventory/counts"
-                >Stock count</a
-            ><a
-                class="inline-flex min-h-11 items-center underline"
-                href="/inventory/writeoffs"
-                >Write-off</a
-            >
-        </nav>
-        <h1 class="text-2xl font-semibold">{{ title }}</h1>
-        <p>{{ stock.branchName }}</p>
+        <PageHeader :title="title" :description="stock.branchName">
+            <template #actions>
+                <ActionLink href="/inventory" variant="ghost" class="min-h-11"
+                    ><ArrowLeft class="size-4" aria-hidden="true" />
+                    Inventory</ActionLink
+                >
+                <ActionLink
+                    :href="
+                        stock.mode === 'count'
+                            ? '/inventory/writeoffs'
+                            : '/inventory/counts'
+                    "
+                    variant="outline"
+                    class="min-h-11"
+                    >{{
+                        stock.mode === 'count' ? 'Write-off' : 'Stock count'
+                    }}</ActionLink
+                >
+            </template>
+        </PageHeader>
         <p class="rounded border border-amber-500 p-3 text-sm">
             Stock controls: {{ stock.legacyLimit }}
         </p>
