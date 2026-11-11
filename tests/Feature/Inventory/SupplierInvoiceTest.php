@@ -292,5 +292,24 @@ final class SupplierInvoiceTest extends VisitTestCase
         } finally {
             DB::rollBack();
         }
+
+        // A line slipped into an existing invoice later is checked too.
+        $other = $this->received();
+        $kept = $service->record($this->as($this->staff('ca_supervisor')), $this->invoice($other));
+        $keptId = $this->row($kept)->id;
+        $line = (array) DB::table('inventory_supplier_invoice_lines')->where('supplier_invoice_id', $keptId)->sole();
+        DB::beginTransaction();
+        try {
+            $secondLine = DB::table('inventory_purchase_order_lines')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $other['order']->organisation_id, 'purchase_order_id' => $other['order']->id,
+                'inventory_sku_id' => $this->secondSku($other), 'ordered_quantity' => '1.000', 'received_quantity' => '0.000', 'created_at' => now(), 'updated_at' => now()]);
+            unset($line['id']);
+            DB::table('inventory_supplier_invoice_lines')->insert([...$line, 'purchase_order_line_id' => $secondLine, 'invoiced_total_sen' => 500]);
+            DB::statement('SET CONSTRAINTS supplier_invoice_lines_agree IMMEDIATE');
+            $this->fail('PostgreSQL accepted a line that changes an invoice total.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('total and status follow its lines', $e->getMessage());
+        } finally {
+            DB::rollBack();
+        }
     }
 }

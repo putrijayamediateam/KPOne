@@ -127,6 +127,19 @@ BEGIN
  RETURN NULL;
 END; $$;
 CREATE CONSTRAINT TRIGGER supplier_invoices_lines_agree AFTER INSERT ON inventory_supplier_invoices DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION check_supplier_invoice_lines();
+-- A line added later to an existing invoice is checked against its header the same way.
+CREATE OR REPLACE FUNCTION check_supplier_invoice_line_header() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE header inventory_supplier_invoices%ROWTYPE; total bigint; differing int;
+BEGIN
+ SELECT * INTO header FROM inventory_supplier_invoices WHERE id = NEW.supplier_invoice_id;
+ SELECT coalesce(sum(invoiced_total_sen), 0), count(*) FILTER (WHERE result <> 'matches') INTO total, differing
+   FROM inventory_supplier_invoice_lines WHERE supplier_invoice_id = NEW.supplier_invoice_id;
+ IF total <> header.lines_total_sen OR (header.status = 'matched') <> (differing = 0) THEN
+  RAISE EXCEPTION 'A supplier invoice''s total and status follow its lines' USING ERRCODE='23514';
+ END IF;
+ RETURN NULL;
+END; $$;
+CREATE CONSTRAINT TRIGGER supplier_invoice_lines_agree AFTER INSERT ON inventory_supplier_invoice_lines DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION check_supplier_invoice_line_header();
 CREATE TRIGGER supplier_invoices_no_truncate BEFORE TRUNCATE ON inventory_supplier_invoices FOR EACH STATEMENT EXECUTE FUNCTION guard_supplier_invoice_line();
 CREATE TRIGGER supplier_invoice_lines_no_truncate BEFORE TRUNCATE ON inventory_supplier_invoice_lines FOR EACH STATEMENT EXECUTE FUNCTION guard_supplier_invoice_line();
 SQL);
@@ -135,13 +148,13 @@ SQL);
     public function down(): void
     {
         if (DB::connection()->getDriverName() === 'pgsql') {
-            DB::unprepared('DROP TRIGGER IF EXISTS supplier_invoices_lines_agree ON inventory_supplier_invoices; DROP TRIGGER IF EXISTS supplier_invoice_lines_no_truncate ON inventory_supplier_invoice_lines; DROP TRIGGER IF EXISTS supplier_invoices_no_truncate ON inventory_supplier_invoices;
+            DB::unprepared('DROP TRIGGER IF EXISTS supplier_invoice_lines_agree ON inventory_supplier_invoice_lines; DROP TRIGGER IF EXISTS supplier_invoices_lines_agree ON inventory_supplier_invoices; DROP TRIGGER IF EXISTS supplier_invoice_lines_no_truncate ON inventory_supplier_invoice_lines; DROP TRIGGER IF EXISTS supplier_invoices_no_truncate ON inventory_supplier_invoices;
                 DROP TRIGGER IF EXISTS supplier_invoice_lines_guard ON inventory_supplier_invoice_lines; DROP TRIGGER IF EXISTS supplier_invoices_guard ON inventory_supplier_invoices;');
         }
         Schema::dropIfExists('inventory_supplier_invoice_lines');
         Schema::dropIfExists('inventory_supplier_invoices');
         if (DB::connection()->getDriverName() === 'pgsql') {
-            DB::unprepared('DROP FUNCTION IF EXISTS check_supplier_invoice_lines(); DROP FUNCTION IF EXISTS guard_supplier_invoice_line(); DROP FUNCTION IF EXISTS guard_supplier_invoice();');
+            DB::unprepared('DROP FUNCTION IF EXISTS check_supplier_invoice_line_header(); DROP FUNCTION IF EXISTS check_supplier_invoice_lines(); DROP FUNCTION IF EXISTS guard_supplier_invoice_line(); DROP FUNCTION IF EXISTS guard_supplier_invoice();');
         }
     }
 };
