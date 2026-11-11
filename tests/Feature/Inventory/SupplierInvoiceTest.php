@@ -4,6 +4,9 @@ namespace Tests\Feature\Inventory;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\PermissionCatalogue;
+use App\Domain\Organisation\Inventory\Models\InventoryItem;
+use App\Domain\Organisation\Inventory\Models\InventorySku;
+use App\Domain\Organisation\Inventory\Models\PurchaseOrder;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Inventory\Services\SupplierInvoiceService;
 use App\Models\User;
@@ -30,10 +33,10 @@ final class SupplierInvoiceTest extends VisitTestCase
         return (new VerifiedReceivingFixture($this->branch))->actor($role);
     }
 
-    /** The fixture's order (10 ordered at RM 1.25 estimate) with 2 received, optionally with an actual lot cost. */
+    /** The fixture's order (2 ordered at RM 1.25 estimate) fully received, optionally with an actual lot cost. */
     private function received(?int $costTotalSen = null): array
     {
-        $f = (new VerifiedReceivingFixture($this->branch))->build('10.000');
+        $f = (new VerifiedReceivingFixture($this->branch))->build('2.000');
         $payload = $f['payload'];
         if ($costTotalSen !== null) {
             $payload['lines'][0]['cost_total_sen'] = $costTotalSen;
@@ -45,7 +48,7 @@ final class SupplierInvoiceTest extends VisitTestCase
 
     private function invoice(array $f, array $extra = [], string $quantity = '2', string $total = '2.50'): array
     {
-        $line = $f['order']->lines()->sole();
+        $line = $f['order']->lines()->orderBy('id')->firstOrFail();
 
         return ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(), 'purchase_order_public_id' => $f['order']->public_id,
             'invoice_number' => 'INV-'.Str::upper(Str::random(6)), 'invoice_date' => now()->setTimezone($this->branch->timezone)->toDateString(),
@@ -142,8 +145,19 @@ final class SupplierInvoiceTest extends VisitTestCase
         // One live invoice per order and per supplier number.
         $this->assertThrows(fn () => $record($this->invoice($f)), ValidationException::class);
         $this->assertSame(1, DB::table('inventory_supplier_invoices')->count());
-        // An order with nothing received yet cannot be invoiced; a CA cannot record.
+        // A bad quantity is reported under that line's field.
+        $other = $this->received();
+        try {
+            $record($this->invoice($other, [], '1.2345'));
+            $this->fail('An inexact quantity was accepted.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('lines.0.quantity', $e->errors());
+        }
+        // Only a fully received or closed order is invoiced in v1: nothing received, or still receiving, is refused.
         $fresh = (new VerifiedReceivingFixture($this->branch))->build('5.000');
+        $this->assertThrows(fn () => $record($this->invoice($fresh)), ValidationException::class);
+        app(ProcurementService::class)->receive($this->as($fresh['receiver']), $fresh['order'], $fresh['payload']);
+        $this->assertSame(PurchaseOrder::STATUS_PARTIALLY_RECEIVED, $fresh['order']->refresh()->status);
         $this->assertThrows(fn () => $record($this->invoice($fresh)), ValidationException::class);
         $this->assertThrows(fn () => $service->record($this->as($this->staff('ca')), $this->invoice($f)), AuthorizationException::class);
     }
@@ -186,6 +200,9 @@ final class SupplierInvoiceTest extends VisitTestCase
         $this->assertFalse($mine['showAmounts']);
         $this->assertArrayNotHasKey('totalSen', $mine['invoices']['rows'][0]);
         $this->assertArrayNotHasKey('invoicedSen', $mine['invoices']['rows'][0]['lines'][0]);
+        // The price result says something about cost, so a non-cost holder gets the quantity check only.
+        $this->assertArrayNotHasKey('result', $mine['invoices']['rows'][0]['lines'][0]);
+        $this->assertTrue($mine['invoices']['rows'][0]['lines'][0]['quantityMatches']);
         $this->assertTrue($mine['invoices']['rows'][0]['recordedByYou']);
         $finance = $props($f['finance']);
         $this->assertSame([true, 100000, 100000, 250, 'estimate'], [$finance['showAmounts'], $finance['invoices']['rows'][0]['totalSen'], $finance['invoices']['rows'][0]['lines'][0]['invoicedSen'],
@@ -200,5 +217,80 @@ final class SupplierInvoiceTest extends VisitTestCase
         $id = app(SupplierInvoiceService::class)->record($this->as($finance2), $this->invoice($this->received(), [], '1', '1.25'));
         $this->actingAs($this->as($finance2))->post(route('inventory.supplier-invoices.decide', [$id, 'accepted']), ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'reason' => 'rounding'])
             ->assertRedirect(route('inventory.supplier-invoices'))->assertSessionHasErrors('status');
+    }
+
+    public function test_a_line_with_nothing_received_expects_nothing(): void
+    {
+        $f = (new VerifiedReceivingFixture($this->branch))->build('2.000');
+        $service = app(ProcurementService::class);
+        $order = $f['order']->refresh();
+        // A second line, with no cost estimate, that never arrives.
+        DB::table('inventory_purchase_order_lines')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $order->organisation_id, 'purchase_order_id' => $order->id,
+            'inventory_sku_id' => $this->secondSku($f), 'ordered_quantity' => '5.000', 'received_quantity' => '0.000', 'estimated_unit_cost_sen' => null, 'created_at' => now(), 'updated_at' => now()]);
+        $payload = $f['payload'];
+        $service->receive($this->as($f['receiver']), $order, [...$payload, 'lines' => [$payload['lines'][0]]]);
+        // Test fixture: the order is closed with the rest never coming (STK-21's short close does this in the app).
+        DB::table('inventory_purchase_orders')->where('id', $order->id)->update(['status' => 'closed', 'closed_by_user_id' => $f['director']->id, 'closed_at' => now()->utc(), 'lock_version' => DB::raw('lock_version + 1')]);
+        $lines = $order->lines()->orderBy('id')->get();
+        $input = $this->invoice($f);
+        $input['lines'] = [['line_public_id' => $lines[0]->public_id, 'quantity' => '2', 'total' => '2.50'], ['line_public_id' => $lines[1]->public_id, 'quantity' => '0', 'total' => '0']];
+        $id = app(SupplierInvoiceService::class)->record($this->as($this->staff('ca_supervisor')), $input);
+        $this->assertSame('matched', $this->row($id)->status);
+        $second = DB::table('inventory_supplier_invoice_lines')->where('purchase_order_line_id', $lines[1]->id)->sole();
+        $this->assertSame([0, 'receipt', 'matches'], [(int) $second->expected_total_sen, $second->price_basis, $second->result]);
+    }
+
+    private function secondSku(array $f): int
+    {
+        $item = InventoryItem::query()->findOrFail($f['sku']->inventory_item_id)->replicate();
+        $item->forceFill(['public_id' => (string) Str::uuid(), 'code' => 'STK22-'.Str::upper(Str::random(6))])->save();
+        $sku = InventorySku::query()->findOrFail($f['sku']->id)->replicate();
+        $sku->forceFill(['public_id' => (string) Str::uuid(), 'inventory_item_id' => $item->id, 'sku_code' => 'STK22-'.Str::upper(Str::random(6)), 'barcode' => null])->save();
+
+        return $sku->id;
+    }
+
+    public function test_mixed_costs_fall_back_to_the_estimate_and_an_over_delivery_shares_the_actual_cost(): void
+    {
+        // Two deliveries, only the first with an actual cost: the order estimate is used for the whole line.
+        $f = (new VerifiedReceivingFixture($this->branch))->build('5.000');
+        $procurement = app(ProcurementService::class);
+        $first = $f['payload'];
+        $first['lines'][0]['cost_total_sen'] = 300;
+        $procurement->receive($this->as($f['receiver']), $f['order'], $first);
+        $line = $f['order']->lines()->sole();
+        $procurement->receive($this->as($f['receiver']), $f['order'], [...$f['payload'], 'lock_version' => $f['order']->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid(),
+            'delivery_reference' => 'SYN-SECOND-'.Str::random(6), 'lines' => [['line_public_id' => $line->public_id, 'quantity' => '3.000', 'batch_number' => 'SYN-B2-'.Str::random(6), 'expiry_date' => '2028-12-31']]]);
+        $this->assertSame(PurchaseOrder::STATUS_FULLY_RECEIVED, $f['order']->refresh()->status);
+        $id = app(SupplierInvoiceService::class)->record($this->as($this->staff('ca_supervisor')), $this->invoice($f, [], '5', '6.25'));
+        $saved = DB::table('inventory_supplier_invoice_lines')->where('supplier_invoice_id', $this->row($id)->id)->sole();
+        $this->assertSame(['estimate', 625, 'matches'], [$saved->price_basis, (int) $saved->expected_total_sen, $saved->result]);
+
+        // Over-delivery: 3 units cost RM 10.00 in the lots and 2 count against the order, so RM 6.67 is expected.
+        $expected = new \ReflectionMethod(SupplierInvoiceService::class, 'expected');
+        $this->assertSame([667, 'receipt'], $expected->invoke(app(SupplierInvoiceService::class), 2000, ['quantity' => 3000, 'sen' => 1000], 125));
+        $this->assertSame([1000, 'receipt'], $expected->invoke(app(SupplierInvoiceService::class), 3000, ['quantity' => 3000, 'sen' => 1000], 125));
+        $this->assertSame([null, 'none'], $expected->invoke(app(SupplierInvoiceService::class), 3000, null, null));
+    }
+
+    public function test_postgresql_checks_the_total_and_status_against_the_lines_at_commit(): void
+    {
+        $f = $this->received();
+        $service = app(SupplierInvoiceService::class);
+        $id = $service->record($this->as($this->staff('ca_supervisor')), $this->invoice($f, [], '2', '9.00'));
+        $service->decide($this->as($f['director']), $id, 'rejected', ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'reason' => 'wrong_price']);
+        $copy = (array) $this->row($id);
+        unset($copy['id']);
+        DB::beginTransaction();
+        try {
+            DB::table('inventory_supplier_invoices')->insert([...$copy, 'public_id' => (string) Str::uuid(), 'idempotency_key' => (string) Str::uuid(), 'status' => 'matched',
+                'decided_by_user_id' => null, 'decided_at' => null, 'decision_reason' => null, 'decision_note' => null, 'lock_version' => 1]);
+            DB::statement('SET CONSTRAINTS supplier_invoices_lines_agree IMMEDIATE');
+            $this->fail('PostgreSQL accepted an invoice with no lines.');
+        } catch (QueryException $e) {
+            $this->assertStringContainsString('total and status follow its lines', $e->getMessage());
+        } finally {
+            DB::rollBack();
+        }
     }
 }

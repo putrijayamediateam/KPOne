@@ -32,7 +32,8 @@ type InvoiceLine = {
     item: string;
     sku: string;
     stockUnit: string;
-    result:
+    quantityMatches: boolean;
+    result?:
         | 'matches'
         | 'quantity_differs'
         | 'price_differs'
@@ -101,7 +102,7 @@ const statusTone: Record<Tab, 'warning' | 'success' | 'neutral' | 'danger'> = {
     accepted: 'success',
     rejected: 'danger',
 };
-const resultLabel: Record<InvoiceLine['result'], string> = {
+const resultLabel: Record<NonNullable<InvoiceLine['result']>, string> = {
     matches: 'Matches',
     quantity_differs: 'Quantity differs',
     price_differs: 'Price differs',
@@ -174,7 +175,8 @@ watch(selectedOrder, (order) => {
     form.lines = Object.fromEntries(
         (order?.lines ?? []).map((line) => [
             line.publicId,
-            { quantity: trimQuantity(line.receivedQuantity), total: '' },
+            // Blank: the recorder copies the quantity from the paper invoice.
+            { quantity: '', total: '' },
         ]),
     );
 });
@@ -387,9 +389,14 @@ const decisionError = computed(() =>
                             <DateField
                                 v-model="form.date"
                                 aria-labelledby="invoice-date-label"
+                                aria-describedby="invoice-date-error"
+                                :aria-invalid="!!errors.invoice_date"
                                 calendar-label="Invoice date"
                             />
-                            <InputError :message="errors.invoice_date" />
+                            <InputError
+                                id="invoice-date-error"
+                                :message="errors.invoice_date"
+                            />
                         </div>
                         <label class="grid gap-1 text-sm" for="invoice-total"
                             >Invoice total, RM (optional)
@@ -460,8 +467,10 @@ const decisionError = computed(() =>
                                     :aria-invalid="
                                         !!errors[`lines.${index}.quantity`]
                                     "
+                                    :aria-describedby="`invoice-line-${index}-quantity-error`"
                                 />
                                 <InputError
+                                    :id="`invoice-line-${index}-quantity-error`"
                                     :message="errors[`lines.${index}.quantity`]"
                                 />
                             </label>
@@ -475,8 +484,10 @@ const decisionError = computed(() =>
                                     :aria-invalid="
                                         !!errors[`lines.${index}.total`]
                                     "
+                                    :aria-describedby="`invoice-line-${index}-total-error`"
                                 />
                                 <InputError
+                                    :id="`invoice-line-${index}-total-error`"
                                     :message="errors[`lines.${index}.total`]"
                                 />
                             </label>
@@ -484,7 +495,11 @@ const decisionError = computed(() =>
                         <InputError :message="errors.lines" />
                     </fieldset>
                     <InputError
-                        :message="errors.idempotency_key ?? errors.quantity"
+                        :message="
+                            errors.idempotency_key ??
+                            errors.expected_branch_id ??
+                            errors.price
+                        "
                     />
                     <Button
                         type="submit"
@@ -578,10 +593,25 @@ const decisionError = computed(() =>
                                     >
                                 </p>
                                 <StatusBadge
+                                    v-if="line.result"
                                     :status="line.result"
                                     :label="resultLabel[line.result]"
                                     :tone="
                                         line.result === 'matches'
+                                            ? 'success'
+                                            : 'warning'
+                                    "
+                                />
+                                <StatusBadge
+                                    v-else
+                                    status="quantity"
+                                    :label="
+                                        line.quantityMatches
+                                            ? 'Quantity matches'
+                                            : 'Quantity differs'
+                                    "
+                                    :tone="
+                                        line.quantityMatches
                                             ? 'success'
                                             : 'warning'
                                     "

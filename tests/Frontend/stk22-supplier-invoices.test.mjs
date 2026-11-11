@@ -20,6 +20,9 @@ test('amounts appear only when the server sends them to a cost holder', () => {
         /Invoice amounts are shown only to a Director or Finance Officer\./,
     );
     assert.match(page, /KPOne pays nothing/);
+    // Without cost, a line shows the quantity check only.
+    assert.match(page, /'Quantity matches'/);
+    assert.match(page, /v-if="line\.result"/);
 });
 
 test('the recorder is never offered Accept or Reject', () => {
@@ -49,5 +52,11 @@ test('the decision dialog asks for a fixed reason and a note for Other', () => {
 test('each line is entered, with 0 for a line not on the invoice', () => {
     assert.match(page, /Use 0 for a line that\s+is not on it\./);
     assert.match(page, /idempotency_key: form\.key/);
+    // The recorder copies the quantity from the paper invoice; nothing is pre-filled.
+    assert.match(page, /\{ quantity: '', total: '' \}/);
+    assert.match(
+        page,
+        /:aria-describedby="`invoice-line-\$\{index\}-quantity-error`"/,
+    );
     assert.match(page, /Checked against the sum of the lines\./);
 });

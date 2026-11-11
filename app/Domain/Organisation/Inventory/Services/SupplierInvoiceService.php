@@ -10,6 +10,7 @@ use App\Domain\Visit\Billing\Services\ExactMoney;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -34,8 +35,11 @@ final class SupplierInvoiceService
 
     public const REJECT_REASONS = ['wrong_quantity', 'wrong_price', 'not_our_order', 'other'];
 
-    /** Orders whose received stock can be invoiced. */
-    private const INVOICEABLE = [PurchaseOrder::STATUS_PARTIALLY_RECEIVED, PurchaseOrder::STATUS_FULLY_RECEIVED, PurchaseOrder::STATUS_CLOSED];
+    /**
+     * v1 invoices an order once nothing more can arrive on it: one live invoice per order, so an order still
+     * receiving would leave later deliveries with no invoice.
+     */
+    private const INVOICEABLE = [PurchaseOrder::STATUS_FULLY_RECEIVED, PurchaseOrder::STATUS_CLOSED];
 
     private const PAGE_SIZE = 25;
 
@@ -61,15 +65,32 @@ final class SupplierInvoiceService
         }
         $entered = [];
         foreach ($data['lines'] as $index => $line) {
-            $entered[strtolower((string) $line['line_public_id'])] = [
-                'quantity' => StockUnitQuantity::scaled((string) $line['quantity'], true),
-                'total' => $this->sen((string) $line['total'], "lines.{$index}.total"),
-            ];
+            try {
+                $quantity = StockUnitQuantity::scaled((string) $line['quantity'], true);
+            } catch (ValidationException $e) {
+                // Re-keyed so the message sits under that line's field.
+                throw ValidationException::withMessages(["lines.{$index}.quantity" => collect($e->errors())->flatten()->first() ?? 'Enter an exact quantity.']);
+            }
+            $entered[strtolower((string) $line['line_public_id'])] = ['quantity' => $quantity, 'total' => $this->sen((string) $line['total'], "lines.{$index}.total")];
         }
         $stated = isset($data['stated_total']) && trim((string) $data['stated_total']) !== '' ? $this->sen((string) $data['stated_total'], 'stated_total') : null;
         $key = strtolower((string) $data['idempotency_key']);
         $hash = hash('sha256', json_encode([strtolower((string) $data['purchase_order_public_id']), $number, $data['invoice_date'], $stated, $entered], JSON_THROW_ON_ERROR));
 
+        try {
+            return $this->recordLocked($actor, $branch, $data, $number, $entered, $stated, $key, $hash);
+        } catch (UniqueConstraintViolationException) {
+            // Two people recording the same supplier number (or order) at the same moment: the database keeps one.
+            throw ValidationException::withMessages(['invoice_number' => 'This invoice or order was just recorded by someone else. Reload to see it.']);
+        }
+    }
+
+    /**
+     * @param  array<string, mixed>  $data
+     * @param  array<string, array{quantity: int, total: int}>  $entered
+     */
+    private function recordLocked(User $actor, Branch $branch, array $data, string $number, array $entered, ?int $stated, string $key, string $hash): string
+    {
         return DB::transaction(function () use ($actor, $branch, $data, $number, $entered, $stated, $key, $hash): string {
             $actor = $this->authority->lockForBranch($actor, $branch, self::RECORD);
             $order = PurchaseOrder::query()->where('organisation_id', $actor->organisation_id)->where('public_id', strtolower((string) $data['purchase_order_public_id']))->lockForUpdate()->first();
@@ -83,7 +104,7 @@ final class SupplierInvoiceService
                 return (string) $existing->public_id;
             }
             if (! in_array($order->status, self::INVOICEABLE, true)) {
-                throw ValidationException::withMessages(['purchase_order_public_id' => 'Record an invoice once stock has been received on the order.']);
+                throw ValidationException::withMessages(['purchase_order_public_id' => 'Record an invoice once the order is fully received or closed.']);
             }
             $invoiceKey = Str::upper($number);
             $live = DB::table('inventory_supplier_invoices')->where('organisation_id', $actor->organisation_id)->where('status', '<>', 'rejected');
@@ -221,9 +242,11 @@ final class SupplierInvoiceService
                 'decisionReason' => $row->decision_reason, 'decisionNote' => $row->decision_note,
                 ...($cost ? ['totalSen' => (int) $row->lines_total_sen] : []),
                 'lines' => collect($lines->get($row->id, []))->map(fn (stdClass $line): array => [
-                    'item' => $line->item, 'sku' => $line->sku, 'stockUnit' => $line->stock_unit, 'result' => $line->result,
+                    'item' => $line->item, 'sku' => $line->sku, 'stockUnit' => $line->stock_unit,
+                    // Whether the price matched says something about cost, so others see the quantity check only.
+                    'quantityMatches' => (string) $line->invoiced_quantity === (string) $line->received_quantity,
                     'orderedQuantity' => (string) $line->ordered_quantity, 'receivedQuantity' => (string) $line->received_quantity, 'invoicedQuantity' => (string) $line->invoiced_quantity,
-                    ...($cost ? ['invoicedSen' => (int) $line->invoiced_total_sen, 'expectedSen' => $line->expected_total_sen === null ? null : (int) $line->expected_total_sen, 'priceBasis' => $line->price_basis] : []),
+                    ...($cost ? ['result' => $line->result, 'invoicedSen' => (int) $line->invoiced_total_sen, 'expectedSen' => $line->expected_total_sen === null ? null : (int) $line->expected_total_sen, 'priceBasis' => $line->price_basis] : []),
                 ])->values()->all(),
             ], $invoices)],
             'orders' => $actor->can(self::RECORD) ? $this->invoiceableOrders($actor, $branch) : [],
@@ -295,14 +318,23 @@ final class SupplierInvoiceService
      */
     private function expected(int $received, ?array $actual, ?int $estimateUnitSen): array
     {
+        // Nothing received on the line, so by the receipts nothing is owed for it.
+        if ($received === 0) {
+            return [0, 'receipt'];
+        }
         if ($actual !== null && $actual['quantity'] === $received) {
             return [$actual['sen'], 'receipt'];
+        }
+        // An over-delivery puts more in the lots than counts against the order: the received part's share of the
+        // actual cost, rounded half up in whole sen.
+        if ($actual !== null && $actual['quantity'] > $received && $actual['sen'] <= intdiv(PHP_INT_MAX - $actual['quantity'], $received * 2)) {
+            return [intdiv($actual['sen'] * $received * 2 + $actual['quantity'], $actual['quantity'] * 2), 'receipt'];
         }
         if ($estimateUnitSen !== null) {
             return [ExactMoney::line($received, $estimateUnitSen), 'estimate'];
         }
 
-        return $received === 0 ? [0, 'estimate'] : [null, 'none'];
+        return [null, 'none'];
     }
 
     /** Ringgit text ("1,234.50" or "1234.5") to whole sen, with no float maths. */
