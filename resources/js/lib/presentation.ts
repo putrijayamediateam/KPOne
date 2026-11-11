@@ -18,8 +18,8 @@ const statusLabels: Record<string, string> = {
     dispensed: 'Dispensed',
     dispensing: 'Dispensing',
     finalized: 'Finalized',
-    in_progress: 'In Progress',
-    not_dispensed: 'Not Dispensed',
+    in_progress: 'In progress',
+    not_dispensed: 'Not dispensed',
     partial: 'Partial',
     pending: 'Pending',
     posted: 'Posted',
@@ -95,7 +95,7 @@ export const formatStatusLabel = (status: string): string => {
         statusLabels[normalized] ??
         normalized
             .replaceAll('_', ' ')
-            .replace(/\b\p{L}/gu, (character) => character.toLocaleUpperCase())
+            .replace(/^\p{L}/u, (character) => character.toLocaleUpperCase())
     );
 };
 

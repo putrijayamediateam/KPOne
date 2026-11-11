@@ -338,9 +338,14 @@ test('operational tabs mount with roving focus and automatic keyboard activation
 test('status and date presentation are deterministic without changing values', () => {
     assert.equal(
         presentation.formatStatusLabel('not_dispensed'),
-        'Not Dispensed',
+        'Not dispensed',
     );
     assert.equal(presentation.formatStatusLabel('finalized'), 'Finalized');
+    assert.equal(
+        presentation.formatStatusLabel('partially_received'),
+        'Partially received',
+    );
+    assert.equal(presentation.formatStatusLabel('in-progress'), 'In progress');
     assert.equal(presentation.statusTone('approved'), 'success');
     assert.equal(presentation.statusTone('unknown_state'), 'neutral');
     assert.equal(presentation.formatDate('2026-09-11'), '11 Sep 2026');
