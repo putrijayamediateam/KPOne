@@ -182,4 +182,26 @@ final class PurchaseOrderShortCloseTest extends VisitTestCase
         // The route is only for holders of the approval permission.
         $this->actingAs($this->as($f['receiver']))->post(route('inventory.purchase-orders.short-close', $f['order']->public_id), $this->cmd($f['order'], ['reason' => 'discontinued']))->assertForbidden();
     }
+
+    public function test_a_review_left_behind_by_a_later_receipt_does_not_block_it(): void
+    {
+        $f = $this->partlyReceived();
+        $order = $f['order']->refresh();
+        // A review pinned to an older version of the order can never be posted (the review service refuses it).
+        DB::table('inventory_receiving_reviews')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $order->organisation_id, 'branch_id' => $this->branch->id, 'purchase_order_id' => $order->id,
+            'receiver_user_id' => $f['receiver']->id, 'kind' => 'receipt', 'payload' => '{}', 'reason_codes' => '[]', 'payload_hash' => str_repeat('b', 64), 'order_lock_version' => $order->lock_version - 1,
+            'retry_key' => (string) Str::uuid(), 'lock_version' => 1, 'created_at' => now()->utc()]);
+        $closed = app(ProcurementService::class)->shortClose($this->as($f['director']), $order, $this->cmd($order, ['reason' => 'discontinued']));
+        $this->assertSame('short', $closed->close_kind);
+    }
+
+    public function test_the_raiser_is_refused_on_the_inventory_page_with_the_reason(): void
+    {
+        $f = $this->partlyReceived();
+        $this->actingAs($this->as($f['finance']))->from(route('inventory.index'))
+            ->post(route('inventory.purchase-orders.short-close', $f['order']->public_id), $this->cmd($f['order'], ['reason' => 'discontinued']), ['X-Inertia-Error-Bag' => 'inventoryOperations'])
+            ->assertRedirect(route('inventory.index'))->assertSessionHasErrors('purchase_order');
+        $this->assertSame(PurchaseOrder::STATUS_PARTIALLY_RECEIVED, $f['order']->refresh()->status);
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'inventory.purchase_order.short_closed')->count());
+    }
 }

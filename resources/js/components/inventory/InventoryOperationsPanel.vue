@@ -209,18 +209,31 @@ const shortCloseReady = computed(
         shortClose.reason !== '' &&
         (shortClose.reason !== 'other' || shortClose.note.trim() !== ''),
 );
+const shortCloseError = ref('');
 const openShortClose = (row: DocumentRow) => {
     if (!busy.value) {
         operationError.value = null;
+        shortCloseError.value = '';
         Object.assign(shortClose, { row, reason: '', note: '' });
     }
 };
 const submitShortClose = () => {
     const row = shortClose.row;
 
-    if (!row || !shortCloseReady.value) {
+    if (!row) {
         return;
     }
+
+    // Pressing Close the rest without a choice says what is missing instead of doing nothing.
+    if (!shortCloseReady.value) {
+        shortCloseError.value = shortClose.reason
+            ? 'Say why in a short note when the reason is Other.'
+            : 'Choose why the rest of this order will not come.';
+
+        return;
+    }
+
+    shortCloseError.value = '';
 
     send(
         'post',
@@ -1004,6 +1017,7 @@ const saveReorder = () =>
                             v-if="canPurchase(row, 'short_close')"
                             size="sm"
                             variant="secondary"
+                            class="max-lg:min-h-11"
                             @click="openShortClose(row)"
                             >Close the rest</Button
                         >
@@ -1423,7 +1437,9 @@ const saveReorder = () =>
             description="Nothing more will be received on this order. Stock already received stays as it is, and no money changes."
             confirm-label="Close the rest"
             :processing="busy"
-            :error="shortClose.row ? (operationError ?? '') : ''"
+            :error="
+                shortClose.row ? shortCloseError || (operationError ?? '') : ''
+            "
             @update:open="(open) => !open && (shortClose.row = null)"
             @confirm="submitShortClose"
         >
@@ -1443,7 +1459,10 @@ const saveReorder = () =>
                         }}
                     </li>
                 </ul>
-                <fieldset class="space-y-1">
+                <fieldset
+                    class="space-y-1"
+                    :aria-invalid="shortCloseError !== '' && !shortClose.reason"
+                >
                     <legend class="mb-1 text-sm font-medium">
                         Why will the rest not come? (required)
                     </legend>
@@ -1457,12 +1476,13 @@ const saveReorder = () =>
                             type="radio"
                             name="short-close-reason"
                             :value="reason.value"
+                            required
                             class="size-4"
                         />
                         {{ reason.label }}
                     </label>
                 </fieldset>
-                <label class="grid gap-1 text-sm">
+                <label class="grid gap-1 text-sm" for="short-close-note">
                     <span
                         >Note{{
                             shortClose.reason === 'other'
@@ -1471,20 +1491,29 @@ const saveReorder = () =>
                         }}</span
                     >
                     <Input
+                        id="short-close-note"
                         v-model="shortClose.note"
+                        name="note"
                         maxlength="200"
+                        :required="shortClose.reason === 'other'"
+                        :aria-invalid="
+                            shortCloseError !== '' &&
+                            shortClose.reason === 'other' &&
+                            !shortClose.note.trim()
+                        "
+                        aria-describedby="short-close-note-help"
                         class="h-11 lg:h-9"
                     />
-                    <span class="text-xs text-muted-foreground"
-                        >Up to 200 characters.</span
+                    <span
+                        id="short-close-note-help"
+                        class="text-xs text-muted-foreground"
+                        >Up to 200 characters.<template
+                            v-if="shortClose.reason === 'other'"
+                        >
+                            Say why when the reason is Other.</template
+                        ></span
                     >
                 </label>
-                <p
-                    v-if="!shortCloseReady && shortClose.reason === 'other'"
-                    class="text-xs text-muted-foreground"
-                >
-                    Say why in a short note when the reason is Other.
-                </p>
             </div>
         </OperationalConfirmDialog>
     </section>

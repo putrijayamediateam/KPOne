@@ -63,9 +63,9 @@ BEGIN
    IF EXISTS (SELECT 1 FROM inventory_purchase_order_lines l WHERE l.purchase_order_id = NEW.id AND l.not_delivered_quantity IS NULL) THEN
     RAISE EXCEPTION 'Every line of a short-closed purchase order records what was not delivered' USING ERRCODE='23514';
    END IF;
-   IF EXISTS (SELECT 1 FROM inventory_receiving_reviews r WHERE r.purchase_order_id = NEW.id
-     AND NOT EXISTS (SELECT 1 FROM inventory_receiving_consumptions c WHERE c.review_id = r.id)
-     AND NOT EXISTS (SELECT 1 FROM inventory_receipt_corrections x WHERE x.review_id = r.id)) THEN
+   -- A review pinned to an older order version can never be posted, so only a current one blocks.
+   IF EXISTS (SELECT 1 FROM inventory_receiving_reviews r WHERE r.purchase_order_id = NEW.id AND r.order_lock_version = OLD.lock_version
+     AND NOT EXISTS (SELECT 1 FROM inventory_receiving_consumptions c WHERE c.review_id = r.id)) THEN
     RAISE EXCEPTION 'A purchase order with a receiving review still waiting cannot be closed short' USING ERRCODE='23514';
    END IF;
   END IF;

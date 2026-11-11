@@ -12,6 +12,7 @@ use App\Domain\Organisation\Inventory\Services\ReceiptCorrectionService;
 use App\Domain\Organisation\Inventory\Services\ReceivingReviewService;
 use App\Domain\Organisation\Inventory\Services\StockRequestService;
 use App\Domain\Organisation\Inventory\Services\SupplierAdministrationService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -127,6 +128,9 @@ class InventoryOperationsController extends Controller
             $service->shortClose($request->user(), $purchaseOrder, $request->only(['expected_branch_id', 'lock_version', 'reason', 'note']));
         } catch (ValidationException $exception) {
             throw $this->stayOnInventory($exception);
+        } catch (AuthorizationException $exception) {
+            // The raiser of an order is refused on the Inventory page itself, with the reason, not a bare 403.
+            throw $this->stayOnInventory(ValidationException::withMessages(['purchase_order' => $exception->getMessage()]));
         }
 
         return $this->success('The rest of the order is closed. Nothing more will be received on it.');

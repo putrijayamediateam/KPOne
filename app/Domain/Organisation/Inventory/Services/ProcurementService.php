@@ -176,9 +176,10 @@ final class ProcurementService
             if ($this->raisedBy($locked, $lockedActor)) {
                 throw new AuthorizationException('You raised or submitted this purchase order, so a different Finance Officer or Director must close the rest of it.');
             }
-            $waiting = DB::table('inventory_receiving_reviews as r')->where('r.purchase_order_id', $locked->id)
+            // A review is pinned to the order's version, so one left behind by a later receipt can never be posted and
+            // does not block. A correction always writes a consumption row as well, so consumption alone is enough.
+            $waiting = DB::table('inventory_receiving_reviews as r')->where('r.purchase_order_id', $locked->id)->where('r.order_lock_version', $locked->lock_version)
                 ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('inventory_receiving_consumptions as c')->whereColumn('c.review_id', 'r.id'))
-                ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('inventory_receipt_corrections as x')->whereColumn('x.review_id', 'r.id'))
                 ->exists();
             if ($waiting) {
                 throw ValidationException::withMessages(['purchase_order' => 'A receiving review on this order is still waiting. Post or finish it first.']);
@@ -193,7 +194,8 @@ final class ProcurementService
             $locked->forceFill(['status' => PurchaseOrder::STATUS_CLOSED, 'close_kind' => 'short', 'short_close_reason' => $reason, 'short_close_note' => $note === '' ? null : $note,
                 'closed_by_user_id' => $lockedActor->id, 'closed_at' => now()->utc(), 'lock_version' => $locked->lock_version + 1])->save();
             // Ids and codes only; the note never reaches the audit.
-            $this->audit->record('inventory.purchase_order.short_closed', $locked, ['from' => PurchaseOrder::STATUS_PARTIALLY_RECEIVED, 'to' => PurchaseOrder::STATUS_CLOSED, 'reason' => $reason, 'lines_not_delivered' => $short], $lockedActor, $branch);
+            abort_if($this->audit->record('inventory.purchase_order.short_closed', $locked, ['from' => PurchaseOrder::STATUS_PARTIALLY_RECEIVED, 'to' => PurchaseOrder::STATUS_CLOSED, 'reason' => $reason, 'lines_not_delivered' => $short], $lockedActor, $branch) === null,
+                503, 'The close could not be recorded, so nothing was changed.');
 
             return $locked->refresh();
         }, 3);
