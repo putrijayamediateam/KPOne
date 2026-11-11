@@ -21,7 +21,7 @@ defineProps<{
                 class="flex flex-wrap items-center gap-2"
             >
                 <h1
-                    class="text-2xl font-semibold tracking-tight text-foreground"
+                    class="text-2xl font-semibold tracking-tight text-balance text-foreground"
                 >
                     {{ title }}
                 </h1>
@@ -29,7 +29,7 @@ defineProps<{
             </div>
             <h1
                 v-else
-                class="text-2xl font-semibold tracking-tight text-foreground"
+                class="text-2xl font-semibold tracking-tight text-balance text-foreground"
             >
                 {{ title }}
             </h1>
