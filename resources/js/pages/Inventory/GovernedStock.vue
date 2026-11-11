@@ -175,9 +175,9 @@ const visibleCycleRows = computed(() =>
         ? (props.stock.cycle?.rows ?? [])
         : (props.stock.cycle?.rows ?? []).slice(0, dueCap),
 );
-// Amber from the due date, red from 30 days overdue or never counted; the words always say which.
+// Daniel: amber from the due date (and never counted), red only from 30 days overdue; the words always say which.
 const dueTone = (row: CycleRow) =>
-    row.overdueDays === null || row.overdueDays >= 30
+    row.overdueDays !== null && row.overdueDays >= 30
         ? 'font-medium text-destructive'
         : 'font-medium text-warning-strong';
 const dueLabel = (row: CycleRow) =>
@@ -355,6 +355,13 @@ watch(
                 item was dispensed here in the last
                 {{ stock.cycle.lookBackDays }} days; controlled medicines are
                 always A.
+            </p>
+            <p
+                v-if="stock.cycle.rows.length"
+                class="text-sm text-muted-foreground"
+                data-testid="counts-due-legend"
+            >
+                Amber: due or up to 29 days overdue. Red: 30 days or more.
             </p>
             <p
                 v-if="!stock.cycle.rows.length"

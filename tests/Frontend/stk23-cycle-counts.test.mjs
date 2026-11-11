@@ -39,3 +39,11 @@ test('design round 2: ten rows, phone row pattern, overdue tones in words', () =
         /inline-flex min-h-11 items-center px-2 underline lg:min-h-9/,
     );
 });
+
+test('STK-23: never counted is amber, red only from 30 days overdue, with a legend', () => {
+    assert.match(page, /row\.overdueDays !== null && row\.overdueDays >= 30/);
+    assert.match(
+        page,
+        /Amber: due or up to 29 days overdue\. Red: 30 days or more\./,
+    );
+});
