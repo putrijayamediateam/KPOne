@@ -216,7 +216,7 @@ const cardRows = computed(() => {
             {
                 label: 'Treatment-room waste',
                 value: `${value.summary.treatmentWasteUnits} units`,
-                note: 'Opened, spilled or broken stock recorded in treatment rooms. Reversed entries are left out.',
+                note: 'Stock wasted in treatment rooms (opened, spilled or broken, contaminated or other). Reversed entries are left out.',
             },
             {
                 label: 'Inventory value',

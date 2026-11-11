@@ -37,5 +37,10 @@ final class TreatmentWasteInsightTest extends VisitTestCase
         // The existing wastage figure is unchanged by treatment-room entries.
         $this->assertSame(0.0, (float) $summary['wastageUnits']);
         $this->assertSame(1, DB::table('inventory_treatment_usage_reversals')->count());
+
+        // A period that ends before the entries were recorded counts nothing.
+        $yesterday = now($this->branch->timezone)->subDay()->toDateString();
+        $earlier = app(ClinicInsightsReportService::class)->report($director, 'inventory', $this->branch->code, $yesterday, $yesterday, null)['report']['summary'];
+        $this->assertSame(0.0, $earlier['treatmentWasteUnits']);
     }
 }
