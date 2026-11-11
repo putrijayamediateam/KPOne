@@ -21,6 +21,13 @@ final class HiringDeadlines
 {
     public const WAITING = ['new', 'phone_screening'];
 
+    /**
+     * HR-17c (owner, 2026-11-11): an interview invitation the candidate leaves unanswered is auto-rejected the same way,
+     * counted from the invitation or from HR's latest "ask for new times", and only while the current round has no
+     * picks (once the candidate has picked, it waits for HR, and PostgreSQL refuses the closing too).
+     */
+    public const AWAITING_PICKS = 'scheduling';
+
     /** The branch-local hour from which reminders and closings are sent. */
     public const FROM_HOUR = 8;
 
@@ -38,14 +45,14 @@ final class HiringDeadlines
      *
      * @return array{remind:string, reject:string}|null
      */
-    public function deadlines(\stdClass $application): ?array
+    public function deadlines(\stdClass $application, ?string $since = null): ?array
     {
         $branch = $this->branchFor($application);
         if ($branch === null || $branch['weekdays'] === null || $branch['weekdays'] === []) {
             return null;
         }
         $days = (int) config('hr-applications.auto_reject_working_days', 3);
-        $entered = CarbonImmutable::parse($application->stage_entered_at)->setTimezone($branch['zone'])->startOfDay();
+        $entered = CarbonImmutable::parse($since ?? $application->stage_entered_at)->setTimezone($branch['zone'])->startOfDay();
         $holidays = DB::table('hr_public_holidays')->where('branch_id', $branch['id'])
             ->whereBetween('holiday_date', [$entered->toDateString(), $entered->addDays(self::HORIZON_DAYS)->toDateString()])
             ->pluck('holiday_date')->map(fn ($d): string => substr((string) $d, 0, 10))->flip()->all();
@@ -61,6 +68,49 @@ final class HiringDeadlines
         }
 
         return ['remind' => $found[$days - 1], 'reject' => $found[$days]];
+    }
+
+    /**
+     * When the current round of interview picks started: HR's latest "ask for new times", when later than the invitation
+     * (or the cancelled interview) that put the application at Scheduling; null means the invitation itself.
+     */
+    public static function pickRoundStart(\stdClass $application): ?string
+    {
+        $asked = DB::table('hr_job_application_events')->where('application_id', $application->id)->where('action', 'picks_declined')->max('created_at');
+
+        return $asked !== null && CarbonImmutable::parse((string) $asked)->gt(CarbonImmutable::parse($application->stage_entered_at)) ? (string) $asked : null;
+    }
+
+    /**
+     * Owner, 2026-11-11 (#484 follow-up): the last day the candidate may still choose times, shown on their page. It is the
+     * day of the HR reminder; the application closes from the next working day. Null when nothing will close it (no
+     * working days set), the candidate has already picked this round, or the day has passed.
+     */
+    public function pickBy(\stdClass $application): ?string
+    {
+        if ($application->status !== self::AWAITING_PICKS || DB::table('hr_job_interview_picks')->where('application_id', $application->id)
+            ->where('round', $application->interview_round)->exists()) {
+            return null;
+        }
+
+        $by = $this->deadlines($application, self::pickRoundStart($application))['remind'] ?? null;
+        $today = $this->today($application);
+
+        // Once the day has passed the line goes (Suresh m3): picking stays open until the daily check closes it.
+        return $by === null || ($today !== null && $today > $by) ? null : $by;
+    }
+
+    /**
+     * The last day to choose interview times as words, the same on the candidate's page and in the emails (Daniel):
+     * English "Mon 16 Nov 2026" and Malay "Isnin 16 Nov 2026".
+     *
+     * @return array{deadline: string, tarikh: string}
+     */
+    public static function chooseByLabels(string $date): array
+    {
+        $day = CarbonImmutable::parse($date);
+
+        return ['deadline' => $day->format('D j M Y'), 'tarikh' => $day->settings(['locale' => 'ms'])->isoFormat('dddd').' '.$day->format('j M Y')];
     }
 
     /** The branch's local date today for an application. */
@@ -80,7 +130,7 @@ final class HiringDeadlines
     {
         $reminded = 0;
         $rejected = 0;
-        DB::table('hr_job_applications')->whereIn('status', self::WAITING)->whereNull('purged_at')->select('id')->orderBy('id')
+        DB::table('hr_job_applications')->whereIn('status', [...self::WAITING, self::AWAITING_PICKS])->whereNull('purged_at')->select('id')->orderBy('id')
             ->chunkById(200, function ($chunk) use (&$reminded, &$rejected): void {
                 foreach ($chunk as $candidate) {
                     try {
@@ -103,10 +153,19 @@ final class HiringDeadlines
     {
         return DB::transaction(function () use ($applicationId): ?string {
             $row = DB::table('hr_job_applications')->where('id', $applicationId)->lockForUpdate()->first();
-            if ($row === null || $row->purged_at !== null || ! in_array($row->status, self::WAITING, true)) {
+            if ($row === null || $row->purged_at !== null || ! in_array($row->status, [...self::WAITING, self::AWAITING_PICKS], true)) {
                 return null;
             }
-            $deadlines = $this->deadlines($row);
+            $round = 0;
+            $since = null;
+            if ($row->status === self::AWAITING_PICKS) {
+                $round = (int) $row->interview_round;
+                if (DB::table('hr_job_interview_picks')->where('application_id', $row->id)->where('round', $round)->exists()) {
+                    return null; // the candidate has picked: HR's turn
+                }
+                $since = self::pickRoundStart($row);
+            }
+            $deadlines = $this->deadlines($row, $since);
             $branch = $this->branchFor($row);
             if ($deadlines === null || $branch === null) {
                 return null;
@@ -116,8 +175,9 @@ final class HiringDeadlines
             if ($today < $deadlines['remind'] || $now->hour < self::FROM_HOUR) {
                 return null;
             }
-            $reminder = DB::table('hr_job_application_messages')->where('application_id', $row->id)->where('template', 'auto_reject_reminder')
-                ->where('stage', $row->status)->value('created_at');
+            $template = $row->status === self::AWAITING_PICKS ? 'pick_reminder' : 'auto_reject_reminder';
+            $reminder = DB::table('hr_job_application_messages')->where('application_id', $row->id)->where('template', $template)
+                ->where('stage', $row->status)->where('round', $round)->value('created_at');
             $remindedOn = $reminder === null ? null : CarbonImmutable::parse($reminder)->setTimezone($branch['zone'])->toDateString();
             // Closed only once the reminder has had a working day of its own.
             if ($today >= $deadlines['reject'] && $remindedOn !== null && $remindedOn < $today && $this->workingDayBetween($row, $remindedOn, $today)) {
@@ -138,8 +198,11 @@ final class HiringDeadlines
             if ($reminder !== null) {
                 return null;
             }
-            $this->messenger->record($row, 'auto_reject_reminder', (string) $row->status, null, ['reference' => HiringMessenger::reference((string) $row->public_id),
-                'stage' => JobApplicationService::STATUSES[$row->status]]);
+            $params = ['reference' => HiringMessenger::reference((string) $row->public_id)];
+            if ($template === 'auto_reject_reminder') {
+                $params['stage'] = JobApplicationService::STATUSES[$row->status];
+            }
+            $this->messenger->record($row, $template, (string) $row->status, null, $params, $round);
 
             return 'reminded';
         }, 3);
@@ -161,6 +224,12 @@ final class HiringDeadlines
     /** @return array{id:int, zone:string, weekdays:?list<int>}|null */
     private function branchFor(\stdClass $application): ?array
     {
+        // At Scheduling the candidate's days are counted at the interview branch, the one the slots use (Suresh, m2).
+        if ($application->status === self::AWAITING_PICKS) {
+            $branch = app(InterviewSlots::class)->branchFor($application);
+
+            return $branch === null ? null : ['id' => $branch['id'], 'zone' => $branch['zone'], 'weekdays' => $branch['weekdays']];
+        }
         $branchId = DB::table('hr_job_positions')->where('id', $application->position_id)->value('branch_id');
         $branchId ??= DB::table('branches')->where('organisation_id', $application->organisation_id)->where('is_active', true)->orderBy('id')->value('id');
         if ($branchId === null) {
