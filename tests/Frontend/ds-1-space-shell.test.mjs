@@ -99,7 +99,7 @@ test('DS-3: a Pharmacy space with no widgets still links to the existing screens
                 /Open the existing\s+\{\{ existing\.title \}\} screens/g,
             ) ?? []
         ).length,
-        3,
+        4,
     );
 });
 
@@ -222,4 +222,16 @@ test('DS-4: the primary action sits in the header, rows and buttons stack on pho
         /\.space-stats\.is-glance \{\s*grid-template-columns: repeat\(2/,
     );
     assert.match(css, /\.space-ask-list \{\s*flex-direction: column/);
+});
+
+test('DS-5: the Billing space shows pay later, cash closing and awaiting billing with words, a primary action and the empty fallback', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    assert.match(page, /v-else-if="billing"/);
+    assert.match(page, /only="billing"/);
+    assert.match(page, /Pay later to collect/);
+    assert.match(page, /Cash closing today/);
+    assert.match(page, /Visits awaiting billing/);
+    assert.match(page, /Changed after approval\./);
+    assert.match(page, /props\.billing\?\.primaryAction/);
+    assert.doesNotMatch(page, /billing\.[a-zA-Z.]*patientName/);
 });

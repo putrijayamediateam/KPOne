@@ -30,4 +30,10 @@ final class SpaceDisplay
 
         return 'Waiting '.$minutes.' min'.$label;
     }
+
+    /** "RM 1,250.50" from sen. */
+    public static function rm(int $sen): string
+    {
+        return ($sen < 0 ? '-' : '').'RM '.number_format(abs($sen) / 100, 2);
+    }
 }

@@ -19,6 +19,47 @@ type Space = { key: string; title: string };
 // The space shell draws its own chrome, so it opts out of the staff layouts without touching the shared layout map.
 defineOptions({ layout: SpacePassThroughLayout });
 
+type Billing = {
+    branchName: string | null;
+    asOf: string | null;
+    payLater: {
+        count: number;
+        totalText: string;
+        overdueCount: number;
+        overdueText: string;
+        limit: number;
+        seeAllHref: string;
+        rows: Array<{
+            invoiceNumber: string;
+            patient: string;
+            amountText: string;
+            dueText: string;
+            tone: 'normal' | 'amber' | 'red';
+            href: string;
+        }>;
+    } | null;
+    cashClosing: {
+        status: string;
+        statusText: string;
+        expectedText: string;
+        receiptCount: number;
+        changedSinceApproval: boolean;
+        href: string;
+    } | null;
+    awaiting: {
+        total: number;
+        limit: number;
+        seeAllHref: string;
+        rows: Array<{
+            queueNumber: string | null;
+            patient: string;
+            registeredAt: string;
+        }>;
+    } | null;
+    primaryAction: { title: string; href: string } | null;
+    links: Array<{ title: string; href: string }>;
+};
+
 type FrontDesk = {
     branchName: string | null;
     asOf: string | null;
@@ -73,6 +114,7 @@ const props = defineProps<{
     questions?: Array<{ key: string; label: string }>;
     pharmacy?: Pharmacy | null;
     frontDesk?: FrontDesk | null;
+    billing?: Billing | null;
 }>();
 
 const page = usePage();
@@ -86,6 +128,11 @@ const waitLabel = (minutes: number): string | null =>
     ({ normal: null, amber: 'Long wait', red: 'Very long wait' })[
         waitingTone(minutes)
     ];
+
+const primaryAction = computed(
+    () =>
+        props.frontDesk?.primaryAction ?? props.billing?.primaryAction ?? null,
+);
 
 const waitHead = (minutes: number): string =>
     `Waiting ${minutes} min${waitLabel(minutes) ? ',' : ''}`;
@@ -213,10 +260,10 @@ onMounted(async () => {
             <div class="space-head">
                 <h1 class="space-title">{{ space.title }}</h1>
                 <Link
-                    v-if="frontDesk?.primaryAction"
-                    :href="frontDesk.primaryAction.href"
+                    v-if="primaryAction"
+                    :href="primaryAction.href"
                     class="space-primary"
-                    >{{ frontDesk.primaryAction.title }}</Link
+                    >{{ primaryAction.title }}</Link
                 >
             </div>
             <template v-if="pharmacy">
@@ -556,6 +603,215 @@ onMounted(async () => {
                         !frontDesk.waiting &&
                         !frontDesk.qrPending &&
                         !frontDesk.links.length
+                    "
+                    class="space-card"
+                >
+                    <p class="space-muted">
+                        Nothing to show here for your role. Your existing
+                        screens are unchanged.
+                    </p>
+                    <p v-if="existing" class="space-existing">
+                        <Link :href="existing.href"
+                            >Open the existing
+                            {{ existing.title }} screens</Link
+                        >
+                    </p>
+                </section>
+            </template>
+            <template v-else-if="billing">
+                <SpaceAsOf
+                    v-if="billing.branchName"
+                    :branch-name="billing.branchName"
+                    :as-of="billing.asOf"
+                    only="billing"
+                />
+                <section
+                    v-if="billing.payLater"
+                    class="space-card"
+                    aria-labelledby="bl-paylater"
+                >
+                    <h2 id="bl-paylater">
+                        Pay later to collect ({{ billing.payLater.count }})
+                    </h2>
+                    <ul class="space-stats is-glance">
+                        <li>
+                            <strong>{{ billing.payLater.totalText }}</strong>
+                            <span class="space-muted">to collect</span>
+                        </li>
+                        <li>
+                            <strong>{{ billing.payLater.overdueCount }}</strong>
+                            <span class="space-muted">overdue</span>
+                        </li>
+                        <li>
+                            <strong>{{ billing.payLater.overdueText }}</strong>
+                            <span class="space-muted">overdue amount</span>
+                        </li>
+                    </ul>
+                    <p
+                        v-if="billing.payLater.rows.length === 0"
+                        class="space-muted"
+                    >
+                        No pay later is waiting to be collected.
+                    </p>
+                    <template v-else>
+                        <ul class="space-list">
+                            <li
+                                v-for="row in billing.payLater.rows"
+                                :key="row.invoiceNumber"
+                            >
+                                <Link :href="row.href" class="space-row">
+                                    <span class="space-row-body">
+                                        <span class="space-row-text">
+                                            <span class="space-row-main"
+                                                >{{ row.patient }}
+                                                <span class="space-muted">{{
+                                                    row.invoiceNumber
+                                                }}</span></span
+                                            >
+                                            <span class="space-row-meta">
+                                                <span>{{
+                                                    row.amountText
+                                                }}</span>
+                                                <span
+                                                    :class="`space-wait is-${row.tone}`"
+                                                    >{{ row.dueText }}</span
+                                                >
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <ChevronRight
+                                        class="space-chevron"
+                                        aria-hidden="true"
+                                    />
+                                </Link>
+                            </li>
+                        </ul>
+                        <p
+                            v-if="
+                                billing.payLater.count >
+                                billing.payLater.rows.length
+                            "
+                            class="space-muted"
+                        >
+                            Showing {{ billing.payLater.rows.length }} of
+                            {{ billing.payLater.count }} ·
+                            <Link
+                                :href="billing.payLater.seeAllHref"
+                                class="space-link"
+                                >See all</Link
+                            >
+                        </p>
+                    </template>
+                </section>
+                <section
+                    v-if="billing.cashClosing"
+                    class="space-card"
+                    aria-labelledby="bl-cash"
+                >
+                    <h2 id="bl-cash">Cash closing today</h2>
+                    <p class="space-ask-sentence">
+                        <span
+                            class="space-pill"
+                            :class="`is-${billing.cashClosing.status}`"
+                            >{{ billing.cashClosing.statusText }}</span
+                        >
+                    </p>
+                    <p class="space-muted">
+                        Expected cash
+                        {{ billing.cashClosing.expectedText }} from
+                        {{ billing.cashClosing.receiptCount }}
+                        {{
+                            billing.cashClosing.receiptCount === 1
+                                ? 'receipt'
+                                : 'receipts'
+                        }}.
+                    </p>
+                    <p
+                        v-if="billing.cashClosing.changedSinceApproval"
+                        class="space-ask-error"
+                    >
+                        Changed after approval. Check the figures.
+                    </p>
+                </section>
+                <section
+                    v-if="billing.awaiting"
+                    class="space-card"
+                    aria-labelledby="bl-awaiting"
+                >
+                    <h2 id="bl-awaiting">
+                        Visits awaiting billing ({{ billing.awaiting.total }})
+                    </h2>
+                    <p
+                        v-if="billing.awaiting.rows.length === 0"
+                        class="space-muted"
+                    >
+                        No visit is awaiting billing.
+                    </p>
+                    <template v-else>
+                        <ul class="space-list">
+                            <li
+                                v-for="(row, i) in billing.awaiting.rows"
+                                :key="i"
+                                class="space-row-static"
+                            >
+                                <span class="space-row-body">
+                                    <span
+                                        v-if="row.queueNumber"
+                                        class="space-qno"
+                                        >{{ row.queueNumber }}</span
+                                    >
+                                    <span class="space-row-text">
+                                        <span class="space-row-main">{{
+                                            row.patient
+                                        }}</span>
+                                        <span class="space-muted"
+                                            >Registered
+                                            {{ row.registeredAt }}</span
+                                        >
+                                    </span>
+                                </span>
+                            </li>
+                        </ul>
+                        <p
+                            v-if="
+                                billing.awaiting.total >
+                                billing.awaiting.rows.length
+                            "
+                            class="space-muted"
+                        >
+                            Showing {{ billing.awaiting.rows.length }} of
+                            {{ billing.awaiting.total }} ·
+                            <Link
+                                :href="billing.awaiting.seeAllHref"
+                                class="space-link"
+                                >See all</Link
+                            >
+                        </p>
+                    </template>
+                </section>
+                <section
+                    v-if="billing.links.length"
+                    class="space-card"
+                    aria-labelledby="bl-open"
+                >
+                    <h2 id="bl-open">Open</h2>
+                    <ul class="space-list">
+                        <li v-for="l in billing.links" :key="l.href">
+                            <Link :href="l.href" class="space-row">
+                                <span>{{ l.title }}</span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="
+                        !billing.payLater &&
+                        !billing.cashClosing &&
+                        !billing.awaiting
                     "
                     class="space-card"
                 >
