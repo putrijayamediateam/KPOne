@@ -1210,8 +1210,8 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     class="rounded-xl border p-4 text-sm"
                     :class="
                         dispensary.allergySafety.isCurrent
-                            ? 'border-emerald-200 bg-emerald-50/50'
-                            : 'border-amber-300 bg-amber-50/70'
+                            ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/30'
+                            : 'border-amber-300 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/30'
                     "
                     data-testid="dispensary-allergies"
                 >
@@ -1256,7 +1256,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                 <p
                     v-if="actionError"
                     role="alert"
-                    class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+                    class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
                 >
                     {{ actionError }}
                 </p>
@@ -1265,7 +1265,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         dispensary.can.update &&
                         (unsaved.length || unsavedServices.length)
                     "
-                    class="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50/70 px-3 py-2 text-sm"
+                    class="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50/70 px-3 py-2 text-sm dark:border-amber-900 dark:bg-amber-950/30"
                     data-testid="dispensary-unsaved"
                 >
                     <span
@@ -1350,7 +1350,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             </p>
                             <p
                                 v-if="item.exception"
-                                class="mt-1 text-xs text-amber-700"
+                                class="mt-1 text-xs text-amber-700 dark:text-amber-300"
                             >
                                 Earlier partial dispense:
                                 {{ item.exception.status }}
@@ -1529,13 +1529,13 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             </p>
                             <p
                                 v-if="!item.sku"
-                                class="text-xs text-amber-700 sm:col-span-2"
+                                class="text-xs text-amber-700 sm:col-span-2 dark:text-amber-300"
                             >
                                 No approved inventory SKU mapping.
                             </p>
                             <p
                                 v-else-if="!item.availability.length"
-                                class="text-xs text-amber-700 sm:col-span-2"
+                                class="text-xs text-amber-700 sm:col-span-2 dark:text-amber-300"
                             >
                                 No eligible stock in this branch's Dispensary.
                                 Stock at other locations requires transfer
@@ -2034,7 +2034,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     class="mt-1 text-xs"
                                     :class="
                                         line.disposition === 'performed'
-                                            ? 'text-emerald-700'
+                                            ? 'text-emerald-700 dark:text-emerald-300'
                                             : 'text-muted-foreground'
                                     "
                                 >
@@ -2333,7 +2333,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                 </section>
                 <section
                     v-if="confirming && dispensary.can.complete"
-                    class="rounded-xl border border-pink-300 bg-pink-50/60 p-3 text-sm"
+                    class="rounded-xl border border-pink-300 bg-pink-50/60 p-3 text-sm dark:border-pink-900 dark:bg-pink-950/30"
                     data-testid="dispensary-verify"
                 >
                     <p class="font-medium">Verify before completing</p>
