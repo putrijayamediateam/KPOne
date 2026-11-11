@@ -180,7 +180,15 @@ const canPurchase = (
         row.status,
         action,
         props.operations.permissions,
-    );
+    ) && !needsAnotherApprover(row, action);
+// STK-19: whoever raised or submitted an order never approves it, or cancels it once approved.
+const needsAnotherApprover = (
+    row: DocumentRow,
+    action: 'submit' | 'approve' | 'receive' | 'close' | 'cancel',
+) =>
+    row.raisedByYou === true &&
+    (action === 'approve' ||
+        (action === 'cancel' && row.status === 'approved'));
 const canRequest = (
     row: DocumentRow,
     action: 'decide' | 'dispatch' | 'receive',
@@ -876,6 +884,35 @@ const saveReorder = () =>
                             "
                             >Cancel</Button
                         >
+                        <p
+                            v-if="
+                                needsAnotherApprover(row, 'approve') &&
+                                purchaseOrderActionAllowed(
+                                    row.status,
+                                    'approve',
+                                    operations.permissions,
+                                )
+                            "
+                            class="w-full text-sm text-muted-foreground"
+                        >
+                            You raised or submitted this order, so a different
+                            Finance Officer or Director must approve it.
+                        </p>
+                        <p
+                            v-if="
+                                needsAnotherApprover(row, 'cancel') &&
+                                purchaseOrderActionAllowed(
+                                    row.status,
+                                    'cancel',
+                                    operations.permissions,
+                                )
+                            "
+                            class="w-full text-sm text-muted-foreground"
+                        >
+                            You raised or submitted this order, so a different
+                            Finance Officer or Director must cancel it now that
+                            it is approved.
+                        </p>
                         <Button
                             v-if="canPurchase(row, 'close')"
                             size="sm"
