@@ -3,6 +3,7 @@
 namespace Tests\Feature\Inventory;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Inventory\Services\StockRequestService;
@@ -13,6 +14,7 @@ use App\Domain\Organisation\Models\Branch;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\OtcDispensaryFixtures;
 use Tests\Support\SupplierReturnFixture;
 use Tests\Support\TransferShortageFixture;
 use Tests\Support\VerifiedReceivingFixture;
@@ -20,6 +22,8 @@ use Tests\Support\VerifiedReceivingFixture;
 /** STK-16: read-only reorder suggestions (approved by B.E.R.N.I.S.S for the owner, 2026-11-11). */
 final class ReorderSuggestionTest extends VisitTestCase
 {
+    use OtcDispensaryFixtures;
+
     /** @return array<string, mixed> */
     private function setUpBranch(): array
     {
@@ -169,5 +173,23 @@ final class ReorderSuggestionTest extends VisitTestCase
 
         $row = collect($this->page($finance, ['need' => 'all'])['rows'])->firstWhere('location', $f['location']->name);
         $this->assertSame(['0.000', false], [$row['suggestedQuantity'], $row['coveredByOrders']]);
+    }
+
+    public function test_dispensed_medicine_counts_as_use(): void
+    {
+        $this->travelTo(now($this->branch->timezone)->setTime(10, 0));
+        // A real completed OTC dispensing of 6 writes a `dispense` movement out of the dispensary.
+        $f = $this->fixture();
+        $case = $this->open($f);
+        $this->confirmAllergy($f, $case);
+        app(DispensaryService::class)->addItem($f['ca'], $case->refresh(), $this->addPayload($f, $case, '6.000'));
+        $this->complete($f, $case);
+        $this->assertSame('6.000', (string) DB::table('stock_movements')->where('movement_type', 'dispense')->where('source_location_id', $f['location']->id)->sum('quantity'));
+
+        $finance = (new SupplierReturnFixture($f['visit']->branch))->actor('finance_officer');
+        $this->setLevel(['location' => $f['location'], 'sku' => $f['sku'], 'finance' => $finance], 5000);
+        $row = collect($this->page($finance, ['need' => 'all'])['rows'])->firstWhere('skuCode', $f['sku']->sku_code);
+        // 6 dispensed over 30 days is 0.2 a day; 10 opening − 6 leaves 4 on hand, so 1 whole unit to reach 5.
+        $this->assertSame(['4.000', '0.200', '1.000'], [$row['onHand'], $row['averageDailyUse'], $row['suggestedQuantity']]);
     }
 }
