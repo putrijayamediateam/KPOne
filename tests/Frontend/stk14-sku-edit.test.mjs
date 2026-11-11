@@ -52,6 +52,7 @@ test('read-only viewers, status help, stock confirmation and shared barcodes are
     assert.match(page, /<OperationalConfirmDialog/);
     assert.match(
         page,
-        /Barcode also on another SKU\. Fix it on Pilot\s+readiness\./,
+        /Barcode also on another SKU\. Fix it on\s+<Link\s+href="\/inventory\/readiness"/,
     );
+    assert.match(page, /mt-1 block w-fit[^"]*sm:inline/);
 });

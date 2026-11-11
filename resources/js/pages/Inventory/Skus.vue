@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, useForm } from '@inertiajs/vue3';
+import { Head, Link, router, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Lock } from '@lucide/vue';
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
@@ -268,9 +268,13 @@ const errorFor = (field: string) =>
                                 · Barcode {{ sku.barcode }}</span
                             ><span
                                 v-if="sku.barcodeShared"
-                                class="ml-1 rounded border border-amber-600 px-1.5 py-0.5 text-xs text-amber-800 dark:border-amber-400 dark:text-amber-200"
-                                >Barcode also on another SKU. Fix it on Pilot
-                                readiness.</span
+                                class="mt-1 block w-fit rounded border border-amber-600 px-1.5 py-0.5 text-xs text-amber-800 sm:mt-0 sm:ml-1 sm:inline dark:border-amber-400 dark:text-amber-200"
+                                >Barcode also on another SKU. Fix it on
+                                <Link
+                                    href="/inventory/readiness"
+                                    class="underline"
+                                    >Pilot readiness</Link
+                                >.</span
                             >
                             <span
                                 v-if="!sku.active"
