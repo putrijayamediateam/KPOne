@@ -92,3 +92,13 @@ test('Daniel changes: photo button only on a fail or a required item, a reason b
     assert.match(flat.settings, /Another section has this name/);
     assert.match(flat.page, /settings-anchors/);
 });
+
+test('Daniel notes: a reason beside a disabled Submit, and removing a section with items asks first', () => {
+    assert.match(flat.tab, /Answer every item to submit/);
+    assert.match(flat.tab, /aria-describedby/);
+    assert.match(flat.settings, /Remove this section\?/);
+    assert.match(
+        flat.settings,
+        /and its \$\{n\} \$\{n === 1 \? 'item' : 'items'\}/,
+    );
+});

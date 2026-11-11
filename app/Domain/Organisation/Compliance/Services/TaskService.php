@@ -127,7 +127,8 @@ final class TaskService
                     throw ValidationException::withMessages(['photo' => 'This task is closed.']);
                 }
                 $count = (int) DB::table('compliance_task_photos')->where('task_id', $task->id)->count();
-                if ($count >= CompliancePhotos::MAX_PER_OWNER) {
+                $live = (int) DB::table('compliance_task_photos')->where('task_id', $task->id)->whereNull('purged_at')->count();
+                if ($live >= CompliancePhotos::MAX_PER_OWNER) {
                     throw ValidationException::withMessages(['photo' => 'Add at most 3 photos per task.']);
                 }
                 $this->photos->put($path, $file['content']);
@@ -153,7 +154,7 @@ final class TaskService
         $photoId = $this->uuid($photoId) ?? abort(404);
 
         return DB::transaction(function () use ($actor, $photoId): \stdClass {
-            abort_unless($actor->can(CompliancePermissions::AUDITS_PERFORM) || $actor->can(CompliancePermissions::CHECKLISTS_MANAGE), 403);
+            $actor = $this->support->lockAny($actor, [CompliancePermissions::AUDITS_PERFORM, CompliancePermissions::CHECKLISTS_MANAGE]);
             $photo = DB::table('compliance_task_photos')->where('organisation_id', $actor->organisation_id)->where('public_id', $photoId)->first();
             abort_if($photo === null || $photo->purged_at !== null, 404);
             if (! $actor->can(CompliancePermissions::CHECKLISTS_MANAGE)) {

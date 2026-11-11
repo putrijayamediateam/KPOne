@@ -106,7 +106,8 @@ class AuditTest extends VisitTestCase
     {
         $this->selectBranch($this->actor('administrator'));
         $this->post(route('clinic-compliance.checklist.save'), ['items' => [], 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('items');
-        $this->post(route('clinic-compliance.checklist.save'), ['items' => [['section' => 'X', 'title' => 'Check the door']], 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('items.0.title');
+        $this->post(route('clinic-compliance.checklist.save'), ['items' => [['section' => 'X', 'title' => 'Check the door']], 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('items.0.section');
+        $this->post(route('clinic-compliance.checklist.save'), ['items' => [['section' => 'Front desk', 'title' => 'X']], 'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors('items.0.title');
         $this->assertSame(0, DB::table('compliance_checklist_versions')->count());
         $key = (string) Str::uuid();
         $payload = ['items' => [['section' => 'Front desk', 'title' => 'Check the door', 'help' => 'Lock too', 'photo_required' => true]], 'idempotency_key' => $key];
@@ -338,7 +339,10 @@ class AuditTest extends VisitTestCase
         $this->selectBranch($this->actor('ca_supervisor'));
         $this->answer($audit, $items, ['pass', 'pass', 'pass'])->assertSessionHasNoErrors();
         $this->submit($audit)->assertSessionHasNoErrors();
-        // Submitted and older than the clinic's 30 days: the file goes and the row stays.
+        // Counted from the submit day: still kept the same day, gone after the clinic's 30 days; the row stays.
+        $this->artisan('compliance-photos:purge')->assertSuccessful();
+        $this->assertNull(DB::table('compliance_audit_photos')->value('purged_at'), 'retention counts from the submit day');
+        $this->travelTo(CarbonImmutable::parse('2027-06-10 09:00', $this->branch->timezone));
         $this->artisan('compliance-photos:purge')->assertSuccessful();
         $row = DB::table('compliance_audit_photos')->first();
         $this->assertNotNull($row->purged_at);
@@ -401,6 +405,11 @@ class AuditTest extends VisitTestCase
         $refused(fn () => DB::table('compliance_tasks')->where('id', $task->id)->update(['status' => 'verified', 'verified_by_user_id' => $audit->started_by_user_id, 'verified_at' => now(), 'done_by_user_id' => $audit->started_by_user_id, 'done_at' => now()]), 'moves one way');
         $refused(fn () => DB::table('compliance_tasks')->where('id', $task->id)->update(['branch_id' => $task->branch_id + 1000]), 'keeps its audit');
         $refused(fn () => DB::table('compliance_audit_answers')->insert(['organisation_id' => $audit->organisation_id, 'audit_id' => $audit->id, 'item_id' => DB::table('compliance_checklist_items')->where('position', 3)->value('id'), 'result' => 'fail', 'answered_at' => now()]), 'only while the audit is open');
+        // Who marked a task done never changes, an open task has no done fields, and a closed task is final.
+        $refused(fn () => DB::table('compliance_tasks')->where('id', $task->id)->update(['done_by_user_id' => $audit->started_by_user_id, 'done_at' => now()]), 'compliance_tasks_shape');
+        $refused(fn () => DB::table('compliance_settings')->insert(['organisation_id' => $audit->organisation_id, 'verify_done_tasks' => true, 'photo_retention_days' => 5, 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]), 'compliance_settings');
+        $refused(fn () => DB::table('compliance_audit_answers')->where('id', $answer->id)->update(['item_id' => DB::table('compliance_checklist_items')->where('position', 3)->value('id')]), 'keeps its audit and item');
+        $refused(fn () => DB::table('compliance_audit_photos')->where('id', $photo->id)->update(['stored_path' => null, 'purged_at' => now(), 'bytes' => 1]), $kept);
         // A fail needs a note, and one audit per branch and month.
         $refused(fn () => DB::table('compliance_audits')->insert([...(array) $audit, 'id' => null, 'public_id' => (string) Str::uuid()]), 'compliance_audits');
     }

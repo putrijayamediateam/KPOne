@@ -7,6 +7,7 @@ import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { EmptyState, ErrorState } from '@/components/ui/state';
 import type { AuditSettings } from './auditTypes';
 
@@ -46,7 +47,29 @@ const sections = ref<Section[]>(group());
 const savingChecklist = ref(false);
 const addSection = () =>
     sections.value.push({ title: '', items: [blankItem()] });
-const removeSection = (s: number) => sections.value.splice(s, 1);
+const removeAt = ref<number | null>(null);
+const filled = (s: number) =>
+    sections.value[s].items.filter((i) => i.title.trim() || i.help.trim());
+const removeSection = (s: number) => {
+    // A section with typed items asks first; an empty one goes at once.
+    if (filled(s).length) {
+        removeAt.value = s;
+    } else {
+        sections.value.splice(s, 1);
+    }
+};
+const confirmRemove = () => {
+    if (removeAt.value !== null) {
+        sections.value.splice(removeAt.value, 1);
+    }
+
+    removeAt.value = null;
+};
+const removeText = computed(() => {
+    const n = removeAt.value === null ? 0 : filled(removeAt.value).length;
+
+    return `This removes the section and its ${n} ${n === 1 ? 'item' : 'items'} from the checklist. Nothing changes until you save the checklist.`;
+});
 const moveSection = (s: number, by: number) => {
     const to = s + by;
 
@@ -130,6 +153,7 @@ const form = reactive({
             : String(props.audit.photoRetentionDays),
     processing: false,
 });
+const seededLock = ref(props.audit.lockVersion);
 const saveSettings = () => {
     form.processing = true;
     router.post(
@@ -137,10 +161,14 @@ const saveSettings = () => {
         {
             verify_done_tasks: form.verify ? '1' : '0',
             photo_retention_days: form.days,
-            expected_lock_version: props.audit.lockVersion,
+            expected_lock_version: seededLock.value,
             idempotency_key: crypto.randomUUID(),
         },
-        { preserveScroll: true, onFinish: () => (form.processing = false) },
+        {
+            preserveScroll: true,
+            onSuccess: () => (seededLock.value = props.audit.lockVersion),
+            onFinish: () => (form.processing = false),
+        },
     );
 };
 </script>
@@ -331,6 +359,20 @@ const saveSettings = () => {
                 >
             </div>
         </div>
+
+        <OperationalConfirmDialog
+            :open="removeAt !== null"
+            title="Remove this section?"
+            :description="removeText"
+            confirm-label="Remove section"
+            destructive
+            @update:open="
+                (v: boolean) => {
+                    if (!v) removeAt = null;
+                }
+            "
+            @confirm="confirmRemove"
+        />
 
         <form
             id="audit-settings"

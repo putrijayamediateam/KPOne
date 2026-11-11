@@ -531,10 +531,21 @@ const statusLabel = (s: string) =>
                     type="button"
                     class="min-h-11 lg:min-h-9"
                     :disabled="saving || answered < items.length"
+                    :aria-describedby="
+                        answered < items.length ? 'submit-reason' : undefined
+                    "
                     data-test="submit-audit"
                     @click="startSubmit"
                     >Submit audit</Button
                 >
+                <p
+                    v-if="answered < items.length"
+                    id="submit-reason"
+                    class="basis-full text-xs text-muted-foreground"
+                >
+                    Answer every item to submit ({{ items.length - answered }}
+                    left).
+                </p>
             </div>
             <OperationalConfirmDialog
                 :open="confirmSubmit"

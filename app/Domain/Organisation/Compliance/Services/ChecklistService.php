@@ -42,7 +42,10 @@ final class ChecklistService
             $section = $this->support->text($row['section'] ?? null, "items.$i.section", 80, true);
             $title = $this->support->text($row['title'] ?? null, "items.$i.title", 160, true);
             $help = $this->support->text($row['help'] ?? null, "items.$i.help", 240);
-            if (mb_strlen((string) $section) < 2 || mb_strlen((string) $title) < 2) {
+            if (mb_strlen((string) $section) < 2) {
+                throw ValidationException::withMessages(["items.$i.section" => 'Enter a section name of at least 2 characters.']);
+            }
+            if (mb_strlen((string) $title) < 2) {
                 throw ValidationException::withMessages(["items.$i.title" => 'Enter at least 2 characters.']);
             }
             // "Front desk" and "Front Desk" are one section: the first spelling wins.

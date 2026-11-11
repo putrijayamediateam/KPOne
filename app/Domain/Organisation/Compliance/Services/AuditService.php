@@ -145,8 +145,10 @@ final class AuditService
                 $audit = $this->lockedAudit($actor, $auditId);
                 $item = DB::table('compliance_checklist_items')->where('version_id', $audit->checklist_version_id)->where('public_id', $itemId)->first();
                 abort_if($item === null, 404);
-                $count = (int) DB::table('compliance_audit_photos')->where('audit_id', $audit->id)->where('item_id', $item->id)->count();
-                if ($count >= CompliancePhotos::MAX_PER_OWNER) {
+                $all = DB::table('compliance_audit_photos')->where('audit_id', $audit->id)->where('item_id', $item->id);
+                $count = (int) (clone $all)->count();
+                $live = (int) (clone $all)->whereNull('purged_at')->count();
+                if ($live >= CompliancePhotos::MAX_PER_OWNER) {
                     throw ValidationException::withMessages(['photo' => 'Add at most 3 photos per item.']);
                 }
                 $this->photos->put($path, $file['content']);
@@ -240,7 +242,7 @@ final class AuditService
         $photoId = $this->uuid($photoId) ?? abort(404);
 
         return DB::transaction(function () use ($actor, $photoId): \stdClass {
-            abort_unless($actor->can(CompliancePermissions::AUDITS_PERFORM) || $actor->can(CompliancePermissions::CHECKLISTS_MANAGE), 403);
+            $actor = $this->support->lockAny($actor, [CompliancePermissions::AUDITS_PERFORM, CompliancePermissions::CHECKLISTS_MANAGE]);
             $photo = DB::table('compliance_audit_photos')->where('organisation_id', $actor->organisation_id)->where('public_id', $photoId)->first();
             abort_if($photo === null || $photo->purged_at !== null, 404);
             if (! $actor->can(CompliancePermissions::CHECKLISTS_MANAGE)) {

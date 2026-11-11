@@ -21,7 +21,20 @@ final class ComplianceSupport
 {
     public function __construct(public readonly AuditRecorder $audit, private BranchAccessService $branches) {}
 
-    public function lock(User $actor, string $permission): User
+    /** As lock(), for an operation open to the holder of any one of several permissions. */
+    /** @param  list<string>  $permissions */
+    public function lockAny(User $actor, array $permissions): User
+    {
+        $user = $this->lock($actor, '__none__', false);
+        foreach ($permissions as $permission) {
+            if ($user->can($permission)) {
+                return $user;
+            }
+        }
+        throw new AuthorizationException('You may not perform this operation.');
+    }
+
+    public function lock(User $actor, string $permission, bool $check = true): User
     {
         $user = User::query()->whereKey($actor->id)->where('organisation_id', $actor->organisation_id)->lockForUpdate()->firstOrFail();
         $roleIds = DB::table('model_has_roles')->where('model_id', $user->id)->where('model_type', $user->getMorphClass())->orderBy('role_id')->lockForUpdate()->pluck('role_id');
@@ -29,7 +42,7 @@ final class ComplianceSupport
         DB::table('role_has_permissions')->whereIn('role_id', $roleIds)->orderBy('role_id')->orderBy('permission_id')->lockForUpdate()->get();
         DB::table('model_has_permissions')->where('model_id', $user->id)->where('model_type', $user->getMorphClass())->orderBy('permission_id')->lockForUpdate()->get();
         $user->load(['roles.permissions', 'permissions']);
-        if (! $user->is_active || ! $user->can($permission)) {
+        if (! $user->is_active || ($check && ! $user->can($permission))) {
             throw new AuthorizationException('You may not perform this operation.');
         }
 

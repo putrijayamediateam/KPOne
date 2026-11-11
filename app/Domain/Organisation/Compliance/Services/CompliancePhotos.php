@@ -81,7 +81,10 @@ final class CompliancePhotos
         foreach (DB::table('compliance_settings')->whereNotNull('photo_retention_days')->get(['organisation_id', 'photo_retention_days']) as $setting) {
             $cutoff = now()->utc()->subDays((int) $setting->photo_retention_days);
             $audit = DB::table('compliance_audit_photos as p')->join('compliance_audits as a', 'a.id', '=', 'p.audit_id')
-                ->where('p.organisation_id', $setting->organisation_id)->whereNull('p.purged_at')->where('a.status', 'submitted')->where('p.created_at', '<', $cutoff)->get(['p.id', 'p.stored_path']);
+                ->where('p.organisation_id', $setting->organisation_id)->whereNull('p.purged_at')->where('a.status', 'submitted')->where('a.submitted_at', '<', $cutoff)
+                ->whereNotExists(fn ($q) => $q->select(DB::raw(1))->from('compliance_tasks as t')->whereColumn('t.audit_id', 'a.id')->whereIn('t.status', ['open', 'done'])
+                    ->where(fn ($q2) => $q2->where('t.status', 'open')->orWhere('t.verify_required', true)))
+                ->get(['p.id', 'p.stored_path']);
             $task = DB::table('compliance_task_photos as p')->join('compliance_tasks as t', 't.id', '=', 'p.task_id')
                 ->where('p.organisation_id', $setting->organisation_id)->whereNull('p.purged_at')->where('p.created_at', '<', $cutoff)
                 ->where(fn ($q) => $q->whereIn('t.status', ['verified', 'cancelled'])->orWhere(fn ($q2) => $q2->where('t.status', 'done')->where('t.verify_required', false)))
@@ -97,11 +100,11 @@ final class CompliancePhotos
     {
         $done = 0;
         foreach ($rows as $row) {
-            DB::transaction(function () use ($table, $row): void {
+            $changed = DB::transaction(fn (): int => DB::table($table)->where('id', $row->id)->whereNull('purged_at')->update(['stored_path' => null, 'purged_at' => now()->utc()]));
+            if ($changed > 0) {
                 $this->forget((string) $row->stored_path);
-                DB::table($table)->where('id', $row->id)->whereNull('purged_at')->update(['stored_path' => null, 'purged_at' => now()->utc()]);
-            });
-            $done++;
+                $done++;
+            }
         }
 
         return $done;
