@@ -41,10 +41,27 @@ const forget = () => {
     secret.show = false;
     secret.error = '';
 };
+// The dialog opens from code, so focus goes back by hand to the button that opened it (Daniel).
+let opener: HTMLElement | null = null;
 const ask = (run: ExportRun, kind: 'bank' | 'accountant') => {
+    opener =
+        document.activeElement instanceof HTMLElement
+            ? document.activeElement
+            : null;
     forget();
     failure.value = '';
     asking.value = { run, kind };
+};
+// Never closed while the file is being made: the request would carry on without its dialog.
+const dismiss = () => {
+    if (!busy.value) {
+        close();
+    }
+};
+const returnFocus = (event: Event) => {
+    event.preventDefault();
+    opener?.focus();
+    opener = null;
 };
 const close = () => {
     asking.value = null;
@@ -295,9 +312,13 @@ const download = async () => {
 
         <Dialog
             :open="asking !== null"
-            @update:open="(open: boolean) => !open && close()"
+            @update:open="(open: boolean) => !open && dismiss()"
         >
-            <DialogContent class="sm:max-w-md" data-test="export-password">
+            <DialogContent
+                class="sm:max-w-md"
+                data-test="export-password"
+                @close-auto-focus="returnFocus"
+            >
                 <DialogHeader>
                     <DialogTitle>Protect the file with a password</DialogTitle>
                     <DialogDescription>
@@ -334,7 +355,7 @@ const download = async () => {
                     </div>
                     <div class="flex flex-col gap-1">
                         <Label for="export-file-password-again"
-                            >Type it again</Label
+                            >Type the password again</Label
                         >
                         <Input
                             id="export-file-password-again"
@@ -357,18 +378,26 @@ const download = async () => {
                         id="export-file-password-error"
                         :message="secret.error"
                     />
-                    <p class="text-xs text-muted-foreground">
-                        Open it with 7-Zip or WinZip on Windows, or The
-                        Unarchiver on a Mac; the built-in zip opener cannot open
-                        protected files. Many bank portals take only the CSV, so
-                        unzip it before uploading.
-                    </p>
+                    <div
+                        class="flex flex-col gap-1 text-xs text-muted-foreground"
+                    >
+                        <p>
+                            Open it with 7-Zip or WinZip on Windows, or The
+                            Unarchiver on a Mac. The built-in zip opener cannot
+                            open protected files.
+                        </p>
+                        <p>
+                            Many bank portals take only the CSV. Unzip it before
+                            uploading.
+                        </p>
+                    </div>
                     <DialogFooter class="gap-2">
                         <Button
                             type="button"
                             variant="outline"
                             class="max-lg:min-h-11"
-                            @click="close"
+                            :disabled="!!busy"
+                            @click="dismiss"
                             >Cancel</Button
                         >
                         <Button

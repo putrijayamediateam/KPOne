@@ -29,7 +29,27 @@ test('a download first asks for a password, sent once in the POST body and never
 
 test('the dialog and the tab say how to open and handle a protected file', () => {
     assert.match(tab, /7-Zip or WinZip on Windows/);
+    assert.match(tab, /Type the password again/);
+    assert.match(
+        tab,
+        /Many bank portals take only the CSV\. Unzip it before\s+uploading\./,
+    );
+    assert.doesNotMatch(tab, /Type it again/);
     assert.match(tab, /KPOne never keeps this password/);
     assert.match(tab, /send\s+the password by a different way from the file/);
     assert.match(tab, /Download protected file/);
+});
+
+test('the dialog cannot close while the file is being made, and focus goes back to its button', () => {
+    assert.match(
+        tab,
+        /const dismiss = \(\) => \{\s+if \(!busy\.value\) \{\s+close\(\);/,
+    );
+    assert.match(
+        tab,
+        /@update:open="\(open: boolean\) => !open && dismiss\(\)"/,
+    );
+    assert.match(tab, /:disabled="!!busy"\s+@click="dismiss"\s+>Cancel</);
+    assert.match(tab, /@close-auto-focus="returnFocus"/);
+    assert.match(tab, /opener\?\.focus\(\)/);
 });
