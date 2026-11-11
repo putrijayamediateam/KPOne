@@ -8,6 +8,7 @@ use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
 use App\Console\Commands\PurgePanelStatements;
+use App\Console\Commands\PurgeStaffClaims;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -35,6 +36,13 @@ Schedule::command(PurgeLeaveEvidence::class)
 
 // HR-4b: staff document files are deleted after their category's clinic-entered retention.
 Schedule::command(PurgeHrDocuments::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// PDPA 15 (owner, 2026-11-11; the accountant confirms the 7 years before real use): closed staff claims, with their
+// receipts, actions and payments, are deleted after 7 years.
+Schedule::command(PurgeStaffClaims::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
