@@ -90,13 +90,14 @@ final class HiringMessenger
         return array_values(array_map(fn (\stdClass $row): array => self::shown($row, (string) $application->public_id, $title), $query->get()->all()));
     }
 
+    /** PDPA 15: shown for an interview email once its booking was deleted (6 months after an unsuccessful close). */
+    public const INTERVIEW_PURGED = "The interview details were deleted after the retention period.\nButiran temu duga telah dipadam selepas tempoh simpanan.";
+
     /**
      * One message row as shown, its text rebuilt from the fixed template.
      *
      * @return array{template:string, label:string, recipient:string, status:string, subject:string, body:string, at:string}
      */
-    public const INTERVIEW_PURGED = "The interview details were deleted after the retention period.\nButiran temu duga telah dipadam selepas tempoh simpanan.";
-
     public static function shown(\stdClass $row, string $publicId, string $title): array
     {
         $template = (string) $row->template;
