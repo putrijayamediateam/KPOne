@@ -78,7 +78,7 @@ test('a pack reads naturally: no repeated count, plural units', () => {
 test('buttons are 44 px tall below 1024 px (design guide section 12)', () => {
     assert.ok((page.match(/class="h-11 lg:h-9"/g) ?? []).length >= 5);
     assert.equal(
-        (page.match(/\[&_button\]:h-11 lg:\[&_button\]:h-9/g) ?? []).length,
+        (page.match(/\[&_button\]:h-11! lg:\[&_button\]:h-9!/g) ?? []).length,
         2,
     );
 });

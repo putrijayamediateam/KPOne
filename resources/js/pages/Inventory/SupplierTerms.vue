@@ -198,7 +198,7 @@ const submitEdit = (row: Row) => {
                 @submit.prevent="submitCreate"
             >
                 <div
-                    class="grid min-w-0 gap-1 [&_button]:h-11 lg:[&_button]:h-9"
+                    class="grid min-w-0 gap-1 [&_button]:h-11! lg:[&_button]:h-9!"
                 >
                     <p class="text-sm">Supplier (required)</p>
                     <InventorySearchSelect
@@ -211,7 +211,7 @@ const submitEdit = (row: Row) => {
                     <InputError :message="create.errors.supplier_public_id" />
                 </div>
                 <div
-                    class="grid min-w-0 gap-1 [&_button]:h-11 lg:[&_button]:h-9"
+                    class="grid min-w-0 gap-1 [&_button]:h-11! lg:[&_button]:h-9!"
                 >
                     <p class="text-sm">SKU (required)</p>
                     <InventorySearchSelect
@@ -512,6 +512,7 @@ const submitEdit = (row: Row) => {
         </ul>
         <CompactPagination
             v-if="terms.total > 0"
+            class="[&_button]:h-11! lg:[&_button]:h-8!"
             :current-page="terms.page"
             :last-page="terms.lastPage"
             :total="terms.total"
