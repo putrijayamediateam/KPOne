@@ -268,3 +268,9 @@
         color: #000 !important;
     }
 }
+
+/* DD-54: the skip link moves focus to the main landmark; it is not a control, so it draws no outline. */
+main:focus,
+[role='main']:focus {
+    outline: none;
+}
