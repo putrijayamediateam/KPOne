@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { ChevronRight } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref } from 'vue';
 import {
     DropdownMenu,
@@ -9,6 +10,7 @@ import {
 import UserInfo from '@/components/UserInfo.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import SpacePassThroughLayout from '@/layouts/SpacePassThroughLayout.vue';
+import { waitingTone } from '@/lib/waiting-time';
 
 type Space = { key: string; title: string };
 
@@ -17,19 +19,26 @@ defineOptions({ layout: SpacePassThroughLayout });
 
 type Pharmacy = {
     branchName: string | null;
+    asOf: string | null;
     toDispense: {
         total: number;
+        limit: number;
         rows: Array<{
             visitNumber: string;
-            patientName: string;
-            visitType: string;
-            status: string;
+            queueNumber: string | null;
+            patient: string;
             minutes: number;
             medicineCount: number;
             href: string;
         }>;
     } | null;
     returnsToCheck: { total: number } | null;
+    stockWatch: {
+        lowStock: number;
+        expiring: number;
+        expired: number;
+        windowDays: number;
+    } | null;
     links: Array<{ title: string; href: string }>;
 };
 
@@ -46,6 +55,11 @@ const branches = computed(() => page.props.branchContext);
 const hub = computed(
     () => page.props.workspace?.navigation.clinicManagement === true,
 );
+
+const waitLabel = (minutes: number): string | null =>
+    ({ normal: null, amber: 'Long wait', red: 'Very long wait' })[
+        waitingTone(minutes)
+    ];
 
 const groups = computed(() => {
     const layout: Array<[string, string[]]> = [
@@ -170,7 +184,10 @@ onMounted(async () => {
             <h1 class="space-title">{{ space.title }}</h1>
             <template v-if="pharmacy">
                 <p v-if="pharmacy.branchName" class="space-muted">
-                    {{ pharmacy.branchName }}
+                    {{ pharmacy.branchName
+                    }}<template v-if="pharmacy.asOf">
+                        · as of {{ pharmacy.asOf }}</template
+                    >
                 </p>
                 <section
                     v-if="pharmacy.toDispense"
@@ -186,25 +203,63 @@ onMounted(async () => {
                     >
                         Nothing is waiting at Dispensary.
                     </p>
-                    <ul v-else class="space-list">
-                        <li
-                            v-for="row in pharmacy.toDispense.rows"
-                            :key="row.visitNumber"
+                    <template v-else>
+                        <ul class="space-list">
+                            <li
+                                v-for="row in pharmacy.toDispense.rows"
+                                :key="row.visitNumber"
+                            >
+                                <Link :href="row.href" class="space-row">
+                                    <span class="space-row-main">
+                                        <span
+                                            v-if="row.queueNumber"
+                                            class="space-qno"
+                                            >{{ row.queueNumber }}</span
+                                        >
+                                        {{ row.patient }}
+                                        <span class="space-muted">{{
+                                            row.visitNumber
+                                        }}</span>
+                                    </span>
+                                    <span class="space-row-meta">
+                                        <span
+                                            v-if="row.medicineCount > 0"
+                                            class="space-muted"
+                                            >{{
+                                                row.medicineCount
+                                            }}
+                                            medicine(s)</span
+                                        >
+                                        <span
+                                            :class="`space-wait is-${waitingTone(row.minutes)}`"
+                                            >Waiting
+                                            {{ row.minutes }} min<template
+                                                v-if="waitLabel(row.minutes)"
+                                                >,
+                                                {{
+                                                    waitLabel(row.minutes)
+                                                }}</template
+                                            ></span
+                                        >
+                                        <ChevronRight
+                                            class="space-chevron"
+                                            aria-hidden="true"
+                                        />
+                                    </span>
+                                </Link>
+                            </li>
+                        </ul>
+                        <p
+                            v-if="
+                                pharmacy.toDispense.total >
+                                pharmacy.toDispense.rows.length
+                            "
+                            class="space-muted"
                         >
-                            <Link :href="row.href" class="space-row">
-                                <span class="space-row-main">
-                                    {{ row.patientName }}
-                                    <span class="space-muted">{{
-                                        row.visitNumber
-                                    }}</span>
-                                </span>
-                                <span class="space-muted">
-                                    {{ row.medicineCount }} medicine(s),
-                                    {{ row.minutes }} min
-                                </span>
-                            </Link>
-                        </li>
-                    </ul>
+                            Showing {{ pharmacy.toDispense.rows.length }} of
+                            {{ pharmacy.toDispense.total }}
+                        </p>
+                    </template>
                 </section>
                 <section
                     v-if="pharmacy.returnsToCheck"
@@ -214,6 +269,36 @@ onMounted(async () => {
                     <h2 id="returns">
                         Returns to check ({{ pharmacy.returnsToCheck.total }})
                     </h2>
+                    <p
+                        v-if="pharmacy.returnsToCheck.total === 0"
+                        class="space-muted"
+                    >
+                        Nothing is waiting for a check.
+                    </p>
+                </section>
+                <section
+                    v-if="pharmacy.stockWatch"
+                    class="space-card"
+                    aria-labelledby="stock-watch"
+                >
+                    <h2 id="stock-watch">Stock watch</h2>
+                    <ul class="space-stats">
+                        <li>
+                            <strong>{{ pharmacy.stockWatch.lowStock }}</strong>
+                            <span class="space-muted">low stock</span>
+                        </li>
+                        <li>
+                            <strong>{{ pharmacy.stockWatch.expiring }}</strong>
+                            <span class="space-muted"
+                                >expiring in
+                                {{ pharmacy.stockWatch.windowDays }} days</span
+                            >
+                        </li>
+                        <li>
+                            <strong>{{ pharmacy.stockWatch.expired }}</strong>
+                            <span class="space-muted">expired on hand</span>
+                        </li>
+                    </ul>
                 </section>
                 <section
                     v-if="pharmacy.links.length"
@@ -223,14 +308,22 @@ onMounted(async () => {
                     <h2 id="open-pages">Open</h2>
                     <ul class="space-list">
                         <li v-for="l in pharmacy.links" :key="l.href">
-                            <Link :href="l.href" class="space-row">{{
-                                l.title
-                            }}</Link>
+                            <Link :href="l.href" class="space-row">
+                                <span>{{ l.title }}</span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
                         </li>
                     </ul>
                 </section>
                 <section
-                    v-if="!pharmacy.toDispense && !pharmacy.returnsToCheck"
+                    v-if="
+                        !pharmacy.toDispense &&
+                        !pharmacy.returnsToCheck &&
+                        !pharmacy.stockWatch
+                    "
                     class="space-card"
                 >
                     <p class="space-muted">

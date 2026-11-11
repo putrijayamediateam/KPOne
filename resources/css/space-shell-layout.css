@@ -249,3 +249,49 @@
         display: none;
     }
 }
+
+.space-shell .space-qno {
+    display: inline-block;
+    margin-right: 8px;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--space-accent-tint);
+    color: var(--space-accent);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+.space-shell .space-row-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.space-shell .space-wait.is-amber {
+    color: var(--space-warn);
+    font-weight: 650;
+}
+.space-shell .space-wait.is-red {
+    color: var(--space-bad);
+    font-weight: 700;
+}
+.space-shell .space-chevron {
+    width: 18px;
+    height: 18px;
+    color: var(--space-muted);
+    flex: none;
+}
+.space-shell .space-stats {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+.space-shell .space-stats li {
+    display: grid;
+}
+.space-shell .space-stats strong {
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+}

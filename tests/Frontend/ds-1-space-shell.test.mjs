@@ -109,3 +109,19 @@ test('DS-2: the account button names the person', () => {
         /:aria-label="`Account menu, \$\{user\.name\}`"/,
     );
 });
+
+test('DS-3: the Pharmacy list shows a queue number, waiting words, a cap line, empty lines and chevrons', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    assert.match(page, /row\.queueNumber/);
+    assert.match(page, /Long wait/);
+    assert.match(page, /Very long wait/);
+    assert.match(
+        page,
+        /Showing \{\{ pharmacy\.toDispense\.rows\.length \}\} of/,
+    );
+    assert.match(page, /Nothing is waiting for a check\./);
+    assert.match(page, /Nothing is waiting at Dispensary\./);
+    assert.match(page, /Stock watch/);
+    assert.match(page, /ChevronRight/);
+    assert.doesNotMatch(page, /patientName|fullName/);
+});

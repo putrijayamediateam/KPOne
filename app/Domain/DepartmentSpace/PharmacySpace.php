@@ -5,23 +5,35 @@ namespace App\Domain\DepartmentSpace;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
+use App\Domain\Organisation\Inventory\Services\InventoryStockReviewService;
+use App\Domain\Queue\Display\ShortDisplayName;
+use App\Domain\Queue\Models\OtcQueueEntry;
+use App\Domain\Queue\Models\QueueEntry;
+use App\Domain\Queue\QueueNumberFormat;
+use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Support\Collection;
 
 /**
  * DS-3: the Pharmacy space home. Every widget calls the page's own service, which keeps its own permission and
  * branch checks; a widget the person cannot see on its page is simply left out (never greyed, never a count).
+ * A patient shows as a queue number and a first name with an initial, never the full name.
  */
 final class PharmacySpace
 {
-    public function __construct(private BranchAccessService $branches, private DispensaryDirectoryService $dispensary, private DispensaryReturnService $returns) {}
+    public const LIST_LIMIT = 5;
 
-    /** @return array{branchName: string|null, toDispense: array<string, mixed>|null, returnsToCheck: array<string, mixed>|null, links: list<array{title: string, href: string}>} */
+    public function __construct(private BranchAccessService $branches, private DispensaryDirectoryService $dispensary, private DispensaryReturnService $returns, private InventoryStockReviewService $stockReview) {}
+
+    /**
+     * @return array{branchName: string|null, asOf: string|null, toDispense: array<string, mixed>|null, returnsToCheck: array<string, mixed>|null, stockWatch: array<string, mixed>|null, links: list<array{title: string, href: string}>}
+     */
     public function home(User $actor): array
     {
         $branch = $this->branches->activeBranch($actor);
         $toDispense = null;
         $returnsToCheck = null;
+        $stockWatch = null;
 
         // Same rule as the Dispensary list: CA and CA Supervisor with dispensary.view.branch at the active branch.
         if ($branch !== null && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor'])) {
@@ -29,22 +41,34 @@ final class PharmacySpace
             $source = $board['data'];
             /** @var list<array<string, mixed>> $data */
             $data = array_values($source instanceof Collection ? $source->all() : (array) $source);
+            $shown = array_slice($data, 0, self::LIST_LIMIT);
+            $numbers = $this->queueNumbers($branch->organisation_id, $branch->id, array_column($shown, 'visitNumber'));
             $toDispense = [
                 'total' => (int) $board['total'],
+                'limit' => self::LIST_LIMIT,
                 'rows' => array_map(fn (array $r): array => [
                     'visitNumber' => $r['visitNumber'],
-                    'patientName' => $r['patientName'],
-                    'visitType' => $r['visitType'],
-                    'status' => $r['dispensaryStatus'],
-                    'minutes' => $r['durationMinutes'],
+                    'queueNumber' => $numbers[$r['visitNumber']] ?? null,
+                    'patient' => $this->shortName((string) $r['patientName']),
+                    'minutes' => (int) $r['durationMinutes'],
                     'medicineCount' => $r['medicineCount'],
                     'href' => $r['dispensaryUrl'],
-                ], array_slice($data, 0, 6)),
+                ], $shown),
             ];
         }
         // Same rule as Returns to check (DSP-7b): the v1 checkers only.
         if ($branch !== null && $this->returns->canCheckReturns($actor)) {
             $returnsToCheck = ['total' => $this->returns->waitingList($actor, 1)['total']];
+        }
+        // The Stock review's own counts, for anyone who can open that page (counts only; no item names here).
+        if ($branch !== null && $actor->can('inventory.view.branch')) {
+            $page = $this->stockReview->page($actor, []);
+            $stockWatch = [
+                'lowStock' => (int) $page['lists']['low_stock']['total'],
+                'expiring' => (int) $page['lists']['expiring']['total'],
+                'expired' => (int) $page['lists']['expired']['total'],
+                'windowDays' => (int) $page['windowDays'],
+            ];
         }
 
         $links = [];
@@ -54,7 +78,51 @@ final class PharmacySpace
         if ($returnsToCheck !== null) {
             $links[] = ['title' => 'Returns to check', 'href' => route('dispensary.returns-to-check', absolute: false)];
         }
+        if ($stockWatch !== null) {
+            $links[] = ['title' => 'Stock review', 'href' => route('inventory.stock-review', absolute: false)];
+        }
 
-        return ['branchName' => $branch?->name, 'toDispense' => $toDispense, 'returnsToCheck' => $returnsToCheck, 'links' => $links];
+        return [
+            'branchName' => $branch?->name,
+            'asOf' => $branch ? now()->setTimezone($branch->timezone)->format('g:i A') : null,
+            'toDispense' => $toDispense,
+            'returnsToCheck' => $returnsToCheck,
+            'stockWatch' => $stockWatch,
+            'links' => $links,
+        ];
+    }
+
+    /** "Ahmad I." from "Ahmad Ismail bin Ali": the first name and the initial of the next, never the full name. */
+    private function shortName(string $fullName): string
+    {
+        $words = explode(' ', (string) ShortDisplayName::from($fullName));
+        if (count($words) < 2 || $words[1] === '') {
+            return $words[0] !== '' ? $words[0] : 'Patient';
+        }
+
+        return $words[0].' '.mb_strtoupper(mb_substr($words[1], 0, 1)).'.';
+    }
+
+    /**
+     * The A-/B- number of each shown visit, read from the same queue records the Registration board shows.
+     *
+     * @param  list<string>  $visitNumbers
+     * @return array<string, string>
+     */
+    private function queueNumbers(int $organisationId, int $branchId, array $visitNumbers): array
+    {
+        if ($visitNumbers === []) {
+            return [];
+        }
+        $visits = Visit::query()->where('organisation_id', $organisationId)->where('branch_id', $branchId)->whereIn('visit_number', $visitNumbers)->pluck('visit_number', 'id');
+        $out = [];
+        foreach (QueueEntry::query()->whereIn('visit_id', $visits->keys())->get(['visit_id', 'queue_number']) as $entry) {
+            $out[$visits[$entry->visit_id]] = QueueNumberFormat::format((int) $entry->queue_number, QueueNumberFormat::CONSULTATION);
+        }
+        foreach (OtcQueueEntry::query()->whereIn('visit_id', $visits->keys())->get(['visit_id', 'queue_number']) as $entry) {
+            $out[$visits[$entry->visit_id]] = QueueNumberFormat::format((int) $entry->queue_number, QueueNumberFormat::OTC);
+        }
+
+        return $out;
     }
 }

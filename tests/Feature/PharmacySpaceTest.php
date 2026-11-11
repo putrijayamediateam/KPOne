@@ -2,6 +2,9 @@
 
 namespace Tests\Feature;
 
+use App\Domain\Clinical\Dispensary\Services\OtcDispensaryService;
+use App\Domain\Queue\Services\OtcQueueService;
+use Illuminate\Support\Facades\DB;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
 
@@ -27,10 +30,10 @@ class PharmacySpaceTest extends VisitTestCase
 
         $this->get('/spaces/pharmacy')->assertInertia(fn (Assert $p) => $p
             ->where('pharmacy.returnsToCheck.total', 0)
-            ->has('pharmacy.links', 2));
+            ->has('pharmacy.links', 3));
     }
 
-    public function test_the_director_gets_the_space_but_no_widget_it_could_not_open_on_its_page(): void
+    public function test_the_director_gets_a_read_only_stock_watch_but_not_the_dispensary_widgets(): void
     {
         $director = $this->actor('director');
         $this->selectBranch($director);
@@ -38,7 +41,8 @@ class PharmacySpaceTest extends VisitTestCase
         $this->get('/spaces/pharmacy')->assertOk()->assertInertia(fn (Assert $p) => $p
             ->where('pharmacy.toDispense', null)
             ->where('pharmacy.returnsToCheck', null)
-            ->where('pharmacy.links', []));
+            ->has('pharmacy.stockWatch')
+            ->where('pharmacy.links', [['title' => 'Stock review', 'href' => '/inventory/stock-review']]));
     }
 
     public function test_roles_without_dispensary_are_refused_and_other_spaces_carry_no_pharmacy_data(): void
@@ -49,5 +53,30 @@ class PharmacySpaceTest extends VisitTestCase
         }
         $this->selectBranch($this->actor('ca'));
         $this->get('/spaces/front_desk')->assertInertia(fn (Assert $p) => $p->where('pharmacy', null));
+    }
+
+    public function test_the_list_shows_queue_numbers_short_names_a_cap_and_counts_that_match(): void
+    {
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+        $names = ['Ahmad Ismail bin Ali', 'Nurul Huda binti Hassan', 'Tan Mei Ling', 'Siva Kumar a/l Raju', 'Aisyah Rahman', 'Lim Wei Jie'];
+        foreach ($names as $i => $name) {
+            $visit = $this->register($ca, $this->patient($ca, ['full_name' => $name]));
+            app(OtcQueueService::class)->enter($ca, $visit, ['expected_branch_id' => $this->branch->id]);
+            $case = app(OtcDispensaryService::class)->open($ca, $visit, ['expected_branch_id' => $this->branch->id]);
+            DB::table('dispensary_cases')->where('id', $case->id)->update(['received_at' => now()->utc()->subMinutes(10 * ($i + 1))]);
+        }
+
+        $response = $this->get('/spaces/pharmacy')->assertOk();
+        $props = $response->viewData('page')['props']['pharmacy']['toDispense'];
+        $this->assertSame(6, $props['total']);
+        $this->assertCount(5, $props['rows']);
+        $this->assertSame('B-006', $props['rows'][0]['queueNumber']);
+        $this->assertSame('Lim W.', $props['rows'][0]['patient']);
+        foreach ($props['rows'] as $row) {
+            $this->assertMatchesRegularExpression('/^B-\d{3}$/', $row['queueNumber']);
+            $this->assertStringNotContainsString('Ismail', $row['patient']);
+            $this->assertSame(['visitNumber', 'queueNumber', 'patient', 'minutes', 'medicineCount', 'href'], array_keys($row));
+        }
     }
 }
