@@ -61,22 +61,23 @@ const phones = computed(() =>
         props.letterhead.details.phone_secondary,
     ].filter((number): number is string => !!number),
 );
+// Only an approved order prints as an order; every other state is a banner, never a clean sheet.
+const bannerFor: Record<string, string> = {
+    draft: 'NOT APPROVED, NOT AN ORDER',
+    submitted: 'WAITING FOR APPROVAL, NOT AN ORDER',
+    cancelled: 'CANCELLED, NOT AN ORDER',
+};
 const banner = computed(() =>
     props.order.isOrder
         ? null
-        : props.order.status === 'cancelled'
-          ? 'CANCELLED, NOT AN ORDER'
-          : 'NOT APPROVED, NOT AN ORDER',
+        : (bannerFor[props.order.status] ?? 'NOT APPROVED, NOT AN ORDER'),
 );
-const statusWords: Record<string, string> = {
-    draft: 'Draft',
-    submitted: 'Waiting for approval',
-    approved: 'Approved',
-    partially_received: 'Partly received',
-    fully_received: 'Fully received',
-    closed: 'Closed',
-    cancelled: 'Cancelled',
-};
+// The supplier sees "Approved" and its date, never internal receiving words.
+const statusLine = computed(() =>
+    props.order.isOrder
+        ? `Approved${props.order.approvedAt ? ` · ${props.order.approvedAt}` : ''}`
+        : 'Not an order',
+);
 const rm = (sen: number | null | undefined) =>
     sen === null || sen === undefined ? '—' : formatRinggit(sen);
 const print = () => window.print();
@@ -175,7 +176,7 @@ const print = () => window.print();
                     </div>
                     <div>
                         <dt>Status</dt>
-                        <dd>{{ statusWords[order.status] ?? order.status }}</dd>
+                        <dd>{{ statusLine }}</dd>
                     </div>
                     <div>
                         <dt>Deliver to</dt>
@@ -220,6 +221,15 @@ const print = () => window.print();
                                 <span class="block text-xs"
                                     >SKU {{ line.skuCode }}</span
                                 >
+                                <span
+                                    v-if="
+                                        order.showPrices &&
+                                        line.unitCostSen !== null &&
+                                        line.unitCostSen !== undefined
+                                    "
+                                    class="po-narrow-price text-xs"
+                                    >RM {{ rm(line.unitCostSen) }} each</span
+                                >
                             </td>
                             <td class="text-right tabular-nums">
                                 {{ trimQuantity(line.quantity) }}
@@ -243,32 +253,37 @@ const print = () => window.print();
                     </tbody>
                 </table>
             </div>
-            <p v-if="order.showPrices" class="po-total">
-                <span>Estimated total</span>
-                <span class="tabular-nums">{{
-                    order.totalSen === null
-                        ? 'Not all lines have a price'
-                        : `RM ${rm(order.totalSen)}`
-                }}</span>
-            </p>
-            <p v-else class="mt-3" data-testid="po-no-prices">
-                Prices as agreed with the supplier.
-            </p>
+            <!-- The totals and signatures stay with the last rows of the table (never alone on a new page). -->
+            <div class="po-end">
+                <p v-if="order.showPrices" class="po-total">
+                    <span>Estimated total</span>
+                    <span class="tabular-nums">{{
+                        order.totalSen === null
+                            ? 'Not all lines have a price'
+                            : `RM ${rm(order.totalSen)}`
+                    }}</span>
+                </p>
+                <p v-else class="mt-3" data-testid="po-no-prices">
+                    Prices as agreed with the supplier.
+                </p>
 
-            <div class="po-sign">
-                <div>
-                    <p class="po-label">Prepared by</p>
-                    <p>{{ order.preparedBy ?? '—' }}</p>
-                </div>
-                <div>
-                    <p class="po-label">Approved by</p>
-                    <p>
-                        {{ order.approvedBy ?? 'Not approved' }}
-                        <template v-if="order.approvedAt">
-                            · {{ order.approvedAt }}</template
-                        >
-                    </p>
-                    <p class="po-signature">Signature</p>
+                <div class="po-sign">
+                    <div>
+                        <p class="po-label">Prepared by</p>
+                        <p>{{ order.preparedBy ?? '—' }}</p>
+                    </div>
+                    <div v-if="order.isOrder">
+                        <p class="po-label">Approved by</p>
+                        <p>
+                            {{ order.approvedBy ?? '—' }}
+                            <template v-if="order.approvedAt">
+                                · {{ order.approvedAt }}</template
+                            >
+                        </p>
+                        <p class="po-signature" data-testid="po-signature">
+                            Signature
+                        </p>
+                    </div>
                 </div>
             </div>
             <p class="mt-4 text-xs">Printed {{ order.printedAt }}</p>
@@ -283,6 +298,10 @@ const print = () => window.print();
 @page {
     size: A4;
     margin: 15mm;
+    @bottom-right {
+        content: 'Page ' counter(page) ' of ' counter(pages);
+        font-size: 8pt;
+    }
 }
 /* The sheet stays white with black text on screen and on paper, in every theme (PRINT-1). */
 .po-sheet {
@@ -379,6 +398,18 @@ const print = () => window.print();
     border-top: 1px solid #000;
     padding-top: 0.35rem;
     font-weight: 700;
+}
+.po-end {
+    break-inside: avoid;
+    break-before: avoid;
+}
+.po-narrow-price {
+    display: none;
+}
+@media screen and (max-width: 640px) {
+    .po-narrow-price {
+        display: block;
+    }
 }
 .po-sign {
     display: grid;
