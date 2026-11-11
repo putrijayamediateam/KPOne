@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Visit\Billing\Services\PanelClaimDirectoryService;
 use App\Domain\Visit\Billing\Services\PanelClaimFollowUpService;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 
 /**
  * DS-7: the Panel space home. Every widget calls the Panel page's own service (the Panel Claims list and the
@@ -38,7 +39,8 @@ final class PanelSpace
             $links[] = ['title' => 'Correct a Panel payment', 'href' => route('panel-payment-corrections.index', absolute: false)];
         }
         $summary = $branch !== null && $actor->can('reports.panel_summary.view.branch');
-        if ($summary) {
+        $handler = $branch !== null && $actor->can('panel.claims.manage.branch');
+        if ($summary && $handler) {
             $links[] = ['title' => 'Panel summary', 'href' => route('reports.panel-summary.index', absolute: false)];
         }
         $primary = null;
@@ -62,6 +64,7 @@ final class PanelSpace
                 'rows' => array_slice($follow['rows'], 0, self::LIST_LIMIT),
             ],
             'primaryAction' => $primary,
+            'note' => $handler ? null : 'Claims are handled by Panel Officers. This space shows reports and payment corrections.',
             'links' => $links,
         ];
     }
@@ -90,17 +93,24 @@ final class PanelSpace
         /** @var array<string, int> $tabs */
         $tabs = $first['tabs'] ?? [];
         usort($all, fn (array $a, array $b): int => [(int) ! $a['overdue'], $a['visitDateIso']] <=> [(int) ! $b['overdue'], $b['visitDateIso']]);
-        $rows = array_map(fn (array $r): array => [
-            'invoiceNumber' => (string) $r['invoiceNumber'],
-            'patient' => SpaceDisplay::shortName((string) $r['patientName']),
-            'panel' => (string) $r['panelName'],
-            'amountText' => SpaceDisplay::rm((int) $r['amountSen']),
-            'dueText' => ($r['overdue'] ? 'Overdue, due ' : 'Due ').$r['dueDate'],
-            'overdue' => (bool) $r['overdue'],
-            'panelCode' => (string) $r['panelCode'],
-            'amountSen' => (int) $r['amountSen'],
-            'href' => (string) $r['invoiceUrl'],
-        ], $all);
+        $tz = $this->branches->activeBranch($actor)->timezone;
+        $today = CarbonImmutable::now($tz)->startOfDay();
+        $rows = array_map(function (array $r) use ($tz, $today): array {
+            $due = CarbonImmutable::parse((string) $r['dueDate'], $tz)->startOfDay();
+            $days = $due->lessThan($today) ? (int) $due->diffInDays($today) : 0;
+
+            return [
+                'invoiceNumber' => (string) $r['invoiceNumber'],
+                'patient' => SpaceDisplay::shortName((string) $r['patientName']),
+                'panel' => (string) $r['panelName'],
+                'amountText' => SpaceDisplay::rm((int) $r['amountSen']),
+                'dueText' => SpaceDisplay::dueText($due->format('j M Y'), (bool) $r['overdue'] ? max(1, $days) : 0),
+                'overdue' => (bool) $r['overdue'],
+                'panelCode' => (string) $r['panelCode'],
+                'amountSen' => (int) $r['amountSen'],
+                'href' => (string) $r['invoiceUrl'],
+            ];
+        }, $all);
 
         return [
             'pending' => (int) ($tabs['pending'] ?? 0), 'overdue' => (int) ($tabs['overdue'] ?? 0),

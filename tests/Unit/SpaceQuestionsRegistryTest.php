@@ -28,7 +28,7 @@ final class SpaceQuestionsRegistryTest extends TestCase
             'consultation.longest_waiting' => ['consultation', 'queue.view.own', true],
             'consultation.not_ready' => ['consultation', 'queue.view.own', true],
             'panel.most_unclaimed' => ['panel', 'panel.claims.manage.branch', false],
-            'panel.overdue_by_panel' => ['panel', 'panel.claims.manage.branch', false],
+            'panel.overdue_amount' => ['panel', 'panel.claims.manage.branch', false],
         ], array_map(fn (array $q): array => [$q['space'], $q['permission'], $q['patientLevel']], SpaceQuestions::REGISTRY));
     }
 

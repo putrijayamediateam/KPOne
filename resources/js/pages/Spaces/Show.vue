@@ -147,6 +147,7 @@ type PanelSpaceHome = {
         }>;
     } | null;
     primaryAction: { title: string; href: string } | null;
+    note: string | null;
     links: Array<{ title: string; href: string }>;
 };
 
@@ -1215,6 +1216,7 @@ onMounted(async () => {
                         </p>
                     </template>
                 </section>
+                <p v-if="panel.note" class="space-muted">{{ panel.note }}</p>
                 <section
                     v-if="panel.links.length"
                     class="space-card"

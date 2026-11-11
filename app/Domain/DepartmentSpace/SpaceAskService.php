@@ -25,7 +25,7 @@ final class SpaceAskService
         'consultation.longest_waiting' => ['queue.index', []],
         'consultation.not_ready' => ['queue.index', []],
         'panel.most_unclaimed' => ['panel-claims.index', []],
-        'panel.overdue_by_panel' => ['panel-claims.index', ['tab' => 'overdue']],
+        'panel.overdue_amount' => ['panel-claims.index', ['tab' => 'overdue']],
         'billing.over_60' => ['billing.pay-later-collections', []],
         'billing.owes_most' => ['billing.pay-later-collections', []],
         'billing.closings_waiting' => ['cash-closings.month', []],
@@ -90,7 +90,7 @@ final class SpaceAskService
             'billing.over_60', 'billing.owes_most' => $this->billing->payLaterRead($actor) !== null,
             'billing.closings_waiting', 'billing.closings_missing' => $this->billing->monthDays($actor) !== null,
             'consultation.longest_waiting', 'consultation.not_ready' => $this->consultation->snapshot($actor) !== null,
-            'panel.most_unclaimed', 'panel.overdue_by_panel' => $this->panel->toClaim($actor) !== null,
+            'panel.most_unclaimed', 'panel.overdue_amount' => $this->panel->toClaim($actor) !== null,
             default => false,
         };
     }
@@ -111,33 +111,34 @@ final class SpaceAskService
         uasort($by, fn (array $a, array $b): int => $b['sen'] <=> $a['sen']);
         $rows = [];
         foreach (array_slice($by, 0, 3, true) as $name => $v) {
-            $rows[] = [(string) $name, (string) $v['count'], SpaceDisplay::rm($v['sen'])];
+            $rows[] = [(string) $name, $v['count'].($v['count'] === 1 ? ' invoice' : ' invoices'), SpaceDisplay::rm($v['sen'])];
         }
 
         return ['sentence' => 'The Panels with the most unclaimed.'.($claim['complete'] ? '' : ' Only the oldest 100 invoices were checked.'), 'columns' => ['Panel', 'Invoices', 'Unclaimed'], 'rows' => $rows];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
-    private function panelOverdueByPanel(User $actor): array
+    private function panelOverdueAmount(User $actor): array
     {
         $claim = $this->panel->toClaim($actor);
         abort_if($claim === null, 403);
         $by = [];
         foreach ($claim['all'] as $r) {
             if ($r['overdue']) {
-                $by[$r['panel']] = ($by[$r['panel']] ?? 0) + 1;
+                $by[$r['panel']]['count'] = ($by[$r['panel']]['count'] ?? 0) + 1;
+                $by[$r['panel']]['sen'] = ($by[$r['panel']]['sen'] ?? 0) + $r['amountSen'];
             }
         }
         if ($by === []) {
             return ['sentence' => 'No Panel has overdue claims to make.', 'columns' => [], 'rows' => []];
         }
-        arsort($by);
+        uasort($by, fn (array $a, array $b): int => $b['sen'] <=> $a['sen']);
         $rows = [];
-        foreach (array_slice($by, 0, 10, true) as $name => $n) {
-            $rows[] = [(string) $name, (string) $n];
+        foreach (array_slice($by, 0, 10, true) as $name => $v) {
+            $rows[] = [(string) $name, $v['count'].($v['count'] === 1 ? ' invoice' : ' invoices'), SpaceDisplay::rm($v['sen'])];
         }
 
-        return ['sentence' => count($by) === 1 ? '1 Panel has overdue claims to make.' : count($by).' Panels have overdue claims to make.'.($claim['complete'] ? '' : ' Only the oldest 100 invoices were checked.'), 'columns' => ['Panel', 'Overdue invoices'], 'rows' => $rows];
+        return ['sentence' => 'The overdue amount per Panel.'.($claim['complete'] ? '' : ' Only the oldest 100 invoices were checked.'), 'columns' => ['Panel', 'Invoices', 'Overdue'], 'rows' => $rows];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */

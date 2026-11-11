@@ -32,7 +32,7 @@ final class SpaceQuestions
         'consultation.longest_waiting' => ['space' => 'consultation', 'label' => 'Who has waited longest for me?', 'permission' => 'queue.view.own', 'date' => self::NOW, 'builder' => 'consultationLongest', 'patientLevel' => true],
         'consultation.not_ready' => ['space' => 'consultation', 'label' => 'Which of my waiting patients are not ready to call?', 'permission' => 'queue.view.own', 'date' => self::NOW, 'builder' => 'consultationNotReady', 'patientLevel' => true],
         'panel.most_unclaimed' => ['space' => 'panel', 'label' => 'Which Panels have the most unclaimed?', 'permission' => 'panel.claims.manage.branch', 'date' => self::NOW, 'builder' => 'panelMostUnclaimed', 'patientLevel' => false],
-        'panel.overdue_by_panel' => ['space' => 'panel', 'label' => 'Which Panels have overdue claims to make?', 'permission' => 'panel.claims.manage.branch', 'date' => self::NOW, 'builder' => 'panelOverdueByPanel', 'patientLevel' => false],
+        'panel.overdue_amount' => ['space' => 'panel', 'label' => 'How much is overdue per Panel?', 'permission' => 'panel.claims.manage.branch', 'date' => self::NOW, 'builder' => 'panelOverdueAmount', 'patientLevel' => false],
     ];
 
     /** @return array<string, array{space: string, label: string, permission: string, date: string, builder: string, patientLevel: bool}> */
