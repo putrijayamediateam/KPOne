@@ -79,7 +79,7 @@ final class MeSpace
     /**
      * The next shift: today's or the next one in this week or next week, from My roster.
      *
-     * @return array{text: string, today: bool}|null
+     * @return array{text: string, today: bool, empty: bool, href: string}|null
      */
     public function nextShift(User $actor): ?array
     {
@@ -91,11 +91,11 @@ final class MeSpace
             if ($date >= $days['today']) {
                 $s = $d['shifts'][0];
 
-                return ['text' => $d['label'].', '.$s['startLabel'].' to '.$s['endLabel'].', '.$s['branch'], 'today' => $date === $days['today']];
+                return ['text' => $d['label'].', '.$s['startLabel'].' to '.$s['endLabel'].', '.$s['branch'], 'today' => $date === $days['today'], 'empty' => false, 'href' => route('hr.roster.index', absolute: false)];
             }
         }
 
-        return ['text' => 'No shift planned.', 'today' => false];
+        return ['text' => 'No shift planned.', 'today' => false, 'empty' => true, 'href' => route('hr.roster.index', absolute: false)];
     }
 
     /**
@@ -136,7 +136,8 @@ final class MeSpace
         }
         $rows = [];
         foreach (array_slice($counted, 0, self::LIST_LIMIT) as $b) {
-            $rows[] = ['name' => (string) $b['name'], 'left' => SpaceDisplay::quantityText((string) $b['left'], 'day').' left'];
+            $unset = (string) $b['entitled'] === '0' && (string) $b['taken'] === '0' && (string) $b['booked'] === '0';
+            $rows[] = ['name' => (string) $b['name'], 'left' => $unset ? 'Not set up yet' : SpaceDisplay::quantityText((string) $b['left'], 'day').' left'];
         }
 
         return ['total' => count($counted), 'rows' => $rows];

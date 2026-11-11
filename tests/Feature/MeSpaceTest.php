@@ -15,6 +15,8 @@ class MeSpaceTest extends VisitTestCase
         $this->get('/spaces/me')->assertOk()->assertInertia(fn (Assert $p) => $p
             ->component('Spaces/Show')
             ->where('me.shift.text', 'No shift planned.')
+            ->where('me.shift.empty', true)
+            ->where('me.shift.href', '/hr/roster')
             ->where('me.clock.text', 'Not clocked in')
             ->where('me.leave', ['notSetUp' => true])
             ->where('me.claims.text', 'No claim is waiting.')

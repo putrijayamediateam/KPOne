@@ -220,7 +220,12 @@ type HrHome = {
 type MeHome = {
     branchName: string | null;
     asOf: string | null;
-    shift: { text: string; today: boolean } | null;
+    shift: {
+        text: string;
+        today: boolean;
+        empty: boolean;
+        href: string;
+    } | null;
     clock: { state: string; text: string } | null;
     leave:
         | { notSetUp: true }
@@ -1819,15 +1824,20 @@ onMounted(async () => {
                             me.shift.today ? 'My shift today' : 'My next shift'
                         }}
                     </h2>
-                    <p
-                        :class="
-                            me.shift.text === 'No shift planned.'
-                                ? 'space-muted'
-                                : ''
-                        "
-                    >
+                    <p :class="me.shift.empty ? 'space-muted' : ''">
                         {{ me.shift.text }}
                     </p>
+                    <Link
+                        v-if="me.shift.empty"
+                        :href="me.shift.href"
+                        class="space-row"
+                    >
+                        <span>Open roster</span>
+                        <ChevronRight
+                            class="space-chevron"
+                            aria-hidden="true"
+                        />
+                    </Link>
                 </section>
                 <section
                     v-if="me.clock"
@@ -1858,9 +1868,7 @@ onMounted(async () => {
                                         <span class="space-row-main">{{
                                             r.name
                                         }}</span>
-                                        <span class="space-row-sub">{{
-                                            r.left
-                                        }}</span>
+                                        <span>{{ r.left }}</span>
                                     </span>
                                 </span>
                             </li>
