@@ -130,8 +130,8 @@ final class CandidateLink
                 'days' => $pick === null ? $slots->available($application) : [], 'picks' => InterviewSlots::PICKS,
                 // Owner, 2026-11-11: the last day to choose before the application closes (null once picked, or with no working days).
                 // Daniel: the same date on both lines, with the weekday in each line's own language ("Isnin 16 Nov 2026").
-                'chooseBy' => ($by = app(HiringDeadlines::class)->pickBy($application)) === null ? null : CarbonImmutable::parse($by)->format('D j M Y'),
-                'chooseByMs' => $by === null ? null : CarbonImmutable::parse($by)->settings(['locale' => 'ms'])->isoFormat('dddd').' '.CarbonImmutable::parse($by)->format('j M Y'),
+                'chooseBy' => ($by = app(HiringDeadlines::class)->pickBy($application)) === null ? null : HiringDeadlines::chooseByLabels($by)['deadline'],
+                'chooseByMs' => $by === null ? null : HiringDeadlines::chooseByLabels($by)['tarikh'],
                 // "Kuala Lumpur time" (Daniel, HR-17c): the times are the branch's.
                 'zone' => str_replace('_', ' ', (string) last(explode('/', $zone)))];
         }
