@@ -512,7 +512,6 @@ const submitEdit = (row: Row) => {
         </ul>
         <CompactPagination
             v-if="terms.total > 0"
-            class="[&_button]:h-11! lg:[&_button]:h-8!"
             :current-page="terms.page"
             :last-page="terms.lastPage"
             :total="terms.total"
