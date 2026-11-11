@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
@@ -53,6 +53,14 @@ type InventoryDirectory = {
     currentPage: number;
     lastPage: number;
 };
+
+// STK-24: the controlled-drug register link shows only for its viewers (the server checks too).
+const page = usePage();
+const canViewControlledRegister = computed(() =>
+    page.props.auth.permissions.includes(
+        'inventory.controlled_register.view.branch',
+    ),
+);
 
 const props = defineProps<{
     inventory: InventoryDirectory;
@@ -213,6 +221,19 @@ const clearFilters = () => {
                 variant="outline"
                 class="min-h-11"
                 >Supplier returns</ActionLink
+            >
+            <ActionLink
+                href="/inventory/supplier-invoices"
+                variant="outline"
+                class="min-h-11"
+                >Supplier invoices</ActionLink
+            >
+            <ActionLink
+                href="/inventory/controlled-register"
+                variant="outline"
+                v-if="canViewControlledRegister"
+                class="min-h-11"
+                >Controlled register</ActionLink
             >
             <ActionLink
                 href="/inventory/treatment-usage"
