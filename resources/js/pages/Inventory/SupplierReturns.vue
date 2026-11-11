@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -149,6 +149,23 @@ const endpoint = ref('');
 const operation = ref<'request' | SupplierReturnAction>('request');
 const history = ref<ReturnRow | null>(null);
 const isGroup = ref(false);
+const activeGroup = ref<GroupRow | null>(null);
+// Totals per stock unit, so lots of different SKUs are never added across units.
+const groupTotals = computed(() => {
+    const totals = new Map<string, number>();
+
+    for (const line of activeGroup.value?.lines ?? []) {
+        totals.set(
+            line.base_unit,
+            (totals.get(line.base_unit) ?? 0) +
+                Math.round(Number(line.quantity) * 1000),
+        );
+    }
+
+    return [...totals].map(
+        ([unit, milli]) => `${(milli / 1000).toFixed(3)} ${unit}`,
+    );
+});
 const form = useForm({
     expected_branch_id: props.returns.branchId,
     retry_key: '',
@@ -249,6 +266,10 @@ function lineError(index: number): string | undefined {
         groupErrors.value[`lines.${index}.reason`]
     );
 }
+// Keep batch codes such as SYN-MULTI-ABC on one line on a phone (non-breaking hyphens).
+const unbroken = (code: string) => code.replaceAll('-', '\u2011');
+const lotError = (lotId: number): string | undefined =>
+    drafts.value[lotId]?.include ? lineError(chosenIndex(lotId)) : undefined;
 const chosenIndex = (lotId: number) =>
     props.returns.deliveryLots
         .filter((lot) => drafts.value[lot.id]?.include)
@@ -272,6 +293,14 @@ function submitGroup() {
         .post('/inventory/supplier-return-groups', {
             preserveScroll: true,
             preserveState: true,
+            onError: () =>
+                nextTick(() =>
+                    document
+                        .querySelector<HTMLElement>(
+                            '#multi-heading ~ form [aria-invalid="true"], #multi-heading ~ form [role="alert"]',
+                        )
+                        ?.scrollIntoView({ block: 'center' }),
+                ),
             onSuccess: () => {
                 groupForm.reset();
                 groupForm.retry_key = crypto.randomUUID();
@@ -289,6 +318,7 @@ function showGroupAction(group: GroupRow, action: SupplierReturnAction) {
     operation.value = action;
     endpoint.value = `/inventory/supplier-return-groups/${group.id}/${action}`;
     isGroup.value = true;
+    activeGroup.value = group;
     open.value = true;
 }
 function showRequest(lot: Lot) {
@@ -314,6 +344,7 @@ function showAction(row: ReturnRow, action: SupplierReturnAction) {
     operation.value = action;
     endpoint.value = `/inventory/supplier-returns/${row.id}/${action}`;
     isGroup.value = false;
+    activeGroup.value = null;
     open.value = true;
 }
 function submit() {
@@ -457,7 +488,8 @@ watch(
                         class="rounded border px-2 py-1"
                     >
                         {{ line.quantity }} {{ line.base_unit }} ·
-                        {{ line.sku_code }} · batch {{ line.batch_number }}
+                        {{ line.sku_code }} · batch
+                        {{ unbroken(line.batch_number) }}
                         (expires
                         <span class="whitespace-nowrap">{{
                             formatDate(line.expiry_date)
@@ -804,14 +836,16 @@ watch(
                     <legend class="sr-only">
                         {{ lot.sku_code }} batch {{ lot.batch_number }}
                     </legend>
-                    <label class="flex min-h-11 items-center gap-2 text-sm"
+                    <label
+                        class="-m-2 flex min-h-11 w-[calc(100%+1rem)] cursor-pointer items-center gap-3 p-2 text-sm sm:w-auto"
+                        :data-testid="`lot-pick-${lot.id}`"
                         ><input
                             v-model="drafts[lot.id].include"
                             type="checkbox"
-                            class="size-5"
+                            class="size-5 shrink-0"
                         /><span
                             >{{ lot.sku_code }} · batch
-                            {{ lot.batch_number }} (expires
+                            {{ unbroken(lot.batch_number) }} (expires
                             <span class="whitespace-nowrap">{{
                                 formatDate(lot.expiry_date)
                             }}</span
@@ -824,7 +858,20 @@ watch(
                             v-model="drafts[lot.id].quantity"
                             inputmode="decimal"
                             :disabled="!drafts[lot.id].include"
-                            class="min-h-11 w-full rounded border bg-background px-3 disabled:opacity-50"
+                            :aria-invalid="
+                                lotError(lot.id) ? 'true' : undefined
+                            "
+                            :aria-describedby="
+                                lotError(lot.id)
+                                    ? `lot-error-${lot.id}`
+                                    : undefined
+                            "
+                            :class="[
+                                'min-h-11 w-full rounded border bg-background px-3 disabled:opacity-50',
+                                lotError(lot.id)
+                                    ? 'border-destructive ring-1 ring-destructive'
+                                    : '',
+                            ]"
                     /></label>
                     <label class="grid gap-1 text-sm"
                         >Reason<select
@@ -844,9 +891,9 @@ watch(
                         </select></label
                     >
                     <InputError
-                        v-if="drafts[lot.id].include"
+                        :id="`lot-error-${lot.id}`"
                         class="sm:col-span-3"
-                        :message="lineError(chosenIndex(lot.id))"
+                        :message="lotError(lot.id)"
                     />
                 </fieldset>
                 <label class="block text-sm"
@@ -961,6 +1008,29 @@ watch(
                     <DialogDescription>{{ label }}</DialogDescription>
                 </DialogHeader>
                 <form class="space-y-3" @submit.prevent="submit">
+                    <div
+                        v-if="isGroup && activeGroup"
+                        class="space-y-1 rounded border p-2 text-sm"
+                        data-testid="group-confirm-lots"
+                    >
+                        <p class="font-medium">
+                            This applies to all
+                            {{ activeGroup.lines.length }} lots:
+                        </p>
+                        <ul class="space-y-0.5">
+                            <li
+                                v-for="line in activeGroup.lines"
+                                :key="line.id"
+                            >
+                                {{ line.quantity }} {{ line.base_unit }} ·
+                                {{ line.sku_code }} · batch
+                                {{ unbroken(line.batch_number) }}
+                            </li>
+                        </ul>
+                        <p class="font-medium">
+                            Total: {{ groupTotals.join(' + ') }}
+                        </p>
+                    </div>
                     <template v-if="operation === 'request'">
                         <label class="block text-sm"
                             >Quantity ({{ form.unit }})<input

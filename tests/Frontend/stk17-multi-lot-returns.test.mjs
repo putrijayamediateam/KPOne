@@ -29,3 +29,12 @@ test('a multi-lot return acts on all its lots together', () => {
 
     assert.match(page, /moved\s+together/);
 });
+
+test('a refused lot shows its error on the box, and group decisions list the lots', () => {
+    assert.match(page, /border-destructive ring-1 ring-destructive/);
+    assert.match(page, /:aria-describedby="\s*lotError\(lot\.id\)/);
+    assert.match(page, /:id="`lot-error-\$\{lot\.id\}`"/);
+    assert.match(page, /scrollIntoView\(\{ block: 'center' \}\)/);
+    assert.match(page, /data-testid="group-confirm-lots"/);
+    assert.match(page, /Total: \{\{ groupTotals\.join\(' \+ '\) \}\}/);
+});
