@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -13,7 +13,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/ui/page-header';
-import { formatDate } from '@/lib/presentation';
+import { formatDate, formatDateTime } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
 import {
     rmToSen,
@@ -75,6 +75,54 @@ type ReturnRow = {
     requestedByYou: boolean;
 };
 type Page<T> = { rows: T[]; total: number; page: number; lastPage: number };
+type GroupLine = {
+    id: number;
+    return_number: string;
+    quantity: string;
+    base_unit: string;
+    reason: string;
+    sku_code: string;
+    batch_number: string;
+    expiry_date: string;
+};
+type GroupRow = {
+    id: number;
+    groupNumber: string;
+    supplier: string;
+    deliveryReference: string;
+    createdAt: string;
+    state: string;
+    lockVersion: number;
+    lines: GroupLine[];
+    history: {
+        action: string;
+        state: string;
+        reasonCode: string | null;
+        reference: string | null;
+        creditAmountSen: number | null;
+        createdAt: string;
+    }[];
+    canDecide: boolean;
+    canDispatch: boolean;
+    canCredit: boolean;
+    canCancel: boolean;
+    requestedByYou: boolean;
+};
+type Delivery = {
+    id: number;
+    delivery_reference: string;
+    received_at: string;
+    supplier: string;
+    lots: number;
+};
+type DeliveryLot = {
+    id: number;
+    sku_code: string;
+    stock_unit: string;
+    batch_number: string;
+    expiry_date: string;
+    returnable: string;
+};
 const props = defineProps<{
     returns: {
         branchId: number;
@@ -86,6 +134,11 @@ const props = defineProps<{
         rejectReasons: string[];
         returns: Page<ReturnRow>;
         lots: Page<Lot>;
+        groups: Page<GroupRow>;
+        deliveries: Delivery[];
+        delivery: number | null;
+        deliveryLots: DeliveryLot[];
+        maxGroupLines: number;
     };
 }>();
 
@@ -95,6 +148,32 @@ const label = ref('');
 const endpoint = ref('');
 const operation = ref<'request' | SupplierReturnAction>('request');
 const history = ref<ReturnRow | null>(null);
+const isGroup = ref(false);
+const activeGroup = ref<GroupRow | null>(null);
+const groupTitle = (action: SupplierReturnAction, lots: number): string =>
+    ({
+        approved: `Approve all ${lots} lots?`,
+        rejected: `Reject all ${lots} lots?`,
+        dispatched: `Dispatch all ${lots} lots?`,
+        credit_recorded: `Record one credit note for ${lots} lots`,
+        cancelled: `Cancel this return of ${lots} lots?`,
+    })[action];
+// Totals per stock unit, so lots of different SKUs are never added across units.
+const groupTotals = computed(() => {
+    const totals = new Map<string, number>();
+
+    for (const line of activeGroup.value?.lines ?? []) {
+        totals.set(
+            line.base_unit,
+            (totals.get(line.base_unit) ?? 0) +
+                Math.round(Number(line.quantity) * 1000),
+        );
+    }
+
+    return [...totals].map(
+        ([unit, milli]) => `${(milli / 1000).toFixed(3)} ${unit}`,
+    );
+});
 const form = useForm({
     expected_branch_id: props.returns.branchId,
     retry_key: '',
@@ -104,7 +183,7 @@ const form = useForm({
     quantity: '',
     reason: 'damaged',
     supplier_reference: '',
-    reason_code: 'not_agreed_by_supplier',
+    reason_code: '',
     reference: '',
     credit_amount_rm: '',
 });
@@ -117,12 +196,138 @@ function scanned(sku: ScannedSku) {
     q.value = sku.sku_code;
     search();
 }
-function search(page = 1, lots = 1) {
+function search(
+    page = 1,
+    lots = 1,
+    groups = 1,
+    delivery = selectedDelivery.value,
+) {
     router.get(
         '/inventory/supplier-returns',
-        { q: q.value, page, lots_page: lots },
+        {
+            q: q.value,
+            page,
+            lots_page: lots,
+            groups_page: groups,
+            delivery: delivery || undefined,
+        },
         { preserveScroll: true },
     );
+}
+
+// STK-17: several lots from one delivery, sent for approval together.
+const selectedDelivery = ref<number | ''>(props.returns.delivery ?? '');
+const groupHistory = ref<number | null>(null);
+type GroupDraft = { include: boolean; quantity: string; reason: string };
+const blankDrafts = () =>
+    Object.fromEntries(
+        props.returns.deliveryLots.map((lot) => [
+            lot.id,
+            { include: false, quantity: lot.returnable, reason: 'damaged' },
+        ]),
+    ) as Record<number, GroupDraft>;
+const drafts = ref<Record<number, GroupDraft>>(blankDrafts());
+// Keep what was ticked and typed when the same delivery comes back (for example after a refusal), so each
+// line's error shows beside it; start again only when another delivery is chosen.
+watch(
+    () => props.returns.deliveryLots,
+    (lots, previous) => {
+        const sameDelivery =
+            props.returns.delivery !== null &&
+            lots.length > 0 &&
+            previous?.some((lot) => lot.id === lots[0].id);
+        const fresh = blankDrafts();
+        drafts.value = sameDelivery
+            ? Object.fromEntries(
+                  lots.map((lot) => [
+                      lot.id,
+                      drafts.value[lot.id] ?? fresh[lot.id],
+                  ]),
+              )
+            : fresh;
+    },
+);
+const chosenCount = computed(
+    () => Object.values(drafts.value).filter((draft) => draft.include).length,
+);
+const groupForm = useForm({
+    expected_branch_id: props.returns.branchId,
+    retry_key: crypto.randomUUID(),
+    goods_receipt_id: 0,
+    supplier_reference: '',
+});
+const groupErrors = computed(
+    () => groupForm.errors as Record<string, string | undefined>,
+);
+function chooseDelivery() {
+    search(
+        props.returns.returns.page,
+        props.returns.lots.page,
+        props.returns.groups.page,
+        selectedDelivery.value,
+    );
+}
+function lineError(index: number): string | undefined {
+    return (
+        groupErrors.value[`lines.${index}.quantity`] ??
+        groupErrors.value[`lines.${index}.receipt_lot_id`] ??
+        groupErrors.value[`lines.${index}.reason`]
+    );
+}
+// Keep batch codes such as SYN-MULTI-ABC on one line on a phone (non-breaking hyphens).
+const unbroken = (code: string) => code.replaceAll('-', '\u2011');
+const lotError = (lotId: number): string | undefined =>
+    drafts.value[lotId]?.include ? lineError(chosenIndex(lotId)) : undefined;
+const chosenIndex = (lotId: number) =>
+    props.returns.deliveryLots
+        .filter((lot) => drafts.value[lot.id]?.include)
+        .findIndex((lot) => lot.id === lotId);
+function submitGroup() {
+    groupForm
+        .transform((data) => ({
+            expected_branch_id: data.expected_branch_id,
+            retry_key: data.retry_key,
+            goods_receipt_id: Number(selectedDelivery.value),
+            supplier_reference: data.supplier_reference,
+            lines: props.returns.deliveryLots
+                .filter((lot) => drafts.value[lot.id]?.include)
+                .map((lot) => ({
+                    receipt_lot_id: lot.id,
+                    unit: lot.stock_unit,
+                    quantity: drafts.value[lot.id].quantity,
+                    reason: drafts.value[lot.id].reason,
+                })),
+        }))
+        .post('/inventory/supplier-return-groups', {
+            preserveScroll: true,
+            preserveState: true,
+            onError: () =>
+                nextTick(() =>
+                    document
+                        .querySelector<HTMLElement>(
+                            '#multi-heading ~ form [aria-invalid="true"], #multi-heading ~ form [role="alert"]',
+                        )
+                        ?.scrollIntoView({ block: 'center' }),
+                ),
+            onSuccess: () => {
+                groupForm.reset();
+                groupForm.retry_key = crypto.randomUUID();
+                selectedDelivery.value = '';
+            },
+        });
+}
+function showGroupAction(group: GroupRow, action: SupplierReturnAction) {
+    form.reset();
+    form.clearErrors();
+    form.expected_branch_id = props.returns.branchId;
+    form.retry_key = crypto.randomUUID();
+    form.lock_version = group.lockVersion;
+    label.value = `${group.groupNumber} · ${group.lines.length} lots · ${group.supplier} · delivery ${group.deliveryReference}`;
+    operation.value = action;
+    endpoint.value = `/inventory/supplier-return-groups/${group.id}/${action}`;
+    isGroup.value = true;
+    activeGroup.value = group;
+    open.value = true;
 }
 function showRequest(lot: Lot) {
     form.reset();
@@ -146,6 +351,8 @@ function showAction(row: ReturnRow, action: SupplierReturnAction) {
     label.value = `${row.return_number} · ${row.sku_code} · batch ${row.batch_number} · ${row.quantity} ${row.base_unit} · ${row.supplier}`;
     operation.value = action;
     endpoint.value = `/inventory/supplier-returns/${row.id}/${action}`;
+    isGroup.value = false;
+    activeGroup.value = null;
     open.value = true;
 }
 function submit() {
@@ -245,6 +452,186 @@ watch(
                 Search
             </button>
         </form>
+
+        <section
+            v-if="returns.groups.total > 0"
+            class="space-y-3"
+            aria-labelledby="groups-heading"
+        >
+            <h2 id="groups-heading" class="text-lg font-semibold">
+                Multi-lot returns ({{ returns.groups.total }})
+            </h2>
+            <article
+                v-for="group in returns.groups.rows"
+                :key="group.id"
+                class="space-y-2 rounded-lg border p-3"
+                :data-testid="`return-group-${group.id}`"
+            >
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="font-mono text-sm">{{
+                        group.groupNumber
+                    }}</span>
+                    <span
+                        class="rounded-full bg-muted px-2 py-0.5 text-xs font-medium"
+                        >{{
+                            supplierReturnStateLabels[group.state] ??
+                            group.state
+                        }}</span
+                    >
+                </div>
+                <p class="text-sm text-muted-foreground">
+                    {{ group.supplier }} · delivery
+                    {{ group.deliveryReference }} ·
+                    {{ group.lines.length }}
+                    {{ group.lines.length === 1 ? 'lot' : 'lots' }}, moved
+                    together
+                </p>
+                <ul
+                    class="space-y-1 text-sm"
+                    :aria-label="`Lots in ${group.groupNumber}`"
+                >
+                    <li
+                        v-for="line in group.lines"
+                        :key="line.id"
+                        class="rounded border px-2 py-1"
+                    >
+                        {{ line.quantity }} {{ line.base_unit }} ·
+                        {{ line.sku_code }} · batch
+                        {{ unbroken(line.batch_number) }}
+                        (expires
+                        <span class="whitespace-nowrap">{{
+                            formatDate(line.expiry_date)
+                        }}</span
+                        >) ·
+                        {{
+                            supplierReturnReasonLabels[line.reason] ??
+                            line.reason
+                        }}
+                    </li>
+                </ul>
+                <p
+                    v-if="
+                        group.state === 'awaiting_approval' &&
+                        group.requestedByYou
+                    "
+                    class="text-xs text-muted-foreground"
+                >
+                    You requested this return, so a Finance Officer or Director
+                    must approve it.
+                </p>
+                <div class="flex flex-wrap gap-2">
+                    <button
+                        v-if="group.canDecide"
+                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                        @click="showGroupAction(group, 'approved')"
+                    >
+                        Approve all lots
+                    </button>
+                    <button
+                        v-if="group.canDecide"
+                        class="min-h-11 rounded border px-3"
+                        @click="showGroupAction(group, 'rejected')"
+                    >
+                        Reject all lots
+                    </button>
+                    <button
+                        v-if="group.canDispatch"
+                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                        @click="showGroupAction(group, 'dispatched')"
+                    >
+                        Dispatch all lots
+                    </button>
+                    <button
+                        v-if="group.canCredit"
+                        class="min-h-11 rounded bg-primary px-3 text-primary-foreground"
+                        @click="showGroupAction(group, 'credit_recorded')"
+                    >
+                        Record credit note
+                    </button>
+                    <button
+                        v-if="group.canCancel"
+                        class="min-h-11 rounded border px-3"
+                        @click="showGroupAction(group, 'cancelled')"
+                    >
+                        Cancel
+                    </button>
+                    <button
+                        class="min-h-11 rounded border px-3"
+                        @click="
+                            groupHistory =
+                                groupHistory === group.id ? null : group.id
+                        "
+                    >
+                        {{
+                            groupHistory === group.id
+                                ? 'Hide history'
+                                : 'History'
+                        }}
+                    </button>
+                </div>
+                <ol
+                    v-if="groupHistory === group.id"
+                    class="space-y-1 border-l-2 pl-3 text-xs"
+                >
+                    <li v-for="(step, index) in group.history" :key="index">
+                        {{
+                            supplierReturnHistoryLabels[step.action] ??
+                            step.action
+                        }}
+                        · {{ formatDateTime(step.createdAt) }}
+                        <span v-if="step.reasonCode">
+                            ·
+                            {{
+                                supplierReturnRejectLabels[step.reasonCode] ??
+                                step.reasonCode
+                            }}</span
+                        >
+                        <span v-if="step.reference">
+                            · ref {{ step.reference }}</span
+                        >
+                        <span v-if="step.creditAmountSen !== null">
+                            · credit RM
+                            {{ (step.creditAmountSen / 100).toFixed(2) }}</span
+                        >
+                    </li>
+                </ol>
+            </article>
+            <div
+                v-if="returns.groups.lastPage > 1"
+                class="flex flex-wrap gap-2"
+            >
+                <button
+                    class="min-h-11 rounded border px-3"
+                    :disabled="returns.groups.page <= 1"
+                    @click="
+                        search(
+                            returns.returns.page,
+                            returns.lots.page,
+                            returns.groups.page - 1,
+                        )
+                    "
+                >
+                    Previous
+                </button>
+                <span class="self-center text-sm"
+                    >Page {{ returns.groups.page }} of
+                    {{ returns.groups.lastPage }}</span
+                >
+                <button
+                    class="min-h-11 rounded border px-3"
+                    :disabled="returns.groups.page >= returns.groups.lastPage"
+                    @click="
+                        search(
+                            returns.returns.page,
+                            returns.lots.page,
+                            returns.groups.page + 1,
+                        )
+                    "
+                >
+                    Next
+                </button>
+            </div>
+        </section>
 
         <section class="space-y-3" aria-labelledby="returns-heading">
             <h2 id="returns-heading" class="text-lg font-semibold">
@@ -398,6 +785,165 @@ watch(
 
         <section
             v-if="returns.canRequest"
+            class="space-y-3 rounded-lg border p-3"
+            aria-labelledby="multi-heading"
+        >
+            <h2 id="multi-heading" class="text-lg font-semibold">
+                Return several lots from one delivery
+            </h2>
+            <p class="text-sm text-muted-foreground">
+                Choose a delivery, tick the lots to send back and set each
+                quantity. The lots are approved, dispatched and closed with one
+                credit note together. Up to {{ returns.maxGroupLines }} lots.
+            </p>
+            <div class="flex flex-wrap items-end gap-2">
+                <label
+                    class="grid min-w-0 basis-full gap-1 text-sm sm:flex-1 sm:basis-auto"
+                    >Delivery<select
+                        v-model="selectedDelivery"
+                        class="min-h-11 w-full rounded border bg-background px-2"
+                        data-testid="group-delivery"
+                    >
+                        <option value="">Choose a delivery</option>
+                        <option
+                            v-for="delivery in returns.deliveries"
+                            :key="delivery.id"
+                            :value="delivery.id"
+                        >
+                            {{ delivery.supplier }} · delivery
+                            {{ delivery.delivery_reference }} ·
+                            {{ formatDate(delivery.received_at) }} ·
+                            {{ delivery.lots }}
+                            {{ delivery.lots === 1 ? 'lot' : 'lots' }}
+                        </option>
+                    </select></label
+                >
+                <button
+                    type="button"
+                    class="min-h-11 rounded border px-4"
+                    :disabled="selectedDelivery === ''"
+                    @click="chooseDelivery"
+                >
+                    Show lots
+                </button>
+            </div>
+            <form
+                v-if="
+                    returns.delivery !== null &&
+                    returns.delivery === selectedDelivery &&
+                    returns.deliveryLots.length > 0
+                "
+                class="space-y-3"
+                @submit.prevent="submitGroup"
+            >
+                <fieldset
+                    v-for="lot in returns.deliveryLots"
+                    :key="lot.id"
+                    class="grid items-start gap-2 rounded border p-2 sm:grid-cols-[minmax(0,1fr)_10rem_14rem]"
+                >
+                    <legend class="sr-only">
+                        {{ lot.sku_code }} batch {{ lot.batch_number }}
+                    </legend>
+                    <label
+                        class="-m-2 flex min-h-11 w-[calc(100%+1rem)] cursor-pointer items-center gap-3 p-2 text-sm sm:w-auto"
+                        :data-testid="`lot-pick-${lot.id}`"
+                        ><input
+                            v-model="drafts[lot.id].include"
+                            type="checkbox"
+                            class="size-5 shrink-0"
+                        /><span
+                            >{{ lot.sku_code }} · batch
+                            {{ unbroken(lot.batch_number) }} (expires
+                            <span class="whitespace-nowrap">{{
+                                formatDate(lot.expiry_date)
+                            }}</span
+                            >) · can return {{ lot.returnable }}
+                            {{ lot.stock_unit }}</span
+                        ></label
+                    >
+                    <label class="grid gap-1 text-sm"
+                        >Quantity ({{ lot.stock_unit }})<input
+                            v-model="drafts[lot.id].quantity"
+                            inputmode="decimal"
+                            :disabled="!drafts[lot.id].include"
+                            :aria-invalid="
+                                lotError(lot.id) ? 'true' : undefined
+                            "
+                            :aria-describedby="
+                                lotError(lot.id)
+                                    ? `lot-error-${lot.id}`
+                                    : undefined
+                            "
+                            :class="[
+                                'min-h-11 w-full rounded border bg-background px-3 disabled:opacity-50',
+                                lotError(lot.id)
+                                    ? 'border-destructive ring-1 ring-destructive'
+                                    : '',
+                            ]"
+                    /></label>
+                    <label class="grid gap-1 text-sm"
+                        >Reason<select
+                            v-model="drafts[lot.id].reason"
+                            :disabled="!drafts[lot.id].include"
+                            class="min-h-11 w-full rounded border bg-background px-2 disabled:opacity-50"
+                        >
+                            <option
+                                v-for="reason in returns.reasons"
+                                :key="reason"
+                                :value="reason"
+                            >
+                                {{
+                                    supplierReturnReasonLabels[reason] ?? reason
+                                }}
+                            </option>
+                        </select></label
+                    >
+                    <InputError
+                        :id="`lot-error-${lot.id}`"
+                        class="sm:col-span-3"
+                        :message="lotError(lot.id)"
+                    />
+                </fieldset>
+                <label class="block text-sm"
+                    >Supplier return authorisation (optional)<input
+                        v-model="groupForm.supplier_reference"
+                        maxlength="100"
+                        class="mt-1 min-h-11 w-full rounded border bg-background px-3"
+                /></label>
+                <InputError
+                    :message="
+                        groupErrors.supplier_reference ??
+                        groupErrors.lines ??
+                        groupErrors.retry_key ??
+                        groupErrors.goods_receipt_id
+                    "
+                />
+                <button
+                    type="submit"
+                    class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
+                    :disabled="
+                        groupForm.processing ||
+                        chosenCount === 0 ||
+                        chosenCount > returns.maxGroupLines
+                    "
+                >
+                    Send {{ chosenCount }}
+                    {{ chosenCount === 1 ? 'lot' : 'lots' }} for approval
+                </button>
+            </form>
+            <p
+                v-else-if="
+                    returns.delivery !== null &&
+                    returns.deliveryLots.length === 0
+                "
+                class="text-sm text-muted-foreground"
+            >
+                Nothing from this delivery can be returned now.
+            </p>
+        </section>
+
+        <section
+            v-if="returns.canRequest"
             class="space-y-3"
             aria-labelledby="lots-heading"
         >
@@ -465,11 +1011,36 @@ watch(
                     <DialogTitle>{{
                         operation === 'request'
                             ? 'Request supplier return'
-                            : supplierReturnActionLabels[operation]
+                            : isGroup && activeGroup
+                              ? groupTitle(operation, activeGroup.lines.length)
+                              : supplierReturnActionLabels[operation]
                     }}</DialogTitle>
                     <DialogDescription>{{ label }}</DialogDescription>
                 </DialogHeader>
                 <form class="space-y-3" @submit.prevent="submit">
+                    <div
+                        v-if="isGroup && activeGroup"
+                        class="space-y-1 rounded border p-2 text-sm"
+                        data-testid="group-confirm-lots"
+                    >
+                        <p class="font-medium">
+                            This applies to all
+                            {{ activeGroup.lines.length }} lots:
+                        </p>
+                        <ul class="space-y-0.5">
+                            <li
+                                v-for="line in activeGroup.lines"
+                                :key="line.id"
+                            >
+                                {{ line.quantity }} {{ line.base_unit }} ·
+                                {{ line.sku_code }} · batch
+                                {{ unbroken(line.batch_number) }}
+                            </li>
+                        </ul>
+                        <p class="font-medium">
+                            Total: {{ groupTotals.join(' + ') }}
+                        </p>
+                    </div>
                     <template v-if="operation === 'request'">
                         <label class="block text-sm"
                             >Quantity ({{ form.unit }})<input
@@ -510,7 +1081,11 @@ watch(
                             >Why are you rejecting it?<select
                                 v-model="form.reason_code"
                                 class="mt-1 min-h-11 w-full rounded border bg-background px-2"
+                                aria-describedby="reject-reason-hint"
                             >
+                                <option value="" disabled>
+                                    Choose a reason
+                                </option>
                                 <option
                                     v-for="reason in returns.rejectReasons"
                                     :key="reason"
@@ -523,6 +1098,13 @@ watch(
                                 </option>
                             </select></label
                         >
+                        <p
+                            v-if="form.reason_code === ''"
+                            id="reject-reason-hint"
+                            class="text-sm text-muted-foreground"
+                        >
+                            Pick a reason to continue.
+                        </p>
                         <InputError :message="form.errors.reason_code" />
                     </template>
                     <template
@@ -552,13 +1134,20 @@ watch(
                                     class="mt-1 min-h-11 w-full rounded border bg-background px-3"
                             /></label>
                             <InputError :message="errors.credit_amount_sen" />
+                            <p
+                                v-if="isGroup"
+                                class="text-sm text-muted-foreground"
+                            >
+                                One credit note for every lot in this return:
+                                enter the total amount.
+                            </p>
                         </template>
                         <p
                             v-if="operation === 'dispatched'"
                             class="text-sm text-amber-700 dark:text-amber-300"
                         >
                             This takes the quantity out of this branch's stock
-                            now.
+                            now. It can't be undone.
                         </p>
                     </template>
                     <p v-else-if="operation === 'cancelled'" class="text-sm">
@@ -576,7 +1165,11 @@ watch(
                     <button
                         type="submit"
                         class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
-                        :disabled="form.processing"
+                        :disabled="
+                            form.processing ||
+                            (operation === 'rejected' &&
+                                form.reason_code === '')
+                        "
                     >
                         {{
                             operation === 'request'
