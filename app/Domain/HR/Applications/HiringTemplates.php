@@ -108,7 +108,7 @@ final class HiringTemplates
         'clinic' => '/\AKlinik Putrijaya\z/',
         'link' => '/\A(https?:\/\/[^\s<>]{1,200}#[A-Za-z0-9_-]{43}|shown once, when you applied \/ ditunjukkan sekali, semasa anda memohon|sent once, with the invitation \/ dihantar sekali, bersama jemputan)\z/',
         'reference' => '/\A[0-9A-F]{8}\z/',
-        'stage' => '/\A(New|Phone screening)\z/',
+        'stage' => '/\A(New|Phone screening|Scheduling)\z/',
         'date' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/', // Tue 17 Nov 2026
         'time' => '/\A\d{1,2}:00 (AM|PM)\z/',
         'branch' => '/\A[^\r\n<>{}]{2,60}\z/u',

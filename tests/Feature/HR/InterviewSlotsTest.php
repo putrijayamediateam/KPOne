@@ -3,6 +3,7 @@
 namespace Tests\Feature\HR;
 
 use App\Domain\HR\Applications\Services\CandidateLink;
+use App\Domain\HR\Applications\Services\HiringDeadlines;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
 use App\Mail\HiringMessageMail;
@@ -222,6 +223,38 @@ class InterviewSlotsTest extends VisitTestCase
     }
 
     /** @return list<string> every slot start offered now */
+    public function test_an_unanswered_interview_invitation_is_auto_rejected_after_three_working_days(): void
+    {
+        // Owner decision 2026-11-11. Invited on Tuesday 10 Nov; working days after it: Wed 11, Thu 12, (Fri 13 holiday),
+        // Mon 16 = reminder, Tue 17 = closes. Once the candidate picks, it waits for HR; HR asking again restarts the count.
+        [$silent] = $this->scheduled('Synthetic Silent');
+        [$picked, $pickedToken] = $this->scheduled('Synthetic Picked');
+        [$again, $againToken] = $this->scheduled('Synthetic Again');
+        $this->pick($pickedToken, array_slice($this->starts($picked), 0, 3))->assertSessionHasNoErrors();
+        $this->pick($againToken, array_slice($this->starts($again), 0, 3))->assertSessionHasNoErrors();
+        $this->travelTo(CarbonImmutable::parse('2026-11-11 10:00', $this->branch->timezone));
+        $this->askAgain($again)->assertSessionHasNoErrors(); // counts from Wed 11: Thu 12, Mon 16, Tue 17 = reminder, Wed 18 = closes
+        $run = fn (string $at): array => [$this->travelTo(CarbonImmutable::parse($at, $this->branch->timezone)), app(HiringDeadlines::class)->run()][1];
+
+        $this->assertSame([0, 0], $run('2026-11-13 09:00'));
+        $this->assertSame([1, 0], $run('2026-11-16 08:00'));
+        $reminder = DB::table('hr_job_application_messages')->where('template', 'auto_reject_reminder')->sole();
+        $this->assertSame(['mailbox', 'scheduling', (int) $this->row($silent)->interview_round, $this->row($silent)->id], [$reminder->recipient, $reminder->stage,
+            (int) $reminder->round, (int) $reminder->application_id]);
+        $this->assertSame([1, 1], $run('2026-11-17 08:20')); // the silent one closes; the asked-again one gets its reminder (its new round)
+        $this->assertSame(['auto_rejected', 'scheduling', 'scheduling'], [$this->row($silent)->status, $this->row($picked)->status, $this->row($again)->status]);
+        $this->assertSame((int) $this->row($again)->interview_round, (int) DB::table('hr_job_application_messages')->where('template', 'auto_reject_reminder')
+            ->where('application_id', $this->row($again)->id)->value('round'));
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'hr.applications.auto_rejected')->count());
+        $this->assertSame('auto_rejected', DB::table('hr_job_application_messages')->where('application_id', $this->row($silent)->id)->orderByDesc('id')->value('template'));
+        $this->assertSame([0, 1], $run('2026-11-18 08:20'));
+        $this->assertSame(['auto_rejected', 'scheduling'], [$this->row($again)->status, $this->row($picked)->status]);
+        $this->assertSame([0, 0], $run('2026-11-25 09:00')); // the one with picks waits for HR, however long
+
+        // PostgreSQL: Scheduling closes as Auto-rejected only while the round has no picks.
+        $this->assertDatabaseRefuses(fn () => DB::table('hr_job_applications')->where('public_id', $picked)->update(['status' => 'auto_rejected', 'closed_at' => now()]));
+    }
+
     private function starts(string $id): array
     {
         return collect(app(InterviewSlots::class)->available($this->row($id)))->flatMap(fn (array $d): array => array_column($d['slots'], 'start'))->values()->all();
