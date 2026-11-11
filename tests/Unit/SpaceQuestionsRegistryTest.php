@@ -21,8 +21,8 @@ final class SpaceQuestionsRegistryTest extends TestCase
             'front_desk.not_ready' => ['front_desk', 'visits.view.branch', true],
             'front_desk.awaiting_billing' => ['front_desk', 'billing.view.branch', true],
             'front_desk.qr_pending' => ['front_desk', 'public_intakes.review.branch', false],
-            'billing.overdue' => ['billing', 'outstanding.view.branch', true],
-            'billing.overdue_total' => ['billing', 'outstanding.view.branch', false],
+            'billing.over_60' => ['billing', 'outstanding.view.branch', true],
+            'billing.owes_most' => ['billing', 'outstanding.view.branch', true],
             'billing.closings_waiting' => ['billing', 'payments.cash_closing.approve.branch', false],
             'billing.closings_missing' => ['billing', 'payments.reconcile.branch', false],
         ], array_map(fn (array $q): array => [$q['space'], $q['permission'], $q['patientLevel']], SpaceQuestions::REGISTRY));

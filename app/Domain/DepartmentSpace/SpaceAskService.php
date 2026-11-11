@@ -22,8 +22,8 @@ final class SpaceAskService
         'front_desk.not_ready' => ['registration.index', []],
         'front_desk.awaiting_billing' => ['registration.index', []],
         'front_desk.qr_pending' => ['registration.index', ['tab' => 'qr-intake']],
-        'billing.overdue' => ['billing.pay-later-collections', []],
-        'billing.overdue_total' => ['billing.pay-later-collections', []],
+        'billing.over_60' => ['billing.pay-later-collections', []],
+        'billing.owes_most' => ['billing.pay-later-collections', []],
         'billing.closings_waiting' => ['cash-closings.month', []],
         'billing.closings_missing' => ['cash-closings.month', []],
     ];
@@ -83,7 +83,7 @@ final class SpaceAskService
             'front_desk.waited_over_30', 'front_desk.not_ready' => $this->frontDesk->waiting($actor) !== null,
             'front_desk.awaiting_billing' => $this->frontDesk->awaitingBilling($actor) !== null,
             'front_desk.qr_pending' => $this->frontDesk->qrPending($actor) !== null,
-            'billing.overdue', 'billing.overdue_total' => $this->billing->overdue($actor) !== null,
+            'billing.over_60', 'billing.owes_most' => $this->billing->payLaterRead($actor) !== null,
             'billing.closings_waiting', 'billing.closings_missing' => $this->billing->monthDays($actor) !== null,
             default => false,
         };
@@ -214,37 +214,47 @@ final class SpaceAskService
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
-    private function billingOverdue(User $actor): array
+    private function billingOver60(User $actor): array
     {
-        $overdue = $this->billing->overdue($actor);
-        abort_if($overdue === null, 403);
-        if ($overdue['rows'] === []) {
-            return ['sentence' => 'No bill is overdue.', 'columns' => [], 'rows' => []];
+        $read = $this->billing->payLaterRead($actor);
+        abort_if($read === null, 403);
+        $hits = array_values(array_filter($read['rows'], fn (array $r): bool => (int) $r['daysOverdue'] > 60));
+        if ($hits === []) {
+            return ['sentence' => 'No pay-later bill is over 60 days.', 'columns' => [], 'rows' => []];
         }
-        $rows = [];
-        foreach ($overdue['rows'] as $row) {
-            $rows[] = [(string) $row['invoiceNumber'], (string) $row['patient'], (string) $row['amountText'], (string) $row['dueText']];
-        }
-        $n = $overdue['count'];
 
-        return [
-            'sentence' => ($n === 1 ? '1 bill is' : $n.' bills are').' overdue.'.($n > count($rows) ? ' The '.count($rows).' most overdue are shown.' : ''),
-            'columns' => ['Invoice', 'Patient', 'Remaining', 'Due'],
-            'rows' => $rows,
-        ];
+        return $this->billingTable($hits, count($hits) === 1 ? '1 pay-later bill is' : count($hits).' pay-later bills are', ' over 60 days.', $read['complete']);
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
-    private function billingOverdueTotal(User $actor): array
+    private function billingOwesMost(User $actor): array
     {
-        $overdue = $this->billing->overdue($actor);
-        abort_if($overdue === null, 403);
-        $n = $overdue['count'];
+        $read = $this->billing->payLaterRead($actor);
+        abort_if($read === null, 403);
+        if ($read['rows'] === []) {
+            return ['sentence' => 'No pay-later bill is open.', 'columns' => [], 'rows' => []];
+        }
+        $rows = $read['rows'];
+        usort($rows, fn (array $a, array $b): int => $b['remainingSen'] <=> $a['remainingSen']);
+
+        return $this->billingTable(array_slice($rows, 0, 5), 'The 5 largest open pay-later bills', ' are shown.', $read['complete']);
+    }
+
+    /**
+     * @param  list<array<string, mixed>>  $source
+     * @return array{sentence: string, columns: list<string>, rows: list<list<string>>}
+     */
+    private function billingTable(array $source, string $lead, string $tail, bool $complete): array
+    {
+        $rows = [];
+        foreach (array_slice($source, 0, 10) as $row) {
+            $rows[] = [(string) $row['invoiceNumber'], (string) $row['patient'], (string) $row['amountText'], (string) $row['dueText']];
+        }
 
         return [
-            'sentence' => $n === 0 ? 'Nothing is overdue.' : SpaceDisplay::rm($overdue['sen']).' is overdue across '.($n === 1 ? '1 bill.' : $n.' bills.'),
-            'columns' => [],
-            'rows' => [],
+            'sentence' => $lead.$tail.($complete ? '' : ' Only the oldest 100 bills were checked.'),
+            'columns' => ['Invoice', 'Patient', 'Remaining', 'Due'],
+            'rows' => $rows,
         ];
     }
 

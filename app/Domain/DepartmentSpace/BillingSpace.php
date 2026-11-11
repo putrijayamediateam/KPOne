@@ -110,6 +110,33 @@ final class BillingSpace
     }
 
     /**
+     * Pay-later bills as the pay-later page lists them (oldest due first), read page by page, at most four pages.
+     * `complete` is false when more bills exist than were read.
+     *
+     * @return array{rows: list<array<string, mixed>>, complete: bool}|null
+     */
+    public function payLaterRead(User $actor): ?array
+    {
+        if ($this->branches->activeBranch($actor) === null || ! $actor->can('outstanding.view.branch')) {
+            return null;
+        }
+        $rows = [];
+        $complete = true;
+        for ($n = 1; $n <= 4; $n++) {
+            $page = $this->payLater->page($actor, $n, false);
+            $rows = array_merge($rows, $this->payLaterRows($page, PHP_INT_MAX));
+            if ($n >= (int) $page['lastPage']) {
+                break;
+            }
+            if ($n === 4) {
+                $complete = false;
+            }
+        }
+
+        return ['rows' => $rows, 'complete' => $complete];
+    }
+
+    /**
      * Today's cash closing, as the daily page shows it, or null when this person cannot open that page.
      *
      * @return array<string, mixed>|null
@@ -159,6 +186,7 @@ final class BillingSpace
             'invoiceNumber' => (string) $r['invoiceNumber'],
             'patient' => SpaceDisplay::shortName((string) $r['patientName']),
             'amountText' => SpaceDisplay::rm((int) $r['remainingSen']),
+            'remainingSen' => (int) $r['remainingSen'],
             'dueText' => $this->dueText((string) $r['dueDate'], (int) $r['daysOverdue']),
             'tone' => (int) $r['daysOverdue'] >= 30 ? 'red' : ((int) $r['daysOverdue'] > 0 ? 'amber' : 'normal'),
             'daysOverdue' => (int) $r['daysOverdue'],
