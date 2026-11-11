@@ -38,9 +38,19 @@ final class PharmacySpace
         // Same rule as the Dispensary list: CA and CA Supervisor with dispensary.view.branch at the active branch.
         if ($branch !== null && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor'])) {
             $board = $this->dispensary->board($actor, []);
-            $source = $board['data'];
-            /** @var list<array<string, mixed>> $data */
-            $data = array_values($source instanceof Collection ? $source->all() : (array) $source);
+            $data = $this->rowsOf($board);
+            // The board lists newest first in pages of 25, so the longest waiters sit on its last pages: read those
+            // too (at most two more pages) and show the longest-waiting patients, not the newest.
+            $lastPage = (int) $board['lastPage'];
+            for ($page = $lastPage, $reads = 0; $page > 1 && $reads < 2; $page--, $reads++) {
+                $data = array_merge($data, $this->rowsOf($this->dispensary->board($actor, ['page' => $page])));
+            }
+            $unique = [];
+            foreach ($data as $row) {
+                $unique[$row['visitNumber']] = $row;
+            }
+            $data = array_values($unique);
+            usort($data, fn (array $a, array $b): int => $b['durationMinutes'] <=> $a['durationMinutes']);
             $shown = array_slice($data, 0, self::LIST_LIMIT);
             $numbers = $this->queueNumbers($branch->organisation_id, $branch->id, array_column($shown, 'visitNumber'));
             $toDispense = [
@@ -90,6 +100,17 @@ final class PharmacySpace
             'stockWatch' => $stockWatch,
             'links' => $links,
         ];
+    }
+
+    /**
+     * @param  array<string, mixed>  $board
+     * @return list<array<string, mixed>>
+     */
+    private function rowsOf(array $board): array
+    {
+        $source = $board['data'];
+
+        return array_values($source instanceof Collection ? $source->all() : (array) $source);
     }
 
     /** "Ahmad I." from "Ahmad Ismail bin Ali": the first name and the initial of the next, never the full name. */

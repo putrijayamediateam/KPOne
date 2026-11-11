@@ -72,11 +72,33 @@ class PharmacySpaceTest extends VisitTestCase
         $this->assertSame(6, $props['total']);
         $this->assertCount(5, $props['rows']);
         $this->assertSame('B-006', $props['rows'][0]['queueNumber']);
+        $minutes = array_column($props['rows'], 'minutes');
+        $sorted = $minutes;
+        rsort($sorted);
+        $this->assertSame($sorted, $minutes, 'longest waiting first');
+        $this->assertNotContains('B-001', array_column($props['rows'], 'queueNumber'));
         $this->assertSame('Lim W.', $props['rows'][0]['patient']);
         foreach ($props['rows'] as $row) {
             $this->assertMatchesRegularExpression('/^B-\d{3}$/', $row['queueNumber']);
             $this->assertStringNotContainsString('Ismail', $row['patient']);
             $this->assertSame(['visitNumber', 'queueNumber', 'patient', 'minutes', 'medicineCount', 'href'], array_keys($row));
         }
+    }
+
+    public function test_the_longest_waiting_patients_show_even_when_more_than_one_board_page_waits(): void
+    {
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+        foreach (range(1, 27) as $i) {
+            $visit = $this->register($ca, $this->patient($ca, ['full_name' => "Synthetic Patient $i"]));
+            app(OtcQueueService::class)->enter($ca, $visit, ['expected_branch_id' => $this->branch->id]);
+            $case = app(OtcDispensaryService::class)->open($ca, $visit, ['expected_branch_id' => $this->branch->id]);
+            DB::table('dispensary_cases')->where('id', $case->id)->update(['received_at' => now()->utc()->subMinutes(3 * $i)]);
+        }
+
+        $props = $this->get('/spaces/pharmacy')->assertOk()->viewData('page')['props']['pharmacy']['toDispense'];
+        $this->assertSame(27, $props['total']);
+        $this->assertCount(5, $props['rows']);
+        $this->assertSame([81, 78, 75, 72, 69], array_column($props['rows'], 'minutes'));
     }
 }
