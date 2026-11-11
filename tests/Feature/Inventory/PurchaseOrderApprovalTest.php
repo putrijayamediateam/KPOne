@@ -93,6 +93,9 @@ final class PurchaseOrderApprovalTest extends VisitTestCase
 
         $this->assertThrows(fn () => $service->cancel($this->as($finance), $order, $this->cmd($order, ['reason' => 'Synthetic cancel'])), AuthorizationException::class);
         $this->assertSame(PurchaseOrder::STATUS_APPROVED, $order->refresh()->status);
+        // Someone without approval authority never cancels an approved order either.
+        $supervisor = $this->staff('ca_supervisor');
+        $this->assertThrows(fn () => $service->cancel($this->as($supervisor), $order, $this->cmd($order, ['reason' => 'Synthetic cancel'])), AuthorizationException::class);
         $this->assertSame(PurchaseOrder::STATUS_CANCELLED, $service->cancel($this->as($other), $order, $this->cmd($order, ['reason' => 'Synthetic cancel']))->status);
     }
 
@@ -125,5 +128,6 @@ final class PurchaseOrderApprovalTest extends VisitTestCase
         $this->assertTrue($orders->firstWhere('publicId', $own->public_id)['raisedByYou']);
         $this->assertFalse($orders->firstWhere('publicId', $f['order']->public_id)['raisedByYou']);
         $this->assertArrayNotHasKey('created_by_user_id', $orders->first());
+        $this->assertArrayNotHasKey('submitted_by_user_id', $orders->first());
     }
 }

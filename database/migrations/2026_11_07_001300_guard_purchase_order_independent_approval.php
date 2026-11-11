@@ -17,7 +17,8 @@ return new class extends Migration
         DB::unprepared(<<<'SQL'
 CREATE OR REPLACE FUNCTION guard_purchase_order_independent_approval() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
- IF NEW.status = 'approved' AND OLD.status IS DISTINCT FROM 'approved'
+ -- Only the approval step itself: a receipt correction that puts an order back to approved is not an approval.
+ IF OLD.status = 'submitted' AND NEW.status = 'approved'
   AND (NEW.approved_by_user_id IS NULL OR NEW.approved_by_user_id = NEW.created_by_user_id OR NEW.approved_by_user_id = NEW.submitted_by_user_id) THEN
   RAISE EXCEPTION 'A purchase order must be approved by someone who did not raise or submit it' USING ERRCODE='23514';
  END IF;

@@ -898,6 +898,21 @@ const saveReorder = () =>
                             You raised or submitted this order, so a different
                             Finance Officer or Director must approve it.
                         </p>
+                        <p
+                            v-if="
+                                needsAnotherApprover(row, 'cancel') &&
+                                purchaseOrderActionAllowed(
+                                    row.status,
+                                    'cancel',
+                                    operations.permissions,
+                                )
+                            "
+                            class="w-full text-sm text-muted-foreground"
+                        >
+                            You raised or submitted this order, so a different
+                            Finance Officer or Director must cancel it now that
+                            it is approved.
+                        </p>
                         <Button
                             v-if="canPurchase(row, 'close')"
                             size="sm"
