@@ -182,7 +182,7 @@ for (const field of [
 }
 
 const tileClass =
-    'flex min-h-11 cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 sm:min-h-9';
+    'flex min-h-11 cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 lg:min-h-9';
 const amount = computed(() => `${props.row.quantity} ${props.line.unit}`);
 const locationName = computed(
     () =>
@@ -452,7 +452,7 @@ const serverAlert = computed(() => {
                     :id="id('location')"
                     v-model="form.location_public_id"
                     class="mt-1"
-                    trigger-class="h-11 sm:h-9"
+                    trigger-class="h-11 lg:h-9"
                     label="Returns location"
                     placeholder="Choose a returns location"
                     :invalid="!!form.errors.location_public_id"
@@ -678,12 +678,12 @@ const serverAlert = computed(() => {
             </div>
         </template>
 
-        <div class="flex flex-col gap-2 sm:flex-row">
+        <div class="flex flex-col gap-2 lg:flex-row">
             <template v-if="line.controlled && form.outcome !== 'refuse'">
                 <Button
                     type="button"
                     variant="destructive"
-                    class="h-11 w-full sm:h-9 sm:w-auto"
+                    class="h-11 w-full lg:h-9 lg:w-auto"
                     :disabled="form.processing"
                     data-action="confirm-disposal"
                     @click="openConfirm"
@@ -693,7 +693,7 @@ const serverAlert = computed(() => {
                 <Button
                     type="button"
                     variant="outline"
-                    class="h-11 w-full sm:h-9 sm:w-auto"
+                    class="h-11 w-full lg:h-9 lg:w-auto"
                     :disabled="form.processing"
                     data-action="refuse-instead"
                     @click="form.outcome = 'refuse'"
@@ -705,7 +705,7 @@ const serverAlert = computed(() => {
                 v-if="line.controlled && form.outcome === 'refuse'"
                 type="button"
                 variant="outline"
-                class="h-11 w-full sm:h-9 sm:w-auto"
+                class="h-11 w-full lg:h-9 lg:w-auto"
                 :disabled="form.processing"
                 data-action="dispose-instead"
                 @click="form.outcome = 'dispose'"
@@ -715,7 +715,7 @@ const serverAlert = computed(() => {
             <Button
                 v-if="!line.controlled || form.outcome === 'refuse'"
                 type="button"
-                class="h-11 w-full sm:h-9 sm:w-auto"
+                class="h-11 w-full lg:h-9 lg:w-auto"
                 :disabled="form.processing"
                 data-action="confirm-check"
                 @click="openConfirm"
