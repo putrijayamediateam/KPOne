@@ -67,7 +67,7 @@ final class OpenShiftsPageService
                 ->where(fn ($q) => $tab === 'closed' ? $q->where('status', '<>', 'open') : $q->where('status', 'open'))
                 ->orderBy($tab === 'closed' ? 'closed_at' : 'starts_at', $tab === 'closed' ? 'desc' : 'asc')->limit(200)->get();
             $requests = DB::table('hr_open_shift_requests as r')->join('users as u', 'u.id', '=', 'r.locum_user_id')
-                ->whereIn('r.open_shift_id', $shifts->pluck('id')->all())->orderBy('r.asked_at')
+                ->whereIn('r.open_shift_id', $shifts->pluck('id')->all())->orderBy('r.asked_at')->orderBy('r.id') // two asks in the same second keep the order they were made in
                 ->get(['r.*', 'u.name as locum_name'])->groupBy('open_shift_id');
             $zone = (string) ($branches->first()->timezone ?? 'UTC');
             $props[$tab === 'closed' ? 'closed' : 'open'] = array_values($shifts->map(fn (\stdClass $s): array => [...$row($s),
