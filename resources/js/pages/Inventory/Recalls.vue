@@ -63,7 +63,12 @@ const props = defineProps<{
         expectedBranchId: number;
         branchName: string;
         tab: 'active' | 'lifted';
-        can: { start: boolean; lift: boolean };
+        can: {
+            start: boolean;
+            lift: boolean;
+            writeOff: boolean;
+            returnToSupplier: boolean;
+        };
         allBranches: boolean;
         counts: { active: number; lifted: number };
         recalls: {
@@ -503,13 +508,27 @@ const tabs = computed(() => [
                         </li>
                     </ul>
                     <div class="flex flex-wrap gap-2">
+                        <p
+                            v-if="
+                                !recalls.can.writeOff &&
+                                !recalls.can.returnToSupplier &&
+                                !recalls.can.lift
+                            "
+                            class="text-sm text-muted-foreground"
+                            data-testid="recall-read-only"
+                        >
+                            Read only. A CA Supervisor writes off or returns
+                            this stock.
+                        </p>
                         <ActionLink
+                            v-if="recalls.can.writeOff"
                             href="/inventory/writeoffs"
                             variant="outline"
                             class="min-h-11 lg:min-h-9"
                             >Write off stock</ActionLink
                         >
                         <ActionLink
+                            v-if="recalls.can.returnToSupplier"
                             href="/inventory/supplier-returns"
                             variant="outline"
                             class="min-h-11 lg:min-h-9"

@@ -170,7 +170,9 @@ final class InventoryRecallService
     public function page(User $actor, Branch $branch, array $query): array
     {
         $tab = ($query['tab'] ?? null) === 'lifted' ? 'lifted' : 'active';
-        $can = ['start' => $actor->can(self::MANAGE), 'lift' => $actor->can(self::LIFT)];
+        // The removal buttons follow the permissions of the pages they open (Daniel: none for view-only staff).
+        $can = ['start' => $actor->can(self::MANAGE), 'lift' => $actor->can(self::LIFT),
+            'writeOff' => $actor->can(InventoryControlService::ADJUST_PERMISSION), 'returnToSupplier' => $actor->can(SupplierReturnService::REQUEST)];
         $wide = $can['start'] || $can['lift'];
         $base = DB::table('inventory_recalls as r')->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')
             ->where('r.organisation_id', $actor->organisation_id);

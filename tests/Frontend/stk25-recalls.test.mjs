@@ -21,6 +21,16 @@ test('STK-25: starting a recall sends a retry key and says how many batches it b
     // The shared tabs, and the paired "Write off stock" link.
     assert.match(page, /<OperationalTabs/);
     assert.match(page, />Write off stock</);
+    // The removal buttons need their own permissions; view-only staff see a plain read-only line.
+    assert.match(
+        page,
+        /v-if="recalls\.can\.writeOff"\s+href="\/inventory\/writeoffs"/,
+    );
+    assert.match(
+        page,
+        /v-if="recalls\.can\.returnToSupplier"\s+href="\/inventory\/supplier-returns"/,
+    );
+    assert.match(page, /data-testid="recall-read-only"/);
     assert.match(page, /v-if="recalls\.can\.start"/);
     // An already recalled batch cannot be ticked again.
     assert.match(page, /:disabled="option\.recalled"/);

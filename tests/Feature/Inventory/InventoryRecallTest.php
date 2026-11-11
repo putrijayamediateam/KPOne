@@ -89,6 +89,10 @@ final class InventoryRecallTest extends VisitTestCase
         $ca = $this->actorAt('ca');
         $view = $this->actingAs($ca)->get(route('inventory.recalls'))->assertOk()->viewData('page')['props']['recalls'];
         $this->assertSame([false, false, ['Synthetic governed dispensary'], null], [$view['can']['start'], $view['allBranches'], collect($view['recalls']['rows'][0]['whereIs'])->pluck('location')->all(), $view['recalls']['rows'][0]['note']]);
+        // Daniel: the removal buttons follow the permissions of the pages they open; view-only staff get none.
+        $this->assertSame([false, false, false], [$view['can']['writeOff'], $view['can']['returnToSupplier'], $view['can']['lift']]);
+        $supervisor = $this->actingAs($this->actorAt('ca_supervisor'))->get(route('inventory.recalls'))->viewData('page')['props']['recalls'];
+        $this->assertSame([true, true], [$supervisor['can']['writeOff'], $supervisor['can']['returnToSupplier']]);
 
         // Audit holds ids and codes only.
         $audit = DB::table('audit_logs')->where('event', 'inventory.recall.started')->sole();
