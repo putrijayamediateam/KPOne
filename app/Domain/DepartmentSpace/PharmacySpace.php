@@ -6,7 +6,6 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryDirectoryService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryReturnService;
 use App\Domain\Organisation\Inventory\Services\InventoryStockReviewService;
-use App\Domain\Queue\Display\ShortDisplayName;
 use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
@@ -22,11 +21,6 @@ use Illuminate\Support\Collection;
 final class PharmacySpace
 {
     public const LIST_LIMIT = 5;
-
-    /** The shared waiting-time rule (resources/js/lib/waiting-time.ts): amber from 30 minutes, red from 60. */
-    public const WAIT_LONG_MINUTES = 30;
-
-    public const WAIT_VERY_LONG_MINUTES = 60;
 
     public function __construct(private BranchAccessService $branches, private DispensaryDirectoryService $dispensary, private DispensaryReturnService $returns, private InventoryStockReviewService $stockReview) {}
 
@@ -151,20 +145,12 @@ final class PharmacySpace
     /** "Waiting 144 min, Very long wait": the words as well as the colour. */
     public function waitText(int $minutes): string
     {
-        $label = $minutes >= self::WAIT_VERY_LONG_MINUTES ? ', Very long wait' : ($minutes >= self::WAIT_LONG_MINUTES ? ', Long wait' : '');
-
-        return 'Waiting '.$minutes.' min'.$label;
+        return SpaceDisplay::waitText($minutes);
     }
 
-    /** "Ahmad I." from "Ahmad Ismail bin Ali": the first name and the initial of the next, never the full name. */
     private function shortName(string $fullName): string
     {
-        $words = explode(' ', (string) ShortDisplayName::from($fullName));
-        if (count($words) < 2 || $words[1] === '') {
-            return $words[0] !== '' ? $words[0] : 'Patient';
-        }
-
-        return $words[0].' '.mb_strtoupper(mb_substr($words[1], 0, 1)).'.';
+        return SpaceDisplay::shortName($fullName);
     }
 
     /**

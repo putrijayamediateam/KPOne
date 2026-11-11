@@ -3,6 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref } from 'vue';
 import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
+import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -17,6 +18,27 @@ type Space = { key: string; title: string };
 
 // The space shell draws its own chrome, so it opts out of the staff layouts without touching the shared layout map.
 defineOptions({ layout: SpacePassThroughLayout });
+
+type FrontDesk = {
+    branchName: string | null;
+    asOf: string | null;
+    waiting: {
+        total: number;
+        limit: number;
+        seeAllHref: string;
+        rows: Array<{
+            visitNumber: string;
+            queueNumber: string | null;
+            patient: string;
+            minutes: number;
+            href: string;
+        }>;
+    } | null;
+    glance: Record<string, number> | null;
+    qrPending: { total: number; href: string } | null;
+    primaryAction: { title: string; href: string } | null;
+    links: Array<{ title: string; href: string }>;
+};
 
 type Pharmacy = {
     branchName: string | null;
@@ -50,6 +72,7 @@ const props = defineProps<{
     existing?: { title: string; href: string } | null;
     questions?: Array<{ key: string; label: string }>;
     pharmacy?: Pharmacy | null;
+    frontDesk?: FrontDesk | null;
 }>();
 
 const page = usePage();
@@ -187,14 +210,22 @@ onMounted(async () => {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <h1 class="space-title">{{ space.title }}</h1>
+            <div class="space-head">
+                <h1 class="space-title">{{ space.title }}</h1>
+                <Link
+                    v-if="frontDesk?.primaryAction"
+                    :href="frontDesk.primaryAction.href"
+                    class="space-primary"
+                    >{{ frontDesk.primaryAction.title }}</Link
+                >
+            </div>
             <template v-if="pharmacy">
-                <p v-if="pharmacy.branchName" class="space-muted">
-                    {{ pharmacy.branchName
-                    }}<template v-if="pharmacy.asOf">
-                        · as of {{ pharmacy.asOf }}</template
-                    >
-                </p>
+                <SpaceAsOf
+                    v-if="pharmacy.branchName"
+                    :branch-name="pharmacy.branchName"
+                    :as-of="pharmacy.asOf"
+                    only="pharmacy"
+                />
                 <section
                     v-if="pharmacy.toDispense"
                     class="space-card"
@@ -348,6 +379,183 @@ onMounted(async () => {
                         !pharmacy.toDispense &&
                         !pharmacy.returnsToCheck &&
                         !pharmacy.stockWatch
+                    "
+                    class="space-card"
+                >
+                    <p class="space-muted">
+                        Nothing to show here for your role. Your existing
+                        screens are unchanged.
+                    </p>
+                    <p v-if="existing" class="space-existing">
+                        <Link :href="existing.href"
+                            >Open the existing
+                            {{ existing.title }} screens</Link
+                        >
+                    </p>
+                </section>
+            </template>
+            <template v-else-if="frontDesk">
+                <SpaceAsOf
+                    v-if="frontDesk.branchName"
+                    :branch-name="frontDesk.branchName"
+                    :as-of="frontDesk.asOf"
+                    only="frontDesk"
+                />
+                <section
+                    v-if="frontDesk.waiting"
+                    class="space-card"
+                    aria-labelledby="fd-waiting"
+                >
+                    <h2 id="fd-waiting">
+                        Waiting ({{ frontDesk.waiting.total }})
+                    </h2>
+                    <p
+                        v-if="frontDesk.waiting.rows.length === 0"
+                        class="space-muted"
+                    >
+                        Nobody is waiting.
+                    </p>
+                    <template v-else>
+                        <ul class="space-list">
+                            <li
+                                v-for="row in frontDesk.waiting.rows"
+                                :key="row.visitNumber"
+                            >
+                                <Link :href="row.href" class="space-row">
+                                    <span class="space-row-body">
+                                        <span
+                                            v-if="row.queueNumber"
+                                            class="space-qno"
+                                            >{{ row.queueNumber }}</span
+                                        >
+                                        <span class="space-row-text">
+                                            <span class="space-row-main">{{
+                                                row.patient
+                                            }}</span>
+                                            <span class="space-row-meta">
+                                                <span
+                                                    :class="`space-wait is-${waitingTone(row.minutes)}`"
+                                                    ><span
+                                                        class="space-nowrap"
+                                                        >{{
+                                                            waitHead(
+                                                                row.minutes,
+                                                            )
+                                                        }}</span
+                                                    >{{ ' '
+                                                    }}<span
+                                                        v-if="
+                                                            waitLabel(
+                                                                row.minutes,
+                                                            )
+                                                        "
+                                                        class="space-nowrap"
+                                                        >{{
+                                                            waitLabel(
+                                                                row.minutes,
+                                                            )
+                                                        }}</span
+                                                    ></span
+                                                >
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <ChevronRight
+                                        class="space-chevron"
+                                        aria-hidden="true"
+                                    />
+                                </Link>
+                            </li>
+                        </ul>
+                        <p
+                            v-if="
+                                frontDesk.waiting.total >
+                                frontDesk.waiting.rows.length
+                            "
+                            class="space-muted"
+                        >
+                            Showing {{ frontDesk.waiting.rows.length }} of
+                            {{ frontDesk.waiting.total }} ·
+                            <Link
+                                :href="frontDesk.waiting.seeAllHref"
+                                class="space-link"
+                                >See all</Link
+                            >
+                        </p>
+                    </template>
+                </section>
+                <section
+                    v-if="frontDesk.glance"
+                    class="space-card"
+                    aria-labelledby="fd-glance"
+                >
+                    <h2 id="fd-glance">Today at a glance</h2>
+                    <ul class="space-stats is-glance">
+                        <li>
+                            <strong>{{ frontDesk.glance.waiting ?? 0 }}</strong>
+                            <span class="space-muted">waiting</span>
+                        </li>
+                        <li>
+                            <strong>{{ frontDesk.glance.serving ?? 0 }}</strong>
+                            <span class="space-muted">being served</span>
+                        </li>
+                        <li>
+                            <strong>{{
+                                frontDesk.glance.completed ?? 0
+                            }}</strong>
+                            <span class="space-muted">completed</span>
+                        </li>
+                        <li v-if="frontDesk.glance.billing !== undefined">
+                            <strong>{{ frontDesk.glance.billing }}</strong>
+                            <span class="space-muted">awaiting billing</span>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="frontDesk.qrPending"
+                    class="space-card"
+                    aria-labelledby="fd-qr"
+                >
+                    <h2 id="fd-qr">
+                        QR check-ins to review ({{ frontDesk.qrPending.total }})
+                    </h2>
+                    <p
+                        v-if="frontDesk.qrPending.total === 0"
+                        class="space-muted"
+                    >
+                        No QR check-ins are waiting for review.
+                    </p>
+                    <p v-else class="space-existing">
+                        <Link
+                            :href="frontDesk.qrPending.href"
+                            class="space-link"
+                            >Review QR check-ins</Link
+                        >
+                    </p>
+                </section>
+                <section
+                    v-if="frontDesk.links.length"
+                    class="space-card"
+                    aria-labelledby="fd-open"
+                >
+                    <h2 id="fd-open">Open</h2>
+                    <ul class="space-list">
+                        <li v-for="l in frontDesk.links" :key="l.href">
+                            <Link :href="l.href" class="space-row">
+                                <span>{{ l.title }}</span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="
+                        !frontDesk.waiting &&
+                        !frontDesk.qrPending &&
+                        !frontDesk.links.length
                     "
                     class="space-card"
                 >
