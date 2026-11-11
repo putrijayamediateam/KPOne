@@ -37,4 +37,28 @@ final class SupplierReturnController extends Controller
 
         return to_route('inventory.supplier-returns');
     }
+
+    /** STK-17: return several lots from one delivery in one request. */
+    public function storeGroup(Request $request, SupplierReturnService $service): RedirectResponse
+    {
+        try {
+            $service->requestGroup($request->user(), $request->only(['expected_branch_id', 'retry_key', 'goods_receipt_id', 'supplier_reference', 'lines']));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('inventory.supplier-returns', ['delivery' => $request->integer('goods_receipt_id') ?: null]));
+        }
+
+        return to_route('inventory.supplier-returns');
+    }
+
+    /** STK-17: the whole multi-lot return takes one action together. */
+    public function actGroup(Request $request, int $group, string $action, SupplierReturnService $service): RedirectResponse
+    {
+        try {
+            $service->actGroup($request->user(), $group, $action, $request->only(['expected_branch_id', 'lock_version', 'retry_key', 'reason_code', 'reference', 'credit_amount_sen']));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo(route('inventory.supplier-returns'));
+        }
+
+        return to_route('inventory.supplier-returns');
+    }
 }
