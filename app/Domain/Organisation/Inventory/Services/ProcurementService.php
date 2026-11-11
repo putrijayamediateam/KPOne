@@ -100,8 +100,8 @@ final class ProcurementService
     public function approve(User $actor, PurchaseOrder $order, array $attributes): PurchaseOrder
     {
         return $this->transition($actor, $order, $attributes, self::APPROVE_PERMISSION, PurchaseOrder::STATUS_SUBMITTED, PurchaseOrder::STATUS_APPROVED, 'approved', function (PurchaseOrder $locked, User $lockedActor): array {
-            if ($locked->created_by_user_id === $lockedActor->id) {
-                throw new AuthorizationException('Purchase Order approval requires a different authorized staff member.');
+            if ($this->raisedBy($locked, $lockedActor)) {
+                throw new AuthorizationException('You raised or submitted this purchase order, so a different Finance Officer or Director must approve it.');
             }
 
             return ['approved_by_user_id' => $lockedActor->id, 'approved_at' => now()->utc()];
@@ -120,6 +120,9 @@ final class ProcurementService
             $this->requireStatus($locked, [PurchaseOrder::STATUS_DRAFT, PurchaseOrder::STATUS_SUBMITTED, PurchaseOrder::STATUS_APPROVED]);
             if ($locked->status === PurchaseOrder::STATUS_APPROVED && ! $lockedActor->can(self::APPROVE_PERMISSION)) {
                 throw new AuthorizationException('Cancelling an approved Purchase Order requires approval authority.');
+            }
+            if ($locked->status === PurchaseOrder::STATUS_APPROVED && $this->raisedBy($locked, $lockedActor)) {
+                throw new AuthorizationException('You raised or submitted this purchase order, so a different Finance Officer or Director must cancel it once it is approved.');
             }
             if ($locked->lines()->where('received_quantity', '>', 0)->exists()) {
                 throw ValidationException::withMessages(['purchase_order' => 'A Purchase Order with received stock cannot be cancelled.']);
@@ -321,6 +324,12 @@ final class ProcurementService
 
             return $locked->refresh();
         }, 3);
+    }
+
+    /** STK-19: the person who raised or submitted an order never approves it, or cancels it once approved. */
+    private function raisedBy(PurchaseOrder $order, User $actor): bool
+    {
+        return (int) $order->created_by_user_id === $actor->id || (int) $order->submitted_by_user_id === $actor->id;
     }
 
     /** @param array<string, mixed> $attributes */

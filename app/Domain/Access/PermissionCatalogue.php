@@ -492,6 +492,10 @@ final class PermissionCatalogue
             $roles[$holder][] = 'inventory.cost.view.organisation';
         }
 
+        // STK-19 (owner decision 2026-11-11, "agree all"): a Finance Officer approves purchase orders as well as the
+        // Director, never one they raised or submitted (ProcurementService and PostgreSQL).
+        $roles['finance_officer'][] = 'inventory.purchase_orders.approve.organisation';
+
         foreach (AgentPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
                 $roles[$role][] = $permission;
