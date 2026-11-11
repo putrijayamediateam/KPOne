@@ -29,6 +29,8 @@ test('the Inventory page opens with its header, then one row of task links', () 
         '/inventory/supplier-returns',
         '/inventory/treatment-usage',
         '/inventory/stock-review',
+        '/inventory/supplier-terms',
+        '/inventory/skus',
         '/inventory/batch-holds',
         '/inventory/readiness',
     ]);
