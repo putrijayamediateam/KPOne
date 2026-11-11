@@ -719,7 +719,12 @@ onMounted(async () => {
                     <p class="space-muted">
                         Expected cash
                         {{ billing.cashClosing.expectedText }} from
-                        {{ billing.cashClosing.receiptCount }} receipt(s).
+                        {{ billing.cashClosing.receiptCount }}
+                        {{
+                            billing.cashClosing.receiptCount === 1
+                                ? 'receipt'
+                                : 'receipts'
+                        }}.
                     </p>
                     <p
                         v-if="billing.cashClosing.changedSinceApproval"

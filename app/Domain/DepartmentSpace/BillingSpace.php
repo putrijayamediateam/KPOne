@@ -45,9 +45,6 @@ final class BillingSpace
             $primary = ['title' => 'Financial work', 'href' => route('billing.work', absolute: false)];
         }
         $links = [];
-        if ($payLater !== null) {
-            $links[] = ['title' => 'Pay later to collect', 'href' => route('billing.pay-later-collections', absolute: false)];
-        }
         if ($closing !== null) {
             $links[] = ['title' => 'Cash closing, this month', 'href' => route('cash-closings.month', absolute: false)];
         }
