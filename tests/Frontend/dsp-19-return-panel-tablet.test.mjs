@@ -48,3 +48,16 @@ test('the record-a-return form above it follows the same 1024 px switch (Hakim)'
     );
     assert.equal(/sm:min-h-9|sm:h-9|sm:flex-row/.test(section), false);
 });
+
+test('one-line reason tiles centre the radio and the words (Daniel)', () => {
+    assert.ok(
+        panel.includes(
+            "const reasonTileClass = tileClass.replace('items-start', 'items-center');",
+        ),
+    );
+    assert.ok(panel.includes(':class="reasonTileClass"'));
+    const reason = panel.slice(
+        panel.indexOf('data-field="check-refuse-reason"') - 200,
+    );
+    assert.ok(reason.slice(0, 200).includes('class="accent-brand"'));
+});

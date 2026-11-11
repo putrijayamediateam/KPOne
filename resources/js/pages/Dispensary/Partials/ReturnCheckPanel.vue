@@ -183,6 +183,8 @@ for (const field of [
 
 const tileClass =
     'flex min-h-11 cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 lg:min-h-9';
+// DSP-19 (Daniel): one-line reason tiles centre the radio and the words; outcome tiles keep a top-aligned description.
+const reasonTileClass = tileClass.replace('items-start', 'items-center');
 const amount = computed(() => `${props.row.quantity} ${props.line.unit}`);
 const locationName = computed(
     () =>
@@ -619,7 +621,7 @@ const serverAlert = computed(() => {
                     <label
                         v-for="reason in returns.refuseReasons"
                         :key="reason"
-                        :class="tileClass"
+                        :class="reasonTileClass"
                     >
                         <input
                             v-model="form.refuse_reason"
@@ -630,7 +632,7 @@ const serverAlert = computed(() => {
                             :aria-invalid="
                                 form.errors.refuse_reason ? 'true' : undefined
                             "
-                            class="mt-1 accent-brand"
+                            class="accent-brand"
                             data-field="check-refuse-reason"
                         />
                         {{ refuseReasonLabels[reason] ?? reason }}
