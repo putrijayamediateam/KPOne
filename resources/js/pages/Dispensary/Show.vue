@@ -1064,6 +1064,13 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
 // DSP-17: brand line colour only (not the error look); replaces the focus ring while shown.
 const batchHintClass =
     'border-brand ring-2 ring-brand ring-offset-2 ring-offset-background focus-visible:ring-brand';
+
+// Plain words for an earlier partial dispense, never the stored code (Daniel, guide section 15).
+const exceptionStatusLabels: Record<string, string> = {
+    awaiting_acknowledgement: 'waiting for the doctor to acknowledge',
+    acknowledged: 'acknowledged by the doctor',
+    superseded: 'replaced by a later change',
+};
 </script>
 
 <template>
@@ -1420,7 +1427,11 @@ const batchHintClass =
                                 class="mt-1 text-xs text-amber-700 dark:text-amber-300"
                             >
                                 Earlier partial dispense:
-                                {{ item.exception.status }}
+                                {{
+                                    exceptionStatusLabels[
+                                        item.exception.status
+                                    ] ?? 'status unknown'
+                                }}
                             </p>
                             <Button
                                 v-if="
