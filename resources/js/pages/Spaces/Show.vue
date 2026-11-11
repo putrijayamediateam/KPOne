@@ -151,6 +151,43 @@ type PanelSpaceHome = {
     links: Array<{ title: string; href: string }>;
 };
 
+type StockRow = {
+    sku: string;
+    item: string;
+    location: string;
+    detail: string;
+    tone: string;
+};
+type StockHome = {
+    branchName: string | null;
+    asOf: string | null;
+    watch: {
+        showLocation: boolean;
+        lists: Array<{
+            key: string;
+            title: string;
+            total: number;
+            limit: number;
+            seeAllHref: string;
+            rows: StockRow[];
+        }>;
+    } | null;
+    overdueReviews: {
+        total: number;
+        limit: number;
+        seeAllHref: string;
+        rows: Array<{
+            sku: string;
+            item: string;
+            text: string;
+            tone: string;
+        }>;
+    } | null;
+    readiness: { openings: number; limited: boolean; href: string } | null;
+    primaryAction: { title: string; href: string } | null;
+    links: Array<{ title: string; href: string }>;
+};
+
 type Pharmacy = {
     branchName: string | null;
     asOf: string | null;
@@ -187,6 +224,7 @@ const props = defineProps<{
     billing?: Billing | null;
     consultation?: Consultation | null;
     panel?: PanelSpaceHome | null;
+    stock?: StockHome | null;
 }>();
 
 const page = usePage();
@@ -207,6 +245,7 @@ const primaryAction = computed(
         props.billing?.primaryAction ??
         props.consultation?.primaryAction ??
         props.panel?.primaryAction ??
+        props.stock?.primaryAction ??
         null,
 );
 
@@ -1116,10 +1155,12 @@ onMounted(async () => {
                                 <Link :href="row.href" class="space-row">
                                     <span class="space-row-body">
                                         <span class="space-row-text">
-                                            <span class="space-row-main"
-                                                >{{ row.patient }} ·
-                                                {{ row.panel }}</span
-                                            >
+                                            <span class="space-row-main">{{
+                                                row.patient
+                                            }}</span>
+                                            <span class="space-row-sub">{{
+                                                row.panel
+                                            }}</span>
                                             <span class="space-row-meta">
                                                 {{ row.amountText }}
                                                 <span
@@ -1179,10 +1220,12 @@ onMounted(async () => {
                                 <Link :href="row.href" class="space-row">
                                     <span class="space-row-body">
                                         <span class="space-row-text">
-                                            <span class="space-row-main"
-                                                >{{ row.patient }} ·
-                                                {{ row.panel }}</span
-                                            >
+                                            <span class="space-row-main">{{
+                                                row.patient
+                                            }}</span>
+                                            <span class="space-row-sub">{{
+                                                row.panel
+                                            }}</span>
                                             <span class="space-row-meta">
                                                 <span class="space-nowrap">{{
                                                     row.status
@@ -1242,6 +1285,191 @@ onMounted(async () => {
                     v-if="
                         !panel.toClaim && !panel.followUp && !panel.links.length
                     "
+                    class="space-card"
+                >
+                    <p class="space-muted">
+                        Nothing to show here for your role. Your existing
+                        screens are unchanged.
+                    </p>
+                    <p v-if="existing" class="space-existing">
+                        <Link :href="existing.href"
+                            >Open the existing
+                            {{ existing.title }} screens</Link
+                        >
+                    </p>
+                </section>
+            </template>
+            <template v-else-if="stock">
+                <SpaceAsOf
+                    v-if="stock.branchName"
+                    :branch-name="stock.branchName"
+                    :as-of="stock.asOf"
+                    only="stock"
+                />
+                <template v-if="stock.watch">
+                    <section
+                        v-for="list in stock.watch.lists"
+                        :key="list.key"
+                        class="space-card"
+                        :aria-labelledby="`st-${list.key}`"
+                    >
+                        <h2 :id="`st-${list.key}`">
+                            {{ list.title }} ({{ list.total }})
+                        </h2>
+                        <p v-if="list.rows.length === 0" class="space-muted">
+                            Nothing here.
+                        </p>
+                        <template v-else>
+                            <ul class="space-list">
+                                <li
+                                    v-for="(row, i) in list.rows"
+                                    :key="`${row.sku}-${i}`"
+                                >
+                                    <Link
+                                        :href="list.seeAllHref"
+                                        class="space-row"
+                                    >
+                                        <span class="space-row-body">
+                                            <span class="space-row-text">
+                                                <span class="space-row-main"
+                                                    >{{ row.sku }} ·
+                                                    {{ row.item }}</span
+                                                >
+                                                <span
+                                                    v-if="
+                                                        stock.watch.showLocation
+                                                    "
+                                                    class="space-row-sub"
+                                                    >{{ row.location }}</span
+                                                >
+                                                <span
+                                                    :class="`space-row-meta space-wait is-${row.tone}`"
+                                                    >{{ row.detail }}</span
+                                                >
+                                            </span>
+                                        </span>
+                                        <ChevronRight
+                                            class="space-chevron"
+                                            aria-hidden="true"
+                                        />
+                                    </Link>
+                                </li>
+                            </ul>
+                            <p
+                                v-if="list.total > list.rows.length"
+                                class="space-muted"
+                            >
+                                Showing {{ list.rows.length }} of
+                                {{ list.total }} ·
+                                <Link :href="list.seeAllHref" class="space-link"
+                                    >See all</Link
+                                >
+                            </p>
+                        </template>
+                    </section>
+                </template>
+                <section
+                    v-if="stock.overdueReviews"
+                    class="space-card"
+                    aria-labelledby="st-overdue"
+                >
+                    <h2 id="st-overdue">
+                        Reviews overdue ({{ stock.overdueReviews.total }})
+                    </h2>
+                    <p
+                        v-if="stock.overdueReviews.rows.length === 0"
+                        class="space-muted"
+                    >
+                        No stock review is overdue.
+                    </p>
+                    <ul v-else class="space-list">
+                        <li
+                            v-for="(row, i) in stock.overdueReviews.rows"
+                            :key="`${row.sku}-${i}`"
+                        >
+                            <Link
+                                :href="stock.overdueReviews.seeAllHref"
+                                class="space-row"
+                            >
+                                <span class="space-row-body">
+                                    <span class="space-row-text">
+                                        <span class="space-row-main"
+                                            >{{ row.sku }} ·
+                                            {{ row.item }}</span
+                                        >
+                                        <span
+                                            :class="`space-row-meta space-wait is-${row.tone}`"
+                                            >{{ row.text }}</span
+                                        >
+                                    </span>
+                                </span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                    <p
+                        v-if="
+                            stock.overdueReviews.total >
+                            stock.overdueReviews.rows.length
+                        "
+                        class="space-muted"
+                    >
+                        Showing {{ stock.overdueReviews.rows.length }} of
+                        {{ stock.overdueReviews.total }} ·
+                        <Link
+                            :href="stock.overdueReviews.seeAllHref"
+                            class="space-link"
+                            >See all</Link
+                        >
+                    </p>
+                </section>
+                <section
+                    v-if="stock.readiness"
+                    class="space-card"
+                    aria-labelledby="st-ready"
+                >
+                    <h2 id="st-ready">Pilot readiness</h2>
+                    <p class="space-muted">
+                        {{
+                            stock.readiness.limited
+                                ? '25 or more'
+                                : stock.readiness.openings
+                        }}
+                        opening
+                        {{
+                            stock.readiness.openings === 1
+                                ? 'balance waits'
+                                : 'balances wait'
+                        }}
+                        for an independent check.
+                        <Link :href="stock.readiness.href" class="space-link"
+                            >Open Pilot readiness</Link
+                        >
+                    </p>
+                </section>
+                <section
+                    v-if="stock.links.length"
+                    class="space-card"
+                    aria-labelledby="st-open"
+                >
+                    <h2 id="st-open">Open</h2>
+                    <ul class="space-list">
+                        <li v-for="l in stock.links" :key="l.href">
+                            <Link :href="l.href" class="space-row">
+                                <span>{{ l.title }}</span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="!stock.watch && !stock.links.length"
                     class="space-card"
                 >
                     <p class="space-muted">
