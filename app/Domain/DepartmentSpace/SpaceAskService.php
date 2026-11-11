@@ -24,13 +24,15 @@ final class SpaceAskService
         'front_desk.qr_pending' => ['registration.index', ['tab' => 'qr-intake']],
         'consultation.longest_waiting' => ['queue.index', []],
         'consultation.not_ready' => ['queue.index', []],
+        'panel.most_unclaimed' => ['panel-claims.index', []],
+        'panel.overdue_amount' => ['panel-claims.index', ['tab' => 'overdue']],
         'billing.over_60' => ['billing.pay-later-collections', []],
         'billing.owes_most' => ['billing.pay-later-collections', []],
         'billing.closings_waiting' => ['cash-closings.month', []],
         'billing.closings_missing' => ['cash-closings.month', []],
     ];
 
-    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private ConsultationSpace $consultation, private AuditRecorder $audit) {}
+    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private ConsultationSpace $consultation, private PanelSpace $panel, private AuditRecorder $audit) {}
 
     /**
      * The questions this person may ask in a space. A question they cannot ask is absent, never greyed.
@@ -88,8 +90,55 @@ final class SpaceAskService
             'billing.over_60', 'billing.owes_most' => $this->billing->payLaterRead($actor) !== null,
             'billing.closings_waiting', 'billing.closings_missing' => $this->billing->monthDays($actor) !== null,
             'consultation.longest_waiting', 'consultation.not_ready' => $this->consultation->snapshot($actor) !== null,
+            'panel.most_unclaimed', 'panel.overdue_amount' => $this->panel->toClaim($actor) !== null,
             default => false,
         };
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function panelMostUnclaimed(User $actor): array
+    {
+        $claim = $this->panel->toClaim($actor);
+        abort_if($claim === null, 403);
+        if ($claim['all'] === []) {
+            return ['sentence' => 'No approved Panel invoice is waiting for a claim.', 'columns' => [], 'rows' => []];
+        }
+        $by = [];
+        foreach ($claim['all'] as $r) {
+            $by[$r['panel']]['count'] = ($by[$r['panel']]['count'] ?? 0) + 1;
+            $by[$r['panel']]['sen'] = ($by[$r['panel']]['sen'] ?? 0) + $r['amountSen'];
+        }
+        uasort($by, fn (array $a, array $b): int => $b['sen'] <=> $a['sen']);
+        $rows = [];
+        foreach (array_slice($by, 0, 3, true) as $name => $v) {
+            $rows[] = [(string) $name, $v['count'].($v['count'] === 1 ? ' invoice' : ' invoices'), SpaceDisplay::rm($v['sen'])];
+        }
+
+        return ['sentence' => 'The Panels with the most unclaimed.'.($claim['complete'] ? '' : ' Only the oldest 100 invoices were checked.'), 'columns' => ['Panel', 'Invoices', 'Unclaimed'], 'rows' => $rows];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function panelOverdueAmount(User $actor): array
+    {
+        $claim = $this->panel->toClaim($actor);
+        abort_if($claim === null, 403);
+        $by = [];
+        foreach ($claim['all'] as $r) {
+            if ($r['overdue']) {
+                $by[$r['panel']]['count'] = ($by[$r['panel']]['count'] ?? 0) + 1;
+                $by[$r['panel']]['sen'] = ($by[$r['panel']]['sen'] ?? 0) + $r['amountSen'];
+            }
+        }
+        if ($by === []) {
+            return ['sentence' => 'No Panel has overdue claims to make.', 'columns' => [], 'rows' => []];
+        }
+        uasort($by, fn (array $a, array $b): int => $b['sen'] <=> $a['sen']);
+        $rows = [];
+        foreach (array_slice($by, 0, 10, true) as $name => $v) {
+            $rows[] = [(string) $name, $v['count'].($v['count'] === 1 ? ' invoice' : ' invoices'), SpaceDisplay::rm($v['sen'])];
+        }
+
+        return ['sentence' => 'The overdue amount per Panel.'.($claim['complete'] ? '' : ' Only the oldest 100 invoices were checked.'), 'columns' => ['Panel', 'Invoices', 'Overdue'], 'rows' => $rows];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */

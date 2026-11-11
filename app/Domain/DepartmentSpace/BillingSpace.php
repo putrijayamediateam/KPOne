@@ -191,13 +191,9 @@ final class BillingSpace
         ], array_slice($data, 0, $limit));
     }
 
-    /** "Due 3 Nov 2026, 9 days overdue": the words as well as the colour. */
+    /** "Due 3 Nov 2026, 9 days overdue (very overdue)": shared with the Panel space. */
     public function dueText(string $dueDate, int $daysOverdue): string
     {
-        if ($daysOverdue <= 0) {
-            return 'Due '.$dueDate;
-        }
-
-        return 'Due '.$dueDate.', '.$daysOverdue.($daysOverdue === 1 ? ' day' : ' days').' overdue'.($daysOverdue >= 30 ? ' (very overdue)' : '');
+        return SpaceDisplay::dueText($dueDate, $daysOverdue);
     }
 }
