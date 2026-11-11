@@ -41,3 +41,14 @@ test('the shell layout css is imported and every selector is scoped to the space
         }
     }
 });
+
+test('DS-2: the switch lives in the user menu, defaults off and sends the lock version', () => {
+    const menu = read('resources/js/components/UserMenuContent.vue');
+    assert.match(menu, /router\.put\('\/spaces\/preference'/);
+    assert.match(
+        menu,
+        /lock_version: page\.props\.workspace\?\.spaces\?\.lockVersion/,
+    );
+    assert.match(menu, /Back to the standard layout/);
+    assert.match(menu, /v-if="page\.props\.workspace\?\.spaces\?\.offered"/);
+});
