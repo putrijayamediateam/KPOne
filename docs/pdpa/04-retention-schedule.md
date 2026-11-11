@@ -14,6 +14,7 @@ anonymise it when the purpose is over **[CONFIRM wording]**. Medical, tax and em
 | Leave evidence files (MC photos/PDF) | Deleted when the leave type's evidence retention has passed, counted from the **end date of the leave** (clinic sets 1 to 3,650 days per type), or **30 days** after a rejected or cancelled request (`hr-leave-evidence:purge`, daily) | With no retention set for the type, files on pending or approved requests are **kept indefinitely**. The request rows and the file history are kept |
 | Staff documents | Deleted after the **document type's retention**, counted from the end of the person's latest employment. A first or shorter retention waits 7 days before it can act (`hr-documents:purge`, daily) | "Not set" keeps everything. Credential evidence is a staff document (category Certificate) and follows this rule. Someone still employed (an open employment period) is never reached. Rows and the open history are kept; only the bytes are deleted |
 | Job applications | Cleared when the clinic-entered retention has passed (`hr-applications:purge`, daily), counted from closing for a closed application, from **submission for one left open**, and for a talent-pool candidate (HR-17e, not merged yet) from the later of the retention and the pool period. The purge clears name, phone, email, message, form answers and the CV file, the private link hash, the screening notes, and the name and email on a staff-account request (an open request is cancelled first) | Kept: the row, its stages and dates, the event history, the list of messages sent (no text), the interview time choices and the interview-document download records. The public form refuses applications until a retention period is saved, so "not set" never holds applications |
+| Location-check results at clock-in (inside, outside or not available; accuracy band; HR-16a) | **Deleted 90 days** after the press (`hr-location-checks:purge`, daily; owner decision 2026-11-11). PostgreSQL refuses any other delete | The clock press, the consent acknowledgements and the settings versions are kept with the attendance records |
 | Sessions | Expire after 120 minutes of inactivity (default) | |
 
 ## What KPOne does **not** delete (you must decide)
@@ -25,9 +26,9 @@ anonymise it when the purpose is over **[CONFIRM wording]**. Medical, tax and em
 | Issued MC / referral / attendance copies (encrypted snapshots) | Kept | Same as patient records |
 | Signed paper MC copies | Owner set **1 year** | Probably too short against medical-record rules **[CONFIRM and update]** |
 | Staff employment records | Kept | Employment and tax law periods **[CONFIRM]** |
-| Location check results (inside, outside or not available; accuracy band) and consent acknowledgements, per press and per settings version (HR-16a) | Kept with the attendance records, append-only; no purge | Same period as attendance **[CONFIRM]**; consider a shorter period for location results **[DECIDE]** |
 | Payroll, payslips | Kept, append-only: pay profiles (including the unencrypted MTD details), runs, lines, totals and encrypted payslip snapshots. There is no purge | Statutory period **[CONFIRM with the accountant]** |
-| Leave requests, the leave ledger, attendance sessions and corrections, overtime requests | Kept, append-only | Employment-law period **[CONFIRM]** |
+| Leave requests and the leave ledger | Kept, append-only | Employment-law period **[CONFIRM]** |
+| Attendance: clock sessions and their events, corrections, overtime requests, and location-check consent acknowledgements (HR-3a, HR-3b, HR-16a) | Owner decision 2026-11-11: **7 years**, then deleted by a daily `hr-attendance:purge` (being built; until it merges nothing is deleted). The settings versions are kept | The 7 years is **to confirm with the accountant before real use** |
 | Staff claims and their **receipt files** | Kept; no purge exists | Tax and accounting period **[CONFIRM with the accountant]** |
 | Credential records | Kept | **[DECIDE]** |
 | Bank detail versions and record corrections (old and new values, encrypted) | Kept | With the staff file |
@@ -50,6 +51,8 @@ anonymise it when the purpose is over **[CONFIRM wording]**. Medical, tax and em
 | Signed paper MCs | [ ] years | | | |
 | Staff file | [ ] years after leaving | | | |
 | Payroll records | [ ] years | | | |
+| Location-check results | 90 days | owner | Owner | 2026-11-11 |
+| Attendance records | 7 years | owner; accountant to confirm | Owner | 2026-11-11 |
 | Job applications (not hired) | [ ] months | clinic choice | | |
 | Leave evidence | [ ] days | clinic choice | | |
 | Staff claims and receipts | [ ] years | accountant / tax | | |
