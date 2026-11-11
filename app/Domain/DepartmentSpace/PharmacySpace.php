@@ -25,9 +25,11 @@ final class PharmacySpace
         // Same rule as the Dispensary list: CA and CA Supervisor with dispensary.view.branch at the active branch.
         if ($branch !== null && $actor->can('dispensary.view.branch') && $actor->hasAnyRole(['ca', 'ca_supervisor'])) {
             $board = $this->dispensary->board($actor, []);
+            /** @var list<array<string, mixed>> $data */
+            $data = array_values((array) $board['data']);
             $toDispense = [
-                'total' => $board['total'],
-                'rows' => collect($board['data'])->take(6)->map(fn (array $r): array => [
+                'total' => (int) $board['total'],
+                'rows' => array_map(fn (array $r): array => [
                     'visitNumber' => $r['visitNumber'],
                     'patientName' => $r['patientName'],
                     'visitType' => $r['visitType'],
@@ -35,7 +37,7 @@ final class PharmacySpace
                     'minutes' => $r['durationMinutes'],
                     'medicineCount' => $r['medicineCount'],
                     'href' => $r['dispensaryUrl'],
-                ])->values()->all(),
+                ], array_slice($data, 0, 6)),
             ];
         }
         // Same rule as Returns to check (DSP-7b): the v1 checkers only.
