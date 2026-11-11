@@ -165,6 +165,7 @@ final class PermissionCatalogue
             'inventory.supplier_returns.request.branch',
             'inventory.supplier_returns.approve.branch',
             'inventory.usage.record.branch',
+            'inventory.cost.view.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -484,6 +485,11 @@ final class PermissionCatalogue
         // STK-8 (owner decision 2026-11-05): CA and CA Supervisor record treatment-room usage and waste.
         foreach (['ca', 'ca_supervisor'] as $holder) {
             $roles[$holder][] = 'inventory.usage.record.branch';
+        }
+
+        // STK-13 (owner decision 2026-11-11, "agree all"): only a Director or Finance Officer sees inventory cost.
+        foreach (['director', 'finance_officer'] as $holder) {
+            $roles[$holder][] = 'inventory.cost.view.organisation';
         }
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
