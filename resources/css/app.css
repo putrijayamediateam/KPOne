@@ -177,7 +177,7 @@
     --border: hsl(0 0% 14.9%);
     --input: #666666;
     --field-fill: hsl(0 0% 14.9%);
-    --ring: hsl(330 81% 60%);
+    --ring: hsl(330 81% 72%);
     --chart-1: hsl(220 70% 50%);
     --chart-2: hsl(160 60% 45%);
     --chart-3: hsl(30 80% 55%);
@@ -196,7 +196,20 @@
 
 @layer base {
     * {
-        @apply border-border outline-ring/50;
+        @apply border-border outline-ring;
+    }
+    /* DD-51: a form control's edge must reach 3:1, including plain inputs that only set `border`. A class
+       such as border-input, border-destructive or focus-visible:border-ring still wins over this. */
+    input:not(
+        [type='checkbox'],
+        [type='radio'],
+        [type='range'],
+        [type='hidden'],
+        [type='file']
+    ),
+    select,
+    textarea {
+        border-color: var(--input);
     }
     body {
         @apply bg-background text-foreground;

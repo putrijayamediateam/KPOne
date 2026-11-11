@@ -58,3 +58,22 @@ test('DD-51: dark field fills use their own token, so darkening the border leave
     );
     assert.deepEqual(offenders, []);
 });
+
+test('DD-51: the dark focus ring is the lighter brand pink and stands out from the resting border', () => {
+    const dark = css.slice(css.indexOf('.dark'));
+    const ring = dark.match(/--ring:\s*hsl\(330 81% 72%\);/);
+    assert.ok(
+        ring,
+        'dark --ring should be hsl(330 81% 72%), the colour of --brand-strong',
+    );
+    assert.match(dark, /--brand-strong:\s*hsl\(330 81% 72%\);/);
+});
+
+test('DD-51: plain inputs that only set `border` also get the field border colour', () => {
+    assert.match(css, /select,\s*textarea \{\s*border-color: var\(--input\);/);
+});
+
+test('DD-51: the default focus outline is fully opaque so it reaches 3:1 in both modes', () => {
+    assert.match(css, /@apply border-border outline-ring;/);
+    assert.doesNotMatch(css, /outline-ring\/50/);
+});
