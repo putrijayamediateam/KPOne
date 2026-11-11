@@ -10,15 +10,28 @@ use Carbon\CarbonImmutable;
  * GS1 element strings and return null, so the STK-9 lookup for them is unchanged.
  *
  * Accepted forms:
- *  - bracketed, as printed under a barcode: (01)09556123000017(17)271031(10)AB12;
+ *  - bracketed, as printed under a barcode: (01)09556123000017(17)271031(10)AB12 (spaces, which some label printers
+ *    add, are ignored);
  *  - raw, as a scanner sends it: an optional symbology prefix (]C1, ]d2, ]e0, ]Q3), then the element string, with the
  *    GS character (U+001D) ending a variable-length field (FNC1).
  *
  * Read AIs: 01 and 02 (GTIN, check digit verified), 10 (batch), 17 (expiry), and 11, 13, 15, 20 and 21, which are
- * stepped over. Any other AI stops the read. A batch is only "certain" when its end is known: in the bracketed form, or
- * when a GS or the end of a code that carries a GS ends it. In a raw code without any GS a batch that runs to the end may
- * have swallowed a following field (many keyboard scanners drop GS), so it is returned as not certain; a page must
- * never guess from it.
+ * stepped over. Without a valid GTIN the code is not a GS1 read. In the raw form an unknown AI or a bad value stops the
+ * read and keeps what came before it; in the bracketed form, where every field is delimited, it is skipped. A bracketed
+ * value containing "(" or ")" (allowed by GS1 but rare) cannot be split safely, so such a code is not a GS1 read and
+ * falls back to the plain lookup.
+ *
+ * `batch` is set only when its end is known: in the bracketed form, or when a GS or the end of a code that carries a GS
+ * ends it. In a raw code without any GS, a batch that runs to the end may have swallowed a following field (many keyboard
+ * scanners drop GS), so it is left empty and its text is given as `batch_unconfirmed`: a page may compare it for an exact
+ * match but must never fill it in or guess from it.
+ *
+ * `expiry` is AI 17 as Y-m-d: DD = 00 means the last day of that month, and the century is chosen by the GS1 rule
+ * (General Specifications 7.12) against $today, which the caller sets to the branch-local date. An impossible date gives
+ * no expiry; the GTIN still stands.
+ *
+ * `complete` is true only when every AI was understood and ended cleanly: nothing stopped the read, no value was
+ * refused (including an impossible expiry) and the batch end was known.
  */
 final class Gs1ElementString
 {
@@ -35,7 +48,7 @@ final class Gs1ElementString
         '17' => 'expiry', '20' => 'variant', '21' => 'serial'];
 
     /**
-     * @return array{gtin: string, batch: string|null, batch_certain: bool, expiry: string|null}|null
+     * @return array{gtin: string, batch: string|null, batch_unconfirmed: string|null, expiry: string|null, complete: bool}|null
      */
     public static function parse(string $code, ?CarbonImmutable $today = null): ?array
     {
@@ -44,20 +57,23 @@ final class Gs1ElementString
             return null;
         }
 
-        $fields = str_starts_with($code, '(') ? self::bracketed($code) : self::raw($code);
+        $fields = str_starts_with($code, '(') ? self::bracketed((string) preg_replace('/\s+/', '', $code)) : self::raw($code);
         $gtin = $fields['gtin'] ?? null;
         if (! is_string($gtin)) {
             return null;
         }
         $batch = $fields['batch'] ?? null;
         $batch = is_string($batch) ? $batch : null;
-        $expiry = $fields['expiry'] ?? null;
+        $certain = $batch !== null && ($fields['batch_certain'] ?? false) === true;
+        $rawExpiry = $fields['expiry'] ?? null;
+        $expiry = is_string($rawExpiry) ? self::expiry($rawExpiry, $today ?? CarbonImmutable::now('UTC')) : null;
 
         return [
             'gtin' => $gtin,
-            'batch' => $batch,
-            'batch_certain' => $batch !== null && ($fields['batch_certain'] ?? false) === true,
-            'expiry' => is_string($expiry) ? self::expiry($expiry, $today ?? CarbonImmutable::now('UTC')) : null,
+            'batch' => $certain ? $batch : null,
+            'batch_unconfirmed' => $certain ? null : $batch,
+            'expiry' => $expiry,
+            'complete' => ($fields['complete'] ?? false) === true && ($batch === null || $certain) && ($rawExpiry === null || $expiry !== null),
         ];
     }
 
@@ -92,10 +108,11 @@ final class Gs1ElementString
         }
 
         /** @var array<string, string|bool> $fields */
-        $fields = [];
+        $fields = ['complete' => true];
+        // Every bracketed field is delimited, so an unknown or bad field is skipped (and the read is not complete).
         foreach ($matches as [, $ai, $value]) {
             if (! self::accept($fields, $ai, $value)) {
-                break;
+                $fields['complete'] = false;
             }
         }
         if (isset($fields['batch'])) {
@@ -122,7 +139,7 @@ final class Gs1ElementString
         }
 
         /** @var array<string, string|bool> $fields */
-        $fields = [];
+        $fields = ['complete' => true];
         $at = 0;
         $length = strlen($code);
         while ($at < $length) {
@@ -135,6 +152,7 @@ final class Gs1ElementString
             if (isset(self::FIXED[$ai])) {
                 $value = substr($code, $at + 2, self::FIXED[$ai]);
                 if (strlen($value) !== self::FIXED[$ai] || ! self::accept($fields, $ai, $value)) {
+                    $fields['complete'] = false;
                     break;
                 }
                 $at += 2 + self::FIXED[$ai];
@@ -142,11 +160,13 @@ final class Gs1ElementString
                 continue;
             }
             if (! isset(self::VARIABLE[$ai])) {
+                $fields['complete'] = false;
                 break;
             }
             $end = strpos($code, self::GS, $at + 2);
             $value = substr($code, $at + 2, ($end === false ? $length : $end) - $at - 2);
             if (! self::accept($fields, $ai, $value)) {
+                $fields['complete'] = false;
                 break;
             }
             if ($ai === '10') {
@@ -164,7 +184,7 @@ final class Gs1ElementString
     private static function fieldsFromGtinOnly(string $code): ?array
     {
         /** @var array<string, string|bool> $fields */
-        $fields = [];
+        $fields = ['complete' => true];
 
         return self::accept($fields, substr($code, 0, 2), substr($code, 2)) ? $fields : null;
     }

@@ -6,6 +6,7 @@ use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Services\InventoryCodeLookupService;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
@@ -46,13 +47,16 @@ final class Gs1ScanLookupTest extends VisitTestCase
             $result = $service->find($ca, ['code' => $code]);
             $this->assertSame('found', $result['status'], $code);
             $this->assertSame($sku->public_id, $result['sku']['public_id']);
-            $this->assertSame(['gtin' => '09556123000010', 'batch' => 'AB12', 'batch_certain' => true, 'expiry' => '2027-10-31'], $result['gs1']);
+            $this->assertSame(['gtin' => '09556123000010', 'batch' => 'AB12', 'batch_unconfirmed' => null, 'expiry' => '2027-10-31', 'complete' => true], $result['gs1']);
         }
 
         // A stored GTIN-14 matches too, and an unknown GTIN still says what was read.
         $this->sku($director, 'SYN-GS1-14', '00012345678905');
         $this->assertSame('SYN-GS1-14', $service->find($ca, ['code' => '(01)00012345678905(10)Z9'])['sku']['sku_code']);
-        $unknown = $service->find($ca, ['code' => '(01)00000012345670(10)Q1']);
+        // A small-pack GTIN-8 stored as eight digits matches its GTIN-14 with six leading zeros.
+        $this->sku($director, 'SYN-GS1-8', '12345670');
+        $this->assertSame('SYN-GS1-8', $service->find($ca, ['code' => '(01)00000012345670(10)Q1'])['sku']['sku_code']);
+        $unknown = $service->find($ca, ['code' => '(01)00000099999995(10)Q1']);
         $this->assertSame('not_found', $unknown['status']);
         $this->assertSame('Q1', $unknown['gs1']['batch']);
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'like', '%scan%')->count());
@@ -68,6 +72,30 @@ final class Gs1ScanLookupTest extends VisitTestCase
         $result = $service->find($ca, ['code' => '9556123000010']);
         $this->assertSame(['status', 'code', 'sku'], array_keys($result));
         $this->assertSame(['status' => 'not_found', 'code' => '0000000000000'], $service->find($ca, ['code' => '0000000000000']));
+    }
+
+    public function test_a_code_that_looks_like_gs1_still_finds_a_sku_storing_that_exact_code(): void
+    {
+        $director = $this->staff('director');
+        $ca = $this->staff('ca');
+        $service = app(InventoryCodeLookupService::class);
+        $this->sku($director, 'SYN-GS1-16', '0109556123000010');
+        $this->sku($director, 'SYN-GS1-128', '0100012345678905ABC');
+
+        $this->assertSame('SYN-GS1-16', $service->find($ca, ['code' => '0109556123000010'])['sku']['sku_code'] ?? null);
+        $this->assertSame('SYN-GS1-128', $service->find($ca, ['code' => '0100012345678905ABC'])['sku']['sku_code'] ?? null);
+    }
+
+    public function test_the_expiry_century_uses_the_branch_local_date(): void
+    {
+        $director = $this->staff('director');
+        $this->sku($director, 'SYN-GS1-TZ', '9556123000010');
+        $ca = $this->staff('ca');
+        $this->assertSame('Asia/Kuala_Lumpur', $this->branch->timezone);
+
+        // 2049-12-31 20:00 UTC is already 2050 in Kuala Lumpur, so YY 00 is +50 years there (2100), not -49 (2000).
+        $this->travelTo(CarbonImmutable::parse('2049-12-31 20:00:00', 'UTC'));
+        $this->assertSame('2100-01-31', app(InventoryCodeLookupService::class)->find($ca, ['code' => '(01)09556123000010(17)000131'])['gs1']['expiry'] ?? null);
     }
 
     public function test_only_the_gs_control_character_is_allowed_in_a_code(): void

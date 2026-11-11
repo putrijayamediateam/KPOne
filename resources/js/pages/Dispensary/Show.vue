@@ -486,20 +486,30 @@ const BATCH_HINT = 'Pick the batch printed on the box.';
 // DSP-18: a GS1 code also says which batch and expiry are on the box. The hint names them and marks matching options,
 // and still never selects one: the CA picks the batch, as in DSP-17.
 const boxRead = ref<Gs1Read | null>(null);
-const boxHint = (target: string, availability: Availability[]): BoxBatchHint =>
-    boxBatchHint(
-        batchHint.value === target ? boxRead.value : null,
-        availability,
-        formatDate,
-        BATCH_HINT,
-    );
-const matchesBox = (
-    target: string,
-    availability: Availability[],
-    index: number,
-): boolean =>
-    batchHint.value === target &&
-    boxHint(target, availability).matches.includes(index);
+// One hint for the target the scan pointed at, computed once per change rather than per option (Hakim).
+const activeBoxHint = computed((): BoxBatchHint | null => {
+    const target = batchHint.value;
+
+    if (target === null) {
+        return null;
+    }
+
+    const availability =
+        target === 'add'
+            ? (chosen.value?.availability ?? [])
+            : (visibleItems.value.find((item) => item.publicId === target)
+                  ?.availability ?? []);
+
+    return boxBatchHint(boxRead.value, availability, formatDate, BATCH_HINT);
+});
+const boxHint = (target: string): BoxBatchHint =>
+    (batchHint.value === target ? activeBoxHint.value : null) ?? {
+        message: BATCH_HINT,
+        matches: [],
+        warn: false,
+    };
+const matchesBox = (target: string, index: number): boolean =>
+    batchHint.value === target && boxHint(target).matches.includes(index);
 const pointAtBatch = async (publicId: string) => {
     batchHint.value = publicId;
     await nextTick();
@@ -1586,11 +1596,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                                 item.sku?.unit ?? item.unit,
                                             )
                                         }}{{
-                                            matchesBox(
-                                                item.publicId,
-                                                item.availability,
-                                                index,
-                                            )
+                                            matchesBox(item.publicId, index)
                                                 ? ' · matches the box'
                                                 : ''
                                         }}
@@ -1609,20 +1615,15 @@ const exceptionStatusLabels: Record<string, string> = {
                                         v-if="batchHint === item.publicId"
                                         class="inline-flex items-start gap-1"
                                         :class="
-                                            boxHint(
-                                                item.publicId,
-                                                item.availability,
-                                            ).warn && 'text-warning-strong'
+                                            boxHint(item.publicId).warn &&
+                                            'text-warning-strong'
                                         "
                                         data-testid="batch-pick-hint"
                                         ><ScanLine
                                             class="mt-px size-3.5 shrink-0"
                                             aria-hidden="true"
                                         />{{
-                                            boxHint(
-                                                item.publicId,
-                                                item.availability,
-                                            ).message
+                                            boxHint(item.publicId).message
                                         }}</span
                                     ></span
                                 >
@@ -2031,11 +2032,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                             chosen.sku?.unit ?? chosen.unit,
                                         )
                                     }}{{
-                                        matchesBox(
-                                            'add',
-                                            chosen.availability,
-                                            index,
-                                        )
+                                        matchesBox('add', index)
                                             ? ' · matches the box'
                                             : ''
                                     }}
@@ -2054,17 +2051,14 @@ const exceptionStatusLabels: Record<string, string> = {
                                     v-if="batchHint === 'add'"
                                     class="inline-flex items-start gap-1"
                                     :class="
-                                        boxHint('add', chosen.availability)
-                                            .warn && 'text-warning-strong'
+                                        boxHint('add').warn &&
+                                        'text-warning-strong'
                                     "
                                     data-testid="batch-pick-hint"
                                     ><ScanLine
                                         class="mt-px size-3.5 shrink-0"
                                         aria-hidden="true"
-                                    />{{
-                                        boxHint('add', chosen.availability)
-                                            .message
-                                    }}</span
+                                    />{{ boxHint('add').message }}</span
                                 ></span
                             >
                             {{

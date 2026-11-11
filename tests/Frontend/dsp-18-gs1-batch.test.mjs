@@ -36,9 +36,10 @@ const options = [
 ];
 const gs1 = (batch, expiry, certain = true) => ({
     gtin: '09556123000010',
-    batch,
-    batch_certain: certain,
+    batch: certain ? batch : null,
+    batch_unconfirmed: certain ? null : batch,
     expiry,
+    complete: certain,
 });
 
 test('a plain barcode keeps the DSP-17 hint and marks nothing', () => {
@@ -83,6 +84,18 @@ test('a batch that is not in the list, or only on hold, warns and marks no usabl
         missing.message,
         'Box: batch QQ1. No batch in the list matches it. Check the box.',
     );
+    const otherExpiry = boxBatchHint(
+        gs1('ZZ99', '2028-01-30'),
+        options,
+        date,
+        HINT,
+    );
+    assert.equal(otherExpiry.warn, true);
+    assert.deepEqual([...otherExpiry.matches], []);
+    assert.equal(
+        otherExpiry.message,
+        'Box: batch ZZ99, exp D(2028-01-30). Batch ZZ99 is in the list, but its expiry is different. Check the box.',
+    );
     const held = boxBatchHint(
         gs1('AB12', null),
         [{ batchNumber: 'AB12', expiryDate: '2027-10-31', held: true }],
@@ -90,6 +103,17 @@ test('a batch that is not in the list, or only on hold, warns and marks no usabl
         HINT,
     );
     assert.equal(held.warn, true);
+    assert.deepEqual([...held.matches], []);
+    const someHeld = boxBatchHint(
+        gs1('AB12', null),
+        [
+            { batchNumber: 'AB12', expiryDate: '2027-10-31', held: true },
+            { batchNumber: 'AB12', expiryDate: '2027-10-31' },
+        ],
+        date,
+        HINT,
+    );
+    assert.deepEqual([...someHeld.matches], [1]);
     assert.match(held.message, /matches a batch on hold, which cannot be used/);
 });
 
@@ -124,7 +148,15 @@ test('the scan box keeps the GS separator, drops every other control character a
         scan.cleanScannedCode('\u00020109556123000010\u001D10AB12\r\n'),
         '0109556123000010\u001D10AB12',
     );
-    assert.equal(scan.cleanScannedCode('A​1\u001E'), 'A1');
+    // A zero-width space (U+200B) and another control character are still dropped.
+    assert.equal(scan.cleanScannedCode(`A${'\u200B'}1\u001E`), 'A1');
+    assert.equal(
+        scan.scanMessage(
+            { status: 'not_found', code: '0109556123000010\u001D10AB12' },
+            'dispensary',
+        ),
+        'No medicine has the code 0109556123000010 10AB12. Check the code, or check the box by eye.',
+    );
     assert.ok(
         scanInput.includes("emit('found', result.sku, result.gs1 ?? null);"),
     );
@@ -134,7 +166,7 @@ test('the page names the box and marks options, and a GS1 scan never selects a b
     assert.ok(flat.includes('boxRead.value = gs1;'));
     assert.equal((show.match(/\? ' · matches the box'/g) ?? []).length, 2);
     assert.equal(
-        (show.match(/\.warn && 'text-warning-strong'/g) ?? []).length,
+        (flat.match(/\.warn && 'text-warning-strong'/g) ?? []).length,
         2,
     );
     const hint = show.slice(

@@ -5,6 +5,7 @@ namespace App\Domain\Organisation\Inventory\Services;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Inventory\Support\Gs1ElementString;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
@@ -21,7 +22,7 @@ final class InventoryCodeLookupService
 {
     /**
      * @param  array<string, mixed>  $input
-     * @return array{status: string, code: string, sku?: array<string, mixed>, skus?: list<string>, gs1?: array{gtin: string, batch: string|null, batch_certain: bool, expiry: string|null}}
+     * @return array{status: string, code: string, sku?: array<string, mixed>, skus?: list<string>, gs1?: array{gtin: string, batch: string|null, batch_unconfirmed: string|null, expiry: string|null, complete: bool}}
      */
     public function find(User $actor, array $input): array
     {
@@ -33,9 +34,12 @@ final class InventoryCodeLookupService
         $data = Validator::make($input, ['code' => ['required', 'string', 'max:100', 'not_regex:/(?!\x{1D})[\p{Cc}\p{Cf}]/u']])->validate();
         $code = trim((string) $data['code']);
         abort_if(trim($code, "\x1D") === '', 422);
-        $gs1 = Gs1ElementString::parse($code);
+        // AI 17's century is chosen against the branch-local date (GS1 General Specifications 7.12).
+        $gs1 = Gs1ElementString::parse($code, CarbonImmutable::now((string) ($branch->timezone ?: 'UTC')));
         $extra = $gs1 === null ? [] : ['gs1' => $gs1];
-        $codes = $gs1 === null ? [mb_strtoupper($code)] : Gs1ElementString::barcodeForms($gs1['gtin']);
+        // A code that parses as GS1 still matches a SKU whose stored barcode is the code itself (with or without GS).
+        $codes = array_values(array_unique([...($gs1 === null ? [] : Gs1ElementString::barcodeForms($gs1['gtin'])),
+            mb_strtoupper($code), mb_strtoupper(str_replace("\x1D", '', $code))]));
 
         $base = fn () => DB::table('inventory_skus as s')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')
             ->where('s.organisation_id', $actor->organisation_id)

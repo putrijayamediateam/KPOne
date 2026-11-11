@@ -13,7 +13,7 @@ export type BatchOption = {
 export type BoxBatchHint = {
     /** Words shown in the status line under the dropdown. */
     message: string;
-    /** Indexes of options that match the box (same batch number, and the same expiry when both are known). */
+    /** Usable options that match the box (same batch number, and the same expiry when both are known); never held. */
     matches: number[];
     /** Warning tone: the box names a batch that is not usable or not in this list. */
     warn: boolean;
@@ -28,28 +28,33 @@ export function boxBatchHint(
     /** The DSP-17 hint, used when the code carried no batch or expiry (a plain barcode). */
     pickHint: string,
 ): BoxBatchHint {
-    if (read === null || (read.batch === null && read.expiry === null)) {
+    // A batch whose end was not known (no separators) is compared only, never shown as the box's batch on a miss.
+    const candidate = read?.batch ?? read?.batch_unconfirmed ?? null;
+
+    if (read === null || (candidate === null && read.expiry === null)) {
         return { message: pickHint, matches: [], warn: false };
     }
 
     const expiry = read.expiry === null ? '' : `exp ${formatDate(read.expiry)}`;
-    const matches =
-        read.batch === null
+    const sameBatch =
+        candidate === null
             ? []
             : options.flatMap((option, index) =>
-                  normalise(option.batchNumber) ===
-                      normalise(read.batch ?? '') &&
-                  (read.expiry === null ||
-                      option.expiryDate.slice(0, 10) === read.expiry)
+                  normalise(option.batchNumber) === normalise(candidate)
                       ? [index]
                       : [],
               );
+    const matches = sameBatch.filter(
+        (index) =>
+            read.expiry === null ||
+            options[index]?.expiryDate.slice(0, 10) === read.expiry,
+    );
 
     // A batch read without separators may have swallowed a following field: use it only when it matches exactly.
-    if (read.batch === null || (!read.batch_certain && matches.length === 0)) {
+    if (candidate === null || (read.batch === null && matches.length === 0)) {
         const parts = [
             expiry ? `Box: ${expiry}.` : '',
-            read.batch === null
+            candidate === null
                 ? ''
                 : 'The batch could not be read from this code.',
             pickHint,
@@ -62,12 +67,16 @@ export function boxBatchHint(
         };
     }
 
-    const box = `Box: batch ${read.batch}${expiry ? `, ${expiry}` : ''}.`;
+    const box = `Box: batch ${candidate}${expiry ? `, ${expiry}` : ''}.`;
     const usable = matches.filter((index) => !options[index]?.held);
 
     if (matches.length === 0) {
+        // The batch number is there, but the expiry entered at receiving differs from the box (Hakim).
         return {
-            message: `${box} No batch in the list matches it. Check the box.`,
+            message:
+                sameBatch.length > 0
+                    ? `${box} Batch ${candidate} is in the list, but its expiry is different. Check the box.`
+                    : `${box} No batch in the list matches it. Check the box.`,
             matches: [],
             warn: true,
         };
@@ -76,7 +85,7 @@ export function boxBatchHint(
     if (usable.length === 0) {
         return {
             message: `${box} It matches a batch on hold, which cannot be used. Check with a supervisor.`,
-            matches,
+            matches: [],
             warn: true,
         };
     }
@@ -86,7 +95,7 @@ export function boxBatchHint(
             usable.length === 1
                 ? `${box} One batch in the list matches it. Pick it yourself.`
                 : `${box} ${usable.length} batches in the list match it (different locations). Pick the right one yourself.`,
-        matches,
+        matches: usable,
         warn: false,
     };
 }

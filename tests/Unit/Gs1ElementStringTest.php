@@ -12,97 +12,109 @@ final class Gs1ElementStringTest extends TestCase
 {
     private const GS = "\x1D";
 
-    private static function today(): CarbonImmutable
+    private const GTIN = '09556123000010';
+
+    private static function day(int $year, int $month = 11, int $day = 11): CarbonImmutable
     {
-        return CarbonImmutable::create(2026, 11, 11, 0, 0, 0, 'UTC') ?? throw new \RuntimeException('date');
+        return CarbonImmutable::create($year, $month, $day, 0, 0, 0, 'UTC') ?? throw new \RuntimeException('date');
     }
 
-    public function test_reads_the_bracketed_form_printed_under_a_barcode(): void
+    /** @return array{gtin: string, batch: string|null, batch_unconfirmed: string|null, expiry: string|null, complete: bool} */
+    private static function read(?string $batch, ?string $expiry, bool $complete = true, ?string $unconfirmed = null): array
     {
-        $this->assertSame(
-            ['gtin' => '09556123000010', 'batch' => 'AB12', 'batch_certain' => true, 'expiry' => '2027-10-31'],
-            Gs1ElementString::parse('(01)09556123000010(17)271031(10)AB12', self::today()),
-        );
+        return ['gtin' => self::GTIN, 'batch' => $batch, 'batch_unconfirmed' => $unconfirmed, 'expiry' => $expiry, 'complete' => $complete];
     }
 
-    public function test_reads_a_raw_element_string_with_a_symbology_prefix_and_gs_separators(): void
+    public function test_reads_the_bracketed_form_and_ignores_spaces_a_label_printer_adds(): void
     {
-        foreach (['', ']d2', ']C1', ']e0', ']Q3', self::GS] as $prefix) {
-            $code = $prefix.'0109556123000010'.'10AB-12/x'.self::GS.'17271031'.'21SERIAL9';
-            $this->assertSame(
-                ['gtin' => '09556123000010', 'batch' => 'AB-12/x', 'batch_certain' => true, 'expiry' => '2027-10-31'],
-                Gs1ElementString::parse($code, self::today()),
-                "prefix {$prefix}",
-            );
+        foreach (['(01)09556123000010(17)271031(10)AB12', '(01) 09556123000010 (17) 271031 (10) AB12 '] as $code) {
+            $this->assertSame(self::read('AB12', '2027-10-31'), Gs1ElementString::parse($code, self::day(2026)), $code);
         }
     }
 
-    public function test_a_batch_at_the_end_of_a_raw_code_without_any_gs_is_read_but_not_certain(): void
+    public function test_reads_a_raw_element_string_with_c1_d2_and_other_prefixes_and_gs_separators(): void
     {
-        $read = Gs1ElementString::parse('010955612300001017271031'.'10AB12', self::today());
-
-        $this->assertSame('AB12', $read['batch'] ?? null);
-        $this->assertFalse($read['batch_certain'] ?? true);
-        $this->assertSame('2027-10-31', $read['expiry'] ?? null);
-
-        // A scanner that dropped the GS joins the batch and the serial: the reader cannot tell, so it is not certain.
-        $joined = Gs1ElementString::parse('0109556123000010'.'10AB12'.'21SERIAL9', self::today());
-        $this->assertSame('AB1221SERIAL9', $joined['batch'] ?? null);
-        $this->assertFalse($joined['batch_certain'] ?? true);
-        $this->assertNull($joined['expiry'] ?? null);
-
-        // With a GS anywhere in the code the scanner keeps separators, so a batch ending the code is certain.
-        $this->assertTrue(Gs1ElementString::parse('0109556123000010'.'21S9'.self::GS.'10AB12', self::today())['batch_certain'] ?? false);
+        foreach (['', ']C1', ']d2', ']e0', ']Q3', self::GS] as $prefix) {
+            $code = $prefix.'01'.self::GTIN.'10AB-12/x'.self::GS.'17271031'.'21SERIAL9';
+            $this->assertSame(self::read('AB-12/x', '2027-10-31'), Gs1ElementString::parse($code, self::day(2026)), "prefix {$prefix}");
+        }
     }
 
-    public function test_dd_00_is_the_last_day_of_that_month(): void
+    public function test_a_missing_gs_after_a_variable_field_leaves_the_batch_empty(): void
     {
-        $this->assertSame('2028-02-29', Gs1ElementString::parse('(01)09556123000010(17)280200', self::today())['expiry'] ?? null);
-        $this->assertSame('2027-04-30', Gs1ElementString::parse('(01)09556123000010(17)270400', self::today())['expiry'] ?? null);
+        // The scanner dropped the GS: the batch and the serial run together, so no batch is given, only its unconfirmed text.
+        $this->assertSame(
+            self::read(null, null, false, 'AB1221SERIAL9'),
+            Gs1ElementString::parse('01'.self::GTIN.'10AB12'.'21SERIAL9', self::day(2026)),
+        );
+        // A batch last in a code with no GS at all cannot be told apart from that case either.
+        $this->assertSame(
+            self::read(null, '2027-10-31', false, 'AB12'),
+            Gs1ElementString::parse('01'.self::GTIN.'17271031'.'10AB12', self::day(2026)),
+        );
+        // With a GS anywhere in the code the scanner keeps separators, so a batch ending the code is known.
+        $this->assertSame(self::read('AB12', null), Gs1ElementString::parse('01'.self::GTIN.'21S9'.self::GS.'10AB12', self::day(2026)));
     }
 
-    public function test_an_impossible_expiry_is_left_out_and_the_century_follows_the_gs1_window(): void
+    public function test_dd_00_is_the_last_day_of_that_month_including_february_in_a_leap_year(): void
     {
-        $this->assertSame('09556123000010', Gs1ElementString::parse('(01)09556123000010(17)271331', self::today())['gtin'] ?? null);
-        $this->assertNull(Gs1ElementString::parse('(01)09556123000010(17)271331', self::today())['expiry'] ?? null);
-        $this->assertNull(Gs1ElementString::parse('(01)09556123000010(17)270231', self::today())['expiry'] ?? null);
-        $this->assertSame('2075-01-31', Gs1ElementString::parse('(01)09556123000010(17)750131', self::today())['expiry'] ?? null);
-        $this->assertSame('1977-01-31', Gs1ElementString::parse('(01)09556123000010(17)770131', self::today())['expiry'] ?? null);
+        $this->assertSame('2028-02-29', Gs1ElementString::parse('(01)'.self::GTIN.'(17)280200', self::day(2026))['expiry'] ?? null);
+        $this->assertSame('2027-02-28', Gs1ElementString::parse('(01)'.self::GTIN.'(17)270200', self::day(2026))['expiry'] ?? null);
+        $this->assertSame('2027-04-30', Gs1ElementString::parse('(01)'.self::GTIN.'(17)270400', self::day(2026))['expiry'] ?? null);
+    }
+
+    public function test_the_century_follows_the_gs1_rule_within_minus_49_and_plus_50_years(): void
+    {
+        // In 2026, YY 76 is +50 years (2076) and YY 77 would be +51, so it is 1977; YY 77 is -49 years from 2026.
+        $this->assertSame('2076-01-31', Gs1ElementString::parse('(01)'.self::GTIN.'(17)760131', self::day(2026))['expiry'] ?? null);
+        $this->assertSame('1977-01-31', Gs1ElementString::parse('(01)'.self::GTIN.'(17)770131', self::day(2026))['expiry'] ?? null);
+        // In 2075, YY 25 is +50 years (2125) and YY 24 is -51, so it moves to 2124.
+        $this->assertSame('2125-01-31', Gs1ElementString::parse('(01)'.self::GTIN.'(17)250131', self::day(2075))['expiry'] ?? null);
+        $this->assertSame('2124-01-31', Gs1ElementString::parse('(01)'.self::GTIN.'(17)240131', self::day(2075))['expiry'] ?? null);
+        $this->assertSame('2026-12-31', Gs1ElementString::parse('(01)'.self::GTIN.'(17)261231', self::day(2026, 12, 31))['expiry'] ?? null);
+    }
+
+    public function test_an_impossible_expiry_gives_no_expiry_but_keeps_the_gtin(): void
+    {
+        foreach (['271331', '270431', '270231'] as $value) {
+            $this->assertSame(self::read(null, null, false), Gs1ElementString::parse('(01)'.self::GTIN.'(17)'.$value, self::day(2026)), $value);
+        }
     }
 
     /** @return iterable<string, array{string}> */
     public static function notGs1(): iterable
     {
         yield 'EAN-13' => ['9556123000010'];
-        yield 'GTIN-14 alone, not an element string' => ['09556123000010'];
+        yield 'GTIN-14 alone, not an element string' => [self::GTIN];
         yield 'internal SKU code' => ['PARA-500'];
         yield 'bad check digit' => ['(01)09556123000017(10)AB12'];
         yield 'raw, bad check digit' => ['0109556123000017'.'10AB12'];
-        yield 'no GTIN' => ['(10)AB12(17)271031'];
-        yield 'bracketed text around the fields' => ['x(01)09556123000010'];
+        yield 'batch and expiry, no GTIN' => ['(10)AB12(17)271031'];
+        yield 'raw, no GTIN' => ['10AB12'.self::GS.'17271031'];
+        yield 'bracketed text around the fields' => ['x(01)'.self::GTIN];
         yield 'empty' => [''];
     }
 
     #[DataProvider('notGs1')]
-    public function test_codes_that_are_not_gs1_element_strings_return_null(string $code): void
+    public function test_codes_without_a_valid_gtin_are_not_gs1_reads(string $code): void
     {
-        $this->assertNull(Gs1ElementString::parse($code, self::today()));
+        $this->assertNull(Gs1ElementString::parse($code, self::day(2026)));
     }
 
-    public function test_unknown_or_bad_fields_stop_the_read_and_keep_what_came_before(): void
+    public function test_an_unknown_or_bad_field_is_skipped_when_bracketed_and_stops_a_raw_read_and_is_not_complete(): void
     {
-        $read = Gs1ElementString::parse('(01)09556123000010(17)271031(99)X(10)AB12', self::today());
-        $this->assertSame(['gtin' => '09556123000010', 'batch' => null, 'batch_certain' => false, 'expiry' => '2027-10-31'], $read);
-
-        $tooLong = Gs1ElementString::parse('(01)09556123000010(10)'.str_repeat('A', 21), self::today());
-        $this->assertSame(['gtin' => '09556123000010', 'batch' => null, 'batch_certain' => false, 'expiry' => null], $tooLong);
-
-        $this->assertSame(['gtin' => '09556123000010', 'batch' => null, 'batch_certain' => false, 'expiry' => null], Gs1ElementString::parse('0109556123000010', self::today()));
+        // Bracketed fields are delimited, so an unknown AI (a weight, 3103) is stepped over and the batch is still read.
+        $this->assertSame(self::read('AB12', '2027-10-31', false), Gs1ElementString::parse('(01)'.self::GTIN.'(17)271031(3103)000500(10)AB12', self::day(2026)));
+        $this->assertSame(self::read(null, '2027-10-31', false), Gs1ElementString::parse('01'.self::GTIN.'17271031'.'99X', self::day(2026)));
+        $this->assertSame(self::read(null, null, false), Gs1ElementString::parse('(01)'.self::GTIN.'(10)'.str_repeat('A', 21), self::day(2026)));
+        // A batch with brackets cannot be split safely: not a GS1 read, so the plain lookup takes it.
+        $this->assertNull(Gs1ElementString::parse('(01)'.self::GTIN.'(10)A(B)', self::day(2026)));
+        $this->assertSame(self::read(null, null), Gs1ElementString::parse('01'.self::GTIN, self::day(2026)));
     }
 
-    public function test_barcode_forms_cover_the_stored_ean_upc_and_ean8_forms(): void
+    public function test_barcode_forms_cover_the_stored_gtin_14_13_12_and_8_forms_in_that_order(): void
     {
-        $this->assertSame(['09556123000010', '9556123000010'], Gs1ElementString::barcodeForms('09556123000010'));
+        $this->assertSame([self::GTIN, '9556123000010'], Gs1ElementString::barcodeForms(self::GTIN));
         $this->assertSame(['00012345678905', '0012345678905', '012345678905'], Gs1ElementString::barcodeForms('00012345678905'));
         $this->assertSame(['00000012345670', '0000012345670', '000012345670', '12345670'], Gs1ElementString::barcodeForms('00000012345670'));
     }

@@ -18,6 +18,7 @@ import {
     cleanScannedCode,
     isRepeat,
     scanMessage,
+    shownCode,
 } from '@/lib/scan';
 import type {
     CameraSupport,
@@ -99,7 +100,7 @@ async function lookup(raw: string) {
 
     last = { code: value, at: Date.now() };
     busy.value = true;
-    show(`Looking up code ${value}…`, false);
+    show(`Looking up code ${shownCode(value)}…`, false);
 
     try {
         const result = await requestJson<ScanLookup>(
