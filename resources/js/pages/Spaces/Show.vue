@@ -140,7 +140,10 @@ onMounted(async () => {
                             <UserInfo :user="user" />
                         </button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" class="w-56">
+                    <DropdownMenuContent
+                        align="end"
+                        class="w-56 max-sm:[&_[role=menuitem]]:min-h-11"
+                    >
                         <UserMenuContent :user="user" />
                     </DropdownMenuContent>
                 </DropdownMenu>
