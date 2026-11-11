@@ -46,7 +46,10 @@ test('reject starts with no reason, and group dispatch warns it cannot be undone
         /<option value="" disabled>\s*Choose a reason\s*<\/option>/,
     );
     assert.match(page, /Pick a reason to continue\./);
-    assert.match(page, /operation === 'rejected' && form\.reason_code === ''/);
+    assert.match(
+        page,
+        /operation === 'rejected' &&\s+form\.reason_code === ''/,
+    );
     assert.match(page, /It can't be undone\./);
     assert.match(page, /`Dispatch all \$\{lots\} lots\?`/);
 });
