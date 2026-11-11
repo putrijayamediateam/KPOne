@@ -2,7 +2,10 @@
 
 namespace Tests\Feature\HR;
 
+use App\Domain\HR\Applications\HiringTemplates;
 use App\Domain\HR\Applications\Services\CandidateLink;
+use App\Domain\HR\Applications\Services\HiringDeadlines;
+use App\Domain\HR\Applications\Services\HiringMessenger;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
 use App\Mail\HiringMessageMail;
@@ -219,6 +222,72 @@ class InterviewSlotsTest extends VisitTestCase
         $this->get(route('hr.applications.index'))->assertInertia(fn (Assert $p) => $p
             ->where('applications.needsYou.today.count', 1)->where('applications.needsYou.today.rows.0.why', 'Interview today at 11:00 AM.')
             ->where('applications.needsYou.picks.count', 0));
+    }
+
+    public function test_an_unanswered_interview_invitation_is_auto_rejected_after_three_working_days(): void
+    {
+        // Owner decision 2026-11-11. Invited on Tuesday 10 Nov; working days after it: Wed 11, Thu 12, (Fri 13 holiday),
+        // Mon 16 = reminder, Tue 17 = closes. Once the candidate picks, it waits for HR; HR asking again restarts the count.
+        [$silent] = $this->scheduled('Synthetic Silent');
+        [$picked, $pickedToken] = $this->scheduled('Synthetic Picked');
+        [$again, $againToken] = $this->scheduled('Synthetic Again');
+        $this->pick($pickedToken, array_slice($this->starts($picked), 0, 3))->assertSessionHasNoErrors();
+        $this->pick($againToken, array_slice($this->starts($again), 0, 3))->assertSessionHasNoErrors();
+        $this->travelTo(CarbonImmutable::parse('2026-11-11 10:00', $this->branch->timezone));
+        $this->askAgain($again)->assertSessionHasNoErrors(); // counts from Wed 11: Thu 12, Mon 16, Tue 17 = reminder, Wed 18 = closes
+        $run = fn (string $at): array => [$this->travelTo(CarbonImmutable::parse($at, $this->branch->timezone)), app(HiringDeadlines::class)->run()][1];
+
+        $this->assertSame([0, 0], $run('2026-11-13 09:00'));
+        $this->assertSame([1, 0], $run('2026-11-16 08:00'));
+        $reminder = DB::table('hr_job_application_messages')->where('template', 'pick_reminder')->sole();
+        $this->assertSame(['mailbox', 'scheduling', (int) $this->row($silent)->interview_round, $this->row($silent)->id], [$reminder->recipient, $reminder->stage,
+            (int) $reminder->round, (int) $reminder->application_id]);
+        $this->assertSame([1, 1], $run('2026-11-17 08:20')); // the silent one closes; the asked-again one gets its reminder (its new round)
+        $this->assertSame(['auto_rejected', 'scheduling', 'scheduling'], [$this->row($silent)->status, $this->row($picked)->status, $this->row($again)->status]);
+        $this->assertSame((int) $this->row($again)->interview_round, (int) DB::table('hr_job_application_messages')->where('template', 'pick_reminder')
+            ->where('application_id', $this->row($again)->id)->value('round'));
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'hr.applications.auto_rejected')->count());
+        $this->assertSame('auto_rejected', DB::table('hr_job_application_messages')->where('application_id', $this->row($silent)->id)->orderByDesc('id')->value('template'));
+        $this->assertSame([0, 1], $run('2026-11-18 08:20'));
+        $this->assertSame(['auto_rejected', 'scheduling'], [$this->row($again)->status, $this->row($picked)->status]);
+        $this->assertSame([0, 0], $run('2026-11-25 09:00')); // the one with picks waits for HR, however long
+
+        // PostgreSQL: Scheduling closes as Auto-rejected only while the round has no picks.
+        $this->assertDatabaseRefuses(fn () => DB::table('hr_job_applications')->where('public_id', $picked)->update(['status' => 'auto_rejected', 'closed_at' => now()]));
+    }
+
+    public function test_the_candidate_is_told_the_last_day_to_choose(): void
+    {
+        // Owner, 2026-11-11 (#484 follow-up; Daniel): the pick-times emails carry the same sentence and date as the page.
+        foreach (['screening_passed' => [], 'pick_again' => [], 'interview_cancelled' => ['date' => 'Tue 17 Nov 2026', 'time' => '9:00 AM']] as $template => $extra) {
+            $body = HiringTemplates::render($template, ['position' => 'Synthetic Assistant', 'deadline' => 'Mon 16 Nov 2026', 'tarikh' => 'Isnin 16 Nov 2026', ...$extra])['body'];
+            $this->assertStringContainsString('Choose by the end of Mon 16 Nov 2026. After that, the application closes.', $body, $template);
+            $this->assertStringContainsString('Pilih hingga akhir Isnin 16 Nov 2026. Selepas itu, permohonan ini ditutup.', $body, $template);
+            // With no deadline (no working days set), the sentences are left out rather than promising a date.
+            $plain = HiringTemplates::render($template, ['position' => 'Synthetic Assistant', ...$extra])['body'];
+            $this->assertStringNotContainsString('Choose by', $plain, $template);
+            $this->assertStringNotContainsString('Pilih hingga', $plain, $template);
+        }
+
+        // Invited on Tuesday 10 Nov: Wed 11, Thu 12, (Fri 13 holiday), Mon 16 is the last day to choose.
+        [$id, $token] = $this->scheduled('Synthetic Assistant');
+        $page = fn () => $this->withCookie('kpone_career_status', $token)->get(route('hr-applications.status'));
+        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Mon 16 Nov 2026')->where('application.interview.chooseByMs', 'Isnin 16 Nov 2026'));
+        $sent = fn (string $template): string => collect(HiringMessenger::listFor($this->row($id), true))->firstWhere('template', $template)['body'] ?? '';
+        $this->assertStringContainsString('Choose by the end of Mon 16 Nov 2026.', $sent('screening_passed'));
+        $this->assertStringContainsString('Pilih hingga akhir Isnin 16 Nov 2026.', $sent('screening_passed'));
+        $this->pick($token, array_slice($this->starts($id), 0, 3))->assertSessionHasNoErrors();
+        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', null)); // picked: HR's turn
+        // HR asks for new times on Wed 11: Thu 12, Mon 16, Tue 17.
+        $this->travelTo(CarbonImmutable::parse('2026-11-11 10:00', $this->branch->timezone));
+        $this->askAgain($id)->assertSessionHasNoErrors();
+        auth()->logout();
+        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Tue 17 Nov 2026')->where('application.interview.chooseByMs', 'Selasa 17 Nov 2026'));
+        $this->assertStringContainsString('Choose by the end of Tue 17 Nov 2026.', $sent('pick_again'));
+        $this->assertStringContainsString('Choose by the end of Mon 16 Nov 2026.', $sent('screening_passed')); // a sent email keeps its date
+        // The day after, the line goes; picking stays open until the daily check closes the application.
+        $this->travelTo(CarbonImmutable::parse('2026-11-18 09:00', $this->branch->timezone));
+        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', null)->where('application.stage', 'scheduling'));
     }
 
     /** @return list<string> every slot start offered now */
