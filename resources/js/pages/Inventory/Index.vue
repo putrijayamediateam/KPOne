@@ -116,6 +116,7 @@ const statusOptions = [
     { value: '', label: 'All statuses' },
     { value: 'active', label: 'Available' },
     { value: 'inactive', label: 'Unavailable' },
+    { value: 'returns', label: 'Patient returns only' },
 ];
 const movementOptions = [
     { value: '', label: 'All movement types' },
@@ -224,6 +225,24 @@ const clearFilters = () => {
                 variant="outline"
                 class="min-h-11"
                 >Stock review</ActionLink
+            >
+            <ActionLink
+                href="/inventory/reorder-suggestions"
+                variant="outline"
+                class="min-h-11"
+                >Reorder suggestions</ActionLink
+            >
+            <ActionLink
+                href="/inventory/supplier-terms"
+                variant="outline"
+                class="min-h-11"
+                >Supplier price list</ActionLink
+            >
+            <ActionLink
+                href="/inventory/skus"
+                variant="outline"
+                class="min-h-11"
+                >SKUs</ActionLink
             >
             <ActionLink
                 href="/inventory/batch-holds"
