@@ -79,6 +79,12 @@ final class StockSpace
         ];
     }
 
+    /** "250.000" as "250" and "0.5" as "0.5": a quantity without its trailing zeros. */
+    private static function qty(string $value): string
+    {
+        return rtrim(rtrim(number_format((float) $value, 3, '.', ''), '0'), '.');
+    }
+
     /**
      * The three Stock review worklists (read up to four pages of 25 rows each), rows ordered for display, and the
      * overdue review-by dates carried on those rows.
@@ -126,8 +132,8 @@ final class StockSpace
     {
         $unit = (string) ($r['stock_unit'] ?? '');
         $detail = $key === 'low_stock'
-            ? rtrim(rtrim((string) $r['quantity'], '0'), '.').' '.$unit.' on hand, reorder level '.rtrim(rtrim((string) $r['reorder_level'], '0'), '.')
-            : SpaceDisplay::expiryText((string) $r['expiry'], $today).' · '.rtrim(rtrim((string) $r['quantity'], '0'), '.').' '.$unit;
+            ? self::qty((string) $r['quantity']).' '.$unit.' on hand, reorder level '.self::qty((string) $r['reorder_level'])
+            : SpaceDisplay::expiryText((string) $r['expiry'], $today).' · '.self::qty((string) $r['quantity']).' '.$unit;
 
         return ['sku' => (string) $r['sku_code'], 'item' => (string) $r['item'], 'location' => (string) $r['location'], 'detail' => $detail, 'tone' => $key === 'low_stock' ? 'amber' : ($key === 'expired' || str_contains($detail, 'Expired') ? 'red' : 'amber')];
     }
@@ -146,7 +152,7 @@ final class StockSpace
         $page = $this->reorder->page($actor, ['need' => 'order']);
         $rows = array_map(fn (array $r): array => [
             'sku' => (string) $r['skuCode'], 'item' => (string) $r['itemName'], 'location' => (string) $r['location'],
-            'detail' => $r['onHand'].' '.$r['stockUnit'].' on hand, reorder level '.$r['reorderLevel'].', suggest '.$r['suggestedQuantity'],
+            'detail' => self::qty((string) $r['onHand']).' '.$r['stockUnit'].' on hand, reorder level '.self::qty((string) $r['reorderLevel']).', suggest '.self::qty((string) $r['suggestedQuantity']),
         ], array_values((array) $page['rows']));
 
         return ['total' => (int) $page['total'], 'rows' => $rows, 'all' => array_values((array) $page['rows'])];

@@ -146,7 +146,7 @@ final class SpaceAskService
         }
         $rows = [];
         foreach (array_slice($none, 0, 10) as $r) {
-            $rows[] = [(string) $r['skuCode'], (string) $r['location'], $r['onHand'].' on hand, level '.$r['reorderLevel']];
+            $rows[] = [(string) $r['skuCode'], (string) $r['location'], rtrim(rtrim(number_format((float) $r['onHand'], 3, '.', ''), '0'), '.').' on hand, level '.rtrim(rtrim(number_format((float) $r['reorderLevel'], 3, '.', ''), '0'), '.')];
         }
         $n = count($none);
 
