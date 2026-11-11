@@ -17,7 +17,7 @@ test('every Post receipt field has a visible label and its accessible name conta
         ['Batch number \\(required\\)', 'received batch number'],
         ['Expiry date \\(required\\)', 'expiry date'],
         [
-            'Quantity this receipt \\(\\{\\{ line\\.stockUnit \\}\\}, required\\)',
+            'Quantity this receipt \\(\\{\\{ line\\.stockUnit \\}\\},\\s+required\\)',
             'quantity this receipt',
         ],
     ]) {
