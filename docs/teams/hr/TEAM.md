@@ -413,6 +413,9 @@ check items, keep them"). The rest stand unless the owner changes them.
   lock real applicants out for up to an hour, and behind a proxy with no trusted list all senders share one address;
   the CV's size and hash and the nonce stay after a purge; the clinic name on the form is fixed text; the PDF check is
   shallow; applicants have no self-service withdrawal or deletion; Daniel's optional pending-date hint is not built.
+- PDPA 15 credentials purge known limit: when a leaver's records go after 7 years, their version numbers go too, so if
+  the same person is rehired later their credential versions start again at 1. The newest version of a current staff
+  member's credential type is never deleted, so a current person's numbering never restarts.
 
 ## 8. Rules (every task)
 
