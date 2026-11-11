@@ -35,7 +35,7 @@ final class ControlledRegisterService
 
     public const REASONS = ['count_to_follow', 'stock_elsewhere', 'investigate', 'other'];
 
-    private const PAGE_SIZE = 50;
+    private const PAGE_SIZE = 25;
 
     private const MAX_DAYS = 365;
 
@@ -86,7 +86,7 @@ final class ControlledRegisterService
     }
 
     /**
-     * The register for one SKU over a branch-local date range, 50 lines a page, with opening, running and closing
+     * The register for one SKU over a branch-local date range, 25 lines a page, with opening, running and closing
      * balances, its checks and whether this viewer may check it now.
      *
      * @param  array<string, mixed>  $query

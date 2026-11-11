@@ -217,11 +217,13 @@ const formError = computed(
             aria-label="Register dates"
             @submit.prevent="visit(1)"
         >
-            <label class="min-w-0 text-sm font-medium"
-                >From<DateField v-model="from" class="mt-1"
+            <label class="min-w-0 text-sm"
+                ><span class="font-medium">From</span
+                ><DateField v-model="from" class="mt-1"
             /></label>
-            <label class="min-w-0 text-sm font-medium"
-                >To<DateField v-model="to" class="mt-1"
+            <label class="min-w-0 text-sm"
+                ><span class="font-medium">To</span
+                ><DateField v-model="to" class="mt-1"
             /></label>
             <Button type="submit" variant="outline" class="min-h-11"
                 >Show</Button
@@ -355,14 +357,24 @@ const formError = computed(
                                     {{ line.batch ?? '—' }}
                                 </td>
                                 <td class="p-3">{{ line.location }}</td>
-                                <td class="p-3 whitespace-nowrap">
+                                <td class="p-3 break-words">
                                     {{ line.reference }}
                                 </td>
-                                <td class="p-3">{{ line.recordedBy }}</td>
+                                <td class="p-3 break-words">
+                                    {{ line.recordedBy }}
+                                </td>
                             </tr>
                         </tbody>
                     </table>
                 </div>
+                <p
+                    class="text-sm text-muted-foreground"
+                    data-testid="cd-showing"
+                >
+                    Showing {{ register.lines.rows.length }} of
+                    {{ register.lines.total }}
+                    {{ register.lines.total === 1 ? 'movement' : 'movements' }}
+                </p>
                 <CompactPagination
                     v-if="register.lines.lastPage > 1"
                     :current-page="register.lines.page"
@@ -430,7 +442,10 @@ const formError = computed(
                 />
                 <InputError id="cd-counted-error" :message="errors.counted" />
                 <template v-if="differs">
-                    <p class="text-sm font-medium text-warning-strong">
+                    <p
+                        class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+                        data-testid="cd-differs-note"
+                    >
                         This differs from the register. Recording it does not
                         change stock; correct stock with a governed stock count.
                     </p>
@@ -478,7 +493,10 @@ const formError = computed(
                     />
                     <InputError id="cd-note-error" :message="errors.note" />
                 </template>
-                <Button type="submit" class="min-h-11" :disabled="busy"
+                <Button
+                    type="submit"
+                    class="min-h-11 w-full lg:min-h-9 lg:w-auto"
+                    :disabled="busy"
                     >Record check</Button
                 >
             </form>

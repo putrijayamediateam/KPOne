@@ -177,6 +177,12 @@ const print = async () => {
                     <dd>{{ register.printedOn }}</dd>
                 </div>
             </dl>
+            <p class="mb-1">
+                Every movement in these dates is printed:
+                {{ register.lines.total }}
+                {{ register.lines.total === 1 ? 'movement' : 'movements' }},
+                across the pages numbered below.
+            </p>
             <p class="mb-2 font-semibold">
                 Balance at the start: {{ register.opening }}
             </p>

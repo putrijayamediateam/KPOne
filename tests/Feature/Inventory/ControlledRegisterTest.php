@@ -298,8 +298,14 @@ final class ControlledRegisterTest extends VisitTestCase
         }
         $viewer = $this->actorAt('finance_officer');
         $first = $this->registerPage($viewer, $f['sku']->public_id);
-        $this->assertSame([52, 2, 50, '50'], [$first['lines']['total'], $first['lines']['lastPage'], count($first['lines']['rows']), $first['lines']['rows'][49]['balance']]);
+        // 25 lines a page (Daniel), the running balance carrying on from the page before.
+        $this->assertSame([52, 3, 25, '25'], [$first['lines']['total'], $first['lines']['lastPage'], count($first['lines']['rows']), $first['lines']['rows'][24]['balance']]);
         $second = $this->registerPage($viewer, $f['sku']->public_id, ['page' => 2]);
-        $this->assertSame(['51', '52', '52'], [$second['lines']['rows'][0]['balance'], $second['lines']['rows'][1]['balance'], $second['closing']]);
+        $this->assertSame(['26', '50'], [$second['lines']['rows'][0]['balance'], $second['lines']['rows'][24]['balance']]);
+        $third = $this->registerPage($viewer, $f['sku']->public_id, ['page' => 3]);
+        $this->assertSame([2, '51', '52', '52'], [count($third['lines']['rows']), $third['lines']['rows'][0]['balance'], $third['lines']['rows'][1]['balance'], $third['closing']]);
+        // The print carries every line.
+        $print = $this->actingAs($viewer)->get(route('inventory.controlled-register.print', ['sku' => $f['sku']->public_id]))->viewData('page')['props']['register'];
+        $this->assertSame([52, 52], [$print['lines']['total'], count($print['lines']['rows'])]);
     }
 }

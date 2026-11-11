@@ -59,6 +59,10 @@ test('STK-24: the check sends the newest movement seen and a retry key, and asks
         /seen_check_sequence: props\.register\.newestCheckSequence/,
     );
     assert.match(page, /Do not enter patient or prescriber details\./);
+    // Daniel: full-width 44 px Record check on phones, 36 px from 1024 px; the amber note stays apart from errors.
+    assert.match(page, /class="min-h-11 w-full lg:min-h-9 lg:w-auto"/);
+    assert.match(page, /data-testid="cd-differs-note"/);
+    assert.match(page, /Showing \{\{ register\.lines\.rows\.length \}\} of/);
     assert.match(page, /reason: differs\.value \? form\.reason : null/);
     assert.match(page, /<template v-if="differs">/);
     assert.match(page, /v-if="register\.checkBlockedReason"/);
