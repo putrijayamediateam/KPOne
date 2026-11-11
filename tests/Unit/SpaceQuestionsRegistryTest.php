@@ -29,6 +29,9 @@ final class SpaceQuestionsRegistryTest extends TestCase
             'consultation.not_ready' => ['consultation', 'queue.view.own', true],
             'panel.most_unclaimed' => ['panel', 'panel.claims.manage.branch', false],
             'panel.overdue_amount' => ['panel', 'panel.claims.manage.branch', false],
+            'stock.held_batches' => ['stock', 'inventory.view.branch', false],
+            'stock.written_off' => ['stock', 'inventory.view.branch', false],
+            'stock.no_order' => ['stock', 'inventory.view.branch', false],
         ], array_map(fn (array $q): array => [$q['space'], $q['permission'], $q['patientLevel']], SpaceQuestions::REGISTRY));
     }
 
