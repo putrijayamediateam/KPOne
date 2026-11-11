@@ -27,6 +27,8 @@ BIL-3: no money rule, permission, route or stored-data change.
   in the existing `dueNow` map (BIL-17), and a due-now-only row has approved and pay-later amounts of 0.
 - **Desktop table.** Columns: Patient, Visit / Invoice, Visit date, Due date, Approved, Pay later, Due now,
   **Still owed**, Action.
+- **Agreed pay-later date.** On a bill with both kinds of money the row's date is the visit day, so the agreed
+  pay-later date travels in a side map (`payLaterDue`) and shows beside the pay-later amount.
 - **Phone cards (BIL-18 layout).** "Still owed" leads, with the past-due or "since visit" chip. Under it come a Pay
   later / Due now breakdown, the "also due now, a payment pays that first" note on bills with both, the patient, and
   the details.

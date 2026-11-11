@@ -5,8 +5,10 @@ namespace Tests\Feature\Billing;
 use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\Payment;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
+use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -73,6 +75,87 @@ class BillsToCollectTest extends BillingTestCase
             ->where('collections.all.count', 0)->where('collections.dueNow', [])->count('collections.data', 0));
     }
 
+    public function test_the_visit_day_is_the_branch_calendar_day_not_the_utc_date(): void
+    {
+        // Registered at 16:30 UTC, which is 00:30 the next day in Kuala Lumpur (a synthetic fixture write).
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $registered = now('UTC')->subDays(4)->setTime(16, 30)->toImmutable();
+        DB::table('visits')->where('id', $visit->id)->update(['registered_at' => $registered]);
+        $branchDay = $registered->setTimezone('Asia/Kuala_Lumpur')->startOfDay();
+        $this->assertSame($registered->toDateString(), $branchDay->subDay()->toDateString());
+        $this->cashMethod($visit);
+        $this->pay($ca, $visit, $invoice, '4000');
+        $this->complete($ca, $visit, $invoice);
+        $this->correct($visit, $invoice, '1500');
+
+        $this->selectBranch($ca);
+        $this->travelTo($branchDay->setTime(23, 0));
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
+            ->where('collections.data.0.dueDate', $branchDay->format('j M Y'))->where('collections.data.0.daysOverdue', 0)
+            ->where('collections.all.overdueCount', 0));
+        $this->travelTo($branchDay->addDay()->setTime(9, 0));
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
+            ->where('collections.data.0.daysOverdue', 1)->where('collections.all.overdueCount', 1));
+    }
+
+    public function test_a_panel_covered_bill_lists_only_the_patients_money_due_now(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->cashMethod($visit);
+        $panel = Panel::factory()->create(['organisation_id' => $visit->organisation_id]);
+        $this->selectBranch($ca);
+        $this->post(route('billing.propose', [$visit, $invoice, 'panel']), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version,
+            'amount_sen' => 2500, 'panel_id' => $panel->id, 'reason' => 'Synthetic Panel confirmation'])->assertSessionHasNoErrors();
+        $proposal = DB::table('coverage_allocations')->sole();
+        DB::table('billing_approval_limits')->insert(['organisation_id' => $visit->organisation_id, 'branch_id' => $visit->branch_id, 'user_id' => $ca->id, 'capability' => 'panel', 'limit_sen' => 5000]);
+        $this->post(route('billing.approve', [$visit, $invoice, 'panel', $proposal->public_id]), ['expected_branch_id' => $visit->branch_id,
+            'lock_version' => $invoice->refresh()->lock_version, 'proposal_lock_version' => $proposal->lock_version])->assertSessionHasNoErrors();
+        $this->pay($ca, $visit, $invoice, '1500');
+        $this->complete($ca, $visit, $invoice);
+        $this->correct($visit, $invoice, '1000'); // RM 10.00 of RM 15.00 really received: RM 5.00 due; the Panel part is not.
+
+        $this->selectBranch($ca);
+        $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page->where('billing.invoice.state.due_now', 500));
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
+            ->where('collections.all.totalSen', 500)->where('collections.dueNow', [$visit->visit_number => 500]));
+    }
+
+    public function test_a_refund_after_completion_leaves_the_amount_due_unchanged(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $cash = $this->cashMethod($visit);
+        $this->pay($ca, $visit, $invoice, '4000');
+        $this->complete($ca, $visit, $invoice);
+        $this->correct($visit, $invoice, '3000'); // RM 10.00 due.
+        $replacement = Payment::query()->where('status', 'posted')->sole();
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $this->post(route('billing.refund', [$visit, $replacement->public_id]), ['expected_branch_id' => $visit->branch_id, 'payment_method_id' => $cash->id,
+            'reason_code' => 'goodwill', 'amount_sen' => '500', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $refund = DB::table('payment_refunds')->sole();
+        $this->selectBranch($this->actor('director'));
+        $this->post(route('billing.refund.decide', [$visit, $refund->public_id, 'approved']), ['expected_branch_id' => $visit->branch_id, 'reason_code' => null,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+
+        $this->selectBranch($ca);
+        $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page->where('billing.invoice.state.due_now', 1000));
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
+            ->where('collections.all.totalSen', 1000)->where('collections.dueNow', [$visit->visit_number => 1000]));
+    }
+
+    public function test_a_bill_with_both_kinds_of_money_keeps_its_agreed_pay_later_date_beside_the_row(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->cashMethod($visit);
+        $this->payTenAndDeferThirty($ca, $visit, $invoice);
+        $this->correct($visit, $invoice, '500');
+        $agreed = DB::table('patient_receivables')->where('invoice_id', $invoice->id)->value('due_date');
+
+        $this->selectBranch($ca);
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
+            ->where('collections.payLaterDue', [$visit->visit_number => CarbonImmutable::parse($agreed)->format('j M Y')]));
+    }
+
     private function payTenAndDeferThirty(User $ca, Visit $visit, Invoice $invoice): void
     {
         $supervisor = $this->actor('ca_supervisor');
@@ -102,16 +185,19 @@ class BillsToCollectTest extends BillingTestCase
 
     private function correct(Visit $visit, Invoice $invoice, string $receivedSen): void
     {
-        $first = Payment::query()->orderBy('id')->firstOrFail();
+        $first = Payment::query()->where('status', 'posted')->orderBy('id')->firstOrFail();
         $this->selectBranch($this->actor('finance_officer'));
         $this->post(route('billing.receipt.correct', [$visit, $invoice, $first]), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->refresh()->lock_version,
             'payment_lock_version' => $first->lock_version, 'reason' => 'Synthetic: less was really received', 'recording_error_only' => '1', 'received_sen' => $receivedSen,
             'method' => 'cash', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
     }
 
-    private function cashMethod(Visit $visit): void
+    private function cashMethod(Visit $visit): PaymentMethod
     {
-        (new PaymentMethod)->forceFill(['organisation_id' => $visit->organisation_id, 'code' => 'cash', 'name' => 'Synthetic cash', 'classification' => 'cash'])->save();
+        $method = (new PaymentMethod)->forceFill(['organisation_id' => $visit->organisation_id, 'code' => 'cash', 'name' => 'Synthetic cash', 'classification' => 'cash']);
+        $method->save();
+
+        return $method;
     }
 
     /** @return array<string, string> */

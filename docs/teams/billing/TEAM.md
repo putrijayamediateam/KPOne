@@ -291,7 +291,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Bills to collect (BIL-23) lists completed visits that owe money and approved pay later (also on open visits); an
   open visit's own due-now money is not listed (it is being paid at the counter). The Billing page's "View all
   pay-later to collect" link keeps its wording (pinned by an existing assertion). No "Check bill" badge for invoices
-  under review on this list (it would add a row field).
+  under review on this list (it would add a row field), so a bill on hold for correction or with stale source shows
+  unflagged. An open visit with pay later and unpaid money due no longer shows the "also due now" note (that money
+  is being paid at the counter). If an invoice's evidence did not reconcile, the list floors its due-now money at
+  zero instead of refusing, as the Billing page would. Performance: each page works out what every finalised
+  invoice of a completed visit at the branch owes (three times: all totals, shown totals, page); fine for the pilot,
+  but it grows with history. A follow-up should pre-filter candidates or inline the payable figure, proved on a
+  20,000-invoice fixture as in the pilot scale limits work.
 - Daily cash closing (BIL-4): expected cash counts only payment methods classified Cash on the Payment Methods
   screen; a method left "Not classified" counts as non-cash. An approved day is final and keeps its snapshot: a
   receipt reversed after approval does not reopen it; the page shows a "changed after approval" notice and the

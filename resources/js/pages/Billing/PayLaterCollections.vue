@@ -26,6 +26,7 @@ const props = defineProps<{
         lastPage: number;
         /** BIL-17: money due after a receipt correction, by visit number; it is paid before pay-later. */
         dueNow?: Record<string, number>;
+        payLaterDue?: Record<string, string>;
         data: Array<{
             patientName: string;
             patientNumber: string;
@@ -133,7 +134,7 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
         <section
             v-if="collections.data.length > 0"
             class="grid grid-cols-1 gap-3 md:grid-cols-2 lg:hidden"
-            aria-label="Pay later to collect"
+            aria-label="Bills to collect"
         >
             <article
                 v-for="row in collections.data"
@@ -149,7 +150,7 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         </p>
                     </div>
                     <span
-                        v-if="row.daysOverdue > 0 && row.approvedSen === 0"
+                        v-if="row.daysOverdue > 0 && dueNowOf(row) > 0"
                         class="block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
                         data-testid="bill-days-since-visit"
                         >{{ daysSinceVisit(row.daysOverdue) }}</span
@@ -173,6 +174,17 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         <dt class="text-muted-foreground">Pay later</dt>
                         <dd class="tabular-nums">
                             {{ myr(row.remainingSen) }}
+                            <span
+                                v-if="
+                                    collections.payLaterDue?.[row.visitNumber]
+                                "
+                                class="text-muted-foreground"
+                                data-testid="bill-card-pay-later-due"
+                                >· due
+                                {{
+                                    collections.payLaterDue[row.visitNumber]
+                                }}</span
+                            >
                         </dd>
                     </div>
                     <div
@@ -188,8 +200,8 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                     class="text-xs text-muted-foreground"
                     data-testid="pay-later-card-due-now"
                 >
-                    {{ myr(collections.dueNow?.[row.visitNumber] ?? 0) }} is
-                    also due now. A payment pays that first.
+                    {{ myr(dueNowOf(row)) }} is also due now. A payment pays
+                    that first.
                 </p>
                 <div class="min-w-0">
                     <p class="font-medium break-words">{{ row.patientName }}</p>
@@ -288,9 +300,7 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                         <td class="whitespace-nowrap">
                             {{ row.dueDate }}
                             <span
-                                v-if="
-                                    row.daysOverdue > 0 && row.approvedSen === 0
-                                "
+                                v-if="row.daysOverdue > 0 && dueNowOf(row) > 0"
                                 class="mt-1 block w-fit rounded-full border border-amber-300 bg-amber-50 px-2 text-xs text-amber-900 dark:border-amber-700 dark:bg-amber-950/40 dark:text-amber-100"
                                 >{{ daysSinceVisit(row.daysOverdue) }}</span
                             >
@@ -313,6 +323,17 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                                     ? myr(row.remainingSen)
                                     : '–'
                             }}
+                            <span
+                                v-if="
+                                    collections.payLaterDue?.[row.visitNumber]
+                                "
+                                class="block text-xs text-muted-foreground"
+                                data-testid="bill-pay-later-due"
+                                >due
+                                {{
+                                    collections.payLaterDue[row.visitNumber]
+                                }}</span
+                            >
                         </td>
                         <td class="text-right whitespace-nowrap tabular-nums">
                             <span

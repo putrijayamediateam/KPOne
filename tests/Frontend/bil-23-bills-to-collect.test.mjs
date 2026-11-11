@@ -62,7 +62,14 @@ test('money due now with no pay-later counts days since the visit', () => {
     );
     assert.equal(page.split('daysSinceVisit(row.daysOverdue)').length - 1, 2);
     assert.equal(
-        page.split('row.daysOverdue > 0 && row.approvedSen === 0').length - 1,
+        page.split('row.daysOverdue > 0 && dueNowOf(row) > 0').length - 1,
         2,
     );
+});
+
+test('a bill with money due now still shows its agreed pay-later date', () => {
+    assert.ok(page.includes('payLaterDue?: Record<string, string>;'));
+    assert.ok(page.includes('data-testid="bill-card-pay-later-due"'));
+    assert.ok(page.includes('data-testid="bill-pay-later-due"'));
+    assert.ok(page.includes('aria-label="Bills to collect"'));
 });

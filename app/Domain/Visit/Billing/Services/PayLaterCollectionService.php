@@ -51,6 +51,10 @@ final class PayLaterCollectionService
                 // above zero) so each row keeps its agreed fields. A payment pays it before pay-later.
                 'dueNow' => $rows->mapWithKeys(fn (object $row): array => [(string) $row->visit_number => (int) $row->due_now_sen])
                     ->filter(fn (int $sen): bool => $sen > 0)->all(),
+                // BIL-23: on a bill that also has money due now, the row's date is the visit day, so the agreed pay-later
+                // date travels beside the rows (visit number => date) to stay visible.
+                'payLaterDue' => $rows->filter(fn (object $row): bool => (int) $row->due_now_sen > 0 && $row->pay_later_due !== null)
+                    ->mapWithKeys(fn (object $row): array => [(string) $row->visit_number => CarbonImmutable::parse($row->pay_later_due, $branch->timezone)->format('j M Y')])->all(),
                 'data' => $rows->map(function (object $row) use ($branch, $today): array {
                     // BIL-23: a bill with only money due now is due from its visit day (past due from the next day).
                     $due = CarbonImmutable::parse($row->effective_due, $branch->timezone)->startOfDay();
