@@ -191,10 +191,13 @@ test('DS-4: the Front desk shows waiting, a glance, QR count only, open links an
 });
 
 test('DS-4: Refresh reloads only the Front desk data, with no polling', () => {
-    const page = read('resources/js/pages/Spaces/Show.vue');
-    assert.match(page, /router\.reload\(\{\s*only: \['frontDesk'\]/);
+    const page = read('resources/js/components/spaces/SpaceAsOf.vue');
+    assert.match(page, /router\.reload\(\{\s*only: \[props\.only\]/);
     assert.match(page, /Refreshing…/);
     assert.doesNotMatch(page, /setInterval|setTimeout/);
+    const show = read('resources/js/pages/Spaces/Show.vue');
+    assert.match(show, /only="frontDesk"/);
+    assert.match(show, /only="pharmacy"/);
     assert.match(
         read('resources/css/space-shell-layout.css'),
         /\.space-refresh \{[^}]*min-height: 44px/,
@@ -205,7 +208,10 @@ test('DS-4: the primary action sits in the header, rows and buttons stack on pho
     const page = read('resources/js/pages/Spaces/Show.vue');
     const css = read('resources/css/space-shell-layout.css');
     assert.match(page, /class="space-primary"/);
-    assert.match(page, /Could not refresh\. Still showing the update from/);
+    assert.match(
+        read('resources/js/components/spaces/SpaceAsOf.vue'),
+        /Could not refresh\. Still showing the update from/,
+    );
     assert.match(page, /space-stats is-glance/);
     assert.match(
         css,

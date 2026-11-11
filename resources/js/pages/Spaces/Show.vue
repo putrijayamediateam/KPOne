@@ -3,6 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { computed, nextTick, onMounted, ref } from 'vue';
 import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
+import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -118,25 +119,6 @@ const changeBranch = (event: Event) => {
 };
 
 // 390 px: the nav is one scrolling row. Fade the right edge while more is hidden and bring the current item into view.
-// Reloads only this space's data, so the front desk can update without leaving the page (no polling in this slice).
-const refreshing = ref(false);
-const refreshFailed = ref(false);
-const refresh = () => {
-    refreshing.value = true;
-    refreshFailed.value = false;
-    let succeeded = false;
-    router.reload({
-        only: ['frontDesk'],
-        onSuccess: () => {
-            succeeded = true;
-        },
-        onFinish: () => {
-            refreshing.value = false;
-            refreshFailed.value = !succeeded;
-        },
-    });
-};
-
 const side = ref<HTMLElement | null>(null);
 const more = ref(false);
 const measure = () => {
@@ -238,12 +220,12 @@ onMounted(async () => {
                 >
             </div>
             <template v-if="pharmacy">
-                <p v-if="pharmacy.branchName" class="space-muted">
-                    {{ pharmacy.branchName
-                    }}<template v-if="pharmacy.asOf">
-                        · as of {{ pharmacy.asOf }}</template
-                    >
-                </p>
+                <SpaceAsOf
+                    v-if="pharmacy.branchName"
+                    :branch-name="pharmacy.branchName"
+                    :as-of="pharmacy.asOf"
+                    only="pharmacy"
+                />
                 <section
                     v-if="pharmacy.toDispense"
                     class="space-card"
@@ -413,29 +395,12 @@ onMounted(async () => {
                 </section>
             </template>
             <template v-else-if="frontDesk">
-                <p v-if="frontDesk.branchName" class="space-muted space-asof">
-                    <span
-                        >{{ frontDesk.branchName
-                        }}<template v-if="frontDesk.asOf">
-                            · as of {{ frontDesk.asOf }}</template
-                        ></span
-                    >
-                    <button
-                        type="button"
-                        class="space-refresh"
-                        :disabled="refreshing"
-                        @click="refresh"
-                    >
-                        {{ refreshing ? 'Refreshing…' : 'Refresh' }}
-                    </button>
-                    <span
-                        v-if="refreshFailed"
-                        class="space-ask-error"
-                        role="status"
-                        >Could not refresh. Still showing the update from
-                        {{ frontDesk.asOf }}.</span
-                    >
-                </p>
+                <SpaceAsOf
+                    v-if="frontDesk.branchName"
+                    :branch-name="frontDesk.branchName"
+                    :as-of="frontDesk.asOf"
+                    only="frontDesk"
+                />
                 <section
                     v-if="frontDesk.waiting"
                     class="space-card"
