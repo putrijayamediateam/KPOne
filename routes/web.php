@@ -95,6 +95,7 @@ use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationSettingsController;
 use App\Http\Controllers\ReorderSuggestionController;
 use App\Http\Controllers\RoomCallController;
+use App\Http\Controllers\SkuEditController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
@@ -875,6 +876,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/supplier-returns', [SupplierReturnController::class, 'store'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.store');
         Route::post('inventory/supplier-returns/{supplierReturn}/{action}', [SupplierReturnController::class, 'act'])->whereNumber('supplierReturn')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.act');
         Route::get('inventory/reorder-suggestions', [ReorderSuggestionController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.reorder-suggestions');
+        Route::get('inventory/skus', [SkuEditController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.skus');
+        Route::put('inventory/skus/{sku}', [SkuEditController::class, 'update'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.update');
         Route::get('inventory/supplier-terms', [SupplierTermsController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-terms');
         Route::post('inventory/supplier-terms', [SupplierTermsController::class, 'store'])->middleware(['permission:inventory.suppliers.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-terms.store');
         Route::put('inventory/supplier-terms/{term}', [SupplierTermsController::class, 'update'])->whereUuid('term')->middleware(['permission:inventory.suppliers.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-terms.update');
