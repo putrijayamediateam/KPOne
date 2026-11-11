@@ -10,14 +10,15 @@ use App\Domain\HR\Payroll\Services\PayrollRunPageService;
 use App\Domain\HR\Payroll\Services\PayrollRunService;
 use App\Domain\HR\Payroll\Services\PayrollSetupService;
 use App\Domain\HR\Payroll\Services\PayslipService;
+use App\Domain\HR\Payroll\Services\ProtectedZip;
 use App\Http\Controllers\Controller;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
-use Symfony\Component\HttpFoundation\StreamedResponse;
 
 /** HR-7a to HR-7c payroll. Thin: every rule lives in app/Domain/HR/Payroll. */
 class PayrollController extends Controller
@@ -28,18 +29,34 @@ class PayrollController extends Controller
     }
 
     /** HR-7c: the bank file or the accountant summary from a locked run, audited before its bytes and never stored. */
-    public function export(Request $request, PayrollExportService $exports, string $run, string $kind): StreamedResponse|RedirectResponse
+    /**
+     * HR-7c exports, password-protected since PDPA 14 (owner, 2026-11-11): the downloader types a password and gets an
+     * AES-256 zip holding the CSV. The password is checked here and used only to build the zip; it is never stored,
+     * logged, flashed or audited. Nothing is recorded and nothing is sent when the password is refused or the server
+     * cannot encrypt.
+     */
+    public function export(Request $request, PayrollExportService $exports, string $run, string $kind): HttpResponse|RedirectResponse
     {
         $back = route('hr.payroll.index', ['tab' => 'exports']);
+        $password = $request->input('file_password');
+        if (! is_string($password) || mb_strlen($password) < ProtectedZip::MIN_PASSWORD || mb_strlen($password) > 128) {
+            throw ValidationException::withMessages(['file_password' => 'Type a password of at least '.ProtectedZip::MIN_PASSWORD.' characters for the file.'])->redirectTo($back);
+        }
+        if ($request->input('file_password_confirmation') !== $password) {
+            throw ValidationException::withMessages(['file_password' => 'The two passwords do not match.'])->redirectTo($back);
+        }
+        if (! ProtectedZip::supported()) {
+            throw ValidationException::withMessages(['export' => 'This server cannot make protected files, so nothing was downloaded. Ask the IT owner.'])->redirectTo($back);
+        }
         try {
             $file = $kind === 'bank' ? $exports->bank($request->user(), $run) : $exports->accountant($request->user(), $run);
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
         }
+        $zip = ProtectedZip::make($file['name'], $file['csv'], $password);
 
-        return response()->streamDownload(static function () use ($file): void {
-            echo $file['csv'];
-        }, $file['name'], ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'no-store, private']);
+        return response($zip, 200, ['Content-Type' => 'application/zip', 'Cache-Control' => 'no-store, private',
+            'Content-Disposition' => 'attachment; filename="'.preg_replace('/\.csv\z/', '.zip', $file['name']).'"']);
     }
 
     /** HR-7c: one payslip, your own or any for a payroll preparer or approver. Opening it is recorded. */
