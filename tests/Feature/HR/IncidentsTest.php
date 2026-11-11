@@ -20,6 +20,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\RequiresPhpExtension;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\RowCopies;
 
 /**
  * HR-10d incident reports (HR-PLAN 20.6; owner, 2026-11-10). Synthetic data only.
@@ -260,6 +261,23 @@ class IncidentsTest extends VisitTestCase
     }
 
     // ---- fixture ----
+
+    public function test_a_tab_lists_its_reports_even_behind_more_than_500_newer_reports_of_another_tab(): void
+    {
+        // TEAM.md section 7 hardening: the tab is filtered in PostgreSQL before the 500-row limit, not after it.
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+        $this->report(['occurred_time' => '07:00'])->assertSessionHasNoErrors();
+        $this->report(['occurred_time' => '07:30', 'category' => 'patient_care'])->assertSessionHasNoErrors();
+        $older = (string) DB::table('hr_incidents')->where('category', 'workplace_safety')->value('public_id');
+        RowCopies::copy('hr_incidents', (int) DB::table('hr_incidents')->where('category', 'patient_care')->value('id'), 500,
+            ['occurred_at' => "t.occurred_at + g * interval '1 second'"]);
+
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.incidents.index', ['tab' => 'open']))->assertInertia(fn (Assert $page) => $page->where('incidents.counts.open', 1)
+            ->where('incidents.counts.clinical', 501)->has('incidents.reports', 1)->where('incidents.reports.0.id', $older));
+        $this->get(route('hr.incidents.index', ['tab' => 'clinical']))->assertInertia(fn (Assert $page) => $page->has('incidents.reports', 500));
+    }
 
     /**
      * @param  array<string, mixed>  $overrides

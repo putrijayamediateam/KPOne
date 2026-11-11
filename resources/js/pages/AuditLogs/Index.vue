@@ -72,7 +72,12 @@ const formatTime = (value: string) =>
                 ></CardHeader
             >
             <CardContent class="p-0"
-                ><div class="overflow-x-auto">
+                ><div
+                    class="overflow-x-auto"
+                    tabindex="0"
+                    role="region"
+                    aria-label="Audit log table"
+                >
                     <table class="w-full text-left text-sm">
                         <thead
                             class="border-y bg-muted/40 text-xs tracking-wide text-muted-foreground uppercase"
