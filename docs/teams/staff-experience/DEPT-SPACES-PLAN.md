@@ -53,6 +53,7 @@ widgets only (reference data, readiness), no counts that need a clinical permiss
 | DS-1 | Shell | `DepartmentSpaceNavigation` (domain service, like `ClinicManagementNavigation`) returning the user's spaces; a new layout with the grouped sidebar and a bottom "Recent activity" strip; an empty home per space. Matrix test (section 5). No data widgets yet. |
 | DS-2 | The switch | Per-user preference "Try the new layout", default off, Director first, switching back always possible. New table (migration) with `lock_version`, an audit row on every change, permission and branch checks like any state change. Fresh check under lock, idempotency key on the toggle. Visible only to users who have at least one space. |
 | DS-3 | Pharmacy space | First space, as the owner chose. |
+| DS-3a | Ask panel (shared) | The shared plumbing and the panel, with Pharmacy's questions first; later spaces add their own questions in their own slices (section 6a). Needs the agreement with Irfan on the gateway entry. |
 | DS-4 .. DS-10 | Front desk, Billing, Consultation, Panel, Stock, HR, Management | One at a time, owner order to confirm. |
 | DS-11 | Me | Own roster, leave, staff claims. **Payslips are not built yet** (HR-7b and HR-7c), so "Me" shows them only when those slices exist. |
 
@@ -86,6 +87,65 @@ and its count is not sent. "Recent activity" is a per-space list built from the 
   hub and `WorkspaceLandingService` behave as today for everyone who has not switched. Only when the switch is on does the landing page
   change, and that is a new branch with its own tests. If DS-1 turns out to need a change in `ClinicManagementTest`, `DashboardTest` or
   `nav-02-top-bar.test.mjs`, I send the line to B.E.R.N.I.S.S first.
+
+## 6a. Ask panel (owner: "yes add the ask panel, option 1", 2026-11-11)
+
+Each space gets a small **Ask** panel of preset questions for that space and role. It is **not an AI service**: KPOne calls no AI (standing
+owner decision, `NoAiServiceGuardTest`). There is no text box, so nothing typed is ever interpreted; a person picks from a fixed list and gets
+a fixed sentence plus a small table, recomputed each time and never stored.
+
+**What I found in the Agent platform (AG-5), and what I propose to reuse and not reuse.**
+
+- Reuse the **shape**: `QuickQuestions` (a registry of key, group, label, data source, date input, extra permission), `QuickAnswer` (sentence,
+  columns, rows, totals, scope) and `AggregatePayloadGuard`. Reuse the existing data sources (`clinic.day_summary`, `money.day_summary`,
+  `panel.claims_summary`, `inventory.stock_review` and the rest) for the aggregate questions.
+- **Not reusable as it is:** `DirectorAssistant` starts a Dato' Arif run through `AgentRunRecorder` with `AgentPermissions::ASSISTANT`, which is
+  Director-only, and `AgentToolGateway::call()` needs a started agent run and an agent allowlist. A CA, a Finance Officer or an HR Manager has no
+  agent run, and giving them the assistant permission or a new "agent" row is exactly the kind of change hard rule 3 forbids (and it would label a
+  fixed list as an "AI agent").
+- **Proposed shared change, to agree with Irfan (Agent platform) before it is built:** add to `AgentToolGateway` one new entry, for example
+  `callForPerson(User, toolCode, ?Branch, input)`, that performs the same checks as `call()` (active user, the tool's required permission, an
+  effective branch assignment for a `.branch` tool, input schema, `AggregatePayloadGuard`) but needs no agent run and writes one structural audit
+  row (`space.ask_answered`: question key and branch id only) instead of a run step. The checks move into one private method that both entries use,
+  so there is still one place that decides. The existing `AgentToolGatewayTest` is extended, not changed. If Irfan prefers, the fallback is a thin
+  `AskReader` in `app/Domain/Access` that calls the tools directly and repeats those checks; I advise against it because it duplicates the rules.
+- Questions that need **patient rows** or per-person data (below) are not agent data sources and must not be: the gateway's guard refuses
+  personal-data keys on purpose. Those are answered by the space's own domain services, the same ones that feed its widgets.
+
+**Slice choice.** One shared slice, **DS-3a, right after DS-3 Pharmacy**: the registry (`SpaceQuestions`), the answer endpoint (one `POST` with a
+question key, throttled, no-store), the Ask panel component, the gateway entry and the tests, with Pharmacy's questions as the first set. After
+that, each later space adds its own questions inside its own slice (a registry row and a read), so there are no separate Ask slices. Daniel designs
+the panel in the GUIDE section 18 style (a list of questions in the side column, the answer as a sentence and a small table, the same chips and
+timer rings).
+
+**Gating.** Every question names the permission it needs (the data source's own, or the page's); it is offered only to a viewer who holds it, is
+answered at the viewer's active branch (`BranchAccessService`), and the endpoint re-checks both on every call. A question a role cannot ask is
+absent, never greyed out. No new permission.
+
+**Questions per space (first set; the owner's examples marked \*).**
+
+| Space | Questions | Data (existing) | Names patients? |
+|---|---|---|---|
+| Front desk | Who is waiting longest?\*, How many are waiting, per tab?, How many QR check-ins wait for review? | `VisitDirectoryService`, `QueueDirectoryService`, `PublicIntakeReviewService` | **Who is waiting longest**: yes |
+| Pharmacy | What is left to dispense?\*, Which returns wait for a check? | `DispensaryDirectoryService`, `DispensaryReturnService` | **What is left to dispense**: yes |
+| Billing | Which bills are still open today?\*, What is unpaid today?\*, Which cash closings wait for approval?\* | `OutstandingBillService`, `PayLaterCollectionService`, `CashClosingService` | **open bills**: yes |
+| Consultation | How many are waiting for me?, Which of my consultations are on hold? | `QueueDirectoryService`, `QueueWaitingCountService` | **on hold**: yes (own patients) |
+| Panel | Which claims are overdue?\*, Approved but not yet claimed, per Panel | `panel.claims_summary` source, `PanelClaimService` | no (aggregates) |
+| Stock | What expires in 30 days?\*, What is below reorder level?\* | `inventory.stock_review` source | no |
+| HR | Who is on leave today?\*, Which approvals wait for me? | HR leave calendar and approvals services | the leave calendar shows "On leave" only, never type or reason |
+| Management | Which approvals wait in each team? (counts only) | each team's own counts | no |
+| Me | How much leave do I have left?\*, When is my next shift?\* | own HR records only | own data only |
+
+**Patient-level answers (listed as the owner asked):** Front desk "Who is waiting longest?", Pharmacy "What is left to dispense?", Billing "Which
+bills are still open today?", and Consultation "Which of my consultations are on hold?". Each uses the **same projection and masking the board
+already shows that role** (the Registration board row, the Dispensary list row, the Outstanding bill row, the doctor's own queue row), through the
+same service, **with no new patient field**. A role that sees no patient names on that board gets the aggregate answer only. A test per question
+asserts the answer carries no key the board row does not carry.
+
+**Tests and assertions.** A test pins, for every question, the permission that offers it and the data it reads; one asserts the endpoint refuses a
+question the viewer cannot be offered and a branch they are not assigned to; one asserts a stale or unknown key is refused; one asserts no
+`ai`-provider wording enters the code (`NoAiServiceGuardTest` stays as it is). Existing assertions that would change: none; `AgentToolGatewayTest`
+is extended for the new entry only, and I send B.E.R.N.I.S.S the line first if a change turns out to be needed.
 
 ## 6. Other things the owner or the coordinator should know
 
