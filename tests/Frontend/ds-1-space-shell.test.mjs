@@ -99,7 +99,7 @@ test('DS-3: a Pharmacy space with no widgets still links to the existing screens
                 /Open the existing\s+\{\{ existing\.title \}\} screens/g,
             ) ?? []
         ).length,
-        2,
+        3,
     );
 });
 
@@ -174,5 +174,18 @@ test('DS-3a: short names never wrap in the phone table and Retry shares the row 
     assert.match(
         read('resources/js/components/spaces/SpaceAskPanel.vue'),
         /class="space-ask-failed"/,
+    );
+});
+
+test('DS-4: the Front desk shows waiting, a glance, QR count only, open links and an empty fallback', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    assert.match(page, /v-else-if="frontDesk"/);
+    assert.match(page, /v-if="frontDesk\.waiting"/);
+    assert.match(page, /Today at a glance/);
+    assert.match(page, /QR check-ins to review/);
+    assert.match(page, /No QR check-ins are waiting for review\./);
+    assert.doesNotMatch(
+        page,
+        /frontDesk\.[a-zA-Z.]*patientName|qrPending\.(summary|items)/,
     );
 });

@@ -21,6 +21,9 @@ final class SpaceQuestions
         'pharmacy.longest_waiting' => ['space' => 'pharmacy', 'label' => 'Who has waited longest?', 'permission' => 'dispensary.view.branch', 'date' => self::NOW, 'builder' => 'longestWaiting', 'patientLevel' => true],
         'pharmacy.returns_waiting' => ['space' => 'pharmacy', 'label' => 'Which returns wait for a check?', 'permission' => 'dispensary.view.branch', 'date' => self::NOW, 'builder' => 'returnsWaiting', 'patientLevel' => false],
         'pharmacy.stock_attention' => ['space' => 'pharmacy', 'label' => 'What stock needs attention?', 'permission' => 'inventory.view.branch', 'date' => self::NOW, 'builder' => 'stockAttention', 'patientLevel' => false],
+        'front_desk.longest_waiting' => ['space' => 'front_desk', 'label' => 'Who is waiting longest?', 'permission' => 'visits.view.branch', 'date' => self::NOW, 'builder' => 'frontDeskLongestWaiting', 'patientLevel' => true],
+        'front_desk.waiting_counts' => ['space' => 'front_desk', 'label' => 'How many are waiting?', 'permission' => 'visits.view.branch', 'date' => self::NOW, 'builder' => 'frontDeskCounts', 'patientLevel' => false],
+        'front_desk.qr_pending' => ['space' => 'front_desk', 'label' => 'How many QR check-ins wait for review?', 'permission' => 'public_intakes.review.branch', 'date' => self::NOW, 'builder' => 'frontDeskQrPending', 'patientLevel' => false],
     ];
 
     /** @return array<string, array{space: string, label: string, permission: string, date: string, builder: string, patientLevel: bool}> */

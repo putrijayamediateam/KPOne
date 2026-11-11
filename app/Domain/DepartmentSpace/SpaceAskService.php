@@ -13,14 +13,17 @@ use App\Models\User;
  */
 final class SpaceAskService
 {
-    /** The page that holds the full list behind each answer. */
+    /** The page that holds the full list behind each answer: route name and query. @var array<string, array{0: string, 1: array<string, string>}> */
     private const FULL_LIST = [
-        'pharmacy.longest_waiting' => 'registration.index',
-        'pharmacy.returns_waiting' => 'dispensary.returns-to-check',
-        'pharmacy.stock_attention' => 'inventory.stock-review',
+        'pharmacy.longest_waiting' => ['registration.index', []],
+        'pharmacy.returns_waiting' => ['dispensary.returns-to-check', []],
+        'pharmacy.stock_attention' => ['inventory.stock-review', []],
+        'front_desk.longest_waiting' => ['registration.index', []],
+        'front_desk.waiting_counts' => ['registration.index', []],
+        'front_desk.qr_pending' => ['registration.index', ['tab' => 'qr-intake']],
     ];
 
-    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private AuditRecorder $audit) {}
+    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private AuditRecorder $audit) {}
 
     /**
      * The questions this person may ask in a space. A question they cannot ask is absent, never greyed.
@@ -58,7 +61,7 @@ final class SpaceAskService
             'columns' => $answer['columns'],
             'rows' => $answer['rows'],
             'asOf' => now()->setTimezone($branch->timezone)->format('g:i A'),
-            'href' => route(self::FULL_LIST[$key], absolute: false),
+            'href' => route(self::FULL_LIST[$key][0], self::FULL_LIST[$key][1], absolute: false),
         ];
     }
 
@@ -72,6 +75,8 @@ final class SpaceAskService
             'pharmacy.longest_waiting' => $this->pharmacy->toDispense($actor) !== null,
             'pharmacy.returns_waiting' => $this->pharmacy->returnsToCheck($actor) !== null,
             'pharmacy.stock_attention' => $this->pharmacy->stockWatch($actor) !== null,
+            'front_desk.longest_waiting', 'front_desk.waiting_counts' => $this->frontDesk->waiting($actor) !== null,
+            'front_desk.qr_pending' => $this->frontDesk->qrPending($actor) !== null,
             default => false,
         };
     }
@@ -126,6 +131,57 @@ final class SpaceAskService
             'sentence' => $low + $expiring + $expired === 0
                 ? 'No stock needs attention.'
                 : "$low below reorder level, $expiring expiring in {$watch['windowDays']} days, $expired expired on hand.",
+            'columns' => [],
+            'rows' => [],
+        ];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function frontDeskLongestWaiting(User $actor): array
+    {
+        $waiting = $this->frontDesk->waiting($actor);
+        abort_if($waiting === null, 403);
+        /** @var list<array<string, mixed>> $shown */
+        $shown = array_slice($waiting['rows'], 0, 3);
+        if ($shown === []) {
+            return ['sentence' => 'Nobody is waiting.', 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        foreach ($shown as $row) {
+            $rows[] = [(string) ($row['queueNumber'] ?? ''), (string) $row['patient'], SpaceDisplay::waitText((int) $row['minutes'])];
+        }
+        $first = $shown[0];
+
+        return [
+            'sentence' => $first['patient'].($first['queueNumber'] ? ' ('.$first['queueNumber'].')' : '').' has waited longest: '.SpaceDisplay::waitText((int) $first['minutes']).'.',
+            'columns' => ['Number', 'Patient', 'Waiting'],
+            'rows' => $rows,
+        ];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function frontDeskCounts(User $actor): array
+    {
+        $waiting = $this->frontDesk->waiting($actor);
+        abort_if($waiting === null, 403);
+        $counts = $waiting['counts'];
+        $parts = [($counts['waiting'] ?? 0).' waiting', ($counts['serving'] ?? 0).' being served', ($counts['completed'] ?? 0).' completed'];
+        if (isset($counts['billing'])) {
+            $parts[] = $counts['billing'].' awaiting billing';
+        }
+
+        return ['sentence' => ucfirst(implode(', ', $parts)).'.', 'columns' => [], 'rows' => []];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function frontDeskQrPending(User $actor): array
+    {
+        $qr = $this->frontDesk->qrPending($actor);
+        abort_if($qr === null, 403);
+        $total = (int) $qr['total'];
+
+        return [
+            'sentence' => $total === 0 ? 'No QR check-ins are waiting for review.' : ($total === 1 ? '1 QR check-in is waiting for review.' : $total.' QR check-ins are waiting for review.'),
             'columns' => [],
             'rows' => [],
         ];

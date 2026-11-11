@@ -90,4 +90,24 @@ class SpaceAskTest extends VisitTestCase
             ->assertOk()->assertJsonPath('sentence', 'No stock needs attention.')->assertJsonPath('rows', []);
         $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.longest_waiting'])->assertForbidden();
     }
+
+    public function test_front_desk_questions_are_offered_to_a_ca_and_answered_from_the_registration_services(): void
+    {
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+
+        $this->get('/spaces/front_desk')->assertInertia(fn (Assert $p) => $p->has('questions', 3));
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.waiting_counts'])
+            ->assertOk()->assertJsonPath('sentence', '0 waiting, 0 being served, 0 completed.')->assertJsonPath('href', '/registration');
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.qr_pending'])
+            ->assertOk()->assertJsonPath('sentence', 'No QR check-ins are waiting for review.')->assertJsonPath('href', '/registration?tab=qr-intake');
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.longest_waiting'])
+            ->assertOk()->assertJsonPath('sentence', 'Nobody is waiting.');
+    }
+
+    public function test_a_doctor_cannot_ask_front_desk_questions(): void
+    {
+        $this->selectBranch($this->actor('resident_doctor'));
+        $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.waiting_counts'])->assertForbidden();
+    }
 }
