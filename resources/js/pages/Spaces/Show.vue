@@ -217,6 +217,30 @@ type HrHome = {
     links: Array<{ title: string; href: string }>;
 };
 
+type MeHome = {
+    branchName: string | null;
+    asOf: string | null;
+    shift: {
+        text: string;
+        today: boolean;
+        empty: boolean;
+        href: string;
+    } | null;
+    clock: { state: string; text: string } | null;
+    leave:
+        | { notSetUp: true }
+        | { total: number; rows: Array<{ name: string; left: string }> }
+        | null;
+    claims: { text: string } | null;
+    credentials: {
+        total: number;
+        rows: Array<{ name: string; words: string; expired: boolean }>;
+    } | null;
+    payslip: { period: string; issuedOn: string; href: string } | null;
+    primaryAction: { title: string; href: string } | null;
+    links: Array<{ title: string; href: string }>;
+};
+
 type ManagementHome = {
     branchName: string | null;
     asOf: string | null;
@@ -269,6 +293,7 @@ const props = defineProps<{
     stock?: StockHome | null;
     hr?: HrHome | null;
     management?: ManagementHome | null;
+    me?: MeHome | null;
 }>();
 
 const page = usePage();
@@ -292,6 +317,7 @@ const primaryAction = computed(
         props.stock?.primaryAction ??
         props.hr?.primaryAction ??
         props.management?.primaryAction ??
+        props.me?.primaryAction ??
         null,
 );
 
@@ -1766,6 +1792,192 @@ onMounted(async () => {
                         !management.staff &&
                         !management.documents &&
                         !management.links.length
+                    "
+                    class="space-card"
+                >
+                    <p class="space-muted">
+                        Nothing to show here for your role. Your existing
+                        screens are unchanged.
+                    </p>
+                    <p v-if="existing" class="space-existing">
+                        <Link :href="existing.href"
+                            >Open the existing
+                            {{ existing.title }} screens</Link
+                        >
+                    </p>
+                </section>
+            </template>
+            <template v-else-if="me">
+                <SpaceAsOf
+                    v-if="me.branchName"
+                    :branch-name="me.branchName"
+                    :as-of="me.asOf"
+                    only="me"
+                />
+                <section
+                    v-if="me.shift"
+                    class="space-card"
+                    aria-labelledby="me-shift"
+                >
+                    <h2 id="me-shift">
+                        {{
+                            me.shift.today ? 'My shift today' : 'My next shift'
+                        }}
+                    </h2>
+                    <p :class="me.shift.empty ? 'space-muted' : ''">
+                        {{ me.shift.text }}
+                    </p>
+                    <Link
+                        v-if="me.shift.empty"
+                        :href="me.shift.href"
+                        class="space-row"
+                    >
+                        <span>Open roster</span>
+                        <ChevronRight
+                            class="space-chevron"
+                            aria-hidden="true"
+                        />
+                    </Link>
+                </section>
+                <section
+                    v-if="me.clock"
+                    class="space-card"
+                    aria-labelledby="me-clock"
+                >
+                    <h2 id="me-clock">Clock</h2>
+                    <p>{{ me.clock.text }}</p>
+                </section>
+                <section
+                    v-if="me.leave"
+                    class="space-card"
+                    aria-labelledby="me-leave"
+                >
+                    <h2 id="me-leave">My leave</h2>
+                    <p v-if="'notSetUp' in me.leave" class="space-muted">
+                        Leave is not set up yet.
+                    </p>
+                    <template v-else>
+                        <ul class="space-list">
+                            <li
+                                v-for="r in me.leave.rows"
+                                :key="r.name"
+                                class="space-row"
+                            >
+                                <span class="space-row-body">
+                                    <span class="space-row-text">
+                                        <span class="space-row-main">{{
+                                            r.name
+                                        }}</span>
+                                        <span>{{ r.left }}</span>
+                                    </span>
+                                </span>
+                            </li>
+                        </ul>
+                        <p
+                            v-if="me.leave.total > me.leave.rows.length"
+                            class="space-muted"
+                        >
+                            Showing {{ me.leave.rows.length }} of
+                            {{ me.leave.total }}
+                        </p>
+                    </template>
+                </section>
+                <section
+                    v-if="me.claims"
+                    class="space-card"
+                    aria-labelledby="me-claims"
+                >
+                    <h2 id="me-claims">My claims</h2>
+                    <p class="space-muted">{{ me.claims.text }}</p>
+                </section>
+                <section
+                    v-if="me.credentials"
+                    class="space-card"
+                    aria-labelledby="me-cred"
+                >
+                    <h2 id="me-cred">My credentials</h2>
+                    <ul class="space-list">
+                        <li
+                            v-for="c in me.credentials.rows"
+                            :key="c.name"
+                            class="space-row"
+                        >
+                            <span class="space-row-body">
+                                <span class="space-row-text">
+                                    <span class="space-row-main">{{
+                                        c.name
+                                    }}</span>
+                                    <span
+                                        class="space-row-sub"
+                                        :class="
+                                            c.expired
+                                                ? 'space-wait is-red'
+                                                : 'space-wait is-amber'
+                                        "
+                                        >{{ c.words }}</span
+                                    >
+                                </span>
+                            </span>
+                        </li>
+                    </ul>
+                    <p
+                        v-if="me.credentials.total > me.credentials.rows.length"
+                        class="space-muted"
+                    >
+                        Showing {{ me.credentials.rows.length }} of
+                        {{ me.credentials.total }}
+                    </p>
+                </section>
+                <section
+                    v-if="me.payslip"
+                    class="space-card"
+                    aria-labelledby="me-pay"
+                >
+                    <h2 id="me-pay">Latest payslip</h2>
+                    <Link :href="me.payslip.href" class="space-row">
+                        <span class="space-row-body">
+                            <span class="space-row-text">
+                                <span class="space-row-main">{{
+                                    me.payslip.period
+                                }}</span>
+                                <span class="space-row-sub"
+                                    >Issued {{ me.payslip.issuedOn }}</span
+                                >
+                            </span>
+                        </span>
+                        <ChevronRight
+                            class="space-chevron"
+                            aria-hidden="true"
+                        />
+                    </Link>
+                </section>
+                <section
+                    v-if="me.links.length"
+                    class="space-card"
+                    aria-labelledby="me-open"
+                >
+                    <h2 id="me-open">Open</h2>
+                    <ul class="space-list">
+                        <li v-for="l in me.links" :key="l.title">
+                            <Link :href="l.href" class="space-row">
+                                <span>{{ l.title }}</span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="
+                        !me.shift &&
+                        !me.clock &&
+                        !me.leave &&
+                        !me.claims &&
+                        !me.credentials &&
+                        !me.payslip &&
+                        !me.links.length
                     "
                     class="space-card"
                 >
