@@ -882,6 +882,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('inventory/counts', [GovernedStockController::class, 'counts'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.governed-counts');
         Route::get('inventory/writeoffs', [GovernedStockController::class, 'writeoffs'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.governed-writeoffs');
+        Route::post('inventory/counts/cycle', [GovernedStockController::class, 'startCycleCount'])->middleware(['permission:inventory.stocktake.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.governed-counts.cycle');
         Route::post('inventory/governed/{kind}', [GovernedStockController::class, 'store'])->whereIn('kind', ['count', 'writeoff', 'reversal'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.store');
         Route::post('inventory/governed/{governedCase}/{action}', [GovernedStockController::class, 'act'])->whereNumber('governedCase')->whereIn('action', ['counted', 'recounted', 'approved'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.act');
         Route::get('inventory/controlled-register', [ControlledRegisterController::class, 'index'])->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store'])->name('inventory.controlled-register');
