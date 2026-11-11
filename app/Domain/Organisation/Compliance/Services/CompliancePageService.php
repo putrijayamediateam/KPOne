@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class CompliancePageService
 {
-    public function __construct(private ComplianceSupport $support, private FridgePageService $fridges) {}
+    public function __construct(private ComplianceSupport $support, private FridgePageService $fridges, private AuditPageService $audits) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -26,8 +26,11 @@ final class CompliancePageService
         $canLicences = $actor->can(CompliancePermissions::LICENCES_MANAGE);
         $canFridgeManage = $actor->can(CompliancePermissions::FRIDGE_MANAGE);
         $canFridge = $canFridgeManage || $actor->can(CompliancePermissions::FRIDGE_RECORD) || $actor->can(CompliancePermissions::FRIDGE_REVIEW);
+        $canChecklists = $actor->can(CompliancePermissions::CHECKLISTS_MANAGE);
+        $canAudits = $canChecklists || $actor->can(CompliancePermissions::AUDITS_PERFORM);
         $tabs = array_values(array_filter([
-            $canLicences ? 'overview' : null, $canLicences ? 'licences' : null, $canFridge ? 'fridge' : null, ($canLicences || $canFridgeManage) ? 'settings' : null,
+            $canLicences ? 'overview' : null, $canLicences ? 'licences' : null, $canFridge ? 'fridge' : null, $canAudits ? 'audits' : null,
+            ($canLicences || $canFridgeManage || $canChecklists) ? 'settings' : null,
         ]));
         $tab = in_array($query['tab'] ?? null, $tabs, true) ? (string) $query['tab'] : ($tabs[0] ?? 'overview');
         $orgId = $actor->organisation_id;
@@ -50,7 +53,9 @@ final class CompliancePageService
             ],
             'overview' => $canLicences && $tab === 'overview' ? $this->overview($types, $rows) : null,
             'licences' => $canLicences && $tab === 'licences' ? ['rows' => $rows, 'types' => collect($types)->where('isActive', true)->values()->all()] : null,
-            'settings' => $tab === 'settings' ? ['types' => $canLicences ? $types : null, 'fridges' => $canFridgeManage ? $this->fridges->settingsFridges($actor) : null] : null,
+            'settings' => $tab === 'settings' ? ['types' => $canLicences ? $types : null, 'fridges' => $canFridgeManage ? $this->fridges->settingsFridges($actor) : null, 'audit' => $canChecklists ? $this->audits->settings($actor) : null] : null,
+            'audits' => $canAudits && $tab === 'audits' ? $this->audits->auditsTab($actor, $query) : null,
+            'canManageChecklists' => $canChecklists,
             'fridge' => $canFridge && $tab === 'fridge' ? $this->fridges->fridgeTab($actor, $query) : null,
             'canManageFridges' => $canFridgeManage,
         ];
