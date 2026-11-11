@@ -126,7 +126,10 @@ watch(
     <main
         class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-5 p-4 md:p-7"
     >
-        <ActionLink href="/inventory" variant="ghost" class="-ml-3 min-h-11"
+        <ActionLink
+            href="/inventory"
+            variant="ghost"
+            class="-ml-3 min-h-11 self-start"
             ><ArrowLeft class="size-4" aria-hidden="true" />
             Inventory</ActionLink
         >

@@ -181,7 +181,10 @@ watch(
 <template>
     <Head title="Treatment room usage" />
     <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
-        <ActionLink href="/inventory" variant="ghost" class="-ml-3 min-h-11"
+        <ActionLink
+            href="/inventory"
+            variant="ghost"
+            class="-ml-3 min-h-11 self-start"
             ><ArrowLeft class="size-4" aria-hidden="true" />
             Inventory</ActionLink
         >

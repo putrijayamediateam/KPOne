@@ -101,7 +101,10 @@ watch(
 <template>
     <Head title="Batch safety holds" />
     <main class="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-7">
-        <ActionLink href="/inventory" variant="ghost" class="-ml-3 min-h-11"
+        <ActionLink
+            href="/inventory"
+            variant="ghost"
+            class="-ml-3 min-h-11 self-start"
             ><ArrowLeft class="size-4" aria-hidden="true" />
             Inventory</ActionLink
         >

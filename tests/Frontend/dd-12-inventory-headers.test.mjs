@@ -55,7 +55,7 @@ test('every governed Inventory page uses the page header with one small back lin
         assert.doesNotMatch(page, /<template #actions>/, name);
         assert.match(
             page,
-            /<ActionLink\s+href="\/inventory"\s+variant="ghost"\s+class="-ml-3 min-h-11"\s*><ArrowLeft class="size-4" aria-hidden="true" \/>\s*Inventory<\/ActionLink/,
+            /<ActionLink\s+href="\/inventory"\s+variant="ghost"\s+class="-ml-3 min-h-11 self-start"\s*><ArrowLeft class="size-4" aria-hidden="true" \/>\s*Inventory<\/ActionLink/,
             name,
         );
         assert.doesNotMatch(page, /<nav class="flex flex-wrap gap-4">/, name);
