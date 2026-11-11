@@ -64,10 +64,14 @@
 }
 .space-shell .space-main {
     padding: 24px;
-    display: grid;
+    display: flex;
+    flex-direction: column;
     gap: 16px;
-    align-content: start;
     outline: none;
+}
+/* Recent activity rides along the bottom of the content column. */
+.space-shell .space-recent {
+    margin-top: auto;
 }
 .space-shell .space-title {
     font-size: 26px;
@@ -94,10 +98,19 @@
         grid-template-columns: minmax(0, 1fr);
     }
     .space-shell .space-side {
-        grid-auto-flow: column;
-        grid-auto-columns: max-content;
-        overflow-x: auto;
+        display: flex;
+        flex-direction: row;
         align-items: center;
+        gap: 4px;
+        overflow-x: auto;
+        padding: 8px 12px;
+    }
+    .space-shell .space-side nav {
+        display: contents;
+    }
+    .space-shell .space-item {
+        white-space: nowrap;
+        flex: none;
     }
     .space-shell .space-group,
     .space-shell .space-logo {
