@@ -30,13 +30,9 @@ final class SpaceAskService
         'stock.written_off' => ['inventory.governed-writeoffs', []],
         'stock.no_order' => ['inventory.reorder-suggestions', []],
         'hr.away_this_week' => ['hr.leave.index', ['tab' => 'calendar']],
-<<<<<<< HEAD
-        'hr.short_days' => ['hr.roster.index', []],
+        'hr.credentials_due' => ['hr.credentials.index', ['tab' => 'register']],
         'management.documents_attention' => ['business-details.index', []],
         'management.inactive_staff' => ['staff.index', ['status' => 'inactive']],
-=======
-        'hr.credentials_due' => ['hr.credentials.index', ['tab' => 'register']],
->>>>>>> ds9-work
         'billing.over_60' => ['billing.pay-later-collections', []],
         'billing.owes_most' => ['billing.pay-later-collections', []],
         'billing.closings_waiting' => ['cash-closings.month', []],
@@ -106,13 +102,9 @@ final class SpaceAskService
             'stock.written_off' => $this->stock->writtenOffThisMonth($actor) !== null,
             'stock.no_order' => $this->stock->reorderNeeded($actor) !== null,
             'hr.away_this_week' => $this->hr->away($actor) !== null,
-<<<<<<< HEAD
-            'hr.short_days' => $this->hr->rosterWeek($actor) !== null,
+            'hr.credentials_due' => $this->hr->credentialsDue($actor) !== null,
             'management.documents_attention' => $this->management->documentSummary($actor) !== null,
             'management.inactive_staff' => $this->management->inactiveStaff($actor) !== null,
-=======
-            'hr.credentials_due' => $this->hr->credentialsDue($actor) !== null,
->>>>>>> ds9-work
             default => false,
         };
     }
