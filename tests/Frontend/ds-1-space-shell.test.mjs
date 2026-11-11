@@ -125,3 +125,12 @@ test('DS-3: the Pharmacy list shows a queue number, waiting words, a cap line, e
     assert.match(page, /ChevronRight/);
     assert.doesNotMatch(page, /patientName|fullName/);
 });
+
+test('DS-3: See all links to the Dispensary list, the chevron sits outside the row body and the visit number is not shown', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    const css = read('resources/css/space-shell-layout.css');
+    assert.match(page, /pharmacy\.toDispense\.seeAllHref/);
+    assert.match(page, />See all</);
+    assert.match(css, /\.space-row-text \{[^}]*flex-wrap: wrap/);
+    assert.doesNotMatch(page, /\{\{\s*row\.visitNumber\s*\}\}/);
+});

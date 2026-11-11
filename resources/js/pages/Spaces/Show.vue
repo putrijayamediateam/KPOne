@@ -23,6 +23,7 @@ type Pharmacy = {
     toDispense: {
         total: number;
         limit: number;
+        seeAllHref: string;
         rows: Array<{
             visitNumber: string;
             queueNumber: string | null;
@@ -60,6 +61,9 @@ const waitLabel = (minutes: number): string | null =>
     ({ normal: null, amber: 'Long wait', red: 'Very long wait' })[
         waitingTone(minutes)
     ];
+
+const waitHead = (minutes: number): string =>
+    `Waiting ${minutes} min${waitLabel(minutes) ? ',' : ''}`;
 
 const groups = computed(() => {
     const layout: Array<[string, string[]]> = [
@@ -210,42 +214,56 @@ onMounted(async () => {
                                 :key="row.visitNumber"
                             >
                                 <Link :href="row.href" class="space-row">
-                                    <span class="space-row-main">
+                                    <span class="space-row-body">
                                         <span
                                             v-if="row.queueNumber"
                                             class="space-qno"
                                             >{{ row.queueNumber }}</span
                                         >
-                                        {{ row.patient }}
-                                        <span class="space-muted">{{
-                                            row.visitNumber
-                                        }}</span>
+                                        <span class="space-row-text">
+                                            <span class="space-row-main">{{
+                                                row.patient
+                                            }}</span>
+                                            <span class="space-row-meta">
+                                                <span
+                                                    v-if="row.medicineCount > 0"
+                                                    class="space-muted"
+                                                    >{{
+                                                        row.medicineCount
+                                                    }}
+                                                    medicine(s)</span
+                                                >
+                                                <span
+                                                    :class="`space-wait is-${waitingTone(row.minutes)}`"
+                                                    ><span
+                                                        class="space-nowrap"
+                                                        >{{
+                                                            waitHead(
+                                                                row.minutes,
+                                                            )
+                                                        }}</span
+                                                    >{{ ' '
+                                                    }}<span
+                                                        v-if="
+                                                            waitLabel(
+                                                                row.minutes,
+                                                            )
+                                                        "
+                                                        class="space-nowrap"
+                                                        >{{
+                                                            waitLabel(
+                                                                row.minutes,
+                                                            )
+                                                        }}</span
+                                                    ></span
+                                                >
+                                            </span>
+                                        </span>
                                     </span>
-                                    <span class="space-row-meta">
-                                        <span
-                                            v-if="row.medicineCount > 0"
-                                            class="space-muted"
-                                            >{{
-                                                row.medicineCount
-                                            }}
-                                            medicine(s)</span
-                                        >
-                                        <span
-                                            :class="`space-wait is-${waitingTone(row.minutes)}`"
-                                            >Waiting
-                                            {{ row.minutes }} min<template
-                                                v-if="waitLabel(row.minutes)"
-                                                >,
-                                                {{
-                                                    waitLabel(row.minutes)
-                                                }}</template
-                                            ></span
-                                        >
-                                        <ChevronRight
-                                            class="space-chevron"
-                                            aria-hidden="true"
-                                        />
-                                    </span>
+                                    <ChevronRight
+                                        class="space-chevron"
+                                        aria-hidden="true"
+                                    />
                                 </Link>
                             </li>
                         </ul>
@@ -257,7 +275,12 @@ onMounted(async () => {
                             class="space-muted"
                         >
                             Showing {{ pharmacy.toDispense.rows.length }} of
-                            {{ pharmacy.toDispense.total }}
+                            {{ pharmacy.toDispense.total }} ·
+                            <Link
+                                :href="pharmacy.toDispense.seeAllHref"
+                                class="space-link"
+                                >See all</Link
+                            >
                         </p>
                     </template>
                 </section>

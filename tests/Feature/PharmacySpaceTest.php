@@ -70,6 +70,7 @@ class PharmacySpaceTest extends VisitTestCase
         $response = $this->get('/spaces/pharmacy')->assertOk();
         $props = $response->viewData('page')['props']['pharmacy']['toDispense'];
         $this->assertSame(6, $props['total']);
+        $this->assertSame('/registration', $props['seeAllHref']);
         $this->assertCount(5, $props['rows']);
         $this->assertSame('B-006', $props['rows'][0]['queueNumber']);
         $minutes = array_column($props['rows'], 'minutes');

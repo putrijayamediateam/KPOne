@@ -56,6 +56,7 @@ final class PharmacySpace
             $toDispense = [
                 'total' => (int) $board['total'],
                 'limit' => self::LIST_LIMIT,
+                'seeAllHref' => route('registration.index', absolute: false),
                 'rows' => array_map(fn (array $r): array => [
                     'visitNumber' => $r['visitNumber'],
                     'queueNumber' => $numbers[$r['visitNumber']] ?? null,

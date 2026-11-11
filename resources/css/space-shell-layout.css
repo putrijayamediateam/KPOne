@@ -252,7 +252,7 @@
 
 .space-shell .space-qno {
     display: inline-block;
-    margin-right: 8px;
+    flex: none;
     padding: 1px 8px;
     border-radius: 999px;
     background: var(--space-accent-tint);
@@ -294,4 +294,45 @@
 .space-shell .space-stats strong {
     font-size: 24px;
     font-variant-numeric: tabular-nums;
+}
+
+.space-shell .space-row-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+.space-shell .space-row-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0 12px;
+}
+.space-shell .space-link {
+    color: var(--space-accent);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+}
+.space-shell .space-link:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+
+.space-shell .space-nowrap {
+    white-space: nowrap;
+}
+
+.space-shell .space-row-meta {
+    min-width: 0;
+    max-width: 100%;
+}
+.space-shell .space-wait {
+    min-width: 0;
 }
