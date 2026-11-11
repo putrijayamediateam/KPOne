@@ -88,6 +88,9 @@ class BillsToCollectTest extends BillingTestCase
         $this->complete($ca, $visit, $invoice);
         $this->correct($visit, $invoice, '1500');
 
+        // The viewer's assignment must cover the earlier day the clock moves to (synthetic fixture write).
+        DB::table('staff_branch_assignments')->where('staff_profile_id', $ca->staffProfile->id)->where('branch_id', $this->branch->id)
+            ->update(['valid_from' => '2000-01-01', 'valid_until' => null]);
         $this->selectBranch($ca);
         $this->travelTo($branchDay->setTime(23, 0));
         $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
