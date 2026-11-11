@@ -237,6 +237,12 @@ onMounted(async () => {
                         Nothing to show here for your role. Your existing
                         screens are unchanged.
                     </p>
+                    <p v-if="existing" class="space-existing">
+                        <Link :href="existing.href"
+                            >Open the existing
+                            {{ existing.title }} screens</Link
+                        >
+                    </p>
                 </section>
             </template>
             <section v-else class="space-card" aria-labelledby="work-now">

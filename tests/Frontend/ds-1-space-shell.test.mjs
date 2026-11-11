@@ -88,3 +88,15 @@ test('DS-2: account menu rows are 44 px below 640 px', () => {
         /max-sm:\[&_\[role=menuitem\]\]:min-h-11/,
     );
 });
+
+test('DS-3: a Pharmacy space with no widgets still links to the existing screens', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    assert.equal(
+        (
+            page.match(
+                /Open the existing\s+\{\{ existing\.title \}\} screens/g,
+            ) ?? []
+        ).length,
+        2,
+    );
+});
