@@ -39,16 +39,17 @@ final class IncidentsPageService
         $managed = collect();
         $counts = ['open' => 0, 'clinical' => 0, 'closed' => 0];
         if ($canManage) {
-            $all = DB::table('hr_incidents')->where('organisation_id', $actor->organisation_id)
-                ->when(! $actor->hasRole('director'), fn ($q) => $q->where('director_only', false)) // only a Director sees "Director only" reports
-                ->orderByDesc('occurred_at')->limit(500)->get();
-            $counts = ['open' => $all->where('status', '<>', 'closed')->where('category', '<>', 'patient_care')->count(),
-                'clinical' => $all->where('status', '<>', 'closed')->where('category', 'patient_care')->count(),
-                'closed' => $all->where('status', 'closed')->count()];
+            // The tab and the counts are filtered in PostgreSQL, so the 500-row limit applies to the tab, never before it.
+            $scope = fn () => DB::table('hr_incidents')->where('organisation_id', $actor->organisation_id)
+                ->when(! $actor->hasRole('director'), fn ($q) => $q->where('director_only', false)); // only a Director sees "Director only" reports
+            $open = fn ($q) => $q->where('status', '<>', 'closed')->where('category', '<>', 'patient_care');
+            $clinical = fn ($q) => $q->where('status', '<>', 'closed')->where('category', 'patient_care');
+            $closed = fn ($q) => $q->where('status', 'closed');
+            $counts = ['open' => $open($scope())->count(), 'clinical' => $clinical($scope())->count(), 'closed' => $closed($scope())->count()];
             $managed = match ($tab) {
-                'open' => $all->where('status', '<>', 'closed')->where('category', '<>', 'patient_care'),
-                'clinical' => $all->where('status', '<>', 'closed')->where('category', 'patient_care'),
-                'closed' => $all->where('status', 'closed'),
+                'open' => $open($scope())->orderByDesc('occurred_at')->orderByDesc('id')->limit(500)->get(),
+                'clinical' => $clinical($scope())->orderByDesc('occurred_at')->orderByDesc('id')->limit(500)->get(),
+                'closed' => $closed($scope())->orderByDesc('occurred_at')->orderByDesc('id')->limit(500)->get(),
                 default => collect(),
             };
         }
