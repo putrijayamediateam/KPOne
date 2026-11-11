@@ -3,6 +3,7 @@
 namespace App\Domain\DepartmentSpace;
 
 use App\Domain\Queue\Display\ShortDisplayName;
+use Carbon\CarbonImmutable;
 
 /** How the spaces show a patient and a wait: shared by every space so they read the same everywhere. */
 final class SpaceDisplay
@@ -51,6 +52,23 @@ final class SpaceDisplay
         }
 
         return 'Due '.$dueDate.', '.$daysOverdue.($daysOverdue === 1 ? ' day' : ' days').' overdue'.($daysOverdue >= 30 ? ' (very overdue)' : '');
+    }
+
+    /** "Expires 3 Dec 2026, in 22 days" or "Expired 9 days ago": the words as well as the colour. */
+    public static function expiryText(string $expiry, string $today): string
+    {
+        $date = CarbonImmutable::parse($expiry)->startOfDay();
+        $now = CarbonImmutable::parse($today)->startOfDay();
+        $days = (int) $now->diffInDays($date, false);
+        $label = $date->format('j M Y');
+        if ($days > 0) {
+            return 'Expires '.$label.', in '.$days.($days === 1 ? ' day' : ' days');
+        }
+        if ($days === 0) {
+            return 'Expires '.$label.', today';
+        }
+
+        return 'Expired '.abs($days).(abs($days) === 1 ? ' day' : ' days').' ago';
     }
 
     /** "RM 1,250.50" from sen. */
