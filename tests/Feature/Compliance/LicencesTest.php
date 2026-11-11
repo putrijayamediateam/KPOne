@@ -73,12 +73,12 @@ class LicencesTest extends VisitTestCase
             $this->post(route('clinic-compliance.types.save'), ['name' => 'X', 'expires' => true, 'warn_from_days' => 60, 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
         }
         // The CA and CA Supervisor reach the page for the fridge log only, never the licences.
-        foreach (['ca', 'ca_supervisor'] as $role) {
+        foreach (['ca' => ['fridge'], 'ca_supervisor' => ['fridge', 'audits']] as $role => $tabs) {
             $this->selectBranch($this->actor($role));
-            $this->get(route('clinic-compliance.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('compliance.tabs', ['fridge']));
+            $this->get(route('clinic-compliance.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('compliance.tabs', $tabs));
             $this->post(route('clinic-compliance.types.save'), ['name' => 'X', 'expires' => true, 'warn_from_days' => 60, 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
         }
-        foreach (['director' => ['overview', 'licences', 'fridge', 'settings'], 'administrator' => ['overview', 'licences', 'fridge', 'settings'], 'hr_manager' => ['overview', 'licences', 'settings']] as $role => $tabs) {
+        foreach (['director' => ['overview', 'licences', 'fridge', 'audits', 'settings'], 'administrator' => ['overview', 'licences', 'fridge', 'audits', 'settings'], 'hr_manager' => ['overview', 'licences', 'settings']] as $role => $tabs) {
             $this->selectBranch($this->actor($role));
             $this->get(route('clinic-compliance.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->where('compliance.tabs', $tabs));
         }

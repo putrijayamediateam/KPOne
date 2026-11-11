@@ -17,7 +17,8 @@ use Illuminate\Support\Collection;
 /** HR-3a page props for /hr/attendance: My attendance, Review and Settings. Read only. */
 final class AttendancePageService
 {
-    public function __construct(private BranchAccessService $branches, private AttendanceDays $days, private AttendanceSettingsService $settings, private OvertimePageService $overtime, private AttendanceTotals $totals) {}
+    public function __construct(private BranchAccessService $branches, private AttendanceDays $days, private AttendanceSettingsService $settings, private OvertimePageService $overtime, private AttendanceTotals $totals,
+        private LocationCheckService $location) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -45,7 +46,9 @@ final class AttendancePageService
             'review' => $canReview && $tab === 'review' ? $this->review($actor, $query) : null,
             'overtime' => ($canApprove || $canReview) && $tab === 'overtime' ? $this->overtime->overtimeTab($actor, $query) : null,
             'summary' => $canReview && $tab === 'summary' ? $this->overtime->summaryTab($actor, $query) : null,
-            'settings' => $canReview && $tab === 'settings' ? [...$this->settingsPage($actor), 'overtime' => $this->overtime->settingsCard($actor)] : null,
+            'settings' => $canReview && $tab === 'settings' ? [...$this->settingsPage($actor), 'overtime' => $this->overtime->settingsCard($actor),
+                // HR-16a: only the Director turns the location check on or off.
+                'location' => $actor->can(ClockPermissions::LOCATION_MANAGE) ? $this->location->settingsCard($actor) : null] : null,
         ];
     }
 
@@ -109,6 +112,8 @@ final class AttendancePageService
             'corrections' => $this->corrections(AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('user_id', $actor->id)
                 ->orderByDesc('id')->limit(20)->get(), $actor),
             'overtime' => $this->overtime->my($actor, $rows->all(), $today),
+            // HR-16a: the check at the branch the next press goes to (the open session's branch for a clock-out).
+            'location' => $this->location->forPerson($actor, $state === 'in' ? (int) $open->branch_id : $branch?->id),
         ];
     }
 
@@ -150,8 +155,12 @@ final class AttendancePageService
         }
         // HR-PLAN 10.1: the weekly hours chip on Review too (one pass for everyone on the page).
         $weeks = $this->totals->week($actor->organisation_id, array_values(array_map('intval', $people->keys()->all())), $date);
+        // HR-16a: the location result of each press, in plain words (never a position or a distance).
+        $locations = $this->location->labels(array_values(array_map('intval', $sessions->pluck('id')->all())));
+        $sessionIds = $sessions->pluck('id', 'public_id');
         $rows = array_map(fn (array $r): array => [...$r, 'person' => (string) (isset($people[$r['userId']]) ? $people[$r['userId']]->name : 'Staff member'),
-            'overtimeChoice' => $r['session'] === null ? null : ($choices[$r['session']['publicId']] ?? null), 'week' => $weeks[$r['userId']] ?? null], $rows);
+            'overtimeChoice' => $r['session'] === null ? null : ($choices[$r['session']['publicId']] ?? null), 'week' => $weeks[$r['userId']] ?? null,
+            'location' => $r['session'] === null ? null : ($locations[(int) ($sessionIds[$r['session']['publicId']] ?? 0)] ?? null)], $rows);
         $pending = AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('status', 'pending')->orderBy('id')->limit(100)->get();
         $flagged = count(array_filter($rows, fn (array $r): bool => $r['flags'] !== []));
         $staffIds = StaffBranchAssignment::query()->where('branch_id', $branch->id)->whereDate('valid_from', '<=', $date->toDateString())

@@ -3,6 +3,7 @@
 use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\AutoRejectJobApplications;
 use App\Console\Commands\CleanupPublicPatientIntakes;
+use App\Console\Commands\PurgeCompliancePhotos;
 use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
@@ -60,5 +61,11 @@ Schedule::command(AgentsDailyRun::class, ['0700'])
 
 Schedule::command(AgentsDailyRun::class, ['1400'])
     ->hourlyAt(10)
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// HR-11c: audit and task photo files are deleted after the clinic's own retention; nothing is deleted until a number is set.
+Schedule::command(PurgeCompliancePhotos::class)
+    ->daily()
     ->withoutOverlapping()
     ->onOneServer();
