@@ -3,7 +3,9 @@
 namespace App\Domain\Organisation\Inventory\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Support\Gs1ElementString;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 
@@ -11,12 +13,16 @@ use Illuminate\Support\Facades\Validator;
  * STK-9 scanning (owner decisions 2026-11-05). Resolves a scanned or typed code to one SKU of the actor's
  * organisation: first by SKU barcode (trimmed, case-insensitive), then by exact SKU code. Read only: a scan only
  * finds stock and never authorises or posts anything. Codes map locally; there is no external lookup.
+ *
+ * DSP-18: a GS1 element string (bracketed, or raw with the GS separator) is matched by its GTIN against the stored
+ * barcode forms, and the read batch and expiry are returned under `gs1` for the page to point at. Nothing is filled,
+ * selected or created from them.
  */
 final class InventoryCodeLookupService
 {
     /**
      * @param  array<string, mixed>  $input
-     * @return array{status: string, code: string, sku?: array<string, mixed>, skus?: list<string>}
+     * @return array{status: string, code: string, sku?: array<string, mixed>, skus?: list<string>, gs1?: array{gtin: string, batch: string|null, batch_unconfirmed: string|null, expiry: string|null, complete: bool}}
      */
     public function find(User $actor, array $input): array
     {
@@ -25,24 +31,30 @@ final class InventoryCodeLookupService
         $branches = app(BranchAccessService::class);
         $branch = $branches->activeBranch($actor);
         abort_unless($branch && $branch->organisation_id === $actor->organisation_id && $branches->hasEffectiveAssignment($actor, $branch), 403);
-        $data = Validator::make($input, ['code' => ['required', 'string', 'max:100', 'not_regex:/[\p{Cc}\p{Cf}]/u']])->validate();
+        $data = Validator::make($input, ['code' => ['required', 'string', 'max:100', 'not_regex:/(?!\x{1D})[\p{Cc}\p{Cf}]/u']])->validate();
         $code = trim((string) $data['code']);
-        abort_if($code === '', 422);
+        abort_if(trim($code, "\x1D") === '', 422);
+        // AI 17's century is chosen against the branch-local date (GS1 General Specifications 7.12).
+        $gs1 = Gs1ElementString::parse($code, CarbonImmutable::now((string) ($branch->timezone ?: 'UTC')));
+        $extra = $gs1 === null ? [] : ['gs1' => $gs1];
+        // A code that parses as GS1 still matches a SKU whose stored barcode is the code itself (with or without GS).
+        $codes = array_values(array_unique([...($gs1 === null ? [] : Gs1ElementString::barcodeForms($gs1['gtin'])),
+            mb_strtoupper($code), mb_strtoupper(str_replace("\x1D", '', $code))]));
 
         $base = fn () => DB::table('inventory_skus as s')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')
             ->where('s.organisation_id', $actor->organisation_id)
             ->select(['s.public_id', 's.sku_code', 's.barcode', 's.stock_unit', 's.is_active', 'i.generic_name as item_name']);
-        $matches = $base()->whereNotNull('s.barcode')->whereRaw('upper(trim(s.barcode)) = ?', [mb_strtoupper($code)])->orderBy('s.sku_code')->limit(6)->get();
+        $matches = $base()->whereNotNull('s.barcode')->whereRaw('upper(trim(s.barcode)) in ('.implode(',', array_fill(0, count($codes), '?')).')', $codes)->orderBy('s.sku_code')->limit(6)->get();
         if ($matches->count() > 1) {
-            return ['status' => 'shared', 'code' => $code, 'skus' => array_values($matches->pluck('sku_code')->map(fn ($value): string => (string) $value)->all())];
+            return ['status' => 'shared', 'code' => $code, 'skus' => array_values($matches->pluck('sku_code')->map(fn ($value): string => (string) $value)->all())] + $extra;
         }
         $match = $matches->first() ?? $base()->whereRaw('upper(s.sku_code) = ?', [mb_strtoupper($code)])->first();
         if ($match === null) {
-            return ['status' => 'not_found', 'code' => $code];
+            return ['status' => 'not_found', 'code' => $code] + $extra;
         }
 
         return ['status' => 'found', 'code' => $code, 'sku' => ['public_id' => (string) $match->public_id, 'sku_code' => (string) $match->sku_code, 'item_name' => (string) $match->item_name,
-            'stock_unit' => (string) $match->stock_unit, 'active' => (bool) $match->is_active]];
+            'stock_unit' => (string) $match->stock_unit, 'active' => (bool) $match->is_active]] + $extra;
     }
 
     /**
