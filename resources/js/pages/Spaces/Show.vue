@@ -114,6 +114,42 @@ type Consultation = {
     links: Array<{ title: string; href: string }>;
 };
 
+type PanelSpaceHome = {
+    branchName: string | null;
+    asOf: string | null;
+    toClaim: {
+        pending: number;
+        overdue: number;
+        total: number;
+        limit: number;
+        seeAllHref: string;
+        rows: Array<{
+            invoiceNumber: string;
+            patient: string;
+            panel: string;
+            amountText: string;
+            dueText: string;
+            overdue: boolean;
+            href: string;
+        }>;
+    } | null;
+    followUp: {
+        total: number;
+        limit: number;
+        seeAllHref: string;
+        rows: Array<{
+            claimNo: string;
+            patient: string;
+            panel: string;
+            status: string;
+            sinceText: string;
+            href: string;
+        }>;
+    } | null;
+    primaryAction: { title: string; href: string } | null;
+    links: Array<{ title: string; href: string }>;
+};
+
 type Pharmacy = {
     branchName: string | null;
     asOf: string | null;
@@ -149,6 +185,7 @@ const props = defineProps<{
     frontDesk?: FrontDesk | null;
     billing?: Billing | null;
     consultation?: Consultation | null;
+    panel?: PanelSpaceHome | null;
 }>();
 
 const page = usePage();
@@ -168,6 +205,7 @@ const primaryAction = computed(
         props.frontDesk?.primaryAction ??
         props.billing?.primaryAction ??
         props.consultation?.primaryAction ??
+        props.panel?.primaryAction ??
         null,
 );
 
@@ -1025,6 +1063,182 @@ onMounted(async () => {
                     </ul>
                 </section>
                 <section v-if="!consultation.waiting" class="space-card">
+                    <p class="space-muted">
+                        Nothing to show here for your role. Your existing
+                        screens are unchanged.
+                    </p>
+                    <p v-if="existing" class="space-existing">
+                        <Link :href="existing.href"
+                            >Open the existing
+                            {{ existing.title }} screens</Link
+                        >
+                    </p>
+                </section>
+            </template>
+            <template v-else-if="panel">
+                <SpaceAsOf
+                    v-if="panel.branchName"
+                    :branch-name="panel.branchName"
+                    :as-of="panel.asOf"
+                    only="panel"
+                />
+                <section
+                    v-if="panel.toClaim"
+                    class="space-card"
+                    aria-labelledby="pn-claim"
+                >
+                    <h2 id="pn-claim">
+                        Invoices to claim ({{ panel.toClaim.total }})
+                    </h2>
+                    <ul class="space-stats is-glance">
+                        <li>
+                            <strong>{{ panel.toClaim.overdue }}</strong>
+                            <span class="space-muted">overdue</span>
+                        </li>
+                        <li>
+                            <strong>{{ panel.toClaim.pending }}</strong>
+                            <span class="space-muted">not yet due</span>
+                        </li>
+                    </ul>
+                    <p
+                        v-if="panel.toClaim.rows.length === 0"
+                        class="space-muted"
+                    >
+                        No approved Panel invoice is waiting for a claim.
+                    </p>
+                    <template v-else>
+                        <ul class="space-list">
+                            <li
+                                v-for="row in panel.toClaim.rows"
+                                :key="row.invoiceNumber"
+                            >
+                                <Link :href="row.href" class="space-row">
+                                    <span class="space-row-body">
+                                        <span class="space-row-text">
+                                            <span class="space-row-main"
+                                                >{{ row.patient }} ·
+                                                {{ row.panel }}</span
+                                            >
+                                            <span class="space-row-meta">
+                                                {{ row.amountText }}
+                                                <span
+                                                    :class="
+                                                        row.overdue
+                                                            ? 'space-wait is-red'
+                                                            : ''
+                                                    "
+                                                    >{{ row.dueText }}</span
+                                                >
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <ChevronRight
+                                        class="space-chevron"
+                                        aria-hidden="true"
+                                    />
+                                </Link>
+                            </li>
+                        </ul>
+                        <p
+                            v-if="
+                                panel.toClaim.total > panel.toClaim.rows.length
+                            "
+                            class="space-muted"
+                        >
+                            Showing {{ panel.toClaim.rows.length }} of
+                            {{ panel.toClaim.total }} ·
+                            <Link
+                                :href="panel.toClaim.seeAllHref"
+                                class="space-link"
+                                >See all</Link
+                            >
+                        </p>
+                    </template>
+                </section>
+                <section
+                    v-if="panel.followUp"
+                    class="space-card"
+                    aria-labelledby="pn-follow"
+                >
+                    <h2 id="pn-follow">
+                        Claims to follow up ({{ panel.followUp.total }})
+                    </h2>
+                    <p
+                        v-if="panel.followUp.rows.length === 0"
+                        class="space-muted"
+                    >
+                        No claim is waiting for a follow-up.
+                    </p>
+                    <template v-else>
+                        <ul class="space-list">
+                            <li
+                                v-for="row in panel.followUp.rows"
+                                :key="row.claimNo"
+                            >
+                                <Link :href="row.href" class="space-row">
+                                    <span class="space-row-body">
+                                        <span class="space-row-text">
+                                            <span class="space-row-main"
+                                                >{{ row.patient }} ·
+                                                {{ row.panel }}</span
+                                            >
+                                            <span class="space-row-meta">
+                                                {{ row.status }} ·
+                                                <span
+                                                    class="space-wait is-amber"
+                                                    >{{ row.sinceText }}</span
+                                                >
+                                            </span>
+                                        </span>
+                                    </span>
+                                    <ChevronRight
+                                        class="space-chevron"
+                                        aria-hidden="true"
+                                    />
+                                </Link>
+                            </li>
+                        </ul>
+                        <p
+                            v-if="
+                                panel.followUp.total >
+                                panel.followUp.rows.length
+                            "
+                            class="space-muted"
+                        >
+                            Showing {{ panel.followUp.rows.length }} of
+                            {{ panel.followUp.total }} ·
+                            <Link
+                                :href="panel.followUp.seeAllHref"
+                                class="space-link"
+                                >See all</Link
+                            >
+                        </p>
+                    </template>
+                </section>
+                <section
+                    v-if="panel.links.length"
+                    class="space-card"
+                    aria-labelledby="pn-open"
+                >
+                    <h2 id="pn-open">Open</h2>
+                    <ul class="space-list">
+                        <li v-for="l in panel.links" :key="l.href">
+                            <Link :href="l.href" class="space-row">
+                                <span>{{ l.title }}</span>
+                                <ChevronRight
+                                    class="space-chevron"
+                                    aria-hidden="true"
+                                />
+                            </Link>
+                        </li>
+                    </ul>
+                </section>
+                <section
+                    v-if="
+                        !panel.toClaim && !panel.followUp && !panel.links.length
+                    "
+                    class="space-card"
+                >
                     <p class="space-muted">
                         Nothing to show here for your role. Your existing
                         screens are unchanged.

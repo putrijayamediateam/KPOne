@@ -99,7 +99,7 @@ test('DS-3: a Pharmacy space with no widgets still links to the existing screens
                 /Open the existing\s+\{\{ existing\.title \}\} screens/g,
             ) ?? []
         ).length,
-        5,
+        6,
     );
 });
 
