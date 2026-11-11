@@ -134,3 +134,16 @@ test('DS-3: See all links to the Dispensary list, the chevron sits outside the r
     assert.match(css, /\.space-row-text \{[^}]*flex-wrap: wrap/);
     assert.doesNotMatch(page, /\{\{\s*row\.visitNumber\s*\}\}/);
 });
+
+test('DS-3a: the Ask panel posts a preset question key only, with no free-text box', () => {
+    const panel = read('resources/js/components/spaces/SpaceAskPanel.vue');
+    assert.match(panel, /\/spaces\/\$\{props\.space\}\/ask/);
+    assert.match(panel, /JSON\.stringify\(\{ question: question\.key \}\)/);
+    assert.match(panel, /aria-live="polite"/);
+    assert.doesNotMatch(panel, /<input|<textarea|v-model/);
+    assert.match(read('resources/js/pages/Spaces/Show.vue'), /<SpaceAskPanel/);
+    assert.match(
+        read('resources/css/space-shell-layout.css'),
+        /\.space-ask-btn \{[^}]*min-height: 44px/,
+    );
+});
