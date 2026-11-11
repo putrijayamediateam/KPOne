@@ -19,7 +19,8 @@ return [
     'email_enabled' => filter_var(env('HR_HIRING_EMAIL_ENABLED', false), FILTER_VALIDATE_BOOL),
     // The clinic's hiring mailbox for the auto-reject reminder (no candidate name is sent there).
     'hiring_mailbox' => env('HR_HIRING_MAILBOX') ?: null,
-    // Working days an application may wait at New or Phone screening before the daily check closes it (owner: 3).
+    // Working days an application may wait at New or Phone screening, or for interview picks, before the daily check
+    // closes it (owner: 3). The pick-times emails print this number through the {days} placeholder.
     'auto_reject_working_days' => 3,
     // The candidate's private link cookie, kept for this many days (the link itself lapses with the purge).
     'status_cookie' => 'kpone_career_status',
