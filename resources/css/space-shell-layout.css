@@ -1,0 +1,106 @@
+/* DS-1 shell: grouped sidebar, content column, cards. Every selector is scoped to .space-shell. */
+.space-shell {
+    display: grid;
+    grid-template-columns: var(--space-sidebar-width) minmax(0, 1fr);
+    min-height: 100vh;
+    background: var(--space-bg);
+    color: var(--space-fg);
+    font-family: var(--space-font);
+}
+.space-shell .space-side {
+    background: var(--space-side);
+    padding: 16px 12px;
+    display: grid;
+    gap: 4px;
+    align-content: start;
+}
+.space-shell .space-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 650;
+    padding: 4px 8px 12px;
+    color: var(--space-fg);
+    text-decoration: none;
+}
+.space-shell .space-logo-mark {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: var(--space-logo-mark);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+}
+.space-shell .space-group {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--space-muted);
+    padding: 10px 8px 2px;
+}
+.space-shell .space-item {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 10px;
+    border-radius: var(--space-radius-item);
+    color: var(--space-fg);
+    text-decoration: none;
+}
+.space-shell .space-item:hover {
+    background: var(--space-hover);
+}
+.space-shell .space-item.is-on {
+    background: var(--space-accent-tint);
+    color: var(--space-accent);
+    font-weight: 600;
+}
+.space-shell .space-item:focus-visible,
+.space-shell .space-logo:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+.space-shell .space-main {
+    padding: 24px;
+    display: grid;
+    gap: 16px;
+    align-content: start;
+    outline: none;
+}
+.space-shell .space-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+}
+.space-shell .space-card {
+    background: var(--space-surface);
+    border-radius: var(--space-radius-card);
+    padding: 16px;
+    box-shadow: 0 0 0 0.5px var(--space-line);
+}
+.space-shell .space-card h2 {
+    font-size: 16px;
+    font-weight: 650;
+    margin: 0 0 6px;
+}
+.space-shell .space-muted {
+    color: var(--space-muted);
+    margin: 0;
+}
+@media (max-width: 767px) {
+    .space-shell {
+        grid-template-columns: minmax(0, 1fr);
+    }
+    .space-shell .space-side {
+        grid-auto-flow: column;
+        grid-auto-columns: max-content;
+        overflow-x: auto;
+        align-items: center;
+    }
+    .space-shell .space-group,
+    .space-shell .space-logo {
+        display: none;
+    }
+}
