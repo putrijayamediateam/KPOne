@@ -154,7 +154,7 @@ onMounted(async () => {
                         <button
                             type="button"
                             class="space-account"
-                            aria-label="Account menu"
+                            :aria-label="`Account menu, ${user.name}`"
                         >
                             <UserInfo :user="user" />
                         </button>

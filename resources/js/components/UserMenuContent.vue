@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { Building2, LayoutGrid, LogOut, Settings } from '@lucide/vue';
+import { computed } from 'vue';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -24,6 +25,12 @@ const handleLogout = () => {
 
 defineProps<Props>();
 const page = usePage();
+// In the new layout (switch on, or any space page) the same row always turns it off, so nobody is stuck.
+const inNewLayout = computed(
+    () =>
+        page.props.workspace?.spaces?.enabled === true ||
+        page.url.startsWith('/spaces'),
+);
 const switchSpaces = (enabled: boolean) =>
     router.put('/spaces/preference', {
         enabled,
@@ -58,12 +65,10 @@ const switchSpaces = (enabled: boolean) =>
         <DropdownMenuItem
             v-if="page.props.workspace?.spaces?.offered"
             class="cursor-pointer"
-            @select="switchSpaces(!page.props.workspace.spaces.enabled)"
+            @select="switchSpaces(!inNewLayout)"
         >
             <LayoutGrid class="mr-2 h-4 w-4" />{{
-                page.props.workspace.spaces.enabled
-                    ? 'Back to the standard layout'
-                    : 'Try the new layout'
+                inNewLayout ? 'Use the old layout' : 'Try the new layout'
             }}
         </DropdownMenuItem>
         <DropdownMenuItem :as-child="true">
