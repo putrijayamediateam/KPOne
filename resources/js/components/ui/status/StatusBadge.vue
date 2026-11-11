@@ -24,7 +24,7 @@ const classes = computed(() => {
 <template>
     <span
         data-slot="status-badge"
-        class="inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap"
+        class="inline-flex max-w-full min-h-5 items-center rounded-[10px] border px-2 py-0.5 text-left text-xs leading-4 font-medium break-words"
         :class="classes"
     >
         {{ label ?? formatStatusLabel(status) }}
