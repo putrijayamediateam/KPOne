@@ -54,7 +54,7 @@ final class AttendanceDays
         $now = CarbonImmutable::now('UTC');
         $pairs = $this->match($sessions, $shifts, $now);
         $leave = $this->leaveDays($organisationId, $sessions, $shifts);
-        $branches = Branch::query()->whereIn('id', $sessions->pluck('branch_id')->merge($shifts->pluck('branch_id'))->unique())->pluck('name', 'id');
+        $branches = Branch::query()->whereIn('id', $sessions->toBase()->pluck('branch_id')->merge($shifts->toBase()->pluck('branch_id'))->unique())->pluck('name', 'id');
         $rows = [];
         $matchedSessions = [];
         foreach ($shifts as $shift) {
@@ -265,14 +265,14 @@ final class AttendanceDays
      */
     private function leaveDays(int $organisationId, Collection $sessions, Collection $shifts): array
     {
-        $dates = $sessions->map(fn (ClockSession $s): string => $s->local_date->toDateString())
-            ->merge($shifts->map(fn (RosterShift $s): string => $s->starts_at->setTimezone($s->timezone)->toDateString()));
+        $dates = $sessions->toBase()->map(fn (ClockSession $s): string => $s->local_date->toDateString())
+            ->merge($shifts->toBase()->map(fn (RosterShift $s): string => $s->starts_at->setTimezone($s->timezone)->toDateString()));
         if ($dates->isEmpty()) {
             return [];
         }
         $out = [];
         LeaveRequest::query()->where('organisation_id', $organisationId)->where('status', 'approved')
-            ->whereIn('user_id', $sessions->pluck('user_id')->merge($shifts->pluck('staff_user_id'))->unique()->values())
+            ->whereIn('user_id', $sessions->toBase()->pluck('user_id')->merge($shifts->toBase()->pluck('staff_user_id'))->unique()->values())
             ->whereDate('start_date', '<=', $dates->max())->whereDate('end_date', '>=', $dates->min())->get()
             ->each(function (LeaveRequest $r) use (&$out): void {
                 for ($d = CarbonImmutable::parse($r->start_date->toDateString()); $d->toDateString() <= $r->end_date->toDateString(); $d = $d->addDay()) {

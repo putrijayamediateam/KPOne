@@ -463,6 +463,39 @@ class LeaveTest extends VisitTestCase
         $this->assertSame('Other annual', DB::table('hr_leave_types')->where('id', $type)->value('name'));
     }
 
+    public function test_postgresql_refuses_a_ledger_or_action_row_that_points_at_another_organisations_request(): void
+    {
+        // TEAM.md section 7 hardening (HR-2a known limit): the foreign keys to requests, openings and adjustments carry the
+        // organisation, so PostgreSQL itself refuses a cross-organisation pointer, not only the service.
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $type = $this->ready($hr, $ca, 10);
+        $org = DB::table('organisations')->insertGetId(['code' => 'OTHER_'.Str::upper(Str::random(6)), 'name' => 'Synthetic Other Organisation', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $branch = DB::table('branches')->insertGetId(['organisation_id' => $org, 'code' => 'OTH'.Str::upper(Str::random(4)), 'name' => 'Synthetic Other Branch', 'timezone' => 'Asia/Kuala_Lumpur',
+            'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        $stranger = User::factory()->create(['organisation_id' => $org, 'email' => 'leave.other.'.Str::lower(Str::random(8)).'@kpone.test']);
+        $otherType = DB::table('hr_leave_types')->insertGetId(['organisation_id' => $org, 'code' => 'AL', 'name' => 'Other annual', 'is_paid' => true, 'uses_balance' => true,
+            'allow_half_days' => true, 'evidence_needed' => false, 'updated_by_user_id' => $stranger->id, 'created_at' => now(), 'updated_at' => now()]);
+        $otherRequest = DB::table('hr_leave_requests')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $org, 'user_id' => $stranger->id, 'leave_type_id' => $otherType,
+            'branch_id' => $branch, 'start_date' => '2027-03-08', 'end_date' => '2027-03-08', 'start_part' => 'full', 'end_part' => 'full', 'slot_start' => '2027-03-08 00:00:00',
+            'slot_end' => '2027-03-09 00:00:00', 'year' => 2027, 'halves' => 2, 'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+
+        $refused = function (callable $write): void {
+            try {
+                DB::transaction(fn () => $write());
+                $this->fail('Expected PostgreSQL to refuse a cross-organisation foreign key.');
+            } catch (QueryException $e) {
+                $this->assertSame('23503', $e->errorInfo[0] ?? null, $e->getMessage());
+            }
+        };
+        $refused(fn () => DB::table('hr_leave_request_actions')->insert(['organisation_id' => $hr->organisation_id, 'leave_request_id' => $otherRequest, 'action' => 'applied',
+            'actor_user_id' => $hr->id, 'occurred_at' => now()]));
+        $refused(fn () => DB::table('hr_leave_ledger')->insert(['organisation_id' => $hr->organisation_id, 'user_id' => $ca->id, 'leave_type_id' => $type->id, 'year' => 2027,
+            'kind' => 'taken', 'halves' => -2, 'leave_request_id' => $otherRequest, 'created_by_user_id' => $hr->id, 'created_at' => now()]));
+        $this->assertSame(0, DB::table('hr_leave_request_actions')->where('leave_request_id', $otherRequest)->count());
+        $this->assertSame(0, DB::table('hr_leave_ledger')->where('leave_request_id', $otherRequest)->count());
+    }
+
     public function test_a_retried_confirm_replays_lowering_an_entitlement_never_goes_below_zero_and_checked_rows_are_frozen(): void
     {
         $hr = $this->actor('hr_manager');
