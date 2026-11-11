@@ -356,24 +356,34 @@ class ClaimsTest extends VisitTestCase
         $original = $claim('15.50');
         $this->decide($director, $original, 'reject', ['reason' => 'wrong_amount'])->assertSessionHasNoErrors();
         $receiptPath = (string) DB::table('hr_staff_claim_receipts')->where('claim_id', $paid->id)->value('stored_path');
-        // A receipt opened six years ago keeps that claim until the open is 7 years old too.
+        // A receipt opened six years ago never restarts the 7 years (Suresh).
         DB::table('hr_staff_claim_actions')->insert(['organisation_id' => $opened->organisation_id, 'claim_id' => $opened->id, 'action' => 'receipt_opened',
             'actor_user_id' => $hr->id, 'created_at' => $real->subYears(6)]);
+        // A payment reversed and paid again six years ago keeps that claim until then plus 7 years.
+        $repaid = $claim('16.50');
+        $this->decide($director, $repaid, 'approve')->assertSessionHasNoErrors();
+        $this->pay($finance, $repaid, ['method' => 'cash', 'paid_on' => $paidOn])->assertSessionHasNoErrors();
+        $this->travelTo($real->subYears(6));
+        $this->selectBranch($finance);
+        $this->post(route('hr.claims.reverse', $repaid->public_id), ['reason' => 'payment_failed',
+            'expected_lock_version' => (int) DB::table('hr_staff_claims')->where('id', $repaid->id)->value('lock_version'), 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->pay($finance, $repaid, ['method' => 'cash', 'paid_on' => $real->subYears(6)->setTimezone($this->branch->timezone)->toDateString()])->assertSessionHasNoErrors();
         // A claim sent again from the rejected one today keeps the original.
         $this->travelBack();
         $this->send($ca, ['category_id' => $travel, 'spent_on' => CarbonImmutable::now($this->branch->timezone)->toDateString(), 'amount' => '15.00',
             'purpose' => self::PURPOSE, 'copy_from' => $original->public_id])->assertSessionHasNoErrors();
         $before = $this->moneySnapshot();
 
-        $this->artisan('hr-claims:purge')->expectsOutputToContain('Deleted 1 staff claims and 1 receipt files.')->assertSuccessful();
-        $this->assertSame([$opened->id, $waiting->id, $original->id], DB::table('hr_staff_claims')->where('id', '<', $original->id + 1)->orderBy('id')->pluck('id')->map(fn ($id): int => (int) $id)->all());
+        $this->artisan('hr-claims:purge')->expectsOutputToContain('Deleted 2 staff claims and 1 receipt files.')->assertSuccessful();
+        $this->assertSame([$waiting->id, $original->id, $repaid->id], DB::table('hr_staff_claims')->where('id', '<=', $repaid->id)->orderBy('id')->pluck('id')->map(fn ($id): int => (int) $id)->all());
+        $this->assertSame(0, DB::table('hr_staff_claim_actions')->where('claim_id', $opened->id)->count());
         $this->assertSame(0, DB::table('hr_staff_claim_actions')->where('claim_id', $paid->id)->count());
         $this->assertSame(0, DB::table('hr_staff_claim_payments')->where('claim_id', $paid->id)->count());
         $this->assertSame(0, DB::table('hr_staff_claim_receipts')->count());
         $this->assertFalse(Storage::disk(ClaimService::DISK)->exists($receiptPath));
         $this->assertSame(1, DB::table('hr_claim_categories')->count()); // settings stay
         $this->assertSame($before, $this->moneySnapshot()); // clinic money is untouched
-        $this->assertSame([['claims' => 1, 'receipts' => 1, 'retention_years' => 7]], DB::table('audit_logs')->where('event', 'hr.claims.retention_purged')
+        $this->assertSame([['claims' => 2, 'receipts' => 1, 'retention_years' => 7]], DB::table('audit_logs')->where('event', 'hr.claims.retention_purged')
             ->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
         $this->artisan('hr-claims:purge')->expectsOutputToContain('Deleted 0 staff claims and 0 receipt files.')->assertSuccessful();
         $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
@@ -381,9 +391,9 @@ class ClaimsTest extends VisitTestCase
 
         // Only the purge deletes, and only rows past 7 years by their own time; TRUNCATE stays refused.
         $this->assertRefused('P0001', fn () => DB::table('hr_staff_claims')->where('id', $waiting->id)->delete());
-        $this->assertRefused('P0001', function () use ($opened): void {
+        $this->assertRefused('P0001', function () use ($repaid): void {
             DB::statement("SELECT set_config('kpone.hr_claim_purge', 'on', true)");
-            DB::table('hr_staff_claim_actions')->where('claim_id', $opened->id)->where('action', 'receipt_opened')->delete();
+            DB::table('hr_staff_claim_actions')->where('claim_id', $repaid->id)->delete(); // its claim changed six years ago
         });
         $this->assertRefused('P0001', fn () => DB::statement('TRUNCATE hr_staff_claims CASCADE'));
         $this->assertSame(4, DB::table('hr_staff_claims')->count());
