@@ -748,7 +748,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             Remove your application and the details you sent us,
                             including your CV, now.
                             <span lang="ms" class="block"
-                                >Buang permohonan anda dan butiran yang anda
+                                >Padam permohonan anda dan butiran yang anda
                                 hantar, termasuk CV anda, sekarang.</span
                             >
                         </p>
