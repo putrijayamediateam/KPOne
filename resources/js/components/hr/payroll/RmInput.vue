@@ -13,7 +13,7 @@ const model = defineModel<string>({ required: true });
 
 <template>
     <div
-        class="flex w-44 items-stretch overflow-hidden rounded-md border bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
+        class="flex w-44 items-stretch overflow-hidden rounded-md border bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
         :class="invalid ? 'border-destructive' : 'border-input'"
     >
         <span
