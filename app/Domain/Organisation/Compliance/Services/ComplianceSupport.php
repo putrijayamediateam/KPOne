@@ -2,7 +2,9 @@
 
 namespace App\Domain\Organisation\Compliance\Services;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -17,7 +19,7 @@ use Illuminate\Validation\ValidationException;
  */
 final class ComplianceSupport
 {
-    public function __construct(public readonly AuditRecorder $audit) {}
+    public function __construct(public readonly AuditRecorder $audit, private BranchAccessService $branches) {}
 
     public function lock(User $actor, string $permission): User
     {
@@ -32,6 +34,15 @@ final class ComplianceSupport
         }
 
         return $user;
+    }
+
+    /** The holder must be assigned to the branch today (branch-local), as for other branch permissions. */
+    public function assertBranch(User $actor, int $branchId): void
+    {
+        $branch = Branch::query()->where('organisation_id', $actor->organisation_id)->whereKey($branchId)->first();
+        if ($branch === null || ! $this->branches->hasEffectiveAssignment($actor, $branch)) {
+            throw new AuthorizationException('You may not perform this operation.');
+        }
     }
 
     public function key(mixed $value): string
