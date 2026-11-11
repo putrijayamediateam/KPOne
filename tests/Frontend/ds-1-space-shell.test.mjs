@@ -66,3 +66,12 @@ test('DS-1: the shell has a named nav, a branch switcher, an account menu, a way
     assert.match(css, /\.has-more/);
     assert.match(css, /\.space-select,[\s\S]*min-height: 44px/);
 });
+
+test('DS-2: below 640 px the branch select and an initials-only account button share one row', () => {
+    const css = read('resources/css/space-shell-layout.css');
+    assert.match(
+        css,
+        /@media \(max-width: 639px\)[\s\S]*\.space-top[\s\S]*flex-wrap: nowrap/,
+    );
+    assert.match(css, /\.space-account > div \{\s*display: none;/);
+});
