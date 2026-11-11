@@ -150,6 +150,14 @@ const operation = ref<'request' | SupplierReturnAction>('request');
 const history = ref<ReturnRow | null>(null);
 const isGroup = ref(false);
 const activeGroup = ref<GroupRow | null>(null);
+const groupTitle = (action: SupplierReturnAction, lots: number): string =>
+    ({
+        approved: `Approve all ${lots} lots?`,
+        rejected: `Reject all ${lots} lots?`,
+        dispatched: `Dispatch all ${lots} lots?`,
+        credit_recorded: `Record one credit note for ${lots} lots`,
+        cancelled: `Cancel this return of ${lots} lots?`,
+    })[action];
 // Totals per stock unit, so lots of different SKUs are never added across units.
 const groupTotals = computed(() => {
     const totals = new Map<string, number>();
@@ -175,7 +183,7 @@ const form = useForm({
     quantity: '',
     reason: 'damaged',
     supplier_reference: '',
-    reason_code: 'not_agreed_by_supplier',
+    reason_code: '',
     reference: '',
     credit_amount_rm: '',
 });
@@ -1003,7 +1011,9 @@ watch(
                     <DialogTitle>{{
                         operation === 'request'
                             ? 'Request supplier return'
-                            : supplierReturnActionLabels[operation]
+                            : isGroup && activeGroup
+                              ? groupTitle(operation, activeGroup.lines.length)
+                              : supplierReturnActionLabels[operation]
                     }}</DialogTitle>
                     <DialogDescription>{{ label }}</DialogDescription>
                 </DialogHeader>
@@ -1071,7 +1081,11 @@ watch(
                             >Why are you rejecting it?<select
                                 v-model="form.reason_code"
                                 class="mt-1 min-h-11 w-full rounded border bg-background px-2"
+                                aria-describedby="reject-reason-hint"
                             >
+                                <option value="" disabled>
+                                    Choose a reason
+                                </option>
                                 <option
                                     v-for="reason in returns.rejectReasons"
                                     :key="reason"
@@ -1084,6 +1098,13 @@ watch(
                                 </option>
                             </select></label
                         >
+                        <p
+                            v-if="form.reason_code === ''"
+                            id="reject-reason-hint"
+                            class="text-sm text-muted-foreground"
+                        >
+                            Pick a reason to continue.
+                        </p>
                         <InputError :message="form.errors.reason_code" />
                     </template>
                     <template
@@ -1126,7 +1147,7 @@ watch(
                             class="text-sm text-amber-700 dark:text-amber-300"
                         >
                             This takes the quantity out of this branch's stock
-                            now.
+                            now. It can't be undone.
                         </p>
                     </template>
                     <p v-else-if="operation === 'cancelled'" class="text-sm">
@@ -1144,7 +1165,11 @@ watch(
                     <button
                         type="submit"
                         class="min-h-11 rounded bg-primary px-4 text-primary-foreground"
-                        :disabled="form.processing"
+                        :disabled="
+                            form.processing ||
+                            (operation === 'rejected' &&
+                                form.reason_code === '')
+                        "
                     >
                         {{
                             operation === 'request'

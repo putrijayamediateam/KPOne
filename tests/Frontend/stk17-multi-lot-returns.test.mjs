@@ -38,3 +38,15 @@ test('a refused lot shows its error on the box, and group decisions list the lot
     assert.match(page, /data-testid="group-confirm-lots"/);
     assert.match(page, /Total: \{\{ groupTotals\.join\(' \+ '\) \}\}/);
 });
+
+test('reject starts with no reason, and group dispatch warns it cannot be undone', () => {
+    assert.match(page, /reason_code: '',/);
+    assert.match(
+        page,
+        /<option value="" disabled>\s*Choose a reason\s*<\/option>/,
+    );
+    assert.match(page, /Pick a reason to continue\./);
+    assert.match(page, /operation === 'rejected' && form\.reason_code === ''/);
+    assert.match(page, /It can't be undone\./);
+    assert.match(page, /`Dispatch all \$\{lots\} lots\?`/);
+});
