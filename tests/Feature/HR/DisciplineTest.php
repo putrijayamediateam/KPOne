@@ -19,6 +19,7 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\RowCopies;
 
 /**
  * HR-10c discipline (HR-PLAN 20.5; owner, 2026-11-10). Synthetic data only.
@@ -206,6 +207,28 @@ class DisciplineTest extends VisitTestCase
         $this->assertRefused('23514', fn () => DB::table('hr_discipline_cases')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $case->organisation_id,
             'worker_id' => $hrFile->id, 'subject_user_id' => $otherHr->id, 'allegation_encrypted' => Crypt::encryptString('x'), 'incident_on' => '2026-11-01',
             'opened_by_user_id' => $this->hr->id, 'opened_at' => now(), 'status' => 'open', 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]));
+    }
+
+    public function test_a_managers_list_finds_a_case_behind_more_than_300_newer_cases_they_may_not_see(): void
+    {
+        // TEAM.md section 7 hardening: who the viewer may see is worked out first, so the 300-row limit never hides an
+        // older case they may see behind newer cases about people they may not manage.
+        $this->travelTo(CarbonImmutable::parse('2026-11-10 08:00', $this->branch->timezone));
+        $visible = $this->openCase($this->file($this->actor('ca')));
+        $this->travelTo(CarbonImmutable::parse('2026-11-10 09:00', $this->branch->timezone));
+        $director2 = $this->actor('director');
+        $directorFile = $this->file($this->director, $director2);
+        $this->selectBranch($director2);
+        $this->post(route('hr.discipline.store'), $this->openInput($directorFile))->assertSessionHasNoErrors();
+        RowCopies::copy('hr_discipline_cases', (int) DB::table('hr_discipline_cases')->where('worker_id', $directorFile->id)->value('id'), 300,
+            ['opened_at' => "t.opened_at - g * interval '1 second'"]);
+
+        // The HR Manager may not see a Director's case: the older case about the CA still lists, and the counts are exact.
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.discipline.index'))->assertInertia(fn (Assert $page) => $page->where('discipline.counts.open', 1)
+            ->has('discipline.cases', 1)->where('discipline.cases.0.id', $visible));
+        $this->selectBranch($director2);
+        $this->get(route('hr.discipline.index'))->assertInertia(fn (Assert $page) => $page->where('discipline.counts.open', 302)->has('discipline.cases', 300));
     }
 
     // ---- fixture ----

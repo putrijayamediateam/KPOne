@@ -26,7 +26,10 @@ const label = (key: string) =>
             alt="Saved cover"
             class="max-h-64 max-w-full rounded object-contain"
         />
-        <h3 class="text-lg font-semibold">
+        <h3
+            v-if="revision.content.title ?? revision.content.question"
+            class="text-lg font-semibold"
+        >
             {{ revision.content.title ?? revision.content.question }}
         </h3>
         <p>{{ revision.content.short_summary ?? revision.content.answer }}</p>
