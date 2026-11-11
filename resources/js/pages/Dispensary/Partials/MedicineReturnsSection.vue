@@ -48,7 +48,7 @@ for (const field of ['quantity', 'reason', 'note', 'condition'] as const) {
 const fieldClass =
     'mt-1 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40';
 const tileClass =
-    'flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand sm:min-h-9';
+    'flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand lg:min-h-9';
 
 const waitingCount = computed(
     () =>
@@ -409,7 +409,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
                                         "
                                         :class="[
                                             fieldClass,
-                                            'h-11 max-w-40 tabular-nums sm:h-9',
+                                            'h-11 max-w-40 tabular-nums lg:h-9',
                                         ]"
                                         data-field="return-quantity"
                                     />
@@ -573,12 +573,12 @@ const onChecked = async (row: ReturnRow, message: string) => {
                                 the checker refuses it.
                             </p>
                             <div
-                                class="flex flex-col-reverse gap-2 sm:flex-row"
+                                class="flex flex-col-reverse gap-2 lg:flex-row"
                             >
                                 <Button
                                     type="button"
                                     variant="outline"
-                                    class="h-11 w-full sm:h-9 sm:w-auto"
+                                    class="h-11 w-full lg:h-9 lg:w-auto"
                                     :disabled="form.processing"
                                     data-action="cancel-return-form"
                                     @click="closeForm(line)"
@@ -587,7 +587,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
                                 </Button>
                                 <Button
                                     type="submit"
-                                    class="h-11 w-full sm:h-9 sm:w-auto"
+                                    class="h-11 w-full lg:h-9 lg:w-auto"
                                     :disabled="form.processing"
                                     data-action="record-return"
                                 >

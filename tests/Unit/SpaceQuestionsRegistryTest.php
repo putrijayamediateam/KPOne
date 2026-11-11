@@ -36,6 +36,9 @@ final class SpaceQuestionsRegistryTest extends TestCase
             'hr.credentials_due' => ['hr', 'hr.credentials.manage.organisation', false],
             'management.documents_attention' => ['management', 'catalogue.settings.manage.organisation', false],
             'management.inactive_staff' => ['management', 'staff.view.organisation', false],
+            'me.next_day_off' => ['me', 'hr.roster.view.own', false],
+            'me.leave_taken' => ['me', 'hr.leave.request.own', false],
+            'me.leave_requests' => ['me', 'hr.leave.request.own', false],
         ], array_map(fn (array $q): array => [$q['space'], $q['permission'], $q['patientLevel']], SpaceQuestions::REGISTRY));
     }
 
@@ -43,7 +46,7 @@ final class SpaceQuestionsRegistryTest extends TestCase
     {
         $all = array_unique(array_merge(...array_values(PermissionCatalogue::roles())));
         foreach (SpaceQuestions::REGISTRY as $key => $q) {
-            $this->assertArrayHasKey($q['space'], DepartmentSpaceNavigation::SPACES, $key);
+            $this->assertTrue($q['space'] === 'me' || array_key_exists($q['space'], DepartmentSpaceNavigation::SPACES), $key);
             $this->assertContains($q['permission'], $all, $key);
             $this->assertTrue(method_exists(SpaceAskService::class, $q['builder']), $key);
             $this->assertSame(SpaceQuestions::NOW, $q['date'], $key);
