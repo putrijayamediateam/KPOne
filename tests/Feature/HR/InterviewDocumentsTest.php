@@ -3,6 +3,7 @@
 namespace Tests\Feature\HR;
 
 use App\Domain\HR\Applications\Services\CandidateLink;
+use App\Domain\HR\Applications\Services\HiringMessenger;
 use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
@@ -249,6 +250,12 @@ SQL);
         $this->assertSame(1, DB::table('hr_interview_documents')->where('status', 'active')->count()); // the clinic's file stays
         $this->assertSame(1, DB::table('hr_interview_document_events')->where('action', 'uploaded')->count()); // and its history
         $this->assertSame('withdrawn', $this->row($gone)->status); // the application row and its history stay
+        // The confirmation email stays in the history, saying why its details are gone (Suresh).
+        $sent = DB::table('hr_job_application_messages')->where('application_id', $goneId)->where('template', 'interview_confirmed')->first();
+        $this->assertNotNull($sent);
+        $shown = HiringMessenger::shown($sent, (string) $this->row($gone)->public_id, 'Synthetic role');
+        $this->assertSame(HiringMessenger::INTERVIEW_PURGED, $shown['body']);
+        $this->assertSame('Interview time confirmed', $shown['subject']);
         $this->assertSame([['applications' => 1, 'picks' => 1, 'interviews' => 1, 'downloads' => 1, 'retention_months' => 6]], DB::table('audit_logs')
             ->where('event', 'hr.applications.interview_records_purged')->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
         $this->artisan('hr-interview-records:purge')->expectsOutputToContain('Cleared the interview records of 0 applications')->assertSuccessful();

@@ -95,6 +95,8 @@ final class HiringMessenger
      *
      * @return array{template:string, label:string, recipient:string, status:string, subject:string, body:string, at:string}
      */
+    public const INTERVIEW_PURGED = "The interview details were deleted after the retention period.\nButiran temu duga telah dipadam selepas tempoh simpanan.";
+
     public static function shown(\stdClass $row, string $publicId, string $title): array
     {
         $template = (string) $row->template;
@@ -108,7 +110,14 @@ final class HiringMessenger
         if ($template === 'auto_reject_reminder') {
             $params += ['reference' => self::reference($publicId), 'stage' => (string) (JobApplicationService::STATUSES[$row->stage] ?? 'New')];
         }
-        $params += self::interviewParams($template, (int) $row->application_id, (int) ($row->round ?? 0));
+        $interview = self::interviewParams($template, (int) $row->application_id, (int) ($row->round ?? 0));
+        if ($interview === [] && in_array($template, ['interview_confirmed', 'interview_cancelled'], true)) {
+            // PDPA 15: the booking was deleted 6 months after the application closed (Suresh: say so, not an empty body).
+            return ['template' => $template, 'label' => HiringTemplates::label($template), 'recipient' => (string) $row->recipient,
+                'status' => (string) $row->status, 'subject' => HiringTemplates::label($template), 'body' => self::INTERVIEW_PURGED,
+                'at' => CarbonImmutable::parse($row->created_at)->toIso8601String()];
+        }
+        $params += $interview;
         try {
             $text = HiringTemplates::render($template, $params);
         } catch (\Throwable) {
