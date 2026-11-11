@@ -474,11 +474,64 @@ const acceptScan = (sku: ScannedSku): string | null => {
         : null;
 };
 const describeScan = (sku: ScannedSku): string => scanOutcome(sku).message;
+// DSP-17: a scan that matches a saved line points at that line's batch dropdown. Barcodes carry no batch, so the CA
+// still picks the batch printed on the box: nothing is selected, saved or completed here.
+const batchHint = ref<string | null>(null);
+const BATCH_HINT = 'Pick the batch printed on the box.';
+const scanSource = () => {
+    const active = document.activeElement;
+
+    return (
+        active === null ||
+        active === document.body ||
+        active.id.startsWith('scan-')
+    );
+};
+const pointAtBatch = async (publicId: string) => {
+    batchHint.value = publicId;
+    await nextTick();
+    const select = document.querySelector<HTMLSelectElement>(
+        `[data-batch-select="${publicId}"]`,
+    );
+
+    if (select === null) {
+        return;
+    }
+
+    const reduced = window.matchMedia?.(
+        '(prefers-reduced-motion: reduce)',
+    ).matches;
+    select.scrollIntoView({
+        block: 'center',
+        behavior: reduced ? 'auto' : 'smooth',
+    });
+
+    // Never pull focus away from a field the CA is typing in.
+    if (scanSource()) {
+        select.focus({ preventScroll: true });
+    }
+};
 const markScanned = (sku: ScannedSku) => {
     const outcome = scanOutcome(sku);
+    batchHint.value = null;
 
     if (outcome.kind === 'match' || outcome.kind === 'already') {
         scanMarks.value = outcome.marks;
+        const line = visibleItems.value.find(
+            (item) =>
+                item.sku?.publicId === sku.public_id &&
+                forms[item.publicId] !== undefined &&
+                item.availability.length > 0,
+        );
+
+        if (line) {
+            void pointAtBatch(line.publicId);
+        }
+    }
+};
+const clearBatchHint = (publicId: string) => {
+    if (batchHint.value === publicId) {
+        batchHint.value = null;
     }
 };
 // A removed, restored or changed line loses its mark, so it must be scanned again.
@@ -589,6 +642,7 @@ const saveItem = (item: Item, done?: () => void) => {
             onError: showActionError,
             onSuccess: () => {
                 allergyChecks[checkKey(item)] = false;
+                clearBatchHint(item.publicId);
                 done?.();
             },
             onFinish: () => (busy.value = false),
@@ -742,6 +796,7 @@ const searchMedicines = async () => {
 };
 const chooseMedicine = (medicine: Medicine) => {
     chosen.value = medicine;
+    clearBatchHint('add');
     addAllergyCheck.value = false;
     addForm.availabilityIndex = Math.max(
         0,
@@ -808,6 +863,7 @@ const scanToAdd = async (sku: ScannedSku) => {
         return;
     }
 
+    clearBatchHint('add');
     const generation = ++scanAddGeneration;
     scanAddAllergy.value = false;
     scanAddMessage.value = 'Finding the medicine…';
@@ -846,6 +902,7 @@ const scanToAdd = async (sku: ScannedSku) => {
         if (outcome.kind === 'choose') {
             results.value = [outcome.medicine];
             chooseMedicine(outcome.medicine);
+            batchHint.value = 'add';
             scanAddMessage.value = outcome.message;
             scanAddOpen.value = false;
             await nextTick();
@@ -998,6 +1055,9 @@ const changeLabel = (item: Item) =>
         unchanged: '',
     })[item.changeState];
 const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
+// DSP-17: brand line colour only (not the error look); replaces the focus ring while shown.
+const batchHintClass =
+    'border-brand ring-2 ring-brand ring-offset-2 ring-offset-background focus-visible:ring-brand';
 </script>
 
 <template>
@@ -1464,8 +1524,14 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     v-model.number="
                                         forms[item.publicId].availabilityIndex
                                     "
-                                    :class="inputClass"
+                                    :class="[
+                                        inputClass,
+                                        batchHint === item.publicId &&
+                                            batchHintClass,
+                                    ]"
                                     :aria-describedby="`batch-selected-${item.publicId}`"
+                                    :data-batch-select="item.publicId"
+                                    @change="clearBatchHint(item.publicId)"
                                 >
                                     <option
                                         v-for="(
@@ -1489,6 +1555,19 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 class="text-xs text-muted-foreground sm:col-span-full"
                                 data-testid="batch-selected"
                             >
+                                <span
+                                    role="status"
+                                    class="block font-medium text-brand-strong empty:hidden"
+                                    ><span
+                                        v-if="batchHint === item.publicId"
+                                        class="inline-flex items-center gap-1"
+                                        data-testid="batch-pick-hint"
+                                        ><ScanLine
+                                            class="size-3.5"
+                                            aria-hidden="true"
+                                        />{{ BATCH_HINT }}</span
+                                    ></span
+                                >
                                 {{
                                     selectedBatchText(
                                         item.availability[
@@ -1872,8 +1951,13 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         <label class="sm:col-span-2"
                             >Batch<select
                                 v-model.number="addForm.availabilityIndex"
-                                :class="inputClass"
+                                :class="[
+                                    inputClass,
+                                    batchHint === 'add' && batchHintClass,
+                                ]"
                                 aria-describedby="batch-selected-add"
+                                data-batch-select="add"
+                                @change="clearBatchHint('add')"
                             >
                                 <option
                                     v-for="(
@@ -1897,6 +1981,19 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             class="text-xs text-muted-foreground sm:col-span-full"
                             data-testid="batch-selected"
                         >
+                            <span
+                                role="status"
+                                class="block font-medium text-brand-strong empty:hidden"
+                                ><span
+                                    v-if="batchHint === 'add'"
+                                    class="inline-flex items-center gap-1"
+                                    data-testid="batch-pick-hint"
+                                    ><ScanLine
+                                        class="size-3.5"
+                                        aria-hidden="true"
+                                    />{{ BATCH_HINT }}</span
+                                ></span
+                            >
                             {{
                                 selectedBatchText(
                                     chosen.availability[
