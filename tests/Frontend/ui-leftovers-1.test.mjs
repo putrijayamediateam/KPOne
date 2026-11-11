@@ -190,7 +190,7 @@ test('the other labels listed in UI-POLISH-1 target their controls', () => {
             );
             assert.match(
                 source,
-                new RegExp(`<(?:input|select)\\b[^>]*\\bid="${id}"`),
+                new RegExp(`<(?:input|select|DateField)\\b[^>]*\\bid="${id}"`),
                 `${path}: ${id} must identify its control`,
             );
         }

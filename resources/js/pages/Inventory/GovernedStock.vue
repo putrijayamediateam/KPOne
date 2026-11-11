@@ -11,6 +11,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { formatInventoryReason } from '@/lib/inventory-picker';
+import { formatDate } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
 type Target = {
     id: number;
@@ -304,7 +305,9 @@ watch(
                     <p>{{ row.batch_number }} · {{ row.location }}</p>
                     <p>
                         On hand {{ row.quantity }} {{ row.stock_unit }} · Expiry
-                        {{ row.expiry_date }}
+                        <span class="whitespace-nowrap">{{
+                            formatDate(row.expiry_date)
+                        }}</span>
                     </p>
                 </div>
                 <button

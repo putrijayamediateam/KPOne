@@ -15,6 +15,7 @@ import ReceiptCorrections from '@/components/billing/ReceiptCorrections.vue';
 import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import {
     Dialog,
     DialogContent,
@@ -48,7 +49,7 @@ const props = withDefaults(
 const responsibilityTotals: Array<[keyof BillingState, string]> = [
     ['self_pay', 'Self-pay received'],
     ['panel', 'Panel responsibility'],
-    ['deferred', 'Approved pay later'],
+    ['deferred', 'Pay later still owed'],
 ];
 const invoiceTabs = [
     { value: 'all', label: 'All' },
@@ -1481,10 +1482,8 @@ const reverse = (receipt: Receipt) =>
                                 needs approval and is not a cash receipt.
                             </p>
                             <label class="mt-2 block"
-                                >Pay later due date<input
-                                    v-model="form.due_date"
-                                    type="date"
-                                    class="billing-input" /></label
+                                >Pay later due date<DateField
+                                    v-model="form.due_date" /></label
                             ><Button
                                 variant="secondary"
                                 size="sm"

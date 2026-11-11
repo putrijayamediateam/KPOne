@@ -36,13 +36,18 @@ use App\Http\Controllers\DiagnosisPresetSettingsController;
 use App\Http\Controllers\DispensaryController;
 use App\Http\Controllers\GovernedStockController;
 use App\Http\Controllers\HR\ApplicationsController as HrApplicationsController;
+use App\Http\Controllers\HR\AppraisalsController as HrAppraisalsController;
 use App\Http\Controllers\HR\AttendanceController as HrAttendanceController;
 use App\Http\Controllers\HR\ClaimsController as HrClaimsController;
 use App\Http\Controllers\HR\CredentialsController as HrCredentialsController;
 use App\Http\Controllers\HR\DashboardController as HrDashboardController;
+use App\Http\Controllers\HR\DisciplineController as HrDisciplineController;
+use App\Http\Controllers\HR\IncidentsController as HrIncidentsController;
 use App\Http\Controllers\HR\LeaveController;
+use App\Http\Controllers\HR\LettersController as HrLettersController;
 use App\Http\Controllers\HR\MemosController as HrMemosController;
 use App\Http\Controllers\HR\MessagesController as HrMessagesController;
+use App\Http\Controllers\HR\OpenShiftsController as HrOpenShiftsController;
 use App\Http\Controllers\HR\OutsideExportController as HrOutsideExportController;
 use App\Http\Controllers\HR\PayrollController as HrPayrollController;
 use App\Http\Controllers\HR\RecordsController as HrRecordsController;
@@ -142,7 +147,7 @@ Route::post('careers/status/picks', [JobApplicationController::class, 'picks'])
     ->name('hr-applications.status.picks');
 Route::get('careers/status/documents/{document}', [JobApplicationController::class, 'document'])
     ->whereUuid('document')
-    ->middleware(['public-intake.proxy', 'throttle:hr-applications-status', 'sensitive.no-store:no-referrer'])
+    ->middleware(['same-origin.open', 'public-intake.proxy', 'throttle:hr-applications-status', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.document');
 Route::post('careers/status/leave-pool', [JobApplicationController::class, 'leavePool'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
@@ -209,7 +214,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('hr/dashboard', [HrDashboardController::class, 'index'])
         ->middleware(['permission:hr.roster.manage.organisation,hr.attendance.review.organisation,hr.leave.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('hr.dashboard.index');
 
-    // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time only; no location or photo.
+    // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time; HR-16a may keep a location result, never a position.
     Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.attendance.clock.own,hr.attendance.review.organisation')->name('hr.attendance.index');
         Route::middleware(['permission:hr.attendance.clock.own', 'throttle:10,1'])->group(function (): void {
@@ -224,6 +229,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('corrections/{correction}/{decision}', 'decide')->whereUuid('correction')->whereIn('decision', ['approve', 'reject'])->name('hr.attendance.corrections.decide');
             Route::put('settings', 'saveSettings')->name('hr.attendance.settings');
             Route::put('overtime-settings', 'saveOvertimeSettings')->name('hr.attendance.overtime-settings');
+        });
+        // HR-16a: the Director turns the location check on or off for one branch (HR-PLAN 22).
+        Route::middleware(['permission:hr.attendance.location.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::put('location-check', 'saveLocationCheck')->name('hr.attendance.location-check');
         });
         // HR-3b overtime (owner, 2026-11-06). Minutes and day type only; no money.
         Route::middleware(['permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:30,1'])->group(function (): void {
@@ -249,12 +258,15 @@ Route::middleware(['auth', 'verified'])->group(function () {
         });
         // HR-4b: your own documents with view.own, anyone's with documents.view; each open is recorded first.
         Route::get('{worker}/documents/{document}', 'openDocument')->whereUuid(['worker', 'document'])
-            ->middleware(['permission:hr.records.view.own,hr.documents.view.organisation', 'throttle:60,1'])->name('hr.records.documents.show');
+            ->middleware(['same-origin.open', 'permission:hr.records.view.own,hr.documents.view.organisation', 'throttle:60,1'])->name('hr.records.documents.show');
         Route::get('{worker}', 'show')->whereUuid('worker')->middleware('permission:hr.records.view.organisation')->name('hr.records.show');
         Route::post('{worker}/show-value', 'showValue')->whereUuid('worker')->middleware(['permission:hr.records.view.organisation', 'throttle:30,1'])->name('hr.records.show-value');
         Route::middleware(['permission:hr.records.manage.organisation', 'throttle:60,1'])->group(function (): void {
             Route::post('files', 'openFile')->name('hr.records.files.store');
             Route::post('locums', 'addLocum')->name('hr.records.locums.store');
+            // HR-15a: HR asks for a locum's sign-in; the account administrator creates and links it from the Staff page.
+            Route::post('{worker}/sign-in', 'askSignIn')->whereUuid('worker')->name('hr.records.sign-in.store');
+            Route::post('{worker}/sign-in/{signIn}/cancel', 'cancelSignIn')->whereUuid(['worker', 'signIn'])->name('hr.records.sign-in.cancel');
             Route::post('{worker}/periods', 'addPeriod')->whereUuid('worker')->name('hr.records.periods.store');
             Route::put('{worker}/periods/{period}', 'updatePeriod')->whereUuid(['worker', 'period'])->name('hr.records.periods.update');
             Route::post('{worker}/positions', 'addPosition')->whereUuid('worker')->name('hr.records.positions.store');
@@ -291,7 +303,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('clinic-compliance')->controller(ClinicComplianceController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:compliance.licences.manage.organisation,compliance.fridge.manage.organisation,compliance.fridge.record.branch,compliance.fridge.review.branch')->name('clinic-compliance.index');
         Route::middleware(['permission:compliance.licences.manage.organisation'])->group(function (): void {
-            Route::get('files/{file}', 'openFile')->whereUuid('file')->middleware('throttle:30,1')->name('clinic-compliance.files.open');
+            Route::get('files/{file}', 'openFile')->whereUuid('file')->middleware(['same-origin.open', 'throttle:30,1'])->name('clinic-compliance.files.open');
             Route::middleware('throttle:60,1')->group(function (): void {
                 Route::post('types', 'saveType')->name('clinic-compliance.types.save');
                 Route::post('types/{type}/archive', 'archiveType')->whereUuid('type')->name('clinic-compliance.types.archive');
@@ -305,6 +317,26 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('fridges/{fridge}/archive', 'archiveFridge')->whereUuid('fridge')->name('clinic-compliance.fridges.archive');
             Route::post('readings/{reading}/error', 'readingError')->whereUuid('reading')->name('clinic-compliance.readings.error');
         });
+        // HR-11c monthly audits and supervisor tasks: the checklist and settings are organisation-wide; audits and tasks are checked at their branch in the service.
+        Route::middleware(['permission:compliance.checklists.manage.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::post('checklist', 'saveChecklist')->name('clinic-compliance.checklist.save');
+            Route::post('audit-settings', 'saveAuditSettings')->name('clinic-compliance.audit-settings.save');
+        });
+        Route::middleware(['permission:compliance.audits.perform.branch', 'throttle:60,1'])->group(function (): void {
+            Route::post('audits', 'startAudit')->name('clinic-compliance.audits.start');
+            Route::post('audits/{audit}/answers', 'saveAnswers')->whereUuid('audit')->name('clinic-compliance.audits.answers');
+            Route::post('audits/{audit}/submit', 'submitAudit')->whereUuid('audit')->name('clinic-compliance.audits.submit');
+            Route::post('audits/{audit}/items/{item}/photos', 'addAuditPhoto')->whereUuid(['audit', 'item'])->name('clinic-compliance.audits.photos.store');
+            Route::post('audits/{audit}/photos/{photo}/remove', 'removeAuditPhoto')->whereUuid(['audit', 'photo'])->name('clinic-compliance.audits.photos.remove');
+            Route::post('tasks/{task}/done', 'taskDone')->whereUuid('task')->name('clinic-compliance.tasks.done');
+            Route::post('tasks/{task}/verify', 'taskVerify')->whereUuid('task')->name('clinic-compliance.tasks.verify');
+            Route::post('tasks/{task}/cancel', 'taskCancel')->whereUuid('task')->name('clinic-compliance.tasks.cancel');
+            Route::post('tasks/{task}/photos', 'addTaskPhoto')->whereUuid('task')->name('clinic-compliance.tasks.photos.store');
+        });
+        Route::middleware(['permission:compliance.audits.perform.branch,compliance.checklists.manage.organisation', 'throttle:60,1'])->group(function (): void {
+            Route::get('audit-photos/{photo}', 'openAuditPhoto')->whereUuid('photo')->name('clinic-compliance.audit-photos.open');
+            Route::get('task-photos/{photo}', 'openTaskPhoto')->whereUuid('photo')->name('clinic-compliance.task-photos.open');
+        });
         Route::post('readings', 'recordReading')->middleware(['permission:compliance.fridge.record.branch', 'throttle:60,1'])->name('clinic-compliance.readings.store');
         Route::post('readings/{reading}/review', 'reviewReading')->whereUuid('reading')->middleware(['permission:compliance.fridge.review.branch', 'throttle:60,1'])->name('clinic-compliance.readings.review');
     });
@@ -313,7 +345,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('hr/claims')->controller(HrClaimsController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.claims.submit.own,hr.claims.approve.organisation,hr.claims.pay.organisation,hr.claims.manage.organisation')->name('hr.claims.index');
         Route::get('receipts/{receipt}', 'openReceipt')->whereUuid('receipt')
-            ->middleware(['permission:hr.claims.submit.own,hr.claims.approve.organisation,hr.claims.pay.organisation', 'throttle:120,1'])->name('hr.claims.receipts.show');
+            ->middleware(['same-origin.open', 'permission:hr.claims.submit.own,hr.claims.approve.organisation,hr.claims.pay.organisation', 'throttle:120,1'])->name('hr.claims.receipts.show');
         Route::middleware(['permission:hr.claims.submit.own', 'throttle:30,1'])->group(function (): void {
             Route::post('/', 'send')->name('hr.claims.send');
             Route::post('{claim}/withdraw', 'withdraw')->whereUuid('claim')->name('hr.claims.withdraw');
@@ -359,7 +391,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // HR-7c payslips: your own, or any for a payroll preparer or approver; each open is recorded.
     Route::get('hr/payslips/{payslip}', [HrPayrollController::class, 'payslip'])->whereUuid('payslip')
-        ->middleware(['sensitive.no-store', 'permission:hr.payslips.view.own,hr.payroll.prepare.organisation,hr.payroll.approve.organisation', 'throttle:60,1'])
+        ->middleware(['same-origin.open', 'sensitive.no-store', 'permission:hr.payslips.view.own,hr.payroll.prepare.organisation,hr.payroll.approve.organisation', 'throttle:60,1'])
         ->name('hr.payslips.show');
 
     // HR-14 staff messages (owner, 2026-11-10: "start"; email now, SMS and WhatsApp later).
@@ -375,8 +407,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('hr/applications')->controller(HrApplicationsController::class)
         ->middleware(['sensitive.no-store', 'permission:hr.applications.manage.organisation'])->group(function (): void {
             Route::get('/', 'index')->name('hr.applications.index');
-            Route::get('{application}/cv', 'cv')->whereUuid('application')->middleware('throttle:60,1')->name('hr.applications.cv');
-            Route::get('interview-documents/{document}', 'document')->whereUuid('document')->middleware('throttle:60,1')->name('hr.applications.documents.show');
+            Route::get('{application}/cv', 'cv')->whereUuid('application')->middleware(['same-origin.open', 'throttle:60,1'])->name('hr.applications.cv');
+            Route::post('{application}/show-contact', 'showContact')->whereUuid('application')->middleware('throttle:30,1')->name('hr.applications.show-contact');
+            Route::get('interview-documents/{document}', 'document')->whereUuid('document')->middleware(['same-origin.open', 'throttle:60,1'])->name('hr.applications.documents.show');
             Route::middleware('throttle:30,1')->group(function (): void {
                 Route::post('positions', 'addPosition')->name('hr.applications.positions.store');
                 Route::post('positions/{position}', 'updatePosition')->whereUuid('position')->name('hr.applications.positions.update');
@@ -402,7 +435,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::prefix('hr/sops')->controller(HrSopsController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.sops.acknowledge.own,hr.sops.manage.organisation')->name('hr.sops.index');
         Route::get('versions/{version}/open', 'open')->whereUuid('version')
-            ->middleware(['permission:hr.sops.acknowledge.own,hr.sops.manage.organisation', 'throttle:60,1'])->name('hr.sops.open');
+            ->middleware(['same-origin.open', 'permission:hr.sops.acknowledge.own,hr.sops.manage.organisation', 'throttle:60,1'])->name('hr.sops.open');
         Route::post('versions/{version}/acknowledge', 'acknowledge')->whereUuid('version')
             ->middleware(['permission:hr.sops.acknowledge.own', 'throttle:30,1'])->name('hr.sops.acknowledge');
         Route::middleware(['permission:hr.sops.manage.organisation', 'throttle:30,1'])->group(function (): void {
@@ -418,13 +451,92 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('{memo}/open', 'open')->whereUuid('memo')
             ->middleware(['permission:hr.memos.read.own,hr.memos.publish.organisation', 'throttle:60,1'])->name('hr.memos.open');
         Route::get('{memo}/pdf', 'pdf')->whereUuid('memo')
-            ->middleware(['permission:hr.memos.read.own,hr.memos.publish.organisation', 'throttle:60,1'])->name('hr.memos.pdf');
+            ->middleware(['same-origin.open', 'permission:hr.memos.read.own,hr.memos.publish.organisation', 'throttle:60,1'])->name('hr.memos.pdf');
         Route::post('{memo}/acknowledge', 'acknowledge')->whereUuid('memo')
             ->middleware(['permission:hr.memos.read.own', 'throttle:30,1'])->name('hr.memos.acknowledge');
         Route::middleware(['permission:hr.memos.publish.organisation', 'throttle:30,1'])->group(function (): void {
             Route::get('audience', 'audience')->name('hr.memos.audience');
             Route::post('/', 'publish')->name('hr.memos.publish');
             Route::post('{memo}/withdraw', 'withdraw')->whereUuid('memo')->name('hr.memos.withdraw');
+        });
+    });
+
+    // HR-10a letters (HR-PLAN 20.3; owner, 2026-11-10). Printed and signed by hand; nothing is sent.
+    Route::prefix('hr/letters')->controller(HrLettersController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.records.view.own,hr.letters.issue.organisation')->name('hr.letters.index');
+        Route::get('{letter}', 'show')->whereUuid('letter')
+            ->middleware(['same-origin.open', 'permission:hr.records.view.own,hr.letters.issue.organisation', 'throttle:60,1'])->name('hr.letters.show');
+        Route::middleware(['permission:hr.letters.issue.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('preview', 'preview')->name('hr.letters.preview');
+            Route::post('/', 'issue')->name('hr.letters.issue');
+            Route::post('{letter}/void', 'void')->whereUuid('letter')->name('hr.letters.void');
+            Route::post('{letter}/given', 'given')->whereUuid('letter')->name('hr.letters.given');
+            Route::post('templates', 'storeTemplate')->name('hr.letters.templates.store');
+            Route::post('templates/{template}/revise', 'reviseTemplate')->whereUuid('template')->name('hr.letters.templates.revise');
+            Route::post('templates/{template}/retire', 'retireTemplate')->whereUuid('template')->name('hr.letters.templates.retire');
+        });
+    });
+
+    // HR-10b appraisal (HR-PLAN 20.4; owner, 2026-11-10). No ranking and no total score.
+    Route::prefix('hr/appraisals')->controller(HrAppraisalsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.appraisal.view.own,hr.appraisal.manage.organisation')->name('hr.appraisals.index');
+        Route::get('{appraisal}', 'show')->whereUuid('appraisal')
+            ->middleware(['same-origin.open', 'permission:hr.appraisal.view.own,hr.appraisal.manage.organisation', 'throttle:60,1'])->name('hr.appraisals.show');
+        Route::post('{appraisal}/comment', 'comment')->whereUuid('appraisal')->middleware(['permission:hr.appraisal.view.own', 'throttle:30,1'])->name('hr.appraisals.comment');
+        Route::middleware(['permission:hr.appraisal.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('criteria', 'saveCriteria')->name('hr.appraisals.criteria.store');
+            Route::post('cycles', 'openCycle')->name('hr.appraisals.cycles.store');
+            Route::post('cycles/{cycle}/close', 'closeCycle')->whereUuid('cycle')->name('hr.appraisals.cycles.close');
+            Route::post('{appraisal}', 'save')->whereUuid('appraisal')->name('hr.appraisals.save');
+            Route::post('{appraisal}/sign-off', 'signOff')->whereUuid('appraisal')->name('hr.appraisals.sign-off');
+        });
+    });
+
+    // HR-10d incident reports (HR-PLAN 20.6; owner, 2026-11-10). Everyone reports; the Director and HR Manager handle.
+    // HR-15b open shifts (HR-PLAN 21.4): managers post and confirm; a linked locum asks.
+    Route::prefix('hr/open-shifts')->controller(HrOpenShiftsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.open_shifts.request.own,hr.open_shifts.manage.organisation')->name('hr.open-shifts.index');
+        Route::middleware(['permission:hr.open_shifts.request.own', 'throttle:30,1'])->group(function (): void {
+            Route::post('{shift}/ask', 'ask')->whereUuid('shift')->name('hr.open-shifts.ask');
+            Route::post('asks/{ask}/withdraw', 'withdrawAsk')->whereUuid('ask')->name('hr.open-shifts.ask-withdraw');
+        });
+        Route::middleware(['permission:hr.open_shifts.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('/', 'store')->name('hr.open-shifts.store');
+            Route::post('{shift}/withdraw', 'withdraw')->whereUuid('shift')->name('hr.open-shifts.withdraw');
+            Route::post('asks/{ask}/confirm', 'confirm')->whereUuid('ask')->name('hr.open-shifts.confirm');
+            Route::post('asks/{ask}/decline', 'decline')->whereUuid('ask')->name('hr.open-shifts.decline');
+        });
+    });
+
+    Route::prefix('hr/incidents')->controller(HrIncidentsController::class)->middleware('sensitive.no-store')->group(function (): void {
+        Route::get('/', 'index')->middleware('permission:hr.incidents.report.own,hr.incidents.manage.organisation')->name('hr.incidents.index');
+        Route::get('{incident}', 'show')->whereUuid('incident')
+            ->middleware(['same-origin.open', 'permission:hr.incidents.report.own,hr.incidents.manage.organisation', 'throttle:60,1'])->name('hr.incidents.show');
+        Route::get('{incident}/photos/{photo}', 'photo')->whereUuid('incident')->whereUuid('photo')
+            ->middleware(['same-origin.open', 'permission:hr.incidents.report.own,hr.incidents.manage.organisation', 'throttle:60,1'])->name('hr.incidents.photos.show');
+        Route::post('/', 'store')->middleware(['permission:hr.incidents.report.own', 'throttle:10,1'])->name('hr.incidents.store');
+        Route::middleware(['permission:hr.incidents.manage.organisation', 'throttle:30,1'])->group(function (): void {
+            Route::post('{incident}/acknowledge', 'acknowledge')->whereUuid('incident')->name('hr.incidents.acknowledge');
+            Route::post('{incident}/notes', 'note')->whereUuid('incident')->name('hr.incidents.note');
+            Route::post('{incident}/actions', 'action')->whereUuid('incident')->name('hr.incidents.action');
+            Route::post('{incident}/actions/{action}/done', 'actionDone')->whereUuid('incident')->whereUuid('action')->name('hr.incidents.action-done');
+            Route::post('{incident}/link', 'link')->whereUuid('incident')->name('hr.incidents.link');
+            Route::post('{incident}/close', 'close')->whereUuid('incident')->name('hr.incidents.close');
+        });
+    });
+
+    // HR-10c discipline (HR-PLAN 20.5; owner, 2026-11-10). Restricted: never shown on the staff file, the dashboard or exports.
+    Route::prefix('hr/discipline')->controller(HrDisciplineController::class)->middleware(['sensitive.no-store', 'permission:hr.discipline.manage.organisation'])->group(function (): void {
+        Route::get('/', 'index')->name('hr.discipline.index');
+        Route::get('{case}', 'show')->whereUuid('case')->middleware(['same-origin.open', 'throttle:60,1'])->name('hr.discipline.show');
+        Route::get('{case}/files/{file}', 'openFile')->whereUuid('case')->whereUuid('file')->middleware(['same-origin.open', 'throttle:60,1'])->name('hr.discipline.files.show');
+        Route::middleware('throttle:30,1')->group(function (): void {
+            Route::post('/', 'store')->name('hr.discipline.store');
+            Route::post('{case}/notes', 'note')->whereUuid('case')->name('hr.discipline.note');
+            Route::post('{case}/replies', 'reply')->whereUuid('case')->name('hr.discipline.reply');
+            Route::post('{case}/show-cause', 'showCause')->whereUuid('case')->name('hr.discipline.show-cause');
+            Route::post('{case}/files', 'file')->whereUuid('case')->name('hr.discipline.files.store');
+            Route::post('{case}/close', 'close')->whereUuid('case')->name('hr.discipline.close');
         });
     });
 
@@ -440,7 +552,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('evidence/{file}/remove', 'removeEvidence')->whereUuid('file')
             ->middleware(['permission:hr.leave.request.own,hr.leave.manage.organisation', 'throttle:30,1'])->name('hr.leave.evidence.remove');
         Route::get('evidence/{file}', 'openEvidence')->whereUuid('file')
-            ->middleware(['permission:hr.leave.request.own,hr.leave.evidence.view.organisation', 'throttle:120,1'])->name('hr.leave.evidence.show');
+            ->middleware(['same-origin.open', 'permission:hr.leave.request.own,hr.leave.evidence.view.organisation', 'throttle:120,1'])->name('hr.leave.evidence.show');
         Route::post('requests/{leaveRequest}/cancel', 'cancel')->whereUuid('leaveRequest')
             ->middleware(['permission:hr.leave.request.own,hr.leave.approve.organisation', 'throttle:30,1'])->name('hr.leave.requests.cancel');
         Route::middleware(['permission:hr.leave.approve.organisation', 'throttle:60,1'])->group(function (): void {
@@ -650,6 +762,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->whereUuid('accountRequest')
         ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation', 'throttle:30,1'])
         ->name('staff.account-requests.done');
+    // HR-15a: the same people link the locum account they created to the locum's file.
+    Route::post('staff/locum-sign-ins/{signIn}/link', [StaffController::class, 'linkLocumSignIn'])
+        ->whereUuid('signIn')
+        ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation', 'throttle:30,1'])
+        ->name('staff.locum-sign-ins.link');
     Route::get('staff/create', [StaffController::class, 'create'])
         ->middleware(['permission:staff.manage.organisation', 'permission:access.manage.organisation'])
         ->name('staff.create');

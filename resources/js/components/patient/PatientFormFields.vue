@@ -5,6 +5,7 @@ import AdultConfirmation from '@/components/patient/AdultConfirmation.vue';
 import GuardianFields from '@/components/patient/GuardianFields.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
+import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
 import { knownMinor } from '@/lib/guardian-contact';
 import type { PatientFormValues } from '@/types';
@@ -40,7 +41,7 @@ const genderOptions = [
                     authoritative.
                 </p>
             </div>
-            <div class="grid gap-4 p-5 md:grid-cols-2">
+            <div class="grid items-start gap-4 p-5 md:grid-cols-2">
                 <label class="grid gap-2 md:col-span-2">
                     <span class="text-sm font-medium">Full name *</span>
                     <input
@@ -63,14 +64,12 @@ const genderOptions = [
                                 : ''
                         }}</span
                     >
-                    <input
+                    <DateField
                         v-model="fields.date_of_birth"
                         :required="
                             newPatient && requirements?.requireDateOfBirth
                         "
                         :aria-invalid="!!errors.date_of_birth"
-                        type="date"
-                        class="h-10 rounded-md border bg-background px-3 text-sm"
                     />
                     <InputError :message="errors.date_of_birth" />
                 </label>
