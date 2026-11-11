@@ -17,6 +17,8 @@ export type BoxBatchHint = {
     matches: number[];
     /** Warning tone: the box names a batch that is not usable or not in this list. */
     warn: boolean;
+    /** The message names the box's batch (so the page can say when the selected batch is a different one). */
+    named: boolean;
 };
 
 const normalise = (value: string): string => value.trim().toUpperCase();
@@ -32,7 +34,7 @@ export function boxBatchHint(
     const candidate = read?.batch ?? read?.batch_unconfirmed ?? null;
 
     if (read === null || (candidate === null && read.expiry === null)) {
-        return { message: pickHint, matches: [], warn: false };
+        return { message: pickHint, matches: [], warn: false, named: false };
     }
 
     const expiry = read.expiry === null ? '' : `exp ${formatDate(read.expiry)}`;
@@ -64,6 +66,7 @@ export function boxBatchHint(
             message: parts.filter((part) => part !== '').join(' '),
             matches: [],
             warn: false,
+            named: false,
         };
     }
 
@@ -79,6 +82,7 @@ export function boxBatchHint(
                     : `${box} No batch in the list matches it. Check the box.`,
             matches: [],
             warn: true,
+            named: true,
         };
     }
 
@@ -87,6 +91,7 @@ export function boxBatchHint(
             message: `${box} It matches a batch on hold, which cannot be used. Check with a supervisor.`,
             matches: [],
             warn: true,
+            named: true,
         };
     }
 
@@ -97,5 +102,6 @@ export function boxBatchHint(
                 : `${box} ${usable.length} batches in the list match it (different locations). Pick the right one yourself.`,
         matches: usable,
         warn: false,
+        named: true,
     };
 }

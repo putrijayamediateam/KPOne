@@ -45,7 +45,7 @@ const gs1 = (batch, expiry, certain = true) => ({
 test('a plain barcode keeps the DSP-17 hint and marks nothing', () => {
     assert.deepEqual(
         JSON.parse(JSON.stringify(boxBatchHint(null, options, date, HINT))),
-        { message: HINT, matches: [], warn: false },
+        { message: HINT, matches: [], warn: false, named: false },
     );
     assert.equal(
         boxBatchHint(gs1(null, null), options, date, HINT).message,
@@ -61,6 +61,7 @@ test('a read batch marks every matching option, trimmed and case-insensitive, wi
         hint.message,
         'Box: batch AB12, exp D(2027-10-31). 2 batches in the list match it (different locations). Pick the right one yourself.',
     );
+    assert.equal(hint.named, true);
     const one = boxBatchHint(gs1('ZZ99', null), options, date, HINT);
     assert.deepEqual([...one.matches], [1]);
     assert.equal(
@@ -164,7 +165,27 @@ test('the scan box keeps the GS separator, drops every other control character a
 
 test('the page names the box and marks options, and a GS1 scan never selects a batch', () => {
     assert.ok(flat.includes('boxRead.value = gs1;'));
-    assert.equal((show.match(/\? ' · matches the box'/g) ?? []).length, 2);
+    // The marker leads the option text, so it shows in the closed dropdown (Daniel).
+    assert.equal(flat.includes("' · matches the box'"), false);
+    // When the dropdown shows another batch than the box's, the line says so; it never changes the choice.
+    assert.ok(
+        flat.includes(
+            'message: `${hint.message} The selected batch is not the one on the box.`',
+        ),
+    );
+    assert.ok(
+        flat.includes(
+            'hint.named && (selected === undefined || !hint.matches.includes(selected))',
+        ),
+    );
+    assert.equal(
+        (
+            flat.match(
+                /\? 'Matches the box · ' : '' \}\}\s*\{\{\s*batchOptionText\(/g,
+            ) ?? []
+        ).length,
+        2,
+    );
     assert.equal(
         (flat.match(/\.warn && 'text-warning-strong'/g) ?? []).length,
         2,

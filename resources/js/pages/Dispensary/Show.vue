@@ -499,14 +499,32 @@ const activeBoxHint = computed((): BoxBatchHint | null => {
             ? (chosen.value?.availability ?? [])
             : (visibleItems.value.find((item) => item.publicId === target)
                   ?.availability ?? []);
+    const selected =
+        target === 'add'
+            ? addForm.availabilityIndex
+            : forms[target]?.availabilityIndex;
+    const hint = boxBatchHint(
+        boxRead.value,
+        availability,
+        formatDate,
+        BATCH_HINT,
+    );
 
-    return boxBatchHint(boxRead.value, availability, formatDate, BATCH_HINT);
+    // Information only (Daniel): the dropdown still shows the earlier choice, so say when it is not the box's batch.
+    return hint.named &&
+        (selected === undefined || !hint.matches.includes(selected))
+        ? {
+              ...hint,
+              message: `${hint.message} The selected batch is not the one on the box.`,
+          }
+        : hint;
 });
 const boxHint = (target: string): BoxBatchHint =>
     (batchHint.value === target ? activeBoxHint.value : null) ?? {
         message: BATCH_HINT,
         matches: [],
         warn: false,
+        named: false,
     };
 const matchesBox = (target: string, index: number): boolean =>
     batchHint.value === target && boxHint(target).matches.includes(index);
@@ -1591,14 +1609,14 @@ const exceptionStatusLabels: Record<string, string> = {
                                         :disabled="stock.held"
                                     >
                                         {{
+                                            matchesBox(item.publicId, index)
+                                                ? 'Matches the box · '
+                                                : ''
+                                        }}{{
                                             batchOptionText(
                                                 stock,
                                                 item.sku?.unit ?? item.unit,
                                             )
-                                        }}{{
-                                            matchesBox(item.publicId, index)
-                                                ? ' · matches the box'
-                                                : ''
                                         }}
                                     </option>
                                 </select></label
@@ -2027,14 +2045,14 @@ const exceptionStatusLabels: Record<string, string> = {
                                     :disabled="stock.held"
                                 >
                                     {{
+                                        matchesBox('add', index)
+                                            ? 'Matches the box · '
+                                            : ''
+                                    }}{{
                                         batchOptionText(
                                             stock,
                                             chosen.sku?.unit ?? chosen.unit,
                                         )
-                                    }}{{
-                                        matchesBox('add', index)
-                                            ? ' · matches the box'
-                                            : ''
                                     }}
                                 </option>
                             </select></label
