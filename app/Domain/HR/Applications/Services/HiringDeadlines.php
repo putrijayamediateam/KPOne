@@ -70,6 +70,32 @@ final class HiringDeadlines
         return ['remind' => $found[$days - 1], 'reject' => $found[$days]];
     }
 
+    /**
+     * When the current round of interview picks started: HR's latest "ask for new times", when later than the invitation
+     * (or the cancelled interview) that put the application at Scheduling; null means the invitation itself.
+     */
+    public static function pickRoundStart(\stdClass $application): ?string
+    {
+        $asked = DB::table('hr_job_application_events')->where('application_id', $application->id)->where('action', 'picks_declined')->max('created_at');
+
+        return $asked !== null && CarbonImmutable::parse((string) $asked)->gt(CarbonImmutable::parse($application->stage_entered_at)) ? (string) $asked : null;
+    }
+
+    /**
+     * Owner, 2026-11-11 (#484 follow-up): the last day the candidate may still choose times, shown on their page. It is the
+     * day of the HR reminder; the application closes from the next working day. Null when nothing will close it (no
+     * working days set) or the candidate has already picked this round.
+     */
+    public function pickBy(\stdClass $application): ?string
+    {
+        if ($application->status !== self::AWAITING_PICKS || DB::table('hr_job_interview_picks')->where('application_id', $application->id)
+            ->where('round', $application->interview_round)->exists()) {
+            return null;
+        }
+
+        return $this->deadlines($application, self::pickRoundStart($application))['remind'] ?? null;
+    }
+
     /** The branch's local date today for an application. */
     public function today(\stdClass $application): ?string
     {
@@ -120,8 +146,7 @@ final class HiringDeadlines
                 if (DB::table('hr_job_interview_picks')->where('application_id', $row->id)->where('round', $round)->exists()) {
                     return null; // the candidate has picked: HR's turn
                 }
-                $asked = DB::table('hr_job_application_events')->where('application_id', $row->id)->where('action', 'picks_declined')->max('created_at');
-                $since = $asked !== null && CarbonImmutable::parse((string) $asked)->gt(CarbonImmutable::parse($row->stage_entered_at)) ? (string) $asked : null;
+                $since = self::pickRoundStart($row);
             }
             $deadlines = $this->deadlines($row, $since);
             $branch = $this->branchFor($row);
