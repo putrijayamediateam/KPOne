@@ -27,14 +27,14 @@ anonymise it when the purpose is over **[CONFIRM wording]**. Medical, tax and em
 | Signed paper MC copies | Owner set **1 year** | Probably too short against medical-record rules **[CONFIRM and update]** |
 | Staff employment records | Kept | Employment and tax law periods **[CONFIRM]** |
 | Payroll, payslips | Kept, append-only: pay profiles (including the unencrypted MTD details), runs, lines, totals and encrypted payslip snapshots. There is no purge | Statutory period **[CONFIRM with the accountant]** |
-| Leave requests and the leave ledger | Kept, append-only | Employment-law period **[CONFIRM]** |
+| Leave requests, the leave ledger, entitlements, openings and adjustments, and their evidence files | Owner decision 2026-11-11 (PDPA 15): **7 years after the leave year**, then deleted by a daily `hr-leave:purge` (being built; until it merges nothing is deleted). A leave year Y goes in year Y + 8, evidence files included, even when a leave type's evidence retention is longer (the leave retention wins). Leave types, working days and public holidays are kept | The 7 years is **to confirm with the accountant before real use** |
 | Attendance: clock sessions and their events, corrections, overtime requests, and location-check consent acknowledgements (HR-3a, HR-3b, HR-16a) | Owner decision 2026-11-11: **7 years**, then deleted by a daily `hr-attendance:purge` (being built; until it merges nothing is deleted). The settings versions are kept | The 7 years is **to confirm with the accountant before real use** |
-| Staff claims and their **receipt files** | Kept; no purge exists | Tax and accounting period **[CONFIRM with the accountant]** |
-| Credential records | Kept | **[DECIDE]** |
+| Staff claims and their **receipt files** | Owner decision 2026-11-11 (PDPA 15): **7 years** after the claim's last real change (a decision, payment or reversal; opening a receipt does not count), then a closed claim (paid, rejected or withdrawn) is deleted with its receipts, actions and payments by a daily `hr-claims:purge` (being built). A payroll line that refunded a claim keeps its frozen amount and text | The 7 years is **to confirm with the accountant before real use**. Payroll retention must not be shorter than claims retention, or a refund is left with no record |
+| Credential records | Owner decision 2026-11-11 (PDPA 15): **7 years**. A record no longer in force (replaced, rejected or left waiting) goes 7 years after its last change, except the newest version of each credential, and every record of someone whose employment ended more than 7 years ago goes too (daily `hr-credentials:purge`, being built). An accepted record of a current staff member is kept | The 7 years is **to confirm with the accountant before real use**. Evidence certificates follow the staff document rule above |
 | Bank detail versions and record corrections (old and new values, encrypted) | Kept | With the staff file |
-| Memos (body, PDF) and each person's opens and reads (HR-8) | Kept; no purge | **[DECIDE]** |
+| Memos (body, PDF) and each person's opens and reads (HR-8) | Kept; no purge | Owner decision 2026-11-11 (PDPA 15): **keep** |
 | Talent-pool settings and pool choices; staff-account requests (values cleared by the application purge) | Kept | With applications |
-| Interview documents (clinic files) and candidates' download records | Files kept until HR removes them; records kept | **[DECIDE]** |
+| Interview documents (clinic files) and candidates' download records | Files kept until HR removes them; records kept | Owner decision 2026-11-11 (PDPA 15): **6 months** for unsuccessful candidates. Exactly what goes is being confirmed with B.E.R.N.I.S.S (recommended: the candidate's interview time choices, bookings and download records; the clinic's own files stay until HR removes them) |
 | Payroll export log | Kept (counts only; files never stored) | With payroll |
 | Audit trail | Append-only, no purge defined | Period; consider archiving rather than deleting **[DECIDE]** |
 | Backups | **Not defined** | Retention and deletion of old backups **[DECIDE]** |
@@ -54,10 +54,13 @@ anonymise it when the purpose is over **[CONFIRM wording]**. Medical, tax and em
 | Location-check results | 90 days | owner | Owner | 2026-11-11 |
 | Attendance records | 7 years | owner; accountant to confirm | Owner | 2026-11-11 |
 | Job applications (not hired) | [ ] months | clinic choice | | |
-| Leave evidence | [ ] days | clinic choice | | |
-| Staff claims and receipts | [ ] years | accountant / tax | | |
+| Leave records (with evidence) | 7 years after the leave year | owner; accountant to confirm | Owner | 2026-11-11 |
+| Leave evidence (shorter, per leave type) | [ ] days | clinic choice | | |
+| Staff claims and receipts | 7 years after the last change | owner; accountant to confirm | Owner | 2026-11-11 |
+| Credential records | 7 years | owner; accountant to confirm | Owner | 2026-11-11 |
+| Interview records of unsuccessful candidates | 6 months | owner | Owner | 2026-11-11 |
 | Talent pool (after closing) | [ ] days | clinic choice | | |
-| Memos and read records | [ ] years | | | |
+| Memos and read records | Kept | owner | Owner | 2026-11-11 |
 | Audit trail | [ ] years | | | |
 | Backups | [ ] days | | | |
 
