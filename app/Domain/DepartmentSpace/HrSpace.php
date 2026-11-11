@@ -129,7 +129,9 @@ final class HrSpace
         }
         $days = (int) CarbonImmutable::parse((string) $page['today'])->startOfDay()->diffInDays(CarbonImmutable::parse((string) $first['startDate'])->startOfDay(), false);
 
-        return $days <= 0 ? 'Earliest leave started or starts today' : 'Earliest leave starts in '.$days.($days === 1 ? ' day' : ' days');
+        $text = $days <= 0 ? 'Earliest leave started or starts today' : 'Earliest leave starts in '.$days.($days === 1 ? ' day' : ' days');
+
+        return $days <= 2 ? $text.' (soon)' : $text;
     }
 
     /**
@@ -249,15 +251,25 @@ final class HrSpace
             $types[(string) $t['typeId']] = (string) $t['name'];
         }
         $due = [];
+        $today = now()->setTimezone((string) $this->branches->activeBranch($actor)->timezone)->startOfDay()->toImmutable();
         foreach ((array) ($register['rows'] ?? []) as $row) {
             foreach ((array) $row['cells'] as $typeId => $cell) {
                 if (is_array($cell) && ($cell['status']['code'] ?? '') === 'expiring' && ($cell['expiresOn'] ?? null) !== null) {
-                    $due[] = ['name' => SpaceDisplay::shortName((string) $row['name']), 'credential' => $types[(string) $typeId] ?? 'Credential', 'expires' => CarbonImmutable::parse((string) $cell['expiresOn'])->format('j M Y'), 'on' => (string) $cell['expiresOn']];
+                    $due[] = ['name' => SpaceDisplay::shortName((string) $row['name']), 'credential' => $types[(string) $typeId] ?? 'Credential', 'expires' => self::expiryWords($today, (string) $cell['expiresOn']), 'on' => (string) $cell['expiresOn']];
                 }
             }
         }
         usort($due, fn (array $a, array $b): int => strcmp($a['on'], $b['on']));
 
         return array_map(fn (array $d): array => ['name' => $d['name'], 'credential' => $d['credential'], 'expires' => $d['expires']], $due);
+    }
+
+    private static function expiryWords(CarbonImmutable $today, string $on): string
+    {
+        $date = CarbonImmutable::parse($on)->startOfDay();
+        $days = (int) $today->diffInDays($date, false);
+        $words = $days === 0 ? 'due today' : ($days > 0 ? 'due in '.$days.($days === 1 ? ' day' : ' days') : 'expired '.abs($days).(abs($days) === 1 ? ' day' : ' days').' ago');
+
+        return $date->format('j M Y').', '.$words;
     }
 }
