@@ -170,7 +170,8 @@ class BranchAssignmentService
         StaffBranchAssignment $target,
         User $actor,
     ): void {
-        if (! $target->newQuery()->whereKey($target->id)->effectiveAt()->exists()) {
+        // "Currently effective" means on the assignment's own branch's day.
+        if (! $target->newQuery()->whereKey($target->id)->effectiveAt(StaffBranchAssignment::todayAt($target->branch))->exists()) {
             throw ValidationException::withMessages([
                 'assignment' => 'Only a currently effective assignment can be primary.',
             ]);
@@ -238,7 +239,7 @@ class BranchAssignmentService
 
         if ($validUntil !== null
             || ! is_string($validFrom)
-            || $validFrom > now()->toDateString()) {
+            || $validFrom > StaffBranchAssignment::todayAt($assignment->branch)) {
             throw ValidationException::withMessages([
                 'assignment' => 'An active staff member must retain a currently effective primary branch.',
             ]);

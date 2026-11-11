@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Domain\Access\PermissionCatalogue;
+use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Department;
 use App\Models\User;
@@ -88,13 +89,23 @@ class StoreStaffRequest extends FormRequest
         return [function (Validator $validator): void {
             $rawAssignments = $this->input('assignments', []);
             $assignments = is_array($rawAssignments) ? $rawAssignments : [];
-            $today = now()->toDateString();
+            $branchIds = collect($assignments)
+                ->map(fn ($assignment) => is_array($assignment) ? ($assignment['branch_id'] ?? null) : null)
+                ->filter(fn ($id): bool => is_numeric($id))
+                ->map(fn ($id): int => (int) $id)
+                ->unique()
+                ->values();
+            /** @var array<int, string> $timezones */
+            $timezones = Branch::query()->whereIn('id', $branchIds)->pluck('timezone', 'id')->all();
             $effectivePrimaries = 0;
 
             foreach ($assignments as $assignment) {
                 if (! is_array($assignment) || ! filter_var($assignment['is_primary'] ?? false, FILTER_VALIDATE_BOOL)) {
                     continue;
                 }
+
+                // A primary is "current" on its own branch's calendar day.
+                $today = StaffBranchAssignment::todayForBranchId($assignment['branch_id'] ?? null, $timezones);
 
                 $from = $assignment['valid_from'] ?? null;
                 $until = $assignment['valid_until'] ?? null;

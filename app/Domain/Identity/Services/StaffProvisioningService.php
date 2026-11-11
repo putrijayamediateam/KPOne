@@ -5,6 +5,7 @@ namespace App\Domain\Identity\Services;
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\Access\StaffAuthorityService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Department;
@@ -74,9 +75,12 @@ class StaffProvisioningService
                 ], $actor);
             }
 
+            // Each primary is judged on its own branch's calendar day.
             $effectivePrimaries = $profile->branchAssignments()
-                ->effectiveAt()
+                ->with('branch:id,timezone')
                 ->where('is_primary', true)
+                ->get()
+                ->filter(fn (StaffBranchAssignment $assignment): bool => $assignment->isEffectiveTodayAtBranch())
                 ->count();
 
             if ($effectivePrimaries !== 1) {
@@ -167,13 +171,15 @@ class StaffProvisioningService
         $validator->after(function ($validator) use ($attributes): void {
             $rawAssignments = $attributes['assignments'] ?? [];
             $assignments = is_array($rawAssignments) ? $rawAssignments : [];
-            $today = now()->toDateString();
+            $timezones = $this->branchTimezones($assignments);
             $currentPrimaryCount = 0;
 
             foreach ($assignments as $assignment) {
                 if (! is_array($assignment) || ! ($assignment['is_primary'] ?? false)) {
                     continue;
                 }
+
+                $today = StaffBranchAssignment::todayForBranchId($assignment['branch_id'] ?? null, $timezones);
 
                 $from = $assignment['valid_from'] ?? null;
                 $until = $assignment['valid_until'] ?? null;
@@ -263,6 +269,25 @@ class StaffProvisioningService
         }
 
         return $result;
+    }
+
+    /**
+     * @param  array<mixed>  $assignments
+     * @return array<int, string>
+     */
+    private function branchTimezones(array $assignments): array
+    {
+        $branchIds = collect($assignments)
+            ->map(fn ($assignment) => is_array($assignment) ? ($assignment['branch_id'] ?? null) : null)
+            ->filter(fn ($id): bool => is_numeric($id))
+            ->map(fn ($id): int => (int) $id)
+            ->unique()
+            ->values();
+
+        /** @var array<int, string> $timezones */
+        $timezones = Branch::query()->whereIn('id', $branchIds)->pluck('timezone', 'id')->all();
+
+        return $timezones;
     }
 
     private function nullableTrimmed(?string $value): ?string

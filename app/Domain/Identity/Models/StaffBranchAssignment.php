@@ -45,6 +45,49 @@ class StaffBranchAssignment extends Model
     }
 
     /**
+     * The calendar date "today" at the given branch.
+     *
+     * Assignment periods are branch-local calendar dates, while the app clock
+     * is UTC, so the UTC date is a day behind Kuala Lumpur from 00:00 to 08:00
+     * local time. Always compare valid_from / valid_until with this date.
+     */
+    public static function todayAt(Branch $branch): string
+    {
+        return now()->setTimezone($branch->timezone)->toDateString();
+    }
+
+    /**
+     * Branch-local "today" for a branch id from untrusted input; an unknown
+     * id falls back to the app date (other validation refuses the id).
+     *
+     * @param  array<int, string>  $timezonesByBranchId
+     */
+    public static function todayForBranchId(mixed $branchId, array $timezonesByBranchId): string
+    {
+        $timezone = is_numeric($branchId) ? ($timezonesByBranchId[(int) $branchId] ?? null) : null;
+
+        return $timezone === null ? now()->toDateString() : now()->setTimezone($timezone)->toDateString();
+    }
+
+    public function isEffectiveOn(string $date): bool
+    {
+        return $this->valid_from->toDateString() <= $date
+            && ($this->valid_until === null || $this->valid_until->toDateString() >= $date);
+    }
+
+    /** Whether the assignment is effective on its own branch's calendar day. */
+    public function isEffectiveTodayAtBranch(): bool
+    {
+        return $this->isEffectiveOn(self::todayAt($this->branch));
+    }
+
+    /**
+     * Assignments effective on the given calendar date.
+     *
+     * Pass the branch-local date (see todayAt()). The no-argument form uses the
+     * UTC date and is kept only for older tests and seeders; application code
+     * must always pass a date (guarded by StaffAssignmentBranchDayTest).
+     *
      * @param  Builder<StaffBranchAssignment>  $query
      * @return Builder<StaffBranchAssignment>
      */

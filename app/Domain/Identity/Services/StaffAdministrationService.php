@@ -4,6 +4,7 @@ namespace App\Domain\Identity\Services;
 
 use App\Domain\Access\StaffAuthorityService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Organisation\Models\Department;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
@@ -134,10 +135,13 @@ class StaffAdministrationService
                 return $lockedSubject;
             }
 
-            if ($active && $lockedSubject->staffProfile?->branchAssignments()
-                ->effectiveAt()
+            // Each primary is judged on its own branch's calendar day.
+            if ($active && ($lockedSubject->staffProfile?->branchAssignments()
+                ->with('branch:id,timezone')
                 ->where('is_primary', true)
-                ->count() !== 1) {
+                ->get()
+                ->filter(fn (StaffBranchAssignment $assignment): bool => $assignment->isEffectiveTodayAtBranch())
+                ->count() ?? 0) !== 1) {
                 throw ValidationException::withMessages([
                     'is_active' => 'An active account requires exactly one currently effective primary branch.',
                 ]);

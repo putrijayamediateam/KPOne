@@ -34,7 +34,7 @@ class StaffDirectoryService
                 'roles:id,name',
                 'staffProfile.department:id,name',
                 'staffProfile.branchAssignments' => fn ($query) => $query
-                    ->with('branch:id,code,name')
+                    ->with('branch:id,code,name,timezone')
                     ->orderByDesc('is_primary')
                     ->orderBy('valid_from')
                     ->orderBy('id'),
@@ -61,12 +61,15 @@ class StaffDirectoryService
             if (! $allowedBranchIds->contains((int) $branchId)) {
                 $query->whereRaw('1 = 0');
             } else {
+                $filteredBranch = Branch::query()->findOrFail((int) $branchId);
+                $branchToday = StaffBranchAssignment::todayAt($filteredBranch);
+
                 $query->whereHas('staffProfile.branchAssignments', fn ($assignment) => $assignment
-                    ->whereDate('valid_from', '<=', now()->toDateString())
+                    ->whereDate('valid_from', '<=', $branchToday)
                     ->where(fn ($period) => $period
                         ->whereNull('valid_until')
-                        ->orWhereDate('valid_until', '>=', now()->toDateString()))
-                    ->where('branch_id', $branchId));
+                        ->orWhereDate('valid_until', '>=', $branchToday))
+                    ->where('branch_id', $filteredBranch->id));
             }
         }
         $query->when($filters['department'] ?? null, fn ($query, $departmentId) => $query
@@ -89,7 +92,7 @@ class StaffDirectoryService
             'roles:id,name',
             'staffProfile.department:id,name',
             'staffProfile.branchAssignments' => fn ($query) => $query
-                ->with('branch:id,code,name')
+                ->with('branch:id,code,name,timezone')
                 ->orderByDesc('is_primary')
                 ->orderBy('valid_from')
                 ->orderBy('id'),
@@ -227,7 +230,7 @@ class StaffDirectoryService
 
     private function assignmentState(StaffBranchAssignment $assignment): string
     {
-        $today = now()->toDateString();
+        $today = StaffBranchAssignment::todayAt($assignment->branch);
 
         if ($assignment->valid_from->toDateString() > $today) {
             return 'future';
