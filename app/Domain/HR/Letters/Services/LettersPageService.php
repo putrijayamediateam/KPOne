@@ -67,17 +67,14 @@ final class LettersPageService
     /** @return list<array<string, mixed>> */
     private function issued(User $actor, string $zone): array
     {
-        $rows = $this->base($actor)->limit(200)->get();
-        $workers = Worker::query()->with(['user.roles'])->whereIn('id', $rows->pluck('worker_id')->unique()->all())->get()->keyBy('id');
-        $issuers = DB::table('users')->whereIn('id', $rows->pluck('issued_by_user_id')->unique()->all())->pluck('name', 'id');
-
         // HR-10c (Suresh, M3): letters to someone the viewer may not manage are left out, so a Director's or HR Manager's
         // warning or show-cause letter does not show other managers that a case exists. Recipients see their own in My letters.
-        $rows = $rows->filter(function (\stdClass $r) use ($workers, $actor): bool {
-            $worker = $workers->get($r->worker_id);
-
-            return $worker instanceof Worker && ($worker->user === null || $this->letters->refusalFor($actor, $worker->user) === null);
-        });
+        // Who is visible is worked out per person first, so the 200-row limit applies after that filter, never before it.
+        $workerIds = DB::table('hr_letters')->where('organisation_id', $actor->organisation_id)->distinct()->pluck('worker_id');
+        $workers = Worker::query()->with(['user.roles'])->whereIn('id', $workerIds->all())->get()->keyBy('id')
+            ->filter(fn (Worker $w): bool => $w->user === null || $this->letters->refusalFor($actor, $w->user) === null);
+        $rows = $this->base($actor)->whereIn('l.worker_id', $workers->keys()->all())->limit(200)->get();
+        $issuers = DB::table('users')->whereIn('id', $rows->pluck('issued_by_user_id')->unique()->all())->pluck('name', 'id');
 
         return array_values($rows->map(function (\stdClass $r) use ($zone, $workers, $issuers, $actor): array {
             $worker = $workers->get($r->worker_id);
