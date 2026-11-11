@@ -7,17 +7,29 @@ export type ScannedSku = {
     active: boolean;
 };
 
+/** DSP-18: what a GS1 code says about the box; present only when the scanned code was a GS1 element string. */
+export type Gs1Read = {
+    gtin: string;
+    batch: string | null;
+    /** False when the batch ran to the end of a code without separators, so it may have swallowed another field. */
+    batch_certain: boolean;
+    expiry: string | null;
+};
+
 export type ScanLookup =
-    | { status: 'found'; code: string; sku: ScannedSku }
-    | { status: 'not_found'; code: string }
-    | { status: 'shared'; code: string; skus: string[] };
+    | { status: 'found'; code: string; sku: ScannedSku; gs1?: Gs1Read }
+    | { status: 'not_found'; code: string; gs1?: Gs1Read }
+    | { status: 'shared'; code: string; skus: string[]; gs1?: Gs1Read };
 
 export type CameraSupport = 'supported' | 'insecure' | 'unsupported';
 
-/** Scanners may add Tab, Enter or other control characters; trim them but never change the code itself. */
+/**
+ * Scanners may add Tab, Enter or other control characters; trim them but never change the code itself. DSP-18: the GS
+ * character (U+001D) is kept, because in a GS1 code it marks where a batch number ends.
+ */
 export function cleanScannedCode(raw: string): string {
     return raw
-        .replace(/[\p{Cc}\p{Cf}]/gu, '')
+        .replace(/(?!\u001D)[\p{Cc}\p{Cf}]/gu, '')
         .trim()
         .slice(0, 100);
 }
