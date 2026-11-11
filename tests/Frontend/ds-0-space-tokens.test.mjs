@@ -99,6 +99,22 @@ test('DS-0: text and accent colours reach 4.5:1 on every surface they sit on, li
     }
 });
 
+test('DS-0: status chip text reaches 4.5:1 on its own 13% tint over the card, light and dark', () => {
+    for (const [mode, tokens] of Object.entries(modes)) {
+        const card = parse(tokens.surface).rgb;
+
+        for (const name of ['ok', 'warn', 'bad']) {
+            const text = parse(tokens[name]).rgb;
+            const tint = over({ rgb: text, alpha: 0.13 }, card);
+            const value = ratio(text, tint);
+            assert.ok(
+                value >= 4.5,
+                `${mode}: ${name} chip is ${value.toFixed(2)}`,
+            );
+        }
+    }
+});
+
 test('DS-0: pink appears once, as the logo mark', () => {
     assert.equal(light['logo-mark'], '#e8348c');
     assert.equal((strip(css).match(/#e8348c/gi) ?? []).length, 1);

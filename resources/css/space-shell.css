@@ -35,6 +35,7 @@
     --space-bad: #c7141f;
 
     /* Segmented control and the logo mark (pink is used nowhere else in a space). */
+    /* Unselected segmented-control labels use fg, never muted (muted on the segment fill is under 4.5:1). */
     --space-seg: rgba(118, 118, 128, 0.14);
     --space-seg-on: #ffffff;
     --space-logo-mark: #e8348c;
@@ -71,7 +72,7 @@
 
     --space-ok: #30d158;
     --space-warn: #ff9f0a;
-    --space-bad: #ff6961;
+    --space-bad: #ff8079;
 
     --space-seg: rgba(118, 118, 128, 0.28);
     --space-seg-on: #636366;
