@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
-import { ref, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -13,12 +13,14 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { PageHeader } from '@/components/ui/page-header';
+import { StatusBadge } from '@/components/ui/status';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
 type Target = {
     id: number;
-    quantity: string;
+    /** Left out in count mode (STK-23 blind counts). */
+    quantity?: string;
     lock_version: number;
     sku_code: string;
     stock_unit: string;
@@ -31,7 +33,8 @@ type Action = {
     action: string;
     state: string;
     actor_user_id: number;
-    quantity: string | null;
+    /** Left out while a count or recount waits (STK-23 blind counts). */
+    quantity?: string | null;
     lock_version: number;
     movement_id: number | null;
     created_at: string;
@@ -40,14 +43,16 @@ type Case = {
     id: number;
     public_id: string;
     balance_id: number;
-    expected_quantity: string;
+    /** Left out while a count or recount waits (STK-23 blind counts). */
+    expected_quantity?: string;
     expected_balance_version: number;
     current_balance_version: number;
     proposer_user_id: number;
     kind: string;
     reason: string;
-    quantity: string | null;
+    quantity?: string | null;
     disposal_reference: string | null;
+    blind: boolean;
     state: string;
     lock_version: number;
     sku_code: string;
@@ -58,6 +63,18 @@ type Case = {
     canCount: boolean;
     canApprove: boolean;
     canReverse: boolean;
+};
+type CycleRow = {
+    skuPublicId: string;
+    skuCode: string;
+    item: string;
+    locationPublicId: string;
+    location: string;
+    class: 'A' | 'B' | 'C';
+    lastCounted: string | null;
+    dueOn: string | null;
+    overdueDays: number | null;
+    open: boolean;
 };
 type Page<T> = { rows: T[]; total: number; page: number; lastPage: number };
 const props = defineProps<{
@@ -71,6 +88,10 @@ const props = defineProps<{
         canPropose: boolean;
         cases: Page<Case>;
         targets: Page<Target>;
+        cycle?: Page<CycleRow> & {
+            intervals: Record<'A' | 'B' | 'C', number>;
+            lookBackDays: number;
+        };
     };
 }>();
 const title =
@@ -111,13 +132,47 @@ function scanned(sku: ScannedSku) {
     q.value = sku.sku_code;
     search();
 }
-function search(page = 1, targets = 1) {
+function search(page = 1, targets = 1, cycle = props.stock.cycle?.page ?? 1) {
     router.get(
         path,
-        { q: q.value, state: state.value, page, targets_page: targets },
+        {
+            q: q.value,
+            state: state.value,
+            page,
+            targets_page: targets,
+            ...(props.stock.mode === 'count' ? { cycle_page: cycle } : {}),
+        },
         { preserveScroll: true },
     );
 }
+// STK-23: open STK-5 count cases for every batch of a SKU at a location.
+const starting = ref<string | null>(null);
+function startCount(row: CycleRow) {
+    if (starting.value) {
+        return;
+    }
+
+    starting.value = `${row.skuPublicId}:${row.locationPublicId}`;
+    router.post(
+        '/inventory/counts/cycle',
+        {
+            expected_branch_id: props.stock.branchId,
+            retry_key: crypto.randomUUID(),
+            sku_public_id: row.skuPublicId,
+            location_public_id: row.locationPublicId,
+        },
+        { preserveScroll: true, onFinish: () => (starting.value = null) },
+    );
+}
+const cycleError = computed(
+    () => (usePage().props.errors as Record<string, string> | undefined)?.cycle,
+);
+const dueLabel = (row: CycleRow) =>
+    row.overdueDays === null
+        ? 'Never counted'
+        : row.overdueDays === 0
+          ? 'Due today'
+          : `${row.overdueDays} ${row.overdueDays === 1 ? 'day' : 'days'} overdue`;
 function showTarget(row: Target) {
     form.reset();
     form.clearErrors();
@@ -126,7 +181,11 @@ function showTarget(row: Target) {
     form.balance_id = row.id;
     form.balance_version = row.lock_version;
     form.unit = row.stock_unit;
-    label.value = `${row.sku_code} · ${row.batch_number} · ${row.location} · On hand ${row.quantity} ${row.stock_unit}`;
+    // Blind count: no on-hand quantity in count mode.
+    label.value =
+        row.quantity === undefined
+            ? `${row.sku_code} · ${row.batch_number} · ${row.location}`
+            : `${row.sku_code} · ${row.batch_number} · ${row.location} · On hand ${row.quantity} ${row.stock_unit}`;
     operation.value = props.stock.mode;
     endpoint.value = `/inventory/governed/${props.stock.mode}`;
     open.value = true;
@@ -138,7 +197,9 @@ function showCase(row: Case, action: string) {
     form.retry_key = crypto.randomUUID();
     form.lock_version = row.lock_version;
     form.unit = row.stock_unit;
-    label.value = `${row.sku_code} · ${row.batch_number} · Snapshot ${row.expected_quantity} ${row.stock_unit}`;
+    label.value = row.blind
+        ? `${row.sku_code} · ${row.batch_number} · Count what is there; the expected quantity is not shown`
+        : `${row.sku_code} · ${row.batch_number} · Snapshot ${row.expected_quantity} ${row.stock_unit}`;
     operation.value = action;
 
     if (action === 'reversal') {
@@ -265,6 +326,110 @@ watch(
             :refocus-key="`governed-${stock.mode}`"
             @found="scanned"
         />
+        <section
+            v-if="stock.mode === 'count' && stock.cycle"
+            class="space-y-3"
+            aria-labelledby="counts-due-heading"
+            data-testid="counts-due"
+        >
+            <h2 id="counts-due-heading" class="text-xl font-semibold">
+                Counts due ({{ stock.cycle.total }})
+            </h2>
+            <p class="text-sm text-muted-foreground">
+                Class A is counted every {{ stock.cycle.intervals.A }} days, B
+                every {{ stock.cycle.intervals.B }} and C every
+                {{ stock.cycle.intervals.C }}. A class comes from how often the
+                item was dispensed here in the last
+                {{ stock.cycle.lookBackDays }} days; controlled medicines are
+                always A.
+            </p>
+            <p
+                v-if="!stock.cycle.rows.length"
+                class="text-sm text-muted-foreground"
+            >
+                Nothing is due for counting.
+            </p>
+            <ul v-else class="space-y-2" aria-label="Counts due">
+                <li
+                    v-for="row in stock.cycle.rows"
+                    :key="`${row.skuPublicId}:${row.locationPublicId}`"
+                    class="flex min-w-0 flex-wrap items-center justify-between gap-3 rounded-lg border bg-card p-3"
+                >
+                    <div class="min-w-0 flex-1">
+                        <p class="break-words">
+                            <span class="font-medium">{{ row.item }}</span>
+                            <span class="text-muted-foreground">
+                                · {{ row.skuCode }} · {{ row.location }}</span
+                            >
+                        </p>
+                        <p class="flex flex-wrap items-center gap-2 text-sm">
+                            <StatusBadge
+                                :status="`class-${row.class}`"
+                                :label="`Class ${row.class}`"
+                                :tone="row.class === 'A' ? 'accent' : 'neutral'"
+                            />
+                            <span
+                                :class="
+                                    row.overdueDays === null ||
+                                    row.overdueDays > 0
+                                        ? 'font-medium text-warning-strong'
+                                        : 'text-muted-foreground'
+                                "
+                                >{{ dueLabel(row) }}</span
+                            >
+                            <span class="text-muted-foreground">{{
+                                row.lastCounted
+                                    ? `Last counted ${row.lastCounted}`
+                                    : 'No completed count'
+                            }}</span>
+                        </p>
+                    </div>
+                    <p v-if="row.open" class="text-sm text-muted-foreground">
+                        Count open below
+                    </p>
+                    <button
+                        v-else-if="stock.canPropose"
+                        type="button"
+                        class="min-h-11 rounded border px-3 lg:min-h-9"
+                        :disabled="starting !== null"
+                        @click="startCount(row)"
+                    >
+                        Start count
+                    </button>
+                </li>
+            </ul>
+            <div
+                v-if="stock.cycle.lastPage > 1"
+                class="flex justify-between gap-2"
+            >
+                <button
+                    class="min-h-11 rounded border px-4 disabled:opacity-40"
+                    :disabled="stock.cycle.page <= 1"
+                    @click="
+                        search(
+                            stock.cases.page,
+                            stock.targets.page,
+                            stock.cycle.page - 1,
+                        )
+                    "
+                >
+                    Previous counts due</button
+                ><button
+                    class="min-h-11 rounded border px-4 disabled:opacity-40"
+                    :disabled="stock.cycle.page >= stock.cycle.lastPage"
+                    @click="
+                        search(
+                            stock.cases.page,
+                            stock.targets.page,
+                            stock.cycle.page + 1,
+                        )
+                    "
+                >
+                    Next counts due
+                </button>
+            </div>
+            <InputError :message="cycleError" />
+        </section>
         <form class="flex flex-wrap items-end gap-2" @submit.prevent="search()">
             <label class="min-w-[min(100%,18rem)] flex-1 basis-72"
                 >Search SKU, batch or location<input
@@ -312,7 +477,10 @@ watch(
                     <h3 class="font-semibold">{{ row.sku_code }}</h3>
                     <p>{{ row.batch_number }} · {{ row.location }}</p>
                     <p>
-                        On hand {{ row.quantity }} {{ row.stock_unit }} · Expiry
+                        <template v-if="row.quantity !== undefined"
+                            >On hand {{ row.quantity }} {{ row.stock_unit }} ·
+                        </template>
+                        Expiry
                         <span class="whitespace-nowrap">{{
                             formatDate(row.expiry_date)
                         }}</span>
@@ -367,7 +535,13 @@ watch(
                     {{ row.location }} · {{ row.kind }} ·
                     {{ formatInventoryReason(row.reason) }}
                 </p>
-                <p>Snapshot {{ row.expected_quantity }} {{ row.stock_unit }}</p>
+                <p v-if="row.blind" data-testid="blind-count">
+                    Blind count: the expected quantity shows to the approver
+                    once the counts are in.
+                </p>
+                <p v-else>
+                    Snapshot {{ row.expected_quantity }} {{ row.stock_unit }}
+                </p>
                 <p v-if="row.quantity">Requested quantity {{ row.quantity }}</p>
                 <p v-if="row.disposal_reference" class="break-words">
                     Disposal reference:
@@ -553,7 +727,12 @@ watch(
                         {{ entry.action }} · Staff {{ entry.actor_user_id }} ·
                         Version {{ entry.lock_version }}
                     </p>
-                    <p v-if="entry.quantity !== null">
+                    <p
+                        v-if="
+                            entry.quantity !== null &&
+                            entry.quantity !== undefined
+                        "
+                    >
                         Quantity {{ entry.quantity }}
                     </p>
                     <p>{{ states[entry.state] }}</p>
