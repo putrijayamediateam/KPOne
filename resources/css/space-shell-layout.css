@@ -223,3 +223,29 @@
     min-width: 0;
     overflow-wrap: anywhere;
 }
+
+/* Below 640 px the branch select and an initials-only account button share one row. */
+@media (max-width: 639px) {
+    .space-shell .space-top {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+    }
+    .space-shell .space-branch {
+        flex: 1;
+        min-width: 0;
+    }
+    .space-shell .space-branch > .space-muted {
+        display: none;
+    }
+    .space-shell .space-select {
+        width: 100%;
+        min-width: 0;
+    }
+    .space-shell .space-account {
+        flex: none;
+        padding: 0 6px;
+    }
+    .space-shell .space-account > div {
+        display: none;
+    }
+}

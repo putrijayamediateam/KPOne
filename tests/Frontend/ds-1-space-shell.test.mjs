@@ -72,3 +72,12 @@ test('DS-3: the Pharmacy widgets render only what the server sent and mutate not
     assert.match(page, /v-if="pharmacy\.toDispense"/);
     assert.match(page, /v-if="pharmacy\.returnsToCheck"/);
 });
+
+test('DS-2: below 640 px the branch select and an initials-only account button share one row', () => {
+    const css = read('resources/css/space-shell-layout.css');
+    assert.match(
+        css,
+        /@media \(max-width: 639px\)[\s\S]*\.space-top[\s\S]*flex-wrap: nowrap/,
+    );
+    assert.match(css, /\.space-account > div \{\s*display: none;/);
+});
