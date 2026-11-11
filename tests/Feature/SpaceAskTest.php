@@ -11,25 +11,28 @@ use Tests\Feature\Visit\VisitTestCase;
 /** DS-3a: the Ask panel offers a question only to someone whose own page shows the answer, and re-checks on every call. */
 class SpaceAskTest extends VisitTestCase
 {
-    public function test_a_ca_is_offered_only_the_dispensary_question_and_gets_403_for_returns(): void
+    public function test_a_ca_is_offered_the_dispensary_and_stock_questions_and_gets_403_for_returns(): void
     {
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
 
         $this->get('/spaces/pharmacy')->assertInertia(fn (Assert $p) => $p
-            ->where('questions', [['key' => 'pharmacy.left_to_dispense', 'label' => 'What is left to dispense?']]));
+            ->where('questions', [
+                ['key' => 'pharmacy.left_to_dispense', 'label' => 'What is left to dispense?'],
+                ['key' => 'pharmacy.stock_attention', 'label' => 'What stock needs attention?'],
+            ]));
         $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.left_to_dispense'])
             ->assertOk()->assertJsonPath('sentence', 'Nothing is waiting at Dispensary.');
         $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.returns_waiting'])->assertForbidden();
         $this->assertSame(1, AuditLog::query()->where('event', 'space_ask.answered')->count());
     }
 
-    public function test_a_ca_supervisor_is_offered_both(): void
+    public function test_a_ca_supervisor_is_offered_all_three(): void
     {
         $sup = $this->actor('ca_supervisor');
         $this->selectBranch($sup);
 
-        $this->get('/spaces/pharmacy')->assertInertia(fn (Assert $p) => $p->has('questions', 2));
+        $this->get('/spaces/pharmacy')->assertInertia(fn (Assert $p) => $p->has('questions', 3));
         $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.returns_waiting'])
             ->assertOk()->assertJsonPath('sentence', 'Nothing is waiting for a check.');
     }
@@ -40,8 +43,10 @@ class SpaceAskTest extends VisitTestCase
             $this->selectBranch($this->actor($role));
             $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.left_to_dispense'])->assertForbidden();
         }
-        $this->selectBranch($this->actor('director'));
-        $this->get('/spaces/pharmacy')->assertInertia(fn (Assert $p) => $p->where('questions', []));
+        foreach (['resident_doctor', 'panel_officer', 'marketing'] as $role) {
+            $this->selectBranch($this->actor($role));
+            $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.stock_attention'])->assertForbidden();
+        }
     }
 
     public function test_an_unknown_or_foreign_question_is_refused_and_a_guest_cannot_ask(): void
@@ -70,5 +75,17 @@ class SpaceAskTest extends VisitTestCase
         $this->assertSame('Ahmad I.', $json['rows'][0][1]);
         $this->assertSame(['key', 'label', 'sentence', 'columns', 'rows'], array_keys($json));
         $this->assertStringNotContainsString('Ismail', json_encode($json));
+    }
+
+    public function test_the_director_is_offered_only_the_stock_question_from_the_stock_review_counts(): void
+    {
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+
+        $this->get('/spaces/pharmacy')->assertInertia(fn (Assert $p) => $p
+            ->where('questions', [['key' => 'pharmacy.stock_attention', 'label' => 'What stock needs attention?']]));
+        $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.stock_attention'])
+            ->assertOk()->assertJsonPath('sentence', 'No stock needs attention.')->assertJsonPath('rows', []);
+        $this->postJson('/spaces/pharmacy/ask', ['question' => 'pharmacy.left_to_dispense'])->assertForbidden();
     }
 }

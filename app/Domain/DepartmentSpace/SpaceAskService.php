@@ -56,6 +56,7 @@ final class SpaceAskService
         return match ($key) {
             'pharmacy.left_to_dispense' => $this->pharmacy->toDispense($actor) !== null,
             'pharmacy.returns_waiting' => $this->pharmacy->returnsToCheck($actor) !== null,
+            'pharmacy.stock_attention' => $this->pharmacy->stockWatch($actor) !== null,
             default => false,
         };
     }
@@ -89,6 +90,24 @@ final class SpaceAskService
 
         return [
             'sentence' => $total === 0 ? 'Nothing is waiting for a check.' : ($total === 1 ? '1 return is waiting for a check.' : $total.' returns are waiting for a check.'),
+            'columns' => [],
+            'rows' => [],
+        ];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function stockAttention(User $actor): array
+    {
+        $watch = $this->pharmacy->stockWatch($actor);
+        abort_if($watch === null, 403);
+        $low = (int) $watch['lowStock'];
+        $expiring = (int) $watch['expiring'];
+        $expired = (int) $watch['expired'];
+
+        return [
+            'sentence' => $low + $expiring + $expired === 0
+                ? 'No stock needs attention.'
+                : "$low below reorder level, $expiring expiring in {$watch['windowDays']} days, $expired expired on hand.",
             'columns' => [],
             'rows' => [],
         ];

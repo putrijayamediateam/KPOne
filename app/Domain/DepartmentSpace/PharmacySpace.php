@@ -31,20 +31,10 @@ final class PharmacySpace
     public function home(User $actor): array
     {
         $branch = $this->branches->activeBranch($actor);
-        $stockWatch = null;
-
         $toDispense = $this->toDispense($actor);
         $returnsToCheck = $this->returnsToCheck($actor);
         // The Stock review's own counts, for anyone who can open that page (counts only; no item names here).
-        if ($branch !== null && $actor->can('inventory.view.branch')) {
-            $page = $this->stockReview->page($actor, []);
-            $stockWatch = [
-                'lowStock' => (int) $page['lists']['low_stock']['total'],
-                'expiring' => (int) $page['lists']['expiring']['total'],
-                'expired' => (int) $page['lists']['expired']['total'],
-                'windowDays' => (int) $page['windowDays'],
-            ];
-        }
+        $stockWatch = $this->stockWatch($actor);
 
         $links = [];
         if ($toDispense !== null) {
@@ -120,6 +110,26 @@ final class PharmacySpace
         ];
 
         return $toDispense;
+    }
+
+    /**
+     * The Stock review's own counts (counts only, no item names), or null when this person cannot open Stock review.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function stockWatch(User $actor): ?array
+    {
+        if ($this->branches->activeBranch($actor) === null || ! $actor->can('inventory.view.branch')) {
+            return null;
+        }
+        $page = $this->stockReview->page($actor, []);
+
+        return [
+            'lowStock' => (int) $page['lists']['low_stock']['total'],
+            'expiring' => (int) $page['lists']['expiring']['total'],
+            'expired' => (int) $page['lists']['expired']['total'],
+            'windowDays' => (int) $page['windowDays'],
+        ];
     }
 
     /** @return array<string, mixed>|null */
