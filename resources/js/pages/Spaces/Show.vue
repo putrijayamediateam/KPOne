@@ -4,11 +4,32 @@ import { computed } from 'vue';
 import SpacePassThroughLayout from '@/layouts/SpacePassThroughLayout.vue';
 
 type Space = { key: string; title: string };
+type Pharmacy = {
+    branchName: string | null;
+    toDispense: {
+        total: number;
+        rows: Array<{
+            visitNumber: string;
+            patientName: string;
+            visitType: string;
+            status: string;
+            minutes: number;
+            medicineCount: number;
+            href: string;
+        }>;
+    } | null;
+    returnsToCheck: { total: number } | null;
+    links: Array<{ title: string; href: string }>;
+};
 
 // The space shell draws its own chrome, so it opts out of the staff layouts without touching the shared layout map.
 defineOptions({ layout: SpacePassThroughLayout });
 
-const props = defineProps<{ space: Space; spaces: Space[] }>();
+const props = defineProps<{
+    space: Space;
+    spaces: Space[];
+    pharmacy?: Pharmacy | null;
+}>();
 
 const groups = computed(() => {
     const layout: Array<[string, string[]]> = [

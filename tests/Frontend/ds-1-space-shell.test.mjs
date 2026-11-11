@@ -52,3 +52,10 @@ test('DS-2: the switch lives in the user menu, defaults off and sends the lock v
     assert.match(menu, /Back to the standard layout/);
     assert.match(menu, /v-if="page\.props\.workspace\?\.spaces\?\.offered"/);
 });
+
+test('DS-3: the Pharmacy widgets render only what the server sent and mutate nothing', () => {
+    const page = read('resources/js/pages/Spaces/Show.vue');
+    assert.match(page, /v-if="pharmacy\.toDispense"/);
+    assert.match(page, /v-if="pharmacy\.returnsToCheck"/);
+    assert.doesNotMatch(page, /router\.|fetch\(/);
+});
