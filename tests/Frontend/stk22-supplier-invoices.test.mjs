@@ -63,10 +63,8 @@ test('each line is entered, with 0 for a line not on the invoice', () => {
 
 test('design round 2: our error pattern, no browser bubbles, money that never wraps', () => {
     assert.match(page, /data-testid="record-invoice"\s+novalidate/);
-    assert.match(
-        page,
-        /'Enter the invoiced quantity\. Type 0 if the line is not on the invoice\.'/,
-    );
+    assert.match(page, /'Enter the quantity\.'/);
+    assert.match(page, /'Enter the line total\.'/);
     assert.match(
         page,
         /\[data-testid="record-invoice"\] \[aria-invalid="true"\]/,

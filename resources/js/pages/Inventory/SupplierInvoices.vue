@@ -226,13 +226,11 @@ const checkRecordForm = () => {
         const entered = form.lines[line.publicId];
 
         if (!entered?.quantity.trim()) {
-            clientErrors[`lines.${index}.quantity`] =
-                'Enter the invoiced quantity. Type 0 if the line is not on the invoice.';
+            clientErrors[`lines.${index}.quantity`] = 'Enter the quantity.';
         }
 
         if (!entered?.total.trim()) {
-            clientErrors[`lines.${index}.total`] =
-                'Enter the line total. Type 0 if the line is not on the invoice.';
+            clientErrors[`lines.${index}.total`] = 'Enter the line total.';
         }
     });
 
@@ -728,11 +726,11 @@ const decisionError = computed(() =>
                                 class="text-xs text-muted-foreground"
                             >
                                 Invoiced {{ money(line.invoicedSen) }} ·
-                                Expected {{ money(line.expectedSen)
-                                }}<template v-if="difference(line)">
+                                Expected {{ money(line.expectedSen) }} ({{
+                                    basisLabel[line.priceBasis ?? 'none']
+                                }})<template v-if="difference(line)">
                                     · {{ difference(line) }}</template
                                 >
-                                ({{ basisLabel[line.priceBasis ?? 'none'] }})
                             </p>
                         </li>
                     </ul>
