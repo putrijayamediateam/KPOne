@@ -16,6 +16,14 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 
 Tab “All active”, “Waiting”, “Serving Now” dan “Consultation Completed” menunjukkan bilangan pesakit anda sendiri pada setiap tab. Cip “Waiting N min” bertukar warna kuning (amber) dari 30 minit dan merah dari 60 minit. Warna hanya peringatan; susunan giliran tidak berubah dan pesakit yang ditahan atau sedang dilayan tidak diwarnakan.
 
+## Panggil pesakit seterusnya (“Call next”)
+
+1. Pada papan “Consultation”, pilih “Call next”. KPOne memilih pesakit seterusnya anda: pesakit hari ini dahulu (Urgent dahulu, kemudian ikut masa tiba), dan pesakit dari hari sebelumnya hanya jika tiada pesakit hari ini yang boleh dipanggil. Pesakit yang ditanda “Not ready to call” dilangkau.
+2. Dialog menamakan pesakit, contohnya “Call A-012 Ahmad Ismail?”. Semak nama, kemudian pilih “Call A-012”. KPOne tidak memanggil sesiapa tanpa pengesahan anda.
+3. Jika dialog menyatakan “The queue changed. Check the patient and press Call again.”, pesakit seterusnya telah berubah; semak nama baharu sebelum memanggil. Jika tiada pesakit boleh dipanggil, dialog menyatakan “Nobody to call”.
+
+Semasa konsultasi anda ditahan (“On Hold”), notis tahanan pada halaman konsultasi juga menawarkan “Call next” dengan teks “You can call your next patient meanwhile.” Selepas panggilan, anda dibawa ke papan “Consultation”; pesakit yang ditahan kekal ditahan.
+
 Jika anda sedang melayani pesakit berstatus Serving yang tidak ditahan, anda tidak boleh memilih “Call In” untuk pesakit lain di mana-mana cawangan. Tahan konsultasi semasa dengan “On Hold” atau lengkapkannya dengan “Complete Consultation” dahulu.
 
 ## Semak alahan sebelum memesan ubat
@@ -49,7 +57,11 @@ Langkah rawatan hanya untuk papan giliran. Ia bukan rekod klinikal dan tidak dip
 6. Buka konsultasi pesakit itu atau pilih “Resume Consultation”. Tanda “Ready to resume” akan hilang dengan sendirinya.
 7. Jika langkah dimasukkan secara salah, buka dialog langkah itu, buka “Entered in error?”, pilih “Reason *” (“Wrong patient”, “Wrong step” atau “Marked too early”) dan pilih “Cancel step”. Langkah tidak dipadam; ia direkodkan sebagai dibatalkan.
 
-Langkah baharu tidak boleh dimulakan selagi langkah yang sudah selesai belum disambung oleh doktor.
+Langkah seterusnya boleh dimulakan walaupun langkah yang selesai masih menunggu anda (“Start next step”). Hanya satu langkah boleh berjalan pada satu masa; senarai “patients waiting” mengira pesakit, bukan langkah.
+
+## Panggil semula dan panggil ke bilik rawatan
+
+Pada halaman konsultasi, pilih “Call again” untuk memaparkan semula panggilan pesakit di TV. Untuk menghantar pesakit ke bilik rawatan, pilih “Call to treatment room”. Jika cawangan ada lebih daripada satu bilik rawatan, pilih bilik dalam “Treatment room” dahulu. Panggilan ini hanya dipaparkan di TV; konsultasi kekal dengan anda. Jika bilik belum dipilih, mesej “Choose a treatment room first.” muncul di bawah pilihan bilik.
 
 ## Panggil pesakit yang belum bersedia
 
@@ -72,4 +84,4 @@ Langkah baharu tidak boleh dimulakan selagi langkah yang sudah selesai belum dis
 
 ## Mesej pada skrin
 
-Mesej seperti “Treatment Plan saved.” kini muncul di bahagian atas tengah skrin, jadi butang “Complete Consultation” di bawah tidak tertutup. Mesej itu hilang selepas beberapa saat.
+Pada halaman konsultasi di skrin 1024 px ke atas, mesej seperti “Treatment Plan saved.” muncul di sudut kiri bawah supaya tidak menutup butang di bahagian atas. Di skrin yang lebih kecil dan di halaman lain, mesej muncul di bahagian atas tengah. Mesej itu hilang selepas beberapa saat.

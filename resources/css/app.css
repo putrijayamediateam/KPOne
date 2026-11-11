@@ -2,6 +2,8 @@
 
 @import 'tw-animate-css';
 
+@import './space-shell.css';
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
@@ -44,6 +46,7 @@
 
     --color-border: var(--border);
     --color-input: var(--input);
+    --color-field-fill: var(--field-fill);
     --color-ring: var(--ring);
 
     --color-brand: var(--brand);
@@ -127,7 +130,8 @@
     --destructive: #b91c1c;
     --destructive-foreground: #ffffff;
     --border: #e4e4e7;
-    --input: #d4d4d8;
+    --input: #8a8a91;
+    --field-fill: #d4d4d8;
     --ring: #db2777;
     --chart-1: hsl(12 76% 61%);
     --chart-2: hsl(173 58% 39%);
@@ -173,8 +177,9 @@
     --destructive: hsl(0 84% 60%);
     --destructive-foreground: hsl(0 0% 98%);
     --border: hsl(0 0% 14.9%);
-    --input: hsl(0 0% 14.9%);
-    --ring: hsl(330 81% 60%);
+    --input: #666666;
+    --field-fill: hsl(0 0% 14.9%);
+    --ring: hsl(330 81% 72%);
     --chart-1: hsl(220 70% 50%);
     --chart-2: hsl(160 60% 45%);
     --chart-3: hsl(30 80% 55%);
@@ -193,7 +198,20 @@
 
 @layer base {
     * {
-        @apply border-border outline-ring/50;
+        @apply border-border outline-ring;
+    }
+    /* DD-51: a form control's edge must reach 3:1, including plain inputs that only set `border`. A class
+       such as border-input, border-destructive or focus-visible:border-ring still wins over this. */
+    input:not(
+        [type='checkbox'],
+        [type='radio'],
+        [type='range'],
+        [type='hidden'],
+        [type='file']
+    ),
+    select,
+    textarea {
+        border-color: var(--input);
     }
     body {
         @apply bg-background text-foreground;

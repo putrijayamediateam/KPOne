@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import { ActionLink } from '@/components/ui/action-link';
 import {
     Dialog,
     DialogContent,
@@ -10,6 +12,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatDate } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
 import {
@@ -204,15 +207,17 @@ watch(
 <template>
     <Head title="Supplier returns" />
     <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
-        <nav class="flex flex-wrap gap-4">
-            <a
-                class="inline-flex min-h-11 items-center underline"
-                href="/inventory"
-                >Inventory</a
-            >
-        </nav>
-        <h1 class="text-2xl font-semibold">Supplier returns</h1>
-        <p>{{ returns.branchName }}</p>
+        <ActionLink
+            href="/inventory"
+            variant="ghost"
+            class="-ml-3 min-h-11 self-start"
+            ><ArrowLeft class="size-4" aria-hidden="true" />
+            Inventory</ActionLink
+        >
+        <PageHeader
+            title="Supplier returns"
+            :description="returns.branchName"
+        />
         <p class="text-sm text-muted-foreground">
             A CA Supervisor requests a return from a verified delivery. A
             Finance Officer or Director who did not request it approves or
