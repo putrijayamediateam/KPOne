@@ -40,4 +40,13 @@ class SpacePreferenceTest extends VisitTestCase
         $this->assertSame(2, (int) $row->lock_version);
         $this->assertSame(2, AuditLog::query()->where('event', 'space_preference.changed')->count());
     }
+
+    public function test_use_the_old_layout_works_from_a_space_page_even_when_the_switch_was_never_on(): void
+    {
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+
+        $this->put('/spaces/preference', ['enabled' => false, 'lock_version' => 0])->assertRedirect('/workspace');
+        $this->assertFalse((bool) DB::table('user_space_preferences')->where('user_id', $director->id)->value('enabled'));
+    }
 }

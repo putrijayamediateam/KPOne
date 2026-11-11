@@ -51,7 +51,9 @@ test('DS-2: the switch lives in the user menu, defaults off and sends the lock v
         menu,
         /lock_version: page\.props\.workspace\?\.spaces\?\.lockVersion/,
     );
-    assert.match(menu, /Back to the standard layout/);
+    assert.match(menu, /Use the old layout/);
+    assert.match(menu, /page\.url\.startsWith\('\/spaces'\)/);
+    assert.match(menu, /switchSpaces\(!inNewLayout\)/);
     assert.match(menu, /v-if="page\.props\.workspace\?\.spaces\?\.offered"/);
 });
 
@@ -80,5 +82,12 @@ test('DS-2: account menu rows are 44 px below 640 px', () => {
     assert.match(
         read('resources/js/pages/Spaces/Show.vue'),
         /max-sm:\[&_\[role=menuitem\]\]:min-h-11/,
+    );
+});
+
+test('DS-2: the account button names the person', () => {
+    assert.match(
+        read('resources/js/pages/Spaces/Show.vue'),
+        /:aria-label="`Account menu, \$\{user\.name\}`"/,
     );
 });
