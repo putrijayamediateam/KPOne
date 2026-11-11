@@ -153,6 +153,26 @@ const openStart = () => {
     startErrors.value = {};
     startOpen.value = true;
 };
+// An error goes away as soon as its field is changed.
+watch(
+    () => start.batches.length,
+    () => delete startErrors.value.batch_public_ids,
+);
+watch(
+    () => start.reason,
+    () => {
+        delete startErrors.value.reason;
+        delete startErrors.value.note;
+    },
+);
+watch(
+    () => start.note,
+    () => delete startErrors.value.note,
+);
+watch(
+    () => start.sku,
+    () => delete startErrors.value.sku_public_id,
+);
 const startFields = [
     'sku_public_id',
     'batch_public_ids',
@@ -212,6 +232,17 @@ const startGeneral = computed(() =>
 const lifting = ref<Recall | null>(null);
 const lift = reactive({ reason: '', note: '', key: crypto.randomUUID() });
 const liftErrors = ref<Record<string, string>>({});
+watch(
+    () => lift.reason,
+    () => {
+        delete liftErrors.value.reason;
+        delete liftErrors.value.note;
+    },
+);
+watch(
+    () => lift.note,
+    () => delete liftErrors.value.note,
+);
 const openLift = (recall: Recall) => {
     lift.reason = '';
     lift.note = '';
@@ -360,7 +391,7 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                 </ul>
                 <dl class="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2">
                     <div>
-                        <dt class="inline font-medium">Reason:</dt>
+                        <dt class="me-1 inline font-medium">Reason:</dt>
                         <dd class="inline">
                             {{ reasons[recall.reason] ?? recall.reason
                             }}<template v-if="recall.reference">
@@ -369,20 +400,20 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                         </dd>
                     </div>
                     <div>
-                        <dt class="inline font-medium">Started:</dt>
+                        <dt class="me-1 inline font-medium">Started:</dt>
                         <dd class="inline">
                             {{ recall.startedOn }} by {{ recall.startedBy }}
                         </dd>
                     </div>
                     <div v-if="recall.note" class="sm:col-span-2">
-                        <dt class="inline font-medium">Note:</dt>
+                        <dt class="me-1 inline font-medium">Note:</dt>
                         <dd class="inline break-words">{{ recall.note }}</dd>
                     </div>
                     <div
                         v-if="recall.status === 'lifted'"
                         class="sm:col-span-2"
                     >
-                        <dt class="inline font-medium">Lifted:</dt>
+                        <dt class="me-1 inline font-medium">Lifted:</dt>
                         <dd class="inline">
                             {{ recall.liftedOn }} by {{ recall.liftedBy }} ·
                             {{
@@ -500,6 +531,7 @@ const batchWord = (n: number) => (n === 1 ? '1 batch' : `${n} batches`);
                     >
                         {{ startGeneral }}
                     </p>
+                    <p class="text-sm font-medium">SKU</p>
                     <InventorySearchSelect
                         id="recall-sku"
                         v-model="start.sku"
