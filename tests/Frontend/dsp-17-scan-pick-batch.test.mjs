@@ -55,6 +55,14 @@ test('the hint clears on a change, a new scan or a save', () => {
             'const outcome = scanOutcome(sku); batchHint.value = null;',
         ),
     );
+    // A refused or unknown scan clears it too, and a removed line never keeps it (Hakim).
+    const accept = show.slice(show.indexOf('const acceptScan'));
+    assert.ok(
+        accept.slice(0, accept.indexOf('};')).includes('clearLineHint();'),
+    );
+    assert.ok(flat.includes('@keydown.enter.capture="clearLineHint"'));
+    assert.ok(flat.includes('watch(visibleItems, (items) => {'));
+    assert.ok(flat.includes("chosen.value = null; clearBatchHint('add');"));
     // Scan to add highlights the Add form batch but keeps focus on Quantity.
     assert.ok(
         flat.includes(

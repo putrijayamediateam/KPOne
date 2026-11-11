@@ -467,6 +467,8 @@ const isScanChecked = (item: Item): boolean =>
 const scanOutcome = (sku: ScannedSku) =>
     checkScan(sku, scanLines.value, removedScanLines.value, scanMarks.value);
 const acceptScan = (sku: ScannedSku): string | null => {
+    // DSP-17: any new scan clears the batch hint, including one refused here (Hakim).
+    clearLineHint();
     const outcome = scanOutcome(sku);
 
     return outcome.kind === 'removed' || outcome.kind === 'not_on_case'
@@ -498,6 +500,22 @@ const pointAtBatch = async (publicId: string) => {
         behavior: reduced ? 'auto' : 'smooth',
     });
 };
+// A typed or scanned code (Enter in the scan box) starts a new scan, even one that turns out unknown.
+const clearLineHint = () => {
+    if (batchHint.value !== null && batchHint.value !== 'add') {
+        batchHint.value = null;
+    }
+};
+// A hinted line that is removed (or otherwise no longer shown) loses its hint, so a restore never brings it back.
+watch(visibleItems, (items) => {
+    if (
+        batchHint.value !== null &&
+        batchHint.value !== 'add' &&
+        !items.some((item) => item.publicId === batchHint.value)
+    ) {
+        batchHint.value = null;
+    }
+});
 const markScanned = (sku: ScannedSku) => {
     const outcome = scanOutcome(sku);
     batchHint.value = null;
@@ -964,6 +982,7 @@ const addMedicine = () => {
             },
             onSuccess: () => {
                 chosen.value = null;
+                clearBatchHint('add');
                 addAllergyCheck.value = false;
                 results.value = [];
                 searchTerm.value = '';
@@ -1335,6 +1354,7 @@ const batchHintClass =
                     :accept="acceptScan"
                     :describe="describeScan"
                     data-testid="dispensary-scan"
+                    @keydown.enter.capture="clearLineHint"
                     @found="markScanned"
                 />
                 <section class="divide-y rounded-lg border bg-background">
