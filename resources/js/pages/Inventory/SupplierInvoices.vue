@@ -130,6 +130,8 @@ const reasonLabel = (value: string | null) =>
     [...acceptReasons, ...rejectReasons].find((r) => r.value === value)
         ?.label ?? '';
 
+/** Whole sen to "RM 1,234.50", with a non-breaking space so RM never wraps from its number. */
+const money = (sen: number | null | undefined) => `RM\u00a0${rm(sen)}`;
 /** Whole sen to "1,234.50". */
 const rm = (sen: number | null | undefined) => {
     if (sen === null || sen === undefined) {
@@ -142,6 +144,21 @@ const rm = (sen: number | null | undefined) => {
     );
 
     return `${ringgit}.${String(sen % 100).padStart(2, '0')}`;
+};
+/** "RM 0.99 higher" or "RM 0.50 lower" than expected, for cost holders. */
+const difference = (line: InvoiceLine) => {
+    if (
+        line.invoicedSen === undefined ||
+        line.expectedSen === null ||
+        line.expectedSen === undefined ||
+        line.invoicedSen === line.expectedSen
+    ) {
+        return '';
+    }
+
+    const gap = line.invoicedSen - line.expectedSen;
+
+    return `${money(Math.abs(gap))} ${gap > 0 ? 'higher' : 'lower'}`;
 };
 const quantity = (value: string, unit: string) =>
     `${trimQuantity(value)} ${unit}`;
@@ -180,10 +197,65 @@ watch(selectedOrder, (order) => {
         ]),
     );
 });
+// Checked when Record invoice is pressed: messages under each field, focus on the first one (no browser bubbles).
+const clientErrors = reactive<Record<string, string>>({});
+const fieldErrors = computed<Record<string, string>>(() => ({
+    ...errors.value,
+    ...Object.fromEntries(
+        Object.entries(clientErrors).filter(([, message]) => message),
+    ),
+}));
+const checkRecordForm = () => {
+    for (const key of Object.keys(clientErrors)) {
+        delete clientErrors[key];
+    }
+
+    if (!form.order) {
+        clientErrors.purchase_order_public_id = 'Choose the purchase order.';
+    }
+
+    if (!form.number.trim()) {
+        clientErrors.invoice_number = 'Enter the invoice number.';
+    }
+
+    if (!form.date) {
+        clientErrors.invoice_date = 'Enter the invoice date.';
+    }
+
+    selectedOrder.value?.lines.forEach((line, index) => {
+        const entered = form.lines[line.publicId];
+
+        if (!entered?.quantity.trim()) {
+            clientErrors[`lines.${index}.quantity`] =
+                'Enter the invoiced quantity. Type 0 if the line is not on the invoice.';
+        }
+
+        if (!entered?.total.trim()) {
+            clientErrors[`lines.${index}.total`] =
+                'Enter the line total. Type 0 if the line is not on the invoice.';
+        }
+    });
+
+    return Object.keys(clientErrors).length === 0;
+};
+const focusFirstError = () =>
+    void nextTick(() =>
+        document
+            .querySelector<HTMLElement>(
+                '[data-testid="record-invoice"] [aria-invalid="true"]',
+            )
+            ?.focus(),
+    );
 const record = () => {
+    if (busy.value) {
+        return;
+    }
+
     const order = selectedOrder.value;
 
-    if (!order || busy.value) {
+    if (!checkRecordForm() || !order) {
+        focusFirstError();
+
         return;
     }
 
@@ -206,6 +278,7 @@ const record = () => {
             preserveScroll: true,
             onStart: () => (busy.value = true),
             onFinish: () => (busy.value = false),
+            onError: () => focusFirstError(),
             onSuccess: () =>
                 Object.assign(form, {
                     order: '',
@@ -239,7 +312,7 @@ const submitDecision = () => {
         return;
     }
 
-    reasonError.value = decision.reason ? '' : 'Choose a reason.';
+    reasonError.value = decision.reason ? '' : 'Pick a reason to continue.';
     noteError.value =
         decision.reason === 'other' && decision.note.trim() === ''
             ? 'Add a note to explain why.'
@@ -335,6 +408,7 @@ const decisionError = computed(() =>
                     v-else
                     class="space-y-3"
                     data-testid="record-invoice"
+                    novalidate
                     @submit.prevent="record"
                 >
                     <div class="grid grid-cols-1 gap-3 md:grid-cols-2">
@@ -345,10 +419,9 @@ const decisionError = computed(() =>
                             <select
                                 id="invoice-order"
                                 v-model="form.order"
-                                required
                                 class="h-11 w-full min-w-0 rounded-md border bg-background px-3 lg:h-9"
                                 :aria-invalid="
-                                    !!errors.purchase_order_public_id
+                                    !!fieldErrors.purchase_order_public_id
                                 "
                                 aria-describedby="invoice-order-error"
                             >
@@ -365,7 +438,7 @@ const decisionError = computed(() =>
                             </select>
                             <InputError
                                 id="invoice-order-error"
-                                :message="errors.purchase_order_public_id"
+                                :message="fieldErrors.purchase_order_public_id"
                             />
                         </label>
                         <label
@@ -375,15 +448,14 @@ const decisionError = computed(() =>
                             <Input
                                 id="invoice-number"
                                 v-model="form.number"
-                                required
                                 maxlength="60"
                                 class="h-11 lg:h-9"
-                                :aria-invalid="!!errors.invoice_number"
+                                :aria-invalid="!!fieldErrors.invoice_number"
                                 aria-describedby="invoice-number-error"
                             />
                             <InputError
                                 id="invoice-number-error"
-                                :message="errors.invoice_number"
+                                :message="fieldErrors.invoice_number"
                             />
                         </label>
                         <div class="grid min-w-0 gap-1 text-sm">
@@ -394,12 +466,12 @@ const decisionError = computed(() =>
                                 v-model="form.date"
                                 aria-labelledby="invoice-date-label"
                                 aria-describedby="invoice-date-error"
-                                :aria-invalid="!!errors.invoice_date"
+                                :aria-invalid="!!fieldErrors.invoice_date"
                                 calendar-label="Invoice date"
                             />
                             <InputError
                                 id="invoice-date-error"
-                                :message="errors.invoice_date"
+                                :message="fieldErrors.invoice_date"
                             />
                         </div>
                         <label
@@ -412,7 +484,7 @@ const decisionError = computed(() =>
                                 inputmode="decimal"
                                 maxlength="20"
                                 class="h-11 lg:h-9"
-                                :aria-invalid="!!errors.stated_total"
+                                :aria-invalid="!!fieldErrors.stated_total"
                                 aria-describedby="invoice-total-help invoice-total-error"
                             />
                             <span
@@ -422,7 +494,7 @@ const decisionError = computed(() =>
                             >
                             <InputError
                                 id="invoice-total-error"
-                                :message="errors.stated_total"
+                                :message="fieldErrors.stated_total"
                             />
                         </label>
                     </div>
@@ -466,51 +538,56 @@ const decisionError = computed(() =>
                             <label class="grid gap-1 text-sm"
                                 >Invoiced quantity ({{ line.stockUnit }})
                                 <Input
+                                    :id="`invoice-line-${index}-quantity`"
                                     v-model="form.lines[line.publicId].quantity"
                                     inputmode="decimal"
-                                    required
                                     class="h-11 lg:h-9"
                                     :aria-invalid="
-                                        !!errors[`lines.${index}.quantity`]
+                                        !!fieldErrors[`lines.${index}.quantity`]
                                     "
                                     :aria-describedby="`invoice-line-${index}-quantity-error`"
                                 />
                                 <InputError
                                     :id="`invoice-line-${index}-quantity-error`"
-                                    :message="errors[`lines.${index}.quantity`]"
+                                    :message="
+                                        fieldErrors[`lines.${index}.quantity`]
+                                    "
                                 />
                             </label>
                             <label class="grid gap-1 text-sm"
                                 >Line total, RM
                                 <Input
+                                    :id="`invoice-line-${index}-total`"
                                     v-model="form.lines[line.publicId].total"
                                     inputmode="decimal"
-                                    required
                                     class="h-11 lg:h-9"
                                     :aria-invalid="
-                                        !!errors[`lines.${index}.total`]
+                                        !!fieldErrors[`lines.${index}.total`]
                                     "
                                     :aria-describedby="`invoice-line-${index}-total-error`"
                                 />
                                 <InputError
                                     :id="`invoice-line-${index}-total-error`"
-                                    :message="errors[`lines.${index}.total`]"
+                                    :message="
+                                        fieldErrors[`lines.${index}.total`]
+                                    "
                                 />
                             </label>
                         </div>
-                        <InputError :message="errors.lines" />
+                        <InputError :message="fieldErrors.lines" />
                     </fieldset>
                     <InputError
                         :message="
-                            errors.idempotency_key ??
-                            errors.expected_branch_id ??
-                            errors.price
+                            fieldErrors.idempotency_key ??
+                            fieldErrors.expected_branch_id ??
+                            fieldErrors.price
                         "
                     />
-                    <Button
-                        type="submit"
-                        class="h-11 lg:h-9"
-                        :disabled="busy || !selectedOrder"
+                    <p class="text-sm text-muted-foreground">
+                        Amounts you enter are visible to a Director or Finance
+                        Officer only.
+                    </p>
+                    <Button type="submit" class="h-11 lg:h-9" :disabled="busy"
                         >Record invoice</Button
                     >
                 </form>
@@ -568,7 +645,7 @@ const decisionError = computed(() =>
                                 {{ invoice.invoiceDate }} · Order
                                 {{ invoice.orderNumber }}
                                 <template v-if="invoices.showAmounts">
-                                    · RM {{ rm(invoice.totalSen) }}</template
+                                    · {{ money(invoice.totalSen) }}</template
                                 >
                             </p>
                         </div>
@@ -650,10 +727,12 @@ const decisionError = computed(() =>
                                 v-if="invoices.showAmounts"
                                 class="text-xs text-muted-foreground"
                             >
-                                Invoiced RM {{ rm(line.invoicedSen) }} ·
-                                Expected RM {{ rm(line.expectedSen) }} ({{
-                                    basisLabel[line.priceBasis ?? 'none']
-                                }})
+                                Invoiced {{ money(line.invoicedSen) }} ·
+                                Expected {{ money(line.expectedSen)
+                                }}<template v-if="difference(line)">
+                                    · {{ difference(line) }}</template
+                                >
+                                ({{ basisLabel[line.priceBasis ?? 'none'] }})
                             </p>
                         </li>
                     </ul>
@@ -709,7 +788,7 @@ const decisionError = computed(() =>
             :title="`${decision.kind === 'accepted' ? 'Accept' : 'Reject'} invoice ${decision.invoice?.number ?? ''}?`"
             :description="
                 decision.kind === 'accepted'
-                    ? 'The difference is accepted and the invoice is ready to pay outside KPOne. Stock does not change.'
+                    ? 'The difference is accepted and the invoice is ready to pay outside KPOne. Stock does not change. This cannot be undone.'
                     : 'The invoice goes back to the supplier. A corrected copy can be recorded under the same number. Stock does not change.'
             "
             :confirm-label="
@@ -760,6 +839,13 @@ const decisionError = computed(() =>
                         class="text-sm text-destructive"
                     >
                         {{ reasonError }}
+                    </p>
+                    <p
+                        v-else-if="!decision.reason"
+                        class="text-sm text-muted-foreground"
+                        data-testid="pick-reason-hint"
+                    >
+                        Pick a reason to continue.
                     </p>
                 </fieldset>
                 <label class="grid gap-1 text-sm" for="decision-note">

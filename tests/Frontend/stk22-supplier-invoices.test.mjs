@@ -60,3 +60,25 @@ test('each line is entered, with 0 for a line not on the invoice', () => {
     );
     assert.match(page, /Checked against the sum of the lines\./);
 });
+
+test('design round 2: our error pattern, no browser bubbles, money that never wraps', () => {
+    assert.match(page, /data-testid="record-invoice"\s+novalidate/);
+    assert.match(
+        page,
+        /'Enter the invoiced quantity\. Type 0 if the line is not on the invoice\.'/,
+    );
+    assert.match(
+        page,
+        /\[data-testid="record-invoice"\] \[aria-invalid="true"\]/,
+    );
+    assert.match(page, /:disabled="busy"\s*>Record invoice/);
+    assert.match(page, /`RM\\u00a0\$\{rm\(sen\)\}`/);
+    assert.doesNotMatch(page, /RM \{\{/);
+    assert.match(page, /'higher' : 'lower'/);
+    assert.match(
+        page,
+        /Amounts you enter are visible to a Director or Finance\s+Officer only\./,
+    );
+    assert.match(page, /Pick a reason to continue\./);
+    assert.match(page, /This cannot be undone\./);
+});
