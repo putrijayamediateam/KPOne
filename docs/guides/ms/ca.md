@@ -74,7 +74,7 @@ Pada kes “Dispensary” konsultasi yang sedang menunggu atau sedang disediakan
 2. Imbas kotak ubat atau taip kod, kemudian pilih “Look up”.
 3. Jika satu ubat sahaja sepadan, ada stok dan tiada padanan alahan, ubat itu dipilih dalam borang tambah dan kursor berada pada kuantiti. Skrin menyatakan, contohnya, “Found Demo Panadol 200mg. Set the quantity and batch, then press Add.”
 4. Jika ada padanan alahan, kotak merah muncul dan senarai ubat dipaparkan; semak senarai alahan dahulu sebelum memilih “Choose”. Jika beberapa ubat sepadan, atau tiada stok, pilih sendiri daripada senarai.
-5. Imbasan hanya mencari ubat; ia tidak menyimpan apa-apa. Anda masih perlu mengisi kuantiti, arahan dan batch, kemudian memilih “Add to list”.
+5. Imbasan hanya mencari ubat; ia tidak menyimpan apa-apa. Anda masih perlu mengisi kuantiti, arahan dan batch, kemudian memilih “Add to list”. Di bawah pilihan batch, skrin mengingatkan anda tentang batch pada kotak (lihat “Pilih batch yang tercetak pada kotak” di bawah).
 6. Jika skrin menyatakan kod itu “is not linked to a catalogue medicine”, cari ubat menggunakan nama, atau minta CA Supervisor memautkan kod itu.
 7. Pilih “Close scan” atau tekan Escape untuk menutup kotak imbasan.
 
@@ -86,6 +86,24 @@ Imbasan ditolak semasa simpanan sedang berjalan, atau jika anda sudah menaip ara
 2. Jika kotak itu sepadan dengan baris ubat yang disimpan, baris itu ditanda “Checked by scan”. Mesej di bawah kotak imbasan menyatakan, contohnya, “Matches: … 1 of 2 lines checked by scan. Shown on this screen only.”, dan ringkasan di sebelah kanan menunjukkan “Checked by scan” dengan “1 of 2 (not saved)”.
 3. Jika kotak itu bukan untuk kes ini, panel merah menyatakan “Not on this case: …”. Jika kotak itu hanya pada baris yang telah dibuang, panel merah menyatakan “On this case but removed: …”. Semak sama ada anda mengambil ubat atau kekuatan yang betul.
 4. Tanda ini hanya pada skrin dan tidak disimpan; ia hilang selepas muat semula. Imbasan tidak menyemak kuantiti atau batch, dan tidak menghalang “Complete Dispensary”.
+5. Selepas imbasan yang sepadan, kursor kekal dalam kotak imbasan supaya anda boleh terus mengimbas kotak seterusnya. Di bawah pilihan batch baris itu, skrin menunjukkan peringatan batch (lihat bahagian seterusnya).
+
+## Pilih batch yang tercetak pada kotak
+
+Imbasan tidak pernah memilih batch untuk anda. Pilihan batch kekal seperti sebelumnya; anda sendiri memilih batch yang tercetak pada kotak ubat.
+
+1. Jika kod bar biasa diimbas (tanpa maklumat batch), skrin menyatakan “Pick the batch printed on the box.”
+2. Sesetengah kotak mempunyai kod GS1 yang turut membawa nombor batch dan tarikh luput. Jika kod itu dibaca, skrin menyatakan batch dan tarikh luput pada kotak, contohnya “Box: batch PCM2401, exp …”, dan pilihan batch yang sepadan dalam senarai bermula dengan “Matches the box · ”:
+    - “One batch in the list matches it. Pick it yourself.”: pilih batch itu sendiri.
+    - “… batches in the list match it (different locations). Pick the right one yourself.”: batch yang sama ada di beberapa lokasi; pilih lokasi yang betul.
+3. Mesej berwarna amaran bermaksud kotak itu perlu disemak:
+    - “No batch in the list matches it. Check the box.”: batch pada kotak tiada dalam senarai stok cawangan.
+    - “Batch … is in the list, but its expiry is different. Check the box.”: nombor batch sama tetapi tarikh luput berbeza daripada yang direkod semasa penerimaan.
+    - “It matches a batch on hold, which cannot be used. Check with a supervisor.”: batch itu sedang ditahan dan tidak boleh didispens.
+4. Jika batch yang sedang dipilih bukan batch pada kotak, mesej itu ditambah “The selected batch is not the one on the box.” Tukar pilihan batch jika perlu, kemudian simpan seperti biasa.
+5. Jika hanya tarikh luput dapat dibaca, skrin menyatakan, contohnya, “Box: exp …. The batch could not be read from this code. Pick the batch printed on the box.” Baca batch pada kotak dan pilih sendiri.
+
+Peringatan ini hanya pada skrin; ia tidak menyimpan, menukar atau menghalang apa-apa.
 
 ## Cetak label ubat
 
