@@ -152,12 +152,6 @@
     gap: 8px;
     cursor: pointer;
 }
-.space-shell .space-account-name {
-    max-width: 14ch;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-}
 .space-shell .space-select:focus-visible,
 .space-shell .space-account:focus-visible,
 .space-shell .space-existing a:focus-visible {
