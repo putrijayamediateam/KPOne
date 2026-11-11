@@ -19,6 +19,8 @@ export type BoxBatchHint = {
     warn: boolean;
     /** The message names the box's batch (so the page can say when the selected batch is a different one). */
     named: boolean;
+    /** Options with the box's batch number, whatever their expiry or hold: "the same batch" for that clause. */
+    sameBatch: number[];
 };
 
 const normalise = (value: string): string => value.trim().toUpperCase();
@@ -34,7 +36,13 @@ export function boxBatchHint(
     const candidate = read?.batch ?? read?.batch_unconfirmed ?? null;
 
     if (read === null || (candidate === null && read.expiry === null)) {
-        return { message: pickHint, matches: [], warn: false, named: false };
+        return {
+            message: pickHint,
+            matches: [],
+            warn: false,
+            named: false,
+            sameBatch: [],
+        };
     }
 
     const expiry = read.expiry === null ? '' : `exp ${formatDate(read.expiry)}`;
@@ -67,6 +75,7 @@ export function boxBatchHint(
             matches: [],
             warn: false,
             named: false,
+            sameBatch: [],
         };
     }
 
@@ -83,6 +92,7 @@ export function boxBatchHint(
             matches: [],
             warn: true,
             named: true,
+            sameBatch,
         };
     }
 
@@ -92,6 +102,7 @@ export function boxBatchHint(
             matches: [],
             warn: true,
             named: true,
+            sameBatch,
         };
     }
 
@@ -103,5 +114,6 @@ export function boxBatchHint(
         matches: usable,
         warn: false,
         named: true,
+        sameBatch,
     };
 }

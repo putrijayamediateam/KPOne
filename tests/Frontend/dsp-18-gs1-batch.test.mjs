@@ -45,7 +45,13 @@ const gs1 = (batch, expiry, certain = true) => ({
 test('a plain barcode keeps the DSP-17 hint and marks nothing', () => {
     assert.deepEqual(
         JSON.parse(JSON.stringify(boxBatchHint(null, options, date, HINT))),
-        { message: HINT, matches: [], warn: false, named: false },
+        {
+            message: HINT,
+            matches: [],
+            warn: false,
+            named: false,
+            sameBatch: [],
+        },
     );
     assert.equal(
         boxBatchHint(gs1(null, null), options, date, HINT).message,
@@ -93,6 +99,8 @@ test('a batch that is not in the list, or only on hold, warns and marks no usabl
     );
     assert.equal(otherExpiry.warn, true);
     assert.deepEqual([...otherExpiry.matches], []);
+    // Same batch number, other expiry: the page does not say the selected batch is a different one.
+    assert.deepEqual([...otherExpiry.sameBatch], [1]);
     assert.equal(
         otherExpiry.message,
         'Box: batch ZZ99, exp D(2028-01-30). Batch ZZ99 is in the list, but its expiry is different. Check the box.',
@@ -175,7 +183,7 @@ test('the page names the box and marks options, and a GS1 scan never selects a b
     );
     assert.ok(
         flat.includes(
-            'hint.named && (selected === undefined || !hint.matches.includes(selected))',
+            'hint.named && (selected === undefined || !hint.sameBatch.includes(selected))',
         ),
     );
     assert.equal(
