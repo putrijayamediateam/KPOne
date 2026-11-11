@@ -670,6 +670,14 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         v-if="application.open"
                         class="space-y-3 border-t border-zinc-200 pt-5 dark:border-zinc-800"
                     >
+                        <p class="text-sm text-zinc-600 dark:text-zinc-400">
+                            Tell us you are no longer applying. We keep your
+                            application for now.
+                            <span lang="ms" class="block"
+                                >Beritahu kami anda tidak lagi memohon. Kami
+                                menyimpan permohonan anda buat masa ini.</span
+                            >
+                        </p>
                         <p
                             v-if="errors.withdraw"
                             role="alert"
@@ -737,11 +745,11 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         data-test="status-delete"
                     >
                         <p class="text-sm text-zinc-600 dark:text-zinc-400">
-                            You can delete your application and the details you
-                            sent us, including your CV.
+                            Remove your application and the details you sent us,
+                            including your CV, now.
                             <span lang="ms" class="block"
-                                >Anda boleh memadam permohonan anda dan butiran
-                                yang anda hantar, termasuk CV anda.</span
+                                >Buang permohonan anda dan butiran yang anda
+                                hantar, termasuk CV anda, sekarang.</span
                             >
                         </p>
                         <p

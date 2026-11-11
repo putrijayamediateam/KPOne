@@ -16,4 +16,7 @@ test('the status page offers Delete my application behind a confirm, and says wh
     assert.match(page, /@keydown\.esc="keepDetails"/);
     assert.match(page, /Your application and its details have been deleted\./);
     assert.match(page, /errors\.erase/);
+    // What each keeps, so Withdraw and Delete are not confused (Daniel).
+    assert.match(page, /We keep your\s+application for now\./);
+    assert.match(page, /Remove your application and the details you sent us,/);
 });
