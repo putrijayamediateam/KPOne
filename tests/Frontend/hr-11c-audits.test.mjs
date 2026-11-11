@@ -46,7 +46,7 @@ test('every field has a visible label, errors show through InputError and target
     }
 
     for (const id of [
-        'item-section-',
+        'section-title-',
         'item-title-',
         'item-help-',
         'retention-days',
@@ -54,7 +54,10 @@ test('every field has a visible label, errors show through InputError and target
         assert.match(src.settings, new RegExp(id), id);
     }
 
-    assert.match(src.settings, /errors\[`items\.\$\{n\}\.title`\]/);
+    assert.match(
+        src.settings,
+        /errors\.value\[`items\.\$\{index\}\.\$\{field\}`\]/,
+    );
     assert.match(src.settings, /errors\.photo_retention_days/);
     assert.match(src.tab, /min-h-11 lg:min-h-9/);
     assert.match(src.tab, /max-lg:h-11/);
@@ -66,4 +69,26 @@ test('saves carry an idempotency key and the lock version, and the page offers t
     assert.match(src.page, /audits: 'Audits'/);
     assert.match(src.page, /AuditSettings/);
     assert.match(src.settings, /KPOne ships no checklist/);
+});
+
+const flat = Object.fromEntries(
+    Object.entries(src).map(([k, v]) => [k, v.replace(/\s+/g, ' ')]),
+);
+
+test('Daniel changes: photo button only on a fail or a required item, a reason beside a disabled Start, sections hold their items, a counted submit message and a radiogroup named by the item', () => {
+    assert.match(
+        src.tab,
+        /draft\[i\.id\]\?\.result === 'fail' \|\| i\.photoRequired/,
+    );
+    assert.match(flat.tab, /Choose a branch to start\./);
+    assert.match(flat.tab, /missedLastMonth\.length \? 'previous' : 'current'/);
+    assert.match(
+        src.tab,
+        /Start \{\{ m\.branchName \}\}, \{\{ m\.monthLabel \}\}/,
+    );
+    assert.match(flat.tab, /will become/);
+    assert.match(flat.tab, /:aria-labelledby="`item-title-\$\{i\.id\}`"/);
+    assert.match(flat.settings, /Move up/);
+    assert.match(flat.settings, /Another section has this name/);
+    assert.match(flat.page, /settings-anchors/);
 });

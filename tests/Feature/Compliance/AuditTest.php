@@ -115,8 +115,11 @@ class AuditTest extends VisitTestCase
         $this->assertSame(1, DB::table('compliance_checklist_versions')->count());
         $this->post(route('clinic-compliance.checklist.save'), ['items' => [['section' => 'Front desk', 'title' => 'Check the door'], ['section' => 'Store', 'title' => 'Count the gloves']], 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $this->assertSame(2, DB::table('compliance_checklist_versions')->count());
+        // "Front desk" and "Front Desk" are one section: the first spelling wins.
+        $this->post(route('clinic-compliance.checklist.save'), ['items' => [['section' => 'Front desk', 'title' => 'Check the door'], ['section' => 'Front Desk', 'title' => 'Check the window']], 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->assertSame(['Front desk'], DB::table('compliance_checklist_items')->where('version_id', DB::table('compliance_checklist_versions')->where('version', 3)->value('id'))->pluck('section')->unique()->values()->all());
         $this->assertSame(1, DB::table('compliance_checklist_items')->where('version_id', DB::table('compliance_checklist_versions')->where('version', 1)->value('id'))->count());
-        $this->get(route('clinic-compliance.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page->where('compliance.settings.audit.version', 2)->has('compliance.settings.audit.items', 2));
+        $this->get(route('clinic-compliance.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page->where('compliance.settings.audit.version', 3)->has('compliance.settings.audit.items', 2));
     }
 
     public function test_an_audit_needs_a_checklist_one_per_branch_and_month_and_a_branch_assignment(): void

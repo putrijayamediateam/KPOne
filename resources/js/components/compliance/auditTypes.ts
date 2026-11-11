@@ -53,7 +53,12 @@ export type AuditsTabData = {
     checklistReady: boolean;
     startable: { id: number; name: string }[];
     audits: AuditRow[];
-    missedLastMonth: { branchName: string; monthLabel: string }[];
+    missedLastMonth: {
+        branchId: number;
+        branchName: string;
+        monthLabel: string;
+        canStart: boolean;
+    }[];
     selected: AuditDetail | null;
     tasks: TaskRow[];
     cancelReasons: { value: string; label: string }[];

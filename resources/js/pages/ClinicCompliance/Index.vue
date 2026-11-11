@@ -693,9 +693,40 @@ const unusedSuggestions = computed(() => {
             v-else-if="compliance.tab === 'settings' && compliance.settings"
             class="flex flex-col gap-8"
         >
+            <nav
+                class="flex flex-wrap gap-2 text-sm"
+                aria-label="On this page"
+                data-test="settings-anchors"
+            >
+                <a
+                    v-if="compliance.settings.types"
+                    href="#licence-types"
+                    class="inline-flex min-h-11 items-center rounded-md border border-input bg-card px-3 font-medium text-brand-strong hover:bg-muted/50 lg:min-h-9"
+                    >Licence types</a
+                >
+                <a
+                    v-if="compliance.settings.audit"
+                    href="#audit-checklist"
+                    class="inline-flex min-h-11 items-center rounded-md border border-input bg-card px-3 font-medium text-brand-strong hover:bg-muted/50 lg:min-h-9"
+                    >Audit checklist</a
+                >
+                <a
+                    v-if="compliance.settings.audit"
+                    href="#audit-settings"
+                    class="inline-flex min-h-11 items-center rounded-md border border-input bg-card px-3 font-medium text-brand-strong hover:bg-muted/50 lg:min-h-9"
+                    >Audit settings</a
+                >
+                <a
+                    v-if="compliance.settings.fridges"
+                    href="#vaccine-fridges"
+                    class="inline-flex min-h-11 items-center rounded-md border border-input bg-card px-3 font-medium text-brand-strong hover:bg-muted/50 lg:min-h-9"
+                    >Vaccine fridges</a
+                >
+            </nav>
             <section
                 v-if="compliance.settings.types"
-                class="flex flex-col gap-3"
+                id="licence-types"
+                class="flex scroll-mt-20 flex-col gap-3"
                 aria-label="Licence types"
             >
                 <div class="flex flex-wrap items-center justify-between gap-2">

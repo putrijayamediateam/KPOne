@@ -34,6 +34,7 @@ final class ChecklistService
             throw ValidationException::withMessages(['items' => 'Add between 1 and '.self::MAX_ITEMS.' items.']);
         }
         $items = [];
+        $sections = [];
         foreach (array_values($raw) as $i => $row) {
             if (! is_array($row)) {
                 throw ValidationException::withMessages(["items.$i" => 'Check this item.']);
@@ -44,6 +45,8 @@ final class ChecklistService
             if (mb_strlen((string) $section) < 2 || mb_strlen((string) $title) < 2) {
                 throw ValidationException::withMessages(["items.$i.title" => 'Enter at least 2 characters.']);
             }
+            // "Front desk" and "Front Desk" are one section: the first spelling wins.
+            $section = $sections[mb_strtolower((string) $section)] ??= $section;
             $items[] = ['section' => $section, 'title' => $title, 'help' => $help, 'photo_required' => filter_var($row['photo_required'] ?? false, FILTER_VALIDATE_BOOL)];
         }
 

@@ -56,7 +56,7 @@ final class AuditPageService
         foreach ($visible as $b) {
             $prev = AuditService::monthStart((string) $b->timezone, 'previous');
             if (! $audits->contains(fn ($a): bool => (int) $a->branch_id === (int) $b->id && substr((string) $a->month_start, 0, 7) === $prev->format('Y-m') && $a->status === 'submitted')) {
-                $missed[] = ['branchName' => (string) $b->name, 'monthLabel' => $prev->format('F Y')];
+                $missed[] = ['branchId' => (int) $b->id, 'branchName' => (string) $b->name, 'monthLabel' => $prev->format('F Y'), 'canStart' => (bool) $assigned[$b->id] && $perform && ! $audits->contains(fn ($a): bool => (int) $a->branch_id === (int) $b->id && substr((string) $a->month_start, 0, 7) === $prev->format('Y-m'))];
             }
         }
 

@@ -40,7 +40,11 @@ const open = (audit?: string) =>
     });
 
 // ---- Start an audit ----
-const start = reactive({ branch: '', month: 'current', processing: false });
+const start = reactive({
+    branch: '',
+    month: props.audits.missedLastMonth.length ? 'previous' : 'current',
+    processing: false,
+});
 const branchOptions = computed(() =>
     props.audits.startable.map((b) => ({ value: String(b.id), label: b.name })),
 );
@@ -48,18 +52,19 @@ const monthOptions = [
     { value: 'current', label: 'This month' },
     { value: 'previous', label: 'Last month' },
 ];
-const startAudit = () => {
+const startFor = (branch: number | string, month: string) => {
     start.processing = true;
     router.post(
         `${base}/audits`,
         {
-            branch_id: start.branch,
-            month: start.month,
+            branch_id: branch,
+            month,
             idempotency_key: crypto.randomUUID(),
         },
         { onFinish: () => (start.processing = false) },
     );
 };
+const startAudit = () => startFor(start.branch, start.month);
 
 // ---- Answers on the open audit (kept on screen until saved) ----
 type Draft = { result: string; note: string };
@@ -114,6 +119,14 @@ const saveAnswers = (after?: () => void) => {
         },
     );
 };
+const failedCount = computed(
+    () => items.value.filter((i) => draft[i.id]?.result === 'fail').length,
+);
+const submitDescription = computed(() =>
+    failedCount.value === 0
+        ? 'Submitting is final. No item failed, so no task will be made.'
+        : `Submitting is final. ${failedCount.value} failed ${failedCount.value === 1 ? 'item' : 'items'} will become ${failedCount.value === 1 ? 'a task' : 'tasks'} for the branch.`,
+);
 const confirmSubmit = ref(false);
 const submitting = ref(false);
 const submitAudit = () => {
@@ -276,21 +289,35 @@ const statusLabel = (s: string) =>
 
         <div
             v-if="audits.missedLastMonth.length && !audits.selected"
-            class="flex items-start gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-strong"
+            class="flex flex-col gap-2 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm text-warning-strong"
             role="status"
             data-test="missed-month"
         >
-            <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-            <p>
-                No submitted audit for last month:
-                <template
-                    v-for="(m, n) in audits.missedLastMonth"
-                    :key="m.branchName"
-                    >{{ n ? ', ' : '' }}{{ m.branchName }} ({{
-                        m.monthLabel
-                    }})</template
-                >.
+            <p class="flex items-start gap-2">
+                <TriangleAlert
+                    class="mt-0.5 size-4 shrink-0"
+                    aria-hidden="true"
+                />
+                <span>No submitted audit for last month.</span>
             </p>
+            <ul class="flex flex-wrap gap-2">
+                <li v-for="m in audits.missedLastMonth" :key="m.branchId">
+                    <Button
+                        v-if="m.canStart"
+                        type="button"
+                        variant="outline"
+                        class="min-h-11 lg:min-h-9"
+                        :disabled="start.processing"
+                        @click="startFor(m.branchId, 'previous')"
+                        >Start {{ m.branchName }}, {{ m.monthLabel }}</Button
+                    >
+                    <span
+                        v-else
+                        class="inline-flex min-h-11 items-center lg:min-h-9"
+                        >{{ m.branchName }}, {{ m.monthLabel }}</span
+                    >
+                </li>
+            </ul>
         </div>
 
         <!-- One audit open on screen -->
@@ -346,14 +373,19 @@ const statusLabel = (s: string) =>
                     class="flex flex-col gap-2 border-b pb-3 last:border-0 last:pb-0"
                     data-test="audit-item"
                 >
-                    <p class="text-sm font-medium break-words">{{ i.title }}</p>
+                    <p
+                        :id="`item-title-${i.id}`"
+                        class="text-sm font-medium break-words"
+                    >
+                        {{ i.title }}
+                    </p>
                     <p v-if="i.help" class="text-xs text-muted-foreground">
                         {{ i.help }}
                     </p>
                     <div
                         v-if="audits.selected.canEdit"
                         role="radiogroup"
-                        :aria-label="`Result for ${i.title}`"
+                        :aria-labelledby="`item-title-${i.id}`"
                         class="flex flex-wrap gap-2"
                     >
                         <label
@@ -465,11 +497,15 @@ const statusLabel = (s: string) =>
                         </li>
                     </ul>
                     <FileChooseButton
-                        v-if="audits.selected.canEdit && i.photos.length < 3"
+                        v-if="
+                            audits.selected.canEdit &&
+                            i.photos.length < 3 &&
+                            (draft[i.id]?.result === 'fail' || i.photoRequired)
+                        "
                         :id="`photo-${i.id}`"
                         accept="image/jpeg,image/png"
                         :label="`Add a photo for ${i.title}`"
-                        status="JPG or PNG, up to 3 per item"
+                        status="JPG or PNG"
                         :status-id="`photo-state-${i.id}`"
                         @change="addAuditPhoto(i, $event)"
                     />
@@ -503,7 +539,7 @@ const statusLabel = (s: string) =>
             <OperationalConfirmDialog
                 :open="confirmSubmit"
                 title="Submit this audit?"
-                description="Submitting is final. Each failed item becomes a task for the branch."
+                :description="submitDescription"
                 confirm-label="Submit audit"
                 processing-label="Submitting…"
                 :processing="submitting"
@@ -567,9 +603,19 @@ const statusLabel = (s: string) =>
                         type="submit"
                         class="min-h-11 lg:min-h-9"
                         :disabled="start.processing || !start.branch"
+                        :aria-describedby="
+                            start.branch ? undefined : 'start-reason'
+                        "
                         data-test="start-audit"
                         >Start audit</Button
                     >
+                    <p
+                        v-if="!start.branch"
+                        id="start-reason"
+                        class="basis-full text-xs text-muted-foreground"
+                    >
+                        Choose a branch to start.
+                    </p>
                 </form>
             </div>
 
