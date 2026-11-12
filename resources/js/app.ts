@@ -8,6 +8,7 @@ import SettingsLayout from '@/layouts/settings/Layout.vue';
 import { initializeFlashToast } from '@/lib/flashToast';
 import { installAuthenticationHistoryBoundary } from '@/lib/inertia-auth-history-boundary';
 import { readInitialInertiaPage } from '@/lib/inertia-bootstrap';
+import { applyUiVersion, uiVersionFor } from '@/lib/ui-version';
 
 const appName = import.meta.env.VITE_APP_NAME || 'Laravel';
 const initialPage = readInitialInertiaPage();
@@ -19,6 +20,7 @@ const authenticationHistory = installAuthenticationHistoryBoundary(
 if (authenticationHistory.ready) {
     router.on('navigate', (event) => {
         authenticationHistory.boundary?.acceptServerPage(event.detail.page);
+        applyUiVersion(uiVersionFor(event.detail.page));
     });
 
     createInertiaApp({
