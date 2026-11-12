@@ -19,3 +19,21 @@ export type BranchContext = {
     available: BranchSummary[];
     canSwitch: boolean;
 } | null;
+
+/** UX-17: the Version 2 sidebar, sent only when "Try the new layout" is on (V2ShellNavigation). */
+export type V2Shell = {
+    groups: Array<{
+        title: string;
+        items: Array<{
+            key: string;
+            title: string;
+            href: string;
+            links: Array<{ title: string; href: string }>;
+        }>;
+    }>;
+    more: Array<{
+        title: string;
+        links: Array<{ title: string; href: string }>;
+    }>;
+    current: { key: string; title: string; href: string } | null;
+};

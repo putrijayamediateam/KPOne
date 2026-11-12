@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import V2PageCrumbs from '@/components/workspace/V2PageCrumbs.vue';
+
 /**
  * UI-RESTYLE 0.3a: the one page frame (GUIDE section 19). It centres the page content, sets the side padding
  * (16 px on a phone, 32 px from 1024 px) and the 24 px gap between cards. A page adopts it in its own restyle PR;
@@ -28,6 +30,8 @@ withDefaults(
         }"
         data-test="page-frame"
     >
+        <!-- UX-20: the Version 2 breadcrumb, 8 px above the page title. Nothing renders in Classic. -->
+        <V2PageCrumbs in-frame class="-mb-4" />
         <slot />
         <!-- A page that already has activity data passes it here; the strip sits at the bottom of the frame. -->
         <section

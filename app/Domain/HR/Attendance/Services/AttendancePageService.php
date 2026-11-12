@@ -267,6 +267,8 @@ final class AttendancePageService
                 'canDecide' => $c->status === 'pending' && $actor->can(ClockPermissions::REVIEW) && $c->user_id !== $actor->id && $c->proposed_by_user_id !== $actor->id,
                 'canCancel' => $c->status === 'pending' && $c->proposed_by_user_id === $actor->id,
                 'lockVersion' => $c->lock_version,
+                // When the correction was sent (ISO, UTC), so the HR space can show how long the oldest has waited.
+                'sentAt' => CarbonImmutable::parse($c->created_at)->utc()->toIso8601String(),
             ];
         })->values()->all();
     }

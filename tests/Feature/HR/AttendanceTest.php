@@ -459,6 +459,22 @@ class AttendanceTest extends VisitTestCase
             ->assertSessionHasErrors(['in_time' => 'There is a clock-in on 9 Mar 2027 with no clock-out. Add its clock-out time instead.']);
     }
 
+    public function test_a_waiting_correction_says_when_it_was_sent(): void
+    {
+        // For the HR space's "oldest waiting" line (Daniel, Kavitha): when the correction was sent, ISO and in UTC.
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $this->settings($hr)->assertSessionHasNoErrors();
+        $this->at('2027-03-08 08:00');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $session = ClockSession::query()->sole();
+        $this->at('2027-03-08 18:00'); // 10:00 UTC
+        $this->propose($ca, ['kind' => 'set_out', 'session_id' => $session->public_id, 'out_time' => '2027-03-08T17:00', 'reason_code' => 'forgot'])->assertSessionHasNoErrors();
+        $this->selectBranch($hr);
+        $this->get(route('hr.attendance.index', ['tab' => 'review']))->assertInertia(fn (Assert $page) => $page
+            ->where('attendance.review.pending.0.sentAt', '2027-03-08T10:00:00+00:00'));
+    }
+
     public function test_review_pairs_each_half_of_a_split_shift_across_two_branches_with_its_own_shift(): void
     {
         // HR-3a known limit: Review loaded shifts for one branch, so the other branch's half of a split shift showed as

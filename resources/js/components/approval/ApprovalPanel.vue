@@ -1,0 +1,341 @@
+<script setup lang="ts">
+import type { RequestPayload } from '@inertiajs/core';
+import { router } from '@inertiajs/vue3';
+import { computed, ref, useId } from 'vue';
+import InputError from '@/components/InputError.vue';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
+import OperationalSelect from '@/components/ui/select/OperationalSelect.vue';
+import { Textarea } from '@/components/ui/textarea';
+import { getInitials } from '@/composables/useInitials';
+
+/**
+ * UX-18: "Waiting for a second person" (GUIDE section 18, two-person approvals; Daniel's rules 2026-11-12).
+ *
+ * A look and a caller only. It sends the caller's own payload to an EXISTING endpoint; every rule (who may decide,
+ * the person who recorded it never deciding, lock versions, idempotency) stays in the domain services, and the
+ * server's answer is shown as it comes back. `canDecide` and `blockedReason` come from the server and only choose
+ * what to show: the server still refuses a decision it does not allow.
+ *
+ * Refusals must come back as validation errors (422, as `ValidationException` does): those are shown here. Any other
+ * status is Inertia's own error page. Approve sends at once with no confirmation step, so an adopting page should only
+ * pass an approve action that the evidence on the card is enough to decide.
+ *
+ * On the card, Approve is outline and Reject is destructive-outline, never two filled buttons side by side. The
+ * Reject confirm inside the dialog is filled destructive beside an outline Cancel. Reject asks for its
+ * required reason in a dialog: a reason code list (`reject.reasons`) or free text.
+ */
+type Method = 'post' | 'put' | 'patch';
+type Action = {
+    url: string;
+    method?: Method;
+    data?: Record<string, unknown>;
+};
+
+const props = withDefaults(
+    defineProps<{
+        title: string;
+        recordedBy: string;
+        recordedAt?: string;
+        /** Who may decide, in words, for the text and the empty circle ("a Finance Officer or Director"). */
+        neededFrom?: string;
+        canDecide: boolean;
+        /** Server text shown instead of the buttons when the viewer may not decide. */
+        blockedReason?: string;
+        approve: Action;
+        reject: Action & {
+            /** The request field the existing endpoint reads the reason from, e.g. `reason_code`. */
+            reasonField: string;
+            reasons?: Array<{ value: string; label: string }>;
+            reasonLabel?: string;
+            maxLength?: number;
+        };
+    }>(),
+    {
+        recordedAt: undefined,
+        neededFrom: undefined,
+        blockedReason: undefined,
+    },
+);
+
+// Several panels can share a page, so every id is unique per panel.
+const uid = useId();
+const titleId = `approval-panel-title-${uid}`;
+const reasonId = `approval-panel-reason-${uid}`;
+const reasonErrorId = `approval-panel-reason-error-${uid}`;
+
+// The card's Reject is destructive-outline: the card is not the confirm step (Daniel).
+const REJECT_OUTLINE =
+    'border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive';
+
+// The confirm in the dialog is filled destructive. It uses the theme's own text colour on the fill and never the
+// shared button's 60% dark fill, so its text is at least 4.5:1 in Version 2 (6.5:1 light, 8.0:1 dark).
+const REJECT_FILLED =
+    'bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:hover:bg-destructive/90';
+
+const busy = ref<'approve' | 'reject' | null>(null);
+const errors = ref<Record<string, string>>({});
+const rejectOpen = ref(false);
+const reason = ref<string | number>('');
+
+const firstError = computed(() => Object.values(errors.value)[0] ?? '');
+/** An error the server returned under another key (a stale version, for example), shown beside the reason. */
+const otherError = computed(
+    () =>
+        Object.entries(errors.value).find(
+            ([key]) => key !== props.reject.reasonField,
+        )?.[1] ?? '',
+);
+const reasonError = computed(
+    () => errors.value[props.reject.reasonField] ?? '',
+);
+/** The full sentence: the visible lines say the same in two parts, and the avatar stack reads it out. */
+const recorderText = computed(
+    () =>
+        `Recorded by ${props.recordedBy}${props.recordedAt ? `, ${props.recordedAt}` : ''}. Needs a second person${props.neededFrom ? ` (${props.neededFrom})` : ''}.`,
+);
+const recordedLine = computed(
+    () =>
+        `Recorded by ${props.recordedBy}${props.recordedAt ? `, ${props.recordedAt}` : ''}.`,
+);
+
+const send = (
+    which: 'approve' | 'reject',
+    action: Action,
+    extra: Record<string, unknown> = {},
+) => {
+    busy.value = which;
+    errors.value = {};
+    router.visit(action.url, {
+        method: action.method ?? 'post',
+        data: { ...(action.data ?? {}), ...extra } as RequestPayload,
+        preserveScroll: true,
+        onError: (bag) => {
+            errors.value = bag;
+        },
+        onSuccess: () => {
+            rejectOpen.value = false;
+            reason.value = '';
+        },
+        onFinish: () => {
+            busy.value = null;
+        },
+    });
+};
+
+const approve = () => send('approve', props.approve);
+
+// The dialog cannot close while a rejection is being sent; closing it clears its errors.
+const setRejectOpen = (open: boolean) => {
+    if (!open && busy.value === 'reject') {
+        return;
+    }
+
+    rejectOpen.value = open;
+
+    if (!open) {
+        errors.value = {};
+    }
+};
+
+const openReject = () => {
+    errors.value = {};
+    reason.value = '';
+    rejectOpen.value = true;
+};
+
+const reasonGiven = computed(() => String(reason.value).trim() !== '');
+
+const confirmReject = () => {
+    if (!reasonGiven.value) {
+        errors.value = {
+            [props.reject.reasonField]: 'Give a reason to reject.',
+        };
+
+        return;
+    }
+
+    send('reject', props.reject, {
+        [props.reject.reasonField]:
+            typeof reason.value === 'string'
+                ? reason.value.trim()
+                : reason.value,
+    });
+};
+</script>
+
+<template>
+    <section
+        class="flex flex-col gap-3 rounded-[14px] border bg-card p-4"
+        :aria-labelledby="titleId"
+        data-test="approval-panel"
+    >
+        <div class="flex items-start gap-3">
+            <div
+                class="flex shrink-0 -space-x-2"
+                role="group"
+                :aria-label="recorderText"
+            >
+                <span
+                    class="relative z-10 flex size-8 items-center justify-center rounded-full border-2 border-card bg-[color-mix(in_oklab,var(--foreground)_12%,var(--card))] text-xs font-semibold text-foreground"
+                    role="img"
+                    :aria-label="`Recorded by ${recordedBy}`"
+                    data-test="approval-panel-recorder"
+                    ><span aria-hidden="true">{{
+                        getInitials(recordedBy)
+                    }}</span></span
+                >
+                <span
+                    class="size-8 rounded-full border-2 border-dashed border-muted-foreground/60 bg-card"
+                    role="img"
+                    aria-label="Second person: not yet"
+                    data-test="approval-panel-empty"
+                />
+            </div>
+            <div class="min-w-0 flex-1">
+                <p
+                    class="text-xs font-medium text-muted-foreground"
+                    data-test="approval-panel-heading"
+                >
+                    Waiting for a second person
+                </p>
+                <h3
+                    :id="titleId"
+                    class="text-[15px] font-semibold text-foreground"
+                >
+                    {{ title }}
+                </h3>
+                <p class="text-sm text-muted-foreground">
+                    {{ recordedLine
+                    }}<template v-if="neededFrom">
+                        Needs {{ neededFrom }}.</template
+                    >
+                </p>
+            </div>
+        </div>
+
+        <div v-if="$slots.default" class="text-sm">
+            <slot />
+        </div>
+
+        <div
+            v-if="canDecide"
+            class="flex flex-col gap-2 sm:flex-row sm:justify-end"
+        >
+            <Button
+                variant="outline"
+                class="max-sm:h-11 max-sm:w-full"
+                :disabled="busy !== null"
+                data-test="approval-panel-approve"
+                @click="approve"
+            >
+                {{ busy === 'approve' ? 'Approving…' : 'Approve' }}
+            </Button>
+            <Button
+                variant="outline"
+                :class="[REJECT_OUTLINE, 'max-sm:h-11 max-sm:w-full']"
+                :disabled="busy !== null"
+                data-test="approval-panel-reject"
+                @click="openReject"
+            >
+                Reject…
+            </Button>
+        </div>
+        <p
+            v-else
+            class="rounded-lg bg-muted px-3 py-2 text-sm text-muted-foreground"
+            data-test="approval-panel-blocked"
+        >
+            {{
+                blockedReason ??
+                'You cannot decide this one. Someone else must approve it.'
+            }}
+        </p>
+
+        <InputError
+            v-if="!rejectOpen && firstError"
+            :message="firstError"
+            data-test="approval-panel-error"
+        />
+
+        <Dialog :open="rejectOpen" @update:open="setRejectOpen">
+            <DialogContent
+                class="motion-reduce:transition-none motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none sm:max-w-md"
+            >
+                <DialogHeader class="text-left sm:text-left">
+                    <DialogTitle class="pr-8 text-left"
+                        >Reject: {{ title }}</DialogTitle
+                    >
+                    <DialogDescription class="text-left">
+                        Say why you are rejecting it. A reason is required.
+                    </DialogDescription>
+                </DialogHeader>
+                <form
+                    class="flex flex-col gap-2"
+                    novalidate
+                    @submit.prevent="confirmReject"
+                >
+                    <Label :for="reasonId">{{
+                        reject.reasonLabel ?? 'Reason'
+                    }}</Label>
+                    <OperationalSelect
+                        v-if="reject.reasons?.length"
+                        :id="reasonId"
+                        v-model="reason"
+                        :options="reject.reasons"
+                        :label="reject.reasonLabel ?? 'Reason'"
+                        placeholder="Choose a reason"
+                        :invalid="reasonError !== ''"
+                        :describedby="reasonErrorId"
+                        trigger-class="max-sm:h-11"
+                    />
+                    <Textarea
+                        v-else
+                        :id="reasonId"
+                        :model-value="String(reason)"
+                        rows="3"
+                        :maxlength="reject.maxLength ?? 500"
+                        :aria-invalid="reasonError !== '' || undefined"
+                        @update:model-value="reason = String($event)"
+                        :aria-describedby="reasonErrorId"
+                    />
+                    <InputError :id="reasonErrorId" :message="reasonError" />
+                    <InputError
+                        :message="otherError"
+                        data-test="approval-panel-dialog-error"
+                    />
+                    <DialogFooter class="mt-2 gap-2">
+                        <Button
+                            type="button"
+                            variant="outline"
+                            class="max-sm:h-11"
+                            data-test="approval-panel-reject-cancel"
+                            @click="setRejectOpen(false)"
+                        >
+                            Cancel
+                        </Button>
+                        <!-- Daniel: the dialog's Reject is the confirm step, so it is filled destructive (as Cancel visit). -->
+                        <Button
+                            type="submit"
+                            variant="destructive"
+                            :class="[REJECT_FILLED, 'max-sm:h-11']"
+                            :disabled="busy !== null"
+                            :aria-disabled="!reasonGiven || undefined"
+                            data-test="approval-panel-reject-confirm"
+                        >
+                            {{ busy === 'reject' ? 'Rejecting…' : 'Reject' }}
+                        </Button>
+                    </DialogFooter>
+                </form>
+            </DialogContent>
+        </Dialog>
+    </section>
+</template>
