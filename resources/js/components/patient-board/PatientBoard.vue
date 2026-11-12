@@ -589,12 +589,17 @@ const rowWaitingTone = (row: PatientBoardRow) =>
 /* TEMPORARY WORKAROUND for the shared DisclosureText: its md:block beats line-clamp-2's display, so a long
    note never clamps. Remove this rule once DisclosureText is fixed (Staff Experience). It keeps the Visit
    notes column to two lines; the tooltip still carries the full text. */
-@media (width >= 1280px) {
+@media (width >= 768px) {
     .patient-board td[data-label='Visit notes'] :deep(button) {
         display: -webkit-box;
         -webkit-box-orient: vertical;
-        -webkit-line-clamp: 2;
+        -webkit-line-clamp: 3; /* a card: about three lines, the tooltip has the rest */
         overflow: hidden;
+    }
+}
+@media (width >= 1280px) {
+    .patient-board td[data-label='Visit notes'] :deep(button) {
+        -webkit-line-clamp: 2;
     }
 }
 @media (width < 1280px) {
