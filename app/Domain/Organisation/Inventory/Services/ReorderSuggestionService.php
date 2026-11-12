@@ -48,7 +48,7 @@ final class ReorderSuggestionService
         /** @var list<\stdClass> $low */
         $low = app(InventoryStockReviewService::class)->lowStockQuery($actor, $branch)
             ->when($needle, fn ($query) => $query->where(fn ($match) => $match->where('s.sku_code', 'ilike', $needle)->orWhere('i.generic_name', 'ilike', $needle)->orWhere('l.name', 'ilike', $needle)))
-            ->addSelect(['s.public_id as sku_public_id'])
+            ->addSelect(['s.public_id as sku_public_id', 'l.public_id as location_public_id'])
             ->orderBy('s.sku_code')->orderBy('l.name')->orderBy('l.id')
             ->get()->all();
 
@@ -92,6 +92,8 @@ final class ReorderSuggestionService
                 'key' => $key,
                 'skuCode' => $row->sku_code,
                 'skuPublicId' => $row->sku_public_id,
+                // STK-18: "Request these" sends the row to a purchase request for this location.
+                'locationPublicId' => $row->location_public_id,
                 'itemName' => $row->item,
                 'location' => $row->location,
                 'stockUnit' => $row->stock_unit,
@@ -122,7 +124,7 @@ final class ReorderSuggestionService
 
         return [
             'branchName' => $branch->name,
-            'canSeeCost' => $cost,
+            'canSeeCost' => $cost, 'canRequest' => $actor->can(PurchaseRequestService::CREATE),
             'lookBackDays' => self::LOOK_BACK_DAYS,
             'filters' => ['q' => $data['q'] ?? '', 'need' => $data['need'] ?? 'order'],
             'rows' => array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE),
