@@ -3,6 +3,8 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
+import QrIntakeList from '@/components/registration-v2/QrIntakeList.vue';
+import RowDialogs from '@/components/registration-v2/RowDialogs.vue';
 import { DateField } from '@/components/ui/date-field';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
@@ -32,8 +34,6 @@ import {
     waitingMinutes,
 } from '@/lib/registration-v2';
 import type { VisitOptions, VisitRow } from '@/types';
-import QrIntakeList from './QrIntakeList.vue';
-import RowDialogs from './RowDialogs.vue';
 
 /**
  * Version 2 Registration board (shown only in V2; Classic is `pages/Registration/Index.vue`, untouched). Same props,

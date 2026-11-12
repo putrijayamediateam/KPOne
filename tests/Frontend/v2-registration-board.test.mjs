@@ -326,7 +326,7 @@ test('V2 board: a cancel goes through the dialog (required reason), never a one-
     assert.match(actions, /deps\.openCancel\(visit\)/);
     // The V2 dialog sends the same endpoint and payload keys as the Classic one, with a required reason (V2Dialog's
     // reasonLabel) cut to the same 500 characters, and only this one has the filled destructive Confirm.
-    const v2 = read('resources/js/pages/Registration/V2/RowDialogs.vue');
+    const v2 = read('resources/js/components/registration-v2/RowDialogs.vue');
     const classicDialog = read(
         'resources/js/components/patient-board/VisitCancellationDialog.vue',
     );
@@ -462,7 +462,7 @@ test('V2 board page: uses the V2 blocks and the Classic props, tabs and filters;
 
 test('V2 Mark not ready and Ready dialogs: same endpoint, payload keys and reasons as Classic, opened from the menu', () => {
     const { rowMenu, NOT_READY_REASONS } = load();
-    const v2 = read('resources/js/pages/Registration/V2/RowDialogs.vue');
+    const v2 = read('resources/js/components/registration-v2/RowDialogs.vue');
     const classicActions = read(
         'resources/js/components/queue/CallReadinessActions.vue',
     );
@@ -525,7 +525,7 @@ test('V2 Mark not ready and Ready dialogs: same endpoint, payload keys and reaso
 });
 
 test('V2 QR intake tab: same records, links, order and paging as the Classic table, which stays unchanged', () => {
-    const v2 = read('resources/js/pages/Registration/V2/QrIntakeList.vue');
+    const v2 = read('resources/js/components/registration-v2/QrIntakeList.vue');
     const classicTable = read(
         'resources/js/components/registration/QrIntakeTable.vue',
     );
