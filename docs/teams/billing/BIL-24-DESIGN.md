@@ -20,6 +20,12 @@ Why the second rule is enough:
 
 An open visit's own due-now money is not listed (BIL-23 rule), so open visits need only the pay-later rule.
 
+The rule rests on application checks: the database would still let a completed visit's receivable or Panel share be
+superseded. Any new post-completion path that raises what is owed must write a payment reversal or extend this
+filter. Kumar traced every current writer (completion, reopen, responsibility, void and reverse, Panel claims and
+corrections, adjustments, payments, refunds, receipt corrections, patient merge) and found none that breaks it.
+`BillsToCollectTest` pins both branches, including a settled pay-later bill that owes again only through a correction.
+
 The money sums are still grouped joins, as in BIL-23. `payment_allocations`, `payment_reversals` and
 `coverage_allocations` have no `invoice_id` index, so a per-bill sum scans each table once per bill. That version was
 tried first and took more than ten minutes on 20,000 bills. An index migration is left as the next step if ever needed.

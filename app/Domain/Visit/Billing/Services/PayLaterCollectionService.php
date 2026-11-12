@@ -78,9 +78,12 @@ final class PayLaterCollectionService
     private function eligible(int $organisationId, int $branchId, string $timezone): Builder
     {
         // BIL-24: only invoices that can still owe money are looked at. A visit is completed only when nothing is due
-        // now (CompleteVisitationService), and after completion only payments, refunds (which cancel out) and receipt
-        // corrections (BIL-16, which always add a payment reversal) can change what it owes. So a bill can owe money
-        // only while it has approved pay later still to collect, or when its completed visit's invoice has a reversal.
+        // now (CompleteVisitationService), and after completion only payments (which lower it), BIL-10 refund credits
+        // (which lower payable and paid equally) and receipt corrections (BIL-16, which always add a payment reversal)
+        // can change what it owes. So a bill can owe money only while it has approved pay later still to collect, or
+        // when its completed visit's invoice has a reversal. Any new post-completion path that raises what is owed
+        // (for example superseding or writing off a receivable or Panel share) must write a payment reversal or extend
+        // this filter; BillsToCollectTest pins both branches.
         // The sums stay grouped joins: payment_allocations, payment_reversals and coverage_allocations have no invoice_id
         // index, so a per-bill subquery would scan each table once per bill (measured far slower at 20,000 bills).
         $sum = fn (string $table) => DB::table($table)->where('organisation_id', $organisationId)
