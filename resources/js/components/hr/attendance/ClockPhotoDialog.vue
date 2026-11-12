@@ -343,7 +343,9 @@ onBeforeUnmount(() => {
                                 class="h-[min(20rem,55%)] w-[min(15rem,60%)] rounded-[50%] border-[3px] border-white/70"
                                 aria-hidden="true"
                             />
-                            <p class="text-[15px]">
+                            <p
+                                class="rounded-full bg-black/65 px-4 py-1.5 text-[15px] font-medium text-white"
+                            >
                                 Centre your face in the oval
                             </p>
                         </div>
@@ -474,7 +476,7 @@ onBeforeUnmount(() => {
                         <button
                             ref="doneButton"
                             type="button"
-                            class="min-h-14 w-full rounded-full bg-success text-[17px] font-bold text-success-foreground focus-visible:ring-2 focus-visible:ring-success focus-visible:ring-offset-2 focus-visible:outline-none"
+                            class="min-h-14 w-full rounded-full bg-[#0852da] text-[17px] font-bold text-white focus-visible:ring-2 focus-visible:ring-[#0852da] focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-[#76adff] dark:text-[#0b1a33] dark:focus-visible:ring-[#76adff]"
                             data-test="clock-photo-done-button"
                             @click="close"
                         >

@@ -3,7 +3,6 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { CalendarCheck, CalendarX, Clock } from '@lucide/vue';
 import {
     computed,
-    nextTick,
     onBeforeUnmount,
     onMounted,
     reactive,
@@ -51,6 +50,7 @@ import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
 import { useClockPhoto } from '@/composables/useClockPhoto';
+import { useScrollStrip } from '@/composables/useScrollStrip';
 
 type Tab = 'my' | 'review' | 'overtime' | 'summary' | 'settings';
 type Kind = 'change_in' | 'set_out' | 'add_day';
@@ -232,19 +232,17 @@ const visit = (params: Record<string, string | number | undefined>) =>
         },
     );
 
-// ---- Tabs (DD-30 pattern from the Queue board, #296) ----
+// ---- Tabs: the shared scroll strip brings the current tab into view and fades the hidden edge (Daniel, HR-PHOTO) ----
 const tabStrip = useTemplateRef<HTMLElement>('tabStrip');
-const tabNav = () =>
-    tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]') ?? null;
-const moreTabsRight = ref(false);
-const updateTabFade = () => {
-    const nav = tabNav();
-
-    moreTabsRight.value =
-        nav !== null &&
-        nav.scrollWidth > nav.clientWidth + 1 &&
-        nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
-};
+const tabNav = ref<HTMLElement | null>(null);
+onMounted(() => {
+    tabNav.value =
+        tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]') ?? null;
+});
+const { measure: measureTabs, fadeStyle: tabFade } = useScrollStrip(
+    tabNav,
+    '[aria-selected="true"]',
+);
 const selectTab = (tab: string) => visit({ tab });
 
 // ---- Server time (Daniel: ticks every second, never in a live region) ----
@@ -292,13 +290,11 @@ watch(() => props.attendance.my?.serverNow, syncClock);
 onMounted(() => {
     syncClock();
     timer = setInterval(() => (tick.value = Date.now()), 1000);
-    const nav = tabNav();
-    nav?.addEventListener('scroll', updateTabFade, { passive: true });
-    void nextTick().then(updateTabFade);
+    tabNav.value?.addEventListener('scroll', measureTabs, { passive: true });
 });
 onBeforeUnmount(() => {
     clearInterval(timer);
-    tabNav()?.removeEventListener('scroll', updateTabFade);
+    tabNav.value?.removeEventListener('scroll', measureTabs);
 });
 
 // ---- One polite live region for state changes only (a refusal is read once, by its alert under the button) ----
@@ -700,11 +696,7 @@ const correctionStatusTone = (
                 :tabs="tabs"
                 label="Attendance sections"
                 class="min-w-0 max-sm:[&>button]:h-11 max-sm:[&>button]:px-2.5"
-                :class="
-                    moreTabsRight
-                        ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
-                        : ''
-                "
+                :style="tabFade"
                 @update:model-value="selectTab"
             />
         </div>
@@ -1260,14 +1252,19 @@ const correctionStatusTone = (
                                         />
                                     </td>
                                     <td>{{ r.shift?.label ?? 'No shift' }}</td>
-                                    <td class="tabular-nums">
-                                        {{ r.session?.in ?? '–' }}
-                                        <ClockPhotoThumb
-                                            v-if="r.photos?.in"
-                                            :photo="r.photos.in"
-                                            :name="`Clock-in photo of ${r.person}`"
-                                            class="mt-1"
-                                        />
+                                    <td class="min-w-64 tabular-nums">
+                                        <div
+                                            class="flex flex-wrap items-center gap-2 xl:flex-nowrap"
+                                        >
+                                            <span>{{
+                                                r.session?.in ?? '–'
+                                            }}</span>
+                                            <ClockPhotoThumb
+                                                v-if="r.photos?.in"
+                                                :photo="r.photos.in"
+                                                :name="`Clock-in photo of ${r.person}`"
+                                            />
+                                        </div>
                                         <p
                                             v-if="r.location?.in"
                                             class="text-xs text-muted-foreground"
@@ -1276,14 +1273,19 @@ const correctionStatusTone = (
                                             {{ r.location.in }}
                                         </p>
                                     </td>
-                                    <td class="tabular-nums">
-                                        {{ r.session?.out ?? '–' }}
-                                        <ClockPhotoThumb
-                                            v-if="r.photos?.out"
-                                            :photo="r.photos.out"
-                                            :name="`Clock-out photo of ${r.person}`"
-                                            class="mt-1"
-                                        />
+                                    <td class="min-w-64 tabular-nums">
+                                        <div
+                                            class="flex flex-wrap items-center gap-2 xl:flex-nowrap"
+                                        >
+                                            <span>{{
+                                                r.session?.out ?? '–'
+                                            }}</span>
+                                            <ClockPhotoThumb
+                                                v-if="r.photos?.out"
+                                                :photo="r.photos.out"
+                                                :name="`Clock-out photo of ${r.person}`"
+                                            />
+                                        </div>
                                         <p
                                             v-if="r.location?.out"
                                             class="text-xs text-muted-foreground"

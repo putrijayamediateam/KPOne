@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Eye } from '@lucide/vue';
+import { Eye, EyeOff } from '@lucide/vue';
 import { ref } from 'vue';
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
@@ -41,20 +41,32 @@ const large = ref(false);
             <Eye class="size-4" aria-hidden="true" />
             Show photo<span class="sr-only">: {{ name }}</span>
         </button>
-        <button
-            v-else
-            type="button"
-            class="block size-11 overflow-hidden rounded-md border focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:size-10"
-            :aria-label="`Open ${name}`"
-            data-test="clock-photo-thumb"
-            @click="large = true"
-        >
-            <img
-                :src="props.photo!.thumbUrl ?? ''"
-                alt=""
-                class="size-full object-cover"
-            />
-        </button>
+        <template v-else>
+            <button
+                type="button"
+                class="block size-11 shrink-0 overflow-hidden rounded-md border focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:size-10"
+                :aria-label="`Open ${name}`"
+                data-test="clock-photo-thumb"
+                @click="large = true"
+            >
+                <img
+                    :src="props.photo!.thumbUrl ?? ''"
+                    alt=""
+                    class="size-full object-cover"
+                />
+            </button>
+            <!-- Someone else's photo can be hidden again after Show (Daniel). -->
+            <button
+                v-if="photo.needsShow"
+                type="button"
+                class="inline-flex min-h-11 items-center gap-1.5 rounded-md border px-2.5 text-xs font-medium hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-8"
+                data-test="clock-photo-hide"
+                @click="shown = false"
+            >
+                <EyeOff class="size-4" aria-hidden="true" />
+                Hide photo<span class="sr-only">: {{ name }}</span>
+            </button>
+        </template>
         <span v-if="photo.label" class="text-xs text-muted-foreground">{{
             photo.label
         }}</span>
