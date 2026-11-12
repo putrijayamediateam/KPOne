@@ -82,6 +82,7 @@ own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for h
 | DD-70 | Shared `PatientBoard.vue` Duration cell at 1440 px | "Serving 152 hr 30 min" wraps to three lines in the Duration column; widen the column or stop the wrap so it reads on one or two lines | 16 | Queue & TV with Patients & Registration (joint PatientBoard PR) | Minor | #559 frame review (2026-11-12) | Open |
 | DD-71 | Shared `PatientBoard.vue` phone cards at 390 px | The "Actions" label is centred above the icons while every other card label is left-aligned; left-align it with the icons on the same left edge | 16 | Queue & TV with Patients & Registration (joint PatientBoard PR) | Minor | #559 frame review (2026-11-12) | Open |
 | DD-72 | Shared `PatientBoard.vue` phone results at 390 px | Each result card sits inside the results card, so there are two borders (card in card); keep one frame | 16 | Queue & TV with Patients & Registration (joint PatientBoard PR) | Minor | #559 frame review (2026-11-12) | Open |
+| DD-73 | QR intake review (staff side, `RegistrationReview/Show.vue`) | Visit purpose, coverage, Priority and Gender are native selects with the browser chevron, beside the shared thin-chevron Doctor select; move them to `OperationalSelect` | 16 | Patients & Registration, after 0.8 | Minor | #580 review (2026-11-12) | Open |
 
 ## Not debt (out of scope, owner-approved)
 
@@ -128,3 +129,5 @@ receipt and drug-label print layouts.
 - 2026-11-12: DD-48 marked Fixed (BIL-18, PR #471: "1 day past due" / "N days past due", no chip at 0; a test fails if "day(s)" returns).
 - 2026-11-12: DS-12 merged (PR #543, `61ef8d4`): Me moved into the account menu with a Clock in shortcut. Later pass: a short helper line under "My space" to tell it apart from "My profile".
 - 2026-11-12: DD-69 to DD-72 added from the Queue board frame review (#559, #549): the pink Serving chip, the Duration wrap at 1440 px, the Actions label at 390 px and the card in card. All four live in the shared `PatientBoard.vue` and are tracked to the joint PatientBoard PR (Nurul and Amirul). #549 and #559 are clear on design; these are checked in the joint PR's shots. Also reviewed after #547 (cobalt tokens, `eb483ba`): #558 Pricing (OK, Price history is a cobalt link, dark page is the bluish grey), HR Attendance (OK, one small alignment fix done) and the Queue board frame.
+
+- 2026-11-12: DD-73 added (QR intake review native selects next to the shared select, seen in the #580 look; fix after wave 0.8). Also from #580: the 1440 Date of birth and identity number boxes were cut off, to be fixed in the PR.
