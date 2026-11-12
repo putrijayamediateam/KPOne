@@ -103,8 +103,12 @@ const selectTab = (value: string | number) =>
 // knows it was opened here, and the server still refuses an acknowledgement without a recorded open.
 const openedHere = ref(new Set<string>());
 const openUrl = (versionId: string) => `/hr/sops/versions/${versionId}/open`;
+// Daniel (2026-11-12): one primary per screen. Only the SOP opened most recently here shows a cobalt
+// "I have read and understood"; every other card keeps it outline (and disabled until opened).
+const lastOpened = ref<string | null>(null);
 const markOpened = (versionId: string) => {
     openedHere.value = new Set([...openedHere.value, versionId]);
+    lastOpened.value = versionId;
 };
 const isOpened = (sop: MySop) =>
     sop.opened || openedHere.value.has(sop.versionId);
@@ -329,6 +333,11 @@ const withdrawn = computed(() =>
                     </Button>
                     <template v-if="!sop.acknowledgedOn">
                         <Button
+                            :variant="
+                                lastOpened === sop.versionId
+                                    ? 'default'
+                                    : 'outline'
+                            "
                             class="max-lg:min-h-11"
                             :disabled="
                                 !isOpened(sop) ||
