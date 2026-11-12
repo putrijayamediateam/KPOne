@@ -73,3 +73,8 @@ test('behaviour is untouched: the same tabs, Call next, board events and refresh
     assert.match(template, /@submit\.prevent="applyFilters"/);
     assert.match(template, /Live · every 3 seconds/);
 });
+
+test('the visible-entries line is singular for one entry', () => {
+    const src = readFileSync('resources/js/pages/Queue/Index.vue', 'utf8');
+    assert.match(src, /boardRows\.length === 1 \? 'entry' : 'entries'/);
+});

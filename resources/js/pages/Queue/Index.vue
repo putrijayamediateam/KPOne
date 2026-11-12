@@ -824,7 +824,9 @@ onBeforeUnmount(() => {
                 class="flex flex-col gap-2 px-4 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
             >
                 <span class="flex gap-3"
-                    ><span>{{ boardRows.length }} visible entries</span
+                    ><span
+                        >{{ boardRows.length }} visible
+                        {{ boardRows.length === 1 ? 'entry' : 'entries' }}</span
                     ><span>{{
                         live.scope === 'own'
                             ? 'Clinician scope'
