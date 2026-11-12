@@ -150,7 +150,9 @@ const turnPage = (value: number) =>
             Not a refund. You cannot reverse a payment you recorded.
         </p>
         <details class="text-sm text-muted-foreground">
-            <summary class="cursor-pointer font-medium text-foreground">
+            <summary
+                class="cursor-pointer font-medium text-foreground max-lg:flex max-lg:min-h-11 max-lg:items-center"
+            >
                 How this works
             </summary>
             <p class="mt-2">
@@ -267,7 +269,7 @@ const turnPage = (value: number) =>
                     </Button>
                     <form
                         v-else
-                        class="grid max-w-xl gap-4 rounded-xl border bg-muted/30 p-4"
+                        class="mt-2 grid max-w-xl gap-4 border-t pt-4"
                         @submit.prevent="reverse(payment)"
                     >
                         <label
