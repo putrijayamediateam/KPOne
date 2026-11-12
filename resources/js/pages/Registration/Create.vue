@@ -1025,7 +1025,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 "
             />
             <div
-                class="sticky bottom-3 z-10 flex items-center justify-between gap-4 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur max-lg:top-16 max-lg:bottom-auto max-lg:order-first"
+                class="sticky bottom-3 z-10 flex items-center justify-between gap-4 rounded-xl border bg-background p-3 shadow-sm max-lg:top-16 max-lg:bottom-auto max-lg:order-first"
             >
                 <div class="hidden min-w-0 sm:block">
                     <p class="truncate text-sm font-medium">
