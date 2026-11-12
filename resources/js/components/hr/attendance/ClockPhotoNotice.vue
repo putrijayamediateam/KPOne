@@ -48,9 +48,9 @@ defineEmits<{ continue: []; cancel: [] }>();
             <span
                 v-if="mode === 'first-use'"
                 data-test="clock-photo-notice-not-now"
-                >Not now: nothing is recorded, and you are not clocked in or
-                out. Only a live photo counts; if you can't use the camera, ask
-                HR to add your time as a correction.</span
+                >If you choose Not now, nothing is recorded and you are not
+                clocked in or out. Only a live photo counts. If you can't use
+                the camera, ask HR to add your time as a correction.</span
             >
             <span v-else
                 >Only a live photo counts. If you can't use the camera, ask HR

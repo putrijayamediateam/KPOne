@@ -150,7 +150,7 @@ test('the notice says why, that faces are not compared, what Not now does, and t
     assert.match(text, /KPOne does not identify faces or compare photos\./);
     assert.match(
         text,
-        /Not now: nothing is recorded, and you are not clocked in or out\./,
+        /If you choose Not now, nothing is recorded and you are not clocked in or out\. Only a live photo counts\. If you can't use the camera, ask HR to add your time as a correction\./,
     );
     assert.match(text, /\(to confirm in the PDPA review\)/);
     assert.match(notice, /mode === 'first-use'/);
