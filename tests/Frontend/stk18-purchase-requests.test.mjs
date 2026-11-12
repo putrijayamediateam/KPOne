@@ -54,3 +54,10 @@ test('STK-18: Reorder suggestions hand ticked rows of one location to a new requ
 test('STK-18: a draft purchase order names the request it came from', () => {
     assert.match(panel, /From purchase request \{\{ row\.fromRequest \}\}/);
 });
+
+test("STK-18: each line's Remove has a 44 px tap area below 1024 px (Daniel)", () => {
+    assert.match(
+        page,
+        /class="relative min-h-11 min-w-11 after:absolute after:-inset-1[^"]*lg:min-h-9[^"]*"\s+data-testid="purchase-request-remove-line"/,
+    );
+});

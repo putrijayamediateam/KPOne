@@ -729,7 +729,8 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                                     v-if="send.lines.length > 1"
                                     type="button"
                                     variant="ghost"
-                                    class="min-h-11 lg:min-h-9"
+                                    class="relative min-h-11 min-w-11 after:absolute after:-inset-1 after:content-[''] lg:min-h-9 lg:min-w-0 lg:after:hidden"
+                                    data-testid="purchase-request-remove-line"
                                     :aria-label="`Remove line ${index + 1}`"
                                     @click="removeLine(index)"
                                     >Remove</Button
