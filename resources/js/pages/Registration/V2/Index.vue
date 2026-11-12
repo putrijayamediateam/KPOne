@@ -223,6 +223,14 @@ const rowsWithMenu = computed(() =>
 );
 const attention = computed(() => needsAttention(rows.value));
 const sheetOpen = ref(false);
+const viewRow = (visitNumber: string) => {
+    const row = document.querySelector<HTMLElement>(
+        `[data-visit="${visitNumber}"]`,
+    );
+
+    row?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    row?.focus({ preventScroll: true });
+};
 const isToday = (visit: VisitRow) => visit.registeredAtDate === board.today;
 
 const rowClick = (event: MouseEvent, visit: VisitRow) => {
@@ -322,6 +330,13 @@ const filterBadge = computed(
                         <p class="text-xs text-muted-foreground">
                             {{ item.why }}
                         </p>
+                        <button
+                            type="button"
+                            class="mt-1 inline-flex h-11 items-center text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                            @click="viewRow(item.visitNumber)"
+                        >
+                            View
+                        </button>
                     </li>
                 </ul>
                 <p class="px-4 pb-3 text-xs text-muted-foreground">
@@ -494,6 +509,8 @@ const filterBadge = computed(
                         <tr
                             v-for="item in rowsWithMenu"
                             :key="item.visit.visitNumber"
+                            :data-visit="item.visit.visitNumber"
+                            tabindex="-1"
                             :class="
                                 item.visit.historyUrl ? 'cursor-pointer' : ''
                             "
@@ -764,22 +781,31 @@ const filterBadge = computed(
         "
     >
         <div class="grid gap-3">
-            <OperationalSelect
-                v-model="form.doctor_id"
-                label="Doctor"
-                :options="doctorOptions"
-            />
-            <OperationalSelect
-                v-model="form.coverage_type"
-                label="Coverage"
-                :options="coverageOptions"
-            />
-            <OperationalSelect
-                v-model="form.priority"
-                label="Urgency"
-                :options="urgencyOptions"
-            />
-            <label class="grid gap-1 text-xs"
+            <label class="grid gap-1 text-sm font-medium"
+                >Doctor
+                <OperationalSelect
+                    v-model="form.doctor_id"
+                    label="Doctor"
+                    :options="doctorOptions"
+                />
+            </label>
+            <label class="grid gap-1 text-sm font-medium"
+                >Coverage
+                <OperationalSelect
+                    v-model="form.coverage_type"
+                    label="Coverage"
+                    :options="coverageOptions"
+                />
+            </label>
+            <label class="grid gap-1 text-sm font-medium"
+                >Urgency
+                <OperationalSelect
+                    v-model="form.priority"
+                    label="Urgency"
+                    :options="urgencyOptions"
+                />
+            </label>
+            <label class="grid gap-1 text-sm font-medium"
                 >Visit type
                 <OperationalSelect
                     v-model="form.visit_type"
@@ -787,10 +813,10 @@ const filterBadge = computed(
                     :options="visitTypeOptions"
                 />
             </label>
-            <label class="grid gap-1 text-xs"
+            <label class="grid gap-1 text-sm font-medium"
                 >From<DateField v-model="form.date_from" :echo="false"
             /></label>
-            <label class="grid gap-1 text-xs"
+            <label class="grid gap-1 text-sm font-medium"
                 >To<DateField v-model="form.date_to" :echo="false"
             /></label>
             <button

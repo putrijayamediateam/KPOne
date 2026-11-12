@@ -255,6 +255,7 @@ export const rowMenu = (
 
 export type AttentionItem = {
     id: string;
+    visitNumber: string;
     tone: 'warning' | 'danger';
     title: string;
     why: string;
@@ -273,6 +274,7 @@ export const needsAttention = (rows: VisitRow[]): AttentionItem[] => {
         if (visit.callHold?.active) {
             items.push({
                 id: `hold-${visit.visitNumber}`,
+                visitNumber: visit.visitNumber,
                 tone: 'warning',
                 title: `${label} · ${visit.patientName} is marked not ready to call`,
                 why: visit.callHold.reason ?? 'No reason recorded.',
@@ -284,6 +286,7 @@ export const needsAttention = (rows: VisitRow[]): AttentionItem[] => {
         if (minutes !== null && minutes >= 60) {
             items.push({
                 id: `wait-${visit.visitNumber}`,
+                visitNumber: visit.visitNumber,
                 tone: 'danger',
                 title: `${label} · ${visit.patientName} has waited ${minutes} minutes`,
                 why: 'A very long wait. Call this patient or tell them why they are waiting.',

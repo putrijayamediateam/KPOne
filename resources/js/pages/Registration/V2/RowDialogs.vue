@@ -2,6 +2,7 @@
 import { router } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
+import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import { NOT_READY_REASONS } from '@/lib/registration-v2';
 import type { VisitRow } from '@/types';
 
@@ -145,10 +146,10 @@ const confirm = (cancellationReason: string | null) => {
         "
         :description="
             kind === 'cancel'
-                ? 'Record an operational reason. This action remains subject to current visit authorization.'
+                ? `${visit?.patientName}${visit?.queueNumber ? `, ${visit.queueNumber}` : ''}. The visit is removed from the queue and cannot be undone.`
                 : kind === 'ready'
                   ? 'Clear this flag when the issue is resolved. The doctor will be notified.'
-                  : 'Select an administrative reason. The queue order and patient number stay unchanged.'
+                  : 'Choose why this patient cannot be called yet. Their place in the queue does not change.'
         "
         :confirm-label="kind === 'cancel' ? 'Cancel visit' : 'Confirm'"
         :cancel-label="kind === 'cancel' ? 'Keep visit' : 'Cancel'"
@@ -161,23 +162,21 @@ const confirm = (cancellationReason: string | null) => {
         <p v-if="kind === 'ready'" class="text-sm break-words">
             {{ visit?.callHold?.reason }}
         </p>
-        <label v-else-if="kind === 'notReady'" class="grid gap-1.5 text-sm">
-            <span class="font-medium">Reason</span>
-            <select
-                v-model="reason"
-                class="h-11 w-full rounded-[10px] border border-input bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9"
-            >
-                <option value="">Select a reason</option>
-                <option
-                    v-for="item in NOT_READY_REASONS"
-                    :key="item[0]"
-                    :value="item[0]"
-                >
-                    {{ item[1] }}
-                </option>
-            </select>
-        </label>
-        <p v-if="error" role="alert" class="text-sm text-destructive">
+        <V2OptionGroup
+            v-else-if="kind === 'notReady'"
+            v-model="reason"
+            label="Reason"
+            required
+            :options="
+                NOT_READY_REASONS.map(([value, label]) => ({ value, label }))
+            "
+            :error="error === 'Select a reason.' ? error : undefined"
+        />
+        <p
+            v-if="error && error !== 'Select a reason.'"
+            role="alert"
+            class="text-sm text-destructive"
+        >
             {{ error }}
         </p>
     </V2Dialog>
