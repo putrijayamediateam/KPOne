@@ -1168,7 +1168,8 @@ const exceptionStatusLabels: Record<string, string> = {
         >
             <!-- UI-RESTYLE D4b (Daniel): from 1024 to 1439 px the page has two columns, the lines on the left and the
                  patient, allergy, summary and actions stacked on the right, so the line fields never crush; three
-                 columns from 1440 px (owner decision). The reading order (left, lines, right) is unchanged. -->
+                 columns from 1440 px (owner decision). The DOM and tab order (patient and allergies, then lines, then
+                 actions) is deliberate: allergies come before medicines. Do not make the right column sticky (Daniel). -->
             <aside
                 class="flex flex-col gap-4 lg:col-start-2 lg:row-start-1 min-[90rem]:col-start-1"
                 data-testid="dispensary-left"
