@@ -94,7 +94,7 @@ final class InventoryControlService
         }
         $expected = $values['expected_lock_version'] === null ? null : (int) $values['expected_lock_version'];
         $key = strtolower((string) $values['idempotency_key']);
-        $hash = hash('sha256', json_encode([(int) $actor->id, $values['location_public_id'], $values['sku_public_id'],
+        $hash = hash('sha256', json_encode([(int) $actor->id, strtolower((string) $values['location_public_id']), strtolower((string) $values['sku_public_id']),
             StockUnitQuantity::format($reorder), $max === null ? null : StockUnitQuantity::format($max), $expected], JSON_THROW_ON_ERROR));
 
         return DB::transaction(function () use ($actor, $values, $reorder, $max, $expected, $key, $hash, $branch): InventoryReorderLevel {
@@ -123,10 +123,12 @@ final class InventoryControlService
                     'lock_version' => $level->exists ? (int) $level->lock_version + 1 : 1, 'updated_by_user_id' => $lockedActor->id])->save();
                 DB::table('inventory_reorder_level_commands')->insert(['organisation_id' => $lockedActor->organisation_id, 'branch_id' => $branch->id,
                     'inventory_reorder_level_id' => $level->id, 'idempotency_key' => $key, 'payload_hash' => $hash, 'created_at' => now()->utc()]);
-            } catch (UniqueConstraintViolationException) {
+            } catch (UniqueConstraintViolationException $exception) {
                 // Two first saves for one location and SKU (or one key) raced: the unique index keeps the first, and
                 // the other is refused like any stale page. The whole transaction rolls back.
-                throw ValidationException::withMessages(['expected_lock_version' => 'This reorder level changed. Reload and try again.']);
+                throw str_contains($exception->getMessage(), 'reorder_level_commands_key_unique')
+                    ? ValidationException::withMessages(['idempotency_key' => 'This request key was already used with different details.'])
+                    : ValidationException::withMessages(['expected_lock_version' => 'This reorder level changed. Reload and try again.']);
             }
             $this->audit->record('inventory.reorder_level.updated', $level, ['reorder_level' => $level->reorder_level, 'max_level' => $level->max_level, 'lock_version' => $level->lock_version], $lockedActor, $branch);
 

@@ -20,5 +20,17 @@ test('STK-30b: the reorder form loads the saved level and sends its version and 
     assert.match(panel, /idempotency_key: reorder\.key,/);
     // A late answer for an earlier choice never overwrites the form.
     assert.match(panel, /if \(lookup !== reorderLookup\) \{\s*return;/);
-    assert.match(panel, /:disabled="busy \|\| reorder\.loading"/);
+    assert.match(
+        panel,
+        /:disabled="\s*busy \|\|\s*reorder\.loading \|\|\s*reorder\.loadFailed\s*"/,
+    );
+    // A new pair never keeps the previous pair's numbers, and a stale save shows the saved level again.
+    assert.match(
+        panel,
+        /reorder\.level = '';\s*reorder\.max = '';\s*reorder\.loadFailed = false;/,
+    );
+    assert.match(
+        panel,
+        /if \(errors\.expected_lock_version\) \{[\s\S]*?loadReorderLevel\(\)/,
+    );
 });

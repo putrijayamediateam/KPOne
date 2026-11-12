@@ -182,6 +182,7 @@ const reorder = reactive({
     lockVersion: null as number | null,
     key: crypto.randomUUID(),
     loading: false,
+    loadFailed: false,
 });
 type CurrentReorderLevel = {
     reorderLevel: string;
@@ -194,6 +195,10 @@ const loadReorderLevel = async () => {
     reorderErrors.max_level = undefined;
     reorder.lockVersion = null;
     reorder.key = crypto.randomUUID();
+    // Never carry the previous pair's numbers over to a new pair; a failed lookup keeps Save off until one succeeds.
+    reorder.level = '';
+    reorder.max = '';
+    reorder.loadFailed = false;
 
     if (!reorder.location || !reorder.sku) {
         return;
@@ -220,6 +225,7 @@ const loadReorderLevel = async () => {
         reorder.lockVersion = level?.lockVersion ?? null;
     } catch {
         if (lookup === reorderLookup) {
+            reorder.loadFailed = true;
             operationErrorContext.value = 'Reorder level action';
             operationError.value =
                 'The saved reorder level could not be loaded. Choose the location and SKU again.';
@@ -705,6 +711,15 @@ const saveReorder = () =>
         },
         (errors) => {
             reorderErrors.max_level = errors.max_level;
+
+            if (errors.expected_lock_version) {
+                // Someone else saved this level: show the saved numbers again so they can be checked first.
+                void loadReorderLevel().then(() => {
+                    operationErrorContext.value = 'Reorder level action';
+                    operationError.value =
+                        'Someone else changed this reorder level. The saved level is shown again; check it and save.';
+                });
+            }
         },
     );
 </script>
@@ -1378,7 +1393,11 @@ const saveReorder = () =>
                         id="reorder-max-error"
                         :message="reorderErrors.max_level"
                     />
-                    <Button type="submit" :disabled="busy || reorder.loading"
+                    <Button
+                        type="submit"
+                        :disabled="
+                            busy || reorder.loading || reorder.loadFailed
+                        "
                         >Save level</Button
                     >
                 </form>

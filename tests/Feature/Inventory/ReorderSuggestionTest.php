@@ -5,6 +5,7 @@ namespace Tests\Feature\Inventory;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Inventory\Models\InventoryReorderLevel;
 use App\Domain\Organisation\Inventory\Services\InventoryControlService;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Inventory\Services\StockRequestService;
@@ -306,6 +307,54 @@ final class ReorderSuggestionTest extends VisitTestCase
             $this->expectException(QueryException::class);
             DB::table('inventory_reorder_level_commands')->delete();
         }
+    }
+
+    public function test_a_first_save_that_loses_on_the_unique_key_is_refused_like_a_stale_page(): void
+    {
+        $f = $this->setUpBranch();
+        $supervisor = $f['actors']->actor('ca_supervisor');
+        app(BranchAccessService::class)->select($supervisor, $this->branch);
+        // Another save commits the same location and SKU after this one read "no level": simulated by inserting the
+        // row just before this save's insert. The unique index refuses this save, and nothing of it is kept.
+        InventoryReorderLevel::creating(function () use ($f): void {
+            DB::table('inventory_reorder_levels')->insert(['organisation_id' => $this->branch->organisation_id, 'inventory_location_id' => $f['location']->id,
+                'inventory_sku_id' => $f['sku']->id, 'reorder_level' => '3.000', 'lock_version' => 1, 'updated_by_user_id' => $f['finance']->id, 'created_at' => now(), 'updated_at' => now()]);
+        });
+
+        $this->assertValidationKey(fn () => app(InventoryControlService::class)->setReorderLevel($supervisor, [
+            'expected_branch_id' => $this->branch->id, 'location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id,
+            'reorder_level' => '5', 'max_level' => null, 'expected_lock_version' => null, 'idempotency_key' => (string) Str::uuid()]), 'expected_lock_version');
+        $this->assertSame(0, DB::table('inventory_reorder_level_commands')->count());
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'inventory.reorder_level.updated')->count());
+    }
+
+    public function test_reading_the_saved_level_is_scoped_to_one_active_pair_at_the_active_branch(): void
+    {
+        $f = $this->setUpBranch();
+        $supervisor = $f['actors']->actor('ca_supervisor');
+        app(BranchAccessService::class)->select($supervisor, $this->branch);
+        $read = fn (array $query) => $this->actingAs($supervisor)->getJson(route('inventory.reorder-levels.current', ['expected_branch_id' => $this->branch->id,
+            'location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id, ...$query]));
+        $this->setLevel($f, 5000);
+        $read([])->assertOk()->assertExactJson(['level' => ['reorderLevel' => '5.000', 'maxLevel' => null, 'lockVersion' => 1]]);
+
+        // A stale active branch is refused; a location at another branch, an inactive location or SKU is not found.
+        $read(['expected_branch_id' => $this->branch->id + 999])->assertUnprocessable();
+        $location = fn (?int $branchId, bool $active = true) => tap(new InventoryLocation, fn (InventoryLocation $l) => $l->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id,
+            'branch_id' => $branchId, 'code' => 'RL-'.Str::upper(Str::random(8)), 'name' => 'Synthetic reorder location', 'type' => 'dispensary', 'is_active' => $active])->save());
+        $other = Branch::query()->where('organisation_id', $this->branch->organisation_id)->whereKeyNot($this->branch->id)->firstOrFail();
+        $elsewhere = $location($other->id);
+        $read(['location_public_id' => $elsewhere->public_id])->assertNotFound();
+        $inactive = $location($this->branch->id, false);
+        $read(['location_public_id' => $inactive->public_id])->assertNotFound();
+        DB::table('inventory_skus')->where('id', $f['sku']->id)->update(['is_active' => false]);
+        $read([])->assertNotFound();
+        DB::table('inventory_skus')->where('id', $f['sku']->id)->update(['is_active' => true]);
+
+        // An organisation warehouse is read with the warehouse permission (the CA Supervisor holds it); no level reads as none.
+        $this->assertTrue($supervisor->can(InventoryControlService::WAREHOUSE_PERMISSION));
+        $warehouse = $location(null);
+        $read(['location_public_id' => $warehouse->public_id])->assertOk()->assertExactJson(['level' => null]);
     }
 
     private function assertValidationKey(callable $call, string $key): void

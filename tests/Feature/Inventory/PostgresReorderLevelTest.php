@@ -87,7 +87,7 @@ final class PostgresReorderLevelTest extends TestCase
             DB::setDefaultConnection($original);
             Schema::clearResolvedInstance('db.schema');
             app()->forgetInstance('db.schema');
-            DB::purge('request_race');
+            DB::purge('reorder_race');
             DB::statement('DROP DATABASE "'.$database.'" WITH (FORCE)');
         }
     }
