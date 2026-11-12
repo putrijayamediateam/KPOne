@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
 import type { DispensaryReturnsPanel } from '@/lib/dispensary-returns';
@@ -17,6 +18,8 @@ defineProps<{
     // DSP-7: a separate prop, so the completed-case payload keeps its keys.
     returns?: DispensaryReturnsPanel;
 }>();
+// UI-RESTYLE D2 (Daniel): Continue to Billing is outline while a return form or check panel is open.
+const editingReturns = ref(false);
 </script>
 
 <template>
@@ -48,6 +51,7 @@ defineProps<{
                 <Button
                     v-if="dispensary.billingUrl"
                     as-child
+                    :variant="editingReturns ? 'outline' : 'default'"
                     size="sm"
                     class="lg:h-9"
                     ><Link :href="dispensary.billingUrl"
@@ -79,6 +83,7 @@ defineProps<{
         <MedicineReturnsSection
             v-if="returns && returns.lines.length"
             :returns="returns"
+            @editing="editingReturns = $event"
         />
     </main>
 </template>

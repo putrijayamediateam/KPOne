@@ -27,6 +27,18 @@ const reasonLabels = returnReasonLabels;
 const conditionLabels = returnConditionLabels;
 
 const openLine = ref<string | null>(null);
+// UI-RESTYLE D2 (Daniel): while a record form or a check panel is open, the page's Continue to Billing button turns
+// outline so the panel's own action is the one filled button. This only picks a button style; nothing else changes.
+const emit = defineEmits<{ editing: [value: boolean] }>();
+watch(
+    () =>
+        openLine.value !== null ||
+        props.returns.lines.some((line) =>
+            line.returns.some((row) => row.canCheck),
+        ),
+    (value) => emit('editing', value),
+    { immediate: true },
+);
 const announcement = ref('');
 const newRetryKey = () => crypto.randomUUID();
 const form = useForm({
@@ -48,7 +60,7 @@ for (const field of ['quantity', 'reason', 'note', 'condition'] as const) {
 const fieldClass =
     'mt-1 w-full rounded-[10px] border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40';
 const tileClass =
-    'flex min-h-11 cursor-pointer items-center gap-2 rounded-[10px] border border-input bg-card px-3 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand lg:min-h-9';
+    'flex min-h-11 cursor-pointer items-center gap-2 rounded-[10px] border border-input bg-card px-3 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-primary lg:min-h-9';
 
 const waitingCount = computed(
     () =>
@@ -458,7 +470,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
                                             :name="fieldId(line, 'reason')"
                                             :value="reason"
                                             :disabled="form.processing"
-                                            class="accent-brand"
+                                            class="accent-primary"
                                             data-field="return-reason"
                                         />
                                         {{ reasonLabels[reason] ?? reason }}
@@ -541,7 +553,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
                                             :name="fieldId(line, 'condition')"
                                             :value="condition"
                                             :disabled="form.processing"
-                                            class="accent-brand"
+                                            class="accent-primary"
                                             data-field="return-condition"
                                         />
                                         {{

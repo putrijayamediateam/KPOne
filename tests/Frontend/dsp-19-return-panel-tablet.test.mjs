@@ -37,7 +37,7 @@ test('the action buttons are full width and 44 px until 1024 px, side by side fr
 });
 
 test('the record-a-return form above it follows the same 1024 px switch (Hakim)', () => {
-    assert.ok(section.includes('has-[:checked]:border-brand lg:min-h-9'));
+    assert.ok(section.includes('has-[:checked]:border-primary lg:min-h-9'));
     assert.ok(section.includes("'h-11 max-w-40 tabular-nums lg:h-9'"));
     assert.ok(
         section.includes('class="flex flex-col-reverse gap-2 lg:flex-row"'),
@@ -59,5 +59,5 @@ test('one-line reason tiles centre the radio and the words (Daniel)', () => {
     const reason = panel.slice(
         panel.indexOf('data-field="check-refuse-reason"') - 200,
     );
-    assert.ok(reason.slice(0, 200).includes('class="accent-brand"'));
+    assert.ok(reason.slice(0, 200).includes('class="accent-primary"'));
 });

@@ -60,3 +60,37 @@ test('tokens only: no palette colour or dark: override', () => {
         assert.equal(file.includes('dark:'), false);
     }
 });
+
+test('selection is cobalt (primary), not the pink brand mark (Daniel; owner cobalt decision)', () => {
+    for (const file of [section, panel]) {
+        assert.equal(file.includes('brand'), false);
+        assert.ok(file.includes('has-[:checked]:border-primary'));
+        assert.ok(file.includes('accent-primary'));
+    }
+});
+
+test('Continue to Billing turns outline while a return form or check panel is open, and nothing else changes', () => {
+    assert.ok(
+        section.includes(
+            'const emit = defineEmits<{ editing: [value: boolean] }>();',
+        ),
+    );
+    assert.ok(section.includes('openLine.value !== null ||'));
+    assert.ok(section.includes('line.returns.some((row) => row.canCheck)'));
+    assert.ok(
+        section.includes(
+            "(value) => emit('editing', value), { immediate: true }",
+        ),
+    );
+    assert.ok(completed.includes('@editing="editingReturns = $event"'));
+    assert.ok(
+        completed.includes(
+            ":variant=\"editingReturns ? 'outline' : 'default'\"",
+        ),
+    );
+    assert.ok(
+        completed.includes(
+            '<Link :href="dispensary.billingUrl" >Continue to Billing</Link >',
+        ),
+    );
+});
