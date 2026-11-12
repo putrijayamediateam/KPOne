@@ -580,6 +580,9 @@ pages inherit them and no page sets its own colour)
 - **Form pages (approved 2026-11-12):** a page that is mainly a settings form (Business details is the first) may
   use a centred `max-w-4xl` column instead of 1280 px, because two-column forms read badly when very wide. The
   header, cards and footer buttons follow the normal frame. Tables and boards do not get this width.
+- **Breakpoints (found in D4b, 2026-11-12):** in Tailwind v4 an arbitrary px breakpoint such as `min-[1440px]:` is
+  written into the CSS before `lg:`, so `lg:` wins at 1440. Write custom breakpoints in rem (`min-[90rem]:`) so they
+  sort with the built-in ones. Dispensary's layout is the example: two columns from 1024 to 1439, three from 1440.
 - **Do** use the gradient only on the Me home (section 18). Working pages stay on the plain page colour.
 
 **Motion and icons**
