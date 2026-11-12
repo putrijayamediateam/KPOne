@@ -630,6 +630,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
     }
     .patient-board td[data-label='Actions'] > div {
         justify-content: flex-start;
+        margin-left: -6px;
     }
     .patient-board td[data-label='Patient'],
     .patient-board td[data-label='Visit notes'],
