@@ -14,7 +14,7 @@ test('both price book selects wrap long names to two lines and keep the list ins
     assert.equal(
         (
             flat.match(
-                /:options="bookOptions\(\)" trigger-class="h-auto min-h-11 py-1\.5 data-\[size=default\]:h-auto text-left whitespace-normal md:min-h-9 \*:data-\[slot=select-value\]:line-clamp-2 \*:data-\[slot=select-value\]:\[overflow-wrap:anywhere\]" :content-avoid-collisions="false"/g,
+                /:options="bookOptions\(\)" trigger-class="h-auto min-h-11 py-1\.5 data-\[size=default\]:h-auto text-left whitespace-normal lg:min-h-9 \*:data-\[slot=select-value\]:line-clamp-2 \*:data-\[slot=select-value\]:\[overflow-wrap:anywhere\]" :content-avoid-collisions="false"/g,
             ) ?? []
         ).length,
         2,

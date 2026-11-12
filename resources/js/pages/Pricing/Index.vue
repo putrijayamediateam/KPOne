@@ -282,6 +282,7 @@ const toggleCharge = (charge: ChargeRow) => {
                     </div>
                     <Button
                         type="submit"
+                        variant="outline"
                         size="sm"
                         class="justify-self-start max-lg:h-11"
                         :disabled="bookForm.processing"

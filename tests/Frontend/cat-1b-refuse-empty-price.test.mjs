@@ -89,7 +89,7 @@ test('catalogue dialog titles are in sentence case', () => {
 test('on a Pricing card "Publish price" is the clear main action', () => {
     const cards = pricing.slice(
         pricing.indexOf('data-testid="charge-card"'),
-        pricing.indexOf('<div class="hidden min-w-0 md:block">'),
+        pricing.indexOf('<div class="hidden min-w-0 lg:block">'),
     );
 
     // Owner-approved change (CAT-3, 2026-11-05): Deactivate/Activate moved into the card's "..." menu (Daniel), so

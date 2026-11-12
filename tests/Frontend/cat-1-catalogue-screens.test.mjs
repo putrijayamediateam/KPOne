@@ -73,12 +73,12 @@ test('DD-04: every Pricing field has a visible label connected to it', () => {
     assert.doesNotMatch(pricing, /<label class="grid gap-1 text-xs">/);
 });
 
-test('DD-04: Pricing shows charge cards on a phone and the table from 768 px', () => {
-    assert.match(pricing, /<section class="grid gap-3 md:hidden"/);
+test('DD-04: Pricing shows charge cards on a phone and the table from 1024 px', () => {
+    assert.match(pricing, /<section class="grid gap-3 lg:hidden"/);
     assert.match(pricing, /data-testid="charge-card"/);
     assert.match(
         pricing,
-        /<div class="hidden min-w-0 md:block">\s*<OperationalTable/,
+        /<div class="hidden min-w-0 lg:block">\s*<OperationalTable/,
     );
     assert.match(pricing, /class="min-h-11 w-full"/);
     assert.match(pricing, /'Publishing…'/);
