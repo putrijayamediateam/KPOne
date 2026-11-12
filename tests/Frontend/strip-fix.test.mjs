@@ -14,7 +14,8 @@ test('the strip composable brings the current item to the start and fades a hidd
         strip,
         /el\.scrollLeft \+= item\.left - box\.left - START_PADDING/,
     );
-    assert.match(strip, /moreBefore\.value = !!el && el\.scrollLeft > 2/);
+    assert.match(strip, /const START_PADDING = 4/);
+    assert.doesNotMatch(strip, /transparent, #000/);
     assert.match(strip, /maskImage: gradient/);
 });
 

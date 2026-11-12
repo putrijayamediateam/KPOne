@@ -2,12 +2,14 @@ import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import type { Ref } from 'vue';
 
 const EDGE = 64;
-const START_PADDING = 12;
+// The strip's own gap is 4 px, so the item before the current one ends exactly at the strip's edge and is hidden whole:
+// no name is cut off mid-word on first view.
+const START_PADDING = 4;
 
 /**
  * A one-row strip that scrolls sideways on a phone (the space shell's top strip and the Insights report tabs).
  * On load the current item is brought to the start of the strip, so no name is cut off mid-word; while more items are
- * hidden at an edge that edge fades (the DD-30 pattern). Nothing happens when the strip already fits.
+ * hidden at the right edge it fades (the DD-30 pattern). Nothing happens when the strip already fits.
  */
 export function useScrollStrip(
     strip: Ref<HTMLElement | null>,
@@ -51,19 +53,13 @@ export function useScrollStrip(
 
     onBeforeUnmount(() => observer?.disconnect());
 
-    /** Binds as :style on the strip. Empty when nothing is hidden. */
+    /** Binds as :style on the strip: a right-edge fade while more items are hidden there, nothing otherwise. */
     const fadeStyle = computed(() => {
-        if (!moreBefore.value && !moreAfter.value) {
+        if (!moreAfter.value) {
             return {};
         }
 
-        const left = moreBefore.value
-            ? `transparent, #000 ${EDGE}px`
-            : '#000, #000';
-        const right = moreAfter.value
-            ? `#000 calc(100% - ${EDGE}px), transparent`
-            : '#000, #000';
-        const gradient = `linear-gradient(to right, ${left}, ${right})`;
+        const gradient = `linear-gradient(to right, #000 calc(100% - ${EDGE}px), transparent)`;
 
         return { maskImage: gradient, WebkitMaskImage: gradient };
     });
