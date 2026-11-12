@@ -122,6 +122,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-30 | Optional maximum on reorder levels; suggestions fill up to it | #606 |
 | STK-30b | Version and idempotency key on saving a reorder level | #611 |
 | STK-31 | Stock other branches need: suggestions sent as an ordinary stock request from the branch that holds the stock; a stock request may now point at another branch | #615 |
+| STK-21 | Close the rest of a partly received purchase order (short close by a Finance Officer or Director who did not raise or submit it; no stock or money change) | #525 |
+| STK-35 | Import opening stock from one CSV: check first, then every row or none; each opening still needs STK-1 sign-off by someone else | #617 |
+| STK-34 | Draft stock admission procedure, `docs/pilot/inventory/STOCK-ADMISSION.md` (docs) | #618 |
+| STK-36 | Pharmacist review pack for the controlled register and FEFO, `docs/pilot/inventory/PHARMACIST-REVIEW-PACK.md` (docs) | #619 |
+| STK-37 | Stock moves use the STK-2 usable-batch rule: dispatch always; a direct transfer too, except between returns locations and within a branch into a store that is neither a dispensary nor returns (the STK-25 quarantine shelf) | #624 |
+| STK-33 | Stock health (`/inventory/stock-health`): days on hand, turnover and expiry loss per SKU and location, quantities only | #626 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -247,6 +253,18 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 37. Pilot documents (B.E.R.N.I.S.S for the owner, 2026-11-12): the stock admission procedure (STK-34) and the
     pharmacist review pack (STK-36) stay DRAFT, say they are not legal or regulatory advice, quote only screens on
     `main`, and leave responsible-person names and retention years blank for the clinic.
+38. STK-37 (B.E.R.N.I.S.S for the owner, 2026-11-12): moving held, recalled or expired stock is a safety gap, not a
+    policy question. Dispatch always needs a usable batch; a direct transfer needs one except between two returns
+    locations and within one branch into a location that is neither a dispensary nor returns. Stock in an
+    organisation store has no branch hold. The FEFO trail and a short-dated warning wait for the pharmacist's
+    answers (pack questions B6.6 and B6.7).
+39. STK-33 (B.E.R.N.I.S.S for the owner, 2026-11-12): Stock health is read-only, quantities only, with
+    `inventory.view.branch` and no cost; the Reports team (Farah) was told. STK-32 (seasonal forecast) is parked
+    until there is real history.
+40. Approved changes to existing tests (B.E.R.N.I.S.S for the owner, 2026-11-12): the STK-35 readiness pin
+    ('No import' → 'No balance correction'); the STK-33 Inventory task link pin (adds '/inventory/stock-health');
+    and, in STK-21, `SupplierInvoiceTest` closing its part-received order through the real short close instead of
+    raw SQL (setup only).
 
 ## 7. Open items and known limits
 
@@ -258,15 +276,26 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 - **Parked review (2026-10-21):** supplier invoice match (STK-22), the printable purchase order (STK-20) and reorder
   suggestions (STK-16, STK-30) are now built. `InventoryController::referenceData()` still projects all items, SKUs
   and locations unbounded.
-- **Found while writing the pharmacist pack (STK-36), not changed:** stock request dispatch refuses expired stock
-  but does not check holds or recalls; a direct transfer (within a branch, or to or from an organisation store)
-  checks no expiry, hold or recall; the FEFO audit entry records that an exception was chosen, not which reason,
+- **Found while writing the pharmacist pack (STK-36):** the transfer gaps are closed by STK-37 (#624). Still open:
+  the FEFO audit entry records that an exception was chosen, not which reason,
   and a re-save before completion loses the earlier reason; no report lists FEFO exceptions; no short-dated
   warning at Dispensary. Each waits for the pharmacist's answers and the owner.
 - **Pilot staffing:** the controlled-register checker cannot be anyone who recorded a movement on that register
   since the last check, so a controlled-delivery day needs a third person (raised with the owner, 2026-11-12).
 - STK-31 limits: the cross-branch guard is insert-only; no idempotency key on stock request creation (existing
   design); one low-stock query per other branch.
+- STK-37 limits (Mei Ling, low risk, the same as for dispensing): stock in transit is not re-checked on receipt, so
+  a batch recalled or held while in transit still lands (dispensing refuses it there); a recall locks only the
+  chosen SKU's batches, so a sibling SKU's batch with the same number is not serialised against it; item
+  deactivation and expiry edits do not take the batch lock. Direct transfer has no screen today.
+- STK-35 limits: the organisation lock is held while a large import records (up to 500 rows); no two-process test
+  of an import racing a single opening; `crypto.randomUUID()` needs a secure context; a held existing batch is
+  reused without the row saying so. The file is never stored, only its SHA-256.
+- STK-33 limits: about 8 queries per page and the whole branch loaded before slicing, not load-tested; an index on
+  `(source_location_id, occurred_at)` and `(destination_location_id, occurred_at)` may be needed later; "used"
+  leaves out a treatment usage reversed after the period, as Reorder suggestions and Insights do.
+- STK-21 limits: a short close cannot be undone (raise a new order for the rest); the printed purchase order does
+  not show a short close.
 - **Professional questions** for a pharmacist or the regulator: regulated items, registers, FEFO policy,
   retention. They are collected in `docs/pilot/controlled-register/REVIEW.md` and
   `docs/pilot/inventory/PHARMACIST-REVIEW-PACK.md` (STK-36).
@@ -351,9 +380,8 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
    KPOne records about cost today, the gaps, and the questions an accountant must answer. Nothing is built until
    the owner chooses an option and, for a valuation or export, the accountant's written policy exists.
 7. **The 2026-11-11 programme (section 6 item 32), status on 2026-11-12:**
-   - Merged: STK-12 to STK-20, STK-22 to STK-26, STK-30, STK-30b, STK-31, STK-15b and STK-15c (section 5).
-   - Open PRs: STK-21 (close the rest of a partly received purchase order, #525), STK-35 (opening-stock CSV
-     import, #617), STK-34 (draft stock admission procedure, #618), STK-36 (pharmacist review pack, #619).
+   - Merged: STK-12 to STK-26, STK-30, STK-30b, STK-31, STK-33 to STK-37, STK-15b and STK-15c (section 5).
+     STK-37 was added on 2026-11-12 from a gap found while writing STK-36.
    - Parked by B.E.R.N.I.S.S until the accountant's cost policy exists: STK-27 (cost policy and weighted
      average cost), STK-28 (stock value, COGS, margin and RM losses) and STK-29 (monthly journal summary CSV).
-   - Later: STK-32 (seasonal usage forecast) and STK-33 (inventory KPIs).
+   - Parked until there is real usage history: STK-32 (seasonal usage forecast).
