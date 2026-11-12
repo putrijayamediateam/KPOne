@@ -96,7 +96,7 @@ const submitCancel = () => {
             <Link
                 v-if="visit.hasConsultation"
                 :href="`/visits/${visit.visitNumber}/medical-certificates`"
-                class="text-sm underline"
+                class="text-sm text-primary hover:underline"
                 >Medical certificates</Link
             >
             <p
@@ -184,8 +184,12 @@ const submitCancel = () => {
                     {{ visit.patient.patientNumber }}
                 </div>
                 <div class="mt-2 text-sm">
-                    {{ visit.patient.dateOfBirth ?? 'DOB not recorded' }} ·
-                    {{ visit.patient.sex }}
+                    {{
+                        visit.patient.dateOfBirth
+                            ? formatDate(visit.patient.dateOfBirth)
+                            : 'DOB not recorded'
+                    }}
+                    · <span class="capitalize">{{ visit.patient.sex }}</span>
                 </div>
             </div>
             <div class="rounded-xl border bg-card p-4">
