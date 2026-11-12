@@ -488,24 +488,24 @@ const clearFilters = () => {
         </nav>
 
         <section
-            class="grid gap-3 sm:grid-cols-3"
+            class="grid grid-cols-3 gap-2 sm:gap-3"
             aria-label="Inventory summary"
         >
-            <div class="rounded-xl border bg-card px-4 py-3">
-                <p class="text-xs text-muted-foreground">SKUs with Stock</p>
-                <p class="mt-1 text-xl font-semibold tabular-nums">
+            <div class="rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
+                <p class="text-xs text-muted-foreground">SKUs with stock</p>
+                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
                     {{ inventory.summary.skusWithStock }}
                 </p>
             </div>
-            <div class="rounded-xl border bg-card px-4 py-3">
-                <p class="text-xs text-muted-foreground">Total Batches</p>
-                <p class="mt-1 text-xl font-semibold tabular-nums">
+            <div class="rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
+                <p class="text-xs text-muted-foreground">Total batches</p>
+                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
                     {{ inventory.summary.totalBatches }}
                 </p>
             </div>
-            <div class="rounded-xl border bg-card px-4 py-3">
-                <p class="text-xs text-muted-foreground">Expired Batches</p>
-                <p class="mt-1 text-xl font-semibold tabular-nums">
+            <div class="rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
+                <p class="text-xs text-muted-foreground">Expired batches</p>
+                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
                     {{ inventory.summary.expiredBatches }}
                 </p>
             </div>
