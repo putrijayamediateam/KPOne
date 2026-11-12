@@ -228,7 +228,7 @@ onBeforeUnmount(() => {
                 :class="
                     dark
                         ? 'bg-[#08080a] text-white'
-                        : 'bg-success/10 text-success dark:bg-success/20'
+                        : 'bg-[color-mix(in_oklab,var(--success)_12%,var(--background))] text-success dark:bg-[color-mix(in_oklab,var(--success)_22%,var(--background))]'
                 "
                 @escape-key-down="
                     (e: Event) => state.step === 'sending' && e.preventDefault()
