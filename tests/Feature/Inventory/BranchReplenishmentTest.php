@@ -124,7 +124,12 @@ final class BranchReplenishmentTest extends VisitTestCase
         $this->assertSame([$this->theirs->public_id], $rows->pluck('to.locationPublicId')->all());
 
         // Someone without the stock request permission sees the page but cannot request.
-        $this->assertFalse($this->page($this->staff('finance_officer'))['canRequest']);
+        $finance = $this->staff('finance_officer');
+        $this->assertFalse($this->page($finance)['canRequest']);
+        // ... and the server refuses them a stock request whatever the page shows.
+        $this->actingAs($finance)->post(route('inventory.stock-requests.store'), ['expected_branch_id' => $this->branch->id, 'source_location_public_id' => $this->f['location']->public_id,
+            'destination_location_public_id' => $this->theirs->public_id, 'lines' => [['sku_public_id' => $this->f['sku']->public_id, 'quantity' => '1']], 'from' => 'branch-replenishment'])->assertForbidden();
+        $this->assertSame(0, DB::table('inventory_stock_requests')->count());
         $this->assertTrue($this->page($supervisor)['canRequest']);
         $this->actingAs($this->staff('marketing'))->get(route('inventory.branch-replenishment'))->assertForbidden();
     }
