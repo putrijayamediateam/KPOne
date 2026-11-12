@@ -11,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\GovernedStockFixture;
+use Tests\Support\LegacyStockHistoryFixture;
 
 /** STK-15b: "Recorded wastage" also counts approved STK-5 write-offs, and leaves out a write-off whose reversal was approved. */
 final class GovernedWriteOffInsightTest extends VisitTestCase
@@ -147,7 +148,7 @@ final class GovernedWriteOffInsightTest extends VisitTestCase
         $this->f = (new GovernedStockFixture($this->branch))->build('20.000');
         $service = app(GovernedStockService::class);
         $day = now($this->branch->timezone)->toDateString();
-        $countLoss = function (string $counted) use ($service): int {
+        $governedCount = function (string $counted) use ($service): int {
             app(BranchAccessService::class)->select($this->f['proposer'], $this->branch);
             $id = $service->propose($this->f['proposer'], 'count', $this->proposal());
             $service->act($this->f['proposer'], $id, 'counted', $this->command($id, $counted));
@@ -156,8 +157,8 @@ final class GovernedWriteOffInsightTest extends VisitTestCase
 
             return $id;
         };
-        $kept = $countLoss('18.000');
-        $reversed = $countLoss('17.000');
+        $kept = $governedCount('18.000');
+        $reversed = $governedCount('17.000');
         $this->assertSame(3.0, (float) $this->summary($day)['wastageUnits']);
 
         // A reversal proposed but not approved changes nothing.
@@ -171,7 +172,20 @@ final class GovernedWriteOffInsightTest extends VisitTestCase
         $reversal = $service->propose($this->f['proposer'], 'reversal', $this->proposal(['reverses_case_id' => $reversed]));
         $service->act($this->actorAt('finance_officer'), $reversal, 'approved', $this->command($reversal));
         $this->assertSame(2.0, (float) $this->summary($day)['wastageUnits']);
-        // The reversal itself is an adjustment and never counts as wastage.
-        $this->assertSame(0.0, (float) $this->summary(now($this->branch->timezone)->toDateString())['wastageUnits']);
+        // The reversal itself is an adjustment (adjustment_in) and never counts as wastage.
+        $today = now($this->branch->timezone)->toDateString();
+        $this->assertSame(0.0, (float) $this->summary($today)['wastageUnits']);
+
+        // A legacy stocktake loss has no governed case and still counts (Mei Ling: guards the subquery's own filter).
+        LegacyStockHistoryFixture::movement($this->f['proposer'], $this->f, 'stocktake_loss', '0.250', (string) Str::uuid());
+        $this->assertSame(0.25, (float) $this->summary($today)['wastageUnits']);
+
+        // A reversed governed count gain posts adjustment_out tied to its case; it never counts as wastage either.
+        $gain = $governedCount('18.000');
+        $this->assertSame('stocktake_gain', DB::table('stock_movements')->where('reference_public_id', DB::table('inventory_governed_cases')->where('id', $gain)->value('public_id'))->value('movement_type'));
+        app(BranchAccessService::class)->select($this->f['proposer'], $this->branch);
+        $gainReversal = $service->propose($this->f['proposer'], 'reversal', $this->proposal(['reverses_case_id' => $gain]));
+        $service->act($this->actorAt('finance_officer'), $gainReversal, 'approved', $this->command($gainReversal));
+        $this->assertSame(0.25, (float) $this->summary($today)['wastageUnits']);
     }
 }

@@ -800,6 +800,7 @@ class ClinicInsightsReportService
             ->whereNotExists(fn (Builder $reversed) => $reversed->selectRaw('1')->from('inventory_governed_cases as counts')
                 ->join('inventory_governed_cases as reversals', 'reversals.reverses_case_id', '=', 'counts.id')
                 ->join('inventory_governed_actions as approvals', 'approvals.case_id', '=', 'reversals.id')
+                // Deliberately inside the subquery: a legacy loss (other reference type) never matches and still counts.
                 ->where('stock_movements.reference_type', 'inventory_governed_case')
                 ->whereColumn('counts.public_id', 'stock_movements.reference_public_id')
                 ->whereColumn('counts.organisation_id', 'stock_movements.organisation_id')
@@ -819,7 +820,7 @@ class ClinicInsightsReportService
             ->sum('stock_movements.quantity');
         // STK-15b: approved STK-5 governed write-offs (expired and other). A write-off whose reversal was later approved
         // is left out, whenever the reversal happened, so the figure belongs to the period of the original write-off.
-        // Governed count losses already post stocktake_loss above, so nothing is counted twice.
+        // Governed count losses already post stocktake_loss above (reversed ones left out, STK-15c), so nothing is counted twice.
         $writeOffs = DB::table('stock_movements')
             ->join('inventory_locations as source_locations', 'source_locations.id', '=', 'stock_movements.source_location_id')
             ->join('inventory_governed_cases as cases', function ($join): void {
