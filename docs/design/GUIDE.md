@@ -394,7 +394,7 @@ only authority (frontend visibility is a usability aid, as in `AGENTS.md`).
 - **Don't** use purple-to-blue gradients, glow, glassmorphism or blur, sparkle or emoji icons, a "Welcome back!"
   hero, giant rounded shadowed cards, or a stock-SaaS look.
 
-**Me** (decision 2026-11-12, owner: more private and professional in the account menu)
+**Me** (decision 2026-11-12, owner: more private and professional in the account menu; built as DS-12)
 
 - **Do** put **Me** inside the **account menu** (the avatar at the top right), as the first group under the person's
   name: My profile, My roster and leave, My attendance, My claims, My credentials, My SOPs, then Security and
