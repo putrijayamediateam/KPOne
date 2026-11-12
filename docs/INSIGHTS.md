@@ -46,7 +46,7 @@ truncation and explains that search covers only the rows shown.
   weekday/hour occupancy is visit volume, not a staff rota or capacity measure.
 - **Payments:** aggregates net self-pay and Panel invoice payable, posted receipts, approved panel allocations, and
   outstanding balances. It does not expose a patient-level debt list.
-- **Inventory:** reports supported low-stock, upcoming-expiry, recorded loss/damage (with approved governed write-offs, STK-15b), treatment-room waste (STK-15) and medicine-sales
+- **Inventory:** reports supported low-stock, upcoming-expiry, recorded loss/damage (with approved governed write-offs, STK-15b; reversed write-offs and count losses left out, STK-15c), treatment-room waste (STK-15) and medicine-sales
   measures. Inventory value and cost of sold stock are unavailable because unit receipt costs and a valuation
   method are not recorded.
 - **Patients:** reports aggregate demographics and visit frequency. Appointment-versus-walk-in is unavailable
