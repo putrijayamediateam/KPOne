@@ -11,6 +11,6 @@ const report = readFileSync(
 test('STK-15b: the Recorded wastage note names approved write-offs and leaves out reversed ones', () => {
     assert.match(
         report,
-        /note: 'Stocktake losses, damage adjustments and approved write-offs for expiry or other reasons\. Reversed write-offs and count losses are left out\. Counts all stock units together\.'/,
+        /note: 'Stocktake losses, damage adjustments and approved write-offs for expiry or other reasons\. Reversed write-offs and reversed count losses are left out\. Counts all stock units together\.'/,
     );
 });
