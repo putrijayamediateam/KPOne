@@ -185,7 +185,7 @@ const submit = () => {
                         </legend>
                         <div class="grid gap-2 sm:grid-cols-2">
                             <label
-                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10 has-focus-visible:border-ring has-focus-visible:ring-[3px] has-focus-visible:ring-ring/40"
                             >
                                 <input
                                     v-model="form.panel_type"
@@ -196,7 +196,7 @@ const submit = () => {
                                 Third Party Administrator
                             </label>
                             <label
-                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10 has-focus-visible:border-ring has-focus-visible:ring-[3px] has-focus-visible:ring-ring/40"
                             >
                                 <input
                                     v-model="form.panel_type"
@@ -408,8 +408,11 @@ const submit = () => {
                         </p>
                     </div>
                     <fieldset class="grid gap-2 sm:grid-cols-2">
+                        <legend class="sr-only">
+                            Panel verification method
+                        </legend>
                         <label
-                            class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                            class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10 has-focus-visible:border-ring has-focus-visible:ring-[3px] has-focus-visible:ring-ring/40"
                         >
                             <input
                                 v-model="form.verification_mode"
@@ -420,7 +423,7 @@ const submit = () => {
                             URL to panel platform
                         </label>
                         <label
-                            class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                            class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10 has-focus-visible:border-ring has-focus-visible:ring-[3px] has-focus-visible:ring-ring/40"
                         >
                             <input
                                 v-model="form.verification_mode"
@@ -482,7 +485,7 @@ const submit = () => {
                         </legend>
                         <div class="grid gap-2 sm:grid-cols-2">
                             <label
-                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10 has-focus-visible:border-ring has-focus-visible:ring-[3px] has-focus-visible:ring-ring/40"
                             >
                                 <input
                                     type="radio"
@@ -493,7 +496,7 @@ const submit = () => {
                                 Days after the visit
                             </label>
                             <label
-                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10 has-focus-visible:border-ring has-focus-visible:ring-[3px] has-focus-visible:ring-ring/40"
                             >
                                 <input
                                     type="radio"

@@ -214,7 +214,7 @@ const tabs = computed(() => [
                                     :href="panel.verificationUrl"
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    class="inline-block py-2 underline"
+                                    class="inline-flex min-h-11 items-center underline"
                                 >
                                     {{ panel.verificationUrl }}
                                 </a>
@@ -224,6 +224,12 @@ const tabs = computed(() => [
                                 >
                                     {{ panel.verificationRemark }}
                                 </span>
+                                <span
+                                    v-else
+                                    class="text-muted-foreground"
+                                    aria-label="No verify link"
+                                    >—</span
+                                >
                             </dd>
                             <dt class="text-muted-foreground">Price tier</dt>
                             <dd class="flex flex-wrap gap-1">
@@ -256,7 +262,7 @@ const tabs = computed(() => [
                                         @click="toggle(panel)"
                                     >
                                         <span
-                                            class="size-5 rounded-full bg-white shadow-sm transition-transform"
+                                            class="size-5 rounded-full bg-background shadow-sm transition-transform"
                                             :class="
                                                 panel.isActive
                                                     ? 'translate-x-6'
@@ -313,6 +319,12 @@ const tabs = computed(() => [
                                 >
                                     {{ panel.verificationRemark }}
                                 </span>
+                                <span
+                                    v-else
+                                    class="text-muted-foreground"
+                                    aria-label="No verify link"
+                                    >—</span
+                                >
                             </td>
                             <td>
                                 <div class="flex flex-wrap gap-1">
@@ -345,7 +357,7 @@ const tabs = computed(() => [
                                         @click="toggle(panel)"
                                     >
                                         <span
-                                            class="size-5 rounded-full bg-white shadow-sm transition-transform"
+                                            class="size-5 rounded-full bg-background shadow-sm transition-transform"
                                             :class="
                                                 panel.isActive
                                                     ? 'translate-x-6'
@@ -400,7 +412,7 @@ const tabs = computed(() => [
                 class="justify-end"
                 :current-page="pagination.currentPage"
                 :last-page="pagination.lastPage"
-                :total="counts[tab]"
+                :total="pagination.total"
                 @change="(value) => go({ page: value })"
             />
         </section>
@@ -483,7 +495,7 @@ const tabs = computed(() => [
                     <Link href="/payment-methods">Manage payment methods</Link>
                 </Button>
             </div>
-            <ul class="mt-3 divide-y text-sm">
+            <ul v-if="selfPayMethods.length > 0" class="mt-3 divide-y text-sm">
                 <li
                     v-for="method in selfPayMethods"
                     :key="method"
@@ -494,7 +506,7 @@ const tabs = computed(() => [
                 </li>
             </ul>
             <EmptyState
-                v-if="selfPayMethods.length === 0"
+                v-else
                 class="mt-3"
                 title="No active payment methods."
             />
