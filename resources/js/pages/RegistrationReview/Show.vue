@@ -21,6 +21,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { DateField } from '@/components/ui/date-field';
+import { PageHeader } from '@/components/ui/page-header';
 import OperationalSelect from '@/components/ui/select/OperationalSelect.vue';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
@@ -317,28 +318,25 @@ watch(
 <template>
     <Head title="Registration Review" />
     <main class="flex flex-1 flex-col gap-6 p-4 md:p-7">
-        <header
-            class="flex flex-col justify-between gap-3 md:flex-row md:items-start"
-        >
-            <div>
-                <Link
-                    href="/registration?tab=qr-intake"
-                    class="mb-2 inline-flex items-center gap-1 text-xs font-medium text-brand-strong hover:underline"
-                >
-                    <ArrowLeft class="size-3.5" /> Registration · QR Intake
-                </Link>
-                <p class="text-sm text-muted-foreground">
-                    {{ visitOptions.branch.name }}
-                </p>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Registration Review
-                </h1>
-                <p class="font-mono text-xs text-muted-foreground">
-                    {{ intake.publicId }}
-                </p>
-            </div>
-            <Badge variant="outline">{{ intakeStatus }}</Badge>
-        </header>
+        <div class="space-y-2">
+            <Link
+                href="/registration?tab=qr-intake"
+                class="inline-flex min-h-11 items-center gap-1 text-xs font-medium text-primary hover:underline lg:min-h-0"
+            >
+                <ArrowLeft class="size-3.5" /> Registration · QR Intake
+            </Link>
+            <PageHeader
+                title="Registration Review"
+                :eyebrow="visitOptions.branch.name"
+            >
+                <template #title-extra>
+                    <Badge variant="outline">{{ intakeStatus }}</Badge>
+                </template>
+                <template #description>
+                    <span class="font-mono text-xs">{{ intake.publicId }}</span>
+                </template>
+            </PageHeader>
+        </div>
         <div
             v-if="actionError"
             role="alert"
@@ -362,7 +360,7 @@ watch(
                         ><span class="text-sm font-medium">Full name</span
                         ><input
                             v-model="correction.full_name"
-                            class="h-10 rounded-md border bg-background px-3" /><InputError
+                            class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11" /><InputError
                             :message="correction.errors.full_name"
                     /></label>
                     <div class="grid grid-cols-2 items-start gap-3">
@@ -378,7 +376,7 @@ watch(
                             ><span class="text-sm font-medium">Gender</span
                             ><select
                                 v-model="correction.sex"
-                                class="h-10 rounded-md border bg-background px-3"
+                                class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
                             >
                                 <option value="female">Female</option>
                                 <option value="male">Male</option>
@@ -396,7 +394,7 @@ watch(
                             ><input
                                 v-model="correction.mobile_phone"
                                 type="tel"
-                                class="h-10 rounded-md border bg-background px-3" /><InputError
+                                class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11" /><InputError
                                 :message="correction.errors.mobile_phone"
                         /></label>
                     </div>
@@ -414,7 +412,7 @@ watch(
                             v-model="correction.nationality_code"
                             maxlength="2"
                             placeholder="MY"
-                            class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
+                            class="h-9 rounded-[10px] border bg-background px-3 text-sm uppercase max-lg:h-11"
                             :aria-invalid="
                                 !!correction.errors.nationality_code
                             " /><InputError
@@ -424,7 +422,7 @@ watch(
                         <select
                             v-model="correction.identifier_type"
                             aria-label="Identifier type"
-                            class="h-10 rounded-md border bg-background px-2"
+                            class="h-9 rounded-[10px] border bg-background px-2 max-lg:h-11"
                         >
                             <option value="nric">NRIC</option>
                             <option value="passport">Passport</option></select
@@ -441,7 +439,7 @@ watch(
                             >
                             <input
                                 v-model="correction.guardian_name"
-                                class="h-10 rounded-md border bg-background px-3"
+                                class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
                             />
                         </label>
                         <div class="grid content-start gap-2">
@@ -452,14 +450,14 @@ watch(
                                 <input
                                     v-model="correction.guardian_contact_number"
                                     type="tel"
-                                    class="h-10 rounded-md border bg-background px-3"
+                                    class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
                                 />
                             </label>
                         </div>
                     </template>
                     <p
                         v-if="medicineOnly"
-                        class="rounded-md border border-border bg-muted/40 p-2 text-sm text-foreground md:col-span-2"
+                        class="rounded-[10px] border border-border bg-muted/40 p-2 text-sm text-foreground md:col-span-2"
                         data-testid="medicine-only-note"
                     >
                         The patient chose "Buy medicine only". Accepting adds
@@ -469,7 +467,7 @@ watch(
                         ><span class="text-sm font-medium">Visit purpose</span
                         ><select
                             v-model="correction.visit_purpose"
-                            class="h-10 rounded-md border bg-background px-3"
+                            class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
                         >
                             <option value="doctor_illness">
                                 See a doctor / illness
@@ -496,7 +494,7 @@ watch(
                             v-model="correction.chief_complaint"
                             rows="3"
                             maxlength="500"
-                            class="rounded-md border bg-background px-3 py-2"
+                            class="rounded-[10px] border bg-background px-3 py-2"
                         ></textarea>
                     </label>
                     <label v-if="!medicineOnly" class="grid gap-1"
@@ -504,7 +502,7 @@ watch(
                         ><input
                             v-model="correction.complaint_duration"
                             maxlength="120"
-                            class="h-10 rounded-md border bg-background px-3"
+                            class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
                     /></label>
                     <div
                         class="rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
@@ -522,7 +520,7 @@ watch(
                             >Patient-reported coverage</span
                         ><select
                             v-model="correction.coverage_type"
-                            class="h-10 rounded-md border bg-background px-3"
+                            class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
                         >
                             <option value="self_pay">Self-pay</option>
                             <option value="panel">Panel</option>
@@ -536,7 +534,7 @@ watch(
                             >Patient-reported Panel</span
                         ><select
                             v-model="correction.panel_id"
-                            class="h-10 rounded-md border bg-background px-3"
+                            class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
                         >
                             <option :value="null">Select a Panel</option>
                             <option
@@ -565,7 +563,7 @@ watch(
                                 >Verified coverage *</span
                             ><select
                                 v-model="acceptance.coverage_type"
-                                class="h-10 rounded-md border bg-background px-3"
+                                class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
                             >
                                 <option value="" disabled>
                                     Select after verification
@@ -596,7 +594,7 @@ watch(
                                 v-model="acceptance.coverage_member_reference"
                                 maxlength="100"
                                 autocomplete="off"
-                                class="h-10 rounded-md border bg-background px-3" /><InputError
+                                class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11" /><InputError
                                 :message="
                                     acceptance.errors.coverage_member_reference
                                 "
@@ -626,14 +624,14 @@ watch(
                         ><input
                             v-model="correction.coverage_member_reference"
                             maxlength="100"
-                            class="h-10 rounded-md border bg-background px-3" />
+                            class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11" />
                         <InputError
                             :message="
                                 correction.errors.coverage_member_reference
                             "
                     /></label>
                     <div
-                        class="rounded-md bg-muted p-3 text-xs text-muted-foreground"
+                        class="rounded-[10px] bg-muted p-3 text-xs text-muted-foreground"
                     >
                         Consent {{ intake.privacyNoticeVersion }} recorded
                         {{ intake.consentedAt }}. Consent details cannot be
@@ -658,7 +656,7 @@ watch(
                 ><CardContent class="space-y-4">
                     <section
                         v-if="intake.fields.submission_type === 'guardian'"
-                        class="space-y-3 rounded-md border p-3"
+                        class="space-y-3 rounded-xl border p-3"
                     >
                         <h3 class="font-semibold">Guardian contact review</h3>
                         <InputError
@@ -683,7 +681,7 @@ watch(
                             >Contact decision
                             <select
                                 v-model="acceptance.guardian_choice"
-                                class="min-h-11 w-full rounded-md border bg-background px-3"
+                                class="min-h-11 w-full rounded-[10px] border bg-background px-3"
                             >
                                 <option value="">Choose explicitly</option>
                                 <option value="keep">
@@ -698,7 +696,7 @@ watch(
                             >Incoming relationship (confirm before saving)
                             <select
                                 v-model="acceptance.guardian_relationship"
-                                class="min-h-11 w-full rounded-md border bg-background px-3"
+                                class="min-h-11 w-full rounded-[10px] border bg-background px-3"
                             >
                                 <option value="">Select relationship</option>
                                 <option value="mother">Mother</option>
@@ -788,7 +786,7 @@ watch(
                         ><span class="text-sm font-medium">Patient number</span
                         ><input
                             v-model="acceptance.patient_number"
-                            class="h-10 rounded-md border bg-background px-3" /><InputError
+                            class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11" /><InputError
                             :message="acceptance.errors.patient_number"
                     /></label>
                     <label
@@ -835,7 +833,7 @@ watch(
                         ><span class="text-sm font-medium">Priority</span
                         ><select
                             v-model="acceptance.priority"
-                            class="h-10 rounded-md border bg-background px-3"
+                            class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
                         >
                             <option value="normal">Normal</option>
                             <option value="urgent">Urgent</option>
@@ -895,7 +893,7 @@ watch(
                         >Rejection category</span
                     ><select
                         v-model="rejectionCategory"
-                        class="h-9 rounded-md border bg-background px-2"
+                        class="h-9 rounded-[10px] border bg-background px-2 max-lg:h-11"
                     >
                         <option
                             v-for="category in rejectionCategories"
