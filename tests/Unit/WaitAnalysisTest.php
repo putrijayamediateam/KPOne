@@ -94,8 +94,8 @@ final class WaitAnalysisTest extends TestCase
         $this->assertSame([], WaitAnalysis::facts($a(11, 3.0), $a(10, 3.0)));
         $this->assertSame(['20% more arrivals'], WaitAnalysis::facts($a(12, 3.0), $a(10, 3.0)));
         $this->assertSame(['20% fewer arrivals'], WaitAnalysis::facts($a(8, 3.0), $a(10, 3.0)));
-        $this->assertSame(['2 doctors having a patient called instead of 3'], WaitAnalysis::facts($a(10, 2.0), $a(10, 3.0)));
-        $this->assertSame(['1 doctor having a patient called instead of 2', '30% more arrivals'], WaitAnalysis::facts($a(13, 1.0), $a(10, 2.0)));
+        $this->assertSame(['only 2 doctors calling patients instead of 3'], WaitAnalysis::facts($a(10, 2.0), $a(10, 3.0)));
+        $this->assertSame(['only 1 doctor calling patients instead of 2', '30% more arrivals'], WaitAnalysis::facts($a(13, 1.0), $a(10, 2.0)));
         $this->assertSame([], WaitAnalysis::facts($a(10, 0.0), $a(10, 3.0)), 'unknown doctors are never stated');
     }
 

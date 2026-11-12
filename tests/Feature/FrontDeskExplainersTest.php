@@ -109,8 +109,8 @@ class FrontDeskExplainersTest extends QueueTestCase
         $json = $this->ask('front_desk.waits_week');
 
         $this->assertSame(
-            'Average wait was 15 min longer this week (25 min, 20 patients) than last week (10 min, 20 patients, same days and time). '
-            .'Biggest change: Tue afternoon (+30 min; coincided with 1 doctor having a patient called instead of 2). '
+            'Average wait was 15 min longer this week (25 min) than last week (10 min). Patients counted: 20 this week, 20 last week, same days and time. '
+            .'Biggest change: Tue afternoon (+30 min; coincided with only 1 doctor calling patients instead of 2). '
             .'1 patient is still waiting now, the longest for 41 min. '
             .'Urgent patients (1 this week, 0 last week) are left out of these averages. '
             .'1 patient who was called on a later day was left out.',

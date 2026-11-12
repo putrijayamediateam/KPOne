@@ -48,7 +48,7 @@ final class FrontDeskExplainers
             return $this->notEnough('compare waits', $cmp['nNow'].' patients called this week, '.$cmp['nBefore'].' last week', WaitAnalysis::MIN_PERIOD.' are needed in each', $tail);
         }
 
-        return $this->comparison($cmp, 'Average wait was', 'this week', 'last week ('.(int) round($cmp['meanBefore']).' min, '.$cmp['nBefore'].' patients, same days and time)', $tail, 'Day and time', 'This week', 'Last week', 'All days so far', 'this week', 'last week');
+        return $this->comparison($cmp, 'Average wait was', 'this week', 'last week', $cmp['nNow'].' this week, '.$cmp['nBefore'].' last week, same days and time', $tail, 'Day and time', 'This week', 'Last week', 'All days so far', 'this week', 'last week');
     }
 
     /** @return Answer */
@@ -91,7 +91,7 @@ final class FrontDeskExplainers
             return $this->notEnough('say how today compares', $cmp['nNow'].' patients called today so far, '.$cmp['nBefore'].' across the last '.$units.' '.$weekday.'s', '8 today and '.WaitAnalysis::MIN_PERIOD.' before are needed', $tail);
         }
 
-        return $this->comparison($cmp, 'Today\'s average wait is', 'today so far', 'a usual '.$weekday.' at this time ('.(int) round($cmp['meanBefore']).' min, '.$cmp['nBefore'].' patients over the last '.$units.' '.$weekday.'s)', $tail, 'Part of day', 'Today', 'Usual', 'All day so far', 'today', 'usually');
+        return $this->comparison($cmp, 'Today\'s average wait is', 'today so far', 'a usual '.$weekday.' at this time', $cmp['nNow'].' today so far, '.$cmp['nBefore'].' over the last '.$units.' '.$weekday.'s', $tail, 'Part of day', 'Today', 'Usual', 'All day so far', 'today', 'usually');
     }
 
     /** @return Answer */
@@ -269,16 +269,16 @@ final class FrontDeskExplainers
      * @param  array{nNow: int, nBefore: int, meanNow: float, meanBefore: float, change: float, named: list<array{cell: string, contribution: float, wait: int, waitBefore: int, facts: list<string>}>}  $cmp
      * @return Answer
      */
-    private function comparison(array $cmp, string $verb, string $nowLabel, string $beforeLong, string $tail, string $c1, string $c2, string $c3, string $overallLabel, string $w2, string $w3): array
+    private function comparison(array $cmp, string $verb, string $nowLabel, string $beforeLabel, string $counted, string $tail, string $c1, string $c2, string $c3, string $overallLabel, string $w2, string $w3): array
     {
         $now = (int) round($cmp['meanNow']);
         $before = (int) round($cmp['meanBefore']);
         $change = $now - $before;
         $abs = abs($change);
         if ($abs < WaitAnalysis::SAME_MINUTES) {
-            $sentence = 'Waits were about the same '.$nowLabel.': '.$now.' min ('.$cmp['nNow'].' patients) against '.$before.' min in '.$beforeLong.'.';
+            $sentence = 'Waits were about the same '.$nowLabel.': '.$now.' min against '.$before.' min in '.$beforeLabel.'. Patients counted: '.$counted.'.';
         } else {
-            $sentence = $verb.' '.$abs.' min '.($change > 0 ? 'longer' : 'shorter').' '.$nowLabel.' ('.$now.' min, '.$cmp['nNow'].' patients) than '.$beforeLong.'.';
+            $sentence = $verb.' '.$abs.' min '.($change > 0 ? 'longer' : 'shorter').' '.$nowLabel.' ('.$now.' min) than '.$beforeLabel.' ('.$before.' min). Patients counted: '.$counted.'.';
             if ($cmp['named'] === []) {
                 $sentence .= ' No single time of day explains it; the change was spread out.';
             } else {

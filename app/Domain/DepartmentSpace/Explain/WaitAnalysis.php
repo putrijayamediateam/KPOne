@@ -191,7 +191,7 @@ final class WaitAnalysis
         $dNow = (int) round($a['doctors']);
         $dBefore = (int) round($b['doctors']);
         if ($a['doctors'] > 0 && $b['doctors'] > 0 && abs($dNow - $dBefore) >= self::DOCTORS_FACT) {
-            $facts[] = $dNow.($dNow === 1 ? ' doctor' : ' doctors').' having a patient called instead of '.$dBefore;
+            $facts[] = ($dNow < $dBefore ? 'only ' : '').$dNow.($dNow === 1 ? ' doctor' : ' doctors').' calling patients instead of '.$dBefore;
         }
         if ($b['arrivals'] > 0) {
             $ratio = ($a['arrivals'] - $b['arrivals']) / $b['arrivals'];
