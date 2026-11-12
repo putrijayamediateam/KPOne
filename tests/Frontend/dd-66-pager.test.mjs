@@ -20,3 +20,10 @@ test('DD-47: one record is singular', () => {
     assert.match(helper, /total === 1 \? 'record' : 'records'/);
     assert.match(pager, /recordsLabel\(total\)/);
 });
+
+test('DD-47: the shared recordsLabel reads 1 record, N records and 0 records', async () => {
+    const { recordsLabel } = await import('../../resources/js/lib/pager.ts');
+    assert.equal(recordsLabel(1), '1 record');
+    assert.equal(recordsLabel(5), '5 records');
+    assert.equal(recordsLabel(0), '0 records');
+});
