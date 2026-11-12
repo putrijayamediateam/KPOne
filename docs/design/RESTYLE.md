@@ -50,7 +50,7 @@ expect a list of owner-approved assertion changes in 0.1, 0.2 and 0.5.
 | 9 | Medicine and Clinical Service catalogues, Pricing, price check and history, Business details, Medicine details, Suppliers, Preset diagnoses, Registration settings | Catalogue & settings | L | Pricing (many fields per row, cards on a phone) |
 | 10 | Staff directory, staff pages, access control, branches, audit logs, Clinic management hub, security settings | Staff Experience | M | Staff Create and Edit (roles and branch assignment dialogs) |
 | 11 | KPOne HR (roster planner, leave, attendance, records, credentials, SOPs, claims, payroll, memos) | HR | L | The roster planner grid and the payroll pages |
-| 12 | Agents (registry, inbox), Website drafts and releases | Agent platform for Agents; Website pages need an owner named by the coordinator | M | The agent inbox decisions. Leave the SVG office page as drawn |
+| 12 | Agents (registry, inbox), Website drafts and releases | Agent platform for Agents; Website pages come last, after the clinic pages, with no team named yet (owner decision 2026-11-12) | M | The agent inbox decisions. Leave the SVG office page as drawn |
 | 13 | Patient directory and patient pages, merges, QR intake review | Patients & Registration | M | Patient create and edit (phone and identifier fields) |
 
 ## Not in the restyle

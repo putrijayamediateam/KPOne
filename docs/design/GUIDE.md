@@ -384,8 +384,10 @@ only authority (frontend visibility is a usability aid, as in `AGENTS.md`).
   (28 to 30 px page title, 15 px panel title, 14 px body), tabular figures for numbers and times, and generous
   line height.
 - **Do** use solid token surfaces with a 0.5 to 1 px hairline, 10 to 14 px corners (consistent, not bubbly),
-  and very soft layering. Dark mode is neutral grey, not navy (section 13).
-- **Do** use one cobalt accent for selection, links and primary buttons. KPOne **pink stays the logo mark only**;
+  and very soft layering. Dark mode uses the bluish greys in section 19 (page `#12141a`, surface `#1c1f27`); this
+  replaces the earlier "neutral grey, not navy" line (owner decision 2026-11-12).
+- **Do** use one cobalt accent for selection, links and primary buttons. KPOne **pink stays for the logo mark, the avatar and
+  small accents only** (section 19);
   it is not an interface colour in the spaces. (The existing pink tokens elsewhere are unchanged until Daniel and
   Kavitha agree a migration.)
 - **Do** use a segmented control for tabs and small filters, and Lucide icons only (section 17).
@@ -466,7 +468,7 @@ pages inherit them and no page sets its own colour)
 | `muted-foreground` | `#4a5468` | `#b0b8cc` | Help, metadata (4.5:1 or better on the page and on the gradient) |
 | `border` | `#d5dbe9` | `#323747` | Hairlines (1 px) |
 | `primary` / `ring` (cobalt) | `#0a56d1` | `#6ba6ff` | The one main action, selection, links, focus ring. Text on it: white in light, `#0b1a33` in dark |
-| `brand` (pink) | `#e8337f` mark; `brand-strong` `#c4155f` | `#ff86ae` | The KPOne logo mark and small accents only. Not a button, tab or focus colour |
+| `brand` (pink) | `#e8337f` mark; `brand-strong` `#c4155f` | `#ff86ae` | The KPOne logo mark, the avatar and small accents only. Not a button, tab or focus colour |
 | `success`, `warning`, `destructive` | `#0b6b34`, `#7d4400`, `#b3261e` on soft fills `#e1f3e8`, `#fcefd0`, `#fde8e6` | `#6fdc9a`, `#f2bf68`, `#ff8a80` on deep fills `#12301f`, `#3a2a0a`, `#3c1a18` | Status meaning only, always with a word |
 | tints `t1` to `t4` | blue `#e0ebff`, pink `#fde3ee`, green `#e1f3e8`, amber `#fcefd0` | `#1e2c4a`, `#3c2030`, `#12301f`, `#3a2a0a` | Shortcut tiles and soft icon tiles only |
 | `g1`, `g2` (Me gradient) | `#ffdcc2`, `#cfe2ff` | `#5a3550`, `#1c2a4a` | Behind the top of the Me home only |
