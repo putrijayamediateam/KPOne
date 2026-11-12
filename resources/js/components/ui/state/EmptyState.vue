@@ -1,4 +1,8 @@
 <script setup lang="ts">
+/**
+ * A small icon, one title, an optional one-sentence description and at most one action. The page passes the action
+ * Button: it is cobalt only when the page has no other main button, otherwise outline, so there is one cobalt per screen.
+ */
 defineProps<{
     title: string;
     description?: string;
