@@ -48,7 +48,7 @@ for (const field of ['quantity', 'reason', 'note', 'condition'] as const) {
 const fieldClass =
     'mt-1 w-full rounded-[10px] border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40';
 const tileClass =
-    'flex min-h-11 cursor-pointer items-center gap-2 rounded-[10px] border bg-card px-3 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand lg:min-h-9';
+    'flex min-h-11 cursor-pointer items-center gap-2 rounded-[10px] border border-input bg-card px-3 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand lg:min-h-9';
 
 const waitingCount = computed(
     () =>
@@ -613,7 +613,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
                                     tabindex="-1"
                                     data-return-item
                                     :data-return-id="row.publicId"
-                                    class="grid gap-1 p-3 text-xs outline-none first:rounded-t-[10px] last:rounded-b-[10px] focus-visible:ring-3 focus-visible:ring-ring/40"
+                                    class="grid gap-1 p-3 text-xs outline-none first:rounded-t-[10px] last:rounded-b-[10px] focus-visible:ring-3 focus-visible:ring-ring/40 focus-visible:ring-inset"
                                 >
                                     <p
                                         class="flex flex-wrap items-center gap-2 text-sm font-medium tabular-nums"

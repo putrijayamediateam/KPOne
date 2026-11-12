@@ -182,7 +182,7 @@ for (const field of [
 }
 
 const tileClass =
-    'flex min-h-11 cursor-pointer items-start gap-2 rounded-[10px] border bg-card px-3 py-2 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 lg:min-h-9';
+    'flex min-h-11 cursor-pointer items-start gap-2 rounded-[10px] border border-input bg-card px-3 py-2 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 lg:min-h-9';
 // DSP-19 (Daniel): one-line reason tiles centre the radio and the words; outcome tiles keep a top-aligned description.
 const reasonTileClass = tileClass.replace('items-start', 'items-center');
 const amount = computed(() => `${props.row.quantity} ${props.line.unit}`);
