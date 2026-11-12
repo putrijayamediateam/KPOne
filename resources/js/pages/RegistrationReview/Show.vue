@@ -376,7 +376,7 @@ watch(
                             ><span class="text-sm font-medium">Gender</span
                             ><select
                                 v-model="correction.sex"
-                                class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
+                                class="h-9 w-full min-w-0 rounded-[10px] border bg-background px-3 max-lg:h-11"
                             >
                                 <option value="female">Female</option>
                                 <option value="male">Male</option>
