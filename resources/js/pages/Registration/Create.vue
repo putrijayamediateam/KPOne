@@ -601,7 +601,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         patientResults.length === 0 &&
                         patientQuery.trim().length > 0
                     "
-                    class="flex items-center justify-between rounded-md bg-muted/35 p-3 text-sm"
+                    class="flex items-center justify-between rounded-xl bg-muted/35 p-3 text-sm"
                 >
                     <span>{{
                         patientQuery.trim().length < 3
@@ -619,7 +619,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 </div>
                 <div
                     v-else-if="showingRecent && !patientResults.length"
-                    class="flex items-center justify-between rounded-md bg-muted/35 p-3 text-sm"
+                    class="flex items-center justify-between rounded-xl bg-muted/35 p-3 text-sm"
                 >
                     <span>No Patients yet.</span>
                     <Button
@@ -776,7 +776,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 />
                 <label
                     v-if="errorFor('quick_patient.duplicate_override')"
-                    class="flex items-start gap-2 rounded-md border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
+                    class="flex items-start gap-2 rounded-xl border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
                     ><input
                         v-model="quick.duplicate_override"
                         type="checkbox"
