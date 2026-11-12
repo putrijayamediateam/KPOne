@@ -31,6 +31,7 @@ use App\Http\Controllers\ClinicManagementController;
 use App\Http\Controllers\ClinicPlaceholderController;
 use App\Http\Controllers\ConsultationCheckoutController;
 use App\Http\Controllers\ConsultationHoldController;
+use App\Http\Controllers\ControlledRegisterController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DepartmentSpaceController;
 use App\Http\Controllers\DiagnosisPresetSettingsController;
@@ -87,6 +88,7 @@ use App\Http\Controllers\PricingController;
 use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
 use App\Http\Controllers\PublicIntakeReviewController;
+use App\Http\Controllers\PurchaseOrderPrintController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\QueueDisplayController;
 use App\Http\Controllers\QueueDisplaySettingsController;
@@ -94,12 +96,16 @@ use App\Http\Controllers\QueueReadinessController;
 use App\Http\Controllers\ReferralController;
 use App\Http\Controllers\RegistrationController;
 use App\Http\Controllers\RegistrationSettingsController;
+use App\Http\Controllers\ReorderSuggestionController;
 use App\Http\Controllers\RoomCallController;
 use App\Http\Controllers\SkuEditController;
+use App\Http\Controllers\SpaceAskController;
+use App\Http\Controllers\SpacePreferenceController;
 use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
+use App\Http\Controllers\SupplierInvoiceController;
 use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
 use App\Http\Controllers\SupplierTermsController;
@@ -188,6 +194,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('medical-certificate-templates', [ClinicianCredentialController::class, 'templates'])->middleware(['permission:catalogue.settings.manage.organisation', 'sensitive.no-store'])->name('medical-certificate-templates.index');
 
     // DS-1 department spaces (the new front door; no menu link until the DS-2 switch).
+    Route::put('spaces/preference', [SpacePreferenceController::class, 'update'])->middleware(['sensitive.no-store', 'throttle:20,1'])->name('spaces.preference');
+    Route::post('spaces/{space}/ask', [SpaceAskController::class, 'ask'])->where('space', '[a-z_]+')->middleware(['sensitive.no-store', 'throttle:60,1'])->name('spaces.ask');
     Route::get('spaces', [DepartmentSpaceController::class, 'index'])->middleware('sensitive.no-store')->name('spaces.index');
     Route::get('spaces/{space}', [DepartmentSpaceController::class, 'show'])->where('space', '[a-z_]+')->middleware('sensitive.no-store')->name('spaces.show');
 
@@ -874,11 +882,23 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
         Route::get('inventory/counts', [GovernedStockController::class, 'counts'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.governed-counts');
         Route::get('inventory/writeoffs', [GovernedStockController::class, 'writeoffs'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.governed-writeoffs');
+        Route::post('inventory/counts/cycle', [GovernedStockController::class, 'startCycleCount'])->middleware(['permission:inventory.stocktake.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.governed-counts.cycle');
         Route::post('inventory/governed/{kind}', [GovernedStockController::class, 'store'])->whereIn('kind', ['count', 'writeoff', 'reversal'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.store');
         Route::post('inventory/governed/{governedCase}/{action}', [GovernedStockController::class, 'act'])->whereNumber('governedCase')->whereIn('action', ['counted', 'recounted', 'approved'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.governed.act');
+        Route::get('inventory/controlled-register', [ControlledRegisterController::class, 'index'])->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store'])->name('inventory.controlled-register');
+        Route::get('inventory/controlled-register/{sku}', [ControlledRegisterController::class, 'show'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store'])->name('inventory.controlled-register.show');
+        Route::get('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'print'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store'])->name('inventory.controlled-register.print');
+        Route::post('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'recordPrint'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.print.record');
+        Route::post('inventory/controlled-register/{sku}/checks', [ControlledRegisterController::class, 'check'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.check');
         Route::get('inventory/supplier-returns', [SupplierReturnController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-returns');
         Route::post('inventory/supplier-returns', [SupplierReturnController::class, 'store'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.store');
         Route::post('inventory/supplier-returns/{supplierReturn}/{action}', [SupplierReturnController::class, 'act'])->whereNumber('supplierReturn')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.act');
+        Route::get('inventory/supplier-invoices', [SupplierInvoiceController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-invoices');
+        Route::post('inventory/supplier-invoices', [SupplierInvoiceController::class, 'store'])->middleware(['permission:inventory.supplier_invoices.record.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-invoices.store');
+        Route::post('inventory/supplier-invoices/{supplierInvoice}/{decision}', [SupplierInvoiceController::class, 'decide'])->whereUuid('supplierInvoice')->whereIn('decision', ['accepted', 'rejected'])->middleware(['permission:inventory.supplier_invoices.approve.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-invoices.decide');
+        Route::post('inventory/supplier-return-groups', [SupplierReturnController::class, 'storeGroup'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-return-groups.store');
+        Route::post('inventory/supplier-return-groups/{group}/{action}', [SupplierReturnController::class, 'actGroup'])->whereNumber('group')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-return-groups.act');
+        Route::get('inventory/reorder-suggestions', [ReorderSuggestionController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.reorder-suggestions');
         Route::get('inventory/skus', [SkuEditController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.skus');
         Route::put('inventory/skus/{sku}', [SkuEditController::class, 'update'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.update');
         Route::get('inventory/supplier-terms', [SupplierTermsController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-terms');
@@ -1079,6 +1099,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/suppliers', [InventoryOperationsController::class, 'createSupplier'])->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:30,1'])->name('inventory.suppliers.store');
         Route::patch('inventory/suppliers/{supplier}', [InventoryOperationsController::class, 'updateSupplier'])->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:30,1'])->name('inventory.suppliers.update');
         Route::patch('inventory/suppliers/{supplier}/status', [InventoryOperationsController::class, 'supplierStatus'])->middleware(['permission:inventory.suppliers.manage.organisation', 'throttle:20,1'])->name('inventory.suppliers.status');
+        Route::get('inventory/purchase-orders/{purchaseOrder}/print', [PurchaseOrderPrintController::class, 'show'])->whereUuid('purchaseOrder')->middleware(['permission:inventory.purchase_orders.create.organisation,inventory.purchase_orders.approve.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.purchase-orders.print');
+        Route::get('inventory/purchase-orders/print/logo/{asset}', [PurchaseOrderPrintController::class, 'logo'])->whereUuid('asset')->middleware(['permission:inventory.purchase_orders.create.organisation,inventory.purchase_orders.approve.organisation'])->name('inventory.purchase-orders.letterhead-logo');
         Route::post('inventory/purchase-orders', [InventoryOperationsController::class, 'createPurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'throttle:30,1'])->name('inventory.purchase-orders.store');
         Route::patch('inventory/purchase-orders/{purchaseOrder}', [InventoryOperationsController::class, 'updatePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'throttle:30,1'])->name('inventory.purchase-orders.update');
         Route::post('inventory/purchase-orders/{purchaseOrder}/submit', [InventoryOperationsController::class, 'submitPurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.submit');

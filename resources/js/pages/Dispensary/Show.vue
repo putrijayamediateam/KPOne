@@ -26,9 +26,11 @@ import {
     scannableCount,
 } from '@/lib/dispensary-scan';
 import type { ScanCheckLine, ScanMarks } from '@/lib/dispensary-scan';
+import { boxBatchHint } from '@/lib/gs1-batch';
+import type { BoxBatchHint } from '@/lib/gs1-batch';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate, formatStatusLabel } from '@/lib/presentation';
-import type { ScannedSku } from '@/lib/scan';
+import type { Gs1Read, ScannedSku } from '@/lib/scan';
 import AllergyMatchWarning from '@/pages/Dispensary/Partials/AllergyMatchWarning.vue';
 import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
 
@@ -467,6 +469,8 @@ const isScanChecked = (item: Item): boolean =>
 const scanOutcome = (sku: ScannedSku) =>
     checkScan(sku, scanLines.value, removedScanLines.value, scanMarks.value);
 const acceptScan = (sku: ScannedSku): string | null => {
+    // DSP-17: any new scan clears the batch hint, including one refused here (Hakim).
+    clearLineHint();
     const outcome = scanOutcome(sku);
 
     return outcome.kind === 'removed' || outcome.kind === 'not_on_case'
@@ -474,11 +478,117 @@ const acceptScan = (sku: ScannedSku): string | null => {
         : null;
 };
 const describeScan = (sku: ScannedSku): string => scanOutcome(sku).message;
-const markScanned = (sku: ScannedSku) => {
+// DSP-17: a scan that matches a saved line points at that line's batch dropdown. Barcodes carry no batch, so the CA
+// still picks the batch printed on the box: nothing is selected, saved or completed here. Focus stays in the scan box,
+// which keeps itself ready for the next box (STK-9's ScanInput).
+const batchHint = ref<string | null>(null);
+const BATCH_HINT = 'Pick the batch printed on the box.';
+// DSP-18: a GS1 code also says which batch and expiry are on the box. The hint names them and marks matching options,
+// and still never selects one: the CA picks the batch, as in DSP-17.
+const boxRead = ref<Gs1Read | null>(null);
+// One hint for the target the scan pointed at, computed once per change rather than per option (Hakim).
+const activeBoxHint = computed((): BoxBatchHint | null => {
+    const target = batchHint.value;
+
+    if (target === null) {
+        return null;
+    }
+
+    const availability =
+        target === 'add'
+            ? (chosen.value?.availability ?? [])
+            : (visibleItems.value.find((item) => item.publicId === target)
+                  ?.availability ?? []);
+    const selected =
+        target === 'add'
+            ? addForm.availabilityIndex
+            : forms[target]?.availabilityIndex;
+    const hint = boxBatchHint(
+        boxRead.value,
+        availability,
+        formatDate,
+        BATCH_HINT,
+    );
+
+    // Information only (Daniel): the dropdown still shows the earlier choice, so say when it is not the box's batch.
+    // A selected option with the box's batch number but another expiry is the same batch: no clause there, unless an
+    // option matches the box exactly (batch and expiry), in which case only those count as the box's batch (Hakim).
+    const boxs = hint.matches.length > 0 ? hint.matches : hint.sameBatch;
+
+    return hint.named && (selected === undefined || !boxs.includes(selected))
+        ? {
+              ...hint,
+              message: `${hint.message} The selected batch is not the one on the box.`,
+          }
+        : hint;
+});
+const boxHint = (target: string): BoxBatchHint =>
+    (batchHint.value === target ? activeBoxHint.value : null) ?? {
+        message: BATCH_HINT,
+        matches: [],
+        warn: false,
+        named: false,
+        sameBatch: [],
+    };
+const matchesBox = (target: string, index: number): boolean =>
+    batchHint.value === target && boxHint(target).matches.includes(index);
+const pointAtBatch = async (publicId: string) => {
+    batchHint.value = publicId;
+    await nextTick();
+    const select = document.querySelector<HTMLSelectElement>(
+        `[data-batch-select="${publicId}"]`,
+    );
+
+    if (select === null) {
+        return;
+    }
+
+    const reduced = window.matchMedia?.(
+        '(prefers-reduced-motion: reduce)',
+    ).matches;
+    select.scrollIntoView({
+        block: 'center',
+        behavior: reduced ? 'auto' : 'smooth',
+    });
+};
+// A typed or scanned code (Enter in the scan box) starts a new scan, even one that turns out unknown.
+const clearLineHint = () => {
+    if (batchHint.value !== null && batchHint.value !== 'add') {
+        batchHint.value = null;
+    }
+};
+// A hinted line that is removed (or otherwise no longer shown) loses its hint, so a restore never brings it back.
+watch(visibleItems, (items) => {
+    if (
+        batchHint.value !== null &&
+        batchHint.value !== 'add' &&
+        !items.some((item) => item.publicId === batchHint.value)
+    ) {
+        batchHint.value = null;
+    }
+});
+const markScanned = (sku: ScannedSku, gs1: Gs1Read | null = null) => {
     const outcome = scanOutcome(sku);
+    batchHint.value = null;
+    boxRead.value = gs1;
 
     if (outcome.kind === 'match' || outcome.kind === 'already') {
         scanMarks.value = outcome.marks;
+        const line = visibleItems.value.find(
+            (item) =>
+                item.sku?.publicId === sku.public_id &&
+                forms[item.publicId] !== undefined &&
+                item.availability.length > 0,
+        );
+
+        if (line) {
+            void pointAtBatch(line.publicId);
+        }
+    }
+};
+const clearBatchHint = (publicId: string) => {
+    if (batchHint.value === publicId) {
+        batchHint.value = null;
     }
 };
 // A removed, restored or changed line loses its mark, so it must be scanned again.
@@ -589,6 +699,7 @@ const saveItem = (item: Item, done?: () => void) => {
             onError: showActionError,
             onSuccess: () => {
                 allergyChecks[checkKey(item)] = false;
+                clearBatchHint(item.publicId);
                 done?.();
             },
             onFinish: () => (busy.value = false),
@@ -742,6 +853,7 @@ const searchMedicines = async () => {
 };
 const chooseMedicine = (medicine: Medicine) => {
     chosen.value = medicine;
+    clearBatchHint('add');
     addAllergyCheck.value = false;
     addForm.availabilityIndex = Math.max(
         0,
@@ -792,7 +904,7 @@ const pickMedicine = (medicine: Medicine) => {
     clearScanAdd();
     chooseMedicine(medicine);
 };
-const scanToAdd = async (sku: ScannedSku) => {
+const scanToAdd = async (sku: ScannedSku, gs1: Gs1Read | null = null) => {
     if (busy.value) {
         scanAddAllergy.value = false;
         scanAddMessage.value = 'Wait for the save to finish, then scan again.';
@@ -808,6 +920,7 @@ const scanToAdd = async (sku: ScannedSku) => {
         return;
     }
 
+    clearBatchHint('add');
     const generation = ++scanAddGeneration;
     scanAddAllergy.value = false;
     scanAddMessage.value = 'Finding the medicine…';
@@ -846,6 +959,8 @@ const scanToAdd = async (sku: ScannedSku) => {
         if (outcome.kind === 'choose') {
             results.value = [outcome.medicine];
             chooseMedicine(outcome.medicine);
+            batchHint.value = 'add';
+            boxRead.value = gs1;
             scanAddMessage.value = outcome.message;
             scanAddOpen.value = false;
             await nextTick();
@@ -920,6 +1035,7 @@ const addMedicine = () => {
             },
             onSuccess: () => {
                 chosen.value = null;
+                clearBatchHint('add');
                 addAllergyCheck.value = false;
                 results.value = [];
                 searchTerm.value = '';
@@ -998,6 +1114,16 @@ const changeLabel = (item: Item) =>
         unchanged: '',
     })[item.changeState];
 const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
+// DSP-17: brand line colour only (not the error look); replaces the focus ring while shown.
+const batchHintClass =
+    'border-brand ring-2 ring-brand ring-offset-2 ring-offset-background focus-visible:ring-brand';
+
+// Plain words for an earlier partial dispense, never the stored code (Daniel, guide section 15).
+const exceptionStatusLabels: Record<string, string> = {
+    awaiting_acknowledgement: 'waiting for the doctor to acknowledge',
+    acknowledged: 'acknowledged by the doctor',
+    superseded: 'replaced by a later change',
+};
 </script>
 
 <template>
@@ -1288,6 +1414,7 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                     :accept="acceptScan"
                     :describe="describeScan"
                     data-testid="dispensary-scan"
+                    @keydown.enter.capture="clearLineHint"
                     @found="markScanned"
                 />
                 <section class="divide-y rounded-lg border bg-background">
@@ -1353,7 +1480,11 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 class="mt-1 text-xs text-amber-700 dark:text-amber-300"
                             >
                                 Earlier partial dispense:
-                                {{ item.exception.status }}
+                                {{
+                                    exceptionStatusLabels[
+                                        item.exception.status
+                                    ] ?? 'status unknown'
+                                }}
                             </p>
                             <Button
                                 v-if="
@@ -1464,8 +1595,14 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     v-model.number="
                                         forms[item.publicId].availabilityIndex
                                     "
-                                    :class="inputClass"
+                                    :class="[
+                                        inputClass,
+                                        batchHint === item.publicId &&
+                                            batchHintClass,
+                                    ]"
                                     :aria-describedby="`batch-selected-${item.publicId}`"
+                                    :data-batch-select="item.publicId"
+                                    @change="clearBatchHint(item.publicId)"
                                 >
                                     <option
                                         v-for="(
@@ -1476,6 +1613,10 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                         :disabled="stock.held"
                                     >
                                         {{
+                                            matchesBox(item.publicId, index)
+                                                ? 'Matches the box · '
+                                                : ''
+                                        }}{{
                                             batchOptionText(
                                                 stock,
                                                 item.sku?.unit ?? item.unit,
@@ -1489,6 +1630,25 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                 class="text-xs text-muted-foreground sm:col-span-full"
                                 data-testid="batch-selected"
                             >
+                                <span
+                                    role="status"
+                                    class="block font-medium text-brand-strong empty:hidden"
+                                    ><span
+                                        v-if="batchHint === item.publicId"
+                                        class="inline-flex items-start gap-1"
+                                        :class="
+                                            boxHint(item.publicId).warn &&
+                                            'text-warning-strong'
+                                        "
+                                        data-testid="batch-pick-hint"
+                                        ><ScanLine
+                                            class="mt-px size-3.5 shrink-0"
+                                            aria-hidden="true"
+                                        />{{
+                                            boxHint(item.publicId).message
+                                        }}</span
+                                    ></span
+                                >
                                 {{
                                     selectedBatchText(
                                         item.availability[
@@ -1872,8 +2032,13 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                         <label class="sm:col-span-2"
                             >Batch<select
                                 v-model.number="addForm.availabilityIndex"
-                                :class="inputClass"
+                                :class="[
+                                    inputClass,
+                                    batchHint === 'add' && batchHintClass,
+                                ]"
                                 aria-describedby="batch-selected-add"
+                                data-batch-select="add"
+                                @change="clearBatchHint('add')"
                             >
                                 <option
                                     v-for="(
@@ -1884,6 +2049,10 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                                     :disabled="stock.held"
                                 >
                                     {{
+                                        matchesBox('add', index)
+                                            ? 'Matches the box · '
+                                            : ''
+                                    }}{{
                                         batchOptionText(
                                             stock,
                                             chosen.sku?.unit ?? chosen.unit,
@@ -1897,6 +2066,23 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
                             class="text-xs text-muted-foreground sm:col-span-full"
                             data-testid="batch-selected"
                         >
+                            <span
+                                role="status"
+                                class="block font-medium text-brand-strong empty:hidden"
+                                ><span
+                                    v-if="batchHint === 'add'"
+                                    class="inline-flex items-start gap-1"
+                                    :class="
+                                        boxHint('add').warn &&
+                                        'text-warning-strong'
+                                    "
+                                    data-testid="batch-pick-hint"
+                                    ><ScanLine
+                                        class="mt-px size-3.5 shrink-0"
+                                        aria-hidden="true"
+                                    />{{ boxHint('add').message }}</span
+                                ></span
+                            >
                             {{
                                 selectedBatchText(
                                     chosen.availability[

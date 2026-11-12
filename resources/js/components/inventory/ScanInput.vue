@@ -18,8 +18,14 @@ import {
     cleanScannedCode,
     isRepeat,
     scanMessage,
+    shownCode,
 } from '@/lib/scan';
-import type { CameraSupport, ScanLookup, ScannedSku } from '@/lib/scan';
+import type {
+    CameraSupport,
+    Gs1Read,
+    ScanLookup,
+    ScannedSku,
+} from '@/lib/scan';
 
 /**
  * STK-9: scan or type a barcode to find a SKU. Works with handheld scanners that type the code and press Enter,
@@ -35,7 +41,8 @@ const props = defineProps<{
     /** Optional page wording for a found SKU (DSP-11 Dispensary check); the default is the STK-9 message. */
     describe?: (sku: ScannedSku) => string;
 }>();
-const emit = defineEmits<{ found: [sku: ScannedSku] }>();
+// DSP-18: a GS1 code also passes what it read (batch, expiry); the page may only point at it, never fill it in.
+const emit = defineEmits<{ found: [sku: ScannedSku, gs1: Gs1Read | null] }>();
 
 const inputId = `scan-${props.refocusKey}`;
 const code = ref('');
@@ -93,7 +100,7 @@ async function lookup(raw: string) {
 
     last = { code: value, at: Date.now() };
     busy.value = true;
-    show(`Looking up code ${value}…`, false);
+    show(`Looking up code ${shownCode(value)}…`, false);
 
     try {
         const result = await requestJson<ScanLookup>(
@@ -131,7 +138,7 @@ async function lookup(raw: string) {
             }
         }
 
-        emit('found', result.sku);
+        emit('found', result.sku, result.gs1 ?? null);
     } catch {
         show('Lookup failed. Try again.', true);
     } finally {
