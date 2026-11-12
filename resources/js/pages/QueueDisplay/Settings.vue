@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,7 +135,10 @@ const posterForm = useForm<{ poster: File | null; lock_version: number }>({
     poster: null,
     lock_version: props.settings.lockVersion,
 });
-const posterInput = ref<HTMLInputElement | null>(null);
+const posterInput = ref<InstanceType<typeof FileChooseButton> | null>(null);
+const posterStatus = computed(
+    () => posterForm.poster?.name ?? 'No file chosen',
+);
 const uploadPoster = () => {
     posterForm.lock_version = props.settings.lockVersion;
     posterForm.post(
@@ -145,9 +149,7 @@ const uploadPoster = () => {
             onSuccess: () => {
                 posterForm.reset('poster');
 
-                if (posterInput.value) {
-                    posterInput.value.value = '';
-                }
+                posterInput.value?.clear();
             },
         },
     );
@@ -163,7 +165,7 @@ const removePoster = (posterId: string) => {
 
 <template>
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
     >
         <PageHeader
             title="Queue Display (TV)"
@@ -176,7 +178,7 @@ const removePoster = (posterId: string) => {
             <label class="grid gap-1 text-xs">
                 Branch
                 <select
-                    class="h-9 rounded-md border bg-background px-3 text-sm"
+                    class="h-11 rounded-md border bg-background px-3 text-sm lg:h-9"
                     :value="branch.id"
                     @change="selectBranch"
                 >
@@ -204,7 +206,7 @@ const removePoster = (posterId: string) => {
         </section>
 
         <section class="rounded-xl border bg-card p-4">
-            <h2 class="text-sm font-semibold">Rooms</h2>
+            <h2 class="text-base font-semibold">Rooms</h2>
             <p class="mt-1 text-xs text-muted-foreground">
                 Doctors choose their consultation room for the day in the
                 Consultation queue; once a branch has a consultation room, Call
@@ -374,13 +376,13 @@ const removePoster = (posterId: string) => {
         </section>
 
         <section class="rounded-xl border bg-card p-4">
-            <h2 class="text-sm font-semibold">Screen content</h2>
+            <h2 class="text-base font-semibold">Screen content</h2>
             <form class="mt-4 grid gap-3" @submit.prevent="saveSettings">
                 <label class="grid max-w-md gap-1 text-xs">
                     Call patients by
                     <select
                         v-model="settingsForm.call_display_mode"
-                        class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
+                        class="h-11 w-full min-w-0 rounded-md border bg-background px-2 text-sm lg:h-9"
                         data-testid="call-display-mode"
                         aria-describedby="call-display-mode-help"
                     >
@@ -410,6 +412,7 @@ const removePoster = (posterId: string) => {
                     <Input
                         v-model="settingsForm.ticker_text"
                         maxlength="500"
+                        class="max-lg:h-11"
                         placeholder="e.g. Open every day, 8 am to 10 pm."
                     />
                     <InputError :message="settingsForm.errors.ticker_text" />
@@ -420,6 +423,7 @@ const removePoster = (posterId: string) => {
                         v-model="settingsForm.youtube_url"
                         maxlength="300"
                         inputmode="url"
+                        class="max-lg:h-11"
                         placeholder="https://www.youtube.com/watch?v=…"
                     />
                     <InputError :message="settingsForm.errors.youtube_url" />
@@ -431,12 +435,17 @@ const removePoster = (posterId: string) => {
                         type="number"
                         min="5"
                         max="120"
+                        class="max-lg:h-11"
                     />
                     <InputError :message="settingsForm.errors.poster_seconds" />
                 </label>
                 <InputError :message="settingsForm.errors.lock_version" />
                 <div>
-                    <Button type="submit" :disabled="settingsForm.processing">
+                    <Button
+                        type="submit"
+                        class="max-lg:min-h-11"
+                        :disabled="settingsForm.processing"
+                    >
                         Save screen content
                     </Button>
                 </div>
@@ -444,7 +453,7 @@ const removePoster = (posterId: string) => {
         </section>
 
         <section class="rounded-xl border bg-card p-4">
-            <h2 class="text-sm font-semibold">
+            <h2 class="text-base font-semibold">
                 Posters ({{ settings.posters.length }} of {{ maxPosters }})
             </h2>
             <p class="mt-1 text-xs text-muted-foreground">
@@ -458,13 +467,17 @@ const removePoster = (posterId: string) => {
                 class="mt-4 flex flex-wrap items-end gap-3"
                 @submit.prevent="uploadPoster"
             >
-                <label class="grid gap-1 text-xs">
-                    Poster image
-                    <input
+                <div class="grid min-w-0 gap-1 text-xs">
+                    <span id="poster-image-label">Poster image</span>
+                    <FileChooseButton
+                        id="poster-image"
                         ref="posterInput"
-                        type="file"
                         accept="image/jpeg,image/png,image/webp"
-                        class="text-sm"
+                        label="Choose poster"
+                        class="max-lg:min-h-11!"
+                        :status="posterStatus"
+                        status-id="poster-image-name"
+                        aria-describedby="poster-image-label"
                         @change="
                             posterForm.poster =
                                 ($event.target as HTMLInputElement)
@@ -473,9 +486,10 @@ const removePoster = (posterId: string) => {
                     />
                     <InputError :message="posterForm.errors.poster" />
                     <InputError :message="posterForm.errors.lock_version" />
-                </label>
+                </div>
                 <Button
                     type="submit"
+                    class="max-lg:min-h-11"
                     :disabled="posterForm.processing || !posterForm.poster"
                 >
                     Upload poster
