@@ -10,7 +10,9 @@ use App\Domain\HR\Attendance\Services\LocationCheckService;
 use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Domain\HR\Attendance\Services\OvertimeSettingsService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
+use App\Domain\Shared\SafeReturnPath;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +27,21 @@ class AttendanceController extends Controller
         return Inertia::render('HR/Attendance', ['attendance' => $pages->page($request->user(), $request->only(['tab', 'branch', 'date', 'month', 'period'])),
             // HR-5a: your own expiring or expired credentials, in words; inside KPOne only.
             'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
+    }
+
+    /** DS-12: the same state My attendance shows, for the top-bar shortcut. Read only; the press itself is clock-in or clock-out. */
+    public function clockState(Request $request, AttendancePageService $pages): JsonResponse
+    {
+        $my = (array) ($pages->page($request->user(), ['tab' => 'my'])['my'] ?? []);
+
+        return response()->json([
+            'state' => (string) ($my['state'] ?? 'out'),
+            'label' => $my['clockedInLabel'] ?? $my['doneLabel'] ?? null,
+            'canPress' => (bool) ($my['canPress'] ?? false),
+            'refusal' => $my['refusal'] ?? null,
+            // A branch that checks location needs the consent and position screens, which only the Attendance page has.
+            'needsAttendancePage' => ($my['location'] ?? null) !== null,
+        ]);
     }
 
     public function clockIn(Request $request, ClockService $clock): RedirectResponse
@@ -139,7 +156,8 @@ class AttendanceController extends Controller
 
     private function run(Request $request, string $tab, ?string $message, callable $action): RedirectResponse
     {
-        $back = $this->back($request, $tab);
+        // DS-12: a press from the top bar returns to the page it came from (a checked internal path), else the Attendance tab.
+        $back = SafeReturnPath::from($request->input('from')) ?? $this->back($request, $tab);
         try {
             $action();
         } catch (ValidationException $e) {

@@ -232,6 +232,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time; HR-16a may keep a location result, never a position.
     Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.attendance.clock.own,hr.attendance.review.organisation')->name('hr.attendance.index');
+        Route::get('clock-state', 'clockState')->middleware(['permission:hr.attendance.clock.own', 'throttle:60,1'])->name('hr.attendance.clock-state');
         Route::middleware(['permission:hr.attendance.clock.own', 'throttle:10,1'])->group(function (): void {
             Route::post('clock-in', 'clockIn')->name('hr.attendance.clock-in');
             Route::post('clock-out', 'clockOut')->name('hr.attendance.clock-out');
