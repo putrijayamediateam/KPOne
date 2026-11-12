@@ -90,7 +90,7 @@ test('v2.css only matches V2 classes, so Classic is untouched', () => {
     for (const selector of selectors) {
         assert.match(
             selector,
-            /^\.v2-/,
+            /^(\.dark )?\.v2-/,
             `${selector} is not scoped to a V2 class`,
         );
     }

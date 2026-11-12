@@ -187,3 +187,11 @@
         line-height: 36px;
     }
 }
+
+/* Version 2 menu panel: a hairline and a soft shadow, a stronger hairline in dark. */
+.v2-menu {
+    box-shadow: 0 8px 24px -8px rgb(22 26 36 / 0.18);
+}
+.dark .v2-menu {
+    box-shadow: 0 8px 24px -8px rgb(0 0 0 / 0.6);
+}
