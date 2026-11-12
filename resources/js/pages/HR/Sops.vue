@@ -239,7 +239,7 @@ const withdrawn = computed(() =>
                 eyebrow="KPOne HR"
                 title="SOPs"
                 :description="
-                    sops.canManage
+                    sops.tab === 'manage'
                         ? 'Publish SOPs to the roles that must read them, and see who has not acknowledged yet. A new file is a new version, read again by everyone it is for.'
                         : 'SOPs for your role. Open each one, then press I have read and understood.'
                 "
