@@ -195,3 +195,11 @@ test('V2 page title is 24px on phones and 30px from lg', () => {
         /min-width: 64rem\) \{\s*\.v2-page-title \{\s*font-size: 30px;/,
     );
 });
+
+test('V2WorkLayout: eyebrow is a muted line above the title, outside the heading', () => {
+    const s = v2('V2WorkLayout');
+    assert.match(s, /eyebrow\?: string/);
+    assert.match(s, /v-if="eyebrow"/);
+    assert.match(s, /text-muted-foreground"\s*>\s*\{\{ eyebrow \}\}/);
+    assert.ok(s.indexOf('{{ eyebrow }}') < s.indexOf('<h1'));
+});
