@@ -3,6 +3,11 @@ import { cva } from "class-variance-authority"
 
 export { default as Button } from "./Button.vue"
 
+/*
+ * The real variant set is: default (cobalt), outline, ghost, destructive and link.
+ * `primary` is an alias of `default` and `secondary` is an alias of `outline`; they stay only so existing pages keep
+ * working and are retired page by page in later restyle PRs.
+ */
 export const buttonVariants = cva(
   "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-[10px] text-sm font-medium transition-[background-color,border-color,color,box-shadow,opacity] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
