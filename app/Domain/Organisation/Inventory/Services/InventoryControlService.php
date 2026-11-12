@@ -12,6 +12,7 @@ use App\Domain\Organisation\Inventory\Models\InventoryStocktake;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -97,8 +98,11 @@ final class InventoryControlService
             StockUnitQuantity::format($reorder), $max === null ? null : StockUnitQuantity::format($max), $expected], JSON_THROW_ON_ERROR));
 
         return DB::transaction(function () use ($actor, $values, $reorder, $max, $expected, $key, $hash, $branch): InventoryReorderLevel {
-            // Two first uses of one key race on the unique key index; the transaction retry then replays or refuses.
             $lockedActor = $this->authority->lockForBranch($actor, $branch, self::REORDER_PERMISSION);
+            $location = $this->lockLocation($lockedActor, $branch, $values['location_public_id']);
+            $sku = InventorySku::query()->where('public_id', $values['sku_public_id'])->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
+            $level = InventoryReorderLevel::query()->where('organisation_id', $lockedActor->organisation_id)->where('inventory_location_id', $location->id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->first();
+            // Read after the row locks, so a double submit that waited behind the first one replays it.
             $command = DB::table('inventory_reorder_level_commands')->where('organisation_id', $lockedActor->organisation_id)
                 ->where('idempotency_key', $key)->lockForUpdate()->first();
             if ($command !== null) {
@@ -109,18 +113,21 @@ final class InventoryControlService
                 return InventoryReorderLevel::query()->whereKey($command->inventory_reorder_level_id)
                     ->where('organisation_id', $lockedActor->organisation_id)->lockForUpdate()->firstOrFail();
             }
-            $location = $this->lockLocation($lockedActor, $branch, $values['location_public_id']);
-            $sku = InventorySku::query()->where('public_id', $values['sku_public_id'])->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
-            $level = InventoryReorderLevel::query()->where('organisation_id', $lockedActor->organisation_id)->where('inventory_location_id', $location->id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->first();
             if (($level === null) !== ($expected === null) || ($level !== null && (int) $level->lock_version !== $expected)) {
                 throw ValidationException::withMessages(['expected_lock_version' => 'This reorder level changed. Reload and try again.']);
             }
             $level ??= new InventoryReorderLevel;
-            $level->forceFill(['organisation_id' => $lockedActor->organisation_id, 'inventory_location_id' => $location->id, 'inventory_sku_id' => $sku->id,
-                'reorder_level' => StockUnitQuantity::format($reorder), 'max_level' => $max === null ? null : StockUnitQuantity::format($max),
-                'lock_version' => $level->exists ? (int) $level->lock_version + 1 : 1, 'updated_by_user_id' => $lockedActor->id])->save();
-            DB::table('inventory_reorder_level_commands')->insert(['organisation_id' => $lockedActor->organisation_id, 'branch_id' => $branch->id,
-                'inventory_reorder_level_id' => $level->id, 'idempotency_key' => $key, 'payload_hash' => $hash, 'created_at' => now()->utc()]);
+            try {
+                $level->forceFill(['organisation_id' => $lockedActor->organisation_id, 'inventory_location_id' => $location->id, 'inventory_sku_id' => $sku->id,
+                    'reorder_level' => StockUnitQuantity::format($reorder), 'max_level' => $max === null ? null : StockUnitQuantity::format($max),
+                    'lock_version' => $level->exists ? (int) $level->lock_version + 1 : 1, 'updated_by_user_id' => $lockedActor->id])->save();
+                DB::table('inventory_reorder_level_commands')->insert(['organisation_id' => $lockedActor->organisation_id, 'branch_id' => $branch->id,
+                    'inventory_reorder_level_id' => $level->id, 'idempotency_key' => $key, 'payload_hash' => $hash, 'created_at' => now()->utc()]);
+            } catch (UniqueConstraintViolationException) {
+                // Two first saves for one location and SKU (or one key) raced: the unique index keeps the first, and
+                // the other is refused like any stale page. The whole transaction rolls back.
+                throw ValidationException::withMessages(['expected_lock_version' => 'This reorder level changed. Reload and try again.']);
+            }
             $this->audit->record('inventory.reorder_level.updated', $level, ['reorder_level' => $level->reorder_level, 'max_level' => $level->max_level, 'lock_version' => $level->lock_version], $lockedActor, $branch);
 
             return $level;
