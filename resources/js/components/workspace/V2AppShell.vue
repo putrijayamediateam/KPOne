@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { Menu, Search, Undo2 } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, ref, watchEffect } from 'vue';
 import { toast } from 'vue-sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -19,9 +19,11 @@ import {
 } from '@/components/ui/sheet';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import V2JumpDialog from '@/components/workspace/V2JumpDialog.vue';
+import V2PageCrumbs from '@/components/workspace/V2PageCrumbs.vue';
 import V2ShellNav from '@/components/workspace/V2ShellNav.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
 import { getInitials } from '@/composables/useInitials';
+import { providePageCrumbs } from '@/composables/usePageCrumbs';
 import type { V2Shell } from '@/types';
 
 /**
@@ -55,11 +57,19 @@ const backToClassic = () =>
     );
 
 // Daniel (real-shell review, 2026-11-12): a quiet ghost control, not an outline page action, and the same 36 px
-// height and small text as the branch switcher beside it.
+// height and small text as the branch switcher beside it. UX-20: a full-strength focus ring, because the shared Button's
+// 40% ring measures under 3:1 against the top bar (Daniel, 2026-11-12).
 const QUIET_BACK =
-    'h-9 gap-1.5 rounded-lg px-2.5 text-xs font-normal text-muted-foreground hover:text-foreground';
+    'h-9 gap-1.5 rounded-lg px-2.5 text-xs font-normal text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring';
 
-const crumb = computed(() => props.shell.current);
+// UX-20: a page may set its own crumb trail (usePageCrumbs); the space this page belongs to is the fallback.
+const { placed, hidden: crumbHidden } = providePageCrumbs(() =>
+    props.shell.current
+        ? { title: props.shell.current.title, href: props.shell.current.href }
+        : null,
+);
+watchEffect(() => (crumbHidden.value = props.focusMode === true));
+const crumbsInFrame = computed(() => placed.value.length);
 </script>
 
 <template>
@@ -174,18 +184,13 @@ const crumb = computed(() => props.shell.current);
                 </div>
             </header>
 
-            <nav
-                v-if="crumb && !focusMode"
-                aria-label="Breadcrumb"
+            <!-- A page with PageFrame draws the crumb inside its own frame, at the content edge. For a page without one the
+                 shell draws it here, at the side padding most pages use today (16 px, 24 px from 768 px; Sofia's review). -->
+            <V2PageCrumbs
+                v-if="!focusMode && crumbsInFrame === 0"
                 class="px-4 pt-4 md:px-6"
                 data-test="v2-shell-crumb"
-            >
-                <Link
-                    :href="crumb.href"
-                    class="inline-flex items-center text-xs font-medium text-muted-foreground hover:text-foreground hover:underline max-sm:min-h-11"
-                    >{{ crumb.title }}</Link
-                >
-            </nav>
+            />
 
             <slot />
         </div>
