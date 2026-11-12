@@ -2,7 +2,6 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
-import ClockConfirm from '@/components/spaces/ClockConfirm.vue';
 import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import {
@@ -373,6 +372,9 @@ const changeBranch = (event: Event) => {
 const side = ref<HTMLElement | null>(null);
 const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
 
+// DS-12: on a phone a light dim layer sits behind the open account menu, as dialogs have.
+const menuOpen = ref(false);
+
 // DS-12: Me lives in the account menu, so it is not a nav item. A person whose only space is Me gets no space items.
 const accountMenu = computed(() => page.props.workspace?.accountMenu);
 const {
@@ -380,7 +382,6 @@ const {
     press: pressClock,
     label: clockLabel,
     visible: clockVisible,
-    clock,
 } = useClockShortcut();
 onMounted(() => {
     if (accountMenu.value?.clock) {
@@ -424,7 +425,11 @@ onMounted(() => {
                 </div>
             </nav>
         </div>
-        <ClockConfirm v-if="accountMenu?.clock" />
+        <div
+            v-if="menuOpen"
+            class="fixed inset-0 z-40 bg-black/30 sm:hidden"
+            aria-hidden="true"
+        />
         <main id="main-content" class="space-main" tabindex="-1">
             <div class="space-top">
                 <label
@@ -453,12 +458,11 @@ onMounted(() => {
                     type="button"
                     class="space-clock"
                     data-test="clock-shortcut"
-                    :disabled="clock.processing"
                     @click="pressClock()"
                 >
                     {{ clockLabel }}
                 </button>
-                <DropdownMenu>
+                <DropdownMenu @update:open="menuOpen = $event">
                     <DropdownMenuTrigger :as-child="true">
                         <button
                             type="button"

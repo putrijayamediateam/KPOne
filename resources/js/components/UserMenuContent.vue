@@ -83,9 +83,9 @@ const switchSpaces = (enabled: boolean) =>
             v-for="link in accountMenu?.links ?? []"
             :key="link.title"
             :as-child="true"
-            class="max-lg:min-h-11"
+            class="pl-8 max-lg:min-h-11"
         >
-            <Link class="block w-full cursor-pointer pl-6" :href="link.href">{{
+            <Link class="block w-full cursor-pointer" :href="link.href">{{
                 link.title
             }}</Link>
         </DropdownMenuItem>

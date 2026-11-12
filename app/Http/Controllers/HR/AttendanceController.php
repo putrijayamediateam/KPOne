@@ -10,7 +10,6 @@ use App\Domain\HR\Attendance\Services\LocationCheckService;
 use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Domain\HR\Attendance\Services\OvertimeSettingsService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
-use App\Domain\Shared\SafeReturnPath;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -29,7 +28,7 @@ class AttendanceController extends Controller
             'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
     }
 
-    /** DS-12: the same state My attendance shows, for the top-bar shortcut. Read only; the press itself is clock-in or clock-out. */
+    /** DS-12: the same state My attendance shows, for the top-bar shortcut. Read only: the shortcut opens Attendance and never presses. */
     public function clockState(Request $request, AttendancePageService $pages): JsonResponse
     {
         $my = (array) ($pages->page($request->user(), ['tab' => 'my'])['my'] ?? []);
@@ -156,8 +155,7 @@ class AttendanceController extends Controller
 
     private function run(Request $request, string $tab, ?string $message, callable $action): RedirectResponse
     {
-        // DS-12: a press from the top bar returns to the page it came from (a checked internal path), else the Attendance tab.
-        $back = SafeReturnPath::from($request->input('from')) ?? $this->back($request, $tab);
+        $back = $this->back($request, $tab);
         try {
             $action();
         } catch (ValidationException $e) {

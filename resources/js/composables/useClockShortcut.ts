@@ -12,18 +12,15 @@ type ClockState = {
 
 const ATTENDANCE = '/hr/attendance';
 
-// One shared state for the top-bar button, the phone menu row and the Clock out confirm (DS-12).
+// One shared state for the top-bar button and the phone menu row (DS-12).
 const clock = reactive({
     loaded: false,
     state: 'out' as ClockState['state'],
     canPress: false,
     needsAttendancePage: false,
-    processing: false,
-    confirmOut: false,
-    key: '',
 });
 
-/** The clock shortcut reads the same state as My attendance and presses the same clock-in and clock-out routes. */
+/** The clock shortcut reads the same state as My attendance, and opens the Attendance page. It presses nothing. */
 export function useClockShortcut() {
     const load = async () => {
         try {
@@ -40,55 +37,18 @@ export function useClockShortcut() {
         }
     };
 
-    const send = (kind: 'in' | 'out') => {
-        clock.processing = true;
-        clock.key = clock.key || crypto.randomUUID();
-        router.post(
-            `${ATTENDANCE}/clock-${kind}`,
-            {
-                idempotency_key: clock.key,
-                // Back to the page the person was on: the server checks it is a real internal page.
-                from: `${window.location.pathname}${window.location.search}`,
-            },
-            {
-                preserveScroll: true,
-                onFinish: () => {
-                    clock.processing = false;
-                    clock.confirmOut = false;
-                    clock.key = '';
-                    void load();
-                },
-            },
-        );
-    };
-
-    /** Clock in presses at once; Clock out asks first (as on the Attendance page). */
+    /**
+     * The shortcut never presses. Clock in and Clock out need HR's photo step, so for now it opens the Attendance page,
+     * where the press and its checks live; it will open the photo clock dialog when that exists.
+     */
     const press = () => {
-        if (clock.processing) {
-            return;
-        }
-
-        // A branch that checks location needs the consent and position steps, which only the Attendance page has.
-        if (!clock.canPress || clock.needsAttendancePage) {
-            router.visit(ATTENDANCE);
-
-            return;
-        }
-
-        if (clock.state === 'in') {
-            clock.confirmOut = true;
-
-            return;
-        }
-
-        send('in');
+        router.visit(ATTENDANCE);
     };
 
-    const confirmOut = () => send('out');
     const label = computed(() =>
         clock.state === 'in' ? 'Clock out' : 'Clock in',
     );
     const visible = computed(() => clock.loaded && clock.state !== 'done');
 
-    return { clock, load, press, confirmOut, label, visible };
+    return { clock, load, press, label, visible };
 }

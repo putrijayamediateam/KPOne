@@ -39,16 +39,13 @@ test('DS-12: the name shows beside the avatar only from 1024 px', () => {
     );
 });
 
-test('DS-12: the shortcut reads the attendance state, confirms Clock out, returns to the page and defers to Attendance when location is checked', () => {
-    assert.match(clock, /\/hr\/attendance/);
+test('DS-12: the shortcut reads the attendance state and opens the Attendance page; it never posts a press', () => {
     assert.match(clock, /clock-state/);
-    assert.match(clock, /clock\.confirmOut = true/);
-    assert.match(
-        clock,
-        /from: `\$\{window\.location\.pathname\}\$\{window\.location\.search\}`/,
-    );
-    assert.match(clock, /needsAttendancePage/);
     assert.match(clock, /router\.visit\(ATTENDANCE\)/);
+    assert.doesNotMatch(
+        clock,
+        /router\.post|clock-in|clock-out|crypto\.randomUUID/,
+    );
 });
 
 test('DS-12: the phone clock row hides only where the top-bar button shows, so the two are never visible together', () => {
@@ -73,4 +70,10 @@ test('DS-12: a person with no space and no Clinic management link gets no empty 
         css,
         /\.space-shell\.is-bare \.space-side \{\s*display: none;/,
     );
+});
+
+test('DS-12: the own-page rows line up with the icon rows and a phone gets a dim layer behind the open menu', () => {
+    assert.match(menu, /class="pl-8 max-lg:min-h-11"/);
+    assert.match(page, /@update:open="menuOpen = \$event"/);
+    assert.match(page, /v-if="menuOpen"[\s\S]*?bg-black\/30 sm:hidden/);
 });

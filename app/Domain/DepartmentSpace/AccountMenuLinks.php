@@ -20,7 +20,7 @@ final class AccountMenuLinks
     {
         $links = [];
         if ($this->spaces->canEnter($actor, 'me')) {
-            $links[] = ['title' => 'Me', 'href' => route('spaces.show', ['space' => 'me'], absolute: false)];
+            $links[] = ['title' => 'My space', 'href' => route('spaces.show', ['space' => 'me'], absolute: false)];
         }
         foreach ([
             ['hr.roster.view.own', 'My roster', 'hr.roster.index'],

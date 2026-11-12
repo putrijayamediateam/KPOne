@@ -3,8 +3,8 @@
 namespace Tests\Feature;
 
 use App\Domain\DepartmentSpace\AccountMenuLinks;
-use App\Domain\Shared\SafeReturnPath;
 use Carbon\CarbonImmutable;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
@@ -26,7 +26,7 @@ class AccountMenuClockTest extends VisitTestCase
         $this->selectBranch($this->actor('ca'));
         $this->get('/spaces/me')->assertOk()->assertInertia(fn (Assert $p) => $p
             ->where('workspace.accountMenu.clock', true)
-            ->where('workspace.accountMenu.links', fn ($links) => collect($links)->pluck('title')->all() === ['Me', 'My roster', 'My leave', 'My attendance', 'My claims', 'My credentials', 'My SOPs']));
+            ->where('workspace.accountMenu.links', fn ($links) => collect($links)->pluck('title')->all() === ['My space', 'My roster', 'My leave', 'My attendance', 'My claims', 'My credentials', 'My SOPs']));
 
         // The waiting-room TV account gets no own pages and no clock.
         $tv = $this->actor('queue_display');
@@ -56,26 +56,18 @@ class AccountMenuClockTest extends VisitTestCase
         $this->actingAs($this->actor('queue_display'))->getJson(route('hr.attendance.clock-state'))->assertForbidden();
     }
 
-    public function test_a_press_from_the_top_bar_returns_to_the_page_it_came_from_and_keeps_the_attendance_default(): void
+    public function test_the_shortcut_never_presses_and_the_attendance_press_routes_are_unchanged(): void
     {
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
 
-        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid(), 'from' => '/spaces/billing?x=1'])
-            ->assertRedirect('/spaces/billing?x=1');
+        // Reading the state writes nothing: no session, no event.
+        $this->getJson(route('hr.attendance.clock-state'))->assertOk();
+        $this->assertSame(0, DB::table('hr_clock_sessions')->count());
+        $this->assertSame(0, DB::table('hr_clock_events')->count());
 
-        $this->travelTo(CarbonImmutable::parse('2027-03-08 09:00', $this->branch->timezone));
-        $this->post(route('hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid()])
+        // A press still goes to the Attendance routes and, with no return path of its own, back to the Attendance tab.
+        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid(), 'from' => '/spaces/billing'])
             ->assertRedirect(route('hr.attendance.index', ['tab' => 'my']));
-    }
-
-    public function test_the_return_path_accepts_only_real_internal_pages(): void
-    {
-        $this->assertSame('/spaces/me', SafeReturnPath::from('/spaces/me'));
-        $this->assertSame('/hr/attendance?tab=my', SafeReturnPath::from('/hr/attendance?tab=my'));
-        foreach (['//evil.test/x', 'https://evil.test/', '/\\evil.test', 'javascript:alert(1)', '/no/such/page', '', '/spaces/me#frag', '../x', null, ['/spaces/me']] as $bad) {
-            $this->assertNull(SafeReturnPath::from($bad), json_encode($bad));
-        }
-        $this->assertNull(SafeReturnPath::from(str_repeat('/a', 150)));
     }
 }
