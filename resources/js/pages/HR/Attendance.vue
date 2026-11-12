@@ -11,6 +11,8 @@ import {
     useTemplateRef,
     watch,
 } from 'vue';
+import ClockPhotoThumb from '@/components/hr/attendance/ClockPhotoThumb.vue';
+import type { ClockPhotoEntry } from '@/components/hr/attendance/ClockPhotoThumb.vue';
 import LocationCheckSettings from '@/components/hr/attendance/LocationCheckSettings.vue';
 import MyOvertimeSection from '@/components/hr/attendance/MyOvertime.vue';
 import OvertimeAskSheet from '@/components/hr/attendance/OvertimeAskSheet.vue';
@@ -48,6 +50,7 @@ import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { useClockPhoto } from '@/composables/useClockPhoto';
 
 type Tab = 'my' | 'review' | 'overtime' | 'summary' | 'settings';
 type Kind = 'change_in' | 'set_out' | 'add_day';
@@ -76,6 +79,8 @@ type Row = {
     needsClockOut: boolean;
     overtimeChoice?: OvertimeChoice | null;
     week?: WeekHours | null;
+    /** HR-PHOTO: each press's photo; anyone else's needs Show. */
+    photos?: { in: ClockPhotoEntry | null; out: ClockPhotoEntry | null } | null;
     /** HR-16a: each press's location result in plain words; never a position. */
     location?: {
         in: string | null;
@@ -382,25 +387,15 @@ const withoutLocation = (kind: 'in' | 'out') => {
     clock.consentFor = null;
     send(kind, { location_unavailable: 'declined' });
 };
+// HR-PHOTO: every press goes through the camera; the location result (HR-16a) rides along with the photo.
+const { open: openCamera } = useClockPhoto();
 const send = (kind: 'in' | 'out', extra: Record<string, unknown>) => {
-    clock.key = clock.key || crypto.randomUUID();
-    clock.processing = true;
-    router.post(
-        kind === 'in' ? '/hr/attendance/clock-in' : '/hr/attendance/clock-out',
-        { idempotency_key: clock.key, ...extra },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                clock.key = '';
-                clock.confirmOut = false;
-            },
-            onError: () => {
-                clock.key = '';
-                clock.confirmOut = false;
-            },
-            onFinish: () => (clock.processing = false),
-        },
-    );
+    clock.confirmOut = false;
+    clock.processing = false;
+    openCamera(kind, {
+        extra,
+        onDone: () => router.reload({ preserveScroll: true } as never),
+    });
 };
 
 // ---- Corrections ----
@@ -847,12 +842,13 @@ const correctionStatusTone = (
                     <p v-else class="text-sm text-muted-foreground">
                         No approved shift today.
                     </p>
+                    <!-- HR-PHOTO: shown at every branch, beside the location note where the branch checks location. -->
                     <p
-                        v-if="!attendance.my.location"
                         class="text-xs text-muted-foreground"
                         data-test="privacy-line"
                     >
-                        KPOne records the time only. No location or photo.
+                        KPOne records the time and a photo of you at each press.
+                        HR can see it. Kept for 7 years.
                     </p>
                     <p
                         v-if="
@@ -977,6 +973,22 @@ const correctionStatusTone = (
                                 · Worked {{ r.worked }}</span
                             >
                         </p>
+                        <div
+                            v-if="r.photos?.in || r.photos?.out"
+                            class="flex flex-wrap items-center gap-3"
+                            data-test="my-photos"
+                        >
+                            <ClockPhotoThumb
+                                v-if="r.photos?.in"
+                                :photo="r.photos.in"
+                                :name="`Your clock-in photo, ${r.dateLabel}`"
+                            />
+                            <ClockPhotoThumb
+                                v-if="r.photos?.out"
+                                :photo="r.photos.out"
+                                :name="`Your clock-out photo, ${r.dateLabel}`"
+                            />
+                        </div>
                         <div
                             v-if="r.flags.length > 0 || r.correctionWaiting"
                             class="flex flex-wrap gap-1"
@@ -1250,6 +1262,12 @@ const correctionStatusTone = (
                                     <td>{{ r.shift?.label ?? 'No shift' }}</td>
                                     <td class="tabular-nums">
                                         {{ r.session?.in ?? '–' }}
+                                        <ClockPhotoThumb
+                                            v-if="r.photos?.in"
+                                            :photo="r.photos.in"
+                                            :name="`Clock-in photo of ${r.person}`"
+                                            class="mt-1"
+                                        />
                                         <p
                                             v-if="r.location?.in"
                                             class="text-xs text-muted-foreground"
@@ -1260,6 +1278,12 @@ const correctionStatusTone = (
                                     </td>
                                     <td class="tabular-nums">
                                         {{ r.session?.out ?? '–' }}
+                                        <ClockPhotoThumb
+                                            v-if="r.photos?.out"
+                                            :photo="r.photos.out"
+                                            :name="`Clock-out photo of ${r.person}`"
+                                            class="mt-1"
+                                        />
                                         <p
                                             v-if="r.location?.out"
                                             class="text-xs text-muted-foreground"
@@ -1348,6 +1372,21 @@ const correctionStatusTone = (
                                     · Worked {{ r.worked }}</span
                                 >
                             </p>
+                            <div
+                                v-if="r.photos?.in || r.photos?.out"
+                                class="flex flex-wrap items-center gap-3"
+                            >
+                                <ClockPhotoThumb
+                                    v-if="r.photos?.in"
+                                    :photo="r.photos.in"
+                                    :name="`Clock-in photo of ${r.person}`"
+                                />
+                                <ClockPhotoThumb
+                                    v-if="r.photos?.out"
+                                    :photo="r.photos.out"
+                                    :name="`Clock-out photo of ${r.person}`"
+                                />
+                            </div>
                             <p
                                 v-if="r.location?.in"
                                 class="text-xs text-muted-foreground"
