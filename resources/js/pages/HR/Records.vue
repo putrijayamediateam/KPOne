@@ -1052,7 +1052,10 @@ const sendLocum = () => {
                     />
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <Button type="submit" class="max-lg:min-h-11"
+                    <Button
+                        type="submit"
+                        variant="outline"
+                        class="max-lg:min-h-11"
                         >Search</Button
                     >
                     <Button
@@ -1070,7 +1073,6 @@ const sendLocum = () => {
                 >
                     <Button
                         type="button"
-                        variant="outline"
                         class="max-lg:min-h-11"
                         data-test="open-file"
                         @click="startOpenFile"
