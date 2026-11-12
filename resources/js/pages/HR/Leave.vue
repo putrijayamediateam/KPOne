@@ -818,7 +818,7 @@ const personEntitlements = computed(
     () => props.leave.settings?.entitlements.filter((e) => e.userId) ?? [],
 );
 const entitlementSaving = ref(false);
-// Save turns cobalt only while the grid differs from what is saved (GUIDE section 19: one cobalt action per screen).
+// HR forms (Daniel, 2026-11-12): a Save is cobalt only when pressing it would do something (changes, or a first save of a real version).
 const entitlementsUnsaved = computed(() => {
     const saved = new Map<string, string>();
 
@@ -954,9 +954,10 @@ const toggleDay = (day: number, on: boolean) => {
         ? [...new Set([...workingDays.value, day])].sort()
         : workingDays.value.filter((d) => d !== day);
 };
+// HR forms (Daniel, 2026-11-12): a Save is cobalt only when pressing it would do something (changes, or a first save of a real version).
 const workingDaysUnsaved = computed(() => {
-    if (!workingRow.value) {
-        return true;
+    if (!workingRow.value || workingRow.value.lockVersion === null) {
+        return workingDays.value.length > 0;
     }
 
     const saved = [...workingRow.value.weekdays].sort().join(',');
@@ -2188,7 +2189,7 @@ const calendarDays = computed(() =>
                             <InputError :message="entryForm.errors.note" />
                         </div>
                     </template>
-                    <div class="flex items-end">
+                    <div class="flex justify-end sm:col-span-2 lg:col-span-3">
                         <Button
                             type="submit"
                             :variant="entryForm.isDirty ? 'default' : 'outline'"
