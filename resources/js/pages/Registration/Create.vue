@@ -507,7 +507,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             autocomplete="off"
                             aria-controls="patient-results"
                             aria-label="Search Patient"
-                            class="h-9 w-full rounded-[10px] border bg-background pr-10 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none max-lg:h-11"
+                            class="h-9 w-full rounded-[10px] border bg-background pr-10 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none max-lg:h-11"
                             placeholder="Name / NRIC / Phone / Patient No."
                             @keydown="handlePatientSearchKeydown" /></label
                     ><LoaderCircle
@@ -817,7 +817,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="min-h-10 rounded-[10px] px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none max-lg:min-h-11"
+                                class="min-h-9 rounded-[10px] px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none max-lg:min-h-11"
                                 @click="form.visit_type = 'consultation'"
                             >
                                 Consultation
@@ -830,7 +830,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="min-h-10 rounded-[10px] px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none max-lg:min-h-11"
+                                class="min-h-9 rounded-[10px] px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none max-lg:min-h-11"
                                 @click="form.visit_type = 'otc'"
                             >
                                 OTC
@@ -969,7 +969,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                     !!form.errors.coverage_member_reference
                                 "
                                 autocomplete="off"
-                                class="h-9 w-full rounded-[10px] border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none max-lg:h-11" /><InputError
+                                class="h-9 w-full rounded-[10px] border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none max-lg:h-11" /><InputError
                                 :message="
                                     errorFor('coverage_member_reference')
                                 "
@@ -988,7 +988,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 v-model="form.coverage_panel_note"
                                 rows="2"
                                 maxlength="500"
-                                class="w-full resize-y rounded-[10px] border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                                class="w-full resize-y rounded-[10px] border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:outline-none"
                                 data-testid="registration-panel-note"
                             />
                             <span

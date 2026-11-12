@@ -86,11 +86,12 @@ test('Staff directory filters use the shared custom select with unchanged criter
 
 test('Register Visit keeps the light selection and uses readable neutral dark styling', () => {
     assert.match(registerVisit, /bg-primary\/10/);
-        assert.match(registerVisit, /border-primary\/30/);
+    assert.match(registerVisit, /border-primary\/30/);
     assert.match(registerVisit, /text-muted-foreground/);
     assert.match(registerVisit, /selectedPatient\.fullName/);
     assert.match(registerVisit, /selectedPatient\.patientNumber/);
     assert.match(registerVisit, /selectedPatient\.dateOfBirth/);
     assert.match(registerVisit, /selectedPatient\.identifier\?\.maskedValue/);
     assert.doesNotMatch(registerVisit, /dark:bg-emerald-(?:50|100|200)/);
+    assert.doesNotMatch(registerVisit, /ring-emerald/);
 });
