@@ -25,10 +25,25 @@ test('0.3a: the activity strip renders only when a page passes the slot', () => 
     assert.match(frame, /v-if="\$slots\.activity"/);
 });
 
-test('0.3a: the sticky action bar has a solid backdrop, a hairline and phone-sized buttons', () => {
+test('0.3a: the sticky action bar has a solid full-width backdrop, a hairline and phone-sized buttons', () => {
     assert.match(bar, /sticky bottom-0/);
     assert.match(bar, /border-t bg-background /);
     assert.doesNotMatch(bar, /bg-background\//);
     assert.doesNotMatch(bar, /backdrop-blur/);
     assert.match(bar, /max-lg:\[&_button\]:min-h-11/);
+    assert.match(bar, /env\(safe-area-inset-bottom\)/);
+});
+
+test('0.3a: the bar keeps its buttons in the same frame widths as the page', () => {
+    for (const cls of [
+        'max-w-4xl',
+        'max-w-7xl',
+        'max-w-[1500px]',
+        'max-w-[1600px]',
+    ]) {
+        assert.ok(bar.includes(cls), cls);
+    }
+
+    assert.match(bar, /px-4 py-3/);
+    assert.match(bar, /lg:px-8/);
 });
