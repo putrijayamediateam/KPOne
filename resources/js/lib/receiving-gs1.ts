@@ -14,6 +14,9 @@ export type BoxLotHint = {
 };
 
 const normalise = (value: string): string => value.trim().toUpperCase();
+/** A blank or whitespace-only batch from the server counts as no batch, so no broken "batch ," is ever shown. */
+const present = (value: string | null | undefined): string | null =>
+    value && value.trim() !== '' ? value.trim() : null;
 
 export function boxLotHint(
     read: Gs1Read | null,
@@ -21,12 +24,14 @@ export function boxLotHint(
     formatDate: (value: string) => string,
 ): BoxLotHint | null {
     // A plain barcode carries no batch or expiry: nothing to add to the STK-9 "Scanned" mark.
-    const candidate = read?.batch ?? read?.batch_unconfirmed ?? null;
+    const candidate =
+        present(read?.batch) ?? present(read?.batch_unconfirmed) ?? null;
 
     if (read === null || (candidate === null && read.expiry === null)) {
         return null;
     }
 
+    const certain = present(read.batch) !== null;
     const expiry = read.expiry === null ? '' : `exp ${formatDate(read.expiry)}`;
     const sameBatch =
         candidate === null
@@ -37,18 +42,35 @@ export function boxLotHint(
                       ? [index]
                       : [],
               );
+    const typedExpiry = (index: number): string =>
+        (lots[index]?.expiry_date ?? '').slice(0, 10);
+    // DateField stays '' until a full real date is typed, so an empty expiry is "not typed yet", never "different".
     const matches = sameBatch.filter(
-        (index) =>
-            read.expiry === null ||
-            lots[index]?.expiry_date.slice(0, 10) === read.expiry,
+        (index) => read.expiry === null || typedExpiry(index) === read.expiry,
     );
+    const conflicts =
+        read.expiry === null
+            ? []
+            : sameBatch.filter(
+                  (index) =>
+                      typedExpiry(index) !== '' &&
+                      typedExpiry(index) !== read.expiry,
+              );
+    const pending =
+        read.expiry === null
+            ? []
+            : sameBatch.filter((index) => typedExpiry(index) === '');
     const lotWord = (indexes: number[]): string =>
         indexes.length === 1
             ? `lot ${indexes[0] + 1}`
             : `lots ${indexes.map((index) => index + 1).join(', ')}`;
+    const capital = (text: string): string =>
+        text.charAt(0).toUpperCase() + text.slice(1);
+    const has = (indexes: number[]): string =>
+        indexes.length === 1 ? 'has' : 'have';
 
     // A batch read without separators may have swallowed a following field: use it only when it matches exactly.
-    if (candidate === null || (read.batch === null && matches.length === 0)) {
+    if (candidate === null || (!certain && matches.length === 0)) {
         return {
             message: [
                 expiry ? `Box: ${expiry}.` : '',
@@ -63,18 +85,28 @@ export function boxLotHint(
     }
 
     const box = `Box: batch ${candidate}${expiry ? `, ${expiry}` : ''}.`;
+    const conflict =
+        conflicts.length > 0
+            ? `${capital(lotWord(conflicts))} ${has(conflicts)} batch ${candidate}, but a different expiry. Check the box.`
+            : '';
 
     if (matches.length > 0) {
         return {
-            message: `${box} Matches ${lotWord(matches)}.`,
-            warn: false,
+            message: [box, `Matches ${lotWord(matches)}.`, conflict]
+                .filter((part) => part !== '')
+                .join(' '),
+            warn: conflicts.length > 0,
         };
     }
 
-    if (sameBatch.length > 0) {
+    if (conflicts.length > 0) {
+        return { message: `${box} ${conflict}`, warn: true };
+    }
+
+    if (pending.length > 0) {
         return {
-            message: `${box} ${lotWord(sameBatch).replace(/^l/, 'L')} ${sameBatch.length === 1 ? 'has' : 'have'} batch ${candidate}, but a different expiry. Check the box.`,
-            warn: true,
+            message: `${box} ${capital(lotWord(pending))} ${has(pending)} this batch; type its expiry.`,
+            warn: false,
         };
     }
 

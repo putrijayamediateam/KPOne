@@ -125,9 +125,14 @@ function lineFor(sku: ScannedSku) {
     return props.row.lines.find((line) => line.skuPublicId === sku.public_id);
 }
 function onOrder(sku: ScannedSku): string | null {
-    return lineFor(sku)
-        ? null
-        : `SKU ${sku.sku_code} · ${sku.item_name} is not on this receiving order. Nothing was changed.`;
+    if (lineFor(sku)) {
+        return null;
+    }
+
+    // STK-26: a refused scan must not leave the previous box's batch on screen.
+    boxRead.value = null;
+
+    return `SKU ${sku.sku_code} · ${sku.item_name} is not on this receiving order. Nothing was changed.`;
 }
 async function highlight(sku: ScannedSku, gs1: Gs1Read | null = null) {
     const line = lineFor(sku);
@@ -204,18 +209,19 @@ watch(
                         >Scanned</span
                     >
                 </legend>
+                <!-- STK-26: present for the whole time the line is the scanned one, so a change of text is announced. -->
                 <p
-                    v-if="scannedLine === line.line_public_id && boxHint"
-                    class="text-sm"
+                    v-if="scannedLine === line.line_public_id"
+                    class="text-sm wrap-anywhere empty:sr-only"
                     :class="
-                        boxHint.warn
+                        boxHint?.warn
                             ? 'font-medium text-warning-strong'
                             : 'text-muted-foreground'
                     "
                     role="status"
                     data-testid="receiving-box-hint"
                 >
-                    {{ boxHint.message }}
+                    {{ boxHint?.message ?? '' }}
                 </p>
                 <label class="flex min-h-11 items-center gap-2"
                     ><input
