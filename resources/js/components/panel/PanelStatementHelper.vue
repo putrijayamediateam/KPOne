@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
+import { ChevronDown } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -278,26 +279,30 @@ const useTicked = () =>
 
 <template>
     <section
-        class="space-y-3 rounded-lg border p-3"
+        class="space-y-3 border-t pt-4"
         aria-labelledby="statement-heading"
     >
         <button
             id="statement-heading"
             type="button"
-            class="flex w-full items-center justify-between gap-2 rounded-md text-left text-sm font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+            class="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg text-left text-sm font-semibold focus-visible:ring-[3px] focus-visible:ring-ring/40 focus-visible:outline-none"
             :aria-expanded="open"
             aria-controls="statement-body"
             @click="open = !open"
         >
             Fill the split from a Panel statement (optional)
-            <span aria-hidden="true">{{ open ? '−' : '+' }}</span>
+            <ChevronDown
+                class="size-4 shrink-0 transition-transform"
+                :class="open ? 'rotate-180' : ''"
+                aria-hidden="true"
+            />
         </button>
         <div v-show="open" id="statement-body" class="space-y-3">
-            <p class="text-xs text-muted-foreground">
+            <p class="text-sm text-muted-foreground">
                 Upload the Panel's CSV statement. KPOne suggests matching
                 claims; nothing is recorded until you press Record payment.
             </p>
-            <p class="text-xs text-muted-foreground">
+            <p class="text-sm text-muted-foreground">
                 The file is stored privately, encrypted, and deleted after
                 {{ retentionDays }} days.
             </p>
@@ -308,7 +313,7 @@ const useTicked = () =>
                 @submit.prevent="read"
             >
                 <label
-                    class="grid min-w-0 flex-1 gap-1 text-xs"
+                    class="grid min-w-0 flex-1 gap-1.5 text-[13px] font-medium"
                     for="statement-file"
                 >
                     Statement file (CSV, up to 1 MB, {{ maxRows }} rows)
@@ -317,7 +322,7 @@ const useTicked = () =>
                         ref="fileInput"
                         type="file"
                         accept=".csv,text/csv,text/plain"
-                        class="block w-full min-w-0 text-sm file:mr-3 file:rounded-md file:border file:bg-background file:px-3 file:py-1.5 file:text-sm file:text-foreground"
+                        class="block w-full min-w-0 text-sm font-normal file:mr-3 file:h-9 file:rounded-lg file:border file:border-input file:bg-background file:px-3 file:text-sm file:font-medium file:text-foreground max-lg:file:h-11"
                         :aria-invalid="error ? 'true' : undefined"
                         :aria-describedby="
                             error ? 'statement-error' : undefined
@@ -333,7 +338,7 @@ const useTicked = () =>
                     type="submit"
                     variant="outline"
                     size="sm"
-                    class="max-sm:min-h-11 max-sm:w-full"
+                    class="max-lg:h-11 max-sm:w-full"
                     :disabled="!upload.statement || upload.processing"
                 >
                     {{ upload.processing ? 'Reading…' : 'Read statement' }}
@@ -343,7 +348,7 @@ const useTicked = () =>
             <LoadingState v-if="upload.processing" label="Reading statement…" />
 
             <template v-if="statement">
-                <p class="text-xs text-muted-foreground">
+                <p class="text-sm text-muted-foreground">
                     {{ statement.rowCount }}
                     {{ statement.rowCount === 1 ? 'row' : 'rows' }} read on
                     {{ statement.uploadedDate }} · deleted on
@@ -353,7 +358,7 @@ const useTicked = () =>
                     <label
                         v-for="column in COLUMNS"
                         :key="column.key"
-                        class="grid min-w-0 gap-1 text-xs"
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium"
                         :for="`statement-col-${column.key}`"
                     >
                         {{ column.label }}
@@ -364,7 +369,7 @@ const useTicked = () =>
                                     ? ''
                                     : String(statement.mapping[column.key])
                             "
-                            class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            class="h-9 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base font-normal outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 lg:text-sm dark:bg-field-fill/30"
                             @change="
                                 chooseColumn(
                                     column.key,
@@ -383,7 +388,7 @@ const useTicked = () =>
                         </select>
                     </label>
                 </div>
-                <p class="text-xs text-muted-foreground">
+                <p class="text-sm text-muted-foreground">
                     Pre-selected from the header names. Check them.
                 </p>
 
@@ -399,7 +404,7 @@ const useTicked = () =>
                     }}
                 </p>
                 <template v-if="!needsColumns && statement.rows.length > 0">
-                    <p class="text-xs" role="status">
+                    <p class="text-sm" role="status">
                         {{ matchedCount }} matched,
                         <template v-if="nearCount > 0">
                             {{ nearCount }}
@@ -414,7 +419,7 @@ const useTicked = () =>
                     </p>
                     <p
                         v-if="statement.nearCut && notFoundCount > 0"
-                        class="mb-1 text-xs text-muted-foreground"
+                        class="mb-1 text-sm text-muted-foreground"
                         role="note"
                         data-testid="statement-near-cut"
                     >
@@ -425,7 +430,7 @@ const useTicked = () =>
                     </p>
                     <p
                         v-if="matchedCount === 0 && nearCount === 0"
-                        class="rounded-md bg-muted p-2 text-sm"
+                        class="rounded-lg bg-muted/50 p-3 text-sm"
                         data-testid="statement-no-match"
                     >
                         No rows match an open claim of this Panel at this
@@ -447,7 +452,7 @@ const useTicked = () =>
                             >
                                 <input
                                     type="checkbox"
-                                    class="size-5"
+                                    class="size-5 accent-primary"
                                     :checked="ticked.has(row.line)"
                                     :disabled="!canTick(row)"
                                     :aria-label="tickLabel(row)"
@@ -553,7 +558,7 @@ const useTicked = () =>
                                     >
                                         <input
                                             type="checkbox"
-                                            class="size-4"
+                                            class="size-4 accent-primary"
                                             :checked="ticked.has(row.line)"
                                             :disabled="!canTick(row)"
                                             :aria-label="tickLabel(row)"
@@ -658,11 +663,14 @@ const useTicked = () =>
                         {{ myr(tickedSen) }}
                     </p>
                 </template>
-                <div class="flex flex-wrap gap-2">
+                <div
+                    class="flex flex-wrap gap-2 max-sm:grid max-sm:grid-cols-1"
+                >
                     <Button
                         type="button"
+                        variant="secondary"
                         size="sm"
-                        class="max-sm:min-h-11"
+                        class="max-lg:h-11"
                         :disabled="tickedRows.length === 0"
                         @click="useTicked"
                     >
@@ -672,7 +680,7 @@ const useTicked = () =>
                         type="button"
                         variant="outline"
                         size="sm"
-                        class="max-sm:min-h-11"
+                        class="max-lg:h-11"
                         @click="removeFile"
                     >
                         Remove file
