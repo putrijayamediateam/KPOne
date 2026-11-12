@@ -3,6 +3,7 @@ import { router, useRemember } from '@inertiajs/vue3';
 import { Boxes } from '@lucide/vue';
 import { computed, reactive, ref, shallowRef, watch, watchEffect } from 'vue';
 import type { Ref } from 'vue';
+import InputError from '@/components/InputError.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import ReceivingReviews from '@/components/inventory/ReceivingReviews.vue';
 import TransferDifferences from '@/components/inventory/TransferDifferences.vue';
@@ -190,6 +191,7 @@ type CurrentReorderLevel = {
 let reorderLookup = 0;
 const loadReorderLevel = async () => {
     const lookup = ++reorderLookup;
+    reorderErrors.max_level = undefined;
     reorder.lockVersion = null;
     reorder.key = crypto.randomUUID();
 
@@ -229,6 +231,8 @@ const loadReorderLevel = async () => {
     }
 };
 watch(() => [reorder.location, reorder.sku], loadReorderLevel);
+// STK-30: Daniel asked for the maximum's message under its own box as well as in the panel's banner.
+const reorderErrors = reactive<{ max_level?: string }>({});
 const canPurchase = (
     row: DocumentRow,
     action: 'submit' | 'approve' | 'receive' | 'close' | 'cancel',
@@ -366,6 +370,7 @@ const send = (
     url: string,
     data: RequestPayload,
     done?: () => void,
+    failed?: (errors: Record<string, string>) => void,
 ) => {
     if (busy.value) {
         return;
@@ -379,6 +384,7 @@ const send = (
         onStart: () => (busy.value = true),
         onFinish: () => (busy.value = false),
         onError: (errors) => {
+            failed?.(errors);
             operationError.value =
                 firstInventoryOperationError(errors) ??
                 'The Inventory operation could not be completed.';
@@ -693,7 +699,13 @@ const saveReorder = () =>
             expected_lock_version: reorder.lockVersion,
             idempotency_key: reorder.key,
         },
-        loadReorderLevel,
+        () => {
+            reorderErrors.max_level = undefined;
+            void loadReorderLevel();
+        },
+        (errors) => {
+            reorderErrors.max_level = errors.max_level;
+        },
     );
 </script>
 
@@ -1335,21 +1347,37 @@ const saveReorder = () =>
                         kind="skus"
                         context="operations"
                         :expected-branch-id="operations.expectedBranchId"
-                    /><Input
-                        v-model="reorder.level"
-                        aria-label="Reorder level"
-                        placeholder="Reorder level"
-                        required
-                    /><Input
-                        v-model="reorder.max"
-                        aria-label="Maximum (optional)"
-                        placeholder="Maximum (optional)"
-                        inputmode="decimal"
                     />
-                    <p class="text-xs text-muted-foreground">
+                    <label class="grid gap-1 text-sm"
+                        >Reorder level
+                        <Input
+                            v-model="reorder.level"
+                            inputmode="decimal"
+                            required
+                        />
+                    </label>
+                    <label class="grid gap-1 text-sm"
+                        >Maximum (optional)
+                        <Input
+                            v-model="reorder.max"
+                            inputmode="decimal"
+                            aria-describedby="reorder-max-help reorder-max-error"
+                            :aria-invalid="
+                                reorderErrors.max_level ? true : undefined
+                            "
+                        />
+                    </label>
+                    <p
+                        id="reorder-max-help"
+                        class="text-xs text-muted-foreground"
+                    >
                         With a maximum, reorder suggestions fill up to it. Leave
                         blank to remove any maximum.
                     </p>
+                    <InputError
+                        id="reorder-max-error"
+                        :message="reorderErrors.max_level"
+                    />
                     <Button type="submit" :disabled="busy || reorder.loading"
                         >Save level</Button
                     >
