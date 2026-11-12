@@ -99,6 +99,8 @@ class AttendanceController extends Controller
     /** HR-PHOTO: your own photo, or (for a reviewer) someone else's, recorded before any byte is sent. */
     public function photo(Request $request, ClockPhotoService $photos, string $photo, string $size): \Illuminate\Http\Response
     {
+        // The size is checked here, not in the route, so the cross-site refusal answers first for any address.
+        abort_unless(in_array($size, ['full', 'thumb'], true), 404);
         $opened = $photos->open($request->user(), $photo, $size);
 
         return response($opened['content'], 200, [

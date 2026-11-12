@@ -245,7 +245,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         // HR-PHOTO: a capture token when the camera opens, and the photo itself (own, or a reviewer's audited Show).
         Route::post('capture', 'capture')->middleware(['permission:hr.attendance.clock.own', 'throttle:20,1'])->name('hr.attendance.capture');
         Route::post('photo-notice', 'photoNotice')->middleware(['permission:hr.attendance.clock.own', 'throttle:20,1'])->name('hr.attendance.photo-notice');
-        Route::get('photos/{photo}/{size}', 'photo')->whereUuid('photo')->whereIn('size', ['full', 'thumb'])
+        Route::get('photos/{photo}/{size}', 'photo')->whereUuid('photo')
             ->middleware(['same-origin.open', 'permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:240,1'])->name('hr.attendance.photo');
         Route::get('clock-state', 'clockState')->middleware(['permission:hr.attendance.clock.own', 'throttle:60,1'])->name('hr.attendance.clock-state');
         Route::middleware(['permission:hr.attendance.clock.own', 'throttle:10,1'])->group(function (): void {

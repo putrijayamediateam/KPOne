@@ -551,10 +551,10 @@ class AttendanceTest extends VisitTestCase
         $this->clock($ca, 'out')->assertSessionHasNoErrors();
         $this->at('2027-03-08 16:58');
         $this->selectBranch($ca, $puchong);
-        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, 'in')])->assertSessionHasNoErrors();
         $this->at('2027-03-08 21:02');
         $this->selectBranch($ca, $puchong);
-        $this->post(route('hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->post(route('hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, 'out')])->assertSessionHasNoErrors();
 
         $this->at('2027-03-08 22:00');
         $this->selectBranch($hr);
