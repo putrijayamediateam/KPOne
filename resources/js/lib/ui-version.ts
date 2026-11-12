@@ -21,3 +21,6 @@ export const applyUiVersion = (version: UiVersion): void => {
 
     document.documentElement.dataset.ui = version;
 };
+
+/** A Version 2 page component name, as the server renders it (`Registration/V2/Index`). The V2 shell layout is for these. */
+export const isV2Page = (name: string): boolean => /(^|\/)V2\//.test(name);

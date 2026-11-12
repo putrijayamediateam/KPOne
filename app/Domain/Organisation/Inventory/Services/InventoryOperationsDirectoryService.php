@@ -190,8 +190,8 @@ final class InventoryOperationsDirectoryService
             ->leftJoin('inventory_stock_balances as balance', fn ($join) => $join->on('balance.organisation_id', '=', 'reorder.organisation_id')->on('balance.inventory_location_id', '=', 'reorder.inventory_location_id')->on('balance.inventory_sku_id', '=', 'reorder.inventory_sku_id'))
             ->leftJoin('inventory_batches as batch', 'batch.id', '=', 'balance.inventory_batch_id')->where('reorder.organisation_id', $organisationId)->whereIn('reorder.inventory_location_id', $locationIds)
             ->where('location.is_active', true)->where('location.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('sku.is_active', true)->where('item.is_active', true)
-            ->groupBy(['reorder.id', 'location.name', 'sku.sku_code', 'item.generic_name', 'reorder.reorder_level'])->havingRaw($availableQuantity.' <= reorder.reorder_level', [$localDate])
-            ->orderByRaw('sku.sku_code COLLATE "C"')->orderBy('reorder.id')->limit(100)->selectRaw('location.name as location, sku.sku_code as sku, item.generic_name as item, reorder.reorder_level as "reorderLevel", '.$availableQuantity.' as "availableQuantity"', [$localDate])->get()->map(fn ($row): array => (array) $row)->all());
+            ->groupBy(['reorder.id', 'location.name', 'sku.sku_code', 'item.generic_name', 'reorder.reorder_level', 'reorder.max_level'])->havingRaw($availableQuantity.' <= reorder.reorder_level', [$localDate])
+            ->orderByRaw('sku.sku_code COLLATE "C"')->orderBy('reorder.id')->limit(100)->selectRaw('location.name as location, sku.sku_code as sku, item.generic_name as item, reorder.reorder_level as "reorderLevel", reorder.max_level as "maxLevel", '.$availableQuantity.' as "availableQuantity"', [$localDate])->get()->map(fn ($row): array => (array) $row)->all());
     }
 
     /**

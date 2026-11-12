@@ -8,6 +8,7 @@ use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Access\WorkspaceLandingService;
 use App\Domain\DepartmentSpace\AccountMenuLinks;
 use App\Domain\DepartmentSpace\UiVersionResolver;
+use App\Domain\DepartmentSpace\V2ShellNavigation;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use Closure;
 use Illuminate\Http\Request;
@@ -90,10 +91,14 @@ class HandleInertiaRequests extends Middleware
 
             $landing = app(WorkspaceLandingService::class);
             $canEnterClinic = $landing->canEnterClinic($user);
+            $spaces = app(UiVersionResolver::class)->state($user);
             $workspace = [
                 'defaultUrl' => route('workspace', absolute: false),
                 'canEnterClinic' => $canEnterClinic,
-                'spaces' => app(UiVersionResolver::class)->state($user),
+                'spaces' => $spaces,
+                // UX-17: the Version 2 sidebar, built only for a person who switched on "Try the new layout".
+                // A closure, so JSON polls never build it: Inertia resolves it only when it renders a page.
+                'shell' => $spaces['enabled'] ? fn () => app(V2ShellNavigation::class)->for($user, $request->path()) : null,
                 'accountMenu' => app(AccountMenuLinks::class)->for($user),
                 'navigation' => [
                     'clinicManagement' => app(ClinicManagementNavigation::class)->hasDestinations($user),
