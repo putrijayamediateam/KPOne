@@ -79,10 +79,11 @@ const requestThese = () => {
 
     router.get('/inventory/purchase-requests', {
         location: tickedRows.value[0].locationPublicId,
-        lines: tickedRows.value.map((row) => ({
-            sku: row.skuPublicId,
-            quantity: trimQuantity(row.suggestedQuantity),
-        })),
+        // "sku:quantity" strings: a list of plain values survives the query string unchanged.
+        lines: tickedRows.value.map(
+            (row) =>
+                `${row.skuPublicId}:${trimQuantity(row.suggestedQuantity)}`,
+        ),
     });
 };
 </script>

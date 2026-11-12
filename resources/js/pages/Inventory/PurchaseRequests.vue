@@ -152,9 +152,10 @@ const openSend = () => {
     sendErrors.value = {};
     sendOpen.value = true;
 };
+// Opened after the visit from Reorder suggestions has finished, so the navigation itself does not close it.
 onMounted(() => {
     if (props.requests.prefill && props.requests.can.request) {
-        openSend();
+        window.setTimeout(openSend, 0);
     }
 });
 const removeLine = (index: number) => {

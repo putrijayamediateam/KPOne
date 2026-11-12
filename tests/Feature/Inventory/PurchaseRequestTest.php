@@ -183,7 +183,7 @@ final class PurchaseRequestTest extends VisitTestCase
     {
         $f = (new VerifiedReceivingFixture($this->branch))->build();
         $ca = $this->staff('ca');
-        $page = $this->actingAs($ca)->get(route('inventory.purchase-requests', ['location' => $f['location']->public_id, 'lines' => [['sku' => $f['sku']->public_id, 'quantity' => '12'], ['sku' => (string) Str::uuid(), 'quantity' => '3']]]))
+        $page = $this->actingAs($ca)->get(route('inventory.purchase-requests', ['location' => $f['location']->public_id, 'lines' => [$f['sku']->public_id.':12', Str::uuid().':3', $f['sku']->public_id.':0']]))
             ->assertOk()->viewData('page')['props']['requests'];
         $this->assertSame($f['location']->public_id, $page['prefill']['location']['publicId']);
         $this->assertSame([[$f['sku']->public_id, '12']], collect($page['prefill']['lines'])->map(fn (array $l) => [$l['skuPublicId'], $l['quantity']])->all());

@@ -284,8 +284,9 @@ final class PurchaseRequestService
             ->where('type', '!=', InventoryLocation::TYPE_DISPENSARY_RETURNS)->first(['public_id', 'name']);
         $wanted = [];
         foreach ($items as $item) {
-            if (is_array($item) && is_string($item['sku'] ?? null) && is_string($item['quantity'] ?? null) && preg_match('/^\d{1,12}(\.\d{1,3})?$/', $item['quantity']) === 1 && (float) $item['quantity'] > 0) {
-                $wanted[strtolower($item['sku'])] = $item['quantity'];
+            // Each line is "sku public id:quantity".
+            if (is_string($item) && preg_match('/^([0-9a-fA-F-]{36}):(\d{1,12}(\.\d{1,3})?)$/', $item, $m) === 1 && (float) $m[2] > 0) {
+                $wanted[strtolower($m[1])] = $m[2];
             }
         }
         $skus = DB::table('inventory_skus as s')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')->where('s.organisation_id', $actor->organisation_id)->where('s.is_active', true)
