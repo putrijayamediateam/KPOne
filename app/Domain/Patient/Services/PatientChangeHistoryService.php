@@ -178,7 +178,7 @@ final class PatientChangeHistoryService
             'isThisRecord' => (int) $row->subject_id === $patient->id,
             'actorName' => $row->actor_user_id === null ? 'System' : ($names[(int) $row->actor_user_id] ?? 'Staff member'),
             'occurredAt' => $occurred->toIso8601String(),
-            'occurredAtLocal' => $occurred->setTimezone($timezone)->format('j M Y, g:i A'),
+            'occurredAtLocal' => $occurred->setTimezone($timezone)->format('j M Y, g:i a'),
         ];
     }
 }

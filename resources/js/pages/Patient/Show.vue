@@ -90,7 +90,9 @@ const formatTime = (value: string) =>
 
 <template>
     <Head :title="patient.patientNumber" />
-    <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 p-4 md:p-7"
+    >
         <PageHeader
             :eyebrow="patient.patientNumber"
             :title="patient.identity.fullName"
