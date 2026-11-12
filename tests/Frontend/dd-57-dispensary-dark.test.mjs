@@ -35,5 +35,8 @@ test('the warnings keep their light-mode colours', () => {
             'border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive',
         ),
     );
-    assert.ok(show.includes('border-pink-300 bg-pink-50/60 p-3 text-sm dark:'));
+    // UI-RESTYLE D4c (owner-approved): the verify panel moved from pink to the primary tokens, which carry their own dark colour.
+    assert.ok(
+        show.includes('border border-primary/40 bg-primary/10 p-4 text-sm'),
+    );
 });

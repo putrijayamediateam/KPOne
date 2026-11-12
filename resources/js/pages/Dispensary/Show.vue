@@ -1576,7 +1576,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     maxlength="500"
                                     data-field="dosage"
                                 /><span class="mt-1 block text-muted-foreground"
-                                    >Label max
+                                    >Max
                                     {{ dispensary.labelLimits?.dosage }}
                                     characters</span
                                 ></label
@@ -1589,7 +1589,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     maxlength="500"
                                     data-field="frequency"
                                 /><span class="mt-1 block text-muted-foreground"
-                                    >Label max
+                                    >Max
                                     {{ dispensary.labelLimits?.frequency }}
                                     characters</span
                                 ></label
@@ -1602,7 +1602,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     maxlength="500"
                                     data-field="duration"
                                 /><span class="mt-1 block text-muted-foreground"
-                                    >Label max
+                                    >Max
                                     {{ dispensary.labelLimits?.duration }}
                                     characters</span
                                 ></label
@@ -1626,7 +1626,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     maxlength="2000"
                                     data-field="instruction"
                                 /><span class="mt-1 block text-muted-foreground"
-                                    >Label max
+                                    >Max
                                     {{ dispensary.labelLimits?.instruction }}
                                     characters</span
                                 ></label
@@ -1639,7 +1639,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     maxlength="2000"
                                     data-field="precaution"
                                 /><span class="mt-1 block text-muted-foreground"
-                                    >Label max
+                                    >Max
                                     {{ dispensary.labelLimits?.precaution }}
                                     characters</span
                                 ></label
@@ -2041,7 +2041,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 maxlength="500"
                                 data-field="add-dosage"
                             /><span class="mt-1 block text-muted-foreground"
-                                >Label max
+                                >Max
                                 {{ dispensary.labelLimits?.dosage }}
                                 characters</span
                             ></label
@@ -2054,7 +2054,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 maxlength="500"
                                 data-field="add-frequency"
                             /><span class="mt-1 block text-muted-foreground"
-                                >Label max
+                                >Max
                                 {{ dispensary.labelLimits?.frequency }}
                                 characters</span
                             ></label
@@ -2066,7 +2066,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 :class="inputClass"
                                 maxlength="500"
                             /><span class="mt-1 block text-muted-foreground"
-                                >Label max
+                                >Max
                                 {{ dispensary.labelLimits?.duration }}
                                 characters</span
                             ></label
@@ -2088,7 +2088,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 :class="inputClass"
                                 maxlength="2000"
                             /><span class="mt-1 block text-muted-foreground"
-                                >Label max
+                                >Max
                                 {{ dispensary.labelLimits?.instruction }}
                                 characters</span
                             ></label
@@ -2100,7 +2100,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 :class="inputClass"
                                 maxlength="2000"
                             /><span class="mt-1 block text-muted-foreground"
-                                >Label max
+                                >Max
                                 {{ dispensary.labelLimits?.precaution }}
                                 characters</span
                             ></label
@@ -2510,15 +2510,15 @@ const exceptionStatusLabels: Record<string, string> = {
                 data-testid="dispensary-right"
             >
                 <section
-                    class="rounded-xl border bg-card p-4 text-sm"
+                    class="rounded-[14px] border bg-card p-4 text-sm"
                     data-testid="dispensary-summary"
                 >
-                    <h2
-                        class="mb-2 text-xs font-semibold text-muted-foreground uppercase"
-                    >
+                    <h2 class="mb-3 text-[15px] font-semibold">
                         This dispensary
                     </h2>
-                    <dl class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1">
+                    <dl
+                        class="grid grid-cols-[1fr_auto] gap-x-3 gap-y-2 [&_dd]:text-right [&_dd]:font-medium [&_dd]:tabular-nums"
+                    >
                         <dt class="text-muted-foreground">Medicines</dt>
                         <dd>{{ visibleItems.length }}</dd>
                         <template v-if="!isOtc">
@@ -2538,14 +2538,10 @@ const exceptionStatusLabels: Record<string, string> = {
                     </dl>
                 </section>
                 <section
-                    class="flex flex-col gap-2 rounded-xl border bg-card p-4 text-sm"
+                    class="flex flex-col gap-2 rounded-[14px] border bg-card p-4 text-sm [&>button]:h-11 [&>button]:w-full lg:[&>button]:h-9"
                     data-testid="dispensary-actions"
                 >
-                    <h2
-                        class="text-xs font-semibold text-muted-foreground uppercase"
-                    >
-                        Actions
-                    </h2>
+                    <h2 class="mb-1 text-[15px] font-semibold">Actions</h2>
                     <OperationalSelect
                         v-if="
                             dispensary.tvCall?.canCall &&
@@ -2554,7 +2550,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         v-model="callRoomId"
                         label="Dispensary room"
                         placeholder="Choose room"
-                        trigger-class="h-8 w-40"
+                        trigger-class="h-11 w-full lg:h-9"
                         :options="
                             dispensary.tvCall.rooms.map((room) => ({
                                 value: room.id,
@@ -2601,7 +2597,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     >
                     <p
                         v-if="dispensary.can.complete && completeBlockedReason"
-                        class="w-full text-xs text-muted-foreground"
+                        class="w-full text-[13px] text-muted-foreground"
                         data-testid="dispensary-complete-blocked-reason"
                     >
                         {{ completeBlockedReason }}
@@ -2609,18 +2605,22 @@ const exceptionStatusLabels: Record<string, string> = {
                 </section>
                 <section
                     v-if="confirming && dispensary.can.complete"
-                    class="rounded-xl border border-pink-300 bg-pink-50/60 p-3 text-sm dark:border-pink-900 dark:bg-pink-950/30"
+                    class="rounded-[14px] border border-primary/40 bg-primary/10 p-4 text-sm"
                     data-testid="dispensary-verify"
                 >
-                    <p class="font-medium">Verify before completing</p>
-                    <p class="mb-2 text-xs text-muted-foreground">
+                    <p class="text-[15px] font-semibold">
+                        Verify before completing
+                    </p>
+                    <p class="mt-1 mb-2 text-[13px] text-foreground/80">
                         {{
                             isOtc
                                 ? 'There is no doctor on an OTC visit. Completing now records your verification of the list below and takes the stock out.'
                                 : 'The doctor has verified the order. Completing now records your verification of the final list below and takes the stock out.'
                         }}
                     </p>
-                    <div class="mt-2 flex gap-2">
+                    <div
+                        class="mt-2 flex flex-col gap-2 sm:flex-row [&>button]:h-11 lg:[&>button]:h-9"
+                    >
                         <Button
                             size="sm"
                             :disabled="busy"
