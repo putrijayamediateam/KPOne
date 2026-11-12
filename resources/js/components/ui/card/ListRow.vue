@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // One list row: 56 px, title with an optional muted line, trailing slot.
-defineProps<{ title: string; description?: string }>();
+// `link` adds a trailing chevron, for a row that opens something.
+defineProps<{ title: string; description?: string; link?: boolean }>();
 </script>
 
 <template>
@@ -15,5 +16,18 @@ defineProps<{ title: string; description?: string }>();
             </p>
         </div>
         <slot />
+        <svg
+            v-if="link"
+            class="size-5 shrink-0 text-muted-foreground"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+        >
+            <path d="m9 18 6-6-6-6" />
+        </svg>
     </div>
 </template>

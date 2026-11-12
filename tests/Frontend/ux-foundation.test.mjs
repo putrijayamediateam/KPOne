@@ -195,11 +195,6 @@ const parseColor = (value) => {
     );
 };
 
-const blend = (foreground, background, alpha) =>
-    foreground.map(
-        (channel, index) => channel * alpha + background[index] * (1 - alpha),
-    );
-
 const luminance = (color) => {
     const [red, green, blue] = color.map((channel) =>
         channel <= 0.04045
@@ -426,18 +421,28 @@ test('mounted status badges use tone classes whose text contrast exceeds 4.5 to 
         danger: 'cancelled',
     };
     const expectedClasses = {
-        neutral: ['text-foreground', 'bg-muted'],
-        accent: ['text-brand-strong', 'bg-brand/10'],
-        success: ['text-success', 'bg-success/10'],
-        warning: ['text-warning-strong', 'bg-warning/10'],
-        danger: ['text-destructive', 'bg-destructive/10'],
+        neutral: ['text-foreground', 'bg-muted-foreground'],
+        accent: ['text-foreground', 'bg-brand'],
+        success: ['text-foreground', 'bg-success'],
+        warning: ['text-foreground', 'bg-warning'],
+        danger: ['text-destructive', 'bg-destructive'],
     };
 
     for (const [tone, status] of Object.entries(statuses)) {
         const mounted = createMountedRenderer();
         mounted.renderer.createApp(StatusBadge, { status }).mount(mounted.root);
         await nextTick();
-        const badgeClass = descendants(mounted.root, 'span')[0].props.class;
+        const spans = descendants(mounted.root, 'span');
+        const badgeClass = `${spans[0].props.class} ${spans[1].props.class}`;
+
+        // The dot is decoration; the word is always rendered beside it.
+        assert.equal(spans[1].props['aria-hidden'], 'true');
+        const words = (node) =>
+            node.type === '#text'
+                ? node.text
+                : (node.children ?? []).map(words).join('');
+
+        assert.ok(words(spans[0]).trim().length > 0);
 
         for (const expectedClass of expectedClasses[tone]) {
             assert.match(
@@ -450,32 +455,33 @@ test('mounted status badges use tone classes whose text contrast exceeds 4.5 to 
     }
 
     const toneTokens = {
-        neutral: ['foreground', 'muted', 1],
-        accent: ['brand-strong', 'brand', 0.1],
-        success: ['success', 'success', 0.1],
-        warning: ['warning-strong', 'warning', 0.1],
-        danger: ['destructive', 'destructive', 0.1],
+        neutral: ['foreground', 'muted-foreground'],
+        accent: ['foreground', 'brand'],
+        success: ['foreground', 'success'],
+        warning: ['foreground', 'warning'],
+        danger: ['destructive', 'destructive'],
     };
 
     for (const selector of [':root', '.dark']) {
         const tokens = cssTokens(selector);
         const surface = parseColor(tokens.card);
 
-        for (const [
-            tone,
-            [foregroundName, backgroundName, alpha],
-        ] of Object.entries(toneTokens)) {
+        for (const [tone, [foregroundName, dotName]] of Object.entries(
+            toneTokens,
+        )) {
             const foreground = parseColor(tokens[foregroundName]);
-            const backgroundColor = parseColor(tokens[backgroundName]);
-            const background =
-                alpha === 1
-                    ? backgroundColor
-                    : blend(backgroundColor, surface, alpha);
-            const ratio = contrast(foreground, background);
+            const ratio = contrast(foreground, surface);
 
             assert.ok(
                 ratio >= 4.5,
-                `${selector} ${tone} badge contrast was ${ratio.toFixed(2)}:1`,
+                `${selector} ${tone} badge text contrast was ${ratio.toFixed(2)}:1`,
+            );
+
+            const dotRatio = contrast(parseColor(tokens[dotName]), surface);
+
+            assert.ok(
+                dotRatio >= 3,
+                `${selector} ${tone} badge dot contrast was ${dotRatio.toFixed(2)}:1`,
             );
         }
     }

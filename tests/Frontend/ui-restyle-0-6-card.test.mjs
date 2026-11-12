@@ -20,3 +20,13 @@ test('0.6: StatCard and ListRow follow the sizes', () => {
         /min-h-14/,
     );
 });
+
+test('0.6: StatusBadge is a dot plus the word, and ListRow has a link chevron', () => {
+    const b = read('resources/js/components/ui/status/StatusBadge.vue');
+    assert.match(b, /aria-hidden="true"/);
+    assert.doesNotMatch(b, /bg-destructive\/10/);
+    assert.match(
+        read('resources/js/components/ui/card/ListRow.vue'),
+        /link\?: boolean/,
+    );
+});

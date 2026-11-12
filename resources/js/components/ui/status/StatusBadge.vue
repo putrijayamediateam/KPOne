@@ -5,28 +5,40 @@ import { formatStatusLabel, statusTone } from '@/lib/presentation';
 const props = defineProps<{
     status: string;
     label?: string;
-    tone?: 'neutral' | 'accent' | 'success' | 'warning' | 'danger';
+    tone?: 'neutral' | 'accent' | 'info' | 'success' | 'warning' | 'danger';
 }>();
 
-const classes = computed(() => {
+// A coloured dot plus the word: colour is never the only signal.
+const dot = computed(() => {
     const tone = props.tone ?? statusTone(props.status);
 
     return {
-        neutral: 'border-border bg-muted text-foreground',
-        accent: 'border-brand/25 bg-brand/10 text-brand-strong',
-        success: 'border-success/25 bg-success/10 text-success',
-        warning: 'border-warning/25 bg-warning/10 text-warning-strong',
-        danger: 'border-destructive/25 bg-destructive/10 text-destructive',
+        neutral: 'bg-muted-foreground',
+        accent: 'bg-brand',
+        info: 'bg-primary',
+        success: 'bg-success',
+        warning: 'bg-warning',
+        danger: 'bg-destructive',
     }[tone];
 });
+const text = computed(() =>
+    (props.tone ?? statusTone(props.status)) === 'danger'
+        ? 'text-destructive'
+        : 'text-foreground',
+);
 </script>
 
 <template>
     <span
         data-slot="status-badge"
-        class="inline-flex min-h-5 items-center rounded-full border px-2 py-0.5 text-xs font-medium whitespace-nowrap"
-        :class="classes"
+        class="inline-flex min-h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-medium whitespace-nowrap"
+        :class="text"
     >
+        <span
+            class="size-2 shrink-0 rounded-full"
+            :class="dot"
+            aria-hidden="true"
+        />
         {{ label ?? formatStatusLabel(status) }}
     </span>
 </template>
