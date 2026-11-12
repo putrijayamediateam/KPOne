@@ -55,6 +55,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // One read of the Version 2 preference per request, shared by everything that needs it.
         $this->app->scoped(UiVersionResolver::class);
         $this->app->scoped(AccessChangeActorContext::class);
         $this->app->scoped(BranchAccessService::class);
