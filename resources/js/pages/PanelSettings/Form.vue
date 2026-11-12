@@ -602,12 +602,17 @@ const submit = () => {
                                 >Follow up a claim after</span
                             >
                             <Input
-                                v-model.number="form.claim_follow_up_days"
+                                :model-value="form.claim_follow_up_days"
                                 type="number"
                                 min="1"
                                 max="365"
                                 class="w-24 rounded-lg max-lg:h-11 max-lg:text-base"
                                 aria-label="Follow-up days"
+                                @update:model-value="
+                                    (value) =>
+                                        (form.claim_follow_up_days =
+                                            numberFrom(value))
+                                "
                             />
                             <span class="whitespace-nowrap"
                                 >days with no new action</span

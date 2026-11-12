@@ -61,9 +61,15 @@ test('Panel settings offer follow-up days between 1 and 365, default 30', () => 
         form,
         /claim_follow_up_days: props\.panel\?\.claimFollowUpDays \?\? 30/,
     );
+    // The field reads its text as a number through numberFrom() (the same
+    // reading as v-model.number), so it still submits a number.
     assert.match(
         form,
-        /v-model\.number="form\.claim_follow_up_days"\s+type="number"\s+min="1"\s+max="365"/,
+        /:model-value="form\.claim_follow_up_days"\s+type="number"\s+min="1"\s+max="365"/,
+    );
+    assert.match(
+        form,
+        /@update:model-value="\s*\(value\) =>\s*\(form\.claim_follow_up_days =\s*numberFrom\(value\)\)\s*"/,
     );
     assert.match(form, /form\.errors\.claim_follow_up_days/);
 });
