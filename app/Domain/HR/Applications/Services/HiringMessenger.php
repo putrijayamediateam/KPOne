@@ -47,7 +47,7 @@ final class HiringMessenger
      *
      * @param  array<string, string>  $extra  the reminder's reference and stage
      */
-    public function record(\stdClass $application, string $template, string $stage, ?string $link = null, array $extra = [], int $round = 0): void
+    public function record(\stdClass $application, string $template, string $stage, ?string $link = null, array $extra = [], int $round = 0, int $extension = 0): void
     {
         $toMailbox = in_array($template, self::TO_MAILBOX, true);
         // The pick-times emails carry the same last day as the candidate's page, worked out from the application as it is
@@ -55,7 +55,7 @@ final class HiringMessenger
         $chooseBy = null;
         if (in_array($template, self::PICK_TIMES, true)) {
             $fresh = DB::table('hr_job_applications')->where('id', $application->id)->first();
-            $chooseBy = $fresh === null ? null : (app(HiringDeadlines::class)->deadlines($fresh, HiringDeadlines::pickRoundStart($fresh))['remind'] ?? null);
+            $chooseBy = $fresh === null ? null : (app(HiringDeadlines::class)->deadlines($fresh)['remind'] ?? null);
         }
         $params = ['position' => self::positionTitle((int) $application->position_id), ...self::interviewParams($template, (int) $application->id, $round),
             ...($chooseBy === null ? [] : HiringDeadlines::chooseByLabels($chooseBy)), ...$extra];
@@ -76,12 +76,12 @@ final class HiringMessenger
         $now = now()->utc();
         $inserted = DB::table('hr_job_application_messages')->insertOrIgnore(['organisation_id' => $application->organisation_id,
             'application_id' => $application->id, 'template' => $template, 'recipient' => $toMailbox ? 'mailbox' : 'candidate', 'stage' => $stage,
-            'status' => $off ? 'off' : 'sending', 'round' => $round, 'choose_by' => $chooseBy, 'created_at' => $now, 'updated_at' => $now]);
+            'status' => $off ? 'off' : 'sending', 'round' => $round, 'extension' => $extension, 'choose_by' => $chooseBy, 'created_at' => $now, 'updated_at' => $now]);
         if ($inserted === 0 || $off) {
             return;
         }
         $id = (int) DB::table('hr_job_application_messages')->where('application_id', $application->id)->where('template', $template)->where('stage', $stage)
-            ->where('round', $round)->value('id');
+            ->where('round', $round)->where('extension', $extension)->value('id');
         $applicationId = (int) $application->id;
         DB::afterCommit(function () use ($id, $applicationId, $toMailbox, $message): void {
             $this->send($id, $applicationId, $toMailbox, $message);
