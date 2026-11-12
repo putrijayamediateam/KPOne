@@ -119,14 +119,14 @@ const loadOlder = async () => {
 
 <template>
     <section
-        class="rounded-lg border bg-card"
+        class="rounded-xl border bg-card"
         aria-labelledby="patient-history-heading"
         data-test="patient-change-history"
     >
         <div class="border-b px-5 py-4">
             <h2
                 id="patient-history-heading"
-                class="flex items-center gap-2 font-semibold"
+                class="flex items-center gap-2 text-base font-semibold"
             >
                 <FileClock class="size-4" aria-hidden="true" /> Change history
             </h2>

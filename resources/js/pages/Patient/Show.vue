@@ -9,6 +9,7 @@ import PatientMergePanel from '@/components/patient/PatientMergePanel.vue';
 import type { PatientMergePanelData } from '@/components/patient/PatientMergePanel.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import type { PatientDetail, PatientIdentifier } from '@/types';
 
 defineOptions({
@@ -90,31 +91,24 @@ const formatTime = (value: string) =>
 <template>
     <Head :title="patient.patientNumber" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div
-            class="flex flex-col justify-between gap-4 md:flex-row md:items-start"
+        <PageHeader
+            :eyebrow="patient.patientNumber"
+            :title="patient.identity.fullName"
+            description="Organisation-level Patient Master record"
         >
-            <div>
-                <div class="font-mono text-sm font-medium text-brand-strong">
-                    {{ patient.patientNumber }}
-                </div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    {{ patient.identity.fullName }}
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    Organisation-level Patient Master record
-                </p>
-            </div>
-            <Button v-if="patient.can.update" variant="outline" as-child
-                ><Link :href="patientUrl() + '/edit'"
-                    ><Pencil class="size-4" /> Edit demographics</Link
-                ></Button
-            >
-        </div>
+            <template v-if="patient.can.update" #actions>
+                <Button variant="outline" class="max-lg:h-11" as-child
+                    ><Link :href="patientUrl() + '/edit'"
+                        ><Pencil class="size-4" /> Edit demographics</Link
+                    ></Button
+                >
+            </template>
+        </PageHeader>
 
         <div class="grid gap-5 xl:grid-cols-3">
-            <section class="rounded-lg border bg-card">
+            <section class="rounded-xl border bg-card">
                 <div class="border-b px-5 py-4">
-                    <h2 class="font-semibold">Identity</h2>
+                    <h2 class="text-base font-semibold">Identity</h2>
                 </div>
                 <dl class="grid gap-4 p-5 text-sm">
                     <div>
@@ -140,9 +134,9 @@ const formatTime = (value: string) =>
                     </div>
                 </dl>
             </section>
-            <section class="rounded-lg border bg-card">
+            <section class="rounded-xl border bg-card">
                 <div class="border-b px-5 py-4">
-                    <h2 class="font-semibold">Contact</h2>
+                    <h2 class="text-base font-semibold">Contact</h2>
                 </div>
                 <dl class="grid gap-4 p-5 text-sm">
                     <div>
@@ -167,9 +161,9 @@ const formatTime = (value: string) =>
                     </div>
                 </dl>
             </section>
-            <section class="rounded-lg border bg-card">
+            <section class="rounded-xl border bg-card">
                 <div class="border-b px-5 py-4">
-                    <h2 class="font-semibold">Address</h2>
+                    <h2 class="text-base font-semibold">Address</h2>
                 </div>
                 <div class="p-5 text-sm">
                     <template v-if="patient.address.line1"
@@ -200,12 +194,12 @@ const formatTime = (value: string) =>
             </section>
         </div>
 
-        <section class="rounded-lg border bg-card">
+        <section class="rounded-xl border bg-card">
             <div
                 class="flex items-start justify-between gap-4 border-b px-5 py-4"
             >
                 <div>
-                    <h2 class="font-semibold">Identifier history</h2>
+                    <h2 class="text-base font-semibold">Identifier history</h2>
                     <p class="text-sm text-muted-foreground">
                         Retired values remain reserved and are never
                         overwritten.
@@ -215,6 +209,7 @@ const formatTime = (value: string) =>
                     v-if="patient.can.update"
                     size="sm"
                     variant="outline"
+                    class="max-lg:h-11 lg:h-9"
                     @click="addOpen = !addOpen"
                     ><Plus class="size-4" /> Add first identifier</Button
                 >
@@ -228,7 +223,7 @@ const formatTime = (value: string) =>
                     v-model="identifierForm.identifier_type"
                     aria-label="Identifier type"
                     :disabled="!!correcting"
-                    class="h-10 rounded-md border bg-background px-3 text-sm"
+                    class="h-9 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11"
                 >
                     <option value="nric">NRIC</option>
                     <option value="passport">Passport</option>
@@ -238,23 +233,26 @@ const formatTime = (value: string) =>
                     :disabled="identifierForm.identifier_type === 'nric'"
                     maxlength="2"
                     aria-label="Issuing country"
-                    class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
+                    class="h-9 rounded-[10px] border bg-background px-3 text-sm uppercase max-lg:h-11"
                     placeholder="Issuer"
                 />
                 <input
                     v-model="identifierForm.value"
                     aria-label="Identifier value"
                     autocomplete="off"
-                    class="h-10 rounded-md border bg-background px-3 text-sm"
+                    class="h-9 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11"
                     :placeholder="
                         correcting
                             ? 'Corrected identifier value'
                             : 'Identifier value'
                     "
                 />
-                <Button type="submit" :disabled="identifierForm.processing">{{
-                    correcting ? 'Replace' : 'Add'
-                }}</Button>
+                <Button
+                    type="submit"
+                    class="max-lg:h-11"
+                    :disabled="identifierForm.processing"
+                    >{{ correcting ? 'Replace' : 'Add' }}</Button
+                >
                 <InputError
                     class="md:col-span-4"
                     :message="identifierError()"
@@ -294,11 +292,13 @@ const formatTime = (value: string) =>
                         <Button
                             size="sm"
                             variant="outline"
+                            class="max-lg:h-11 lg:h-9"
                             @click="startCorrection(identifier)"
                             >Correct</Button
                         ><Button
                             size="sm"
                             variant="outline"
+                            class="max-lg:h-11 lg:h-9"
                             @click="retire(identifier)"
                             >Retire</Button
                         >
@@ -313,9 +313,9 @@ const formatTime = (value: string) =>
             </div>
         </section>
 
-        <section class="rounded-lg border bg-card">
+        <section class="rounded-xl border bg-card">
             <div class="border-b px-5 py-4">
-                <h2 class="font-semibold">Administrative metadata</h2>
+                <h2 class="text-base font-semibold">Administrative metadata</h2>
             </div>
             <div class="grid gap-4 p-5 text-sm md:grid-cols-2">
                 <div>
@@ -341,9 +341,9 @@ const formatTime = (value: string) =>
         />
         <section
             v-if="patient.guardian"
-            class="space-y-2 rounded-lg border bg-card p-5"
+            class="space-y-2 rounded-xl border bg-card p-5"
         >
-            <h2 class="font-semibold">Guardian contact</h2>
+            <h2 class="text-base font-semibold">Guardian contact</h2>
             <p class="break-words">
                 {{ patient.guardian.full_name }} ·
                 {{ patient.guardian.relationship.replaceAll('_', ' ') }}
@@ -358,10 +358,10 @@ const formatTime = (value: string) =>
         </section>
         <section
             v-else-if="mergedGuardian"
-            class="space-y-2 rounded-lg border bg-card p-5"
+            class="space-y-2 rounded-xl border bg-card p-5"
             data-test="merged-guardian"
         >
-            <h2 class="font-semibold">Guardian contact</h2>
+            <h2 class="text-base font-semibold">Guardian contact</h2>
             <p class="text-xs text-muted-foreground">
                 From merged record
                 <span class="font-mono">{{

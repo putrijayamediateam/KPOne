@@ -209,10 +209,10 @@ const rows = (summary: Summary) => [
 <template>
     <section
         v-if="merge.mergedFrom.length"
-        class="space-y-3 rounded-lg border border-border bg-muted/40 p-5"
+        class="space-y-3 rounded-xl border border-border bg-muted/40 p-5"
         data-testid="merged-records"
     >
-        <h2 class="font-semibold">Merged records</h2>
+        <h2 class="text-base font-semibold">Merged records</h2>
         <p class="text-sm text-muted-foreground">
             These duplicate records were merged into this patient. Their visits,
             invoices and documents keep their own KP number and are listed with
@@ -237,7 +237,7 @@ const rows = (summary: Summary) => [
                 <template v-if="unmergeTarget === record.patientNumber">
                     <select
                         v-model="unmergeReason"
-                        class="h-9 rounded-md border bg-background px-2 text-sm"
+                        class="h-9 rounded-[10px] border bg-background px-2 text-sm max-lg:h-11"
                         aria-label="Reason for unmerge"
                     >
                         <option value="" disabled>Choose a reason</option>
@@ -251,6 +251,7 @@ const rows = (summary: Summary) => [
                     </select>
                     <Button
                         size="sm"
+                        class="max-lg:h-11 lg:h-9"
                         :disabled="!unmergeReason"
                         @click="
                             submitUnmerge(
@@ -262,6 +263,7 @@ const rows = (summary: Summary) => [
                     >
                     <Button
                         size="sm"
+                        class="max-lg:h-11 lg:h-9"
                         variant="ghost"
                         @click="unmergeTarget = null"
                         >Cancel</Button
@@ -271,6 +273,7 @@ const rows = (summary: Summary) => [
                     v-else
                     size="sm"
                     variant="outline"
+                    class="max-lg:h-11 lg:h-9"
                     @click="unmergeTarget = record.patientNumber"
                     ><Undo2 class="size-4" /> Unmerge</Button
                 >
@@ -280,10 +283,10 @@ const rows = (summary: Summary) => [
 
     <section
         v-if="merge.pending.length"
-        class="space-y-3 rounded-lg border border-warning/25 bg-warning/10 p-5"
+        class="space-y-3 rounded-xl border border-warning/25 bg-warning/10 p-5"
         data-testid="pending-merges"
     >
-        <h2 class="font-semibold">Waiting for approval</h2>
+        <h2 class="text-base font-semibold">Waiting for approval</h2>
         <div
             v-for="request in merge.pending"
             :key="request.publicId"
@@ -306,11 +309,15 @@ const rows = (summary: Summary) => [
             </div>
             <div class="flex flex-wrap gap-2">
                 <template v-if="request.canDecide">
-                    <Button size="sm" @click="decide(request, 'approve')"
+                    <Button
+                        size="sm"
+                        class="max-lg:h-11 lg:h-9"
+                        @click="decide(request, 'approve')"
                         >Approve</Button
                     >
                     <Button
                         size="sm"
+                        class="max-lg:h-11 lg:h-9"
                         variant="outline"
                         @click="decide(request, 'reject')"
                         >Reject</Button
@@ -319,6 +326,7 @@ const rows = (summary: Summary) => [
                 <Button
                     v-if="request.canWithdraw"
                     size="sm"
+                    class="max-lg:h-11 lg:h-9"
                     variant="outline"
                     @click="decide(request, 'withdraw')"
                     >Withdraw</Button
@@ -334,11 +342,11 @@ const rows = (summary: Summary) => [
 
     <section
         v-if="merge.canPropose"
-        class="space-y-4 rounded-lg border bg-card p-5"
+        class="space-y-4 rounded-xl border bg-card p-5"
         data-testid="merge-duplicate"
     >
         <div>
-            <h2 class="flex items-center gap-2 font-semibold">
+            <h2 class="flex items-center gap-2 text-base font-semibold">
                 <GitMerge class="size-4" /> Merge a duplicate into this record
             </h2>
             <p class="text-sm text-muted-foreground">
@@ -352,7 +360,7 @@ const rows = (summary: Summary) => [
                 <span class="font-medium">KP number of the duplicate</span>
                 <input
                     v-model="otherNumber"
-                    class="h-10 w-full min-w-0 rounded-md border bg-background px-3 font-mono uppercase"
+                    class="h-9 w-full min-w-0 rounded-[10px] border bg-background px-3 font-mono uppercase max-lg:h-11"
                     placeholder="KP-00000000"
                     maxlength="20"
                     autocomplete="off"
@@ -361,6 +369,7 @@ const rows = (summary: Summary) => [
             <Button
                 type="submit"
                 variant="outline"
+                class="max-lg:h-11"
                 :disabled="checking || !otherNumber.trim()"
                 ><Search class="size-4" />
                 {{ checking ? 'Checking…' : 'Check' }}</Button
@@ -414,7 +423,7 @@ const rows = (summary: Summary) => [
                     <span class="font-medium">Reason</span>
                     <select
                         v-model="proposal.reason_code"
-                        class="h-10 w-full min-w-0 rounded-md border bg-background px-2"
+                        class="h-9 w-full min-w-0 rounded-[10px] border bg-background px-2 max-lg:h-11"
                     >
                         <option value="" disabled>Choose a reason</option>
                         <option
@@ -428,6 +437,7 @@ const rows = (summary: Summary) => [
                 </label>
                 <Button
                     type="submit"
+                    class="max-lg:h-11"
                     :disabled="proposal.processing || !proposal.reason_code"
                     >Send for approval</Button
                 >
