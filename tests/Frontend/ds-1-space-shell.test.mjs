@@ -228,7 +228,7 @@ test('DS-5: the Billing space shows pay later, cash closing and awaiting billing
     const page = read('resources/js/pages/Spaces/Show.vue');
     assert.match(page, /v-else-if="billing"/);
     assert.match(page, /only="billing"/);
-    assert.match(page, /Pay later to collect/);
+    assert.match(page, /Bills to collect/);
     assert.match(page, /Cash closing today/);
     assert.match(page, /Visits awaiting billing/);
     assert.match(page, /Changed after approval\./);
