@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Button } from '@/components/ui/button';
+import { recordsLabel } from '@/lib/pager';
 
 const props = defineProps<{
     currentPage: number;
@@ -43,7 +44,7 @@ const go = (page: number) => {
         </Button>
         <span class="px-1 text-xs text-muted-foreground" aria-current="page">
             <template v-if="total !== undefined"
-                >{{ total }} {{ total === 1 ? 'record' : 'records' }} ·
+                >{{ recordsLabel(total) }} ·
             </template>
             Page {{ currentPage }} of {{ Math.max(lastPage, 1) }}
         </span>

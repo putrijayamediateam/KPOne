@@ -16,5 +16,7 @@ test('DD-66: Previous and Next are 44 px tall below 1024 px and keep the small s
 });
 
 test('DD-47: one record is singular', () => {
-    assert.match(pager, /total === 1 \? 'record' : 'records'/);
+    const helper = readFileSync('resources/js/lib/pager.ts', 'utf8');
+    assert.match(helper, /total === 1 \? 'record' : 'records'/);
+    assert.match(pager, /recordsLabel\(total\)/);
 });
