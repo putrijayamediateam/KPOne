@@ -299,6 +299,19 @@ watch(
         }),
     { immediate: true },
 );
+// HR forms (Daniel, 2026-11-12): a Save is cobalt only when pressing it would do something (changes, or a first save of a real version).
+const settingsUnsaved = computed(() => {
+    const s = props.claims.settings;
+
+    if (!s?.version) {
+        return true;
+    }
+
+    return (
+        settingsForm.level !== rm(s.directorLevelSen ?? null) ||
+        settingsForm.days !== (s.daysBack ? String(s.daysBack) : '')
+    );
+});
 const saveSettings = () => {
     settingsForm.processing = true;
     router.post(
@@ -430,7 +443,6 @@ const dialogOpen = computed(
                 </h2>
                 <Button
                     v-if="claims.setUp"
-                    variant="outline"
                     class="max-lg:min-h-11"
                     data-test="claim-new"
                     @click="newClaim"
@@ -998,6 +1010,7 @@ const dialogOpen = computed(
                 </p>
                 <Button
                     type="submit"
+                    :variant="settingsUnsaved ? 'default' : 'outline'"
                     class="self-start max-lg:min-h-11"
                     :disabled="settingsForm.processing"
                 >
