@@ -23,8 +23,64 @@ for (const [, selector, body] of strip(css).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
     );
 }
 
-const light = blocks['.space-shell'];
-const dark = { ...light, ...blocks['.dark .space-shell'] };
+// UI-RESTYLE 0.9b: the space colours alias the app tokens, so each value is resolved against app.css before it is
+// measured. The result is a plain #rrggbb or rgba() string, as before.
+const appBlocks = {};
+
+for (const [, selector, body] of strip(app).matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+    appBlocks[selector.trim()] = Object.fromEntries(
+        [...body.matchAll(/(?<![\w-])--([a-z0-9-]+):\s*([^;]+);/g)].map((m) => [
+            m[1],
+            m[2].trim(),
+        ]),
+    );
+}
+
+const appTokens = {
+    light: appBlocks[':root'],
+    dark: { ...appBlocks[':root'], ...appBlocks['.dark'] },
+};
+const hexToRgb = (hex) =>
+    [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+const toHex = (rgb) =>
+    `#${rgb.map((c) => c.toString(16).padStart(2, '0')).join('')}`;
+const resolve = (value, mode) => {
+    const ref = value.match(/^var\(--([a-z-]+)\)$/);
+
+    if (ref) {
+        return resolve(appTokens[mode][ref[1]], mode);
+    }
+
+    const mix = value.match(
+        /^color-mix\(in srgb, (var\(--[a-z-]+\)) (\d+)%, (var\(--[a-z-]+\)|transparent)\)$/,
+    );
+
+    if (!mix) {
+        return value;
+    }
+
+    const share = Number(mix[2]) / 100;
+    const top = hexToRgb(resolve(mix[1], mode));
+
+    if (mix[3] === 'transparent') {
+        return `rgba(${top.join(', ')}, ${share})`;
+    }
+
+    const bottom = hexToRgb(resolve(mix[3], mode));
+
+    return toHex(
+        top.map((c, i) => Math.round(c * share + bottom[i] * (1 - share))),
+    );
+};
+const resolved = (tokens, mode) =>
+    Object.fromEntries(
+        Object.entries(tokens).map(([k, v]) => [k, resolve(v, mode)]),
+    );
+
+const lightRaw = blocks['.space-shell'];
+const darkRaw = { ...lightRaw, ...blocks['.dark .space-shell'] };
+const light = resolved(lightRaw, 'light');
+const dark = resolved(darkRaw, 'dark');
 
 const parse = (value) => {
     const hex = value.match(/^#([0-9a-f]{6})$/i);
@@ -115,10 +171,10 @@ test('DS-0: status chip text reaches 4.5:1 on its own 13% tint over the card, li
     }
 });
 
-test('DS-0: pink appears once, as the logo mark', () => {
-    assert.equal(light['logo-mark'], '#e8348c');
-    assert.equal((strip(css).match(/#e8348c/gi) ?? []).length, 1);
-    assert.doesNotMatch(strip(css), /#db2777|#ec4899|pink/i);
+test('DS-0: pink appears once, as the logo mark, and it is the app brand token', () => {
+    assert.equal(lightRaw['logo-mark'], 'var(--brand)');
+    assert.equal((strip(css).match(/--space-logo-mark:/g) ?? []).length, 1);
+    assert.doesNotMatch(strip(css), /#e8348c|#db2777|#ec4899|pink/i);
 });
 
 test('DS-0: both modes define every token the shell uses', () => {
