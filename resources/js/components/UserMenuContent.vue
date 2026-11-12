@@ -85,7 +85,7 @@ const switchSpaces = (enabled: boolean) =>
             :as-child="true"
             class="max-lg:min-h-11"
         >
-            <Link class="block w-full cursor-pointer" :href="link.href">{{
+            <Link class="block w-full cursor-pointer pl-6" :href="link.href">{{
                 link.title
             }}</Link>
         </DropdownMenuItem>

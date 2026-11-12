@@ -3,7 +3,6 @@
 namespace App\Domain\Shared;
 
 use Illuminate\Http\Request;
-use Illuminate\Routing\Exceptions\UrlGenerationException;
 use Illuminate\Support\Facades\Route;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -24,7 +23,7 @@ final class SafeReturnPath
         }
         try {
             Route::getRoutes()->match(Request::create($value, 'GET'));
-        } catch (HttpException|UrlGenerationException) {
+        } catch (HttpException) {
             return null;
         }
 
