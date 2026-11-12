@@ -117,7 +117,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-17 | Billing page display fixes: a fully paid pay-later reads "Paid in full · nothing left to collect"; voided invoices stay visible (number, total, who and when, receipts; never the reason); the "Use amount due" shortcut also shows on a completed visit with money due; the pay-later list notes money due now (paid first). Display only. Design note: `BIL-17-DESIGN.md` | PR #431 |
 | BIL-18 | Pay-later list on phones and summary wording: below 1024 px the pay-later collection list is cards (amount and past-due chip first, the due-now note beside it, a 44 px Open billing); the Billing, Invoice and Visit history summary row "Approved pay later" reads "Pay later still owed" (prints unchanged). Layout and wording only. Design note: `BIL-18-DESIGN.md` | PR #471 |
 | BIL-20 | PostgreSQL race tests for receipt corrections (BIL-16): two people correcting one receipt at once record one correction (one reversal, one replacement, one audit; the other is refused), and a correction racing a refund on the same receipt never both win, with no deadlock (both lock the patient and visit, then the invoice and the receipt); both orders are also forced in turn, and the same request sent twice at once records one correction. The race test cleanup also removes payment corrections. Test only. | PR #474 |
-| BIL-23 | "Bills to collect": the pay-later collection list now shows every completed visit that still owes money, not only approved pay later: rows show Approved, Pay later, Due now and Still owed (the Billing page's Outstanding bill amount); money due now counts from the visit day and is past due from the next day ("N days since visit"); the page and its menu card are renamed (same link). Read-only. Design note: `BIL-23-DESIGN.md` | PR pending |
+| BIL-23 | "Bills to collect": the pay-later collection list now shows every completed visit that still owes money, not only approved pay later: rows show Approved, Pay later, Due now and Still owed (the Billing page's Outstanding bill amount); money due now counts from the visit day and is past due from the next day ("N days since visit"); the page and its menu card are renamed (same link). Read-only. Design note: `BIL-23-DESIGN.md` | PR #538 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -289,6 +289,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   Billing page.
 - Pay-later list on phones (BIL-18): "1 records" comes from the shared pagination component. "Return to
   Workspace" is title case (sentence case per the UI guide); it is a shared string, logged for its owner, not fixed here.
+- The Billing department space (DS team, `BillingSpace::payLater()`) reads the Bills to collect page: since BIL-23
+  its totals include money due now while its rows show the pay-later part only (`remainingSen`), so a due-now-only
+  bill reads RM 0.00 there until the space adds the `dueNow` map. Told the DS session; their file, their change.
 - Bills to collect (BIL-23) lists completed visits that owe money and approved pay later (also on open visits); an
   open visit's own due-now money is not listed (it is being paid at the counter). The Billing page's "View all
   pay-later to collect" link keeps its wording (pinned by an existing assertion). No "Check bill" badge for invoices
