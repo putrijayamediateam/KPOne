@@ -30,7 +30,7 @@ test('Business details has an optional short address for drug labels, limited to
         page,
         /label_address: props\.letterhead\.details\.label_address \?\? ''/,
     );
-    assert.match(page, /'label_address', 'email'/);
+    assert.match(page, /'registration_number', 'label_address',/);
 });
 
 test('the letterhead type carries label_address and the migration keeps it at 96 characters or fewer', () => {

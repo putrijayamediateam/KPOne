@@ -221,10 +221,10 @@ const stop = router.on('start', (event) => {
             'country',
             'phone',
             'phone_secondary',
-            'label_address',
             'email',
             'legal_name',
             'registration_number',
+            'label_address',
         ] as const) {
             form[field] = '';
         }
