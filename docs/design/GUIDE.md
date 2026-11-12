@@ -508,7 +508,7 @@ pages inherit them and no page sets its own colour)
 | Shadow: dialogs and sheets | `0 16px 48px rgba(16,24,40,.18)` plus the hairline |
 | Shadow: Clock in ring button only | `0 12px 28px rgba(10,86,209,.32)` |
 | Shadow in dark mode | `rgba(0,0,0,.5)` at the same sizes; the hairline does most of the work |
-| Type, page title | 28 px / 34 px line height from 1024 px 30 / 36, weight 700, tracking -0.01em |
+| Type, page title | 28 px / 34 (30 px / 36 from 1024 px), weight 700, tracking -0.01em |
 | Type, section title | 20 px / 26, 650 |
 | Type, card title | 16 to 17 px / 22, 650 |
 | Type, body and fields | 15 px / 22 (14 px / 20 in dense tables), 400 |
