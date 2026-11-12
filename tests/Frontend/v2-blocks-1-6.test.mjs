@@ -21,6 +21,8 @@ test('V2WorkLayout: title row, main panel and a right rail that drops below 1024
 test('V2Toolbar: a named search box, More filters disclosure with Reset, 44px below 1024px', () => {
     const s = v2('V2Toolbar');
     assert.match(s, /searchLabel/);
+    assert.match(s, /inputId\?: string/);
+    assert.match(s, /:id="inputId"/);
     assert.match(s, /:aria-expanded="open"/);
     assert.match(s, /emit\('reset'\)/);
     assert.match(s, /h-11[^"]*lg:h-9/);
