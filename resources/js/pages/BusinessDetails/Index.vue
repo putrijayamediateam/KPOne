@@ -289,13 +289,13 @@ const reload = () =>
                 </Button>
             </template>
         </PageHeader>
-        <p class="mt-2 mb-4 text-xs text-muted-foreground" aria-hidden="true">
+        <p class="mt-2 mb-4 text-sm text-muted-foreground" aria-hidden="true">
             * Required
         </p>
         <p
             v-if="generalError || blocked"
             role="alert"
-            class="mb-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
+            class="mb-3 rounded-[10px] border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive"
         >
             {{
                 blocked
@@ -305,21 +305,21 @@ const reload = () =>
             <Button
                 type="button"
                 variant="outline"
-                class="ml-2 h-8 text-xs"
+                class="ml-2 max-lg:h-11 lg:h-9"
                 @click="reload"
                 >Reload</Button
             >
             <span class="ml-2 text-xs">Reload discards unsaved changes.</span>
         </p>
         <section
-            class="mb-4 rounded-lg border bg-card p-4 md:p-5"
+            class="mb-4 rounded-[14px] border bg-card p-5"
             aria-labelledby="document-readiness-heading"
             data-testid="document-readiness"
         >
-            <h2 id="document-readiness-heading" class="text-sm font-semibold">
+            <h2 id="document-readiness-heading" class="text-lg font-semibold">
                 Document readiness
             </h2>
-            <p class="mt-1 text-xs text-muted-foreground">
+            <p class="mt-1 text-sm text-muted-foreground">
                 Letters: referral, MC and attendance. Invoices and receipts
                 print without a footer, but each branch should have one before
                 real use.
@@ -442,12 +442,12 @@ const reload = () =>
                 class="min-w-0 space-y-3 disabled:opacity-100"
             >
                 <section
-                    class="rounded-lg border bg-card p-4 md:p-5"
+                    class="rounded-[14px] border bg-card p-5"
                     aria-labelledby="clinic-details-heading"
                 >
                     <h2
                         id="clinic-details-heading"
-                        class="mb-4 text-sm font-semibold"
+                        class="mb-4 text-lg font-semibold"
                     >
                         Clinic details
                     </h2>
@@ -643,16 +643,16 @@ const reload = () =>
                     </div>
                 </section>
                 <section
-                    class="rounded-lg border bg-card p-4 md:p-5"
+                    class="rounded-[14px] border bg-card p-5"
                     aria-labelledby="organisation-details-heading"
                 >
                     <h2
                         id="organisation-details-heading"
-                        class="mb-1 text-sm font-semibold"
+                        class="mb-1 text-lg font-semibold"
                     >
                         Organisation details
                     </h2>
-                    <p class="mb-4 text-xs text-muted-foreground">
+                    <p class="mb-4 text-sm text-muted-foreground">
                         Legal identity and registration are shared across
                         branches.
                     </p>
@@ -724,19 +724,19 @@ const reload = () =>
             </fieldset>
             <footer
                 v-if="canEdit"
-                class="sticky bottom-0 z-10 flex justify-end gap-2 border-t bg-background/95 py-3"
+                class="sticky bottom-0 z-10 flex justify-end gap-2 border-t bg-background/95 py-3 max-lg:pb-4"
             >
                 <Button
                     type="button"
                     variant="outline"
-                    class="h-8 text-xs"
+                    class="max-lg:h-11 lg:h-9"
                     :disabled="form.processing || blocked"
                     @click="adopt"
                     >Cancel</Button
                 >
                 <Button
                     type="submit"
-                    class="h-8 text-xs"
+                    class="max-lg:h-11 lg:h-9"
                     :disabled="form.processing || blocked"
                     >{{ form.processing ? 'Saving…' : 'Save' }}</Button
                 >
@@ -744,11 +744,11 @@ const reload = () =>
         </form>
         <form
             @submit.prevent="saveFooter"
-            class="my-4 rounded-lg border bg-card p-4 md:p-5"
+            class="my-4 rounded-[14px] border bg-card p-5"
             novalidate
             aria-labelledby="print-footer-heading"
         >
-            <h2 id="print-footer-heading" class="text-sm font-semibold">
+            <h2 id="print-footer-heading" class="text-lg font-semibold">
                 Branch print footer
             </h2>
             <p
@@ -796,7 +796,7 @@ const reload = () =>
             <div class="mt-3 flex justify-end">
                 <Button
                     type="submit"
-                    class="h-8 text-xs"
+                    class="max-lg:h-11 lg:h-9"
                     :disabled="blocked || footerForm.processing"
                     >{{
                         footerForm.processing ? 'Saving…' : 'Save print footer'
