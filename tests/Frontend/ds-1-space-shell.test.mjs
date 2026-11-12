@@ -51,7 +51,7 @@ test('DS-2: the switch lives in the user menu, defaults off and sends the lock v
         menu,
         /lock_version: page\.props\.workspace\?\.spaces\?\.lockVersion/,
     );
-    assert.match(menu, /Use the old layout/);
+    assert.match(menu, /Back to Classic layout/);
     assert.match(menu, /page\.url\.startsWith\('\/spaces'\)/);
     assert.match(menu, /switchSpaces\(!inNewLayout\)/);
     assert.match(menu, /v-if="page\.props\.workspace\?\.spaces\?\.offered"/);

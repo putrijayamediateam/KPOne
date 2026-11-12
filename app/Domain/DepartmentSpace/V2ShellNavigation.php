@@ -60,6 +60,33 @@ final class V2ShellNavigation
         'audit-logs' => 'management',
     ];
 
+    /**
+     * Version 2 sidebar labels in sentence case (Daniel, 2026-11-12). V2 only: Clinic management, Classic pages and
+     * every page title keep their own names. Proper names (Panel, Little Shield, KPOne HR, SOPs, QR, TV) keep capitals.
+     */
+    public const V2_LABELS = [
+        'Access Control' => 'Access control',
+        'Billing Approval Limits' => 'Billing approval limits',
+        'Billing Detail' => 'Billing detail',
+        'Clinical Service Catalogue' => 'Clinical service catalogue',
+        'KPOne HR Memos' => 'KPOne HR memos',
+        'Medicine Catalogue' => 'Medicine catalogue',
+        'Panel Claims' => 'Panel claims',
+        'Panel Responsibility' => 'Panel responsibility',
+        'Patient Records' => 'Patient records',
+        'Payment Methods' => 'Payment methods',
+        'QR Intake' => 'QR intake',
+        'Queue Display settings' => 'Queue display settings',
+        'TV Screen' => 'TV screen',
+        'Terminal Reconciliation' => 'Terminal reconciliation',
+        'Transaction Detail' => 'Transaction detail',
+    ];
+
+    public static function label(string $title): string
+    {
+        return self::V2_LABELS[$title] ?? $title;
+    }
+
     public function __construct(private DepartmentSpaceNavigation $spaces, private ClinicManagementNavigation $hub) {}
 
     /**
@@ -82,7 +109,7 @@ final class V2ShellNavigation
         foreach ($this->hub->groups($actor) as $group) {
             $left = [];
             foreach ($group['links'] as $link) {
-                $row = ['title' => $link['title'], 'href' => $link['href']];
+                $row = ['title' => self::label($link['title']), 'href' => $link['href']];
                 $space = self::spaceFor($link['href']);
                 if ($space !== null && isset($spaces[$space])) {
                     $spaces[$space]['links'][] = $row;

@@ -69,11 +69,14 @@ class V2ShellNavigationTest extends VisitTestCase
         $this->assertNotContains('/registration', $this->moreHrefs($shell));
         // A CA cannot enter Consultation, so the Consultation queue stays under More rather than vanishing.
         $this->assertContains('/queue', $this->moreHrefs($shell));
+        // V2 labels are sentence case; Clinic management keeps its own names.
+        $this->assertContains('QR intake', array_column($shell['groups'][0]['items'][0]['links'], 'title'));
+        $this->assertContains('QR Intake', array_column(array_merge(...array_column(app(ClinicManagementNavigation::class)->groups($ca), 'links')), 'title'));
         // Nothing is lost or added: the sidebar holds exactly the person's Clinic management links.
         $hub = [];
         foreach (app(ClinicManagementNavigation::class)->groups($ca) as $group) {
             foreach ($group['links'] as $link) {
-                $hub[] = $link['href'].'|'.$link['title'];
+                $hub[] = $link['href'].'|'.V2ShellNavigation::label($link['title']);
             }
         }
         $sidebar = [];
