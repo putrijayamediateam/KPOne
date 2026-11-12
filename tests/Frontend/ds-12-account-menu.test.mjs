@@ -73,7 +73,7 @@ test('DS-12: a person with no space and no Clinic management link gets no empty 
 });
 
 test('DS-12: the own-page rows line up with the icon rows and a phone gets a dim layer behind the open menu', () => {
-    assert.match(menu, /class="pl-8 max-lg:min-h-11"/);
+    assert.match(menu, /class="pl-10 max-lg:min-h-11"/);
     assert.match(page, /@update:open="menuOpen = \$event"/);
     assert.match(page, /v-if="menuOpen"[\s\S]*?bg-black\/30 sm:hidden/);
 });
