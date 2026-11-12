@@ -51,7 +51,7 @@ test('DS-2: the switch lives in the user menu, defaults off and sends the lock v
         menu,
         /lock_version: page\.props\.workspace\?\.spaces\?\.lockVersion/,
     );
-    assert.match(menu, /Use the old layout/);
+    assert.match(menu, /Back to Classic layout/);
     assert.match(menu, /page\.url\.startsWith\('\/spaces'\)/);
     assert.match(menu, /switchSpaces\(!inNewLayout\)/);
     assert.match(menu, /v-if="page\.props\.workspace\?\.spaces\?\.offered"/);
@@ -228,7 +228,7 @@ test('DS-5: the Billing space shows pay later, cash closing and awaiting billing
     const page = read('resources/js/pages/Spaces/Show.vue');
     assert.match(page, /v-else-if="billing"/);
     assert.match(page, /only="billing"/);
-    assert.match(page, /Pay later to collect/);
+    assert.match(page, /Bills to collect/);
     assert.match(page, /Cash closing today/);
     assert.match(page, /Visits awaiting billing/);
     assert.match(page, /Changed after approval\./);
