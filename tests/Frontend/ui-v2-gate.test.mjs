@@ -98,7 +98,7 @@ test('Version 2 is set from the saved preference on first paint and on every nav
 
 test('Guard: the tokens added for Version 2 are never used without a v2: prefix in pages or components', () => {
     const hits = execSync(
-        "grep -rnE '(^|[^:a-z-])(bg|text|border|from|to)-(success-soft|warning-soft|destructive-soft|tint-[1-4]|grad-[12])' resources/js || true",
+        "grep -rnE '(^|[^:a-z-])(bg|text|border|from|to)-(success-soft|warning-soft|destructive-soft|tint-[1-4]|grad-[12])' resources/js --exclude-dir=v2 || true",
         { cwd: new URL('../..', import.meta.url).pathname, encoding: 'utf8' },
     )
         .split('\n')

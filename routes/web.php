@@ -1133,6 +1133,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/stocktakes/{stocktake}/post', [InventoryOperationsController::class, 'postStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.post');
         Route::post('inventory/stocktakes/{stocktake}/cancel', [InventoryOperationsController::class, 'cancelStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.cancel');
         Route::post('inventory/adjustments', [InventoryOperationsController::class, 'adjustment'])->middleware(['permission:inventory.adjust.branch', 'throttle:20,1'])->name('inventory.adjustments.store');
+        Route::get('inventory/reorder-levels/current', [InventoryOperationsController::class, 'currentReorderLevel'])->middleware(['permission:inventory.reorder.manage.branch', 'throttle:120,1'])->name('inventory.reorder-levels.current');
         Route::put('inventory/reorder-levels', [InventoryOperationsController::class, 'reorderLevel'])->middleware(['permission:inventory.reorder.manage.branch', 'throttle:30,1'])->name('inventory.reorder-levels.update');
 
         Route::middleware(['permission:medicines.manage.organisation'])->prefix('medicines')->group(function () {

@@ -116,7 +116,7 @@ const switchSpaces = (enabled: boolean) =>
             @select="switchSpaces(!inNewLayout)"
         >
             <LayoutGrid class="mr-2 h-4 w-4" />{{
-                inNewLayout ? 'Use the old layout' : 'Try the new layout'
+                inNewLayout ? 'Back to Classic layout' : 'Try the new layout'
             }}
         </DropdownMenuItem>
     </DropdownMenuGroup>
