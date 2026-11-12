@@ -109,3 +109,19 @@ test('Stock count and Write-off link to each other in a row below the header', (
         /stock\.mode === 'count'\s+\? '\/inventory\/writeoffs'\s+: '\/inventory\/counts'/,
     );
 });
+
+test('the Inventory summary tiles sit in one row at every width, in sentence case', () => {
+    const page = template(read('resources/js/pages/Inventory/Index.vue'));
+    assert.match(
+        page,
+        /class="grid grid-cols-3 gap-2 sm:gap-3"\s+aria-label="Inventory summary"/,
+    );
+
+    for (const label of [
+        'SKUs with stock',
+        'Total batches',
+        'Expired batches',
+    ]) {
+        assert.match(page, new RegExp(`>\\s*${label}\\s*</p>`), label);
+    }
+});
