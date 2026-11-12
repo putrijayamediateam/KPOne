@@ -60,6 +60,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReadinessController;
+use App\Http\Controllers\InventoryRecallController;
 use App\Http\Controllers\InventoryReferenceController;
 use App\Http\Controllers\InventoryScanController;
 use App\Http\Controllers\InventoryStockReviewController;
@@ -891,6 +892,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'print'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store'])->name('inventory.controlled-register.print');
         Route::post('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'recordPrint'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.print.record');
         Route::post('inventory/controlled-register/{sku}/checks', [ControlledRegisterController::class, 'check'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.check');
+        Route::get('inventory/recalls', [InventoryRecallController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.recalls');
+        Route::get('inventory/recalls/batches', [InventoryRecallController::class, 'batches'])->middleware(['permission:inventory.recalls.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.recalls.batches');
+        Route::post('inventory/recalls', [InventoryRecallController::class, 'store'])->middleware(['permission:inventory.recalls.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.recalls.store');
+        Route::post('inventory/recalls/{recall}/lift', [InventoryRecallController::class, 'lift'])->whereUuid('recall')->middleware(['permission:inventory.recalls.lift.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.recalls.lift');
         Route::get('inventory/supplier-returns', [SupplierReturnController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-returns');
         Route::post('inventory/supplier-returns', [SupplierReturnController::class, 'store'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.store');
         Route::post('inventory/supplier-returns/{supplierReturn}/{action}', [SupplierReturnController::class, 'act'])->whereNumber('supplierReturn')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.act');
