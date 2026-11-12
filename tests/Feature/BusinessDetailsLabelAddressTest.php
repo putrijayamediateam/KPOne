@@ -125,6 +125,21 @@ class BusinessDetailsLabelAddressTest extends VisitTestCase
         $this->assertSame('Retry label', $this->profile()->label_address);
     }
 
+    public function test_the_same_key_with_a_different_label_address_is_refused_and_a_replay_changes_nothing(): void
+    {
+        $key = (string) Str::uuid();
+        $first = $this->payload(['label_address' => 'A', 'idempotency_key' => $key]);
+        $this->actingAs($this->director)->post('/business-details', $first)->assertSessionHasNoErrors();
+        $version = $this->profile()->lock_version;
+
+        $this->actingAs($this->director)->post('/business-details', $first)->assertSessionHasNoErrors();
+        $this->assertSame($version, $this->profile()->lock_version);
+
+        $this->actingAs($this->director)->post('/business-details', [...$first, 'label_address' => 'B'])->assertSessionHasErrors('idempotency_key');
+        $this->assertSame('A', $this->profile()->label_address);
+        $this->assertSame($version, $this->profile()->lock_version);
+    }
+
     public function test_postgresql_refuses_a_long_blank_or_multi_line_label_address(): void
     {
         if (DB::connection()->getDriverName() !== 'pgsql') {
@@ -132,7 +147,7 @@ class BusinessDetailsLabelAddressTest extends VisitTestCase
         }
         $this->save()->assertSessionHasNoErrors();
         $id = $this->profile()->id;
-        foreach ([str_repeat('x', 97), '   ', "two\nlines"] as $bad) {
+        foreach ([str_repeat('x', 97), '   ', "two\nlines", "two\rlines"] as $bad) {
             DB::beginTransaction();
             try {
                 DB::table('branch_business_profiles')->where('id', $id)->update(['label_address' => $bad]);
@@ -143,5 +158,9 @@ class BusinessDetailsLabelAddressTest extends VisitTestCase
                 DB::rollBack();
             }
         }
+
+        // A literal backslash, the letter n and the letter r are ordinary characters and stay allowed.
+        DB::table('branch_business_profiles')->where('id', $id)->update(['label_address' => 'a\\nr']);
+        $this->assertSame('a\\nr', DB::table('branch_business_profiles')->where('id', $id)->value('label_address'));
     }
 }
