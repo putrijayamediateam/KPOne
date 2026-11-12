@@ -329,6 +329,20 @@ class LeaveTest extends VisitTestCase
         $this->delete(route('hr.leave.holidays.destroy', DB::table('hr_public_holidays')->where('name', 'Later')->value('id')))->assertSessionHasNoErrors();
     }
 
+    public function test_a_waiting_request_says_when_it_was_sent(): void
+    {
+        // For the HR space's "oldest waiting" line (Daniel, Kavitha): when the request was sent, ISO and in UTC.
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $type = $this->ready($hr, $ca, 10);
+        $this->travelTo(CarbonImmutable::parse('2027-03-01 01:30:00', 'UTC'));
+        $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-10', 'end_date' => '2027-03-10'])->assertSessionHasNoErrors();
+        $this->travelBack();
+        $this->selectBranch($hr);
+        $this->get(route('hr.leave.index', ['tab' => 'approvals']))->assertInertia(fn (Assert $page) => $page
+            ->where('leave.approvals.pending.0.sentAt', '2027-03-01T01:30:00+00:00'));
+    }
+
     public function test_the_roster_refuses_shifts_on_approved_leave_and_warns_for_pending_or_existing(): void
     {
         $hr = $this->actor('hr_manager');

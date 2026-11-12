@@ -139,7 +139,9 @@ final class ClaimsPageService
 
             return [...$row, 'warnings' => array_values(array_unique($warnings)), 'monthTotalSen' => $monthTotal,
                 'perClaimLimitSen' => $category['perClaimLimitSen'] ?? null, 'monthlyLimitSen' => $category['monthlyLimitSen'] ?? null,
-                'refusal' => $this->claims->deciderRefusal($actor, $claim)];
+                'refusal' => $this->claims->deciderRefusal($actor, $claim),
+                // When the claim was sent (ISO, UTC), so the HR space can show how long the oldest has waited.
+                'sentAt' => CarbonImmutable::parse((string) $claim->created_at, 'UTC')->toIso8601String()];
         })->values()->all()];
     }
 
