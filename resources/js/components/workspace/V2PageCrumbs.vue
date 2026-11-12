@@ -29,7 +29,8 @@ const LINK =
 <template>
     <nav v-if="show" aria-label="Breadcrumb" data-test="v2-page-crumbs">
         <ol
-            class="flex flex-wrap items-center gap-x-1 text-xs font-medium max-sm:flex-nowrap"
+            class="flex flex-wrap items-center gap-x-1 text-xs font-medium"
+            :class="{ 'max-sm:flex-nowrap': collapses && parent }"
         >
             <li
                 v-if="collapses && parent"

@@ -112,7 +112,10 @@ test('UX-20 Daniel: crumb links get a 3:1 focus ring locally; long trails shorte
         /'max-sm:hidden': collapses && parent && index < trail\.length - 1,/,
     );
     assert.match(crumbs, /:aria-label="`Back to \$\{parent\.title\}`"/);
-    assert.match(crumbs, /max-sm:flex-nowrap/);
+    assert.match(
+        crumbs,
+        /:class="\{ 'max-sm:flex-nowrap': collapses && parent \}"/,
+    );
     // The shared Button is untouched (DD-74 waits for the owner).
     assert.doesNotMatch(
         read('resources/js/components/ui/button/index.ts'),
