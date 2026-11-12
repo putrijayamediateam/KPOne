@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>KPOne Version 2: Registration sketch</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--muted:#eaeef7;--fg:#161a24;--mfg:#4a5468;--line:#d5dbe9;--pri:#0a56d1;--onpri:#fff;--brand:#e8337f;--ok:#0b6b34;--okbg:#e1f3e8;--warn:#7d4400;--warnbg:#fcefd0;--bad:#b3261e;--badbg:#fde8e6;--t1:#e0ebff;--t2:#fde3ee}
+:root[data-theme=dark]{--bg:#12141a;--card:#1c1f27;--muted:#262a35;--fg:#f3f5fa;--mfg:#b0b8cc;--line:#323747;--pri:#6ba6ff;--onpri:#0b1a33;--brand:#ff86ae;--ok:#6fdc9a;--okbg:#12301f;--warn:#f2bf68;--warnbg:#3a2a0a;--bad:#ff8a80;--badbg:#3c1a18;--t1:#1e2c4a;--t2:#3c2030}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.45 -apple-system,"SF Pro Text",Inter,system-ui,sans-serif}
+button{font:inherit;color:inherit;cursor:pointer}a{color:var(--pri);text-decoration:none}
+.shell{display:grid;grid-template-columns:232px minmax(0,1fr);min-height:100vh}
+aside{background:var(--card);border-right:1px solid var(--line);padding:16px 12px;position:sticky;top:0;height:100vh;overflow:auto}
+.logo{display:flex;align-items:center;gap:8px;font-weight:700;color:var(--pri);padding:4px 8px 16px}.logo i{width:28px;height:28px;border-radius:50%;background:var(--brand);display:inline-block}
+.grp{font-size:12px;color:var(--mfg);padding:14px 8px 4px}
+.nav{display:flex;align-items:center;gap:10px;width:100%;border:0;background:none;text-align:left;padding:0 10px;min-height:36px;border-radius:8px;color:var(--fg)}
+.nav:hover{background:var(--muted)}.nav[aria-current=page]{background:var(--t1);color:var(--pri);font-weight:600}
+.nav b{margin-left:auto;font-weight:500;font-size:12px;color:var(--mfg)}
+main{min-width:0}
+.top{display:flex;align-items:center;gap:12px;padding:10px 24px;border-bottom:1px solid var(--line);background:var(--card);position:sticky;top:0;z-index:5}
+.menubtn{display:none;min-height:44px;min-width:44px;border:1px solid var(--line);border-radius:10px;background:none}
+.cmd{flex:1;max-width:520px;min-height:36px;border:1px solid var(--line);border-radius:10px;background:var(--muted);color:var(--mfg);padding:0 12px;display:flex;align-items:center}
+.chipbtn{min-height:36px;border:1px solid var(--line);border-radius:10px;background:none;padding:0 12px}
+.av{width:36px;height:36px;border-radius:50%;background:var(--t2);border:0;font-weight:700;color:var(--fg)}
+.page{padding:20px 24px 40px;max-width:1600px;margin:0 auto}
+.hdr{display:flex;align-items:flex-start;gap:16px;justify-content:space-between;flex-wrap:wrap;margin-bottom:14px}
+.crumb{font-size:13px;color:var(--mfg)}h1{margin:2px 0 2px;font-size:26px;line-height:1.2}.sub{color:var(--mfg);margin:0}
+.btn{min-height:36px;border-radius:10px;border:1px solid var(--line);background:var(--card);padding:0 14px;font-weight:500}
+.btn.pri{background:var(--pri);border-color:var(--pri);color:var(--onpri);font-weight:600}
+.btn.ghost{border-color:transparent;background:none;color:var(--pri)}
+.seg{display:inline-flex;gap:2px;background:var(--muted);border-radius:12px;padding:3px;max-width:100%;overflow:auto}
+.seg button{border:0;background:none;border-radius:9px;min-height:32px;padding:0 12px;white-space:nowrap;color:var(--mfg)}
+.seg button[aria-selected=true]{background:var(--card);color:var(--fg);font-weight:600}
+.seg small{margin-left:6px;color:var(--mfg);font-size:12px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;margin-top:14px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px}
+.pad{padding:16px}.ch{display:flex;align-items:center;gap:8px;justify-content:space-between;padding:14px 16px 0}.ch h2{font-size:16px;margin:0}
+.filters{display:flex;gap:8px;flex-wrap:wrap;padding:12px 16px}
+.field{min-height:36px;border:1px solid var(--line);border-radius:10px;background:var(--card);padding:0 10px;color:var(--fg);font:inherit}
+.search{flex:1 1 240px}
+.more{display:none;gap:8px;flex-wrap:wrap;padding:0 16px 12px;align-items:end}.more.open{display:flex}
+.more label{display:grid;gap:2px;font-size:12px;color:var(--mfg)}
+.meta{display:flex;justify-content:space-between;padding:8px 16px;font-size:13px;color:var(--mfg);border-top:1px solid var(--line)}
+.row{display:grid;grid-template-columns:40px minmax(170px,1.4fr) minmax(100px,1fr) minmax(110px,1fr) 190px 76px;gap:10px;align-items:center;padding:10px 16px;border-top:1px solid var(--line);min-height:60px}
+.row.head{font-size:12px;color:var(--mfg);min-height:36px;padding-block:6px}
+.name{font-weight:600}.sm{font-size:13px;color:var(--mfg)}
+.qn{font-variant-numeric:tabular-nums;background:var(--muted);border-radius:8px;padding:2px 8px;font-weight:600;display:inline-block}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:2px 10px;font-size:13px;white-space:nowrap}
+.chip:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--mfg)}
+.chip.ok:before{background:var(--ok)}.chip.warn:before{background:var(--warn)}.chip.bad:before{background:var(--bad)}.chip.pri:before{background:var(--pri)}
+.chip.warn{background:var(--warnbg)}
+.pay{font-weight:600}.note{font-size:13px;color:var(--mfg);display:block}
+.act{display:flex;gap:6px;justify-content:flex-end;align-items:center;position:relative}
+.ib{width:36px;height:36px;border-radius:10px;border:1px solid transparent;background:none;display:grid;place-items:center}
+.ib:hover{background:var(--muted)}.wa{background:#25d366;border-radius:50%;width:28px;height:28px;border:0;position:relative}.wa:after{content:"";position:absolute;inset:8px;border-radius:50%;border:2px solid #fff;border-width:2px}
+.pop{position:absolute;right:0;top:40px;z-index:8;min-width:250px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:6px;display:none;text-align:left}
+.pop.open{display:block}.pop button{display:block;width:100%;text-align:left;border:0;background:none;min-height:36px;padding:0 10px;border-radius:8px}
+.pop button:hover{background:var(--muted)}.pop button.dz{color:var(--bad)}.pop small{display:block;padding:6px 10px 2px;color:var(--mfg);font-size:12px}
+.pop button[disabled]{color:var(--mfg);cursor:not-allowed}
+.ring{width:36px;height:36px;display:block}
+.attn{display:grid;gap:8px;padding:12px 16px 16px}
+.item{display:flex;gap:10px;align-items:flex-start;border:1px solid var(--line);border-radius:10px;padding:10px;background:var(--bg)}
+.item b{display:block}.item .sm{display:block}
+.dot{width:8px;height:8px;border-radius:50%;margin-top:7px;flex:none}
+.strip{margin-top:16px}.strip .list{display:flex;gap:20px;overflow:auto;padding:12px 16px 16px}.strip .ev{min-width:230px;font-size:14px}.strip .ev span{display:block;color:var(--mfg);font-size:12px}
+.pager{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;border-top:1px solid var(--line);gap:8px;flex-wrap:wrap}
+.live{font-size:12px;color:var(--mfg);display:inline-flex;gap:6px;align-items:center}.live:before{content:"";width:8px;height:8px;border-radius:50%;background:var(--ok)}
+.tabsbar{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+.mapt{width:100%;border-collapse:collapse;font-size:14px}.mapt th,.mapt td{text-align:left;padding:8px 10px;border-top:1px solid var(--line);vertical-align:top}.mapt th{font-size:12px;color:var(--mfg);border-top:0}
+.pages{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+.view{display:none}.view.on{display:block}
+.two{display:grid;grid-template-columns:minmax(0,1fr) 340px;gap:16px;align-items:start}
+.sec h2{margin:0 0 2px;font-size:17px}.sec .sub{margin-bottom:10px}
+.cols{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.cols label,.stack label{display:grid;gap:3px;font-size:13px;color:var(--mfg)}
+.stack{display:grid;gap:12px}.full{grid-column:1/-1}
+.opt{display:flex;gap:8px;flex-wrap:wrap}.opt button{flex:1;min-height:44px;border:1px solid var(--line);border-radius:10px;background:var(--card)}.opt button[aria-pressed=true]{background:var(--t1);border-color:var(--pri);color:var(--pri);font-weight:600}
+.pt{display:flex;justify-content:space-between;gap:12px;align-items:center;padding:10px 12px;border-radius:10px;min-height:56px;width:100%;text-align:left;border:0;background:none}
+.pt:hover{background:var(--muted)}.pt[aria-pressed=true]{background:var(--okbg)}
+.sticky{position:sticky;top:76px;display:grid;gap:12px}
+.bar{display:none}
+.toolbar{display:flex;gap:8px;align-items:center}
+@media (max-width:1100px){.grid,.two{grid-template-columns:1fr}.sticky{position:static}}
+@media (max-width:900px){.shell{grid-template-columns:1fr}aside{display:none;position:fixed;inset:0 auto 0 0;width:280px;z-index:20;height:100%}aside.open{display:block}.menubtn{display:inline-block}.top{padding:10px 16px}.page{padding:16px}.cmd{display:none}.cols{grid-template-columns:1fr}
+.row,.row.head{grid-template-columns:40px 1fr auto}.row.head{display:none}.row>.hide-s{display:none}.row .full-s{grid-column:2/4}.bar{display:block;position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--line);padding:10px 16px calc(10px + env(safe-area-inset-bottom));margin:16px -16px -16px}.bar .btn{width:100%;min-height:44px}.btn,.field,.chipbtn,.ib{min-height:44px}.seg button{min-height:44px}}
+.note-box{border:1px dashed var(--line);border-radius:14px;padding:14px 16px;color:var(--mfg);font-size:14px;margin-bottom:14px;background:var(--card)}
+</style>
+</head>
+<body>
+<div class="shell">
+<aside id="side" aria-label="Spaces">
+<div class="logo"><i></i>KPOne</div>
+<div class="grp">Clinic</div>
+<button class="nav" aria-current="page">Front desk <b>9</b></button>
+<button class="nav">Consultation</button>
+<button class="nav">Pharmacy <b>6</b></button>
+<div class="grp">Money</div>
+<button class="nav">Billing <b>3</b></button>
+<button class="nav">Panel</button>
+<div class="grp">Back office</div>
+<button class="nav">Stock</button>
+<button class="nav">HR</button>
+<div class="grp">Oversight</div>
+<button class="nav">Management</button>
+<div class="grp">More</div>
+<button class="nav">Patient records</button>
+<button class="nav">Insights</button>
+</aside>
+<main>
+<div class="top">
+<button class="menubtn" id="menu" aria-label="Open menu">☰</button>
+<div class="cmd">Search patients, pages, actions</div>
+<span style="flex:1"></span>
+<button class="chipbtn">Cheras ▾</button>
+<button class="chipbtn" id="theme">Dark</button>
+<button class="av" aria-label="Account">DC</button>
+</div>
+<div class="page">
+<div class="note-box"><b>Design sketch, synthetic data, builds nothing.</b> Version 2 only. Classic is unchanged. Use the buttons to move between the two pages and to see the mapping of every Classic function. Resize the window to see the phone layout.</div>
+<div class="pages" role="tablist">
+<button class="btn pri" data-v="board">1. Registration board</button>
+<button class="btn" data-v="create">2. Register visit (Quick create)</button>
+<button class="btn" data-v="visit">3. Visit page</button>
+<button class="btn" data-v="edit">4. Edit visit</button>
+<button class="btn" data-v="map">5. Where each Classic function lives</button>
+</div>
+
+<!-- BOARD -->
+<section class="view on" id="v-board">
+<div class="hdr"><div><div class="crumb">Front desk</div><h1>Registration</h1><p class="sub">Cheras · today. Register, send to waiting, call and follow every visit.</p></div>
+<div class="toolbar"><button class="btn" id="qrbtn">QR intake <span class="chip warn" style="margin-left:6px">2 to review</span></button><button class="btn pri" data-v="create">Register visit</button></div></div>
+<div class="tabsbar"><div class="seg" role="tablist" id="tabs"></div><span class="live" title="Refreshes about every 10 seconds">Live · updated just now</span></div>
+<div class="grid">
+<div>
+<div class="card">
+<div class="ch"><h2 id="tabtitle">All visits</h2></div>
+<div class="filters">
+<input class="field search" id="q" placeholder="Patient name or exact Patient No." aria-label="Search patients">
+<select class="field" aria-label="Doctor"><option>All doctors</option><option>Dr Aisha Rahman</option></select>
+<select class="field" aria-label="Coverage"><option>All coverage</option><option>Self-pay</option><option>Panel</option></select>
+<select class="field" aria-label="Urgency"><option>All urgency</option><option>Urgent</option><option>Normal</option></select>
+<button class="btn" id="moreb" aria-expanded="false">More filters</button>
+<button class="btn pri">Search</button>
+</div>
+<div class="more" id="more">
+<label>Visit type<select class="field"><option>All</option><option>Consultation</option><option>OTC</option></select></label>
+<label>From<input class="field" type="date" value="2026-11-12"></label>
+<label>To<input class="field" type="date" value="2026-11-12"></label>
+<button class="btn ghost">Reset</button>
+</div>
+<div class="meta"><span id="count">10 visits · today</span><span>25 per page</span></div>
+<div id="rows"></div>
+<div class="pager"><span class="sm">Page 1 of 1</span><span style="display:flex;gap:8px"><button class="btn" disabled>Previous</button><button class="btn" disabled>Next</button></span></div>
+</div>
+</div>
+<div class="stack" style="display:grid;gap:16px;align-content:start">
+<div class="card"><div class="ch"><h2>Needs attention</h2><span class="chip">4</span></div>
+<div class="attn" id="attn"></div></div>
+<div class="card"><div class="ch"><h2>At a glance</h2></div><div class="pad sm" style="display:grid;gap:6px">
+<div style="display:flex;justify-content:space-between"><span>Waiting now</span><b style="color:var(--fg)">4</b></div>
+<div style="display:flex;justify-content:space-between"><span>Longest wait</span><b style="color:var(--fg)">64 min</b></div>
+<div style="display:flex;justify-content:space-between"><span>Doctors with a room today</span><b style="color:var(--fg)">1 of 1</b></div></div></div>
+</div>
+</div>
+<div class="card strip"><div class="ch"><h2>Recent activity</h2><a href="#">See all</a></div>
+<div class="list">
+<div class="ev">Suria Lim sent to waiting<span>CA Aina · 2 min ago</span></div>
+<div class="ev">A-009 called to Room 1<span>Dr Aisha · 6 min ago</span></div>
+<div class="ev">QR intake accepted: Tan Mei Ling<span>CA Aina · 11 min ago</span></div>
+<div class="ev">Grace Koh marked not ready<span>CA Aina · 19 min ago</span></div>
+<div class="ev">B-003 called to Dispensary<span>CA Hana · 24 min ago</span></div>
+</div></div>
+</section>
+
+<!-- CREATE -->
+<section class="view" id="v-create">
+<div class="hdr"><div><div class="crumb"><a href="#" data-v="board">Front desk</a> / Registration</div><h1>Register visit</h1><p class="sub">Cheras · current branch. Pick the patient, then the visit details.</p></div>
+<button class="btn" data-v="board">Back to console</button></div>
+<div class="two">
+<div class="stack" style="gap:16px">
+<div class="card pad sec"><h2>1. Patient</h2><p class="sub">Select an existing patient or create a new one quickly. Search first; Quick create appears when nothing matches.</p>
+<input class="field" style="width:100%" placeholder="Name / NRIC / Phone / Patient No." aria-label="Search patient">
+<div class="sm" style="display:flex;justify-content:space-between;margin:12px 0 4px"><span>Recent patients</span><span>20 shown</span></div>
+<button class="pt" aria-pressed="true"><span><b>Nabil Hakim</b><span class="sm" style="display:block">KP-00000049</span></span><span class="sm" style="text-align:right">10 Jul 1979<br>••••FWEH</span></button>
+<button class="pt" aria-pressed="false"><span><b>Suria Lim</b><span class="sm" style="display:block">KP-00000051</span></span><span class="sm" style="text-align:right">12 Jul 1979<br>••••JC04</span></button>
+<button class="pt" aria-pressed="false"><span><b>Grace Koh</b><span class="sm" style="display:block">KP-00000050</span></span><span class="sm" style="text-align:right">11 Jul 1979<br>••••R4CX</span></button>
+<button class="btn" style="margin-top:8px">Quick create a new patient</button>
+</div>
+<div class="card pad sec"><h2>New patient (Quick create)</h2><p class="sub">Shown only when you press Quick create.</p>
+<div class="cols">
+<label>Identification type<select class="field"><option>NRIC</option><option>Passport</option></select></label>
+<label>IC or Passport number<input class="field"></label>
+<label>Passport issuer (passport only)<input class="field"></label>
+<label>Name<input class="field"></label>
+<label class="full">Phone (country list and number)<span style="display:flex;gap:8px"><select class="field"><option>+60</option></select><input class="field" style="flex:1"></span></label>
+<label>Date of birth<input class="field" type="date"></label>
+<label>Nationality country code<input class="field" placeholder="MY"></label>
+<label>Gender<select class="field"><option>Unknown</option></select></label>
+<label>Email<input class="field"></label>
+<label class="full">Address (line 1, line 2, city, state, postcode, country)<input class="field"></label>
+<label class="full" style="grid-template-columns:20px 1fr;align-items:start"><input type="checkbox"><span>Date of birth unknown. I confirm the patient is an adult (18 or older).</span></label>
+<div class="full sm">Guardian contact (name, relationship, phone, optional email) appears for a patient under 18.</div>
+</div></div>
+<div class="card pad sec"><h2>2. Visit details</h2><p class="sub">Visit type, doctor, reason, coverage and urgency.</p>
+<div class="stack">
+<div><div class="sm">Visit type</div><div class="opt"><button aria-pressed="true">Consultation</button><button aria-pressed="false">OTC</button></div></div>
+<label>Doctor<select class="field"><option>Dr Aisha Rahman</option></select></label>
+<label>Visit reason (up to 5, first is primary)<input class="field" placeholder="Search visit reasons"></label>
+<div class="cols"><div><div class="sm">Coverage</div><div class="opt"><button aria-pressed="true">Self-pay</button><button aria-pressed="false">Panel</button></div></div>
+<div><div class="sm">Urgency</div><div class="opt"><button aria-pressed="true">Normal</button><button aria-pressed="false">Urgent</button></div></div></div>
+<div class="cols"><label>Panel (when Panel is chosen)<select class="field"><option>Select Panel</option></select></label><label>Panel note (optional)<input class="field"></label></div>
+</div></div>
+<div class="bar"><button class="btn pri">Register visit</button></div>
+</div>
+<div class="sticky"><div class="card pad"><h2 style="margin:0 0 6px;font-size:16px">Summary</h2>
+<div class="sm" style="display:grid;gap:6px"><div>Patient: <b style="color:var(--fg)">Nabil Hakim</b></div><div>Visit: <b style="color:var(--fg)">Consultation · Dr Aisha</b></div><div>Coverage: <b style="color:var(--fg)">Self-pay · Normal</b></div></div>
+<button class="btn pri" style="width:100%;margin-top:12px;min-height:44px">Register visit</button></div>
+<div class="card pad sm">Registering creates the visit only. Sending to waiting is done from the board.</div></div>
+</div>
+</section>
+
+
+<!-- VISIT -->
+<section class="view" id="v-visit">
+<div class="hdr"><div><div class="crumb"><a href="#" data-v="board">Front desk</a> / Registration</div>
+<h1 style="font-family:ui-monospace,Menlo,monospace">KPV-00000051</h1>
+<p style="margin:6px 0 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center"><span class="chip">Registered</span><span class="chip bad">Urgent</span><span class="sub">Cheras · 12 Nov 2026, 1:48 AM</span></p></div>
+<div class="toolbar" style="flex-wrap:wrap"><button class="btn" data-v="board">Console</button><button class="btn">Register another patient</button><button class="btn">Edit</button><button class="btn pri">Send to waiting</button></div></div>
+<div class="note-box" style="margin-top:0">Only one filled button: <b>Send to waiting</b> shows when the visit can be sent; otherwise <b>Edit</b> becomes the filled one. Each button shows only when the person may use it, as today.</div>
+<div class="two">
+<div class="stack" style="gap:16px">
+<div class="card pad sec"><h2>Patient</h2>
+<div class="name" style="font-size:18px">Suria Lim</div><div class="sm" style="font-family:ui-monospace,Menlo,monospace">KP-00000051</div><div class="sm">12 Jul 1979 · Female</div></div>
+<div class="card pad sec"><h2>Visit reason</h2>
+<p class="sub" style="color:var(--fg)"><b>Primary:</b> Cough, fever</p><p class="sub"><b style="color:var(--fg)">Additional:</b> Sore throat · Headache</p>
+<p class="sm" style="margin-top:8px">A visit saved before reasons were structured shows its original free text here, and "Not recorded." when there is none.</p></div>
+<div class="card pad sec"><h2>Provisional Panel coverage</h2>
+<div class="sm" style="display:grid;gap:4px"><div>Panel: <b style="color:var(--fg)">Synthetic Alpha Insurance</b></div><div>Panel note: <b style="color:var(--fg)">Awaiting approval</b></div></div>
+<p class="sm" style="margin-top:8px">Provisional. Billing confirms the coverage.</p></div>
+<div class="card pad sec" style="border-color:var(--bad)"><h2 style="color:var(--bad)">Cancel visit</h2>
+<p class="sub">Cancellation is final. A cancelled visit cannot be restored.</p>
+<label class="stack" style="gap:3px"><span class="sm">Cancellation reason (required, up to 500 characters)</span><textarea class="field" rows="3" style="padding:8px 10px"></textarea></label>
+<div style="display:flex;justify-content:flex-end;margin-top:10px"><button class="btn" style="border-color:var(--bad);color:var(--bad)">Confirm cancellation</button></div></div>
+</div>
+<div class="sticky">
+<div class="card pad sec"><h2>Visit</h2><div class="sm" style="display:grid;gap:6px"><div style="display:flex;justify-content:space-between"><span>Type</span><b style="color:var(--fg)">Consultation</b></div><div style="display:flex;justify-content:space-between"><span>Doctor</span><b style="color:var(--fg)">Dr Aisha Rahman</b></div><div style="display:flex;justify-content:space-between"><span>Coverage</span><b style="color:var(--fg)">Synthetic Alpha Insurance</b></div></div></div>
+<div class="card pad sec"><h2>Consultation queue</h2><p class="sub">Shown after the visit is sent to waiting: the queue number (for example A-008), the date, its status and an Open queue button. Until then there is no queue card.</p></div>
+<div class="card pad sec"><h2>Documents</h2><div class="stack" style="gap:8px"><a href="#">Medical certificates</a><span class="sm">Shown once the doctor has started the consultation. A cancelled visit says "No medical certificate: this visit was cancelled."</span><a href="#">Attendance confirmation ATT/KP/CHR/2026/000012 · open COPY / print</a></div></div>
+</div></div>
+</section>
+
+<!-- EDIT -->
+<section class="view" id="v-edit">
+<div class="hdr"><div><div class="crumb"><a href="#" data-v="visit">KPV-00000051</a> / Edit</div><h1>Edit registered visit</h1><p class="sub">Only a registered visit that has not been sent to waiting can be edited.</p></div></div>
+<div class="two">
+<div class="card pad sec"><div class="stack">
+<div><div class="sm">Visit type</div><div class="opt"><button aria-pressed="true">Consultation</button><button aria-pressed="false">OTC</button></div></div>
+<label>Doctor<select class="field"><option>Dr Aisha Rahman</option><option>No doctor</option></select></label>
+<label>Visit reason (up to 5, first is primary)<span class="field" style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;padding:6px 8px;min-height:44px"><span class="chip pri">Cough, fever · primary</span><span class="chip">Sore throat</span><span class="chip">Headache</span></span></label>
+<div class="sm">A visit saved before reasons were structured shows its original free text here and keeps it until a structured reason is chosen.</div>
+<div class="cols"><div><div class="sm">Coverage</div><div class="opt"><button aria-pressed="false">Self-pay</button><button aria-pressed="true">Panel</button></div></div>
+<div><div class="sm">Priority</div><div class="opt"><button aria-pressed="false">Normal</button><button aria-pressed="true">Urgent</button></div></div></div>
+<label>Panel<select class="field"><option>Synthetic Alpha Insurance</option></select></label>
+<label>Panel note (optional)<input class="field" value="Awaiting approval"><span class="sm" style="text-align:right">17 / 500</span></label>
+</div></div>
+<div class="sticky"><div class="card pad sm">Save is outline while nothing has changed and cobalt once a field changes. Cancel returns to the visit without saving.</div>
+<div class="card pad"><button class="btn pri" style="width:100%;min-height:44px">Save visit</button><button class="btn" style="width:100%;min-height:44px;margin-top:8px" data-v="visit">Cancel</button></div></div>
+</div>
+<div class="bar"><button class="btn pri">Save visit</button></div>
+</section>
+
+<!-- MAP -->
+<section class="view" id="v-map">
+<div class="hdr"><div><div class="crumb">Front desk</div><h1>Where each Classic function lives</h1><p class="sub">Nothing is dropped. Every Classic control keeps its rule and its permission; only its place changes.</p></div></div>
+<div class="card pad"><table class="mapt">
+<tr><th>Classic</th><th>Version 2</th></tr>
+<tr><td>Tabs: All, Waiting, Serving Now, Dispensary, Awaiting Billing, Completed, Cancelled, QR Intake (with counts)</td><td>Segmented control above the work panel, same eight tabs and counts. QR Intake also has a button in the page header with its pending count.</td></tr>
+<tr><td>Search by name or exact Patient No.</td><td>Search box at the top of the work panel.</td></tr>
+<tr><td>Doctor, Coverage, Urgency filters; More: Visit type, From, To dates, Reset; Apply</td><td>Same row of filters in the work panel; "More filters" opens Visit type, From, To and Reset; Search button applies.</td></tr>
+<tr><td>"N Visits", custom date range text, 25 per page, Previous and Next</td><td>Meta line under the filters and the pager at the foot of the panel.</td></tr>
+<tr><td>10-second live refresh and its "paused" notice</td><td>"Live" indicator at the top right of the tabs; the paused notice appears there in words.</td></tr>
+<tr><td>Register Visit button</td><td>Primary button in the page header, opens page 2.</td></tr>
+<tr><td>Columns: Patient, Queue number, Arrived, Visit notes, Doctor, Payment (Panel name and note), Duration, Status</td><td>Row: avatar, patient and KP number, queue number, doctor and visit notes, payment and Panel note, status chip, and the waiting ring (Duration). Under 900 px each row becomes a card with the same fields.</td></tr>
+<tr><td>Waiting-time colour (30 and 60 minutes)</td><td>Waiting ring: neutral, amber from 30, red from 60, always with the minutes in words.</td></tr>
+<tr><td>Status chips: Waiting, Serving Now, Dispensary, Awaiting Billing, Completed, Cancelled, Registered, Urgent, Not ready to call, Returned, treatment progress</td><td>Status chip (dot and word) with small chips under it for Urgent, Not ready to call (with its Set and Clear actions), Returned from Dispensary and treatment steps.</td></tr>
+<tr><td>Not ready to call: set, clear, ready alert</td><td>Chip on the row; Set and Clear in the row menu; "Needs attention" lists every not-ready patient.</td></tr>
+<tr><td>WhatsApp button</td><td>Same icon button before the row menu.</td></tr>
+<tr><td>Row menu: View Visit, View Patient, Edit Visit, Treatment progress, Send to Waiting, Call In, Call again, Call to treatment room, Open Consultation, Call to Dispensary, Dispense, Open Dispensary, Cancel Visit, Invoices, Open Billing</td><td>The "..." menu on each row, grouped (Open, Move, Call, Money, Danger). Each item shows only when the person has the permission, as today; Cancel Visit is last and red.</td></tr>
+<tr><td>Cancel Visit dialog with reason</td><td>Same dialog; the reason stays required.</td></tr>
+<tr><td>Row click opens Invoices</td><td>Same: clicking the row (not a button or the menu) opens the visit's Invoices page, as today.</td></tr>
+<tr><td>Panel note (per visit)</td><td>Shown under the Panel name in the Payment column and edited from Edit Visit, as today.</td></tr>
+<tr><td>QR Intake tab (review list, Start review, Accept, Reject)</td><td>QR Intake tab keeps the same list and actions in the same panel; the review page opens from it.</td></tr>
+<tr><td>Quick create: search first, recent patients, Quick create form, guardian, adult confirmation, visit details, Panel and note</td><td>Page 2, same fields and rules in two cards plus a sticky summary with Register visit. On a phone Register visit is one full-width button in the sticky bar.</td></tr>
+<tr><td>Tab rules: Dispensary is a separate case list; Awaiting Billing; each tab shows only for roles that may use it; QR Intake has a pending list and a paged history</td><td>Same eight tabs, shown only to the roles that see them today. The Dispensary tab lists dispensary cases, not visits. QR Intake has two parts, "To review" and a paged "History".</td></tr>
+<tr><td>Search rules: KP-######## is an exact match, otherwise by name; at least 3 characters</td><td>Same search box, same rules. A short hint appears under the box when fewer than 3 characters are typed.</td></tr>
+<tr><td>"More" count badge; From and To limited to 31 days; Reset</td><td>"More filters" shows a count badge of active extra filters. From and To keep the 31-day limit with the error in words under the field. Reset clears them.</td></tr>
+<tr><td>Live refresh rules: an automatic failure keeps the rows and shows a notice; three failures stop it; a manual failure clears the rows</td><td>The notice sits at the right of the tab strip, rows stay on an automatic failure, and a manual Search failure clears the rows and shows the error above the list.</td></tr>
+<tr><td>Chips: Completed time, Overridden (not ready overridden by the doctor)</td><td>Status chips under the status chip: "Completed 9:42 AM" and "Overridden" next to Not ready to call.</td></tr>
+<tr><td>Mark not ready and Ready dialogs with reason codes; Override and call</td><td>Same two dialogs (the reason code list is unchanged). The row menu shows "Call In" disabled with the reason in words, and "Override and call" for the attending doctor.</td></tr>
+<tr><td>Cancel dialog: reason required, 500 characters</td><td>Same dialog with the counter and the required reason.</td></tr>
+<tr><td>Quick create search: type inferred (KP, NRIC, phone or name), keyboard list of results</td><td>Same search box with the inferred type shown as a small word chip, and the results list moves with the arrow keys and Enter.</td></tr>
+<tr><td>Recent patients, "merged from" note, selected patient with Change</td><td>Recent patients list; a "Merged from KP-…" line under a kept patient's name; a selected-patient card with a Change button.</td></tr>
+<tr><td>Quick patient form: IC or passport, passport issuer, phone, date of birth or adult confirmation, nationality, gender, minor guardian fields, email and address per the Registration settings, duplicate-override checkbox after a server error</td><td>The "New patient" card, same fields and rules. Email and Address show only when the settings require them. A guardian block appears for a minor. After a server error about a duplicate, an override checkbox appears at the top of the card.</td></tr>
+<tr><td>Visit details: visit type, doctor (preselected when only one), visit reason picker (first is primary, up to 5, add new, inactive message), Self-pay or Panel with member reference and Panel note, urgency, repeat-visit checkbox after a server error</td><td>The "Visit details" card. The reason picker is a chip field with the primary one marked. Panel shows member reference and Panel note under the choice. The repeat-visit checkbox appears above the submit bar after a server error.</td></tr>
+<tr><td>Submit bar (Register Visit)</td><td>The sticky summary on desktop; the full-width sticky bar on a phone.</td></tr>
+<tr><td>Visit page: number, status, Urgent, branch and time; Console, Edit, Register another Patient, Send to Waiting; Patient card; Visit card (type, doctor, coverage); Consultation Queue card with Open Queue; Visit Reason (primary, additional, or the original free text); Provisional Panel coverage; Cancel Visit with required reason; Medical certificates link or its reason; Attendance confirmation copies</td><td>Page 3: header with the visit number and chips, the four actions (one filled), patient, visit reason, provisional Panel coverage and Cancel visit (danger card) on the left; visit, consultation queue and documents cards on the right. Every item keeps its permission and its wording.</td></tr>
+<tr><td>Edit visit: visit type, doctor (or No doctor), visit reason picker or the preserved free text, coverage, priority, Panel and Panel note with counter, Save Visit</td><td>Page 4: one card with the same fields, a summary rail with Save and Cancel, and a full-width sticky Save below 640 px. Save is outline until something changes.</td></tr>
+</table></div>
+</section>
+</div></main></div>
+
+<script>
+const D=[
+{n:'Suria Lim',kp:'KP-00000051',q:'A-008',t:'1:48 AM',doc:'Dr Aisha',notes:'Cough, fever',pay:'Self-pay',note:'',w:0,s:'billing',flags:[]},
+{n:'Grace Koh',kp:'KP-00000050',q:'A-007',t:'1:48 AM',doc:'Dr Aisha',notes:'Review',pay:'Synthetic Alpha Insurance',note:'Awaiting approval',w:19,s:'waiting',flags:['hold:Awaiting Panel confirmation']},
+{n:'Nabil Hakim',kp:'KP-00000049',q:'A-006',t:'1:48 AM',doc:'Dr Aisha',notes:'Follow-up',pay:'Synthetic Beta TPA',note:'',w:64,s:'waiting',flags:['urgent']},
+{n:'Tina Lau',kp:'KP-00000043',q:'A-005',t:'1:40 AM',doc:'Dr Aisha',notes:'Headache',pay:'Self-pay',note:'',w:35,s:'waiting',flags:[]},
+{n:'Hafiz Daud',kp:'KP-00000042',q:'A-004',t:'1:30 AM',doc:'Dr Aisha',notes:'Nebuliser',pay:'Self-pay',note:'',w:0,s:'serving',flags:['step:Nebuliser in progress']},
+{n:'Kevin Ong',kp:'KP-00000040',q:'B-003',t:'1:22 AM',doc:'—',notes:'OTC: paracetamol',pay:'Self-pay',note:'',w:8,s:'dispensary',flags:[]},
+{n:'Rani Pillai',kp:'KP-00000041',q:'A-003',t:'1:10 AM',doc:'Dr Aisha',notes:'Rash',pay:'Self-pay',note:'',w:0,s:'dispensary',flags:['returned']},
+{n:'Devi Nair',kp:'KP-00000036',q:'—',t:'1:52 AM',doc:'Dr Aisha',notes:'New registration',pay:'Self-pay',note:'',w:0,s:'registered',flags:[]},
+{n:'Salmah Yusof',kp:'KP-00000039',q:'A-002',t:'12:50 AM',doc:'Dr Aisha',notes:'Check-up',pay:'Self-pay',note:'',w:0,s:'completed',flags:[]},
+{n:'Michelle Tan',kp:'KP-00000038',q:'A-001',t:'12:40 AM',doc:'Dr Aisha',notes:'Registered by mistake',pay:'Self-pay',note:'',w:0,s:'cancelled',flags:[]}];
+const T=[['all','All'],['waiting','Waiting'],['serving','Serving Now'],['dispensary','Dispensary'],['billing','Awaiting Billing'],['completed','Completed'],['cancelled','Cancelled'],['qr','QR Intake']];
+const L={registered:['Registered',''],waiting:['Waiting',''],serving:['Serving Now','pri'],dispensary:['Dispensary','pri'],billing:['Awaiting Billing',''],completed:['Completed','ok'],cancelled:['Cancelled','bad']};
+let tab='all';
+function ring(m,s){if(s!=='waiting')return '<span class="sm">—</span>';const c=m>=60?'var(--bad)':m>=30?'var(--warn)':'var(--ok)';const p=Math.min(1,m/90);const r=14,C=2*Math.PI*r;
+return `<span style="display:flex;gap:8px;align-items:center"><svg class="ring" viewBox="0 0 36 36" role="img" aria-label="Waiting ${m} minutes"><circle cx="18" cy="18" r="${r}" fill="none" stroke="var(--muted)" stroke-width="4"/><circle cx="18" cy="18" r="${r}" fill="none" stroke="${c}" stroke-width="4" stroke-dasharray="${C*p} ${C}" transform="rotate(-90 18 18)" stroke-linecap="round"/></svg><span class="sm" style="color:var(--fg)">${m} min${m>=60?' · very long wait':m>=30?' · long wait':''}</span></span>`}
+function menu(r,i){const g=[];const o=['View Visit','View Patient','Edit Visit'];const mv=[];const ca=[];const mo=[];
+if(r.s==='serving'){o.push('Treatment progress…');ca.push('Call again','Call to treatment room','Open Consultation')}
+if(r.s==='waiting'){mv.push(r.flags.some(f=>f.startsWith('hold'))?'Clear not ready to call':'Mark not ready to call');ca.push(r.flags.some(f=>f.startsWith('hold'))?['Call In (blocked: not ready)',1]:'Call In')}
+if(r.s==='registered')mv.push('Send to Waiting');
+if(r.s==='dispensary'){ca.push('Call to Dispensary','Dispense');mo.push('Open Dispensary')}
+if(r.s==='billing'||r.s==='completed'){mo.push('Invoices','Open Billing')}
+const sec=(t,a)=>a.length?`<small>${t}</small>`+a.map(x=>Array.isArray(x)?`<button disabled>${x[0]}</button>`:`<button>${x}</button>`).join(''):'';
+return sec('Open',o)+sec('Move',mv)+sec('Call',ca)+sec('Money',mo)+(r.s!=='cancelled'&&r.s!=='completed'?'<small>Danger</small><button class="dz">Cancel Visit…</button>':'')}
+function chips(r){let h=`<span class="chip ${L[r.s][1]}">${L[r.s][0]}</span>`;r.flags.forEach(f=>{if(f==='urgent')h+=' <span class="chip bad" style="margin-top:4px">Urgent</span>';else if(f.startsWith('hold'))h+=' <span class="chip warn" style="margin-top:4px">Not ready to call</span>';else if(f==='returned')h+=' <span class="chip" style="margin-top:4px">Returned from Dispensary</span>';else if(f.startsWith('step'))h+=` <span class="chip pri" style="margin-top:4px">${f.slice(5)}</span>`});return h}
+function draw(){const q=document.getElementById('q').value.toLowerCase();const list=D.filter(r=>(tab==='all'||r.s===tab)&&(r.n+r.kp).toLowerCase().includes(q));
+document.getElementById('tabs').innerHTML=T.map(t=>{const c=t[0]==='all'?D.length:t[0]==='qr'?2:D.filter(r=>r.s===t[0]).length;return `<button role="tab" aria-selected="${tab===t[0]}" data-t="${t[0]}">${t[1]}<small>${c}</small></button>`}).join('');
+document.getElementById('tabtitle').textContent=(T.find(t=>t[0]===tab)||[0,'All'])[1]+(tab==='all'?' visits':'');
+document.getElementById('count').textContent=(tab==='qr'?'2 intakes waiting for review':list.length+' visit'+(list.length===1?'':'s')+' · today');
+let h='';
+if(tab==='qr'){h=`<div class="row"><span class="hide-s"></span><span><div class="name">Tan Mei Ling</div><div class="sm">Submitted 4 min ago · Consultation</div></span><span class="hide-s sm">Self-pay</span><span class="hide-s"><span class="chip warn">Pending</span></span><span class="hide-s"></span><span class="act"><button class="btn">Start review</button></span></div><div class="row"><span class="hide-s"></span><span><div class="name">Omar Khalid</div><div class="sm">Submitted 9 min ago · Buy medicine only</div></span><span class="hide-s sm">Self-pay</span><span class="hide-s"><span class="chip warn">Pending</span></span><span class="hide-s"></span><span class="act"><button class="btn">Start review</button></span></div>`}
+else{h='<div class="row head"><span></span><span>Patient and queue no.</span><span>Doctor and notes</span><span>Payment</span><span>Status and wait</span><span></span></div>';
+h+=list.map((r,i)=>`<div class="row"><span class="av" style="width:36px;height:36px;display:grid;place-items:center;font-size:13px">${r.n.split(' ').map(x=>x[0]).slice(0,2).join('')}</span><span><div class="name">${r.n} <span class="qn" style="font-size:12px;margin-left:4px">${r.q}</span></div><div class="sm">${r.kp} · arrived ${r.t}</div></span><span class="hide-s"><div>${r.doc}</div><div class="sm">${r.notes}</div></span><span class="hide-s"><span class="pay">${r.pay}</span>${r.note?`<span class="note">${r.note}</span>`:''}</span><span class="full-s">${chips(r)}<div style="margin-top:6px">${ring(r.w,r.s)}</div></span><span class="act"><button class="ib wa" aria-label="WhatsApp ${r.n}"></button><button class="ib" data-m="${i}" aria-label="Actions for ${r.n}">⋯</button><div class="pop" id="p${i}">${menu(r,i)}</div></span></div>`).join('')||'<div class="pad sm" style="text-align:center;padding:40px">No visits match.</div>'}
+document.getElementById('rows').innerHTML=h}
+document.getElementById('tabs').addEventListener('click',e=>{const b=e.target.closest('[data-t]');if(b){tab=b.dataset.t;draw()}});
+document.getElementById('rows').addEventListener('click',e=>{const b=e.target.closest('[data-m]');document.querySelectorAll('.pop.open').forEach(p=>p.classList.remove('open'));if(b){document.getElementById('p'+b.dataset.m).classList.add('open');e.stopPropagation()}});
+document.addEventListener('click',e=>{if(!e.target.closest('.pop'))document.querySelectorAll('.pop.open').forEach(p=>p.classList.remove('open'))});
+document.getElementById('q').addEventListener('input',draw);
+document.getElementById('qrbtn').onclick=()=>{tab='qr';draw()};
+document.getElementById('moreb').onclick=e=>{const m=document.getElementById('more');const o=m.classList.toggle('open');e.target.setAttribute('aria-expanded',o)};
+document.getElementById('attn').innerHTML=[['var(--warn)','2 QR intakes to review','Oldest waiting 9 min','Review'],['var(--bad)','A-006 Nabil Hakim has waited 64 min','Urgent · Panel visit','Call In'],['var(--warn)','Grace Koh is not ready to call','Awaiting Panel confirmation','Clear'],['var(--pri)','Rani Pillai returned from Dispensary','Doctor changed the order','Open']].map(a=>`<div class="item"><span class="dot" style="background:${a[0]}"></span><span style="flex:1"><b>${a[1]}</b><span class="sm">${a[2]}</span></span><button class="btn" style="min-height:32px">${a[3]}</button></div>`).join('');
+document.querySelectorAll('[data-v]').forEach(b=>b.addEventListener('click',e=>{e.preventDefault();show(b.dataset.v)}));
+function show(v){document.querySelectorAll('.view').forEach(x=>x.classList.toggle('on',x.id==='v-'+v));document.querySelectorAll('.pages .btn').forEach(x=>x.classList.toggle('pri',x.dataset.v===v));window.scrollTo(0,0)}
+document.getElementById('theme').onclick=e=>{const r=document.documentElement;const d=r.dataset.theme==='dark';r.dataset.theme=d?'light':'dark';e.target.textContent=d?'Dark':'Light'};
+document.getElementById('menu').onclick=()=>document.getElementById('side').classList.toggle('open');
+draw();
+</script>
+</body></html>
