@@ -90,6 +90,7 @@ const values = () => ({
     address_line_2: props.letterhead.details.address_line_2 ?? '',
     phone: props.letterhead.details.phone ?? '',
     phone_secondary: props.letterhead.details.phone_secondary ?? '',
+    label_address: props.letterhead.details.label_address ?? '',
     email: props.letterhead.details.email ?? '',
     registration_type: props.letterhead.organisation.registration_type ?? 'BRN',
     registration_number:
@@ -220,6 +221,7 @@ const stop = router.on('start', (event) => {
             'country',
             'phone',
             'phone_secondary',
+            'label_address',
             'email',
             'legal_name',
             'registration_number',
@@ -503,6 +505,30 @@ const reload = () =>
                                 <InputError
                                     :id="`${field.key}-error`"
                                     :message="form.errors[field.key]"
+                                />
+                            </div>
+                            <div class="grid gap-2">
+                                <Label for="label_address"
+                                    >Address on drug labels (optional)</Label
+                                >
+                                <Input
+                                    id="label_address"
+                                    v-model="form.label_address"
+                                    name="label_address"
+                                    maxlength="96"
+                                    :aria-invalid="!!form.errors.label_address"
+                                    aria-describedby="label_address-help label_address-error"
+                                />
+                                <p
+                                    id="label_address-help"
+                                    class="mt-1 text-sm text-muted-foreground"
+                                >
+                                    Used only on drug labels. Up to 96
+                                    characters.
+                                </p>
+                                <InputError
+                                    id="label_address-error"
+                                    :message="form.errors.label_address"
                                 />
                             </div>
                         </div>
