@@ -131,6 +131,8 @@ const printLabels = async () => {
             '--label-height': labels.pageSize.height + 'mm',
         }"
     >
+        <!-- UI-RESTYLE D3 (GUIDE section 19): the screen parts only (title, notes, cards, button). The printed label,
+             its size, fonts and print CSS are unchanged. -->
         <header class="print-toolbar">
             <h1>Medicine label preview</h1>
             <p>
@@ -173,6 +175,7 @@ const printLabels = async () => {
                     labels.blocked.length > 0 ||
                     !labels.items.length
                 "
+                class="print-button"
                 @click="printLabels"
                 >{{
                     busy ? 'Checking saved record…' : 'Print current labels'
@@ -199,11 +202,11 @@ const printLabels = async () => {
             </section>
             <section
                 v-if="labels.blocked.length"
-                class="print-toolbar grid gap-2 rounded-md border border-destructive/40 bg-destructive/5 p-3"
+                class="print-toolbar grid gap-2 rounded-[14px] border border-destructive/40 bg-destructive/5 p-4"
                 aria-label="Blocked labels"
                 role="alert"
             >
-                <h2 class="font-semibold text-destructive">
+                <h2 class="text-base font-semibold text-destructive">
                     Printing blocked — no labels in this selection will print
                 </h2>
                 <article v-for="(item, i) in labels.blocked" :key="i">
@@ -280,12 +283,44 @@ const printLabels = async () => {
 <style scoped>
 .label-preview {
     min-height: 100vh;
-    padding: 16px;
+    padding: 24px 16px;
 }
 .print-toolbar {
     max-width: 680px;
     margin: 0 auto 20px;
-    font-size: 14px;
+    font-size: 15px;
+    line-height: 1.5;
+}
+/* UI-RESTYLE D3: a page title, 13 px muted notes and calm cards for the notes sections (screen only, tokens only). */
+header.print-toolbar h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+    line-height: 1.2;
+}
+header.print-toolbar p {
+    font-size: 13px;
+    color: var(--muted-foreground);
+}
+header.print-toolbar p[role='alert'] {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--destructive);
+}
+section.print-toolbar:not([role='alert']) {
+    padding: 16px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--card);
+}
+section.print-toolbar ul {
+    padding-left: 1.25rem;
+    list-style: disc;
+}
+@media screen and (min-width: 1024px) {
+    .print-toolbar :deep(.print-button) {
+        height: 36px;
+    }
 }
 /* DSP-8, DD-24: phone and tablet tap target of at least 44 px (design guide, section 12); screen only. */
 @media screen and (max-width: 1023.98px) {
@@ -300,6 +335,9 @@ const printLabels = async () => {
 .print-toolbar h2 {
     font-weight: 600;
     margin-bottom: 8px;
+}
+.print-toolbar h2 {
+    font-size: 16px;
 }
 .print-toolbar p,
 .print-toolbar article {
@@ -381,6 +419,12 @@ const printLabels = async () => {
 @media screen and (max-width: 420px) {
     .medicine-label {
         zoom: 0.9;
+    }
+}
+/* UI-RESTYLE D3: a 320 px phone needs a little more, so the preview never scrolls sideways (print is still 100%). */
+@media screen and (max-width: 359.98px) {
+    .medicine-label {
+        zoom: 0.76;
     }
 }
 /* On a wide screen the preview shows the label at 150% so staff can read it; printing is always 100%. */
