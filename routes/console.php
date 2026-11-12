@@ -7,6 +7,7 @@ use App\Console\Commands\PurgeCompliancePhotos;
 use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
+use App\Console\Commands\PurgeLeaveRecords;
 use App\Console\Commands\PurgeLocationResults;
 use App\Console\Commands\PurgePanelStatements;
 use Illuminate\Foundation\Inspiring;
@@ -30,6 +31,13 @@ Schedule::command(PurgePanelStatements::class)
 
 // HR-2b: leave evidence files are deleted after their leave type's retention (owner, 2026-11-06).
 Schedule::command(PurgeLeaveEvidence::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// PDPA 15 (owner, 2026-11-11; the accountant confirms the 7 years before real use): leave years older than 7 years are
+// deleted, with their requests, ledger, entitlements and evidence. Pending requests are never deleted.
+Schedule::command(PurgeLeaveRecords::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
