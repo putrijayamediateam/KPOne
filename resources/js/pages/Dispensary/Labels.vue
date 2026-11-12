@@ -302,6 +302,12 @@ header.print-toolbar p {
     font-size: 13px;
     color: var(--muted-foreground);
 }
+/* The REPRINT note is safety-relevant: it keeps normal text, not the quiet note style (Hakim). */
+header.print-toolbar p[data-testid='label-reprint-note'] {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--foreground);
+}
 header.print-toolbar p[role='alert'] {
     font-size: 15px;
     font-weight: 600;

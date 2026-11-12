@@ -51,3 +51,11 @@ test('the printed label is untouched: same box, fonts and print rules', () => {
         assert.ok(css.includes(rule), rule);
     }
 });
+
+test('the REPRINT note keeps normal, stronger text (Hakim)', () => {
+    assert.ok(
+        css.includes(
+            "header.print-toolbar p[data-testid='label-reprint-note'] {\n    font-size: 15px;\n    font-weight: 600;\n    color: var(--foreground);",
+        ),
+    );
+});
