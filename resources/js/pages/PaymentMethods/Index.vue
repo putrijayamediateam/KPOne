@@ -420,7 +420,7 @@ const changeStatus = (method: PaymentMethodRow) => {
         </section>
 
         <Dialog v-model:open="classifyOpen">
-            <DialogContent class="sm:max-w-lg">
+            <DialogContent class="sm:max-w-lg" @interact-outside.prevent>
                 <DialogHeader>
                     <DialogTitle>Change classification</DialogTitle>
                     <DialogDescription>{{
@@ -468,7 +468,7 @@ const changeStatus = (method: PaymentMethodRow) => {
             </DialogContent>
         </Dialog>
         <Dialog v-model:open="editOpen">
-            <DialogContent class="sm:max-w-lg">
+            <DialogContent class="sm:max-w-lg" @interact-outside.prevent>
                 <DialogHeader>
                     <DialogTitle>Edit Payment Method</DialogTitle>
                     <DialogDescription>
