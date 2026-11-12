@@ -1,10 +1,22 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { Ellipsis } from '@lucide/vue';
+import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
+import { CompactPagination } from '@/components/ui/pagination';
+import { EmptyState } from '@/components/ui/state';
+import { OperationalTable } from '@/components/ui/table';
+import { OperationalTabs } from '@/components/ui/tabs';
 
 type PanelRow = {
     id: number;
@@ -36,7 +48,6 @@ const props = defineProps<{
 }>();
 
 const search = ref(props.q);
-const menuFor = ref<number | null>(null);
 
 const go = (params: { tab?: string; q?: string; page?: number }) => {
     router.get(
@@ -83,97 +94,196 @@ const saveMessage = () =>
         },
     });
 
-const tabs: { key: 'all' | 'active' | 'archived'; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'active', label: 'Active' },
-    { key: 'archived', label: 'Archived' },
-];
+const tabs = computed(() => [
+    { value: 'all', label: 'All', count: props.counts.all },
+    { value: 'active', label: 'Active', count: props.counts.active },
+    { value: 'archived', label: 'Archived', count: props.counts.archived },
+]);
 </script>
 
 <template>
     <Head title="Checkout settings" />
     <main
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-6 md:px-6"
     >
         <PageHeader
             title="Checkout settings"
             description="Panels and the payment methods used at checkout."
-        />
+        >
+            <template #actions>
+                <Button as-child class="max-lg:h-11">
+                    <Link href="/checkout-settings/panels/create">
+                        Add panel
+                    </Link>
+                </Button>
+            </template>
+        </PageHeader>
 
-        <section class="rounded-xl border bg-card p-4" data-testid="panel-list">
-            <h2 class="text-base font-semibold">Panel payment method</h2>
-            <p class="text-sm text-muted-foreground">
-                Add, edit, archive or restore your Panels. A Panel that has
-                visits or claims is archived, never deleted.
-            </p>
-
-            <div
-                class="mt-4 flex flex-wrap items-center justify-between gap-3 border-b"
-            >
-                <div class="flex gap-5" role="tablist">
-                    <button
-                        v-for="item in tabs"
-                        :key="item.key"
-                        type="button"
-                        role="tab"
-                        :aria-selected="tab === item.key"
-                        class="-mb-px border-b-2 px-1 pb-2 text-sm"
-                        :class="
-                            tab === item.key
-                                ? 'border-foreground font-semibold'
-                                : 'border-transparent text-muted-foreground'
-                        "
-                        @click="go({ tab: item.key, page: 1 })"
-                    >
-                        {{ item.label }} ({{ counts[item.key] }})
-                    </button>
-                </div>
-                <div class="flex items-center gap-2 pb-2">
-                    <form
-                        class="flex items-center gap-2"
-                        @submit.prevent="go({ page: 1 })"
-                    >
-                        <Input
-                            v-model="search"
-                            type="search"
-                            placeholder="Search Panel"
-                            maxlength="100"
-                            aria-label="Search Panel"
-                            class="h-9 w-48"
-                        />
-                    </form>
-                    <Button as-child>
-                        <Link href="/checkout-settings/panels/create">
-                            Add panel
-                        </Link>
-                    </Button>
-                </div>
+        <section class="grid gap-4" data-testid="panel-list">
+            <div>
+                <h2 class="text-base font-semibold">Panel payment method</h2>
+                <p class="text-sm text-muted-foreground">
+                    Add, edit, archive or restore your Panels. A Panel that has
+                    visits or claims is archived, never deleted.
+                </p>
             </div>
 
-            <div
-                v-if="panels.length === 0"
-                class="mt-4 rounded-lg border border-dashed p-5 text-sm text-muted-foreground"
-            >
-                No Panels found.
-            </div>
-            <div v-else class="mt-2 overflow-x-auto">
-                <table class="w-full min-w-[760px] text-left text-sm">
-                    <thead>
-                        <tr class="border-b text-xs text-muted-foreground">
-                            <th class="py-2 pr-3 font-medium">NAME</th>
-                            <th class="py-2 pr-3 font-medium">VERIFY LINK</th>
-                            <th class="py-2 pr-3 font-medium">PRICE TIER</th>
-                            <th class="py-2 pr-3 font-medium">STATUS</th>
-                            <th class="py-2 font-medium">ACTIONS</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr
-                            v-for="panel in panels"
-                            :key="panel.id"
-                            class="border-b last:border-0"
+            <OperationalTabs
+                :model-value="tab"
+                :tabs="tabs"
+                label="Panel status"
+                @update:model-value="
+                    (value) => go({ tab: value as string, page: 1 })
+                "
+            />
+            <form class="flex" @submit.prevent="go({ page: 1 })">
+                <Input
+                    v-model="search"
+                    type="search"
+                    placeholder="Search Panel"
+                    maxlength="100"
+                    aria-label="Search Panel"
+                    class="w-full rounded-lg max-lg:h-11 max-lg:text-base sm:max-w-xs"
+                />
+            </form>
+
+            <EmptyState v-if="panels.length === 0" title="No Panels found." />
+            <template v-else>
+                <!-- Phones and tablets: one card per Panel. -->
+                <ul
+                    class="divide-y rounded-xl border bg-card lg:hidden"
+                    aria-label="Panels"
+                >
+                    <li
+                        v-for="panel in panels"
+                        :key="panel.id"
+                        class="grid gap-2 p-4 text-sm"
+                    >
+                        <div class="flex items-start justify-between gap-2">
+                            <div class="min-w-0">
+                                <p class="font-medium wrap-anywhere">
+                                    {{ panel.name }}
+                                </p>
+                                <p
+                                    class="font-mono text-xs text-muted-foreground"
+                                >
+                                    {{ panel.code }}
+                                </p>
+                            </div>
+                            <DropdownMenu>
+                                <DropdownMenuTrigger as-child>
+                                    <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        class="shrink-0 max-lg:size-11"
+                                        :aria-label="`More actions for ${panel.name}`"
+                                    >
+                                        <Ellipsis
+                                            class="size-4"
+                                            aria-hidden="true"
+                                        />
+                                    </Button>
+                                </DropdownMenuTrigger>
+                                <DropdownMenuContent align="end">
+                                    <DropdownMenuItem as-child>
+                                        <Link :href="panel.editUrl">Edit</Link>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem @select="toggle(panel)">
+                                        {{
+                                            panel.isActive
+                                                ? 'Archive'
+                                                : 'Restore'
+                                        }}
+                                    </DropdownMenuItem>
+                                </DropdownMenuContent>
+                            </DropdownMenu>
+                        </div>
+                        <dl
+                            class="grid grid-cols-[6rem_minmax(0,1fr)] items-center gap-x-3 gap-y-2 text-xs"
                         >
-                            <td class="py-3 pr-3">
+                            <dt class="text-muted-foreground">Verify link</dt>
+                            <dd class="break-all">
+                                <a
+                                    v-if="panel.verificationUrl"
+                                    :href="panel.verificationUrl"
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="inline-block py-2 underline"
+                                >
+                                    {{ panel.verificationUrl }}
+                                </a>
+                                <span
+                                    v-else-if="panel.verificationRemark"
+                                    class="text-muted-foreground"
+                                >
+                                    {{ panel.verificationRemark }}
+                                </span>
+                            </dd>
+                            <dt class="text-muted-foreground">Price tier</dt>
+                            <dd class="flex flex-wrap gap-1">
+                                <Badge
+                                    v-for="tier in panel.priceTiers"
+                                    :key="tier"
+                                    variant="outline"
+                                >
+                                    {{ tier }}
+                                </Badge>
+                            </dd>
+                            <dt class="text-muted-foreground">Status</dt>
+                            <dd>
+                                <div class="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        :aria-checked="panel.isActive"
+                                        :aria-label="
+                                            panel.isActive
+                                                ? `Archive ${panel.name}`
+                                                : `Restore ${panel.name}`
+                                        "
+                                        class="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] disabled:opacity-50"
+                                        :class="
+                                            panel.isActive
+                                                ? 'bg-success'
+                                                : 'bg-muted-foreground/40'
+                                        "
+                                        @click="toggle(panel)"
+                                    >
+                                        <span
+                                            class="size-5 rounded-full bg-white shadow-sm transition-transform"
+                                            :class="
+                                                panel.isActive
+                                                    ? 'translate-x-6'
+                                                    : 'translate-x-1'
+                                            "
+                                        />
+                                    </button>
+                                    <span class="text-sm">{{
+                                        panel.isActive ? 'Active' : 'Archived'
+                                    }}</span>
+                                </div>
+                            </dd>
+                        </dl>
+                    </li>
+                </ul>
+                <OperationalTable
+                    class="hidden lg:block"
+                    label="Panels"
+                    :columns="5"
+                    min-width="860px"
+                >
+                    <template #head>
+                        <tr>
+                            <th scope="col">Name</th>
+                            <th scope="col">Verify link</th>
+                            <th scope="col">Price tier</th>
+                            <th scope="col">Status</th>
+                            <th scope="col">Actions</th>
+                        </tr>
+                    </template>
+                    <template #body>
+                        <tr v-for="panel in panels" :key="panel.id">
+                            <td>
                                 <div class="font-medium">{{ panel.name }}</div>
                                 <div
                                     class="font-mono text-xs text-muted-foreground"
@@ -181,7 +291,7 @@ const tabs: { key: 'all' | 'active' | 'archived'; label: string }[] = [
                                     {{ panel.code }}
                                 </div>
                             </td>
-                            <td class="max-w-[22rem] py-3 pr-3 break-all">
+                            <td class="max-w-[18rem] break-all">
                                 <a
                                     v-if="panel.verificationUrl"
                                     :href="panel.verificationUrl"
@@ -198,118 +308,99 @@ const tabs: { key: 'all' | 'active' | 'archived'; label: string }[] = [
                                     {{ panel.verificationRemark }}
                                 </span>
                             </td>
-                            <td class="py-3 pr-3">
+                            <td>
                                 <div class="flex flex-wrap gap-1">
-                                    <span
+                                    <Badge
                                         v-for="tier in panel.priceTiers"
                                         :key="tier"
-                                        class="rounded bg-muted px-2 py-0.5 text-xs"
+                                        variant="outline"
                                     >
                                         {{ tier }}
-                                    </span>
+                                    </Badge>
                                 </div>
                             </td>
-                            <td class="py-3 pr-3">
-                                <button
-                                    type="button"
-                                    role="switch"
-                                    :aria-checked="panel.isActive"
-                                    :aria-label="
-                                        panel.isActive
-                                            ? `Archive ${panel.name}`
-                                            : `Restore ${panel.name}`
-                                    "
-                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors"
-                                    :class="
-                                        panel.isActive
-                                            ? 'bg-green-600'
-                                            : 'bg-muted-foreground/40'
-                                    "
-                                    @click="toggle(panel)"
-                                >
-                                    <span
-                                        class="inline-block size-5 rounded-full bg-white transition-transform"
-                                        :class="
-                                            panel.isActive
-                                                ? 'translate-x-5'
-                                                : 'translate-x-0.5'
-                                        "
-                                    />
-                                </button>
-                            </td>
-                            <td class="relative py-3">
-                                <button
-                                    type="button"
-                                    class="rounded px-2 py-1 hover:bg-muted"
-                                    :aria-label="`Actions for ${panel.name}`"
-                                    @click="
-                                        menuFor =
-                                            menuFor === panel.id
-                                                ? null
-                                                : panel.id
-                                    "
-                                >
-                                    •••
-                                </button>
-                                <div
-                                    v-if="menuFor === panel.id"
-                                    class="absolute top-10 right-0 z-10 w-36 rounded-lg border bg-card p-1 shadow-md"
-                                >
-                                    <Link
-                                        :href="panel.editUrl"
-                                        class="block rounded px-3 py-2 text-sm hover:bg-muted"
-                                    >
-                                        Edit
-                                    </Link>
+                            <td>
+                                <div class="flex items-center gap-3">
                                     <button
                                         type="button"
-                                        class="block w-full rounded px-3 py-2 text-left text-sm hover:bg-muted"
-                                        @click="
-                                            menuFor = null;
-                                            toggle(panel);
-                                        "
-                                    >
-                                        {{
+                                        role="switch"
+                                        :aria-checked="panel.isActive"
+                                        :aria-label="
                                             panel.isActive
-                                                ? 'Archive'
-                                                : 'Restore'
-                                        }}
+                                                ? `Archive ${panel.name}`
+                                                : `Restore ${panel.name}`
+                                        "
+                                        class="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors after:absolute after:inset-x-0 after:-inset-y-2 after:content-[''] disabled:opacity-50"
+                                        :class="
+                                            panel.isActive
+                                                ? 'bg-success'
+                                                : 'bg-muted-foreground/40'
+                                        "
+                                        @click="toggle(panel)"
+                                    >
+                                        <span
+                                            class="size-5 rounded-full bg-white shadow-sm transition-transform"
+                                            :class="
+                                                panel.isActive
+                                                    ? 'translate-x-6'
+                                                    : 'translate-x-1'
+                                            "
+                                        />
                                     </button>
+                                    <span class="text-sm">{{
+                                        panel.isActive ? 'Active' : 'Archived'
+                                    }}</span>
                                 </div>
                             </td>
+                            <td>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            :aria-label="`More actions for ${panel.name}`"
+                                        >
+                                            <Ellipsis
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuItem as-child>
+                                            <Link :href="panel.editUrl"
+                                                >Edit</Link
+                                            >
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            @select="toggle(panel)"
+                                        >
+                                            {{
+                                                panel.isActive
+                                                    ? 'Archive'
+                                                    : 'Restore'
+                                            }}
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </td>
                         </tr>
-                    </tbody>
-                </table>
-            </div>
+                    </template>
+                </OperationalTable>
+            </template>
 
-            <div
+            <CompactPagination
                 v-if="pagination.lastPage > 1"
-                class="mt-3 flex items-center justify-end gap-2 text-sm"
-            >
-                <Button
-                    variant="outline"
-                    size="sm"
-                    :disabled="pagination.currentPage <= 1"
-                    @click="go({ page: pagination.currentPage - 1 })"
-                >
-                    Previous
-                </Button>
-                <span>
-                    {{ pagination.currentPage }} / {{ pagination.lastPage }}
-                </span>
-                <Button
-                    variant="outline"
-                    size="sm"
-                    :disabled="pagination.currentPage >= pagination.lastPage"
-                    @click="go({ page: pagination.currentPage + 1 })"
-                >
-                    Next
-                </Button>
-            </div>
+                class="justify-end"
+                :current-page="pagination.currentPage"
+                :last-page="pagination.lastPage"
+                :total="counts[tab]"
+                @change="(value) => go({ page: value })"
+            />
         </section>
 
         <section
-            class="rounded-xl border bg-card p-4"
+            class="rounded-xl border bg-card p-4 md:p-5"
             data-testid="claim-message"
         >
             <h2 class="text-base font-semibold">Claim message template</h2>
@@ -318,46 +409,57 @@ const tabs: { key: 'all' | 'active' | 'archived'; label: string }[] = [
                 from the claim page and send it to the Panel themselves; nothing
                 is sent from KPOne. Plain text only.
             </p>
-            <form class="mt-3 grid gap-3" @submit.prevent="saveMessage">
-                <textarea
-                    ref="messageBox"
-                    v-model="messageForm.body"
-                    rows="8"
-                    :maxlength="claimMessage.maxLength"
-                    class="w-full rounded-md border bg-background p-3 text-sm"
-                    placeholder="Type the message, then insert smart fields below"
-                    aria-label="Claim message"
-                />
-                <div class="flex justify-between text-xs text-muted-foreground">
-                    <span>These fields are filled in from the claim:</span>
-                    <span>
+            <form class="mt-4 grid gap-3" @submit.prevent="saveMessage">
+                <div class="grid gap-1.5">
+                    <textarea
+                        ref="messageBox"
+                        v-model="messageForm.body"
+                        rows="8"
+                        :maxlength="claimMessage.maxLength"
+                        class="w-full rounded-lg border border-input bg-background p-3 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 lg:text-sm dark:bg-field-fill/30"
+                        placeholder="Type the message, then insert smart fields below"
+                        aria-label="Claim message"
+                    />
+                    <p
+                        class="text-right text-xs text-muted-foreground tabular-nums"
+                    >
                         Characters: {{ messageForm.body.length }} /
                         {{ claimMessage.maxLength }}
-                    </span>
+                    </p>
                 </div>
+                <p class="text-xs text-muted-foreground">
+                    These fields are filled in from the claim:
+                </p>
                 <div class="flex flex-wrap gap-2">
-                    <button
+                    <Button
                         v-for="field in claimMessage.fields"
                         :key="field.key"
                         type="button"
-                        class="rounded-full border px-3 py-1 text-xs hover:bg-muted"
+                        variant="outline"
+                        size="sm"
+                        class="rounded-full max-lg:h-11"
                         @click="insertField(field.key)"
                     >
                         {{ field.label }}
-                    </button>
+                    </Button>
                 </div>
                 <InputError :message="messageForm.errors.body" />
                 <InputError :message="messageForm.errors.lock_version" />
-                <div>
-                    <Button type="submit" :disabled="messageForm.processing">
+                <div class="flex justify-end">
+                    <Button
+                        type="submit"
+                        variant="outline"
+                        class="max-lg:h-11 max-sm:w-full"
+                        :disabled="messageForm.processing"
+                    >
                         Save message
                     </Button>
                 </div>
             </form>
         </section>
 
-        <section class="rounded-xl border bg-card p-4">
-            <div class="flex flex-wrap items-center justify-between gap-2">
+        <section class="rounded-xl border bg-card p-4 md:p-5">
+            <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
                     <h2 class="text-base font-semibold">
                         Self-pay payment method
@@ -370,6 +472,7 @@ const tabs: { key: 'all' | 'active' | 'archived'; label: string }[] = [
                     v-if="can.managePaymentMethods"
                     variant="outline"
                     as-child
+                    class="max-lg:h-11 max-sm:w-full"
                 >
                     <Link href="/payment-methods">Manage payment methods</Link>
                 </Button>
@@ -378,20 +481,17 @@ const tabs: { key: 'all' | 'active' | 'archived'; label: string }[] = [
                 <li
                     v-for="method in selfPayMethods"
                     :key="method"
-                    class="flex items-center justify-between py-2"
+                    class="flex min-h-11 items-center justify-between py-2.5"
                 >
                     <span>{{ method }}</span>
-                    <span class="rounded bg-muted px-2 py-0.5 text-xs">
-                        SELF PAY
-                    </span>
-                </li>
-                <li
-                    v-if="selfPayMethods.length === 0"
-                    class="py-2 text-muted-foreground"
-                >
-                    No active payment methods.
+                    <Badge variant="outline">SELF PAY</Badge>
                 </li>
             </ul>
+            <EmptyState
+                v-if="selfPayMethods.length === 0"
+                class="mt-3"
+                title="No active payment methods."
+            />
         </section>
     </main>
 </template>

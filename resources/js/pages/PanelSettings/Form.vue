@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { computed } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
 
 type PanelDetail = {
     id: number;
@@ -86,6 +88,13 @@ const monthDays = [
     { value: 0, label: 'Last day of the visit month' },
 ];
 
+// Same reading as v-model.number: a number when the text parses, else the text.
+const numberFrom = (value: string | number) => {
+    const parsed = parseFloat(String(value));
+
+    return (Number.isNaN(parsed) ? value : parsed) as number;
+};
+
 const submit = () => {
     const blankToNull = (value: string) => value.trim() || null;
     form.transform((data) => ({
@@ -132,340 +141,502 @@ const submit = () => {
 
 <template>
     <Head :title="editing ? 'Edit panel' : 'Add panel'" />
-    <form
-        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6 md:px-6"
-        @submit.prevent="submit"
+    <main
+        class="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-4 px-4 py-6 md:px-6"
     >
-        <div class="flex items-center justify-between gap-3">
-            <div class="flex items-center gap-3">
-                <Button variant="outline" size="sm" as-child>
-                    <Link href="/checkout-settings" aria-label="Back">←</Link>
-                </Button>
-                <h1 class="text-xl font-semibold">
-                    {{ editing ? 'Edit panel' : 'Add panel' }}
-                </h1>
+        <div>
+            <Button
+                variant="ghost"
+                size="sm"
+                as-child
+                class="-ml-2 max-lg:h-11"
+            >
+                <Link href="/checkout-settings">
+                    <ArrowLeft class="size-4" aria-hidden="true" />
+                    Back to Checkout settings
+                </Link>
+            </Button>
+        </div>
+        <form class="grid gap-5" @submit.prevent="submit">
+            <PageHeader :title="editing ? 'Edit panel' : 'Add panel'">
+                <template #actions>
+                    <div class="flex gap-2 max-lg:hidden">
+                        <Button variant="outline" as-child>
+                            <Link href="/checkout-settings">Cancel</Link>
+                        </Button>
+                        <Button type="submit" :disabled="form.processing"
+                            >Save</Button
+                        >
+                    </div>
+                </template>
+            </PageHeader>
+            <InputError
+                :message="(form.errors as Record<string, string>).panel"
+            />
+
+            <div class="grid gap-5 lg:grid-cols-2">
+                <section
+                    class="grid content-start gap-4 rounded-xl border bg-card p-4 md:p-5"
+                >
+                    <h2 class="text-base font-semibold">Panel information</h2>
+                    <fieldset class="grid gap-2 text-sm">
+                        <legend class="mb-1 text-[13px] font-medium">
+                            Panel type
+                        </legend>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <label
+                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                            >
+                                <input
+                                    v-model="form.panel_type"
+                                    type="radio"
+                                    value="tpa"
+                                    class="size-4 accent-primary"
+                                />
+                                Third Party Administrator
+                            </label>
+                            <label
+                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                            >
+                                <input
+                                    v-model="form.panel_type"
+                                    type="radio"
+                                    value="direct_company"
+                                    class="size-4 accent-primary"
+                                />
+                                Direct company
+                            </label>
+                        </div>
+                        <InputError :message="form.errors.panel_type" />
+                    </fieldset>
+                    <label
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Company registration number
+                        <span class="font-normal text-muted-foreground"
+                            >(12-digit SSM ID)</span
+                        >
+                        <Input
+                            v-model="form.company_registration_number"
+                            inputmode="numeric"
+                            maxlength="12"
+                            placeholder="e.g. 202201234567"
+                            class="rounded-lg max-lg:h-11 max-lg:text-base"
+                        />
+                        <InputError
+                            :message="form.errors.company_registration_number"
+                        />
+                    </label>
+                    <label
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Company name
+                        <Input
+                            v-model="form.company_name"
+                            maxlength="255"
+                            class="rounded-lg max-lg:h-11 max-lg:text-base"
+                        />
+                        <InputError :message="form.errors.company_name" />
+                    </label>
+                    <label
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Panel name *
+                        <Input
+                            v-model="form.name"
+                            maxlength="255"
+                            required
+                            class="rounded-lg max-lg:h-11 max-lg:text-base"
+                        />
+                        <InputError :message="form.errors.name" />
+                    </label>
+                    <label
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Panel code *
+                        <Input
+                            v-model="form.code"
+                            maxlength="80"
+                            :disabled="editing"
+                            required
+                            class="rounded-lg max-lg:h-11 max-lg:text-base"
+                        />
+                        <span
+                            v-if="editing"
+                            class="font-normal text-muted-foreground"
+                        >
+                            The code identifies the Panel on records and cannot
+                            be changed.
+                        </span>
+                        <InputError :message="form.errors.code" />
+                    </label>
+                    <label
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Income Tax Number (TIN) for e-invoice
+                        <Input
+                            v-model="form.income_tax_number"
+                            maxlength="20"
+                            placeholder="Example: C1234567"
+                            class="rounded-lg max-lg:h-11 max-lg:text-base"
+                        />
+                        <InputError :message="form.errors.income_tax_number" />
+                    </label>
+                </section>
+
+                <section
+                    class="grid content-start gap-4 rounded-xl border bg-card p-4 md:p-5"
+                >
+                    <h2 class="text-base font-semibold">Contact</h2>
+                    <label
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Person in charge
+                        <Input
+                            v-model="form.person_in_charge"
+                            maxlength="255"
+                            class="rounded-lg max-lg:h-11 max-lg:text-base"
+                        />
+                        <InputError :message="form.errors.person_in_charge" />
+                    </label>
+                    <label
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Phone number
+                        <Input
+                            v-model="form.phone"
+                            maxlength="32"
+                            class="rounded-lg max-lg:h-11 max-lg:text-base"
+                        />
+                        <InputError :message="form.errors.phone" />
+                    </label>
+                    <label
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Email
+                        <Input
+                            v-model="form.email"
+                            type="email"
+                            maxlength="255"
+                            class="rounded-lg max-lg:h-11 max-lg:text-base"
+                        />
+                        <InputError :message="form.errors.email" />
+                    </label>
+                    <fieldset class="grid gap-3 sm:grid-cols-2">
+                        <legend class="mb-1 text-[13px] font-medium">
+                            Address
+                        </legend>
+                        <label
+                            class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground sm:col-span-2"
+                        >
+                            <span class="font-normal">Address line 1</span>
+                            <Input
+                                v-model="form.address_line_1"
+                                maxlength="255"
+                                aria-label="Address line 1"
+                                class="rounded-lg max-lg:h-11 max-lg:text-base"
+                            />
+                        </label>
+                        <label
+                            class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground sm:col-span-2"
+                        >
+                            <span class="font-normal">Address line 2</span>
+                            <Input
+                                v-model="form.address_line_2"
+                                maxlength="255"
+                                aria-label="Address line 2"
+                                class="rounded-lg max-lg:h-11 max-lg:text-base"
+                            />
+                        </label>
+                        <label
+                            class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                        >
+                            <span class="font-normal">Postcode</span>
+                            <Input
+                                v-model="form.postcode"
+                                maxlength="16"
+                                aria-label="Postcode"
+                                class="rounded-lg max-lg:h-11 max-lg:text-base"
+                            />
+                        </label>
+                        <label
+                            class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                        >
+                            <span class="font-normal">City</span>
+                            <Input
+                                v-model="form.city"
+                                maxlength="100"
+                                aria-label="City"
+                                class="rounded-lg max-lg:h-11 max-lg:text-base"
+                            />
+                        </label>
+                        <label
+                            class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                        >
+                            <span class="font-normal">State</span>
+                            <Input
+                                v-model="form.state"
+                                maxlength="100"
+                                aria-label="State"
+                                class="rounded-lg max-lg:h-11 max-lg:text-base"
+                            />
+                        </label>
+                        <label
+                            class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                        >
+                            <span class="font-normal">Country</span>
+                            <Input
+                                v-model="form.country"
+                                maxlength="100"
+                                aria-label="Country"
+                                class="rounded-lg max-lg:h-11 max-lg:text-base"
+                            />
+                        </label>
+                    </fieldset>
+                </section>
+
+                <section
+                    class="grid content-start gap-4 rounded-xl border bg-card p-4 md:p-5"
+                >
+                    <div>
+                        <h2 class="text-base font-semibold">
+                            Panel verification
+                        </h2>
+                        <p class="text-sm text-muted-foreground">
+                            Provide a link for users to review panel
+                            information.
+                        </p>
+                    </div>
+                    <fieldset class="grid gap-2 sm:grid-cols-2">
+                        <label
+                            class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                        >
+                            <input
+                                v-model="form.verification_mode"
+                                type="radio"
+                                value="url"
+                                class="size-4 accent-primary"
+                            />
+                            URL to panel platform
+                        </label>
+                        <label
+                            class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                        >
+                            <input
+                                v-model="form.verification_mode"
+                                type="radio"
+                                value="remark"
+                                class="size-4 accent-primary"
+                            />
+                            Manual remark
+                        </label>
+                    </fieldset>
+                    <label
+                        v-if="form.verification_mode === 'url'"
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Verification link
+                        <Input
+                            v-model="form.verification_url"
+                            type="url"
+                            maxlength="500"
+                            placeholder="https://"
+                            class="rounded-lg max-lg:h-11 max-lg:text-base"
+                        />
+                        <InputError :message="form.errors.verification_url" />
+                    </label>
+                    <label
+                        v-else
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Manual remark
+                        <Input
+                            v-model="form.verification_remark"
+                            maxlength="500"
+                            placeholder="e.g. Call the hotline to verify"
+                            class="rounded-lg max-lg:h-11 max-lg:text-base"
+                        />
+                        <span
+                            class="text-right text-xs font-normal text-muted-foreground tabular-nums"
+                        >
+                            {{ form.verification_remark.length }} / 500
+                        </span>
+                        <InputError
+                            :message="form.errors.verification_remark"
+                        />
+                    </label>
+                </section>
+
+                <section
+                    class="grid content-start gap-4 rounded-xl border bg-card p-4 md:p-5"
+                >
+                    <div>
+                        <h2 class="text-base font-semibold">Panel rule</h2>
+                        <p class="text-sm text-muted-foreground">
+                            Set the operational terms for this panel.
+                        </p>
+                    </div>
+                    <fieldset class="grid gap-2">
+                        <legend class="mb-1 text-[13px] font-medium">
+                            Claim submission due date
+                        </legend>
+                        <div class="grid gap-2 sm:grid-cols-2">
+                            <label
+                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                            >
+                                <input
+                                    type="radio"
+                                    class="size-4 accent-primary"
+                                    :checked="!scheduled"
+                                    @change="setScheduled(false)"
+                                />
+                                Days after the visit
+                            </label>
+                            <label
+                                class="flex min-h-11 items-center gap-3 rounded-lg border px-3 text-sm has-checked:border-primary has-checked:bg-primary/10"
+                            >
+                                <input
+                                    type="radio"
+                                    class="size-4 accent-primary"
+                                    :checked="scheduled"
+                                    @change="setScheduled(true)"
+                                />
+                                Daily, weekly or monthly
+                            </label>
+                        </div>
+                        <div
+                            v-if="!scheduled"
+                            class="flex flex-wrap items-center gap-2 text-sm"
+                        >
+                            <span class="whitespace-nowrap">Submit</span>
+                            <Input
+                                :model-value="form.claim_due_days"
+                                aria-label="Claim due days after the visit"
+                                type="number"
+                                min="0"
+                                max="365"
+                                class="w-24 rounded-lg max-lg:h-11 max-lg:text-base"
+                                @update:model-value="
+                                    (value) =>
+                                        (form.claim_due_days =
+                                            numberFrom(value))
+                                "
+                            />
+                            <span class="whitespace-nowrap"
+                                >days after the visit</span
+                            >
+                        </div>
+                        <InputError :message="form.errors.claim_due_days" />
+                        <div
+                            v-if="scheduled"
+                            class="grid grid-cols-[auto_1fr] items-center gap-2 text-sm sm:flex sm:flex-wrap"
+                        >
+                            <span>Submit</span>
+                            <select
+                                v-model="form.claim_due_rule"
+                                class="h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm font-normal outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 max-lg:text-base sm:w-auto dark:bg-field-fill/30"
+                                aria-label="Frequency"
+                                @change="form.claim_due_offset = ''"
+                            >
+                                <option value="daily">Daily</option>
+                                <option value="weekly">Weekly</option>
+                                <option value="monthly">Monthly</option>
+                            </select>
+                            <span>by</span>
+                            <Input
+                                v-model="form.claim_due_time"
+                                type="time"
+                                class="w-full rounded-lg max-lg:h-11 max-lg:text-base sm:w-32"
+                                aria-label="Time"
+                            />
+                            <select
+                                v-model="form.claim_due_offset"
+                                class="col-start-2 h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm font-normal outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 max-lg:text-base sm:w-auto dark:bg-field-fill/30"
+                                aria-label="Day"
+                            >
+                                <option value="" disabled>Select day</option>
+                                <template
+                                    v-if="form.claim_due_rule === 'daily'"
+                                >
+                                    <option :value="0">Same day</option>
+                                    <option :value="1">Next day</option>
+                                    <option :value="2">2 days after</option>
+                                    <option :value="3">3 days after</option>
+                                </template>
+                                <template
+                                    v-else-if="form.claim_due_rule === 'weekly'"
+                                >
+                                    <option
+                                        v-for="(name, index) in weekdays"
+                                        :key="name"
+                                        :value="index + 1"
+                                    >
+                                        Next {{ name }}
+                                    </option>
+                                </template>
+                                <template v-else>
+                                    <option
+                                        v-for="day in monthDays"
+                                        :key="day.value"
+                                        :value="day.value"
+                                    >
+                                        {{ day.label }}
+                                    </option>
+                                </template>
+                            </select>
+                        </div>
+                        <InputError :message="form.errors.claim_due_time" />
+                        <InputError :message="form.errors.claim_due_offset" />
+                    </fieldset>
+                    <label
+                        class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                    >
+                        Follow-up days
+                        <span
+                            class="flex flex-wrap items-center gap-2 text-sm font-normal text-muted-foreground"
+                        >
+                            <span class="whitespace-nowrap"
+                                >Follow up a claim after</span
+                            >
+                            <Input
+                                v-model.number="form.claim_follow_up_days"
+                                type="number"
+                                min="1"
+                                max="365"
+                                class="w-24 rounded-lg max-lg:h-11 max-lg:text-base"
+                                aria-label="Follow-up days"
+                            />
+                            <span class="whitespace-nowrap"
+                                >days with no new action</span
+                            >
+                        </span>
+                        <span class="font-normal text-muted-foreground">
+                            A claim of this Panel appears on the Follow-up list
+                            once this many days pass without a query, decision,
+                            payment, note or photo.
+                        </span>
+                        <InputError
+                            :message="form.errors.claim_follow_up_days"
+                        />
+                    </label>
+                    <p class="text-sm text-muted-foreground">
+                        Prices: a Panel uses the default Panel price book unless
+                        it has its own. Manage them in Pricing.
+                    </p>
+                </section>
             </div>
-            <div class="flex gap-2">
-                <Button variant="outline" as-child>
+
+            <div class="flex gap-2 lg:hidden">
+                <Button variant="outline" as-child class="h-11 flex-1">
                     <Link href="/checkout-settings">Cancel</Link>
                 </Button>
-                <Button type="submit" :disabled="form.processing">Save</Button>
-            </div>
-        </div>
-        <InputError :message="(form.errors as Record<string, string>).panel" />
-
-        <div class="grid gap-6 lg:grid-cols-[1fr_1fr_1fr]">
-            <section class="grid content-start gap-4 lg:col-span-1">
-                <div>
-                    <h2 class="text-sm font-semibold">Panel information</h2>
-                    <p class="text-xs text-muted-foreground">
-                        Fill in panel information below.
-                    </p>
-                </div>
-                <fieldset class="grid gap-2 text-sm">
-                    <legend class="mb-1 text-xs font-medium">Panel type</legend>
-                    <label class="flex items-center gap-2">
-                        <input
-                            v-model="form.panel_type"
-                            type="radio"
-                            value="tpa"
-                        />
-                        Third Party Administrator
-                    </label>
-                    <label class="flex items-center gap-2">
-                        <input
-                            v-model="form.panel_type"
-                            type="radio"
-                            value="direct_company"
-                        />
-                        Direct company
-                    </label>
-                    <InputError :message="form.errors.panel_type" />
-                </fieldset>
-                <label class="grid gap-1 text-xs">
-                    Company registration number (12-digit SSM ID)
-                    <Input
-                        v-model="form.company_registration_number"
-                        inputmode="numeric"
-                        maxlength="12"
-                        placeholder="e.g. 202201234567"
-                    />
-                    <InputError
-                        :message="form.errors.company_registration_number"
-                    />
-                </label>
-                <label class="grid gap-1 text-xs">
-                    Company name
-                    <Input v-model="form.company_name" maxlength="255" />
-                    <InputError :message="form.errors.company_name" />
-                </label>
-                <label class="grid gap-1 text-xs">
-                    Panel name
-                    <Input v-model="form.name" maxlength="255" required />
-                    <InputError :message="form.errors.name" />
-                </label>
-                <label class="grid gap-1 text-xs">
-                    Panel code
-                    <Input
-                        v-model="form.code"
-                        maxlength="80"
-                        :disabled="editing"
-                        required
-                    />
-                    <span v-if="editing" class="text-muted-foreground">
-                        The code identifies the Panel on records and cannot be
-                        changed.
-                    </span>
-                    <InputError :message="form.errors.code" />
-                </label>
-                <label class="grid gap-1 text-xs">
-                    Person in charge
-                    <Input v-model="form.person_in_charge" maxlength="255" />
-                    <InputError :message="form.errors.person_in_charge" />
-                </label>
-            </section>
-
-            <section class="grid content-start gap-4">
-                <label class="grid gap-1 text-xs">
-                    Phone number
-                    <Input v-model="form.phone" maxlength="32" />
-                    <InputError :message="form.errors.phone" />
-                </label>
-                <label class="grid gap-1 text-xs">
-                    Email
-                    <Input v-model="form.email" type="email" maxlength="255" />
-                    <InputError :message="form.errors.email" />
-                </label>
-                <fieldset class="grid gap-2 text-xs">
-                    <legend class="mb-1 font-medium">Address</legend>
-                    <Input
-                        v-model="form.address_line_1"
-                        maxlength="255"
-                        placeholder="Address line 1"
-                        aria-label="Address line 1"
-                    />
-                    <Input
-                        v-model="form.address_line_2"
-                        maxlength="255"
-                        placeholder="Address line 2"
-                        aria-label="Address line 2"
-                    />
-                    <Input
-                        v-model="form.postcode"
-                        maxlength="16"
-                        placeholder="Postcode"
-                        aria-label="Postcode"
-                    />
-                    <Input
-                        v-model="form.city"
-                        maxlength="100"
-                        placeholder="City"
-                        aria-label="City"
-                    />
-                    <Input
-                        v-model="form.state"
-                        maxlength="100"
-                        placeholder="State"
-                        aria-label="State"
-                    />
-                    <Input
-                        v-model="form.country"
-                        maxlength="100"
-                        placeholder="Country"
-                        aria-label="Country"
-                    />
-                </fieldset>
-            </section>
-
-            <section class="grid content-start gap-4">
-                <div>
-                    <h2 class="text-sm font-semibold">Panel verification</h2>
-                    <p class="text-xs text-muted-foreground">
-                        Provide a link for users to review panel information.
-                    </p>
-                </div>
-                <fieldset class="flex gap-4 text-sm">
-                    <label class="flex items-center gap-2">
-                        <input
-                            v-model="form.verification_mode"
-                            type="radio"
-                            value="url"
-                        />
-                        URL to panel platform
-                    </label>
-                    <label class="flex items-center gap-2">
-                        <input
-                            v-model="form.verification_mode"
-                            type="radio"
-                            value="remark"
-                        />
-                        Manual remark
-                    </label>
-                </fieldset>
-                <label
-                    v-if="form.verification_mode === 'url'"
-                    class="grid gap-1 text-xs"
+                <Button
+                    type="submit"
+                    class="h-11 flex-1"
+                    :disabled="form.processing"
+                    >Save</Button
                 >
-                    Verification link
-                    <Input
-                        v-model="form.verification_url"
-                        type="url"
-                        maxlength="500"
-                        placeholder="https://"
-                    />
-                    <InputError :message="form.errors.verification_url" />
-                </label>
-                <label v-else class="grid gap-1 text-xs">
-                    Manual remark
-                    <Input
-                        v-model="form.verification_remark"
-                        maxlength="500"
-                        placeholder="e.g. Call the hotline to verify"
-                    />
-                    <span class="text-muted-foreground">
-                        {{ form.verification_remark.length }} / 500
-                    </span>
-                    <InputError :message="form.errors.verification_remark" />
-                </label>
-
-                <div>
-                    <h2 class="text-sm font-semibold">Panel rule</h2>
-                    <p class="text-xs text-muted-foreground">
-                        Set the operational terms for this panel.
-                    </p>
-                </div>
-                <fieldset class="grid gap-2 text-xs">
-                    <legend class="mb-1 font-medium">
-                        Claim submission due date
-                    </legend>
-                    <div class="flex gap-4 text-sm">
-                        <label class="flex items-center gap-2">
-                            <input
-                                type="radio"
-                                :checked="!scheduled"
-                                @change="setScheduled(false)"
-                            />
-                            Days after the visit
-                        </label>
-                        <label class="flex items-center gap-2">
-                            <input
-                                type="radio"
-                                :checked="scheduled"
-                                @change="setScheduled(true)"
-                            />
-                            Daily, weekly or monthly
-                        </label>
-                    </div>
-                    <span
-                        v-if="!scheduled"
-                        class="flex items-center gap-2 text-sm"
-                    >
-                        Submit
-                        <Input
-                            v-model.number="form.claim_due_days"
-                            aria-label="Claim due days after the visit"
-                            type="number"
-                            min="0"
-                            max="365"
-                            class="w-24"
-                        />
-                        days after the visit
-                    </span>
-                    <InputError :message="form.errors.claim_due_days" />
-                    <div
-                        v-if="scheduled"
-                        class="flex flex-wrap items-center gap-2 text-sm"
-                    >
-                        Submit
-                        <select
-                            v-model="form.claim_due_rule"
-                            class="h-9 rounded-md border bg-background px-2"
-                            aria-label="Frequency"
-                            @change="form.claim_due_offset = ''"
-                        >
-                            <option value="daily">Daily</option>
-                            <option value="weekly">Weekly</option>
-                            <option value="monthly">Monthly</option>
-                        </select>
-                        by
-                        <Input
-                            v-model="form.claim_due_time"
-                            type="time"
-                            class="w-32"
-                            aria-label="Time"
-                        />
-                        <select
-                            v-model="form.claim_due_offset"
-                            class="h-9 rounded-md border bg-background px-2"
-                            aria-label="Day"
-                        >
-                            <option value="" disabled>Select day</option>
-                            <template v-if="form.claim_due_rule === 'daily'">
-                                <option :value="0">Same day</option>
-                                <option :value="1">Next day</option>
-                                <option :value="2">2 days after</option>
-                                <option :value="3">3 days after</option>
-                            </template>
-                            <template
-                                v-else-if="form.claim_due_rule === 'weekly'"
-                            >
-                                <option
-                                    v-for="(name, index) in weekdays"
-                                    :key="name"
-                                    :value="index + 1"
-                                >
-                                    Next {{ name }}
-                                </option>
-                            </template>
-                            <template v-else>
-                                <option
-                                    v-for="day in monthDays"
-                                    :key="day.value"
-                                    :value="day.value"
-                                >
-                                    {{ day.label }}
-                                </option>
-                            </template>
-                        </select>
-                    </div>
-                    <InputError :message="form.errors.claim_due_time" />
-                    <InputError :message="form.errors.claim_due_offset" />
-                </fieldset>
-                <label class="grid gap-1 text-xs">
-                    Follow-up days
-                    <span class="flex flex-wrap items-center gap-2 text-sm">
-                        Follow up a claim after
-                        <Input
-                            v-model.number="form.claim_follow_up_days"
-                            type="number"
-                            min="1"
-                            max="365"
-                            class="w-24"
-                            aria-label="Follow-up days"
-                        />
-                        days with no new action
-                    </span>
-                    <span class="text-muted-foreground">
-                        A claim of this Panel appears on the Follow-up list once
-                        this many days pass without a query, decision, payment,
-                        note or photo.
-                    </span>
-                    <InputError :message="form.errors.claim_follow_up_days" />
-                </label>
-                <p class="text-xs text-muted-foreground">
-                    Prices: a Panel uses the default Panel price book unless it
-                    has its own. Manage them in Pricing.
-                </p>
-                <label class="grid gap-1 text-xs">
-                    Income Tax Number (TIN) for e-invoice
-                    <Input
-                        v-model="form.income_tax_number"
-                        maxlength="20"
-                        placeholder="Example: C1234567"
-                    />
-                    <InputError :message="form.errors.income_tax_number" />
-                </label>
-            </section>
-        </div>
-    </form>
+            </div>
+        </form>
+    </main>
 </template>
