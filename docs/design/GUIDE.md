@@ -444,6 +444,117 @@ spaces and recent patients only, no clinical search); and the dark-mode neutral 
 
 ---
 
+## 19. The app-wide look (decision 2026-11-12)
+
+Owner decision: the Apple-like style chosen for the department spaces (option 1's look with option 4's layout, Recent
+activity as a strip at the bottom) is the style of the **whole app**, not only the spaces. It applies to the main
+working pages (Registration, Consultation, Dispensary, Billing, Inventory, Reports, Settings and the rest) as well as
+the spaces. The five alternative Front desk samples are retired and nothing is built from them. This section is the
+standard; where it differs from sections 1 to 17, this section wins for new and restyled screens. It is a look, not
+behaviour: a restyle never changes a permission, route, payload, validation or rule. Order and ownership of the
+restyle: [RESTYLE.md](RESTYLE.md). Print views, the TV screen and the public QR pages are not restyled (see the end).
+
+**Tokens** (the values below are the targets for `resources/js` tokens; Staff Experience migrates `app.css` once, so
+pages inherit them and no page sets its own colour)
+
+| Token | Light | Dark | Use |
+|---|---|---|---|
+| `background` | `#f4f6fb` | `#12141a` | Page |
+| `card` (surface) | `#ffffff` | `#1c1f27` | Cards, tables, dialogs, sheets |
+| `muted` (surface 2) | `#eaeef7` | `#262a35` | Quiet fills, segmented-control track, hover |
+| `foreground` | `#161a24` | `#f3f5fa` | Text |
+| `muted-foreground` | `#4a5468` | `#b0b8cc` | Help, metadata (4.5:1 or better on the page and on the gradient) |
+| `border` | `#d5dbe9` | `#323747` | Hairlines (1 px) |
+| `primary` / `ring` (cobalt) | `#0a56d1` | `#6ba6ff` | The one main action, selection, links, focus ring. Text on it: white in light, `#0b1a33` in dark |
+| `brand` (pink) | `#e8337f` mark; `brand-strong` `#c4155f` | `#ff86ae` | The KPOne logo mark and small accents only. Not a button, tab or focus colour |
+| `success`, `warning`, `destructive` | `#0b6b34`, `#7d4400`, `#b3261e` on soft fills `#e1f3e8`, `#fcefd0`, `#fde8e6` | `#6fdc9a`, `#f2bf68`, `#ff8a80` on deep fills `#12301f`, `#3a2a0a`, `#3c1a18` | Status meaning only, always with a word |
+| tints `t1` to `t4` | blue `#e0ebff`, pink `#fde3ee`, green `#e1f3e8`, amber `#fcefd0` | `#1e2c4a`, `#3c2030`, `#12301f`, `#3a2a0a` | Shortcut tiles and soft icon tiles only |
+| `g1`, `g2` (Me gradient) | `#ffdcc2`, `#cfe2ff` | `#5a3550`, `#1c2a4a` | Behind the top of the Me home only |
+
+- **Do** change a colour in one place (the token). **Don't** write a hex, a palette class (`bg-slate-*`, `bg-amber-50`)
+  or a `dark:` colour in a page: section 1 and section 13 still apply.
+
+**Type** (system font stack, tabular figures for money, times and counts)
+
+| Role | Size and weight |
+|---|---|
+| Page title (`h1`, `PageHeader`) | 28 px (30 from 1024 px), 700, tight tracking |
+| Section title (`h2`) | 20 px, 650 |
+| Card title | 16 to 17 px, 650 |
+| Body, table cell, field | 15 px (14 px in dense tables), 400 |
+| Help, caption, chip | 13 px, 500 to 600 |
+| Big number (stat, time) | 40 to 58 px, 700 |
+
+**Shape and surfaces**
+
+- **Do** use solid surfaces with a 1 px hairline: 10 px corners for fields, buttons and chips-in-rows, 14 px for cards
+  and tables, 18 to 20 px for the hero card and tiles, a full pill for chips and segmented tabs. Shadows only on
+  floating things (menus, dialogs, the Clock in ring button), soft and low.
+- **Don't** stack shadowed cards inside cards. A card holds rows, not other cards. Group with a hairline and spacing.
+
+**Buttons** (section 5 order and wording still apply)
+
+- **Do** use cobalt for the one main action, an outline button for everything else, a quiet text button for the lowest
+  level, and a red button only for a destructive confirm. 44 px tall below 1024 px, 36 px from 1024 px, 10 px
+  corners, the label in words. Pink buttons are retired.
+
+**Chips and badges**
+
+- **Do** keep `StatusBadge`: a pill with a dot and a word, tone from the tokens (neutral, success, warning,
+  destructive, info in cobalt tint). Same wording and order on the table, the card and the side panel (section 10).
+
+**Tabs and filters**
+
+- **Do** use the segmented control for tabs with up to five items and for small filters: a `muted` track, the selected
+  segment a `card` pill with cobalt text, 44 px below 1024 px, scrolling with a fade on a phone. A count sits in the
+  label in words ("Waiting 2"). **Don't** use the pink underline tab any more on restyled pages.
+
+**Lists and tables** (section 6 still applies)
+
+- **Do** keep tables on `OperationalTable`: 1 px hairline frame at 14 px corners, a `muted` header row with 13 px
+  labels, 52 px rows (44 px minimum), right-aligned numbers in tabular figures, a hairline between rows, and a hover
+  tint that is not the selection colour. Below 1024 px the same rows become cards (one card per row, label and value
+  pairs, the action as a 44 px button).
+- **Do** use a plain list row (title, one muted line, a trailing chip or chevron, 56 px) for short lists in side panels
+  and for Recent activity.
+
+**Dialogs, sheets and menus** (section 8 still applies)
+
+- **Do** use a `card` surface, 18 px corners, a soft shadow, a 44 px close button named "Close", the title in
+  sentence case and the main action as the right-hand button. On a phone a dialog becomes a bottom sheet with a grab
+  bar when it holds a form. Destructive questions use the shared confirm with the destructive tile.
+
+**Forms** (section 7 still applies)
+
+- **Do** use 44 px fields (36 px from 1024 px in dense settings), 10 px corners, the label above, help and errors
+  below in words, a cobalt focus ring. **Don't** hide the label in a placeholder.
+
+**The page frame**
+
+- **Do** give every page the same frame: `PageHeader` (title, one line, actions at the right), then tabs, then the
+  work, with the **Recent activity strip at the bottom** where the page has activity to show. Keep content width to
+  1280 px centred from 1440 px so a title is never stranded at the far left of a wide screen.
+- **Do** use the gradient only on the Me home (section 18). Working pages stay on the plain page colour.
+
+**Motion and icons**
+
+- Small, spring-like hover and press (under 200 ms), off under `prefers-reduced-motion`. Lucide icons only, 20 px in
+  tiles and 16 px in buttons, never the only signal.
+
+**Not restyled (stay as they are)**
+
+- Printed documents and labels (white, layout unchanged, section 14), the waiting-room TV
+  screen (its own look), the sign-in screens, and the public QR pages (own brand styling). They
+  inherit new tokens only if the owner and Daniel agree for that screen.
+
+**Rules for the restyle PRs** (full plan in [RESTYLE.md](RESTYLE.md))
+
+- **Do** keep each PR to one page family and **layout only**: no behaviour, permission, route, data or wording change
+  (a wording fix is a separate PR). Send before and after shots at 390 and 1440 px, light and dark, through the
+  coordinator; Daniel reviews each as a layout PR (REVIEW.md).
+- **Don't** edit an existing test assertion that pins a class string without the owner's approval; list each one in
+  the PR. Prefer asserting behaviour and accessible names.
+
 ## Appendix: survey notes (2026-11-05)
 
 Screens surveyed (each at 390 and 1440 px, light and dark): Main Menu, Registration board, Register visit,
