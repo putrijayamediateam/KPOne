@@ -25,7 +25,10 @@ final class GovernedWriteOffInsightTest extends VisitTestCase
         return $actor;
     }
 
-    /** @return array<string, mixed> */
+    /**
+     * @param  array<string, mixed>  $overrides
+     * @return array<string, mixed>
+     */
     private function proposal(array $overrides = []): array
     {
         return ['expected_branch_id' => $this->branch->id, 'lock_version' => 0, 'retry_key' => (string) Str::uuid(), 'balance_id' => $this->f['balance']->id,
