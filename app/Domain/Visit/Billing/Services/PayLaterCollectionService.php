@@ -77,6 +77,12 @@ final class PayLaterCollectionService
      */
     private function eligible(int $organisationId, int $branchId, string $timezone): Builder
     {
+        // BIL-24: only invoices that can still owe money are looked at. A visit is completed only when nothing is due
+        // now (CompleteVisitationService), and after completion only payments, refunds (which cancel out) and receipt
+        // corrections (BIL-16, which always add a payment reversal) can change what it owes. So a bill can owe money
+        // only while it has approved pay later still to collect, or when its completed visit's invoice has a reversal.
+        // The sums stay grouped joins: payment_allocations, payment_reversals and coverage_allocations have no invoice_id
+        // index, so a per-bill subquery would scan each table once per bill (measured far slower at 20,000 bills).
         $sum = fn (string $table) => DB::table($table)->where('organisation_id', $organisationId)
             ->where('branch_id', $branchId)->select('invoice_id')->selectRaw('sum(amount_sen) as amount')->groupBy('invoice_id');
         $bills = DB::table('invoices as i')
@@ -92,10 +98,14 @@ final class PayLaterCollectionService
             ->whereColumn('i.current_visit_guard', 'v.id')
             ->where('v.organisation_id', $organisationId)->where('v.branch_id', $branchId)->whereColumn('v.patient_id', 'p.id')
             ->where('p.organisation_id', $organisationId)
+            ->where(fn ($candidate) => $candidate->whereNotNull('r.id')->orWhere(fn ($corrected) => $corrected->where('v.status', 'completed')
+                ->whereExists(fn ($reversal) => $reversal->from('payment_reversals as pr')->whereColumn('pr.invoice_id', 'i.id')
+                    ->where('pr.organisation_id', $organisationId)->where('pr.branch_id', $branchId))))
             ->select(['i.id as invoice_id', 'i.invoice_number', 'v.visit_number', 'v.registered_at', 'p.full_name', 'p.patient_number',
                 // REG-5: a bill of a merged-away record lists under the kept record, noting the old KP number.
                 'kp.full_name as kept_full_name', 'kp.patient_number as kept_patient_number', 'r.approved_at'])
             ->selectRaw('coalesce(r.amount_sen, 0) as amount_sen, coalesce(r.remaining_sen, 0) as remaining_sen')
+            // The Outstanding bill formula (OutstandingBillService): payable, less paid, plus reversed, less approved Panel.
             ->selectRaw("case when v.status = 'completed' then greatest(kpone_invoice_payable(i.id) - coalesce(paid.amount, 0)
                 + coalesce(reversed.amount, 0) - coalesce(covered.amount, 0) - coalesce(r.remaining_sen, 0), 0) else 0 end as due_now_sen")
             ->selectRaw('r.due_date as pay_later_due')
