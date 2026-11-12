@@ -25,6 +25,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
 import { OperationalTable } from '@/components/ui/table';
@@ -224,20 +225,20 @@ const labelError = (index: number) =>
 <template>
     <Head title="Medicine details — Inventory and services settings" />
     <main
-        class="mx-auto grid w-full max-w-[1600px] gap-8 px-4 py-6 md:grid-cols-[220px_minmax(0,1fr)]"
+        class="mx-auto grid w-full max-w-[1280px] gap-8 px-4 py-6 md:px-6 lg:grid-cols-[220px_minmax(0,1fr)]"
     >
         <nav
             aria-label="Inventory and services settings"
-            class="flex flex-wrap gap-2 md:flex-col"
+            class="flex flex-wrap gap-2 lg:flex-col"
         >
             <span
                 aria-current="page"
-                class="rounded-md bg-muted px-4 py-3 text-sm font-semibold"
+                class="rounded-[10px] bg-muted px-4 py-3 text-sm font-semibold"
                 >Medicine details</span
             >
             <Link
                 href="/inventory-services-settings/suppliers"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
+                class="rounded-[10px] px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
                 >Suppliers</Link
             >
         </nav>
@@ -246,11 +247,9 @@ const labelError = (index: number) =>
                 Clinic management <span class="mx-2">/</span> Inventory and
                 services settings
             </p>
-            <h1 class="border-b pb-3 text-2xl font-semibold">
-                Inventory and services settings
-            </h1>
-            <div class="mt-5">
-                <h2 class="text-lg font-medium">Medicine details</h2>
+            <PageHeader title="Inventory and services settings" />
+            <div class="mt-6">
+                <h2 class="text-xl font-semibold">Medicine details</h2>
                 <p class="text-sm text-muted-foreground">
                     Set up your drug groups, dosage units and instructions.
                 </p>
@@ -308,13 +307,13 @@ const labelError = (index: number) =>
                             type="search"
                             maxlength="200"
                             :placeholder="`Search ${plural}`"
-                            class="h-9 min-w-0 rounded-md border bg-background px-3 text-sm"
+                            class="h-11 min-w-0 rounded-[10px] border bg-card px-3 text-sm lg:h-9"
                         /><Button
                             type="submit"
                             variant="ghost"
                             size="sm"
                             :aria-label="`Search ${plural}`"
-                            class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
+                            class="min-h-11 min-w-11 lg:min-h-8 lg:min-w-8"
                             ><svg
                                 viewBox="0 0 24 24"
                                 class="size-5"
@@ -332,7 +331,7 @@ const labelError = (index: number) =>
                         variant="ghost"
                         size="sm"
                         :aria-label="`Search ${plural}`"
-                        class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
+                        class="min-h-11 min-w-11 lg:min-h-8 lg:min-w-8"
                         @click="searching = true"
                         ><svg
                             viewBox="0 0 24 24"
@@ -345,11 +344,13 @@ const labelError = (index: number) =>
                             <circle cx="10.5" cy="10.5" r="6.5" />
                             <path d="m16 16 4 4" /></svg
                     ></Button>
-                    <Button size="sm" @click="openAdd">Add new</Button>
+                    <Button size="sm" class="max-lg:h-11" @click="openAdd"
+                        >Add new</Button
+                    >
                 </div>
             </div>
             <section
-                class="mt-4 grid grid-cols-1 gap-3 md:hidden"
+                class="mt-4 grid grid-cols-1 gap-3 lg:hidden"
                 aria-label="Medicine details options"
                 data-testid="settings-cards"
             >
@@ -361,7 +362,7 @@ const labelError = (index: number) =>
                 <article
                     v-for="option in options"
                     :key="option.id"
-                    class="grid min-w-0 grid-cols-1 gap-3 rounded-xl border bg-card p-4"
+                    class="grid min-w-0 grid-cols-1 gap-3 rounded-[14px] border bg-card p-4"
                     data-testid="settings-card"
                 >
                     <div class="flex items-start justify-between gap-2">
@@ -406,7 +407,7 @@ const labelError = (index: number) =>
                             :aria-label="`${option.active ? 'Archive' : 'Restore'} ${option.label}`"
                             :disabled="busy !== null"
                             :class="[
-                                'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50',
+                                'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors before:absolute before:-inset-x-1 before:-inset-y-3 disabled:opacity-50',
                                 option.active
                                     ? 'bg-success'
                                     : 'bg-muted-foreground/40',
@@ -428,7 +429,7 @@ const labelError = (index: number) =>
                     </div>
                 </article>
             </section>
-            <div class="mt-4 hidden min-w-0 md:block">
+            <div class="mt-4 hidden min-w-0 lg:block">
                 <OperationalTable
                     label="Medicine details options"
                     class="[&_table]:table-fixed"
@@ -458,7 +459,7 @@ const labelError = (index: number) =>
                                         :aria-label="`${option.active ? 'Archive' : 'Restore'} ${option.label}`"
                                         :disabled="busy !== null"
                                         :class="[
-                                            'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50',
+                                            'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors before:absolute before:-inset-x-1 before:-inset-y-3 disabled:opacity-50',
                                             option.active
                                                 ? 'bg-success'
                                                 : 'bg-muted-foreground/40',
