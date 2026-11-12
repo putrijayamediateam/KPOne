@@ -575,12 +575,14 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                                     >{{ line.note }}</span
                                 >
                             </td>
-                            <td class="py-1 pr-2 text-right tabular-nums">
+                            <td
+                                class="py-1 pr-2 text-right whitespace-nowrap tabular-nums"
+                            >
                                 {{ line.asked }} {{ line.stockUnit }}
                             </td>
                             <td
                                 v-if="request.status === 'converted'"
-                                class="py-1 text-right tabular-nums"
+                                class="py-1 text-right whitespace-nowrap tabular-nums"
                             >
                                 {{
                                     line.converted === '0'
@@ -647,7 +649,9 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
         />
 
         <Dialog v-model:open="sendOpen">
-            <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-2xl">
+            <DialogContent
+                class="max-h-[90vh] overflow-x-hidden overflow-y-auto sm:max-w-2xl"
+            >
                 <DialogHeader>
                     <DialogTitle>New purchase request</DialogTitle>
                     <DialogDescription
@@ -655,7 +659,11 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                         purchase order.</DialogDescription
                     >
                 </DialogHeader>
-                <form class="space-y-3" novalidate @submit.prevent="submitSend">
+                <form
+                    class="min-w-0 space-y-3"
+                    novalidate
+                    @submit.prevent="submitSend"
+                >
                     <p
                         v-if="sendGeneral"
                         role="alert"
@@ -705,12 +713,12 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                             :message="sendErrors.preferred_supplier_public_id"
                         />
                     </div>
-                    <fieldset class="space-y-3">
+                    <fieldset class="min-w-0 space-y-3">
                         <legend class="text-sm font-medium">Lines</legend>
                         <div
                             v-for="(line, index) in send.lines"
                             :key="line.key"
-                            class="space-y-2 rounded-md border p-3"
+                            class="min-w-0 space-y-2 rounded-md border p-3"
                             data-testid="purchase-request-line"
                         >
                             <div class="flex items-center justify-between">
@@ -807,7 +815,9 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                     >
                         {{ sendSummary }}
                     </p>
-                    <div class="flex flex-wrap justify-end gap-2">
+                    <div
+                        class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end [&>button]:min-h-11 max-sm:[&>button]:w-full"
+                    >
                         <Button
                             type="button"
                             variant="outline"
@@ -830,7 +840,9 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
             :open="converting !== null"
             @update:open="(open) => !open && (converting = null)"
         >
-            <DialogContent class="max-h-[90vh] overflow-y-auto sm:max-w-xl">
+            <DialogContent
+                class="max-h-[90vh] overflow-x-hidden overflow-y-auto sm:max-w-xl"
+            >
                 <DialogHeader>
                     <DialogTitle
                         >Convert {{ converting?.number }} to a draft
@@ -844,7 +856,7 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                 </DialogHeader>
                 <form
                     v-if="converting"
-                    class="space-y-3"
+                    class="min-w-0 space-y-3"
                     novalidate
                     @submit.prevent="submitConvert"
                 >
@@ -920,7 +932,9 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                     <p class="rounded-md border bg-muted p-2 text-sm">
                         {{ lineWord(orderedLines) }} will go on the draft order.
                     </p>
-                    <div class="flex flex-wrap justify-end gap-2">
+                    <div
+                        class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end [&>button]:min-h-11 max-sm:[&>button]:w-full"
+                    >
                         <Button
                             type="button"
                             variant="outline"
@@ -988,7 +1002,9 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                         id="reject-reason-error"
                         :message="rejectErrors.reason"
                     />
-                    <div class="flex flex-wrap justify-end gap-2">
+                    <div
+                        class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end [&>button]:min-h-11 max-sm:[&>button]:w-full"
+                    >
                         <Button
                             type="button"
                             variant="outline"
