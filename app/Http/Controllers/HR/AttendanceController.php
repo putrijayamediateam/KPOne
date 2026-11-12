@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\DepartmentSpace\MeSpace;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
 use App\Domain\HR\Attendance\Photos\ClockPhotoService;
@@ -32,18 +33,17 @@ class AttendanceController extends Controller
             'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
     }
 
-    /** DS-12: the same state My attendance shows, for the top-bar shortcut and the Me ring. Read only; HR-PHOTO's camera dialog makes the press. */
-    public function clockState(Request $request, AttendancePageService $pages): JsonResponse
+    /**
+     * DS-12 and DS-13: the same state My attendance shows, for the top-bar shortcut and the Me home ring. Read only:
+     * HR-PHOTO's camera dialog makes the press. The extra facts (clock-in time, shift, rostered minutes) come from the
+     * same rows and the same Late rule as Review.
+     */
+    public function clockState(Request $request, MeSpace $me): JsonResponse
     {
-        $my = (array) ($pages->page($request->user(), ['tab' => 'my'])['my'] ?? []);
+        $my = $me->attendanceMine($request->user()) ?? [];
 
-        return response()->json([
-            'state' => (string) ($my['state'] ?? 'out'),
+        return response()->json($me->ring($request->user(), $my) + [
             'label' => $my['clockedInLabel'] ?? $my['doneLabel'] ?? null,
-            'canPress' => (bool) ($my['canPress'] ?? false),
-            'refusal' => $my['refusal'] ?? null,
-            // A branch that checks location needs the consent and position screens, which only the Attendance page has.
-            'needsAttendancePage' => ($my['location'] ?? null) !== null,
             // HR-PHOTO: every press takes a live photo through the camera dialog, after the one-time notice.
             'photoRequired' => true,
             'photoNotice' => ['version' => ClockPhotoService::NOTICE_VERSION, 'seen' => app(ClockPhotoService::class)->noticeSeen($request->user())],

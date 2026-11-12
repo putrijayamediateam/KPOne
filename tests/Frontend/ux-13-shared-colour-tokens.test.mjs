@@ -21,12 +21,15 @@ test('UX-13: the top bar, branch switcher and form errors use theme tokens', () 
     const header = read(
         'resources/js/components/workspace/WorkspaceHeader.vue',
     );
-    assert.match(header, /'border-brand bg-muted text-foreground'/);
+    assert.match(
+        header,
+        /'border-brand bg-muted text-foreground v2:border-primary'/,
+    );
     // The drawer's active marker used to be hidden by an always-on border-transparent.
     assert.match(header, /: 'border-transparent text-muted-foreground'/);
     assert.doesNotMatch(header, /border-l-2 border-transparent/);
-    assert.match(header, /after:h-0\.5 after:bg-brand'/);
-    assert.match(header, /text-brand-strong sm:block/);
+    assert.match(header, /after:h-0\.5 after:bg-brand v2:after:bg-primary'/);
+    assert.match(header, /text-brand-strong sm:block v2:text-primary/);
     assert.match(
         read('resources/js/components/InputError.vue'),
         /class="text-sm text-destructive"/,

@@ -223,6 +223,20 @@ class OvertimeTest extends VisitTestCase
             ->where('attendance.summary.total.overtime', '2 h 30 min (rest day) · 4 h (public holiday)'));
     }
 
+    public function test_a_waiting_request_says_when_it_was_sent(): void
+    {
+        // For the HR space's "oldest waiting" line (Daniel, Kavitha): when the request was sent, ISO and in UTC.
+        [$hr, $director] = $this->setUpClinic();
+        $ca = $this->actor('ca');
+        $this->roster($hr, $director, [[$ca, '08:00', '14:00', 30]]);
+        $tuesday = $this->closedSession($ca, '2027-03-09', '09:00', '12:00'); // Not on the roster: all of it may be asked for.
+        $this->at('2027-03-14 09:00'); // 01:00 UTC
+        $this->ask($ca, $tuesday, 60)->assertSessionHasNoErrors();
+        $this->selectBranch($hr);
+        $this->get(route('hr.attendance.index', ['tab' => 'overtime']))->assertInertia(fn (Assert $page) => $page
+            ->where('attendance.overtime.pending.0.sentAt', '2027-03-14T01:00:00+00:00'));
+    }
+
     public function test_only_time_outside_the_shift_window_counts_so_a_late_arrival_never_gains_the_break(): void
     {
         [$hr, $director] = $this->setUpClinic();

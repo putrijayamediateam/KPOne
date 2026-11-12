@@ -236,6 +236,12 @@ const clearFilters = () => {
                 >Controlled register</ActionLink
             >
             <ActionLink
+                href="/inventory/recalls"
+                variant="outline"
+                class="min-h-11"
+                >Recalls</ActionLink
+            >
+            <ActionLink
                 href="/inventory/treatment-usage"
                 variant="outline"
                 class="min-h-11"
@@ -248,10 +254,28 @@ const clearFilters = () => {
                 >Stock review</ActionLink
             >
             <ActionLink
+                href="/inventory/stock-health"
+                variant="outline"
+                class="min-h-11"
+                >Stock health</ActionLink
+            >
+            <ActionLink
                 href="/inventory/reorder-suggestions"
                 variant="outline"
                 class="min-h-11"
                 >Reorder suggestions</ActionLink
+            >
+            <ActionLink
+                href="/inventory/branch-replenishment"
+                variant="outline"
+                class="min-h-11"
+                >Stock other branches need</ActionLink
+            >
+            <ActionLink
+                href="/inventory/purchase-requests"
+                variant="outline"
+                class="min-h-11"
+                >Purchase requests</ActionLink
             >
             <ActionLink
                 href="/inventory/supplier-terms"

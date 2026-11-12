@@ -45,14 +45,14 @@ final class HiringDeadlines
      *
      * @return array{remind:string, reject:string}|null
      */
-    public function deadlines(\stdClass $application, ?string $since = null): ?array
+    public function deadlines(\stdClass $application): ?array
     {
         $branch = $this->branchFor($application);
         if ($branch === null || $branch['weekdays'] === null || $branch['weekdays'] === []) {
             return null;
         }
         $days = (int) config('hr-applications.auto_reject_working_days', 3);
-        $entered = CarbonImmutable::parse($since ?? $application->stage_entered_at)->setTimezone($branch['zone'])->startOfDay();
+        $entered = CarbonImmutable::parse(self::countStart($application) ?? $application->stage_entered_at)->setTimezone($branch['zone'])->startOfDay();
         $holidays = DB::table('hr_public_holidays')->where('branch_id', $branch['id'])
             ->whereBetween('holiday_date', [$entered->toDateString(), $entered->addDays(self::HORIZON_DAYS)->toDateString()])
             ->pluck('holiday_date')->map(fn ($d): string => substr((string) $d, 0, 10))->flip()->all();
@@ -71,14 +71,32 @@ final class HiringDeadlines
     }
 
     /**
-     * When the current round of interview picks started: HR's latest "ask for new times", when later than the invitation
-     * (or the cancelled interview) that put the application at Scheduling; null means the invitation itself.
+     * How many times HR gave this stage (at Scheduling, this round) more time: the HR reminder comes once per count, so
+     * an application never closes without a reminder of its own (Suresh M1).
      */
-    public static function pickRoundStart(\stdClass $application): ?string
+    public static function extensions(\stdClass $application): int
     {
-        $asked = DB::table('hr_job_application_events')->where('application_id', $application->id)->where('action', 'picks_declined')->max('created_at');
+        $start = (string) $application->stage_entered_at;
+        if ($application->status === self::AWAITING_PICKS) {
+            $asked = DB::table('hr_job_application_events')->where('application_id', $application->id)->where('action', 'picks_declined')->max('created_at');
+            $start = $asked !== null && CarbonImmutable::parse((string) $asked)->gt(CarbonImmutable::parse($start)) ? (string) $asked : $start;
+        }
 
-        return $asked !== null && CarbonImmutable::parse((string) $asked)->gt(CarbonImmutable::parse($application->stage_entered_at)) ? (string) $asked : null;
+        return DB::table('hr_job_application_events')->where('application_id', $application->id)->where('action', 'deadline_extended')
+            ->where('created_at', '>', CarbonImmutable::parse($start)->utc())->count();
+    }
+
+    /**
+     * When the current count started: the later of the stage start (the invitation, a cancelled interview, or the move to
+     * New or Phone screening), HR's latest "ask for new times" at Scheduling, and HR's latest "give 3 more working days"
+     * (follow-up b). Null means the stage start itself.
+     */
+    public static function countStart(\stdClass $application): ?string
+    {
+        $actions = $application->status === self::AWAITING_PICKS ? ['picks_declined', 'deadline_extended'] : ['deadline_extended'];
+        $latest = DB::table('hr_job_application_events')->where('application_id', $application->id)->whereIn('action', $actions)->max('created_at');
+
+        return $latest !== null && CarbonImmutable::parse((string) $latest)->gt(CarbonImmutable::parse($application->stage_entered_at)) ? (string) $latest : null;
     }
 
     /**
@@ -93,7 +111,7 @@ final class HiringDeadlines
             return null;
         }
 
-        $by = $this->deadlines($application, self::pickRoundStart($application))['remind'] ?? null;
+        $by = $this->deadlines($application)['remind'] ?? null;
         $today = $this->today($application);
 
         // Once the day has passed the line goes (Suresh m3): picking stays open until the daily check closes it.
@@ -157,15 +175,13 @@ final class HiringDeadlines
                 return null;
             }
             $round = 0;
-            $since = null;
             if ($row->status === self::AWAITING_PICKS) {
                 $round = (int) $row->interview_round;
                 if (DB::table('hr_job_interview_picks')->where('application_id', $row->id)->where('round', $round)->exists()) {
                     return null; // the candidate has picked: HR's turn
                 }
-                $since = self::pickRoundStart($row);
             }
-            $deadlines = $this->deadlines($row, $since);
+            $deadlines = $this->deadlines($row);
             $branch = $this->branchFor($row);
             if ($deadlines === null || $branch === null) {
                 return null;
@@ -176,8 +192,9 @@ final class HiringDeadlines
                 return null;
             }
             $template = $row->status === self::AWAITING_PICKS ? 'pick_reminder' : 'auto_reject_reminder';
+            $extension = self::extensions($row);
             $reminder = DB::table('hr_job_application_messages')->where('application_id', $row->id)->where('template', $template)
-                ->where('stage', $row->status)->where('round', $round)->value('created_at');
+                ->where('stage', $row->status)->where('round', $round)->where('extension', $extension)->value('created_at');
             $remindedOn = $reminder === null ? null : CarbonImmutable::parse($reminder)->setTimezone($branch['zone'])->toDateString();
             // Closed only once the reminder has had a working day of its own.
             if ($today >= $deadlines['reject'] && $remindedOn !== null && $remindedOn < $today && $this->workingDayBetween($row, $remindedOn, $today)) {
@@ -202,7 +219,7 @@ final class HiringDeadlines
             if ($template === 'auto_reject_reminder') {
                 $params['stage'] = JobApplicationService::STATUSES[$row->status];
             }
-            $this->messenger->record($row, $template, (string) $row->status, null, $params, $round);
+            $this->messenger->record($row, $template, (string) $row->status, null, $params, $round, $extension);
 
             return 'reminded';
         }, 3);

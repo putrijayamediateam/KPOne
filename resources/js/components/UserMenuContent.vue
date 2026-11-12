@@ -4,6 +4,7 @@ import {
     Building2,
     Clock,
     LayoutGrid,
+    LayoutTemplate,
     LogOut,
     Settings,
     ShieldCheck,
@@ -115,8 +116,9 @@ const switchSpaces = (enabled: boolean) =>
             class="cursor-pointer"
             @select="switchSpaces(!inNewLayout)"
         >
-            <LayoutGrid class="mr-2 h-4 w-4" />{{
-                inNewLayout ? 'Use the old layout' : 'Try the new layout'
+            <LayoutTemplate v-if="inNewLayout" class="mr-2 h-4 w-4" />
+            <LayoutGrid v-else class="mr-2 h-4 w-4" />{{
+                inNewLayout ? 'Back to Classic layout' : 'Try the new layout'
             }}
         </DropdownMenuItem>
     </DropdownMenuGroup>
