@@ -297,7 +297,7 @@ const inputClass =
                                     v-model="c.quickIdentifierType.value"
                                     label="Identification type"
                                     :options="c.identityTypeOptions"
-                                    trigger-class="h-11 w-full sm:w-40 lg:h-9"
+                                    trigger-class="h-11 w-full sm:w-52 lg:h-9"
                                 />
                                 <input
                                     v-model="c.quickIdentifierValue.value"
