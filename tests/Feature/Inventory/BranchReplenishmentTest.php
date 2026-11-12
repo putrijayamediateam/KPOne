@@ -222,6 +222,24 @@ final class BranchReplenishmentTest extends VisitTestCase
         $this->assertSame([], $this->page($supervisor)['rows']);
     }
 
+    public function test_suggestions_from_one_location_never_exceed_what_it_can_spare(): void
+    {
+        // B.E.R.N.I.S.S: we can spare 15 (20 usable − our own level 5) and two branches each need 10. The first takes 10,
+        // the second only the 5 left, so the total never goes past the surplus.
+        $this->level($this->f['location'], '5.000');
+        $this->level($this->theirs, '10.000');
+        $third = Branch::query()->where('organisation_id', $this->branch->organisation_id)->whereNotIn('id', [$this->branch->id, $this->other->id])->orderBy('id')->firstOrFail();
+        $alsoShort = $this->location($third, 'Synthetic third branch dispensary');
+        $this->level($alsoShort, '10.000');
+
+        $rows = collect($this->page($this->staff('ca_supervisor'))['rows']);
+        $this->assertCount(2, $rows);
+        $total = $rows->sum(fn (array $row): float => (float) $row['suggestedQuantity']);
+        $this->assertSame(15.0, $total);
+        $this->assertSame(['0.000', '10.000'], $rows->pluck('from.alreadySuggested')->all());
+        $this->assertSame(['10.000', '5.000'], $rows->pluck('suggestedQuantity')->all());
+    }
+
     public function test_only_the_right_branch_acts_on_each_step_and_the_audit_says_where_it_goes(): void
     {
         $service = app(StockRequestService::class);

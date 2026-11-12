@@ -40,6 +40,7 @@ type Row = {
         usable: string;
         target: string;
         sending: string;
+        alreadySuggested: string;
     };
     suggestedQuantity: string;
 };
@@ -366,6 +367,19 @@ const sendError = computed(
                                     {{
                                         quantity(
                                             row.from.sending,
+                                            row.stockUnit,
+                                        )
+                                    }}
+                                </dd>
+                            </div>
+                            <div v-if="row.from.alreadySuggested !== '0.000'">
+                                <dt class="text-muted-foreground">
+                                    Already suggested above
+                                </dt>
+                                <dd class="tabular-nums">
+                                    {{
+                                        quantity(
+                                            row.from.alreadySuggested,
                                             row.stockUnit,
                                         )
                                     }}

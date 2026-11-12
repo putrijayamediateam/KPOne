@@ -64,7 +64,10 @@ final class BranchReplenishmentService
         $rows = [];
         /** @var array<string, int> $used what earlier suggestions already take from a location, keyed "sku:location" */
         $used = [];
-        $left = fn (int $skuId, int $locationId): int => $surplus[$skuId][$locationId]['surplus'] - ($used[$skuId.':'.$locationId] ?? 0);
+        // By reference: an arrow function would copy $used once and never see later suggestions.
+        $left = function (int $skuId, int $locationId) use ($surplus, &$used): int {
+            return $surplus[$skuId][$locationId]['surplus'] - ($used[$skuId.':'.$locationId] ?? 0);
+        };
         foreach ($needs as [$other, $row]) {
             $key = $row->location_id.':'.$row->sku_id;
             $level = StockUnitQuantity::scaled((string) $row->reorder_level, true);
@@ -92,7 +95,8 @@ final class BranchReplenishmentService
                 continue;
             }
             // Later rows of the same SKU see what this suggestion already uses.
-            $used[$row->sku_id.':'.$source] = ($used[$row->sku_id.':'.$source] ?? 0) + $suggested;
+            $earlier = $used[$row->sku_id.':'.$source] ?? 0;
+            $used[$row->sku_id.':'.$source] = $earlier + $suggested;
             if ($needle !== null && ! str_contains(mb_strtolower($row->sku_code.' '.$row->item.' '.$other->name.' '.$row->location.' '.$from['name']), $needle)) {
                 continue;
             }
@@ -108,7 +112,9 @@ final class BranchReplenishmentService
                     'onOrder' => StockUnitQuantity::format($onOrder[$key] ?? 0), 'incoming' => StockUnitQuantity::format(($incoming[$key] ?? 0) + ($requested[$key] ?? 0)),
                     'need' => StockUnitQuantity::format($need)],
                 'from' => ['location' => $from['name'], 'locationPublicId' => $from['publicId'], 'usable' => StockUnitQuantity::format($from['usable']),
-                    'target' => StockUnitQuantity::format($from['target']), 'sending' => StockUnitQuantity::format($from['sending'])],
+                    'target' => StockUnitQuantity::format($from['target']), 'sending' => StockUnitQuantity::format($from['sending']),
+                    // What earlier suggestions on this page already take from the same location and SKU.
+                    'alreadySuggested' => StockUnitQuantity::format($earlier)],
                 'suggestedQuantity' => StockUnitQuantity::format($suggested),
             ];
         }
