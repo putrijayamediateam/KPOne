@@ -122,6 +122,6 @@ test('the Inventory summary tiles sit in one row at every width, in sentence cas
         'Total batches',
         'Expired batches',
     ]) {
-        assert.ok(page.includes(`>${label}</p>`), label);
+        assert.match(page, new RegExp(`>\\s*${label}\\s*</p>`), label);
     }
 });
