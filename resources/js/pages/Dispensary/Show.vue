@@ -1537,7 +1537,9 @@ const exceptionStatusLabels: Record<string, string> = {
                                     <ChevronRight
                                         class="size-3.5 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
                                         aria-hidden="true"
-                                    />Label limits
+                                    />Label limits<span class="sr-only"
+                                        >: explanation</span
+                                    >
                                 </summary>
                                 <p class="mt-1">
                                     Label limits (characters; saved clinical
@@ -2203,7 +2205,9 @@ const exceptionStatusLabels: Record<string, string> = {
                                 <ChevronRight
                                     class="size-3.5 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
                                     aria-hidden="true"
-                                />Label limits
+                                />Label limits<span class="sr-only"
+                                    >: explanation</span
+                                >
                             </summary>
                             <p class="mt-1">
                                 Label limits: dosage

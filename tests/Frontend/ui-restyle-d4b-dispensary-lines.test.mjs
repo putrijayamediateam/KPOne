@@ -48,7 +48,17 @@ test('two columns from 1024 px, three from 1440 px, written in rem so lg cannot 
 test('label limits sit in a closed disclosure with the same words inside', () => {
     assert.ok(flat.includes('data-testid="label-limits"'));
     assert.ok(flat.includes('data-testid="label-limits-add"'));
-    assert.equal((flat.match(/Label limits <\/summary>/g) ?? []).length, 2);
+    // Visible text stays "Label limits"; screen readers hear
+    // "Label limits: explanation" (Daniel), and <summary> announces
+    // expanded or collapsed natively.
+    assert.equal(
+        (
+            flat.match(
+                /Label limits<span class="sr-only"\s*>: explanation<\/span\s*>\s*<\/summary>/g,
+            ) ?? []
+        ).length,
+        2,
+    );
     assert.ok(
         flat.includes(
             'Label limits (characters; saved clinical text is unchanged)',
