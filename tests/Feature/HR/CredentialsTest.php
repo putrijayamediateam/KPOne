@@ -12,6 +12,7 @@ use App\Domain\HR\Records\Services\DocumentService;
 use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -410,6 +411,62 @@ class CredentialsTest extends VisitTestCase
             'entered_by_user_id' => $user->id])->save();
 
         return [$worker, $type, $record];
+    }
+
+    public function test_records_no_longer_in_force_or_of_staff_who_left_go_after_seven_years_and_only_by_the_purge(): void
+    {
+        // PDPA 15 (owner, 2026-11-11; the accountant confirms the 7 years before real use). PostgreSQL checks the 7 years
+        // against its own clock, so this test works in real time.
+        $real = CarbonImmutable::createFromTimestamp(time(), 'UTC');
+        $at = $real->subYears(7)->subDays(40);
+        $this->travelTo($at);
+        $hr = $this->actor('hr_manager');
+        $doctor = $this->actor('resident_doctor');
+        $leaver = $this->actor('resident_doctor');
+        $worker = $this->workerFor($hr, $doctor);
+        $gone = $this->workerFor($hr, $leaver);
+        $mmc = $this->type($hr, 'MMC', 'Full registration (MMC)', false, false, ['resident_doctor']);
+        $issued = $at->setTimezone($this->branch->timezone)->subMonth()->toDateString();
+        $record = function (User $who, string $decision, ?string $reason = null) use ($hr, $mmc, $issued): CredentialRecord {
+            $this->sendOwn($who, ['type_id' => $mmc->public_id, 'issued_on' => $issued])->assertSessionHasNoErrors();
+            $r = CredentialRecord::query()->orderByDesc('id')->firstOrFail();
+            $this->decide($hr, $r, $decision, $reason)->assertSessionHasNoErrors();
+
+            return $r->refresh();
+        };
+        $v1 = $record($doctor, 'accept');
+        $v2 = $record($doctor, 'accept'); // v1 is now replaced
+        $v3 = $record($doctor, 'reject', 'not_readable'); // the newest version stays so numbering carries on
+        $left = $record($leaver, 'accept');
+        // The leaver's employment ended eight years ago.
+        DB::table('hr_employment_periods')->where('worker_id', $gone->id)->delete();
+        DB::table('hr_employment_periods')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $gone->organisation_id, 'worker_id' => $gone->id,
+            'type' => 'permanent', 'starts_on' => $real->subYears(10)->toDateString(), 'ends_on' => $real->subYears(8)->toDateString(), 'end_reason' => 'resigned',
+            'created_by_user_id' => $hr->id, 'created_at' => now(), 'updated_at' => now()]);
+        $this->travelBack();
+        $this->assertSame(['replaced', 'accepted', 'rejected'], [$v1->refresh()->status, $v2->refresh()->status, $v3->refresh()->status]);
+
+        $this->artisan('hr-credentials:purge')->expectsOutputToContain('Deleted 2 credential records.')->assertSuccessful();
+        $this->assertSame([$v2->id, $v3->id], CredentialRecord::query()->orderBy('id')->pluck('id')->all());
+        $this->assertSame(0, CredentialRecord::query()->where('id', $left->id)->count());
+        $this->assertSame(1, CredentialType::query()->count()); // settings stay
+        $this->assertSame([['records' => 2, 'retention_years' => 7]], DB::table('audit_logs')->where('event', 'hr.credentials.retention_purged')
+            ->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
+        $this->artisan('hr-credentials:purge')->expectsOutputToContain('Deleted 0 credential records.')->assertSuccessful();
+        $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
+            ->filter(fn ($e): bool => str_contains((string) $e->command, 'hr-credentials:purge'))->pluck('expression')->values()->all());
+        // The next version still follows the newest one.
+        $this->sendOwn($doctor, ['type_id' => $mmc->public_id, 'issued_on' => CarbonImmutable::now($this->branch->timezone)->subDay()->toDateString()])->assertSessionHasNoErrors();
+        $this->assertSame(4, (int) CredentialRecord::query()->orderByDesc('id')->value('version'));
+
+        // Only the purge deletes, and only a record past 7 years; TRUNCATE stays refused.
+        $this->assertRefused('P0001', fn () => DB::table('hr_credential_records')->where('id', $v2->id)->delete());
+        $this->assertRefused('P0001', function (): void {
+            DB::statement("SELECT set_config('kpone.hr_credential_purge', 'on', true)");
+            DB::table('hr_credential_records')->where('status', 'waiting')->delete();
+        });
+        $this->assertRefused('P0001', fn () => DB::statement('TRUNCATE hr_credential_records CASCADE'));
+        $this->assertSame(3, CredentialRecord::query()->count());
     }
 
     private function workerFor(User $manager, User $subject): Worker
