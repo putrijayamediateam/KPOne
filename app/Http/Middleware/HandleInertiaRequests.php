@@ -7,7 +7,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Access\WorkspaceLandingService;
 use App\Domain\DepartmentSpace\AccountMenuLinks;
-use App\Domain\DepartmentSpace\SpacePreferenceService;
+use App\Domain\DepartmentSpace\UiVersionResolver;
 use App\Domain\DepartmentSpace\V2ShellNavigation;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use Closure;
@@ -91,7 +91,7 @@ class HandleInertiaRequests extends Middleware
 
             $landing = app(WorkspaceLandingService::class);
             $canEnterClinic = $landing->canEnterClinic($user);
-            $spaces = app(SpacePreferenceService::class)->state($user);
+            $spaces = app(UiVersionResolver::class)->state($user);
             $workspace = [
                 'defaultUrl' => route('workspace', absolute: false),
                 'canEnterClinic' => $canEnterClinic,
