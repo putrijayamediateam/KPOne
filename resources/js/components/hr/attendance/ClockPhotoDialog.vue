@@ -412,7 +412,7 @@ onBeforeUnmount(() => {
                         >
                             <button
                                 type="button"
-                                class="min-h-14 flex-1 rounded-full bg-white/15 text-[17px] font-bold focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-50"
+                                class="min-h-14 flex-1 rounded-full border-2 border-white/70 bg-transparent text-[17px] font-bold focus-visible:ring-2 focus-visible:ring-white focus-visible:outline-none disabled:opacity-50"
                                 data-test="clock-photo-retake"
                                 :disabled="state.step === 'sending'"
                                 @click="retake"

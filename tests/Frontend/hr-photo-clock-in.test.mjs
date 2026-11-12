@@ -135,3 +135,50 @@ test('once a photo is shown only Hide photo remains, and phone cards name each p
         /data-test="review-card-photos"[\s\S]*?>In<\/span[\s\S]*?r\.photos\.in[\s\S]*?>Out<\/span[\s\S]*?r\.photos\.out/,
     );
 });
+
+// Daniel's look (2026-11-12): the notice says why and what Not now does; it can be reopened; Show is recorded.
+const notice = read(
+    'resources/js/components/hr/attendance/ClockPhotoNotice.vue',
+);
+
+test('the notice says why, that faces are not compared, what Not now does, and that retention is to confirm', () => {
+    const text = notice.replace(/\s+/g, ' ');
+    assert.match(
+        text,
+        /It is used only to check that you were the one who clocked in\./,
+    );
+    assert.match(text, /KPOne does not identify faces or compare photos\./);
+    assert.match(
+        text,
+        /Not now: nothing is recorded, and you are not clocked in or out\./,
+    );
+    assert.match(text, /\(to confirm in the PDPA review\)/);
+    assert.match(notice, /mode === 'first-use'/);
+    assert.match(notice, /data-test="clock-photo-notice-close"/);
+});
+
+test('My attendance reopens the notice, and Review says that Show is recorded', () => {
+    assert.match(
+        attendance,
+        /data-test="clock-photo-about"[\s\S]*?About clock-in photos/,
+    );
+    assert.match(attendance, /<ClockPhotoNotice mode="info"/);
+    assert.match(
+        attendance,
+        /data-test="review-photo-recorded"[\s\S]*?Showing a photo is recorded\./,
+    );
+});
+
+test('Retake is outline and Use photo is filled', () => {
+    assert.match(
+        dialog,
+        /border-2 border-white\/70 bg-transparent[^"]*"\s+data-test="clock-photo-retake"/,
+    );
+    assert.match(dialog, /bg-\[#6ba6ff\][^"]*"\s+data-test="clock-photo-use"/);
+});
+
+test('changing the day, branch or tab is a fresh visit, so a shown photo hides again', () => {
+    const visit = attendance.match(/const visit = [\s\S]*?\);\n/)[0];
+    assert.match(visit, /router\.get\(/);
+    assert.doesNotMatch(visit, /preserveState/);
+});

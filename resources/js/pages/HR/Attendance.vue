@@ -10,6 +10,7 @@ import {
     useTemplateRef,
     watch,
 } from 'vue';
+import ClockPhotoNotice from '@/components/hr/attendance/ClockPhotoNotice.vue';
 import ClockPhotoThumb from '@/components/hr/attendance/ClockPhotoThumb.vue';
 import type { ClockPhotoEntry } from '@/components/hr/attendance/ClockPhotoThumb.vue';
 import LocationCheckSettings from '@/components/hr/attendance/LocationCheckSettings.vue';
@@ -32,6 +33,7 @@ import { weekTone } from '@/components/hr/attendance/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { DateField, DateTimeField } from '@/components/ui/date-field';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -244,6 +246,14 @@ const { measure: measureTabs, fadeStyle: tabFade } = useScrollStrip(
     '[aria-selected="true"]',
 );
 const selectTab = (tab: string) => visit({ tab });
+
+// HR-PHOTO (Daniel): reopen the notice from My attendance; and say that Show is recorded when the day has anyone else's photo.
+const aboutPhotos = ref(false);
+const reviewHasOthersPhotos = computed(() =>
+    (props.attendance.review?.rows ?? []).some(
+        (r) => r.photos?.in?.needsShow || r.photos?.out?.needsShow,
+    ),
+);
 
 // ---- Server time (Daniel: ticks every second, never in a live region) ----
 const offset = ref(0);
@@ -853,6 +863,14 @@ const correctionStatusTone = (
                         KPOne records the time and a photo of you at each press.
                         HR can see it. Kept for 7 years.
                     </p>
+                    <button
+                        type="button"
+                        class="self-start text-xs font-medium text-brand-strong underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        data-test="clock-photo-about"
+                        @click="aboutPhotos = true"
+                    >
+                        About clock-in photos
+                    </button>
                     <p
                         v-if="
                             attendance.my.state !== 'out' ||
@@ -1474,6 +1492,13 @@ const correctionStatusTone = (
                             </Button>
                         </li>
                     </ul>
+                    <p
+                        v-if="reviewHasOthersPhotos"
+                        class="text-xs text-muted-foreground"
+                        data-test="review-photo-recorded"
+                    >
+                        Showing a photo is recorded.
+                    </p>
                 </template>
 
                 <div
@@ -1971,5 +1996,14 @@ const correctionStatusTone = (
                 </form>
             </SheetContent>
         </Sheet>
+        <Dialog v-model:open="aboutPhotos">
+            <DialogContent
+                class="flex max-h-[90vh] max-w-[min(32rem,calc(100%-2rem))] flex-col p-0"
+                :show-close-button="false"
+                data-test="clock-photo-about-dialog"
+            >
+                <ClockPhotoNotice mode="info" @cancel="aboutPhotos = false" />
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

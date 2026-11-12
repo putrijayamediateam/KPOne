@@ -156,7 +156,7 @@ final class ClockPhotoService
             if (! $own) {
                 // Recorded before any byte is sent; if this row cannot be written, nothing is shown.
                 $branch = Branch::query()->whereKey((int) ClockSession::query()->whereKey($photo->clock_session_id)->value('branch_id'))->first();
-                $this->support->audit->record('hr.attendance.photo_shown', $photo, ['photo_id' => $photo->id, 'size' => $size], $actor, $branch);
+                $this->support->audit->record('hr.attendance.photo_shown', $photo, ['photo_id' => $photo->id, 'subject_user_id' => (int) $photo->user_id, 'size' => $size], $actor, $branch);
             }
 
             return $photo;

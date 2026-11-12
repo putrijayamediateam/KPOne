@@ -141,7 +141,7 @@ class ClockPhotoTest extends VisitTestCase
         $this->get(route('hr.attendance.photo', [$photo->public_id, 'thumb']))->assertOk();
         $this->get(route('hr.attendance.photo', [$photo->public_id, 'full']))->assertOk();
         $rows = DB::table('audit_logs')->where('event', 'hr.attendance.photo_shown')->orderBy('id')->get();
-        $this->assertSame([['photo_id' => $photo->id, 'size' => 'thumb'], ['photo_id' => $photo->id, 'size' => 'full']],
+        $this->assertSame([['photo_id' => $photo->id, 'subject_user_id' => $ca->id, 'size' => 'thumb'], ['photo_id' => $photo->id, 'subject_user_id' => $ca->id, 'size' => 'full']],
             $rows->map(fn ($r): mixed => json_decode((string) $r->metadata, true))->all());
         $this->assertSame([$hr->id, $hr->id], $rows->pluck('actor_user_id')->map(fn ($id): int => (int) $id)->all());
     }
