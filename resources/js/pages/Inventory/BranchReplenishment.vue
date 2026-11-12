@@ -135,6 +135,10 @@ const sendRequest = () => {
         {
             onStart: () => (busy.value = true),
             onFinish: () => (busy.value = false),
+            onSuccess: () => {
+                sendOpen.value = false;
+                ticked.value = [];
+            },
             onError: (bag) => {
                 sendErrors.value = bag as Record<string, string>;
             },
@@ -388,7 +392,8 @@ const sendError = computed(
                     <DialogTitle>New stock request</DialogTitle>
                     <DialogDescription
                         >From {{ draft.fromName }} to {{ draft.toName }}. It is
-                        approved and sent from this branch, and received by
+                        approved and sent from this branch in Inventory
+                        operations, and received by
                         {{ draft.toName.split(' · ')[0] }}.</DialogDescription
                     >
                 </DialogHeader>

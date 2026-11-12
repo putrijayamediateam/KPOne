@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\DB;
  * organisation. PostgreSQL repeats the service's rules for every new request: the source is at the requesting branch
  * (or the organisation warehouse), and neither end is a patient returns location. The organisation is already enforced
  * by the location foreign keys. KPOne never re-points a request after it is made (dispatch and receive re-check their
- * own side), so the guard runs on insert; existing rows are not rewritten.
+ * own side), so the guard runs on insert only: an UPDATE of the location or branch columns is NOT guarded here (two
+ * existing regression tests repoint a request by SQL on purpose). Existing rows are not rewritten.
  */
 return new class extends Migration
 {

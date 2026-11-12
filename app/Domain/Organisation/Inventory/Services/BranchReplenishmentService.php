@@ -14,7 +14,7 @@ use Illuminate\Support\Facades\Validator;
  * to another branch of the same organisation that is at or below its reorder level. It writes nothing; a person checks a
  * suggestion and sends it as an ordinary stock request.
  *
- * Their need = their target − on hand − on order − incoming, where the target is the maximum when set (STK-30) and
+ * Their need = their target − on hand − on order − incoming (approved or dispatched, plus requests still waiting), where the target is the maximum when set (STK-30) and
  * otherwise the reorder level. Our surplus at a location = usable on hand − our own target there (0 when no level is set)
  * − what that location is already due to send on requests not yet dispatched. Suggested = the smaller of the two, in
  * whole stock units, from the one location of ours with the most surplus. Only usable stock (STK-2 eligibility) counts,
@@ -56,6 +56,9 @@ final class BranchReplenishmentService
         $reorder = app(ReorderSuggestionService::class);
         $onOrder = $reorder->onOrder($organisationId, $locationIds, $skuIds);
         $incoming = $reorder->incoming($organisationId, $locationIds, $skuIds);
+        // Requests already raised for them but not yet approved: STK-16 does not count these as incoming, but here they
+        // must come off their need, or the same shortage is suggested again (Mei Ling).
+        $requested = $this->requestedFor($organisationId, $locationIds, $skuIds);
         $surplus = $this->surplus($actor, $branch, $skuIds);
 
         $rows = [];
@@ -67,7 +70,7 @@ final class BranchReplenishmentService
             $level = StockUnitQuantity::scaled((string) $row->reorder_level, true);
             $max = $row->max_level === null ? null : StockUnitQuantity::scaled((string) $row->max_level, true);
             $onHand = StockUnitQuantity::scaled((string) $row->quantity, true);
-            $need = max(0, ($max ?? $level) - $onHand - ($onOrder[$key] ?? 0) - ($incoming[$key] ?? 0));
+            $need = max(0, ($max ?? $level) - $onHand - ($onOrder[$key] ?? 0) - ($incoming[$key] ?? 0) - ($requested[$key] ?? 0));
             // Whole stock units: their need rounds up, our surplus rounds down.
             $need = intdiv($need + 999, 1000) * 1000;
             if ($need === 0) {
@@ -102,7 +105,7 @@ final class BranchReplenishmentService
                 'to' => ['branch' => $other->name, 'location' => $row->location, 'locationPublicId' => $row->location_public_id,
                     'onHand' => StockUnitQuantity::format($onHand), 'reorderLevel' => StockUnitQuantity::format($level),
                     'maxLevel' => $max === null ? null : StockUnitQuantity::format($max),
-                    'onOrder' => StockUnitQuantity::format($onOrder[$key] ?? 0), 'incoming' => StockUnitQuantity::format($incoming[$key] ?? 0),
+                    'onOrder' => StockUnitQuantity::format($onOrder[$key] ?? 0), 'incoming' => StockUnitQuantity::format(($incoming[$key] ?? 0) + ($requested[$key] ?? 0)),
                     'need' => StockUnitQuantity::format($need)],
                 'from' => ['location' => $from['name'], 'locationPublicId' => $from['publicId'], 'usable' => StockUnitQuantity::format($from['usable']),
                     'target' => StockUnitQuantity::format($from['target']), 'sending' => StockUnitQuantity::format($from['sending'])],
@@ -127,6 +130,31 @@ final class BranchReplenishmentService
     }
 
     /**
+     * Lines of requests still waiting for approval, per destination location and SKU.
+     *
+     * @param  list<int>  $locationIds
+     * @param  list<int>  $skuIds
+     * @return array<string, int>
+     */
+    private function requestedFor(int $organisationId, array $locationIds, array $skuIds): array
+    {
+        if ($locationIds === []) {
+            return [];
+        }
+        $requested = [];
+        foreach (DB::table('inventory_stock_request_lines as line')
+            ->join('inventory_stock_requests as request', fn ($j) => $j->on('request.id', '=', 'line.stock_request_id')->on('request.organisation_id', '=', 'line.organisation_id'))
+            ->where('line.organisation_id', $organisationId)->where('request.status', 'requested')
+            ->whereIn('request.destination_location_id', $locationIds)->whereIn('line.inventory_sku_id', $skuIds)
+            ->groupBy('request.destination_location_id', 'line.inventory_sku_id')
+            ->selectRaw('request.destination_location_id as location_id, line.inventory_sku_id as sku_id, SUM(line.requested_quantity)::text as quantity')->get() as $row) {
+            $requested[$row->location_id.':'.$row->sku_id] = StockUnitQuantity::scaled((string) $row->quantity, true);
+        }
+
+        return $requested;
+    }
+
+    /**
      * Usable stock above our own target, per SKU and active non-returns location at the active branch, less what each
      * location is already due to send on requests that are requested or approved but not yet dispatched.
      *
@@ -145,7 +173,7 @@ final class BranchReplenishmentService
             ->where('balance.organisation_id', $organisationId)->whereIn('balance.inventory_sku_id', $skuIds)
             ->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)
             ->whereNull('e.eligibility_reason')
-            ->groupBy('l.id', 'l.name', 'l.public_id', 'balance.inventory_sku_id')
+            ->groupBy('l.id', 'l.name', 'l.public_id', 'balance.inventory_sku_id')->orderBy('l.id')
             ->selectRaw('l.id as location_id, l.name, l.public_id, balance.inventory_sku_id as sku_id, SUM(balance.quantity)::text as quantity')
             ->get();
         if ($usable->isEmpty()) {

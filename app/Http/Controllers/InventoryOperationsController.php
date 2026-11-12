@@ -199,6 +199,13 @@ class InventoryOperationsController extends Controller
                 : $this->stayOnInventory($exception);
         }
 
+        if ($request->input('from') === 'branch-replenishment') {
+            // STK-31: stay on the page the request came from; it is approved and sent from Inventory operations.
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'Stock Request submitted. Approve and send it in Inventory operations.']);
+
+            return to_route('inventory.branch-replenishment');
+        }
+
         return $this->success('Stock Request submitted.');
     }
 

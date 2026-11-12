@@ -85,12 +85,13 @@ final class BranchReplenishmentTest extends VisitTestCase
             [$rows[0]['to']['need'], $rows[0]['from']['usable'], $rows[0]['from']['target'], $rows[0]['from']['sending'], $rows[0]['suggestedQuantity'],
                 $rows[0]['to']['branch'], $rows[0]['from']['locationPublicId'], $rows[0]['to']['locationPublicId']]);
 
-        // A request waiting to leave our location comes off what we can spare. Their need counts it as incoming only once
-        // it is approved (as STK-16 does), so until then their need stays 15.
+        // A request waiting to leave our location comes off what we can spare, and off their need at once (counted as
+        // incoming here even before approval, so the same shortage is never suggested twice).
         $ca = $this->staff('ca');
         $sent = $this->request($ca, $this->f['location'], $this->theirs, '3');
         $row = $this->page($supervisor)['rows'][0];
-        $this->assertSame(['3.000', '15.000', '9.000'], [$row['from']['sending'], $row['to']['need'], $row['suggestedQuantity']]);
+        $this->assertSame(['3.000', '3.000', '12.000', '9.000'], [$row['from']['sending'], $row['to']['incoming'], $row['to']['need'], $row['suggestedQuantity']]);
+        // Approving it changes nothing here: it moves from "waiting" to STK-16's approved incoming.
         app(StockRequestService::class)->approve($supervisor, $sent, ['expected_branch_id' => $this->branch->id, 'lock_version' => $sent->lock_version]);
         $row = $this->page($supervisor)['rows'][0];
         $this->assertSame(['3.000', '3.000', '12.000', '9.000'], [$row['from']['sending'], $row['to']['incoming'], $row['to']['need'], $row['suggestedQuantity']]);
@@ -181,6 +182,9 @@ final class BranchReplenishmentTest extends VisitTestCase
         $this->assertSame(0, DB::table('inventory_stock_requests')->count());
 
         // PostgreSQL refuses the same, whatever the caller.
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
         $row = fn (InventoryLocation $source, InventoryLocation $destination) => ['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id,
             'requesting_branch_id' => $this->branch->id, 'source_location_id' => $source->id, 'destination_location_id' => $destination->id, 'request_number' => 'SR-SYN-'.Str::upper(Str::random(8)),
             'status' => 'requested', 'lock_version' => 1, 'requested_by_user_id' => $ca->id, 'requested_at' => now(), 'created_at' => now(), 'updated_at' => now()];
@@ -199,8 +203,56 @@ final class BranchReplenishmentTest extends VisitTestCase
             ->assertRedirect(route('inventory.branch-replenishment'))->assertSessionHasErrors('lines');
         $this->actingAs($ca)->post(route('inventory.stock-requests.store'), ['expected_branch_id' => $this->branch->id, 'source_location_public_id' => $this->f['location']->public_id,
             'destination_location_public_id' => $this->theirs->public_id, 'lines' => [['sku_public_id' => $this->f['sku']->public_id, 'quantity' => '2']], 'from' => 'branch-replenishment'])
-            ->assertRedirect(route('inventory.index'))->assertSessionHasNoErrors();
+            ->assertRedirect(route('inventory.branch-replenishment'))->assertSessionHasNoErrors();
         $this->assertSame(1, DB::table('inventory_stock_requests')->count());
+    }
+
+    public function test_a_shortage_already_requested_is_not_suggested_again(): void
+    {
+        // Mei Ling: their need 10, we can spare 30. One request covers it, even before it is approved.
+        $this->level($this->theirs, '10.000');
+        $supervisor = $this->staff('ca_supervisor');
+        $this->assertSame('10.000', $this->page($supervisor)['rows'][0]['suggestedQuantity']);
+        $this->request($this->staff('ca'), $this->f['location'], $this->theirs, '10');
+        $this->assertSame([], $this->page($supervisor)['rows']);
+    }
+
+    public function test_only_the_right_branch_acts_on_each_step_and_the_audit_says_where_it_goes(): void
+    {
+        $service = app(StockRequestService::class);
+        $request = $this->request($this->staff('ca'), $this->f['location'], $this->theirs, '5');
+        $theirs = $this->staff('ca_supervisor', $this->other);
+        // The destination branch can neither approve nor send it.
+        $this->expectRefusal(fn () => $service->approve($theirs, $request, ['expected_branch_id' => $this->other->id, 'lock_version' => $request->lock_version]), NotFoundHttpException::class);
+        $supervisor = $this->staff('ca_supervisor');
+        $request = $service->approve($supervisor, $request, ['expected_branch_id' => $this->branch->id, 'lock_version' => $request->lock_version]);
+        $this->expectRefusal(fn () => $service->dispatch($theirs, $request, ['expected_branch_id' => $this->other->id, 'lock_version' => $request->lock_version,
+            'dispatch_idempotency_key' => (string) Str::uuid(), 'lines' => [['line_public_id' => $request->lines()->sole()->public_id, 'batch_public_id' => $this->f['batch']->public_id, 'quantity' => '5']]]), NotFoundHttpException::class);
+        $this->assertSame(StockRequest::STATUS_APPROVED, $request->refresh()->status);
+
+        // A request inside one branch is not marked cross-branch.
+        $local = $this->location($this->branch, 'Synthetic local store', InventoryLocation::TYPE_BRANCH_STORE);
+        $this->request($this->staff('ca'), $this->f['location'], $local, '1');
+        $audit = DB::table('audit_logs')->where('event', 'inventory.stock_request.requested')->latest('id')->first();
+        $this->assertSame(['destination_branch_id' => $this->branch->id, 'cross_branch' => false], array_intersect_key(json_decode((string) $audit->metadata, true), ['destination_branch_id' => 1, 'cross_branch' => 1]));
+    }
+
+    public function test_an_inactive_branch_and_warehouse_stock_cannot_be_sent_to_another_branch(): void
+    {
+        $ca = $this->staff('ca');
+        // A location at a branch that is no longer active never receives.
+        DB::table('branches')->where('id', $this->other->id)->update(['is_active' => false]);
+        $this->expectRefusal(fn () => $this->request($ca, $this->f['location'], $this->theirs, '1'), NotFoundHttpException::class);
+        DB::table('branches')->where('id', $this->other->id)->update(['is_active' => true]);
+
+        // Organisation warehouse stock keeps the old rule: it goes to the requester's own branch, not to another.
+        $warehouse = new InventoryLocation;
+        $warehouse->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id, 'branch_id' => null,
+            'code' => 'WH-'.Str::upper(Str::random(8)), 'name' => 'Synthetic warehouse', 'type' => InventoryLocation::TYPE_BRANCH_STORE, 'is_active' => true])->save();
+        $supervisor = $this->staff('ca_supervisor');
+        $this->assertTrue($supervisor->can(StockRequestService::WAREHOUSE_PERMISSION));
+        $this->expectRefusal(fn () => $this->request($supervisor, $warehouse, $this->theirs, '1'), NotFoundHttpException::class);
+        $this->assertInstanceOf(StockRequest::class, $this->request($supervisor, $warehouse, $this->f['location'], '1'));
     }
 
     /** @param class-string<\Throwable> $class */

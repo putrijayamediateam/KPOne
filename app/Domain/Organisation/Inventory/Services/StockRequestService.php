@@ -64,7 +64,7 @@ final class StockRequestService
             $lockedActor = $this->authority->lockForBranch($actor, $branch, self::CREATE_PERMISSION);
             [$source, $destination] = $this->lockLocations($lockedActor, (string) ($attributes['source_location_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''));
             $this->assertSourceAuthority($lockedActor, $branch, $source);
-            $this->assertRequestDestination($lockedActor, $branch, $destination);
+            $this->assertRequestDestination($lockedActor, $branch, $source, $destination);
             // STK-11: a two-stage transfer never touches a patient returns location.
             if (in_array(InventoryLocation::TYPE_DISPENSARY_RETURNS, [$source->type, $destination->type], true)) {
                 throw ValidationException::withMessages(['location' => 'Patient returns stock is not sent on a stock request. Write it off, or move it to another returns location.']);
@@ -362,7 +362,7 @@ final class StockRequestService
             if ($status === StockRequest::STATUS_APPROVED) {
                 [$source, $destination] = $this->lockStoredLocations($lockedActor, $locked);
                 $this->assertSourceAuthority($lockedActor, $branch, $source);
-                $this->assertRequestDestination($lockedActor, $branch, $destination);
+                $this->assertRequestDestination($lockedActor, $branch, $source, $destination);
                 if ($destination->type === InventoryLocation::TYPE_DISPENSARY_RETURNS) {
                     throw ValidationException::withMessages(['location' => 'Patient returns stock is not sent on a stock request. Write it off, or move it to another returns location.']);
                 }
@@ -430,18 +430,22 @@ final class StockRequestService
 
     /**
      * STK-31 (approved by B.E.R.N.I.S.S for the owner): the branch that holds the stock may send it to another branch of
-     * the same organisation. The source stays at the requester's own branch (assertSourceAuthority) and only the
+     * the same organisation, from its own location. The source stays at the requester's own branch (assertSourceAuthority) and only the
      * destination branch's own receivers receive it (assertDestinationAuthority at receive). The organisation is enforced
      * by the location foreign keys; the returns rule by the callers and PostgreSQL.
      */
-    private function assertRequestDestination(User $actor, Branch $branch, InventoryLocation $destination): void
+    private function assertRequestDestination(User $actor, Branch $branch, InventoryLocation $source, InventoryLocation $destination): void
     {
-        if ($destination->branch_id === null) {
+        // Only a branch sending its own stock may point at another branch. Warehouse stock keeps the old rule (the
+        // destination is the requester's own branch or the warehouse), so no warehouse holder sends to any branch.
+        if ($destination->branch_id === null || $source->branch_id === null) {
             $this->assertDestinationAuthority($actor, $branch, $destination);
 
             return;
         }
         abort_unless($destination->organisation_id === $actor->organisation_id, 404);
+        // A branch that is no longer active never receives.
+        abort_unless(Branch::query()->whereKey($destination->branch_id)->where('organisation_id', $actor->organisation_id)->where('is_active', true)->exists(), 404);
     }
 
     private function assertDestinationAuthority(User $actor, Branch $branch, InventoryLocation $destination): void
