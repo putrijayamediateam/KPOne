@@ -10,6 +10,7 @@ import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
+import { panelClaimTone } from '@/lib/panel-claim-status';
 
 type Row = {
     invoiceNumber: string;
@@ -90,18 +91,6 @@ const reset = () => {
     });
     router.get('/panel-invoices');
 };
-// The claim status word is shown exactly as the server sends it; the badge only adds the tone.
-type Tone = 'neutral' | 'success' | 'warning' | 'danger';
-const tones: Record<string, Tone> = {
-    accepted: 'success',
-    paid: 'success',
-    partially_accepted: 'warning',
-    partially_paid: 'warning',
-    queried: 'warning',
-    rejected: 'danger',
-};
-const claimTone = (status: string): Tone =>
-    tones[status.toLowerCase().replaceAll(' ', '_')] ?? 'neutral';
 const canDownload = computed(() => props.ready && props.total > 0);
 </script>
 
@@ -318,7 +307,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
                             </p>
                             <StatusBadge
                                 :status="row.claimStatus"
-                                :tone="claimTone(row.claimStatus)"
+                                :tone="panelClaimTone(row.claimStatus)"
                                 :label="row.claimStatus"
                                 class="shrink-0"
                             />
@@ -420,7 +409,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
                             <td>
                                 <StatusBadge
                                     :status="row.claimStatus"
-                                    :tone="claimTone(row.claimStatus)"
+                                    :tone="panelClaimTone(row.claimStatus)"
                                     :label="row.claimStatus"
                                 />
                                 <div
