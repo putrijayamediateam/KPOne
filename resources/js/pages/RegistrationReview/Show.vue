@@ -199,6 +199,11 @@ const guardianAcceptError = computed(() =>
         .join(' '),
 );
 const rejectionCategory = ref('insufficient_information');
+const categoryLabel = (category: string): string => {
+    const text = category.replaceAll('_', ' ');
+
+    return text.charAt(0).toUpperCase() + text.slice(1);
+};
 const medicineOnly = computed(() => props.intake.fields.visit_kind === 'otc');
 const doctorOptions = computed(() =>
     props.visitOptions.doctors.map((d) => ({ value: d.id, label: d.name })),
@@ -325,14 +330,17 @@ watch(
             >
                 <ArrowLeft class="size-3.5" /> Registration · QR Intake
             </Link>
-            <PageHeader
-                title="Registration Review"
-                :eyebrow="visitOptions.branch.name"
-            >
+            <PageHeader title="Registration Review">
                 <template #title-extra>
-                    <Badge variant="outline">{{ intakeStatus }}</Badge>
+                    <Badge variant="outline" class="gap-1.5"
+                        ><span
+                            class="size-1.5 rounded-full bg-current"
+                            aria-hidden="true"
+                        />{{ intakeStatus }}</Badge
+                    >
                 </template>
                 <template #description>
+                    {{ visitOptions.branch.name }} ·
                     <span class="font-mono text-xs">{{ intake.publicId }}</span>
                 </template>
             </PageHeader>
@@ -363,7 +371,7 @@ watch(
                             class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11" /><InputError
                             :message="correction.errors.full_name"
                     /></label>
-                    <div class="grid grid-cols-2 items-start gap-3">
+                    <div class="grid grid-cols-1 items-start gap-3">
                         <label class="grid gap-1"
                             ><span class="text-sm font-medium"
                                 >Date of birth</span
@@ -418,7 +426,7 @@ watch(
                             " /><InputError
                             :message="correction.errors.nationality_code"
                     /></label>
-                    <div class="grid grid-cols-[8rem_1fr] gap-2">
+                    <div class="grid grid-cols-[8rem_1fr] gap-2 md:col-span-2">
                         <select
                             v-model="correction.identifier_type"
                             aria-label="Identifier type"
@@ -883,11 +891,12 @@ watch(
         <Card v-if="canMutate" class="rounded-xl"
             ><CardHeader
                 ><CardTitle>Controlled alternatives</CardTitle></CardHeader
-            ><CardContent class="flex flex-wrap items-end gap-3"
+            ><CardContent
+                class="flex flex-wrap items-end gap-3 max-lg:flex-col max-lg:items-stretch"
                 ><Button
                     type="button"
                     variant="outline"
-                    class="max-lg:h-11"
+                    class="max-lg:h-11 max-lg:w-full"
                     :disabled="actionProcessing"
                     @click="requireCorrection"
                     ><ShieldAlert class="size-4" />Correction required</Button
@@ -896,20 +905,20 @@ watch(
                         >Rejection category</span
                     ><select
                         v-model="rejectionCategory"
-                        class="h-9 rounded-[10px] border bg-background px-2 max-lg:h-11"
+                        class="h-9 w-full rounded-[10px] border bg-background px-2 max-lg:h-11"
                     >
                         <option
                             v-for="category in rejectionCategories"
                             :key="category"
                             :value="category"
                         >
-                            {{ category.replaceAll('_', ' ') }}
+                            {{ categoryLabel(category) }}
                         </option>
                     </select></label
                 ><Button
                     type="button"
                     variant="destructive"
-                    class="max-lg:h-11"
+                    class="max-lg:h-11 max-lg:w-full"
                     :disabled="actionProcessing"
                     @click="reject"
                     >Reject intake</Button
