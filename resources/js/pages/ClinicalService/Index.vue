@@ -278,7 +278,7 @@ const toggleDescription = computed(() => {
             description="Create and manage clinical services available for ordering on a Treatment Plan."
         >
             <template #actions>
-                <Button size="sm" @click="openCreate">
+                <Button size="sm" class="max-lg:h-11" @click="openCreate">
                     <Plus class="size-4" aria-hidden="true" /> Add clinical
                     service
                 </Button>
@@ -319,7 +319,7 @@ const toggleDescription = computed(() => {
                     :options="statusOptions"
                 />
             </div>
-            <Button size="sm" type="submit" class="min-h-11 sm:min-h-8"
+            <Button size="sm" type="submit" class="min-h-11 lg:min-h-8"
                 >Apply</Button
             >
         </form>
@@ -336,7 +336,7 @@ const toggleDescription = computed(() => {
             <article
                 v-for="row in services.data"
                 :key="row.publicId"
-                class="grid min-w-0 gap-3 rounded-xl border bg-card p-4"
+                class="grid min-w-0 gap-3 rounded-[14px] border bg-card p-5"
                 data-testid="service-card"
             >
                 <div class="flex min-w-0 items-start justify-between gap-3">
