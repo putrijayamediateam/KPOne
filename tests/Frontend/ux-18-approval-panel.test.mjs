@@ -101,7 +101,7 @@ test('UX-18: it calls only the caller-given endpoint with the caller payload, an
 test('UX-18: the avatar stack has a text equivalent and the empty dashed circle', () => {
     assert.match(source, /role="group"\s+:aria-label="recorderText"/);
     assert.match(source, /aria-label="Second person: not yet"/);
-    assert.match(source, /bg-foreground\/10/);
+    assert.match(source, /bg-\[color-mix\(in_oklab,var\(--foreground\)_12%,var\(--card\)\)\]/);
     assert.match(source, /<DialogTitle class="pr-8 text-left"\s*>/);
     assert.match(source, /border-dashed/);
     assert.match(source, /Waiting for a second person/);

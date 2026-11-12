@@ -179,7 +179,7 @@ const confirmReject = () => {
                 :aria-label="recorderText"
             >
                 <span
-                    class="relative z-10 flex size-8 items-center justify-center rounded-full border-2 border-card bg-foreground/10 text-xs font-semibold text-foreground"
+                    class="relative z-10 flex size-8 items-center justify-center rounded-full border-2 border-card bg-[color-mix(in_oklab,var(--foreground)_12%,var(--card))] text-xs font-semibold text-foreground"
                     role="img"
                     :aria-label="`Recorded by ${recordedBy}`"
                     data-test="approval-panel-recorder"
