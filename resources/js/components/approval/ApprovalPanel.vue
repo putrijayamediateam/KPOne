@@ -25,6 +25,10 @@ import { getInitials } from '@/composables/useInitials';
  * server's answer is shown as it comes back. `canDecide` and `blockedReason` come from the server and only choose
  * what to show: the server still refuses a decision it does not allow.
  *
+ * Refusals must come back as validation errors (422, as `ValidationException` does): those are shown here. Any other
+ * status is Inertia's own error page. Approve sends at once with no confirmation step, so an adopting page should only
+ * pass an approve action that the evidence on the card is enough to decide.
+ *
  * Approve is outline and Reject is destructive-outline, never two filled buttons side by side. Reject asks for its
  * required reason in a dialog: a reason code list (`reject.reasons`) or free text.
  */
@@ -73,6 +77,13 @@ const rejectOpen = ref(false);
 const reason = ref<string | number>('');
 
 const firstError = computed(() => Object.values(errors.value)[0] ?? '');
+/** An error the server returned under another key (a stale version, for example), shown beside the reason. */
+const otherError = computed(
+    () =>
+        Object.entries(errors.value).find(
+            ([key]) => key !== props.reject.reasonField,
+        )?.[1] ?? '',
+);
 const reasonError = computed(
     () => errors.value[props.reject.reasonField] ?? '',
 );
@@ -111,6 +122,19 @@ const send = (
 };
 
 const approve = () => send('approve', props.approve);
+
+// The dialog cannot close while a rejection is being sent; closing it clears its errors.
+const setRejectOpen = (open: boolean) => {
+    if (!open && busy.value === 'reject') {
+        return;
+    }
+
+    rejectOpen.value = open;
+
+    if (!open) {
+        errors.value = {};
+    }
+};
 
 const openReject = () => {
     errors.value = {};
@@ -227,13 +251,14 @@ const confirmReject = () => {
             data-test="approval-panel-error"
         />
 
-        <Dialog v-model:open="rejectOpen">
-            <DialogContent class="sm:max-w-md">
+        <Dialog :open="rejectOpen" @update:open="setRejectOpen">
+            <DialogContent
+                class="motion-reduce:transition-none motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none sm:max-w-md"
+            >
                 <DialogHeader>
                     <DialogTitle>Reject: {{ title }}</DialogTitle>
                     <DialogDescription>
-                        A reason is required. {{ recordedBy }} will see that it
-                        was rejected.
+                        Say why you are rejecting it. A reason is required.
                     </DialogDescription>
                 </DialogHeader>
                 <form
@@ -258,22 +283,24 @@ const confirmReject = () => {
                     <Textarea
                         v-else
                         :id="reasonId"
-                        v-model="reason as string"
+                        :model-value="String(reason)"
                         rows="3"
                         :maxlength="reject.maxLength ?? 500"
                         :aria-invalid="reasonError !== '' || undefined"
-                        aria-:describedby="reasonErrorId"
+                        @update:model-value="reason = String($event)"
+                        :aria-describedby="reasonErrorId"
                     />
+                    <InputError :id="reasonErrorId" :message="reasonError" />
                     <InputError
-                        :id="reasonErrorId"
-                        :message="reasonError || (rejectOpen ? firstError : '')"
+                        :message="otherError"
+                        data-test="approval-panel-dialog-error"
                     />
                     <DialogFooter class="mt-2 gap-2">
                         <Button
                             type="button"
                             variant="ghost"
                             class="max-sm:h-11"
-                            @click="rejectOpen = false"
+                            @click="setRejectOpen(false)"
                         >
                             Cancel
                         </Button>

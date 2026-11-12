@@ -50,7 +50,10 @@ test('UX-18: Approve is outline and Reject is destructive-outline; no filled but
 });
 
 test('UX-18: Reject takes its required reason in a dialog, as a code list or free text', () => {
-    assert.match(source, /<Dialog v-model:open="rejectOpen">/);
+    assert.match(
+        source,
+        /<Dialog :open="rejectOpen" @update:open="setRejectOpen">/,
+    );
     assert.match(source, /@click="openReject"/);
     assert.match(source, /v-if="reject\.reasons\?\.length"/);
     assert.match(source, /<Textarea\s+v-else/);
@@ -111,4 +114,26 @@ test('UX-18: no page adopts the panel in this slice', () => {
             `${file} should not use ApprovalPanel yet`,
         );
     }
+});
+
+test('UX-18 review: both reason fields are linked to their error, and other server errors show in the dialog', () => {
+    assert.match(source, /<Textarea[\s\S]*?:aria-describedby="reasonErrorId"/);
+    assert.match(
+        source,
+        /<OperationalSelect[\s\S]*?:describedby="reasonErrorId"/,
+    );
+    assert.doesNotMatch(source, /aria-:/);
+    assert.match(
+        source,
+        /<InputError :id="reasonErrorId" :message="reasonError" \/>/,
+    );
+    assert.match(source, /data-test="approval-panel-dialog-error"/);
+    assert.match(source, /if \(!open && busy\.value === 'reject'\)/);
+});
+
+test('UX-18 DD-55: the reject dialog respects reduced motion', () => {
+    assert.match(
+        source,
+        /motion-reduce:transition-none motion-reduce:data-\[state=closed\]:animate-none motion-reduce:data-\[state=open\]:animate-none/,
+    );
 });
