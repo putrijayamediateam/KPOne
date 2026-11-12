@@ -11,6 +11,7 @@ import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2StickySummary from '@/components/v2/V2StickySummary.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
+import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import type { BranchContext, VisitDetail, VisitOptions } from '@/types';
 
 /**
@@ -44,6 +45,14 @@ const panelOptions = [
         label: panel.name,
     })),
 ];
+usePageCrumbs(() => [
+    { title: 'Registration', href: '/registration' },
+    {
+        title: props.visit.visitNumber,
+        href: `/visits/${props.visit.visitNumber}`,
+    },
+    { title: 'Edit' },
+]);
 const page = usePage<{ branchContext: BranchContext }>();
 const selectedVisitReasons = ref<VisitReasonOption[]>(
     props.visit.visitReasons.structured.map((reason) => ({

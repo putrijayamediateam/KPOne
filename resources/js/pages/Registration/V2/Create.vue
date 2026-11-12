@@ -21,6 +21,7 @@ import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2StickySummary from '@/components/v2/V2StickySummary.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { useRegistrationCreate } from '@/composables/registration/useRegistrationCreate';
+import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import { knownMinor } from '@/lib/guardian-contact';
 import { formatDate } from '@/lib/presentation';
 import type { PatientRegistrationSummary, VisitOptions } from '@/types';
@@ -38,6 +39,10 @@ const props = defineProps<{
     guardianToday?: string;
 }>();
 const c = useRegistrationCreate(props);
+usePageCrumbs(() => [
+    { title: 'Registration', href: '/registration' },
+    { title: 'Register visit' },
+]);
 const {
     form,
     quick,

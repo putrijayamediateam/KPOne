@@ -5,6 +5,7 @@ import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
+import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import { formatDate, formatDateTime } from '@/lib/presentation';
 import { queuePresentationLabel } from '@/lib/r1c2-presentation';
 import type { BranchContext, VisitDetail } from '@/types';
@@ -17,6 +18,10 @@ const props = defineProps<{
     visit: VisitDetail;
     attendanceCopies: { id: number; number: string }[];
 }>();
+usePageCrumbs(() => [
+    { title: 'Registration', href: '/registration' },
+    { title: props.visit.visitNumber },
+]);
 const page = usePage<{
     branchContext: BranchContext;
     auth: { permissions: string[] };
