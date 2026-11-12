@@ -38,12 +38,23 @@ const gs1 = (batch, expiry = null, certain = true) => ({
     complete: certain,
 });
 
-test('a box batch saved on the line matches, ignoring case and spaces', () => {
+test('a single-batch line says the saved batch matches the box', () => {
+    const one = [saved[1], { ...saved[1], batchPublicId: 'b2' }];
+    const result = boxBatchCheck(gs1('PCM2405', '2028-11-10'), one);
+
+    assert.equal(result.kind, 'matches');
+    assert.equal(result.message, 'Saved batch PCM2405 matches the box.');
+});
+
+test('a split line says the box is one of its saved batches (Daniel)', () => {
     const result = boxBatchCheck(gs1(' pcm2405', '2028-11-10'), saved);
 
     assert.equal(result.kind, 'matches');
     assert.equal(result.warn, false);
-    assert.equal(result.message, 'Saved batch pcm2405 matches the box.');
+    assert.equal(
+        result.message,
+        "Box batch pcm2405 is one of this line's saved batches.",
+    );
 });
 
 test('a box batch that is not saved on the line warns', () => {

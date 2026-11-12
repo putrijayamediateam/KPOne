@@ -260,9 +260,17 @@ export function boxBatchCheck(
         };
     }
 
+    // A line split across two or more batches: the box is one of them, not the whole line (Daniel).
+    const distinct = new Set(
+        savedNumbers.map((batch) => batch.batchNumber.trim().toUpperCase()),
+    );
+
     return {
         kind: 'matches',
         warn: false,
-        message: `Saved batch ${candidate} matches the box.`,
+        message:
+            distinct.size > 1
+                ? `Box batch ${candidate} is one of this line's saved batches.`
+                : `Saved batch ${candidate} matches the box.`,
     };
 }
