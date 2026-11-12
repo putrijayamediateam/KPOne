@@ -281,7 +281,7 @@ watch(selected, async (code) => {
         </div>
 
         <div
-            class="grid items-start gap-5 xl:grid-cols-[300px_minmax(0,1fr)_320px]"
+            class="grid items-start gap-5 xl:grid-cols-[300px_minmax(0,1fr)_260px]"
         >
             <section
                 aria-labelledby="office-agents-heading"
@@ -298,10 +298,10 @@ watch(selected, async (code) => {
                     >
                         <button
                             type="button"
-                            class="flex min-h-11 w-full min-w-0 flex-col gap-1.5 rounded-[14px] border bg-card p-3.5 text-left hover:border-brand focus-visible:outline-2 focus-visible:outline-brand"
+                            class="flex min-h-11 w-full min-w-0 flex-col gap-1.5 rounded-[14px] border bg-card p-3.5 text-left hover:border-primary focus-visible:outline-2 focus-visible:outline-primary"
                             :class="{
                                 'opacity-65': !agent.isEnabled,
-                                'border-brand': selected === agent.code,
+                                'border-primary': selected === agent.code,
                             }"
                             :data-test="`office-card-${agent.code}`"
                             @click="select(agent.code)"
@@ -329,7 +329,14 @@ watch(selected, async (code) => {
                             <span class="text-xs text-muted-foreground">
                                 {{ agent.jobTitle }} · {{ statusFor(agent) }}
                             </span>
-                            <span class="truncate text-sm">
+                            <span
+                                class="line-clamp-2 text-sm"
+                                :title="
+                                    agent.currentTask ??
+                                    agent.lastStep ??
+                                    undefined
+                                "
+                            >
                                 {{
                                     agent.currentTask ??
                                     agent.lastStep ??
@@ -428,7 +435,7 @@ watch(selected, async (code) => {
                         <button
                             ref="closeButton"
                             type="button"
-                            class="ml-auto flex size-11 items-center justify-center rounded-lg text-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-brand"
+                            class="ml-auto flex size-11 items-center justify-center rounded-lg text-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
                             aria-label="Close"
                             @click="closePanel"
                         >
@@ -576,7 +583,7 @@ watch(selected, async (code) => {
                             <Link
                                 v-if="canOpenInbox && detail.pendingTotal > 0"
                                 href="/agents/inbox"
-                                class="inline-flex min-h-11 items-center font-medium text-brand-strong underline"
+                                class="inline-flex min-h-11 items-center font-medium text-primary underline"
                             >
                                 Open the approval inbox
                             </Link>
@@ -641,7 +648,7 @@ watch(selected, async (code) => {
                     <div v-if="canOpenInbox" class="border-t px-4">
                         <Link
                             href="/agents/inbox"
-                            class="inline-flex min-h-11 items-center text-sm font-medium text-brand-strong underline"
+                            class="inline-flex min-h-11 items-center text-sm font-medium text-primary underline"
                         >
                             Open the approval inbox
                         </Link>
