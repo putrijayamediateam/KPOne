@@ -3,7 +3,7 @@ import { ref } from 'vue';
 
 /**
  * Version 2 toolbar: a search box, the main filters, one primary action, and an optional "More filters" disclosure
- * under the main row (the page puts the extra filters in the `more` slot; Reset emits `reset`).
+ * under the main row (`inputId` names the search input's id, for a page that needs to find it; the page puts the extra filters in the `more` slot; Reset emits `reset`).
  */
 const props = withDefaults(
     defineProps<{
@@ -11,8 +11,9 @@ const props = withDefaults(
         searchLabel: string;
         searchPlaceholder?: string;
         moreFilters?: boolean;
+        inputId?: string;
     }>(),
-    { searchPlaceholder: '', moreFilters: false },
+    { searchPlaceholder: '', moreFilters: false, inputId: undefined },
 );
 
 const emit = defineEmits<{
@@ -46,6 +47,7 @@ void props;
                     <path d="m20 20-3.5-3.5" />
                 </svg>
                 <input
+                    :id="inputId"
                     type="search"
                     :value="modelValue"
                     :placeholder="searchPlaceholder"
