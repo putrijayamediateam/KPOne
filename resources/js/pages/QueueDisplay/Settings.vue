@@ -428,7 +428,7 @@ const removePoster = (posterId: string) => {
                     />
                     <InputError :message="settingsForm.errors.youtube_url" />
                 </label>
-                <label class="grid max-w-xs gap-1 text-xs">
+                <label class="grid gap-1 text-xs lg:max-w-xs">
                     Seconds per poster
                     <Input
                         v-model.number="settingsForm.poster_seconds"

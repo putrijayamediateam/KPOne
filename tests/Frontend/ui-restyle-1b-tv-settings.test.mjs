@@ -57,3 +57,10 @@ test('the poster picker is the shared file button, so a long file name cannot wi
     // Removing a poster is unchanged: the same button, the same words, the same request.
     assert.match(template, /@click="removePoster\(poster\.id\)"\s*>Remove</);
 });
+
+test('Seconds per poster is as wide as the other fields below 1024 px and a deliberate short field from there', () => {
+    assert.match(
+        template,
+        /<label class="grid gap-1 text-xs lg:max-w-xs">\s+Seconds per poster/,
+    );
+});
