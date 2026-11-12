@@ -196,7 +196,7 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
             class="relative flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[15px] text-foreground outline-none transition-colors hover:bg-card/60 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 max-sm:px-2.5 lg:h-9"
             :class="
                 modelValue === tab.value
-                    ? 'bg-card text-primary font-medium ring-1 ring-border hover:bg-card dark:bg-foreground/8 dark:hover:bg-foreground/8'
+                    ? 'bg-card text-primary font-medium ring-1 ring-border hover:bg-card dark:bg-foreground/8 dark:text-[color-mix(in_srgb,var(--primary),white_30%)] dark:hover:bg-foreground/8'
                     : ''
             "
             :aria-selected="modelValue === tab.value"
