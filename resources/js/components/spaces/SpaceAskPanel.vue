@@ -21,6 +21,26 @@ const busy = ref<string | null>(null);
 const error = ref('');
 const failed = ref<Question | null>(null);
 
+// Below lg an answer shows as cards: the first cell (and the second after a queue number) is the title and the
+// remaining cells are one muted line.
+const cardOf = (cells: string[]): { title: string; line: string } => {
+    const numbered = answer.value?.columns[0] === 'Number';
+    const head = numbered ? 2 : 1;
+
+    // A date column reads like a join date at the end of a muted line, so its card text is prefixed with its heading.
+    const labelled = cells.map((cell, i) =>
+        answer.value?.columns[i] === 'Inactive since' &&
+        cell !== 'Date not recorded'
+            ? `Inactive since ${cell}`
+            : cell,
+    );
+
+    return {
+        title: labelled.slice(0, head).join(' '),
+        line: labelled.slice(head).join(' · '),
+    };
+};
+
 const csrf = () =>
     decodeURIComponent(
         document.cookie
@@ -101,7 +121,11 @@ const ask = async (question: Question) => {
             </div>
             <template v-else-if="answer">
                 <p class="space-ask-sentence">{{ answer.sentence }}</p>
-                <div v-if="answer.rows.length" class="space-ask-table">
+                <div
+                    v-if="answer.rows.length"
+                    class="space-ask-table"
+                    :class="{ 'is-numbered': answer.columns[0] === 'Number' }"
+                >
                     <table>
                         <thead>
                             <tr>
@@ -123,6 +147,14 @@ const ask = async (question: Question) => {
                         </tbody>
                     </table>
                 </div>
+                <ul v-if="answer.rows.length" class="space-ask-cards">
+                    <li v-for="(r, i) in answer.rows" :key="i">
+                        <strong>{{ cardOf(r).title }}</strong>
+                        <span v-if="cardOf(r).line" class="space-muted">{{
+                            cardOf(r).line
+                        }}</span>
+                    </li>
+                </ul>
                 <p class="space-ask-meta space-muted">
                     as of {{ answer.asOf }} ·
                     <Link :href="answer.href" class="space-link"

@@ -46,20 +46,45 @@ export const purchaseOrderActionAllowed = (
     );
 };
 
+/**
+ * STK-31: a request can now go to another branch, so each row says which end the viewer is at. The requesting branch
+ * decides, the source branch dispatches and only the destination branch receives. Without flags (older callers) only
+ * the status and permission count; the server always decides.
+ */
+export type StockRequestSides = {
+    atRequesting?: boolean;
+    atSource?: boolean;
+    atDestination?: boolean;
+};
+
 export const stockRequestActionAllowed = (
     status: string,
     action: 'decide' | 'dispatch' | 'receive',
     permissions: InventoryOperationPermissions,
+    sides: StockRequestSides = {},
 ): boolean => {
     if (action === 'decide') {
-        return status === 'requested' && permissions.approveRequests === true;
+        return (
+            status === 'requested' &&
+            permissions.approveRequests === true &&
+            sides.atRequesting !== false &&
+            sides.atSource !== false
+        );
     }
 
     if (action === 'dispatch') {
-        return status === 'approved' && permissions.dispatchTransfers === true;
+        return (
+            status === 'approved' &&
+            permissions.dispatchTransfers === true &&
+            sides.atSource !== false
+        );
     }
 
-    return status === 'dispatched' && permissions.receiveTransfers === true;
+    return (
+        status === 'dispatched' &&
+        permissions.receiveTransfers === true &&
+        sides.atDestination !== false
+    );
 };
 
 export const stocktakeActionAllowed = (

@@ -13,6 +13,7 @@ use App\Domain\Organisation\Inventory\Services\ReceivingReviewService;
 use App\Domain\Organisation\Inventory\Services\StockRequestService;
 use App\Domain\Organisation\Inventory\Services\SupplierAdministrationService;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -208,7 +209,17 @@ class InventoryOperationsController extends Controller
         try {
             $service->create($request->user(), $request->only(['expected_branch_id', 'source_location_public_id', 'destination_location_public_id', 'lines']));
         } catch (ValidationException $exception) {
-            throw $this->stayOnInventory($exception);
+            // STK-31: a request sent from "Stock other branches need" stays on that page when refused.
+            throw $request->input('from') === 'branch-replenishment'
+                ? $exception->redirectTo(route('inventory.branch-replenishment'))
+                : $this->stayOnInventory($exception);
+        }
+
+        if ($request->input('from') === 'branch-replenishment') {
+            // STK-31: stay on the page the request came from; it is approved and sent from Inventory operations.
+            Inertia::flash('toast', ['type' => 'success', 'message' => 'Stock Request submitted. Approve and send it in Inventory operations.']);
+
+            return to_route('inventory.branch-replenishment');
         }
 
         return $this->success('Stock Request submitted.');
@@ -335,10 +346,17 @@ class InventoryOperationsController extends Controller
         return $this->success('Inventory adjustment posted.');
     }
 
+    /** STK-30b: the saved level for the chosen location and SKU, so the form can show it and send its version. */
+    public function currentReorderLevel(Request $request, InventoryControlService $service): JsonResponse
+    {
+        return response()->json(['level' => $service->currentReorderLevel($request->user(), $request->only(['expected_branch_id', 'location_public_id', 'sku_public_id']))])
+            ->header('Cache-Control', 'private, no-store');
+    }
+
     public function reorderLevel(Request $request, InventoryControlService $service): RedirectResponse
     {
         try {
-            $service->setReorderLevel($request->user(), $request->only(['expected_branch_id', 'location_public_id', 'sku_public_id', 'reorder_level']));
+            $service->setReorderLevel($request->user(), $request->only(['expected_branch_id', 'location_public_id', 'sku_public_id', 'reorder_level', 'max_level', 'expected_lock_version', 'idempotency_key']));
         } catch (ValidationException $exception) {
             throw $this->stayOnInventory($exception);
         }
