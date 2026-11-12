@@ -29,20 +29,21 @@ per SKU, how often to check, who may check, how long to keep it, and the wording
 **Please answer those six questions on that sheet.** Two points from the related procedures are worth reading
 alongside it:
 
-- **The second-person check.** The person who checks a register cannot be anyone who recorded a movement of that
-  medicine since the last check, and cannot be whoever did the last check. So the person who received a
+- **The second-person check.** The person who checks a register cannot be anyone who recorded a movement on that
+  register since the last check, and cannot be whoever did the last check. So the person who received a
   controlled delivery never checks it.
 - **Where controlled medicines are kept.** KPOne has no "locked" location type. A move to a locked cupboard is an
   ordinary transfer between two locations of the same branch, and the register shows it as both In and Out with
   no change to the balance. Where the cupboard is, and who holds the key, are for the clinic to decide (see the
-  stock admission procedure, [`STOCK-ADMISSION.md`](STOCK-ADMISSION.md), question 4).
+  draft stock admission procedure, [`STOCK-ADMISSION.md`](STOCK-ADMISSION.md), question 4; in review as PR #618).
 
 ## Part B. Which batches may be dispensed, and in what order
 
 ### B1. When a batch may be dispensed at all
 
 At Dispensary, a batch can be saved on a medicine line and completed only when **all** of these are true. KPOne
-checks them again at "Complete Dispensary", so a batch that became unusable in between is refused.
+checks them again at "Complete Dispensary", so a batch that became unusable in between is refused. Each message
+starts with the medicine name.
 
 | Rule | What the CA sees if it fails |
 |---|---|
@@ -50,18 +51,17 @@ checks them again at "Complete Dispensary", so a batch that became unusable in b
 | The batch status is available | "the batch status is not available" |
 | The expiry date is **after** today's branch-local date. A batch that expires today cannot be dispensed today | "the batch expiry must be after the branch-local current date" |
 | The batch is not under a recall | "the batch is under a recall at every branch" |
-| The batch is not held at this branch | "the batch is held at this branch" (followed by the hold reason) |
+| The batch is not held at this branch | "the batch is held at this branch" (followed by a reason code in brackets) |
 | The stock is in a dispensary location of this branch (never a patient returns location) | The batch is not offered |
 
-**Held and recalled batches** are shown in the batch list but cannot be selected. **Expired batches** that are not
-held are not shown at all.
+**Held and recalled batches** are shown in the batch list but cannot be selected. **Other unusable batches** (expired,
+inactive or not available) are not shown at all.
 
 ### B2. Which batch KPOne offers first
 
-- The batch list shows the branch's dispensary stock for that SKU, up to 100 batches. They are sorted by:
-  1. this branch's dispensary locations first;
-  2. then the earliest expiry date;
-  3. then the batch received earliest.
+- The batch list shows stock of that SKU in **all** of this branch's dispensary locations, up to 100 rows. It is
+  sorted by the earliest expiry date, then the batch received earliest.
+- So the first batch can be in a different dispensary location from the one the CA is working at.
 - **KPOne pre-selects the first batch that can be used,** which is the earliest-expiring usable batch. The CA can
   choose another.
 - Each option reads like: "120 capsule on hand · exp 30 Oct 2027 · B2611 · Dispensary".
@@ -89,21 +89,29 @@ exists."
 - **Same expiry date.** Two batches with the same expiry date never trigger the rule, whichever is chosen.
 - **Any dispensary location.** The earlier batch counts if it has stock in any dispensary location of the branch,
   not only the location chosen.
-- **When it is checked.** The rule is checked when the line is saved. There is no warning while the CA is still
-  choosing.
+- **Usable earlier batches only.** A held or recalled earlier batch does not count. So KPOne never requires
+  "Earlier batch held"; a CA can only choose it voluntarily.
+- **Stock already promised.** The rule looks at the stock on the shelf when the line is saved. Stock leaves the
+  shelf only at "Complete Dispensary". So an earlier batch can still count when its stock is already given to
+  another line; that is what "Earlier batch insufficient" is for.
+- **When it is checked.** The rule is checked when the line is saved, and **not again at "Complete Dispensary"**.
+  There is no warning while the CA is still choosing.
 - **Who.** Any CA or CA Supervisor who may edit the Dispensary case can choose the reason. There is no second
   approver and no free-text note.
-- **What is recorded.** The reason code is stored on the batch allocation, with an audit entry. After "Complete
-  Dispensary" it can never be changed.
+- **What is recorded.** The reason code is stored on the batch allocation. The audit log records who chose an
+  exception and when, but **not which reason**. After "Complete Dispensary" the stored reason can never be
+  changed.
 - **What is not recorded or reported.**
-  - If the line is saved again before completion, only the audit log keeps the earlier reason.
+  - If the line is saved again before completion, the earlier reason is lost. Only the audit entry that an
+    exception was chosen remains.
   - No report or screen lists FEFO exceptions.
 - **Not checked.** A reason can be given even when no earlier batch exists.
 
 ### B4. Expiry warnings outside Dispensary
 
 - "Stock review" lists "Expiring soon": usable stock expiring after today, up to and including day 90. It also
-  lists "Expired stock still on hand", whatever its state, until the stock is written off.
+  lists "Expired stock still on hand", whatever its state, until the stock leaves that location (normally by
+  write-off; see B5 for transfers).
 - There is **no short-dated warning at Dispensary.** The CA sees only "exp <date>" on each batch.
 - KPOne does not stop a short-dated batch being dispensed. Only a batch expiring today or earlier is refused.
 
@@ -113,7 +121,7 @@ exists."
 |---|---|---|
 | Treatment room usage | Yes. Expired, held or unavailable stock is refused and sent to the governed write-off | No |
 | Stock request dispatch to another location or branch | Only part: the batch must be available, and expired stock is refused ("Expired stock cannot be dispatched."). Holds and recalls are **not** checked | No |
-| Direct transfer between locations of one branch | No expiry, hold or recall check | No |
+| Direct transfer (within a branch, or to or from an organisation store) | No expiry, hold or recall check | No |
 
 **Note:** these two transfer gaps are recorded for the Inventory team. They are not changed by this pack.
 
