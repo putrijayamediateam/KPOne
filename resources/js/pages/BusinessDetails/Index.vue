@@ -523,8 +523,8 @@ const reload = () =>
                                     id="label_address-help"
                                     class="mt-1 text-sm text-muted-foreground"
                                 >
-                                    Used only on drug labels. Up to 96
-                                    characters.
+                                    Used only on drug labels. Leave empty to
+                                    print the full address. Up to 96 characters.
                                 </p>
                                 <InputError
                                     id="label_address-error"

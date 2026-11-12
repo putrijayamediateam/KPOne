@@ -18,7 +18,10 @@ test('Business details has an optional short address for drug labels, limited to
         page,
         /id="label_address" v-model="form\.label_address" name="label_address" maxlength="96"/,
     );
-    assert.match(page, /Used only on drug labels\. Up to 96 characters\./);
+    assert.match(
+        page,
+        /Used only on drug labels\. Leave empty to print the full address\. Up to 96 characters\./,
+    );
     assert.match(
         page,
         /aria-describedby="label_address-help label_address-error"/,
