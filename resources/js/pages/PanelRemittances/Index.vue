@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { Inbox } from '@lucide/vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import PanelStatementHelper from '@/components/panel/PanelStatementHelper.vue';
@@ -158,6 +159,21 @@ const canRecord = computed(
         leftSen.value === 0,
 );
 
+// Phone text size and dark fill for the amount boxes; kept apart so the pinned class string (ending max-lg:h-11) stays intact.
+const amountFieldExtra = 'max-lg:text-base dark:bg-field-fill/30';
+
+// One quiet line above Record payment for the one case no other line on the page explains.
+const recordHelp = computed(() =>
+    props.filters.panel !== '' &&
+    props.openClaims.length > 0 &&
+    !form.busy &&
+    (amountSen.value ?? 0) > 0 &&
+    invalidParts.value.length === 0 &&
+    splitRows.value.length === 0
+        ? 'Enter an amount for at least one claim.'
+        : '',
+);
+
 const choosePanel = (code: string) => {
     router.get('/panel-remittances', code === '' ? {} : { panel: code }, {
         preserveScroll: true,
@@ -259,7 +275,7 @@ const record = () => {
 <template>
     <Head title="Panel payments" />
     <main
-        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-5 px-4 py-6 md:px-6"
     >
         <PageHeader
             title="Panel payments"
@@ -267,7 +283,7 @@ const record = () => {
         />
 
         <section
-            class="space-y-4 rounded-xl border bg-card p-4"
+            class="space-y-5 rounded-xl border bg-card p-4 md:p-5"
             aria-label="Record a Panel payment"
         >
             <h2 class="text-base font-semibold">Record a Panel payment</h2>
@@ -277,12 +293,14 @@ const record = () => {
                 claim. The split must add up exactly to the payment. A recorded
                 payment cannot be edited or deleted.
             </p>
-            <div class="grid grid-cols-1 gap-3 md:grid-cols-4">
-                <label class="grid min-w-0 gap-1 text-xs md:col-span-2">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-4">
+                <label
+                    class="grid min-w-0 gap-1.5 text-[13px] font-medium md:col-span-2"
+                >
                     Panel
                     <select
                         :value="filters.panel"
-                        class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
+                        class="h-9 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 lg:text-sm dark:bg-field-fill/30"
                         aria-label="Panel"
                         @change="
                             choosePanel(
@@ -300,16 +318,17 @@ const record = () => {
                         </option>
                     </select>
                 </label>
-                <label class="grid min-w-0 gap-1 text-xs">
+                <label class="grid min-w-0 gap-1.5 text-[13px] font-medium">
                     Amount received (RM)
                     <Input
                         v-model="form.amount"
                         inputmode="decimal"
                         placeholder="0.00"
                         :disabled="filters.panel === ''"
+                        class="max-lg:h-11"
                     />
                 </label>
-                <label class="grid min-w-0 gap-1 text-xs">
+                <label class="grid min-w-0 gap-1.5 text-[13px] font-medium">
                     Date received
                     <DateField
                         v-model="form.receivedDate"
@@ -318,31 +337,46 @@ const record = () => {
                         :echo="false"
                     />
                 </label>
-                <label class="grid min-w-0 gap-1 text-xs md:col-span-2">
+                <label
+                    class="grid min-w-0 gap-1.5 text-[13px] font-medium md:col-span-2"
+                >
                     Payment reference (optional)
                     <Input
                         v-model="form.reference"
                         maxlength="100"
                         :disabled="filters.panel === ''"
+                        class="max-lg:h-11"
                     />
                 </label>
             </div>
 
-            <p
+            <div
                 v-if="filters.panel === ''"
-                class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
+                class="flex flex-col items-center gap-2 px-4 py-6 text-center"
             >
-                Choose a Panel to see its accepted claims that still wait for
-                payment.
-            </p>
-            <p
+                <Inbox
+                    class="size-5 text-muted-foreground"
+                    aria-hidden="true"
+                />
+                <p class="text-sm font-medium">
+                    Choose a Panel to see its accepted claims that still wait
+                    for payment.
+                </p>
+            </div>
+            <div
                 v-else-if="openClaims.length === 0"
-                class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
                 data-testid="no-open-claims"
+                class="flex flex-col items-center gap-2 px-4 py-6 text-center"
             >
-                This Panel has no accepted claims waiting for payment at this
-                branch.
-            </p>
+                <Inbox
+                    class="size-5 text-muted-foreground"
+                    aria-hidden="true"
+                />
+                <p class="text-sm font-medium">
+                    This Panel has no accepted claims waiting for payment at
+                    this branch.
+                </p>
+            </div>
             <template v-else>
                 <PanelStatementHelper
                     :branch-id="branch.id"
@@ -355,17 +389,20 @@ const record = () => {
                 />
                 <p
                     v-if="openClaimsTruncated"
-                    class="text-sm text-amber-700 dark:text-amber-300"
+                    class="rounded-lg border border-warning/30 bg-warning-soft p-3 text-sm text-warning-strong"
                     role="status"
                 >
                     Only the 200 oldest claims are listed. Record this payment,
                     then the next claims will appear.
                 </p>
-                <div class="flex flex-wrap items-center gap-2">
+                <div
+                    class="grid grid-cols-2 gap-2 sm:flex sm:flex-wrap sm:items-center"
+                >
                     <Button
                         type="button"
                         variant="secondary"
                         size="sm"
+                        class="max-lg:h-11"
                         :disabled="!amountSen"
                         @click="fillOldestFirst"
                     >
@@ -375,6 +412,7 @@ const record = () => {
                         type="button"
                         variant="outline"
                         size="sm"
+                        class="max-lg:h-11"
                         @click="clearSplit"
                     >
                         Clear split
@@ -415,7 +453,7 @@ const record = () => {
                             </span>
                             <!-- PNL-14 (Daniel): the box carries the same visible label as the table column. -->
                             <label
-                                class="grid gap-1 text-xs font-medium text-muted-foreground"
+                                class="grid gap-1 text-[13px] font-medium text-muted-foreground"
                                 data-testid="split-card-payment-label"
                             >
                                 This payment (RM)
@@ -430,7 +468,8 @@ const record = () => {
                                             ? 'split-amount-error'
                                             : undefined
                                     "
-                                    class="h-9 w-32 rounded-md border bg-background px-2 text-right text-sm text-foreground tabular-nums aria-invalid:border-destructive max-lg:h-11"
+                                    class="h-9 w-32 rounded-lg border border-input bg-background px-2 text-right text-sm text-foreground tabular-nums focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-invalid:border-destructive aria-invalid:ring-destructive/30 max-lg:h-11"
+                                    :class="amountFieldExtra"
                                 />
                             </label>
                         </div>
@@ -504,7 +543,7 @@ const record = () => {
                                                 ? 'split-amount-error'
                                                 : undefined
                                         "
-                                        class="h-9 w-28 rounded-md border bg-background px-2 text-right text-sm tabular-nums aria-invalid:border-destructive"
+                                        class="h-9 w-28 rounded-lg border border-input bg-background px-2 text-right text-sm tabular-nums focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-invalid:border-destructive aria-invalid:ring-destructive/30 dark:bg-field-fill/30"
                                     />
                                 </td>
                             </tr>
@@ -514,7 +553,7 @@ const record = () => {
                 <div
                     id="split-summary"
                     tabindex="-1"
-                    class="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-muted/40 p-3 text-sm"
+                    class="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-muted/40 p-3 text-sm max-lg:sticky max-lg:bottom-0 max-lg:z-10 max-lg:rounded-none max-lg:border-x-0 max-lg:border-b-0 max-lg:bg-card max-lg:py-3 max-lg:shadow-[0_-2px_8px_rgb(0_0_0/0.06)] max-md:-mx-4 max-md:px-4 md:max-lg:-mx-5 md:max-lg:px-5"
                     data-testid="split-summary"
                 >
                     <span class="tabular-nums">
@@ -530,7 +569,7 @@ const record = () => {
                             !amountSen
                                 ? 'text-muted-foreground'
                                 : leftSen === 0
-                                  ? 'text-emerald-700 dark:text-emerald-300'
+                                  ? 'text-success'
                                   : 'text-destructive'
                         "
                     >
@@ -567,45 +606,73 @@ const record = () => {
                 </p>
             </template>
 
-            <p
-                v-for="message in errorMessages"
-                :key="message"
-                role="alert"
-                class="text-sm wrap-anywhere text-destructive"
-            >
-                {{ message }}
-            </p>
-            <div class="flex flex-wrap gap-2">
-                <Button type="button" :disabled="!canRecord" @click="record">
+            <div v-if="errorMessages.length > 0" class="space-y-1">
+                <p
+                    v-for="message in errorMessages"
+                    :key="message"
+                    role="alert"
+                    class="text-sm wrap-anywhere text-destructive"
+                >
+                    {{ message }}
+                </p>
+            </div>
+            <div class="flex flex-col gap-2 sm:items-end">
+                <p
+                    v-if="recordHelp"
+                    id="record-help"
+                    class="text-sm text-muted-foreground"
+                    aria-live="polite"
+                >
+                    {{ recordHelp }}
+                </p>
+                <Button
+                    type="button"
+                    class="max-lg:h-11 max-sm:w-full"
+                    :disabled="!canRecord"
+                    :aria-describedby="recordHelp ? 'record-help' : undefined"
+                    @click="record"
+                >
                     Record payment
                 </Button>
             </div>
         </section>
 
         <section
-            class="space-y-3 rounded-xl border bg-card p-4"
+            class="space-y-4 rounded-xl border bg-card p-4 md:p-5"
             aria-label="Recorded Panel payments"
         >
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h2 class="text-base font-semibold">Recorded Panel payments</h2>
-                <Button v-if="canReverse" as-child variant="outline" size="sm">
+                <Button
+                    v-if="canReverse"
+                    as-child
+                    variant="outline"
+                    size="sm"
+                    class="max-lg:h-11 max-sm:w-full"
+                >
                     <Link href="/panel-payment-corrections"
                         >Correct a Panel payment</Link
                     >
                 </Button>
             </div>
-            <p class="text-xs text-muted-foreground">
+            <p class="text-sm text-muted-foreground">
                 A payment recorded by mistake cannot be edited. The Finance
                 Officer or the Director reverses it, then the correct payment is
                 recorded again.
             </p>
-            <p
+            <div
                 v-if="remittances.data.length === 0"
-                class="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground"
+                class="flex flex-col items-center gap-2 px-4 py-6 text-center"
             >
-                No Panel payment has been recorded at this branch yet.
-            </p>
-            <ul v-else class="divide-y rounded-lg border">
+                <Inbox
+                    class="size-5 text-muted-foreground"
+                    aria-hidden="true"
+                />
+                <p class="text-sm font-medium">
+                    No Panel payment has been recorded at this branch yet.
+                </p>
+            </div>
+            <ul v-else class="divide-y rounded-xl border">
                 <li
                     v-for="remittance in remittances.data"
                     :key="remittance.publicId"
