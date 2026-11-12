@@ -95,3 +95,33 @@ test('the Label limits summary shows a chevron that turns when open (Hakim)', ()
     );
     assert.ok(flat.includes('[&::-webkit-details-marker]:hidden'));
 });
+
+test('field labels stay short, with the label budget as a hint under each box (Daniel)', () => {
+    assert.equal(show.includes('(label max'), false);
+    assert.equal(show.includes('Route (not printed on the label)'), false);
+    assert.equal(
+        (
+            flat.match(
+                /<span class="mt-1 block text-muted-foreground" ?>Label max \{\{ dispensary\.labelLimits\?\.\w+ \}\} characters<\/span/g,
+            ) ?? []
+        ).length,
+        10,
+    );
+    assert.equal(
+        (
+            flat.match(
+                /<span class="mt-1 block text-muted-foreground" ?>Not printed on the label<\/span/g,
+            ) ?? []
+        ).length,
+        2,
+    );
+});
+
+test('Print label on a line is an outline button, 36 px from 1024 px (Daniel)', () => {
+    const print = flat.slice(
+        flat.lastIndexOf('<Button', flat.indexOf('/label`"')),
+        flat.indexOf('/label`"'),
+    );
+    assert.ok(print.includes('variant="outline"'));
+    assert.ok(print.includes('class="mt-2 lg:h-9"'));
+});
