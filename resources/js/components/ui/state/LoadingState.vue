@@ -35,7 +35,7 @@ withDefaults(
         <div
             v-for="row in rows"
             :key="row"
-            class="h-10 animate-pulse rounded-md bg-muted"
+            class="h-10 animate-pulse rounded-[10px] bg-muted"
             aria-hidden="true"
         />
     </div>

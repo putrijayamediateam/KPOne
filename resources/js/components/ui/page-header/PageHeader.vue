@@ -11,7 +11,7 @@ defineProps<{
         <div class="min-w-0 space-y-1">
             <p
                 v-if="eyebrow"
-                class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                class="text-[13px] leading-[18px] font-medium tracking-wide text-muted-foreground uppercase"
             >
                 {{ eyebrow }}
             </p>
@@ -20,28 +20,26 @@ defineProps<{
                 v-if="$slots['title-extra']"
                 class="flex flex-wrap items-center gap-2"
             >
-                <h1
-                    class="text-2xl font-semibold tracking-tight text-foreground"
-                >
+                <h1 class="kp-page-title text-foreground">
                     {{ title }}
                 </h1>
                 <slot name="title-extra" />
             </div>
-            <h1
-                v-else
-                class="text-2xl font-semibold tracking-tight text-foreground"
-            >
+            <h1 v-else class="kp-page-title text-foreground">
                 {{ title }}
             </h1>
             <!-- UX-15: the description slot is for a line that needs markup; plain text uses the prop. -->
             <p
                 v-if="description || $slots.description"
-                class="text-sm text-muted-foreground"
+                class="text-[15px] leading-[22px] text-muted-foreground"
             >
                 <slot name="description">{{ description }}</slot>
             </p>
         </div>
-        <div v-if="$slots.actions" class="kp-control-group">
+        <div
+            v-if="$slots.actions"
+            class="kp-control-group max-sm:w-full max-sm:[&>*]:flex-1"
+        >
             <slot name="actions" />
         </div>
     </header>
