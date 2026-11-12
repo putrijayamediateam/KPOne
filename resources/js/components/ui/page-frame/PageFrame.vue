@@ -6,7 +6,11 @@
  */
 withDefaults(
     defineProps<{
-        /** narrow 896 px, default 1280 px, work 1500 px (Dispensary), wide 1600 px (Queue board). */
+        /**
+         * default 1280 px. wide 1600 px: only the Queue and Registration boards, and reports or lists with more than
+         * about 8 columns. narrow 896 px: form pages such as Business details and Patient create or edit.
+         * work 1500 px: Dispensary only.
+         */
         width?: 'narrow' | 'default' | 'work' | 'wide';
     }>(),
     { width: 'default' },
