@@ -183,3 +183,23 @@ test('V2DisclosureBar: tone warning adds an aria-hidden amber dot, neutral by de
     assert.match(s, /bg-warning/);
     assert.match(s, /aria-hidden="true"\n?\s*><\/span>/);
 });
+
+test('V2 page title is 24px on phones and 30px from lg', () => {
+    const css = read('resources/css/v2.css');
+    assert.match(
+        css,
+        /\.v2-page-title \{[^}]*font-size: 24px;[^}]*line-height: 30px;/,
+    );
+    assert.match(
+        css,
+        /min-width: 64rem\) \{\s*\.v2-page-title \{\s*font-size: 30px;/,
+    );
+});
+
+test('V2WorkLayout: eyebrow is a muted line above the title, outside the heading', () => {
+    const s = v2('V2WorkLayout');
+    assert.match(s, /eyebrow\?: string/);
+    assert.match(s, /v-if="eyebrow"/);
+    assert.match(s, /text-muted-foreground"\s*>\s*\{\{ eyebrow \}\}/);
+    assert.ok(s.indexOf('{{ eyebrow }}') < s.indexOf('<h1'));
+});
