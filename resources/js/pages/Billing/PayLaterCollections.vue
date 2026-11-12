@@ -164,7 +164,7 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                                 tone="neutral"
                                 data-testid="bill-review-required"
                             /><span class="sr-only"
-                                >: the amount may change; open billing before
+                                >, the amount may change; open billing before
                                 collecting.</span
                             >
                         </p>
@@ -385,7 +385,7 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                                     tone="neutral"
                                     data-testid="bill-review-required"
                                 /><span class="sr-only"
-                                    >: the amount may change; open billing
+                                    >, the amount may change; open billing
                                     before collecting.</span
                                 >
                             </span>

@@ -46,7 +46,7 @@ test('the card and the table row show a neutral "Review required" tag beside Sti
         );
         assert.match(
             part,
-            /class="sr-only"\s*>: the amount may change; open billing\s+before\s+collecting\.<\/span/,
+            /class="sr-only"\s*>, the amount may change; open billing\s+before\s+collecting\.<\/span/,
         );
 
         if (name === 'card') {

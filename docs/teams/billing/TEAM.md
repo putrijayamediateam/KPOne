@@ -300,7 +300,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Bills to collect (BIL-23) lists completed visits that owe money and approved pay later (also on open visits); an
   open visit's own due-now money is not listed (it is being paid at the counter). The Billing page's "View all
   pay-later to collect" link keeps its wording (pinned by an existing assertion). Since BIL-26 a bill on hold for
-  correction or with stale source shows a neutral "Review required" tag (a side list, so the pinned row fields stay). An open visit with pay later and unpaid money due no longer shows the "also due now" note (that money
+  correction or with stale source shows a neutral "Review required" tag (a side list, so the pinned row fields stay).
+  The Billing department space (DS team) builds its pay-later card and overdue answers from the rows only, so it does
+  not show the tag yet; the side list `reviewRequired` is there for it to use (their file, their change). An open visit with pay later and unpaid money due no longer shows the "also due now" note (that money
   is being paid at the counter). If an invoice's evidence did not reconcile, the list floors its due-now money at
   zero instead of refusing, as the Billing page would. Performance (BIL-24): only bills that can still owe money are
   worked out (approved pay later still to collect, or a completed visit whose invoice has a payment reversal). On a
