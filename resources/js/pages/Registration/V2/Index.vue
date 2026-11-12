@@ -317,7 +317,7 @@ const filterBadge = computed(
 
         <template #rail-collapsed>
             <V2DisclosureBar
-                v-if="attention.length"
+                v-if="!isQrIntake && attention.length"
                 :title="`${attention.length} needs attention`"
             >
                 <ul class="divide-y border-t">
@@ -343,7 +343,7 @@ const filterBadge = computed(
                     From the visits on this screen only.
                 </p>
             </V2DisclosureBar>
-            <p v-else class="text-sm text-muted-foreground">
+            <p v-else-if="!isQrIntake" class="text-sm text-muted-foreground">
                 Nothing needs attention on this screen.
             </p>
         </template>
@@ -729,6 +729,7 @@ const filterBadge = computed(
         </template>
         <template #rail>
             <section
+                v-if="!isQrIntake"
                 class="rounded-[14px] border bg-card"
                 aria-labelledby="v2-attention"
             >
