@@ -639,6 +639,7 @@ const toggleCharge = (charge: ChargeRow) => {
                                     "
                                 />
                                 <Button
+                                    class="text-primary hover:text-primary hover:underline"
                                     size="sm"
                                     variant="ghost"
                                     as-child
