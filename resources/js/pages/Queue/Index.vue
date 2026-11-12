@@ -17,6 +17,7 @@ import VisitCancellationDialog from '@/components/patient-board/VisitCancellatio
 import CallNextControl from '@/components/queue/CallNextControl.vue';
 import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import OperationalTabs from '@/components/ui/tabs/OperationalTabs.vue';
 import { useCallReadinessAlerts } from '@/composables/useCallReadinessAlerts';
@@ -707,7 +708,7 @@ onBeforeUnmount(() => {
     <main
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
-        <h1 class="sr-only">Consultation queue</h1>
+        <PageHeader title="Consultation queue" />
         <div
             v-if="roomChoice"
             class="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-[13px]"
@@ -727,7 +728,7 @@ onBeforeUnmount(() => {
                 labelledby="doctor-room-label"
                 :options="roomOptions"
                 :disabled="roomSaving || roomChoice.rooms.length === 0"
-                trigger-class="h-8 w-48"
+                trigger-class="h-8 w-48 max-lg:min-h-11"
                 @update:model-value="chooseRoom"
             />
             <span
@@ -780,23 +781,26 @@ onBeforeUnmount(() => {
                     class="absolute top-2.5 left-3 size-4 text-muted-foreground" /><input
                     v-model="draftFilters.query"
                     autocomplete="off"
-                    class="h-9 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25"
+                    class="h-11 w-full rounded-lg border border-transparent bg-muted/45 pr-3 pl-9 text-[13px] transition-colors outline-none hover:bg-muted/65 focus:border-ring/40 focus:bg-background focus:ring-2 focus:ring-ring/25 lg:h-9"
                     placeholder="Patient or exact Queue number"
             /></label>
             <OperationalSelect
                 v-if="live.scope === 'branch'"
                 v-model="draftFilters.doctor_id"
                 label="Doctor"
+                trigger-class="max-lg:min-h-11"
                 :options="doctorOptions"
             /><span v-else class="hidden xl:block" />
             <OperationalSelect
                 v-model="draftFilters.priority"
                 label="Urgency"
+                trigger-class="max-lg:min-h-11"
                 :options="urgencyOptions"
             />
             <Button
                 type="submit"
                 size="sm"
+                class="max-lg:min-h-11"
                 :variant="live.callNext ? 'outline' : 'default'"
                 :disabled="isApplyingFilters"
                 ><LoaderCircle
@@ -808,13 +812,14 @@ onBeforeUnmount(() => {
                 type="button"
                 size="sm"
                 variant="ghost"
+                class="max-lg:min-h-11"
                 @click="clearFilters"
                 >Reset</Button
             >
             <InputError class="md:col-span-2 xl:col-span-5" :message="error" />
         </form>
 
-        <section class="overflow-hidden border-y bg-background">
+        <section class="overflow-hidden rounded-xl border bg-card">
             <div
                 class="flex flex-col gap-2 px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
             >
@@ -879,6 +884,7 @@ onBeforeUnmount(() => {
                 <Button
                     size="sm"
                     variant="outline"
+                    class="max-lg:min-h-11"
                     :disabled="live.waiting.currentPage === 1 || isRefreshing"
                     @click="
                         refresh(
@@ -891,6 +897,7 @@ onBeforeUnmount(() => {
                 <Button
                     size="sm"
                     variant="outline"
+                    class="max-lg:min-h-11"
                     :disabled="
                         live.waiting.currentPage === live.waiting.lastPage ||
                         isRefreshing
@@ -906,6 +913,7 @@ onBeforeUnmount(() => {
                 <Button
                     size="sm"
                     variant="outline"
+                    class="max-lg:min-h-11"
                     :disabled="live.carryOver.currentPage === 1 || isRefreshing"
                     @click="
                         refresh(
@@ -918,6 +926,7 @@ onBeforeUnmount(() => {
                 <Button
                     size="sm"
                     variant="outline"
+                    class="max-lg:min-h-11"
                     :disabled="
                         live.carryOver.currentPage ===
                             live.carryOver.lastPage || isRefreshing
@@ -994,11 +1003,13 @@ onBeforeUnmount(() => {
                     <Button
                         size="sm"
                         variant="outline"
+                        class="max-lg:min-h-11"
                         @click="treatmentRow = null"
                         >Cancel</Button
                     >
                     <Button
                         size="sm"
+                        class="max-lg:min-h-11"
                         :disabled="busyKey !== null"
                         @click="submitTreatmentCall"
                         >Call to room</Button

@@ -30,7 +30,6 @@ const text = (node) =>
 // visually with sr-only (design guide sections 4 and 12).
 for (const [path, heading] of [
     ['resources/js/pages/Registration/Index.vue', 'Registration'],
-    ['resources/js/pages/Queue/Index.vue', 'Consultation queue'],
     ['resources/js/pages/QueueDisplay/Screen.vue', 'Queue display'],
 ]) {
     test(`UX-3: ${path.split('pages/')[1]} has one h1 "${heading}" for screen readers`, () => {
@@ -51,6 +50,39 @@ for (const [path, heading] of [
         );
     });
 }
+
+// UI-RESTYLE 2 (owner decision via B.E.R.N.I.S.S, 2026-11-12): the Queue board shows its title through the shared PageHeader,
+// which renders the one h1. The intent is unchanged: exactly one h1, named "Consultation queue", first inside main.
+test('UX-3: Queue/Index.vue has one h1 "Consultation queue" through PageHeader', () => {
+    const nodes = elements(template('resources/js/pages/Queue/Index.vue'));
+    const headers = nodes.filter((node) => node.tag === 'PageHeader');
+
+    assert.equal(headers.length, 1);
+    assert.equal(attr(headers[0], 'title'), 'Consultation queue');
+    assert.equal(
+        nodes.filter((node) => node.tag === 'h1').length,
+        0,
+        'no second h1 in the page',
+    );
+
+    const main = nodes.find((node) => node.tag === 'main');
+
+    assert.ok(main, 'the page keeps its main landmark');
+    assert.equal(
+        main.children.find((child) => child.type === 1),
+        headers[0],
+        'the header is the first thing inside main',
+    );
+
+    // PageHeader really renders the h1 with the title it is given.
+    const header = elements(
+        template('resources/js/components/ui/page-header/PageHeader.vue'),
+    );
+    const h1s = header.filter((node) => node.tag === 'h1');
+
+    assert.ok(h1s.length >= 1);
+    assert.ok(h1s.every((node) => /\{\{\s*title\s*\}\}/.test(node.loc.source)));
+});
 
 // Icon-only search boxes: the label held only a magnifier icon, so the box had no name.
 for (const [path, name, placeholder] of [
