@@ -167,6 +167,7 @@
             <file>tests/Feature/PostgresVisitReasonRegressionTest.php</file>
             <file>tests/Feature/Queue/CallReadinessConcurrencyTest.php</file>
             <file>tests/Feature/Website/WebsiteOutputPlanTest.php</file>
+            <file>tests/Feature/Inventory/PostgresReorderLevelTest.php</file>
         </testsuite>
     </testsuites>
     <source>
