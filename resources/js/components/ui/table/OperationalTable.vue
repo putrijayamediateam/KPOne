@@ -1,4 +1,11 @@
 <script setup lang="ts">
+/**
+ * Usage: prefer `cards` on phones for any table with row actions. A plain table below 1024px scrolls sideways
+ * (with a right-edge fade and a sticky first column); `cards` turns each row into a card, `cards="xl"` below 1280px.
+ * In cards, give each cell a `data-label`; the first cell is the primary field; put a selection checkbox in
+ * `td[data-select]` wrapped in a label (a 44px tap area) and row actions in `td[data-actions]`.
+ * `dense` gives 44px rows at 14px; the default is 52px at 15px.
+ */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
 const props = withDefaults(
