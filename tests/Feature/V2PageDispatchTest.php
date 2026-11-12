@@ -102,6 +102,23 @@ class V2PageDispatchTest extends VisitTestCase
         $this->assertSame(1, $reads);
     }
 
+    public function test_an_unregistered_page_costs_no_extra_read_for_the_dispatch(): void
+    {
+        $user = $this->actor('ca');
+        $this->selectBranch($user);
+
+        $reads = 0;
+        DB::listen(function ($query) use (&$reads): void {
+            if (str_contains($query->sql, 'user_space_preferences')) {
+                $reads++;
+            }
+        });
+        $this->get('/_v2-test/other')->assertOk();
+
+        // The only read is the shared page props': the dispatch checks the registry first and never asks.
+        $this->assertSame(1, $reads);
+    }
+
     public function test_every_registered_page_has_its_v2_file_and_every_v2_file_is_registered(): void
     {
         // The real registry in config/v2-pages.php, not the one this test class overrides in setUp.
