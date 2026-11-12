@@ -18,6 +18,7 @@ type Row = {
     location: string;
     stockUnit: string;
     reorderLevel: string;
+    maxLevel: string | null;
     onHand: string;
     onOrder: string;
     incoming: string;
@@ -108,7 +109,8 @@ const requestThese = () => {
         >
             Suggested = reorder level − on hand − on order − incoming +
             {{ suggestions.lookBackDays }}-day average use × lead time, rounded
-            up to whole packs and at least the supplier's minimum order.
+            up to whole packs and at least the supplier's minimum order. Where a
+            maximum is set, the maximum is used instead of the reorder level.
         </p>
         <p
             v-if="!suggestions.canSeeCost"
@@ -274,6 +276,12 @@ const requestThese = () => {
                         <dt class="text-muted-foreground">Reorder level</dt>
                         <dd class="tabular-nums">
                             {{ quantity(row.reorderLevel, row.stockUnit) }}
+                        </dd>
+                    </div>
+                    <div v-if="row.maxLevel !== null">
+                        <dt class="text-muted-foreground">Maximum</dt>
+                        <dd class="tabular-nums">
+                            {{ quantity(row.maxLevel, row.stockUnit) }}
                         </dd>
                     </div>
                     <div>

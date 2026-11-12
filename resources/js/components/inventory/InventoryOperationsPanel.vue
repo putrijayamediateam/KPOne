@@ -171,7 +171,7 @@ const stockRequest = reactive({
     lines: [blankLine()],
 });
 const dispatchBatch = reactive<Record<string, string>>({});
-const reorder = reactive({ location: '', sku: '', level: '' });
+const reorder = reactive({ location: '', sku: '', level: '', max: '' });
 const canPurchase = (
     row: DocumentRow,
     action: 'submit' | 'approve' | 'receive' | 'close' | 'cancel',
@@ -629,6 +629,7 @@ const saveReorder = () =>
         location_public_id: reorder.location,
         sku_public_id: reorder.sku,
         reorder_level: reorder.level,
+        max_level: reorder.max,
     });
 </script>
 
@@ -1275,7 +1276,17 @@ const saveReorder = () =>
                         aria-label="Reorder level"
                         placeholder="Reorder level"
                         required
-                    /><Button type="submit" :disabled="busy">Save level</Button>
+                    /><Input
+                        v-model="reorder.max"
+                        aria-label="Maximum (optional)"
+                        placeholder="Maximum (optional)"
+                        inputmode="decimal"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        With a maximum, reorder suggestions fill up to it. Leave
+                        blank to use the reorder level.
+                    </p>
+                    <Button type="submit" :disabled="busy">Save level</Button>
                 </form>
                 <p class="text-xs text-muted-foreground">
                     Up to 100 low-stock entries and 100 near-expiry batches are
