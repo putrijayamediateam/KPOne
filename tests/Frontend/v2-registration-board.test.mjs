@@ -391,10 +391,12 @@ test('V2 board: status, wait ring and needs-attention follow the Classic rules',
     const items = needsAttention(rows);
     assert.equal(items.length, 2);
     assert.ok(
-        items.some((i) => i.tone === 'danger' && /64 minutes/.test(i.title)),
+        items.some(
+            (i) => i.minutes === 64 && i.waitText === '64 min · very long wait',
+        ),
     );
     assert.ok(
-        items.some((i) => i.tone === 'warning' && /not ready/.test(i.title)),
+        items.some((i) => i.notReadyReason === 'Awaiting payment or deposit'),
     );
     assert.deepEqual(plain(waitStats(rows)), {
         waitingNow: 2,
@@ -452,7 +454,10 @@ test('V2 board page: uses the V2 blocks and the Classic props, tabs and filters;
     assert.match(page, /:input-id="SEARCH_INPUT_ID"/);
     assert.match(page, /router\.visit\(visit\.historyUrl\)/);
     assert.match(page, /Needs attention/);
-    assert.match(page, /From the visits on this screen only/);
+    assert.match(
+        read('resources/js/components/registration-v2/AttentionList.vue'),
+        /visits on this screen only/,
+    );
     assert.ok(!/Doctors with a room|Recent activity/.test(page));
     assert.ok(
         !classic.includes('registration-v2') &&

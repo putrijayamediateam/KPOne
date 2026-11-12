@@ -3,6 +3,7 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
+import AttentionList from '@/components/registration-v2/AttentionList.vue';
 import QrIntakeList from '@/components/registration-v2/QrIntakeList.vue';
 import RowDialogs from '@/components/registration-v2/RowDialogs.vue';
 import { DateField } from '@/components/ui/date-field';
@@ -321,28 +322,7 @@ const filterBadge = computed(
                     :title="`${attention.length} needs attention`"
                     tone="warning"
                 >
-                    <ul class="divide-y border-t">
-                        <li
-                            v-for="item in attention"
-                            :key="item.id"
-                            class="px-4 py-3"
-                        >
-                            <p class="text-sm font-medium">{{ item.title }}</p>
-                            <p class="text-xs text-muted-foreground">
-                                {{ item.why }}
-                            </p>
-                            <button
-                                type="button"
-                                class="mt-1 inline-flex h-11 items-center text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
-                                @click="viewRow(item.visitNumber)"
-                            >
-                                View
-                            </button>
-                        </li>
-                    </ul>
-                    <p class="px-4 pb-3 text-xs text-muted-foreground">
-                        From the visits on this screen only.
-                    </p>
+                    <AttentionList :items="attention" @view="viewRow" />
                 </V2DisclosureBar>
                 <p
                     v-else-if="!isQrIntake"
@@ -768,25 +748,12 @@ const filterBadge = computed(
                     >
                         Needs attention
                     </h2>
-                    <p class="px-4 pb-2 text-xs text-muted-foreground">
-                        From the visits on this screen only.
-                    </p>
-                    <ul v-if="attention.length" class="divide-y border-t">
-                        <li
-                            v-for="item in attention"
-                            :key="item.id"
-                            class="px-4 py-3"
-                        >
-                            <p class="text-sm font-medium">{{ item.title }}</p>
-                            <p class="text-xs text-muted-foreground">
-                                {{ item.why }}
-                            </p>
-                        </li>
-                    </ul>
-                    <p
-                        v-else
-                        class="border-t px-4 py-4 text-sm text-muted-foreground"
-                    >
+                    <AttentionList
+                        v-if="attention.length"
+                        :items="attention"
+                        @view="viewRow"
+                    />
+                    <p v-else class="px-4 py-4 text-sm text-muted-foreground">
                         Nothing needs attention on this screen.
                     </p>
                 </section>

@@ -256,42 +256,44 @@ export const rowMenu = (
 export type AttentionItem = {
     id: string;
     visitNumber: string;
-    tone: 'warning' | 'danger';
-    title: string;
-    why: string;
+    /** Queue number, or the visit number when there is none. */
+    label: string;
+    patientName: string;
+    /** Waiting minutes when the patient has waited a very long time (60 or more), otherwise null. */
+    minutes: number | null;
+    /** "315 min · very long wait", or '' when the wait is not that long. */
+    waitText: string;
+    /** The not-ready reason when the patient is marked not ready to call, otherwise null. */
+    notReadyReason: string | null;
 };
 
 /**
- * "Needs attention" from the rows now on screen only (the panel says so): a patient marked not ready to call, and a
- * waiting patient at the very-long-wait time (60 minutes, as the waiting ring).
+ * "Needs attention" from the rows now on screen only (the panel says so), one row per patient: a patient marked not
+ * ready to call, and/or a waiting patient at the very-long-wait time (60 minutes, as the waiting ring).
  */
 export const needsAttention = (rows: VisitRow[]): AttentionItem[] => {
     const items: AttentionItem[] = [];
 
     for (const visit of rows) {
-        const label = visit.queueNumber ?? visit.visitNumber;
-
-        if (visit.callHold?.active) {
-            items.push({
-                id: `hold-${visit.visitNumber}`,
-                visitNumber: visit.visitNumber,
-                tone: 'warning',
-                title: `${label} · ${visit.patientName} is marked not ready to call`,
-                why: visit.callHold.reason ?? 'No reason recorded.',
-            });
-        }
-
         const minutes = waitingMinutes(visit);
+        const veryLong = minutes !== null && minutes >= 60;
+        const held = !!visit.callHold?.active;
 
-        if (minutes !== null && minutes >= 60) {
-            items.push({
-                id: `wait-${visit.visitNumber}`,
-                visitNumber: visit.visitNumber,
-                tone: 'danger',
-                title: `${label} · ${visit.patientName} has waited ${minutes} minutes`,
-                why: 'A very long wait. Call this patient or tell them why they are waiting.',
-            });
+        if (!veryLong && !held) {
+            continue;
         }
+
+        items.push({
+            id: visit.visitNumber,
+            visitNumber: visit.visitNumber,
+            label: visit.queueNumber ?? visit.visitNumber,
+            patientName: visit.patientName,
+            minutes: veryLong ? minutes : null,
+            waitText: veryLong ? `${minutes} min · very long wait` : '',
+            notReadyReason: held
+                ? (visit.callHold?.reason ?? 'No reason recorded')
+                : null,
+        });
     }
 
     return items;

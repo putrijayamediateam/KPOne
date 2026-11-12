@@ -68,6 +68,8 @@ const form = useForm({
     panel_note_idempotency_key: crypto.randomUUID(),
     priority: props.visit.priority,
 });
+// The values the page opened with, to say which fields have unsaved changes.
+const initial = JSON.parse(JSON.stringify(form.data())) as object;
 watch(
     () => form.panel_id,
     (panelId) => {
@@ -106,12 +108,40 @@ const formError = computed(
         errorFor('queue_lock_version') ||
         errorFor('queue'),
 );
+const FIELD_LABELS: Record<string, string> = {
+    visit_type: 'Visit type',
+    assigned_doctor_user_id: 'Doctor',
+    visit_reason_public_ids: 'Visit reason',
+    coverage_type: 'Coverage',
+    panel_id: 'Panel',
+    coverage_member_reference: 'Member reference',
+    coverage_panel_note: 'Panel note',
+    priority: 'Urgency',
+};
+const changedFields = computed(() => {
+    const defaults = initial as Record<string, unknown>;
+    const current = form.data() as unknown as Record<string, unknown>;
+
+    return Object.keys(FIELD_LABELS)
+        .filter(
+            (key) =>
+                JSON.stringify(current[key]) !== JSON.stringify(defaults[key]),
+        )
+        .map((key) => FIELD_LABELS[key]);
+});
 const summary = computed(() => [
     { label: 'Visit', value: props.visit.visitNumber },
     { label: 'Patient', value: props.visit.patient.fullName },
     {
         label: 'Visit type',
         value: form.visit_type === 'consultation' ? 'Consultation' : 'OTC',
+    },
+    {
+        label: 'Doctor',
+        value:
+            props.options.doctors.find(
+                (doctor) => doctor.id === form.assigned_doctor_user_id,
+            )?.name ?? 'None',
     },
     {
         label: 'Coverage',
@@ -121,6 +151,13 @@ const summary = computed(() => [
                       ?.name ?? 'Panel')
                 : 'Self-pay',
     },
+    {
+        label: 'Urgency',
+        value: form.priority === 'urgent' ? 'Urgent' : 'Normal',
+    },
+    ...(changedFields.value.length
+        ? [{ label: 'Unsaved changes', value: changedFields.value.join(', ') }]
+        : []),
 ]);
 // Save is an outline button while the form is clean and the primary (cobalt) one once something has changed.
 const saveClass = computed(() => [
