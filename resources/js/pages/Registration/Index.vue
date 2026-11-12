@@ -729,7 +729,11 @@ onBeforeUnmount(() => {
                         label="Urgency"
                         :options="urgencyOptions"
                     />
-                    <Button size="sm" type="submit" :disabled="loading"
+                    <Button
+                        size="sm"
+                        type="submit"
+                        variant="outline"
+                        :disabled="loading"
                         ><LoaderCircle
                             v-if="loading"
                             class="size-4 animate-spin"
