@@ -218,11 +218,11 @@ const removePoster = (posterId: string) => {
                 class="mt-4 grid gap-3 md:grid-cols-[1fr_2fr_120px_auto] md:items-end"
                 @submit.prevent="addRoom"
             >
-                <label class="grid gap-1 text-xs">
+                <label class="grid min-w-0 gap-1 text-xs">
                     Type
                     <select
                         v-model="roomForm.kind"
-                        class="h-9 rounded-md border bg-background px-3 text-sm"
+                        class="h-11 w-full min-w-0 rounded-md border bg-background px-3 text-sm lg:h-9"
                     >
                         <option
                             v-for="(label, kind) in kindLabels"
@@ -234,27 +234,33 @@ const removePoster = (posterId: string) => {
                     </select>
                     <InputError :message="roomForm.errors.kind" />
                 </label>
-                <label class="grid gap-1 text-xs">
+                <label class="grid min-w-0 gap-1 text-xs">
                     Name shown on the TV
                     <Input
                         v-model="roomForm.name"
                         maxlength="60"
                         autocomplete="off"
+                        class="max-lg:h-11"
                         placeholder="e.g. Consultation Room 1"
                     />
                     <InputError :message="roomForm.errors.name" />
                 </label>
-                <label class="grid gap-1 text-xs">
+                <label class="grid min-w-0 gap-1 text-xs">
                     Order
                     <Input
                         v-model.number="roomForm.sort_order"
                         type="number"
                         min="0"
                         max="999"
+                        class="max-lg:h-11"
                     />
                     <InputError :message="roomForm.errors.sort_order" />
                 </label>
-                <Button type="submit" :disabled="roomForm.processing">
+                <Button
+                    type="submit"
+                    class="max-lg:min-h-11"
+                    :disabled="roomForm.processing"
+                >
                     Add room
                 </Button>
             </form>
@@ -266,7 +272,8 @@ const removePoster = (posterId: string) => {
                 No rooms yet. Add the consultation rooms first, for example
                 Consultation Room 1 to 4.
             </div>
-            <div v-else class="mt-4 overflow-x-auto">
+            <!-- From 1024 px the rooms are a table; below it, one card per room (GUIDE section 6, UI-RESTYLE 1a). -->
+            <div v-else class="mt-4 hidden overflow-x-auto lg:block">
                 <table class="w-full min-w-[640px] text-left text-sm">
                     <thead>
                         <tr class="border-b text-xs text-muted-foreground">
@@ -371,6 +378,96 @@ const removePoster = (posterId: string) => {
                     </tbody>
                 </table>
             </div>
+            <ul
+                v-if="rooms.length > 0"
+                class="mt-4 grid gap-3 lg:hidden"
+                aria-label="Rooms"
+                data-test="room-cards"
+            >
+                <li
+                    v-for="room in rooms"
+                    :key="room.id"
+                    class="grid gap-3 rounded-xl border bg-card p-4"
+                    data-test="room-card"
+                >
+                    <template v-if="editingId === room.id">
+                        <label class="grid gap-1 text-xs">
+                            Room name
+                            <Input
+                                v-model="editForm.name"
+                                maxlength="60"
+                                class="h-11"
+                                aria-label="Room name"
+                            />
+                            <InputError :message="editForm.errors.name" />
+                            <InputError
+                                :message="editForm.errors.lock_version"
+                            />
+                        </label>
+                        <p class="text-sm text-muted-foreground">
+                            {{ kindLabels[room.kind] }}
+                        </p>
+                        <label class="grid gap-1 text-xs">
+                            Order
+                            <Input
+                                v-model.number="editForm.sort_order"
+                                type="number"
+                                min="0"
+                                max="999"
+                                class="h-11 w-28"
+                                aria-label="Order"
+                            />
+                        </label>
+                        <div class="flex gap-2">
+                            <Button
+                                class="min-h-11"
+                                :disabled="editForm.processing"
+                                @click="saveEdit"
+                                >Save</Button
+                            >
+                            <Button
+                                variant="outline"
+                                class="min-h-11"
+                                @click="editingId = null"
+                                >Cancel</Button
+                            >
+                        </div>
+                    </template>
+                    <template v-else>
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="min-w-0">
+                                <p class="font-medium break-words">
+                                    {{ room.name }}
+                                </p>
+                                <p class="text-sm text-muted-foreground">
+                                    {{ kindLabels[room.kind] }} · Order
+                                    {{ room.sortOrder }}
+                                </p>
+                            </div>
+                            <StatusBadge
+                                :status="room.isActive ? 'Active' : 'Inactive'"
+                            />
+                        </div>
+                        <div class="flex flex-wrap gap-2">
+                            <Button
+                                variant="outline"
+                                class="min-h-11"
+                                :aria-label="`Edit ${room.name}`"
+                                @click="beginEdit(room)"
+                                >Edit</Button
+                            >
+                            <Button
+                                variant="outline"
+                                class="min-h-11"
+                                :aria-label="`${room.isActive ? 'Deactivate' : 'Activate'} ${room.name}`"
+                                @click="toggleRoom(room)"
+                            >
+                                {{ room.isActive ? 'Deactivate' : 'Activate' }}
+                            </Button>
+                        </div>
+                    </template>
+                </li>
+            </ul>
         </section>
 
         <section class="rounded-xl border bg-card p-4">
