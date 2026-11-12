@@ -435,7 +435,7 @@ watch(selected, async (code) => {
                         <button
                             ref="closeButton"
                             type="button"
-                            class="ml-auto flex size-11 items-center justify-center rounded-lg text-lg hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary"
+                            class="ml-auto flex size-11 items-center justify-center rounded-lg text-2xl leading-none hover:bg-muted focus-visible:outline-2 focus-visible:outline-primary lg:size-9"
                             aria-label="Close"
                             @click="closePanel"
                         >
