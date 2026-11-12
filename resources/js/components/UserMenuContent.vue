@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Building2, LogOut, Settings } from '@lucide/vue';
+import {
+    Building2,
+    Clock,
+    LayoutGrid,
+    LogOut,
+    Settings,
+    ShieldCheck,
+} from '@lucide/vue';
+import { computed, onMounted } from 'vue';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -8,6 +16,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
+import { useClockShortcut } from '@/composables/useClockShortcut';
 import { retireAuthenticationHistoryForLogout } from '@/lib/inertia-auth-history-boundary';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
@@ -24,6 +33,33 @@ const handleLogout = () => {
 
 defineProps<Props>();
 const page = usePage();
+// DS-12: the person's own pages, built on the server from the permissions they hold, and the phone clock row.
+const accountMenu = computed(() => page.props.workspace?.accountMenu);
+// The top-bar button exists only in the space shell, from 1024 px. This row is its twin: it hides exactly where the
+// button shows (the shell, from 1024 px) and shows everywhere else, so the two are never visible together.
+const inSpaceShell = computed(() => page.url.startsWith('/spaces'));
+const {
+    load: loadClock,
+    press: pressClock,
+    label: clockLabel,
+    visible: clockVisible,
+} = useClockShortcut();
+onMounted(() => {
+    if (accountMenu.value?.clock) {
+        void loadClock();
+    }
+});
+// In the new layout (switch on, or any space page) the same row always turns it off, so nobody is stuck.
+const inNewLayout = computed(
+    () =>
+        page.props.workspace?.spaces?.enabled === true ||
+        page.url.startsWith('/spaces'),
+);
+const switchSpaces = (enabled: boolean) =>
+    router.put('/spaces/preference', {
+        enabled,
+        lock_version: page.props.workspace?.spaces?.lockVersion ?? 0,
+    });
 </script>
 
 <template>
@@ -33,6 +69,30 @@ const page = usePage();
         </div>
     </DropdownMenuLabel>
     <DropdownMenuSeparator />
+    <DropdownMenuGroup v-if="accountMenu?.links.length || accountMenu?.clock">
+        <DropdownMenuItem
+            v-if="accountMenu?.clock && clockVisible"
+            class="cursor-pointer max-lg:min-h-11"
+            :class="{ 'lg:hidden': inSpaceShell }"
+            data-test="clock-shortcut-row"
+            @select="pressClock()"
+        >
+            <Clock class="mr-2 h-4 w-4" />{{ clockLabel }}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+            v-for="link in accountMenu?.links ?? []"
+            :key="link.title"
+            :as-child="true"
+            class="pl-10 max-lg:min-h-11"
+        >
+            <Link class="block w-full cursor-pointer" :href="link.href">{{
+                link.title
+            }}</Link>
+        </DropdownMenuItem>
+    </DropdownMenuGroup>
+    <DropdownMenuSeparator
+        v-if="accountMenu?.links.length || accountMenu?.clock"
+    />
     <DropdownMenuGroup>
         <DropdownMenuItem
             v-if="page.props.workspace?.navigation.clinicManagement"
@@ -42,10 +102,36 @@ const page = usePage();
                 <Building2 class="mr-2 h-4 w-4" />Clinic management
             </Link>
         </DropdownMenuItem>
-        <DropdownMenuItem :as-child="true">
+        <DropdownMenuItem
+            v-if="page.props.workspace?.spaces?.enabled"
+            :as-child="true"
+        >
+            <Link class="block w-full cursor-pointer" href="/spaces">
+                <LayoutGrid class="mr-2 h-4 w-4" />Spaces
+            </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+            v-if="page.props.workspace?.spaces?.offered"
+            class="cursor-pointer"
+            @select="switchSpaces(!inNewLayout)"
+        >
+            <LayoutGrid class="mr-2 h-4 w-4" />{{
+                inNewLayout ? 'Use the old layout' : 'Try the new layout'
+            }}
+        </DropdownMenuItem>
+    </DropdownMenuGroup>
+    <DropdownMenuSeparator />
+    <DropdownMenuGroup>
+        <DropdownMenuItem :as-child="true" class="max-lg:min-h-11">
             <Link class="block w-full cursor-pointer" :href="edit()" prefetch>
                 <Settings class="mr-2 h-4 w-4" />
-                Settings
+                My profile
+            </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem :as-child="true" class="max-lg:min-h-11">
+            <Link class="block w-full cursor-pointer" href="/settings/security">
+                <ShieldCheck class="mr-2 h-4 w-4" />
+                Security
             </Link>
         </DropdownMenuItem>
     </DropdownMenuGroup>

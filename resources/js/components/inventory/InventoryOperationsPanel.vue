@@ -180,7 +180,15 @@ const canPurchase = (
         row.status,
         action,
         props.operations.permissions,
-    );
+    ) && !needsAnotherApprover(row, action);
+// STK-19: whoever raised or submitted an order never approves it, or cancels it once approved.
+const needsAnotherApprover = (
+    row: DocumentRow,
+    action: 'submit' | 'approve' | 'receive' | 'close' | 'cancel',
+) =>
+    row.raisedByYou === true &&
+    (action === 'approve' ||
+        (action === 'cancel' && row.status === 'approved'));
 const canRequest = (
     row: DocumentRow,
     action: 'decide' | 'dispatch' | 'receive',
@@ -793,6 +801,13 @@ const saveReorder = () =>
                         {{ row.supplier }} → {{ row.destination }}
                     </p>
                     <p
+                        v-if="row.fromRequest"
+                        class="text-sm text-muted-foreground"
+                        data-testid="po-from-request"
+                    >
+                        From purchase request {{ row.fromRequest }}
+                    </p>
+                    <p
                         v-for="line in row.lines"
                         :key="line.publicId"
                         class="text-xs text-muted-foreground"
@@ -876,6 +891,45 @@ const saveReorder = () =>
                             "
                             >Cancel</Button
                         >
+                        <a
+                            v-if="
+                                operations.permissions.createPurchaseOrders ||
+                                operations.permissions.approvePurchaseOrders
+                            "
+                            :href="`/inventory/purchase-orders/${row.publicId}/print`"
+                            class="inline-flex min-h-11 items-center rounded-md border px-3 text-sm font-medium lg:min-h-9"
+                            :aria-label="`Print purchase order ${row.number}`"
+                            >Print PO</a
+                        >
+                        <p
+                            v-if="
+                                needsAnotherApprover(row, 'approve') &&
+                                purchaseOrderActionAllowed(
+                                    row.status,
+                                    'approve',
+                                    operations.permissions,
+                                )
+                            "
+                            class="w-full text-sm text-muted-foreground"
+                        >
+                            You raised or submitted this order, so a different
+                            Finance Officer or Director must approve it.
+                        </p>
+                        <p
+                            v-if="
+                                needsAnotherApprover(row, 'cancel') &&
+                                purchaseOrderActionAllowed(
+                                    row.status,
+                                    'cancel',
+                                    operations.permissions,
+                                )
+                            "
+                            class="w-full text-sm text-muted-foreground"
+                        >
+                            You raised or submitted this order, so a different
+                            Finance Officer or Director must cancel it now that
+                            it is approved.
+                        </p>
                         <Button
                             v-if="canPurchase(row, 'close')"
                             size="sm"
@@ -904,7 +958,7 @@ const saveReorder = () =>
                         <fieldset
                             v-for="line in row.lines"
                             :key="line.publicId"
-                            class="grid gap-2 rounded-lg border p-2 sm:grid-cols-5"
+                            class="grid items-start gap-2 rounded-lg border p-2 sm:grid-cols-2"
                         >
                             <legend class="px-1 text-xs font-medium">
                                 {{ line.sku }} · {{ line.receivedQuantity }}/{{
@@ -912,22 +966,27 @@ const saveReorder = () =>
                                 }}
                                 · Base stock unit: {{ line.stockUnit }}
                             </legend>
-                            <Input
-                                v-model="receipt[line.publicId].batchNumber"
-                                :aria-label="`${line.sku} received batch number`"
-                                placeholder="Batch number"
-                            />
-                            <DateField
-                                v-model="receipt[line.publicId].expiryDate"
-                                :aria-label="`${line.sku} received batch expiry`"
-                                :echo="false"
-                            />
-                            <Input
-                                v-model="receipt[line.publicId].quantity"
-                                :aria-label="`${line.sku} receipt quantity`"
-                                placeholder="Quantity this receipt"
-                                inputmode="decimal"
-                            />
+                            <label class="grid min-w-0 gap-1 text-xs"
+                                >Batch number (required)
+                                <Input
+                                    v-model="receipt[line.publicId].batchNumber"
+                                    :aria-label="`${line.sku} received batch number`"
+                            /></label>
+                            <label class="grid min-w-0 gap-1 text-xs"
+                                >Expiry date (required)
+                                <DateField
+                                    v-model="receipt[line.publicId].expiryDate"
+                                    :aria-label="`${line.sku} expiry date`"
+                                    :echo="false"
+                            /></label>
+                            <label class="grid min-w-0 gap-1 text-xs"
+                                >Quantity this receipt ({{ line.stockUnit }},
+                                required)
+                                <Input
+                                    v-model="receipt[line.publicId].quantity"
+                                    :aria-label="`${line.sku} quantity this receipt`"
+                                    inputmode="decimal"
+                            /></label>
                             <div class="grid min-w-0 gap-1">
                                 <label class="grid min-w-0 gap-1 text-xs"
                                     >Total paid for this batch (RM, optional)
