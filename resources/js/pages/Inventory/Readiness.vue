@@ -155,7 +155,8 @@ watch(
                 Someone other than the person who recorded an opening must sign
                 it off. This page never changes a count. Open questions
                 (responsible clinician, FEFO, regulated items) are in the
-                pharmacist pack.
+                pharmacist review pack that goes with the pilot papers, not in
+                KPOne.
             </p>
         </section>
         <p
