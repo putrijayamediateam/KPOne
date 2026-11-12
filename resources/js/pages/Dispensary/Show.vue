@@ -2,6 +2,7 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import {
     CheckCircle2,
+    ChevronRight,
     LoaderCircle,
     Megaphone,
     Plus,
@@ -1165,7 +1166,7 @@ const exceptionStatusLabels: Record<string, string> = {
         <div
             class="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)] lg:grid-rows-[auto_1fr] min-[90rem]:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)] min-[90rem]:grid-rows-none"
         >
-            <!-- UI-RESTYLE D4b (Daniel): from 1024 to 1279 px the page has two columns, the lines on the left and the
+            <!-- UI-RESTYLE D4b (Daniel): from 1024 to 1439 px the page has two columns, the lines on the left and the
                  patient, allergy, summary and actions stacked on the right, so the line fields never crush; three
                  columns from 1440 px (owner decision). The reading order (left, lines, right) is unchanged. -->
             <aside
@@ -1526,13 +1527,16 @@ const exceptionStatusLabels: Record<string, string> = {
                             class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
                         >
                             <details
-                                class="text-muted-foreground sm:col-span-full"
+                                class="group text-muted-foreground sm:col-span-full"
                                 data-testid="label-limits"
                             >
                                 <summary
-                                    class="flex min-h-11 w-fit cursor-pointer items-center font-medium lg:min-h-0"
+                                    class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1 font-medium lg:min-h-0 [&::-webkit-details-marker]:hidden"
                                 >
-                                    Label limits
+                                    <ChevronRight
+                                        class="size-3.5 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+                                        aria-hidden="true"
+                                    />Label limits
                                 </summary>
                                 <p class="mt-1">
                                     Label limits (characters; saved clinical
@@ -2141,13 +2145,16 @@ const exceptionStatusLabels: Record<string, string> = {
                             when an eligible earlier-expiry batch exists.
                         </p>
                         <details
-                            class="text-xs text-muted-foreground sm:col-span-full"
+                            class="group text-xs text-muted-foreground sm:col-span-full"
                             data-testid="label-limits-add"
                         >
                             <summary
-                                class="flex min-h-11 w-fit cursor-pointer items-center font-medium lg:min-h-0"
+                                class="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1 font-medium lg:min-h-0 [&::-webkit-details-marker]:hidden"
                             >
-                                Label limits
+                                <ChevronRight
+                                    class="size-3.5 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none"
+                                    aria-hidden="true"
+                                />Label limits
                             </summary>
                             <p class="mt-1">
                                 Label limits: dosage

@@ -48,10 +48,7 @@ test('two columns from 1024 px, three from 1440 px, written in rem so lg cannot 
 test('label limits sit in a closed disclosure with the same words inside', () => {
     assert.ok(flat.includes('data-testid="label-limits"'));
     assert.ok(flat.includes('data-testid="label-limits-add"'));
-    assert.equal(
-        (flat.match(/<summary [^>]*> Label limits <\/summary>/g) ?? []).length,
-        2,
-    );
+    assert.equal((flat.match(/Label limits <\/summary>/g) ?? []).length, 2);
     assert.ok(
         flat.includes(
             'Label limits (characters; saved clinical text is unchanged)',
@@ -59,7 +56,7 @@ test('label limits sit in a closed disclosure with the same words inside', () =>
     );
     assert.ok(
         flat.includes(
-            'flex min-h-11 w-fit cursor-pointer items-center font-medium lg:min-h-0',
+            'flex min-h-11 w-fit cursor-pointer list-none items-center gap-1 font-medium lg:min-h-0',
         ),
     );
 });
@@ -82,4 +79,19 @@ test('the middle column uses tokens and calm cards, with no palette colours or u
     assert.ok(
         main.includes('rounded-[10px] border border-warning/30 bg-warning/10'),
     );
+});
+
+test('the Label limits summary shows a chevron that turns when open (Hakim)', () => {
+    assert.equal(
+        (
+            flat.match(
+                /<ChevronRight class="size-3\.5 shrink-0 transition-transform group-open:rotate-90 motion-reduce:transition-none" aria-hidden="true" \/>Label limits/g,
+            ) ?? []
+        ).length,
+        2,
+    );
+    assert.ok(
+        flat.includes('class="group text-muted-foreground sm:col-span-full"'),
+    );
+    assert.ok(flat.includes('[&::-webkit-details-marker]:hidden'));
 });
