@@ -40,3 +40,15 @@ test('Panel invoices shows the server word and takes only the tone from the help
     );
     assert.equal(invoices.match(/:label="row\.claimStatus"/g)?.length, 2);
 });
+
+test('The cut-off note is singular at a cap of one and uses a thousands separator otherwise', () => {
+    assert.match(
+        invoices,
+        /props\.maxRows === 1\s*\?\s*'Only the first invoice is'/,
+    );
+    assert.match(
+        invoices,
+        /`Only the first \$\{props\.maxRows\.toLocaleString\(\)\} invoices are`/,
+    );
+    assert.match(invoices, /\{\{ cutLead \}\} shown and downloaded\./);
+});

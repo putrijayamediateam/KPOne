@@ -91,6 +91,12 @@ const reset = () => {
     });
     router.get('/panel-invoices');
 };
+// One invoice reads "Only the first invoice is shown", more read "Only the first 5,000 invoices are shown".
+const cutLead = computed(() =>
+    props.maxRows === 1
+        ? 'Only the first invoice is'
+        : `Only the first ${props.maxRows.toLocaleString()} invoices are`,
+);
 const canDownload = computed(() => props.ready && props.total > 0);
 </script>
 
@@ -278,9 +284,8 @@ const canDownload = computed(() => props.ready && props.total > 0);
                     aria-hidden="true"
                 />
                 <span
-                    >Only the first {{ maxRows.toLocaleString() }} invoices are
-                    shown and downloaded. Narrow the date range to see the
-                    rest.</span
+                    >{{ cutLead }} shown and downloaded. Narrow the date range
+                    to see the rest.</span
                 >
             </p>
             <EmptyState
