@@ -186,7 +186,9 @@ const inputClass =
                     </div>
 
                     <template v-else-if="!quickMode">
+                        <!-- The "no match" row and Quick create sit right under the box, so an empty result list stays hidden. -->
                         <V2SearchCombobox
+                            class="[&_ul[role=listbox]:not(:has([role=option],[role=status]))]:hidden"
                             v-model="patientQuery"
                             label="Search patient"
                             placeholder="Name, IC number, phone or Patient No."
