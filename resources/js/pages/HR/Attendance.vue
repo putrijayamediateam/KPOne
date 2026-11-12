@@ -304,6 +304,17 @@ watch(
         const my = props.attendance.my;
 
         if (my && my.state !== oldState) {
+            // When the same response carries a toast (this page's own press), the toast's live region reads it, so the
+            // region here stays quiet and the change is read once. A change from elsewhere, with no toast, is still read.
+            if (
+                (page as unknown as { flash?: { toast?: unknown } }).flash
+                    ?.toast
+            ) {
+                announcement.value = '';
+
+                return;
+            }
+
             announcement.value =
                 my.state === 'in'
                     ? String(label ?? 'Clocked in.')
