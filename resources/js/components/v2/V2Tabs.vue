@@ -58,7 +58,7 @@ const move = (event: KeyboardEvent, index: number) => {
 </script>
 
 <template>
-    <div data-slot="v2-tabs" class="flex min-w-0 items-center gap-3">
+    <div data-slot="v2-tabs" class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
         <div
             ref="list"
             role="tablist"
@@ -92,7 +92,7 @@ const move = (event: KeyboardEvent, index: number) => {
         </div>
         <div
             v-if="$slots.trailing"
-            class="ml-auto shrink-0 text-[13px] text-muted-foreground"
+            class="shrink-0 text-[13px] text-muted-foreground sm:ml-auto"
         >
             <slot name="trailing" />
         </div>
