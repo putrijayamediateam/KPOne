@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router, useRemember } from '@inertiajs/vue3';
 import { Boxes } from '@lucide/vue';
-import { computed, reactive, ref, shallowRef, watchEffect } from 'vue';
+import { computed, reactive, ref, shallowRef, watch, watchEffect } from 'vue';
 import type { Ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
@@ -18,6 +18,7 @@ import {
     purchaseOrderActionAllowed,
     stockRequestActionAllowed,
 } from '@/lib/inventory-operation-transitions';
+import { requestJson } from '@/lib/json-client';
 import { formatDate } from '@/lib/presentation';
 import type { TransferReceiptLinePayload } from '@/lib/transfer-receipt';
 import type {
@@ -172,7 +173,70 @@ const stockRequest = reactive({
     lines: [blankLine()],
 });
 const dispatchBatch = reactive<Record<string, string>>({});
-const reorder = reactive({ location: '', sku: '', level: '', max: '' });
+const reorder = reactive({
+    location: '',
+    sku: '',
+    level: '',
+    max: '',
+    // STK-30b: the saved level's version (null for a new level) and one key per save attempt.
+    lockVersion: null as number | null,
+    key: crypto.randomUUID(),
+    loading: false,
+    loadFailed: false,
+});
+type CurrentReorderLevel = {
+    reorderLevel: string;
+    maxLevel: string | null;
+    lockVersion: number;
+} | null;
+let reorderLookup = 0;
+const loadReorderLevel = async () => {
+    const lookup = ++reorderLookup;
+    reorderErrors.max_level = undefined;
+    reorder.lockVersion = null;
+    reorder.key = crypto.randomUUID();
+    // Never carry the previous pair's numbers over to a new pair; a failed lookup keeps Save off until one succeeds.
+    reorder.level = '';
+    reorder.max = '';
+    reorder.loadFailed = false;
+
+    if (!reorder.location || !reorder.sku) {
+        return;
+    }
+
+    reorder.loading = true;
+
+    try {
+        const query = new URLSearchParams({
+            expected_branch_id: String(props.operations.expectedBranchId),
+            location_public_id: reorder.location,
+            sku_public_id: reorder.sku,
+        });
+        const { level } = await requestJson<{ level: CurrentReorderLevel }>(
+            `/inventory/reorder-levels/current?${query.toString()}`,
+        );
+
+        if (lookup !== reorderLookup) {
+            return;
+        }
+
+        reorder.level = level?.reorderLevel ?? '';
+        reorder.max = level?.maxLevel ?? '';
+        reorder.lockVersion = level?.lockVersion ?? null;
+    } catch {
+        if (lookup === reorderLookup) {
+            reorder.loadFailed = true;
+            operationErrorContext.value = 'Reorder level action';
+            operationError.value =
+                'The saved reorder level could not be loaded. Choose the location and SKU again.';
+        }
+    } finally {
+        if (lookup === reorderLookup) {
+            reorder.loading = false;
+        }
+    }
+};
+watch(() => [reorder.location, reorder.sku], loadReorderLevel);
 // STK-30: Daniel asked for the maximum's message under its own box as well as in the panel's banner.
 const reorderErrors = reactive<{ max_level?: string }>({});
 const canPurchase = (
@@ -638,12 +702,24 @@ const saveReorder = () =>
             sku_public_id: reorder.sku,
             reorder_level: reorder.level,
             max_level: reorder.max,
+            expected_lock_version: reorder.lockVersion,
+            idempotency_key: reorder.key,
         },
         () => {
             reorderErrors.max_level = undefined;
+            void loadReorderLevel();
         },
         (errors) => {
             reorderErrors.max_level = errors.max_level;
+
+            if (errors.expected_lock_version) {
+                // Someone else saved this level: show the saved numbers again so they can be checked first.
+                void loadReorderLevel().then(() => {
+                    operationErrorContext.value = 'Reorder level action';
+                    operationError.value =
+                        'Someone else changed this reorder level. The saved level is shown again; check it and save.';
+                });
+            }
         },
     );
 </script>
@@ -1317,7 +1393,13 @@ const saveReorder = () =>
                         id="reorder-max-error"
                         :message="reorderErrors.max_level"
                     />
-                    <Button type="submit" :disabled="busy">Save level</Button>
+                    <Button
+                        type="submit"
+                        :disabled="
+                            busy || reorder.loading || reorder.loadFailed
+                        "
+                        >Save level</Button
+                    >
                 </form>
                 <p class="text-xs text-muted-foreground">
                     Up to 100 low-stock entries and 100 near-expiry batches are
