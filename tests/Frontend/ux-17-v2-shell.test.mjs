@@ -190,3 +190,22 @@ test('UX-17: a Version 2 page (Dir/V2/Name) gets the V2 layout, before every pre
     assert.equal(layout.match(/<Toaster /g)?.length, 1);
     assert.doesNotMatch(layout, /dataset\.ui|applyUiVersion/);
 });
+
+test('UX-19: Back to Classic in the top bar is a quiet ghost control the height of the branch switcher', () => {
+    const shell = squash(
+        read('resources/js/components/workspace/V2AppShell.vue'),
+    );
+    const switcher = read(
+        'resources/js/components/workspace/WorkspaceBranchSwitcher.vue',
+    );
+
+    assert.match(
+        shell,
+        /<Button variant="ghost" size="sm" :class="QUIET_BACK" class="max-sm:hidden" data-test="v2-back-to-classic" @click="backToClassic" > <Undo2 class="size-3\.5" aria-hidden="true" \/> Back to Classic <\/Button>/,
+    );
+    assert.match(
+        shell,
+        /const QUIET_BACK = 'h-9 gap-1\.5 rounded-lg px-2\.5 text-xs font-normal/,
+    );
+    assert.match(switcher, /class="h-9 w-auto/);
+});
