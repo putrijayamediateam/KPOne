@@ -218,12 +218,10 @@ const submitCancel = () => {
         </section>
         <section
             v-if="visit.queue"
-            class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900 dark:bg-emerald-950/30"
+            class="flex items-center justify-between rounded-xl border border-success/25 bg-success/10 p-4"
         >
             <div class="flex items-center gap-3">
-                <ListOrdered
-                    class="size-5 text-emerald-800 dark:text-emerald-300"
-                />
+                <ListOrdered class="size-5 text-success" />
                 <div>
                     <div
                         class="text-xs font-medium tracking-wide text-muted-foreground uppercase"

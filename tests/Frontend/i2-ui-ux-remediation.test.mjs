@@ -96,7 +96,7 @@ test('Visit forms contain no standalone arrow text and retain labelled Panel ref
         assert.match(source, /for="panel-id"/);
         assert.match(source, /id="coverage-member-reference"/);
         assert.match(source, /for="coverage-member-reference"/);
-        assert.match(source, /trigger-class="h-10"/);
+        assert.match(source, /trigger-class="(?:h-10|max-lg:data-\[size=default\]:h-11)"/);
         assert.match(source, /v-model="form\.coverage_member_reference"/);
     }
 });

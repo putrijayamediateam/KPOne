@@ -186,7 +186,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 v-model="form.panel_id"
                                 label="Panel"
                                 :options="panelOptions"
-                                trigger-class="h-10" /><InputError
+                                trigger-class="max-lg:data-[size=default]:h-11" /><InputError
                                 :message="errorFor('panel_id')"
                         /></label>
                         <label

@@ -42,7 +42,7 @@ test('DARK-1 S1-007: confirmed and unconfirmed OTC allergy states have dark surf
 
 test('DARK-1 S1-008: visit queue card and icon adapt to dark mode without changing the light styles', () => {
     const queue = elements(template('Registration/Show.vue')).find((node) => node.tag === 'section' && directive(node, 'if') === 'visit.queue');
-    includes(classes(queue), `border-emerald-200 bg-emerald-50/40 ${green}`);
+    includes(classes(queue), 'border-success/25 bg-success/10');
     const icon = elements(queue).find((node) => node.tag === 'ListOrdered');
-    includes(classes(icon), 'text-emerald-800 dark:text-emerald-300');
+    includes(classes(icon), 'text-success');
 });
