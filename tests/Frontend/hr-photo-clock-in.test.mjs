@@ -114,3 +114,24 @@ test('the clock shortcut opens the camera, or the Attendance page where location
         /needsAttendancePage[\s\S]*router\.visit\(ATTENDANCE\)/,
     );
 });
+
+test('once a photo is shown only Hide photo remains, and phone cards name each photo In or Out', () => {
+    const t = parse(thumb).descriptor.template.content;
+    const show = t.indexOf('data-test="clock-photo-show"');
+    const elseBlock = t.indexOf('<template v-else>');
+    const hide = t.indexOf('data-test="clock-photo-hide"');
+    assert.ok(show > -1 && elseBlock > show && hide > elseBlock);
+    assert.match(
+        t,
+        /v-if="photo\.needsShow && !shown"[\s\S]*data-test="clock-photo-show"/,
+    );
+    // Show and Hide live in opposite branches, so they never appear together for one photo.
+    assert.equal(
+        (t.slice(elseBlock).match(/clock-photo-show/g) ?? []).length,
+        0,
+    );
+    assert.match(
+        attendance,
+        /data-test="review-card-photos"[\s\S]*?>In<\/span[\s\S]*?r\.photos\.in[\s\S]*?>Out<\/span[\s\S]*?r\.photos\.out/,
+    );
+});

@@ -1376,18 +1376,36 @@ const correctionStatusTone = (
                             </p>
                             <div
                                 v-if="r.photos?.in || r.photos?.out"
-                                class="flex flex-wrap items-center gap-3"
+                                class="flex flex-col gap-2"
+                                data-test="review-card-photos"
                             >
-                                <ClockPhotoThumb
+                                <!-- One line each, named In and Out, so each Show or Hide belongs to its own press (Daniel). -->
+                                <div
                                     v-if="r.photos?.in"
-                                    :photo="r.photos.in"
-                                    :name="`Clock-in photo of ${r.person}`"
-                                />
-                                <ClockPhotoThumb
+                                    class="flex flex-wrap items-center gap-2"
+                                >
+                                    <span
+                                        class="w-8 text-xs text-muted-foreground"
+                                        >In</span
+                                    >
+                                    <ClockPhotoThumb
+                                        :photo="r.photos.in"
+                                        :name="`Clock-in photo of ${r.person}`"
+                                    />
+                                </div>
+                                <div
                                     v-if="r.photos?.out"
-                                    :photo="r.photos.out"
-                                    :name="`Clock-out photo of ${r.person}`"
-                                />
+                                    class="flex flex-wrap items-center gap-2"
+                                >
+                                    <span
+                                        class="w-8 text-xs text-muted-foreground"
+                                        >Out</span
+                                    >
+                                    <ClockPhotoThumb
+                                        :photo="r.photos.out"
+                                        :name="`Clock-out photo of ${r.person}`"
+                                    />
+                                </div>
                             </div>
                             <p
                                 v-if="r.location?.in"
