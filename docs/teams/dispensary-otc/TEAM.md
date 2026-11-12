@@ -110,6 +110,9 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 | DSP-17 | Scan to pick the batch: on an open case, a scan that matches a saved line (or a scan-to-add pick) scrolls that line's batch dropdown into view (instantly with reduced motion), gives it a brand ring and adds "Pick the batch printed on the box." to its "Selected" line in a `role="status"` span. Nothing is selected or saved; the hint clears on a batch change, a save, any new scan (refused or unknown codes too) or when the line goes away. Focus stays in the scan box. Frontend only | #498 (merged `d61a69c`) |
 | DSP-18 | GS1 batch and expiry at the scan: the shared parser `Inventory\Support\Gs1ElementString` (bracketed and raw forms, FNC1 as GS, symbology prefixes; AIs 01/02 with the check digit, 10, 17 with DD=00 as the month's last day and the GS1 century window in the branch time zone) feeds `GET /inventory/scan`, which also looks up the GTIN's barcode forms and returns a `gs1` block. On the Dispensary page the batch hint names the box ("Box: batch X, exp …"), marks matching options "Matches the box · " and warns when no batch matches, the expiry differs or the batch is on hold; "The selected batch is not the one on the box." is added when the dropdown shows another batch. It never selects a batch. A batch read with no separator is used only when it matches exactly. Zulkifli reviewed the parser | #530 (merged `6fb266e`) |
 | DSP-19 | Check this return panel on tablets: the outcome and reason tiles, the location picker and the four action buttons follow DD-24 (44 px and stacked below 1024 px, side by side from there), as does the record-a-return form; one-line reason tiles centre the radio. Batch labels in the panel show the expiry as "10 Jul 2027" (was dd/mm/yyyy) | #531 (merged `c78566b`) |
+| DSP-20 | Scan to check compares the batch: when the box's GS1 barcode carries a batch (and expiry), the scan-to-check message says "Saved batch X matches the box.", that the box batch differs from the saved one, that its expiry differs, or, for a line split across batches, that the box is one of its saved batches. Screen only: nothing is saved or blocked; a repeat scan is spoken again | #542 (merged `c5cd0c27`) |
+| UI-RESTYLE D1 | Returns to check in the app-wide look (table from 1024 px, label and value cards below it). Changed Classic, so it was moved behind Version 2 by D1-CLASSIC | #546 (merged `4ec7cc83`) |
+| D1-CLASSIC | Returns to check keeps its Classic look exactly (pre-#546 markup and classes); D1's look shows only under Version 2 through `v2:` variants and `useUiVersion()` (`isV2`), with `v2:leading-[inherit]` where text-xs becomes 13 px. Classic 10 of 10 and V2 10 of 10 shots pixel-identical (`scripts/classic-compare`); shots on branch `validation/d1-classic-shots`. The three dsp-7b pins are back to their pre-#546 values; the D1 test is a V2 test | #610 (merged `153cfcd`) |
 | Exception wording | An earlier partial dispense reads in plain words ("waiting for the doctor to acknowledge", "acknowledged by the doctor", "replaced by a later change", else "status unknown") instead of the stored code (Daniel, guide section 15). Frontend only | #495 (merged) |
 
 ## 6. Owner decisions already made (never ask again)
@@ -281,8 +284,25 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
 41. DSP-19 return panel on tablets (2026-11-11): B.E.R.N.I.S.S: "go with your order", then "ship it for DSP-19".
     Layout only, plus the batch date format. Daniel: OK; the dark native radios are shared design debt DD-67.
 
+42. DSP-20 scan to check compares the batch (2026-11-12): the owner chose it ("go with DSP-20"). Screen only, warns
+    only. Daniel: OK after a split line said "one of this line's saved batches" instead of "matches".
+43. Version 2 (2026-11-12): Classic keeps its original look exactly; the new look shows only for people who switch
+    on Version 2 ("Try the new layout", per person, default off). Classic restyle PRs were closed unmerged: D3 (#563)
+    and D4a (#585); D2, D4b and D4c were never opened. Their branches are kept (`feature/ui-restyle-d2-completed-returns`,
+    `-d3-label-preview`, `-d4a-dispensary-left`, `-d4b-dispensary-lines`, `-d4c-dispensary-right`) for Dispensary's turn
+    in the V2 order (Registration, Queue, Billing, Dispensary). Use `v2:` classes for look changes and `useUiVersion()`
+    only where markup differs; prove Classic pixel-identical with `scripts/classic-compare`.
+44. Drug label short address, DSP-21 (2026-11-12): the owner chose option A: Business details gets an optional
+    "Address on drug labels" per branch (Catalogue & settings, #564), and the drug label prints it when set, otherwise
+    the full address; the 96-character budget is unchanged. Hakim: OK, and a value blank after collapsing whitespace
+    falls back to the full address. The owner: "start DSP-21 PR when #564 merges".
+
 ## 7. Open items and known limits
 
+- **Version 2 restyle (decision 43):** D2, D3 and D4a to D4c wait on their branches for Dispensary's turn in the V2
+  order, then come back gated to V2 with a Classic pixel proof.
+- **DSP-21 (decision 44):** built on `feature/dsp-21-label-short-address` (on top of #564's branch); the PR opens when
+  #564 merges. Until then every Cheras drug label is blocked by the 109-character address.
 - **Controlled-medicine flag (DSP-3):** Director, CA Supervisor and Administrator set it (decision 12). The flag is read live: reprints of
   past dispenses follow the current flag. Since DSP-10 its line prints below the border and uses none of the 13 rows. Medicines have
   no `lock_version`; the change uses an expected-value guard on the one boolean instead (a quick A→B→A
@@ -427,6 +447,9 @@ order, each its own PR:
 18. **DSP-17 Scan to pick the batch — merged in #498.** Decision 38.
 19. **DSP-18 GS1 batch and expiry at the scan — merged in #530.** Decision 40.
 20. **DSP-19 Return panel on tablets — merged in #531.** Decision 41.
+21. **DSP-20 Scan to check compares the batch — merged in #542.** Decision 42.
+22. **D1-CLASSIC Returns to check back to Classic, D1 under V2 — merged in #610.** Decision 43.
+23. **DSP-21 Drug label short address — waiting for #564.** Decision 44.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
