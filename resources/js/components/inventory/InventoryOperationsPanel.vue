@@ -801,6 +801,13 @@ const saveReorder = () =>
                         {{ row.supplier }} → {{ row.destination }}
                     </p>
                     <p
+                        v-if="row.fromRequest"
+                        class="text-sm text-muted-foreground"
+                        data-testid="po-from-request"
+                    >
+                        From purchase request {{ row.fromRequest }}
+                    </p>
+                    <p
                         v-for="line in row.lines"
                         :key="line.publicId"
                         class="text-xs text-muted-foreground"
