@@ -3,12 +3,11 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
-import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
-import CallReadinessActions from '@/components/queue/CallReadinessActions.vue';
 import QrIntakeTable from '@/components/registration/QrIntakeTable.vue';
 import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
 import V2RowMenu from '@/components/v2/V2RowMenu.vue';
 import V2Table from '@/components/v2/V2Table.vue';
@@ -25,7 +24,6 @@ import { useRegistrationRowActions } from '@/composables/registration/useRegistr
 import { formatDate } from '@/lib/presentation';
 import { servingDurationLabel } from '@/lib/r1c2-presentation';
 import {
-    legacyBoardRow,
     needsAttention,
     rowMenu,
     rowStatus,
@@ -33,6 +31,7 @@ import {
     waitingMinutes,
 } from '@/lib/registration-v2';
 import type { VisitOptions, VisitRow } from '@/types';
+import RowDialogs from './RowDialogs.vue';
 
 /**
  * Version 2 Registration board (shown only in V2; Classic is `pages/Registration/Index.vue`, untouched). Same props,
@@ -79,8 +78,8 @@ const props = defineProps<{
 }>();
 const page = usePage();
 
-const cancelOpen = ref(false);
-const cancellationVisit = ref<VisitRow | null>(null);
+const dialogKind = ref<'notReady' | 'ready' | 'cancel' | null>(null);
+const dialogVisit = ref<VisitRow | null>(null);
 // Declared after `board` because the row actions refresh it; `pageBusy` only reads `actions` later, never during setup.
 const board = useRegistrationBoard({
     visits: props.visits,
@@ -91,7 +90,7 @@ const board = useRegistrationBoard({
             'qr-intake' && props.qrIntakes
             ? 'qr-intake'
             : 'all',
-    pageBusy: () => cancelOpen.value || actions.busyKey.value !== null,
+    pageBusy: () => dialogKind.value !== null || actions.busyKey.value !== null,
 });
 const {
     tabCounts,
@@ -115,8 +114,12 @@ const actions = useRegistrationRowActions({
     },
     onSucceeded: () => board.refreshAppliedBoard((run) => void nextTick(run)),
     openCancel: (visit) => {
-        cancellationVisit.value = visit;
-        cancelOpen.value = true;
+        dialogVisit.value = visit;
+        dialogKind.value = 'cancel';
+    },
+    openReadiness: (visit) => {
+        dialogVisit.value = visit;
+        dialogKind.value = visit.callHold?.active ? 'ready' : 'notReady';
     },
 });
 
@@ -194,9 +197,13 @@ const durationText = (visit: VisitRow) =>
         : visit.queueStatus === 'serving'
           ? servingDurationLabel(visit.durationMinutes)
           : '—';
+const stats = computed(() => waitStats(rows.value));
 const resultLine = computed(
     () =>
         `${total.value} ${total.value === 1 ? 'visit' : 'visits'}` +
+        (stats.value.waitingNow
+            ? ` · ${stats.value.waitingNow} waiting · longest ${stats.value.longestWait} min`
+            : '') +
         (form.date_from === board.today && form.date_to === board.today
             ? ''
             : ` · ${
@@ -211,11 +218,12 @@ const rowsWithMenu = computed(() =>
         status: rowStatus(visit),
         minutes: waitingMinutes(visit),
         menu: rowMenu(visit),
-        legacy: legacyBoardRow(visit),
     })),
 );
 const attention = computed(() => needsAttention(rows.value));
-const stats = computed(() => waitStats(rows.value));
+const attentionOpen = ref(false);
+const sheetOpen = ref(false);
+const isToday = (visit: VisitRow) => visit.registeredAtDate === board.today;
 
 const rowClick = (event: MouseEvent, visit: VisitRow) => {
     if (
@@ -271,7 +279,6 @@ const filterBadge = computed(
     <V2WorkLayout
         title="Registration"
         :description="`${options.branch.name} · Register, send to waiting, call and follow every visit.`"
-        rail-label="Attention and waiting"
     >
         <template #actions>
             <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -356,20 +363,21 @@ const filterBadge = computed(
                             <div class="flex gap-2 max-sm:w-full">
                                 <button
                                     type="button"
-                                    class="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:flex-none lg:h-9"
+                                    class="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
+                                    @click="sheetOpen = true"
+                                >
+                                    Filters{{
+                                        filterBadge ? ` (${filterBadge})` : ''
+                                    }}
+                                </button>
+                                <button
+                                    type="button"
+                                    class="inline-flex h-11 items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:hidden lg:h-9"
                                     :aria-expanded="filtersOpen"
                                     aria-controls="v2-registration-filters"
                                     @click="filtersOpen = !filtersOpen"
                                 >
-                                    <span class="sm:hidden"
-                                        >Filters{{
-                                            filterBadge
-                                                ? ` (${filterBadge})`
-                                                : ''
-                                        }}</span
-                                    ><span class="max-sm:hidden"
-                                        >More filters</span
-                                    >
+                                    More filters
                                 </button>
                                 <button
                                     type="submit"
@@ -384,30 +392,9 @@ const filterBadge = computed(
                     <div
                         v-if="filtersOpen"
                         id="v2-registration-filters"
-                        class="flex flex-wrap items-end gap-2 rounded-[14px] border bg-card p-3"
+                        class="flex flex-wrap items-end gap-2 rounded-[14px] border bg-card p-3 max-sm:hidden"
                     >
-                        <div class="w-full sm:hidden">
-                            <OperationalSelect
-                                v-model="form.doctor_id"
-                                label="Doctor"
-                                :options="doctorOptions"
-                            />
-                        </div>
-                        <div class="w-full sm:hidden">
-                            <OperationalSelect
-                                v-model="form.coverage_type"
-                                label="Coverage"
-                                :options="coverageOptions"
-                            />
-                        </div>
-                        <div class="w-full sm:hidden">
-                            <OperationalSelect
-                                v-model="form.priority"
-                                label="Urgency"
-                                :options="urgencyOptions"
-                            />
-                        </div>
-                        <label class="grid min-w-40 gap-1 text-xs max-sm:w-full"
+                        <label class="grid min-w-40 gap-1 text-xs"
                             >Visit type
                             <OperationalSelect
                                 v-model="form.visit_type"
@@ -415,30 +402,21 @@ const filterBadge = computed(
                                 :options="visitTypeOptions"
                             />
                         </label>
-                        <label class="grid gap-1 text-xs max-sm:w-full"
+                        <label class="grid gap-1 text-xs"
                             >From<DateField
                                 v-model="form.date_from"
                                 :echo="false"
                         /></label>
-                        <label class="grid gap-1 text-xs max-sm:w-full"
+                        <label class="grid gap-1 text-xs"
                             >To<DateField v-model="form.date_to" :echo="false"
                         /></label>
-                        <div class="flex gap-2 max-sm:w-full">
-                            <button
-                                type="submit"
-                                class="inline-flex h-11 flex-1 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:hidden"
-                                :disabled="loading"
-                            >
-                                {{ loading ? 'Applying…' : 'Apply' }}
-                            </button>
-                            <button
-                                type="button"
-                                class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:flex-1 lg:h-9"
-                                @click="board.resetFilters"
-                            >
-                                Reset
-                            </button>
-                        </div>
+                        <button
+                            type="button"
+                            class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                            @click="board.resetFilters"
+                        >
+                            Reset
+                        </button>
                     </div>
                     <p
                         v-if="advancedFilterCount"
@@ -450,6 +428,49 @@ const filterBadge = computed(
                     </p>
                     <InputError :message="error" />
                 </form>
+
+                <section
+                    v-if="attention.length"
+                    class="rounded-[14px] border bg-card"
+                    aria-label="Needs attention"
+                >
+                    <button
+                        type="button"
+                        class="flex min-h-11 w-full items-center justify-between gap-3 rounded-[14px] px-4 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        :aria-expanded="attentionOpen"
+                        aria-controls="v2-attention-list"
+                        @click="attentionOpen = !attentionOpen"
+                    >
+                        <span
+                            >{{ attention.length }} needs attention
+                            <span class="font-normal text-muted-foreground"
+                                >· from the visits on this screen only</span
+                            ></span
+                        >
+                        <span aria-hidden="true">{{
+                            attentionOpen ? '▴' : '▾'
+                        }}</span>
+                    </button>
+                    <ul
+                        v-if="attentionOpen"
+                        id="v2-attention-list"
+                        class="divide-y border-t"
+                    >
+                        <li
+                            v-for="item in attention"
+                            :key="item.id"
+                            class="px-4 py-3"
+                        >
+                            <p class="text-sm font-medium">{{ item.title }}</p>
+                            <p class="text-xs text-muted-foreground">
+                                {{ item.why }}
+                            </p>
+                        </li>
+                    </ul>
+                </section>
+                <p v-else class="text-sm text-muted-foreground">
+                    Nothing needs attention on this screen.
+                </p>
 
                 <div
                     class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[13px] text-muted-foreground"
@@ -465,9 +486,9 @@ const filterBadge = computed(
 
                 <V2Table
                     label="Visits"
-                    :columns="8"
+                    :columns="6"
                     cards="lg"
-                    min-width="960px"
+                    min-width="880px"
                     :empty="!rows.length"
                     :empty-message="
                         error || 'No Patients match this operational view.'
@@ -477,12 +498,10 @@ const filterBadge = computed(
                     <template #head>
                         <tr>
                             <th scope="col">Patient</th>
-                            <th scope="col">Queue</th>
                             <th scope="col">Arrived</th>
                             <th scope="col">Doctor and notes</th>
                             <th scope="col">Payment</th>
-                            <th scope="col">Duration</th>
-                            <th scope="col">Status</th>
+                            <th scope="col">Status and wait</th>
                             <th scope="col" class="text-right">Actions</th>
                         </tr>
                     </template>
@@ -496,42 +515,62 @@ const filterBadge = computed(
                             @click="rowClick($event, item.visit)"
                         >
                             <td data-label="Patient" data-primary>
-                                <span class="block font-medium lg:text-sm">{{
+                                <span class="block text-sm font-medium">{{
                                     item.visit.patientName
                                 }}</span>
                                 <span
-                                    class="block text-xs text-muted-foreground"
+                                    class="block text-xs font-normal text-muted-foreground"
+                                    ><template v-if="item.visit.queueNumber"
+                                        >{{
+                                            item.visit.queueNumber
+                                        }}
+                                        · </template
                                     >{{ item.visit.patientNumber }}</span
                                 >
                             </td>
-                            <td
-                                data-label="Queue"
-                                class="text-sm whitespace-nowrap"
-                            >
-                                {{ item.visit.queueNumber ?? '—' }}
-                            </td>
-                            <td data-label="Arrived">
+                            <td data-label="Arrived" class="text-sm">
                                 <span
                                     class="whitespace-nowrap max-lg:text-right lg:contents"
                                 >
-                                    {{
-                                        formatDate(
-                                            item.visit.registeredAtDate,
-                                            options.branch.timezone,
-                                        )
-                                    }}
-                                    <span class="text-muted-foreground">{{
+                                    <span class="block">{{
                                         compactTime(item.visit.registeredAt)
                                     }}</span>
+                                    <span
+                                        v-if="!isToday(item.visit)"
+                                        class="block text-xs text-muted-foreground"
+                                        >{{
+                                            formatDate(
+                                                item.visit.registeredAtDate,
+                                                options.branch.timezone,
+                                            )
+                                        }}</span
+                                    >
                                 </span>
                             </td>
-                            <td data-label="Doctor and notes">
-                                <span class="max-lg:text-right lg:contents">
-                                    <span class="block">{{
-                                        item.visit.doctorName ?? 'Unassigned'
-                                    }}</span>
+                            <td
+                                data-label="Doctor and notes"
+                                class="max-w-56 min-w-0 text-sm"
+                            >
+                                <span
+                                    class="min-w-0 max-lg:text-right lg:contents"
+                                >
                                     <span
-                                        class="block text-xs text-muted-foreground"
+                                        class="block truncate"
+                                        :title="
+                                            item.visit.doctorName ??
+                                            'Unassigned'
+                                        "
+                                        >{{
+                                            item.visit.doctorName ??
+                                            'Unassigned'
+                                        }}</span
+                                    >
+                                    <span
+                                        class="block truncate text-xs text-muted-foreground"
+                                        :title="
+                                            item.visit.visitReasonExcerpt ??
+                                            'No reason recorded'
+                                        "
                                         >{{
                                             item.visit.visitReasonExcerpt ??
                                             'No reason recorded'
@@ -539,7 +578,17 @@ const filterBadge = computed(
                                     >
                                 </span>
                             </td>
-                            <td data-label="Payment" class="whitespace-nowrap">
+                            <td
+                                data-label="Payment"
+                                class="text-sm whitespace-nowrap"
+                                :class="
+                                    /^self[- ]?pay$/i.test(
+                                        item.visit.coverageLabel,
+                                    ) && !item.visit.panelNote
+                                        ? 'max-lg:hidden'
+                                        : ''
+                                "
+                            >
                                 <span class="max-lg:text-right lg:contents">
                                     <span class="block">{{
                                         item.visit.coverageLabel
@@ -552,61 +601,76 @@ const filterBadge = computed(
                                     >
                                 </span>
                             </td>
-                            <td data-label="Duration" class="whitespace-nowrap">
-                                <WaitRing
-                                    v-if="item.minutes !== null"
-                                    :minutes="item.minutes"
-                                />
-                                <template v-else>{{
-                                    durationText(item.visit)
-                                }}</template>
-                            </td>
-                            <td data-label="Status">
+                            <td data-status>
                                 <div
-                                    class="flex flex-wrap items-center gap-1.5 max-lg:justify-end"
+                                    class="flex min-w-0 flex-col gap-1.5 max-lg:items-end"
                                 >
-                                    <V2Chip
-                                        :tone="item.status.tone"
-                                        :label="item.status.label"
-                                    />
-                                    <V2Chip
-                                        v-if="item.visit.priority === 'urgent'"
-                                        tone="danger"
-                                        label="Urgent"
-                                    />
-                                    <V2Chip
-                                        v-if="item.visit.returnedFromDispensary"
-                                        tone="neutral"
-                                        label="Returned"
+                                    <div
+                                        class="flex flex-wrap items-center gap-1.5 max-lg:justify-end"
+                                    >
+                                        <V2Chip
+                                            :tone="item.status.tone"
+                                            :label="item.status.label"
+                                        />
+                                        <V2Chip
+                                            v-if="
+                                                item.visit.priority === 'urgent'
+                                            "
+                                            tone="danger"
+                                            label="Urgent"
+                                        />
+                                        <V2Chip
+                                            v-if="
+                                                item.visit
+                                                    .returnedFromDispensary
+                                            "
+                                            tone="neutral"
+                                            label="Returned"
+                                        />
+                                        <V2Chip
+                                            v-if="
+                                                item.visit.callHold?.active ||
+                                                item.visit.callHold?.overridden
+                                            "
+                                            tone="warning"
+                                            :label="
+                                                item.visit.callHold.active
+                                                    ? 'Not ready'
+                                                    : 'Overridden by doctor'
+                                            "
+                                            :title="
+                                                item.visit.callHold.reason ??
+                                                undefined
+                                            "
+                                            data-testid="call-readiness-badge"
+                                        />
+                                        <span
+                                            v-if="item.visit.completedAt"
+                                            class="text-xs text-muted-foreground"
+                                            >{{ item.visit.completedAt }}</span
+                                        >
+                                    </div>
+                                    <p
+                                        v-if="item.visit.callHold?.active"
+                                        class="max-w-56 truncate text-xs text-muted-foreground max-lg:text-right"
+                                        :title="
+                                            item.visit.callHold.reason ??
+                                            undefined
+                                        "
+                                    >
+                                        {{ item.visit.callHold.reason }}
+                                    </p>
+                                    <WaitRing
+                                        v-if="item.minutes !== null"
+                                        :minutes="item.minutes"
                                     />
                                     <span
-                                        v-if="item.visit.completedAt"
+                                        v-else-if="
+                                            durationText(item.visit) !== '—'
+                                        "
                                         class="text-xs text-muted-foreground"
-                                        >{{ item.visit.completedAt }}</span
+                                        >{{ durationText(item.visit) }}</span
                                     >
-                                    <V2Chip
-                                        v-if="
-                                            item.visit.callHold?.active ||
-                                            item.visit.callHold?.overridden
-                                        "
-                                        tone="warning"
-                                        :label="`${
-                                            item.visit.callHold.active
-                                                ? 'Not ready to call'
-                                                : 'Overridden by doctor'
-                                        }: ${item.visit.callHold.reason}`"
-                                        data-testid="call-readiness-badge"
-                                    />
-                                    <CallReadinessActions
-                                        :row="item.legacy"
-                                        :branch-id="options.branch.id"
-                                        from="registration"
-                                        @changed="
-                                            board.refreshAppliedBoard(
-                                                (run) => void nextTick(run),
-                                            )
-                                        "
-                                    />
                                 </div>
                             </td>
                             <td
@@ -650,69 +714,62 @@ const filterBadge = computed(
                 />
             </template>
         </template>
-
-        <template #rail>
-            <section
-                class="rounded-[14px] border bg-card"
-                aria-labelledby="v2-attention"
-            >
-                <h2
-                    id="v2-attention"
-                    class="px-4 pt-3 text-[15px] font-semibold"
-                >
-                    Needs attention
-                </h2>
-                <p class="px-4 pb-2 text-xs text-muted-foreground">
-                    From the visits on this screen only.
-                </p>
-                <ul v-if="attention.length" class="divide-y border-t">
-                    <li
-                        v-for="item in attention"
-                        :key="item.id"
-                        class="px-4 py-3"
-                    >
-                        <p class="text-sm font-medium">{{ item.title }}</p>
-                        <p class="text-xs text-muted-foreground">
-                            {{ item.why }}
-                        </p>
-                    </li>
-                </ul>
-                <p
-                    v-else
-                    class="border-t px-4 py-4 text-sm text-muted-foreground"
-                >
-                    Nothing needs attention on this screen.
-                </p>
-            </section>
-            <section class="rounded-[14px] border bg-card p-4">
-                <h2 class="text-[15px] font-semibold">At a glance</h2>
-                <dl class="mt-2 grid gap-1.5 text-sm">
-                    <div class="flex justify-between gap-3">
-                        <dt class="text-muted-foreground">Waiting now</dt>
-                        <dd class="font-medium tabular-nums">
-                            {{ stats.waitingNow }}
-                        </dd>
-                    </div>
-                    <div class="flex justify-between gap-3">
-                        <dt class="text-muted-foreground">Longest wait</dt>
-                        <dd class="font-medium tabular-nums">
-                            {{
-                                stats.longestWait === null
-                                    ? '—'
-                                    : `${stats.longestWait} min`
-                            }}
-                        </dd>
-                    </div>
-                </dl>
-            </section>
-        </template>
     </V2WorkLayout>
 
-    <VisitCancellationDialog
-        v-model:open="cancelOpen"
-        :row="cancellationVisit ? legacyBoardRow(cancellationVisit) : null"
+    <RowDialogs
+        :kind="dialogKind"
+        :visit="dialogVisit"
         :branch-id="options.branch.id"
-        :visit-lock-version="cancellationVisit?.visitLockVersion ?? null"
-        :queue-lock-version="cancellationVisit?.queueLockVersion ?? null"
+        @close="dialogKind = null"
+        @changed="board.refreshAppliedBoard((run) => void nextTick(run))"
     />
+    <V2Dialog
+        v-model:open="sheetOpen"
+        title="Filters"
+        confirm-label="Apply"
+        cancel-label="Close"
+        @confirm="
+            sheetOpen = false;
+            board.search(1);
+        "
+    >
+        <div class="grid gap-3">
+            <OperationalSelect
+                v-model="form.doctor_id"
+                label="Doctor"
+                :options="doctorOptions"
+            />
+            <OperationalSelect
+                v-model="form.coverage_type"
+                label="Coverage"
+                :options="coverageOptions"
+            />
+            <OperationalSelect
+                v-model="form.priority"
+                label="Urgency"
+                :options="urgencyOptions"
+            />
+            <label class="grid gap-1 text-xs"
+                >Visit type
+                <OperationalSelect
+                    v-model="form.visit_type"
+                    label="Visit type"
+                    :options="visitTypeOptions"
+                />
+            </label>
+            <label class="grid gap-1 text-xs"
+                >From<DateField v-model="form.date_from" :echo="false"
+            /></label>
+            <label class="grid gap-1 text-xs"
+                >To<DateField v-model="form.date_to" :echo="false"
+            /></label>
+            <button
+                type="button"
+                class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                @click="board.resetFilters"
+            >
+                Reset filters
+            </button>
+        </div>
+    </V2Dialog>
 </template>

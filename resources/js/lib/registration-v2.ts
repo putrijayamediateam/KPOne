@@ -64,6 +64,14 @@ export const waitingMinutes = (visit: VisitRow): number | null =>
         ? visit.durationMinutes
         : null;
 
+/** The Classic reasons for "Not ready to call" (`components/queue/CallReadinessActions.vue`), same codes and words. */
+export const NOT_READY_REASONS: Array<[string, string]> = [
+    ['awaiting_panel_confirmation', 'Awaiting Panel confirmation'],
+    ['awaiting_patient_details', 'Awaiting patient details'],
+    ['awaiting_payment_or_deposit', 'Awaiting payment or deposit'],
+    ['other_administrative', 'Other administrative'],
+];
+
 export type MenuTarget =
     { kind: 'link'; href: string } | { kind: 'action'; action: RowAction };
 
@@ -73,6 +81,8 @@ export type RowAction =
     | 'openConsultation'
     | 'callDispensary'
     | 'dispense'
+    | 'markNotReady'
+    | 'markReady'
     | 'cancel';
 
 const encode = (value: string) => encodeURIComponent(value);
@@ -106,23 +116,23 @@ export const rowMenu = (
     const money: RowMenuGroup['items'] = [];
     const danger: RowMenuGroup['items'] = [];
 
-    open.push({ id: 'view-visit', label: 'View Visit', allowed: true });
+    open.push({ id: 'view-visit', label: 'View visit', allowed: true });
     link('view-visit', visitHref(visit));
 
     if (can.viewPatient) {
-        open.push({ id: 'view-patient', label: 'View Patient', allowed: true });
+        open.push({ id: 'view-patient', label: 'View patient', allowed: true });
         link('view-patient', patientHref(visit));
     }
 
     if (can.update) {
-        open.push({ id: 'edit-visit', label: 'Edit Visit', allowed: true });
+        open.push({ id: 'edit-visit', label: 'Edit visit', allowed: true });
         link('edit-visit', editHref(visit));
     }
 
     if (can.openDispensary && visit.dispensaryUrl) {
         open.push({
             id: 'open-dispensary',
-            label: 'Open Dispensary',
+            label: 'Open dispensary',
             allowed: true,
         });
         link('open-dispensary', visit.dispensaryUrl);
@@ -131,7 +141,7 @@ export const rowMenu = (
     if (can.sendToWaiting) {
         move.push({
             id: 'send-to-waiting',
-            label: 'Send to Waiting',
+            label: 'Send to waiting',
             allowed: true,
         });
         action('send-to-waiting', 'sendToWaiting');
@@ -142,7 +152,7 @@ export const rowMenu = (
 
         call.push({
             id: 'call-in',
-            label: 'Call In',
+            label: 'Call in',
             allowed: !blocked,
             reason: blocked ? `Not ready to call: ${hold?.reason}` : undefined,
         });
@@ -159,10 +169,25 @@ export const rowMenu = (
         }
     }
 
+    // Same rule as Classic's `CallReadinessActions`: only on a waiting row, and set or clear as the server allows.
+    if (legacyBoardRow(visit).statusTone === 'waiting') {
+        if (hold?.active ? hold.canClear : hold?.canSet) {
+            call.push({
+                id: hold?.active ? 'mark-ready' : 'mark-not-ready',
+                label: hold?.active ? 'Ready to be called' : 'Mark not ready',
+                allowed: true,
+            });
+            action(
+                hold?.active ? 'mark-ready' : 'mark-not-ready',
+                hold?.active ? 'markReady' : 'markNotReady',
+            );
+        }
+    }
+
     if (can.openConsultation) {
         call.push({
             id: 'open-consultation',
-            label: 'Open Consultation',
+            label: 'Open consultation',
             allowed: true,
         });
         action('open-consultation', 'openConsultation');
@@ -171,7 +196,7 @@ export const rowMenu = (
     if (can.callDispensary) {
         call.push({
             id: 'call-dispensary',
-            label: 'Call to Dispensary',
+            label: 'Call to dispensary',
             allowed: true,
         });
         action('call-dispensary', 'callDispensary');
@@ -190,7 +215,7 @@ export const rowMenu = (
     if (can.openBilling && visit.billingUrl) {
         money.push({
             id: 'open-billing',
-            label: 'Open Billing',
+            label: 'Open billing',
             allowed: true,
         });
         link('open-billing', visit.billingUrl);
@@ -199,7 +224,7 @@ export const rowMenu = (
     if (can.cancel) {
         danger.push({
             id: 'cancel-visit',
-            label: 'Cancel Visit…',
+            label: 'Cancel visit…',
             allowed: true,
             tone: 'danger',
         });

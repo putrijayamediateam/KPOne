@@ -210,7 +210,7 @@ test('V2 board menu: items come only from the server flags; none of the Queue-on
         'Danger',
     ]);
     assert.equal(ids(all).at(-1), 'cancel-visit');
-    assert.equal(all.groups.at(-1).items[0].label, 'Cancel Visit…');
+    assert.equal(all.groups.at(-1).items[0].label, 'Cancel visit…');
     assert.equal(all.groups.at(-1).items[0].tone, 'danger');
 
     // Queue-board items are never offered on Registration, even with unknown flags set.
@@ -324,12 +324,30 @@ test('V2 board: a cancel goes through the dialog (required reason), never a one-
     assert.equal(menu.targets['cancel-visit'].action, 'cancel');
     assert.match(actions, /if \(action === 'cancel'\)/);
     assert.match(actions, /deps\.openCancel\(visit\)/);
-    assert.match(page, /VisitCancellationDialog/);
-    // The Classic dialog keeps the required, 500-character reason.
-    const dialog = read(
+    // The V2 dialog sends the same endpoint and payload keys as the Classic one, with a required reason (V2Dialog's
+    // reasonLabel) cut to the same 500 characters, and only this one has the filled destructive Confirm.
+    const v2 = read('resources/js/pages/Registration/V2/RowDialogs.vue');
+    const classicDialog = read(
         'resources/js/components/patient-board/VisitCancellationDialog.vue',
     );
-    assert.match(dialog, /maxlength="500"|maxLength.*500|500/);
+
+    for (const key of [
+        'expected_branch_id',
+        'lock_version',
+        'queue_lock_version',
+        'cancellation_reason',
+        '/cancel`',
+    ]) {
+        assert.ok(v2.includes(key), `V2 cancel ${key}`);
+        assert.ok(classicDialog.includes(key), `Classic cancel ${key}`);
+    }
+
+    assert.match(v2, /slice\(0, 500\)/);
+    assert.match(v2, /reason-label="kind === 'cancel'/);
+    assert.match(v2, /:tone="kind === 'cancel' \? 'danger' : 'default'"/);
+    assert.match(page, /RowDialogs/);
+    assert.ok(!page.includes('VisitCancellationDialog'));
+    assert.ok(!page.includes('CallReadinessActions'));
 });
 
 test('V2 board: status, wait ring and needs-attention follow the Classic rules', () => {
@@ -424,12 +442,7 @@ test('V2 board page: uses the V2 blocks and the Classic props, tabs and filters;
     assert.match(page, /countedTabs\.has\(tab\.value\)/);
 
     // Reused unchanged: the shared dialogs, the QR list and the WhatsApp link.
-    for (const shared of [
-        'VisitCancellationDialog',
-        'CallReadinessActions',
-        'QrIntakeTable',
-        'WhatsAppLink',
-    ]) {
+    for (const shared of ['QrIntakeTable', 'WhatsAppLink']) {
         assert.ok(page.includes(shared), shared);
     }
 
@@ -439,10 +452,74 @@ test('V2 board page: uses the V2 blocks and the Classic props, tabs and filters;
     assert.match(page, /:input-id="SEARCH_INPUT_ID"/);
     assert.match(page, /router\.visit\(visit\.historyUrl\)/);
     assert.match(page, /Needs attention/);
-    assert.match(page, /From the visits on this screen only/);
+    assert.match(page, /from the visits on this screen only/);
     assert.ok(!/Doctors with a room|Recent activity/.test(page));
     assert.ok(
         !classic.includes('registration-v2') &&
             !classic.includes('components/v2'),
+    );
+});
+
+test('V2 Mark not ready and Ready dialogs: same endpoint, payload keys and reasons as Classic, opened from the menu', () => {
+    const { rowMenu, NOT_READY_REASONS } = load();
+    const v2 = read('resources/js/pages/Registration/V2/RowDialogs.vue');
+    const classicActions = read(
+        'resources/js/components/queue/CallReadinessActions.vue',
+    );
+
+    for (const [code, label] of NOT_READY_REASONS) {
+        assert.ok(classicActions.includes(`'${code}'`), code);
+        assert.ok(classicActions.includes(`'${label}'`), label);
+    }
+
+    for (const key of [
+        '/queue/readiness`',
+        'expected_branch_id',
+        'queue_lock_version',
+        'lock_version',
+        'call_hold_id',
+        'reason_code',
+        'idempotency_key',
+        "from: 'registration'",
+    ]) {
+        assert.ok(v2.includes(key), `V2 ${key}`);
+        assert.ok(
+            classicActions.includes(
+                key === "from: 'registration'" ? 'from: props.from' : key,
+            ),
+            `Classic ${key}`,
+        );
+    }
+
+    const waiting = {
+        queueStatus: 'waiting',
+        callHold: { active: false, canSet: true, canClear: false },
+    };
+    assert.equal(
+        rowMenu(visit(waiting)).targets['mark-not-ready'].action,
+        'markNotReady',
+    );
+    assert.equal(
+        rowMenu(
+            visit({
+                ...waiting,
+                callHold: {
+                    active: true,
+                    canSet: false,
+                    canClear: true,
+                    reason: 'x',
+                },
+            }),
+        ).targets['mark-ready'].action,
+        'markReady',
+    );
+    assert.equal(
+        rowMenu(
+            visit({
+                ...waiting,
+                callHold: { active: false, canSet: false, canClear: false },
+            }),
+        ).targets['mark-not-ready'],
+        undefined,
     );
 });

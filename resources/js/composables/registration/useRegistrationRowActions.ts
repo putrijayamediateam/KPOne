@@ -14,10 +14,11 @@ export type RowActionDeps = {
     onError: (message: string) => void;
     onSucceeded: () => void;
     openCancel: (visit: VisitRow) => void;
+    openReadiness: (visit: VisitRow) => void;
 };
 
 export const mutationRequest = (
-    action: Exclude<RowAction, 'cancel'>,
+    action: Exclude<RowAction, 'cancel' | 'markNotReady' | 'markReady'>,
     visit: VisitRow,
     branchId: number,
 ): {
@@ -80,6 +81,12 @@ export function useRegistrationRowActions(deps: RowActionDeps) {
     const run = (visit: VisitRow, action: RowAction) => {
         if (action === 'cancel') {
             deps.openCancel(visit);
+
+            return;
+        }
+
+        if (action === 'markNotReady' || action === 'markReady') {
+            deps.openReadiness(visit);
 
             return;
         }
