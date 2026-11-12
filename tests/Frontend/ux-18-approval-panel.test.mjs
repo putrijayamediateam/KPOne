@@ -31,39 +31,42 @@ const directiveExp = (node, arg) =>
 const attr = (node, name) =>
     node.props.find((p) => p.type === 6 && p.name === name)?.value?.content;
 
-test('UX-18: Approve is outline and Reject is destructive-outline; no filled button anywhere', () => {
-    for (const button of buttons()) {
-        const variant = attr(button, 'variant');
+test('UX-18: on the card Approve is outline and Reject is destructive-outline; the dialog confirm is filled', () => {
+    const byTest = (name) =>
+        buttons().find((b) => attr(b, 'data-test') === name);
 
-        assert.ok(
-            ['outline', 'ghost'].includes(variant),
-            `every ApprovalPanel button is outline or ghost, got ${variant}`,
-        );
-    }
-
-    const reject = buttons().find(
-        (b) => attr(b, 'data-test') === 'approval-panel-reject',
-    );
-
+    assert.equal(attr(byTest('approval-panel-approve'), 'variant'), 'outline');
+    assert.equal(attr(byTest('approval-panel-reject'), 'variant'), 'outline');
     assert.equal(
-        directiveExp(reject, 'class'),
+        directiveExp(byTest('approval-panel-reject'), 'class'),
         "[REJECT_OUTLINE, 'max-sm:h-11 max-sm:w-full']",
-    );
-    // Daniel: the dialog's Reject is the same destructive-outline as the card's, never filled.
-    const confirm = buttons().find(
-        (b) => attr(b, 'data-test') === 'approval-panel-reject-confirm',
-    );
-
-    assert.equal(attr(confirm, 'variant'), 'outline');
-    assert.equal(
-        directiveExp(confirm, 'class'),
-        "[REJECT_OUTLINE, 'max-sm:h-11']",
     );
     assert.match(
         source,
         /const REJECT_OUTLINE =\s+'border-destructive\/50 text-destructive/,
     );
-    assert.match(source, /data-test="approval-panel-approve"/);
+
+    // Daniel: the dialog's Reject is the confirm step, filled destructive beside an outline Cancel (as Cancel visit).
+    const confirm = byTest('approval-panel-reject-confirm');
+
+    assert.equal(attr(confirm, 'variant'), 'destructive');
+    assert.equal(
+        directiveExp(confirm, 'class'),
+        "[REJECT_FILLED, 'max-sm:h-11']",
+    );
+    assert.equal(
+        directiveExp(confirm, 'aria-disabled'),
+        '!reasonGiven || undefined',
+    );
+    assert.equal(
+        attr(byTest('approval-panel-reject-cancel'), 'variant'),
+        'outline',
+    );
+    // 4.5:1: the theme's text colour on the fill, never the shared variant's 60% dark fill.
+    assert.match(
+        source,
+        /const REJECT_FILLED =\s+'bg-destructive text-destructive-foreground hover:bg-destructive\/90 dark:bg-destructive dark:hover:bg-destructive\/90'/,
+    );
 });
 
 test('UX-18: Reject takes its required reason in a dialog, as a code list or free text', () => {
@@ -101,7 +104,10 @@ test('UX-18: it calls only the caller-given endpoint with the caller payload, an
 test('UX-18: the avatar stack has a text equivalent and the empty dashed circle', () => {
     assert.match(source, /role="group"\s+:aria-label="recorderText"/);
     assert.match(source, /aria-label="Second person: not yet"/);
-    assert.match(source, /bg-\[color-mix\(in_oklab,var\(--foreground\)_12%,var\(--card\)\)\]/);
+    assert.match(
+        source,
+        /bg-\[color-mix\(in_oklab,var\(--foreground\)_12%,var\(--card\)\)\]/,
+    );
     assert.match(source, /<DialogTitle class="pr-8 text-left"\s*>/);
     assert.match(source, /border-dashed/);
     assert.match(source, /Waiting for a second person/);

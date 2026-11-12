@@ -29,7 +29,8 @@ import { getInitials } from '@/composables/useInitials';
  * status is Inertia's own error page. Approve sends at once with no confirmation step, so an adopting page should only
  * pass an approve action that the evidence on the card is enough to decide.
  *
- * Approve is outline and Reject is destructive-outline, never two filled buttons side by side. Reject asks for its
+ * On the card, Approve is outline and Reject is destructive-outline, never two filled buttons side by side. The
+ * Reject confirm inside the dialog is filled destructive beside an outline Cancel. Reject asks for its
  * required reason in a dialog: a reason code list (`reject.reasons`) or free text.
  */
 type Method = 'post' | 'put' | 'patch';
@@ -71,9 +72,14 @@ const titleId = `approval-panel-title-${uid}`;
 const reasonId = `approval-panel-reason-${uid}`;
 const reasonErrorId = `approval-panel-reason-error-${uid}`;
 
-// One destructive-outline style for the card's Reject and the dialog's Reject (never a filled red button).
+// The card's Reject is destructive-outline: the card is not the confirm step (Daniel).
 const REJECT_OUTLINE =
     'border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive';
+
+// The confirm in the dialog is filled destructive. It uses the theme's own text colour on the fill and never the
+// shared button's 60% dark fill, so its text is at least 4.5:1 in Version 2 (6.5:1 light, 8.0:1 dark).
+const REJECT_FILLED =
+    'bg-destructive text-destructive-foreground hover:bg-destructive/90 dark:bg-destructive dark:hover:bg-destructive/90';
 
 const busy = ref<'approve' | 'reject' | null>(null);
 const errors = ref<Record<string, string>>({});
@@ -309,17 +315,20 @@ const confirmReject = () => {
                     <DialogFooter class="mt-2 gap-2">
                         <Button
                             type="button"
-                            variant="ghost"
+                            variant="outline"
                             class="max-sm:h-11"
+                            data-test="approval-panel-reject-cancel"
                             @click="setRejectOpen(false)"
                         >
                             Cancel
                         </Button>
+                        <!-- Daniel: the dialog's Reject is the confirm step, so it is filled destructive (as Cancel visit). -->
                         <Button
                             type="submit"
-                            variant="outline"
-                            :class="[REJECT_OUTLINE, 'max-sm:h-11']"
+                            variant="destructive"
+                            :class="[REJECT_FILLED, 'max-sm:h-11']"
                             :disabled="busy !== null"
+                            :aria-disabled="!reasonGiven || undefined"
                             data-test="approval-panel-reject-confirm"
                         >
                             {{ busy === 'reject' ? 'Rejecting…' : 'Reject' }}
