@@ -243,7 +243,7 @@ const toggleCharge = (charge: ChargeRow) => {
             </template>
         </PageHeader>
 
-        <section class="grid gap-4 md:grid-cols-2">
+        <section class="grid gap-4 max-lg:order-last md:grid-cols-2">
             <div class="min-w-0 rounded-[14px] border bg-card p-5">
                 <h2 class="text-lg font-semibold">New price book</h2>
                 <form class="mt-3 grid gap-3" @submit.prevent="submitBook">
