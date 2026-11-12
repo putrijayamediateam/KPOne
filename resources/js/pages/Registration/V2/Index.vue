@@ -434,38 +434,44 @@ onMounted(() => {
                                 {{ item.visit.queueNumber ?? '—' }}
                             </td>
                             <td data-label="Arrived">
-                                {{
-                                    formatDate(
-                                        item.visit.registeredAtDate,
-                                        options.branch.timezone,
-                                    )
-                                }}
-                                <span class="text-muted-foreground">{{
-                                    compactTime(item.visit.registeredAt)
-                                }}</span>
+                                <span class="max-lg:text-right sm:contents">
+                                    {{
+                                        formatDate(
+                                            item.visit.registeredAtDate,
+                                            options.branch.timezone,
+                                        )
+                                    }}
+                                    <span class="text-muted-foreground">{{
+                                        compactTime(item.visit.registeredAt)
+                                    }}</span>
+                                </span>
                             </td>
                             <td data-label="Doctor and notes">
-                                <span class="block">{{
-                                    item.visit.doctorName ?? 'Unassigned'
-                                }}</span>
-                                <span
-                                    class="block text-xs text-muted-foreground"
-                                    >{{
-                                        item.visit.visitReasonExcerpt ??
-                                        'No reason recorded'
-                                    }}</span
-                                >
+                                <span class="max-lg:text-right sm:contents">
+                                    <span class="block">{{
+                                        item.visit.doctorName ?? 'Unassigned'
+                                    }}</span>
+                                    <span
+                                        class="block text-xs text-muted-foreground"
+                                        >{{
+                                            item.visit.visitReasonExcerpt ??
+                                            'No reason recorded'
+                                        }}</span
+                                    >
+                                </span>
                             </td>
                             <td data-label="Payment">
-                                <span class="block">{{
-                                    item.visit.coverageLabel
-                                }}</span>
-                                <span
-                                    v-if="item.visit.panelNote"
-                                    class="block max-w-56 truncate text-xs text-muted-foreground"
-                                    :title="item.visit.panelNote"
-                                    >{{ item.visit.panelNote }}</span
-                                >
+                                <span class="max-lg:text-right sm:contents">
+                                    <span class="block">{{
+                                        item.visit.coverageLabel
+                                    }}</span>
+                                    <span
+                                        v-if="item.visit.panelNote"
+                                        class="block max-w-56 truncate text-xs text-muted-foreground"
+                                        :title="item.visit.panelNote"
+                                        >{{ item.visit.panelNote }}</span
+                                    >
+                                </span>
                             </td>
                             <td data-label="Duration">
                                 <WaitRing
