@@ -32,7 +32,7 @@ test('DD-34: the consultation page panels use theme tokens, never pale palette c
 test('DD-35: the Call next dialog uses the popover token, not a hard-coded dark colour', () => {
     assert.match(
         callNext,
-        /class="gap-5 border-border\/80 bg-popover p-5 shadow-2xl shadow-black\/15 sm:max-w-md sm:p-6 dark:border-border"/,
+        /class="gap-5 p-5 sm:max-w-md sm:p-6"/,
     );
     assert.doesNotMatch(callNext, /dark:bg-slate-900/);
 });

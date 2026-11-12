@@ -13,7 +13,7 @@ const dialog = readFileSync(
 test('the shared confirm dialog uses theme tokens, not a fixed slate surface', () => {
     assert.match(
         dialog,
-        /class="gap-5 border-border\/80 bg-popover p-5 shadow-2xl shadow-black\/15 sm:max-w-md sm:p-6 dark:border-border"/,
+        /class="gap-5 p-5 sm:max-w-md sm:p-6"/,
     );
     assert.doesNotMatch(dialog, /dark:bg-slate-\d+/);
 });

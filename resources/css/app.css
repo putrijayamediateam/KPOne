@@ -167,6 +167,8 @@
     --tint-4: #fcefd0;
     --grad-1: #ffdcc2;
     --grad-2: #cfe2ff;
+    --shadow-menu: 0 8px 24px rgba(16, 24, 40, 0.12);
+    --shadow-dialog: 0 16px 48px rgba(16, 24, 40, 0.18);
 }
 
 .dark {
@@ -222,6 +224,8 @@
     --tint-4: #3a2a0a;
     --grad-1: #5a3550;
     --grad-2: #1c2a4a;
+    --shadow-menu: 0 8px 24px rgba(0, 0, 0, 0.5);
+    --shadow-dialog: 0 16px 48px rgba(0, 0, 0, 0.5);
 }
 
 @layer base {

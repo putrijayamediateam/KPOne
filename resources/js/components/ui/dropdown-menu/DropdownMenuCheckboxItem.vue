@@ -23,7 +23,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     data-slot="dropdown-menu-checkbox-item"
     v-bind="forwarded"
     :class=" cn(
-      'focus:bg-accent focus:text-accent-foreground relative flex cursor-pointer items-center gap-2 rounded-sm py-1.5 pr-2 pl-8 text-sm outline-hidden select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4',
+      'focus:bg-accent focus:text-accent-foreground relative flex cursor-pointer items-center gap-2 min-h-11 rounded-[8px] py-1.5 pr-2.5 pl-8 text-[15px] lg:min-h-9 outline-hidden select-none data-[disabled]:cursor-not-allowed data-[disabled]:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4',
       props.class,
     )"
   >

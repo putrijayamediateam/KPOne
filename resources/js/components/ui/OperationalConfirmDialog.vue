@@ -84,7 +84,8 @@ const onOpenAutoFocus = (event: Event) => {
 <template>
     <Dialog :open="open" @update:open="updateOpen">
         <DialogContent
-            class="gap-5 border-border/80 bg-popover p-5 shadow-2xl shadow-black/15 sm:max-w-md sm:p-6 dark:border-border"
+            class="gap-5 p-5 sm:max-w-md sm:p-6"
+            :sheet-on-phone="false"
             :show-close-button="!processing"
             @open-auto-focus="onOpenAutoFocus"
         >

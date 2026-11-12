@@ -16,12 +16,15 @@ defineOptions({
   inheritAttrs: false,
 })
 
-const props = withDefaults(defineProps<DialogContentProps & { class?: HTMLAttributes["class"], showCloseButton?: boolean }>(), {
+// UI-RESTYLE 0.7: below 640 px a dialog is a bottom sheet (full width, rounded top, a grab bar, scrolls when tall).
+// OperationalConfirmDialog sets sheetOnPhone to false so a confirm question stays centred.
+const props = withDefaults(defineProps<DialogContentProps & { class?: HTMLAttributes["class"], showCloseButton?: boolean, sheetOnPhone?: boolean }>(), {
   showCloseButton: true,
+  sheetOnPhone: true,
 })
 const emits = defineEmits<DialogContentEmits>()
 
-const delegatedProps = reactiveOmit(props, "class")
+const delegatedProps = reactiveOmit(props, "class", "sheetOnPhone")
 
 const forwarded = useForwardPropsEmits(delegatedProps, emits)
 </script>
@@ -34,16 +37,25 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
       v-bind="{ ...$attrs, ...forwarded }"
       :class="
         cn(
-          'bg-background data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed top-[50%] left-[50%] z-50 grid w-full max-w-[calc(100%-2rem)] translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-lg duration-200 sm:max-w-lg',
+          'bg-card data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed z-50 grid w-full gap-4 border p-6 shadow-[var(--shadow-dialog)] duration-200 sm:top-[50%] sm:left-[50%] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-[18px] [&_[data-slot=dialog-title]]:pr-9',
+          sheetOnPhone
+            ? 'max-sm:inset-x-0 max-sm:bottom-0 max-sm:max-h-[90dvh] max-sm:overflow-y-auto max-sm:rounded-t-[18px] max-sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] max-sm:data-[state=open]:slide-in-from-bottom-8 max-sm:data-[state=closed]:slide-out-to-bottom-8'
+            : 'max-sm:top-[50%] max-sm:left-[50%] max-sm:max-w-[calc(100%-2rem)] max-sm:translate-x-[-50%] max-sm:translate-y-[-50%] max-sm:rounded-[18px]',
           props.class,
         )"
     >
+      <div
+        v-if="sheetOnPhone"
+        class="bg-border mx-auto -mb-2 h-1 w-10 rounded-full sm:hidden"
+        aria-hidden="true"
+        data-slot="dialog-grab-bar"
+      />
       <slot />
 
       <DialogClose
         v-if="showCloseButton"
         data-slot="dialog-close"
-        class="ring-offset-background focus:ring-ring data-[state=open]:bg-accent data-[state=open]:text-muted-foreground absolute top-4 right-4 cursor-pointer rounded-xs opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*='size-'])]:size-4"
+        class="text-muted-foreground hover:bg-muted hover:text-foreground focus-visible:ring-ring absolute top-2 right-2 grid size-11 cursor-pointer place-items-center rounded-[10px] transition-colors focus-visible:ring-2 focus-visible:outline-hidden disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*=\'size-\'])]:size-4"
       >
         <X />
         <span class="sr-only">Close</span>
