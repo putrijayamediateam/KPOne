@@ -90,6 +90,7 @@ use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
 use App\Http\Controllers\PublicIntakeReviewController;
 use App\Http\Controllers\PurchaseOrderPrintController;
+use App\Http\Controllers\PurchaseRequestController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\QueueDisplayController;
 use App\Http\Controllers\QueueDisplaySettingsController;
@@ -904,6 +905,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/supplier-invoices/{supplierInvoice}/{decision}', [SupplierInvoiceController::class, 'decide'])->whereUuid('supplierInvoice')->whereIn('decision', ['accepted', 'rejected'])->middleware(['permission:inventory.supplier_invoices.approve.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-invoices.decide');
         Route::post('inventory/supplier-return-groups', [SupplierReturnController::class, 'storeGroup'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-return-groups.store');
         Route::post('inventory/supplier-return-groups/{group}/{action}', [SupplierReturnController::class, 'actGroup'])->whereNumber('group')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-return-groups.act');
+        Route::get('inventory/purchase-requests', [PurchaseRequestController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.purchase-requests');
+        Route::post('inventory/purchase-requests', [PurchaseRequestController::class, 'store'])->middleware(['permission:inventory.purchase_requests.create.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.purchase-requests.store');
+        Route::post('inventory/purchase-requests/{purchaseRequest}/{action}', [PurchaseRequestController::class, 'act'])->whereUuid('purchaseRequest')->whereIn('action', ['convert', 'reject', 'withdraw'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.purchase-requests.act');
         Route::get('inventory/reorder-suggestions', [ReorderSuggestionController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.reorder-suggestions');
         Route::get('inventory/skus', [SkuEditController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.skus');
         Route::put('inventory/skus/{sku}', [SkuEditController::class, 'update'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.update');

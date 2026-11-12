@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +11,8 @@ import { formatRinggit, packLabel, trimQuantity } from '@/lib/supplier-terms';
 
 type Row = {
     key: string;
+    skuPublicId: string;
+    locationPublicId: string;
     skuCode: string;
     itemName: string;
     location: string;
@@ -37,6 +39,7 @@ const props = defineProps<{
     suggestions: {
         branchName: string;
         canSeeCost: boolean;
+        canRequest: boolean;
         lookBackDays: number;
         filters: { q: string; need: 'order' | 'all' };
         rows: Row[];
@@ -57,6 +60,32 @@ const visit = (page = 1) =>
 
 const quantity = (value: string, unit: string) =>
     `${trimQuantity(value)} ${unit}`;
+
+// STK-18: tick suggestions of one location and send them as a purchase request (checked and sent on the next page).
+const needsOrder = (row: Row) =>
+    !row.coveredByOrders && row.suggestedQuantity !== '0.000';
+const ticked = ref<string[]>([]);
+const tickedRows = computed(() =>
+    props.suggestions.rows.filter((row) => ticked.value.includes(row.key)),
+);
+const oneLocation = computed(
+    () =>
+        new Set(tickedRows.value.map((row) => row.locationPublicId)).size <= 1,
+);
+const requestThese = () => {
+    if (!tickedRows.value.length || !oneLocation.value) {
+        return;
+    }
+
+    router.get('/inventory/purchase-requests', {
+        location: tickedRows.value[0].locationPublicId,
+        // "sku:quantity" strings: a list of plain values survives the query string unchanged.
+        lines: tickedRows.value.map(
+            (row) =>
+                `${row.skuPublicId}:${trimQuantity(row.suggestedQuantity)}`,
+        ),
+    });
+};
 </script>
 
 <template>
@@ -114,6 +143,36 @@ const quantity = (value: string, unit: string) =>
             >
         </form>
 
+        <div
+            v-if="suggestions.canRequest && suggestions.rows.some(needsOrder)"
+            class="flex flex-wrap items-center gap-3 rounded-lg border p-3"
+            data-testid="reorder-request-bar"
+        >
+            <p class="min-w-0 flex-1 text-sm">
+                <template v-if="!ticked.length"
+                    >Tick suggestions to ask for them in a purchase
+                    request.</template
+                >
+                <template v-else-if="oneLocation"
+                    >{{ ticked.length }}
+                    {{ ticked.length === 1 ? 'suggestion' : 'suggestions' }}
+                    ticked.</template
+                >
+                <template v-else
+                    >A request is for one location. Tick suggestions of one
+                    location only.</template
+                >
+            </p>
+            <Button
+                type="button"
+                class="min-h-11 w-full sm:w-auto lg:min-h-9"
+                :disabled="!ticked.length || !oneLocation"
+                data-testid="reorder-request-these"
+                @click="requestThese"
+                >Request these</Button
+            >
+        </div>
+
         <p
             v-if="suggestions.rows.length === 0"
             class="text-sm text-muted-foreground"
@@ -131,19 +190,33 @@ const quantity = (value: string, unit: string) =>
                 class="space-y-3 rounded-lg border bg-card p-4"
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">
-                    <div class="min-w-0">
-                        <p class="font-medium break-words">
-                            {{ row.skuCode }} · {{ row.itemName }}
-                        </p>
-                        <p class="text-sm text-muted-foreground">
-                            {{ row.location }}
-                            <span
-                                v-if="row.onHand === '0.000'"
-                                class="ml-1 rounded border px-1.5 py-0.5 text-xs text-foreground"
-                                data-testid="out-of-stock"
-                                >Out of stock</span
-                            >
-                        </p>
+                    <div class="flex min-w-0 items-start gap-3">
+                        <label
+                            v-if="suggestions.canRequest && needsOrder(row)"
+                            class="-m-3 flex size-11 shrink-0 items-center justify-center lg:-m-2 lg:size-8"
+                        >
+                            <input
+                                v-model="ticked"
+                                type="checkbox"
+                                class="size-5 lg:size-4"
+                                :value="row.key"
+                                :aria-label="`Ask for ${row.skuCode} at ${row.location}`"
+                            />
+                        </label>
+                        <div class="min-w-0">
+                            <p class="font-medium break-words">
+                                {{ row.skuCode }} · {{ row.itemName }}
+                            </p>
+                            <p class="text-sm text-muted-foreground">
+                                {{ row.location }}
+                                <span
+                                    v-if="row.onHand === '0.000'"
+                                    class="ml-1 rounded border px-1.5 py-0.5 text-xs text-foreground"
+                                    data-testid="out-of-stock"
+                                    >Out of stock</span
+                                >
+                            </p>
+                        </div>
                     </div>
                     <div class="sm:text-right">
                         <p
