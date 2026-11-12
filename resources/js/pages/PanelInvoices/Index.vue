@@ -90,7 +90,7 @@ const reset = () => {
     });
     router.get('/panel-invoices');
 };
-// The claim status word is shown exactly as the server sends it; the badge only adds the dot and tone.
+// The claim status word is shown exactly as the server sends it; the badge only adds the tone.
 const statusKey = (status: string) => status.toLowerCase().replaceAll(' ', '_');
 const canDownload = computed(() => props.ready && props.total > 0);
 </script>
@@ -140,7 +140,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
                 Panel
                 <select
                     v-model="form.panel"
-                    class="h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 max-lg:text-base"
+                    class="h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 max-lg:text-base dark:bg-field-fill/30"
                     aria-label="Panel"
                 >
                     <option value="">Select a Panel</option>
@@ -165,7 +165,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
                 Visit type
                 <select
                     v-model="form.visitType"
-                    class="h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 max-lg:text-base"
+                    class="h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 max-lg:text-base dark:bg-field-fill/30"
                     aria-label="Visit type"
                 >
                     <option value="">All</option>
@@ -173,38 +173,42 @@ const canDownload = computed(() => props.ready && props.total > 0);
                     <option value="otc">OTC</option>
                 </select>
             </label>
-            <label
-                class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
-            >
-                Visit date from
-                <DateField v-model="form.from" :echo="false" />
-            </label>
-            <label
-                class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
-            >
-                Visit date to
-                <DateField v-model="form.to" :echo="false" />
-            </label>
-            <label
-                class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
-            >
-                Time from
-                <Input
-                    v-model="form.timeFrom"
-                    type="time"
-                    class="rounded-lg max-lg:h-11 max-lg:text-base"
-                />
-            </label>
-            <label
-                class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
-            >
-                Time to
-                <Input
-                    v-model="form.timeTo"
-                    type="time"
-                    class="rounded-lg max-lg:h-11 max-lg:text-base"
-                />
-            </label>
+            <div class="grid grid-cols-2 gap-3 md:contents">
+                <label
+                    class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                >
+                    Visit date from
+                    <DateField v-model="form.from" :echo="false" />
+                </label>
+                <label
+                    class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                >
+                    Visit date to
+                    <DateField v-model="form.to" :echo="false" />
+                </label>
+            </div>
+            <div class="grid grid-cols-2 gap-3 md:contents">
+                <label
+                    class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                >
+                    Time from
+                    <Input
+                        v-model="form.timeFrom"
+                        type="time"
+                        class="rounded-lg max-lg:h-11 max-lg:text-base"
+                    />
+                </label>
+                <label
+                    class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                >
+                    Time to
+                    <Input
+                        v-model="form.timeTo"
+                        type="time"
+                        class="rounded-lg max-lg:h-11 max-lg:text-base"
+                    />
+                </label>
+            </div>
             <label
                 v-if="can.clinicalFilters"
                 class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
@@ -380,7 +384,10 @@ const canDownload = computed(() => props.ready && props.total > 0);
                                 <div
                                     class="text-xs text-muted-foreground tabular-nums"
                                 >
-                                    {{ row.visitTime }} · {{ row.visitNumber }}
+                                    {{ row.visitTime }} ·
+                                    <span class="whitespace-nowrap">{{
+                                        row.visitNumber
+                                    }}</span>
                                 </div>
                             </td>
                             <td>{{ row.patientName }}</td>
@@ -408,7 +415,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
                                     v-if="row.claimNo"
                                     class="mt-1 font-mono text-xs text-muted-foreground"
                                 >
-                                    {{ row.claimNo }}
+                                    Claim {{ row.claimNo }}
                                 </div>
                             </td>
                         </tr>
