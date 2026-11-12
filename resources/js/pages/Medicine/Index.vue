@@ -558,7 +558,11 @@ const toggleDescription = computed(() => {
                     :options="statusOptions"
                 />
             </div>
-            <Button size="sm" type="submit" class="min-h-11 lg:min-h-8"
+            <Button
+                variant="outline"
+                size="sm"
+                type="submit"
+                class="min-h-11 lg:min-h-8"
                 >Apply</Button
             >
         </form>
