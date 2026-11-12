@@ -364,14 +364,16 @@ watch(
                         authorised branch workspace.</CardDescription
                     ></CardHeader
                 ><CardContent class="grid gap-4">
-                    <label class="grid gap-1"
+                    <label class="grid gap-1 md:col-span-2"
                         ><span class="text-sm font-medium">Full name</span
                         ><input
                             v-model="correction.full_name"
                             class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11" /><InputError
                             :message="correction.errors.full_name"
                     /></label>
-                    <div class="grid grid-cols-1 items-start gap-3">
+                    <div
+                        class="grid grid-cols-1 items-start gap-3 md:col-span-2 md:grid-cols-2"
+                    >
                         <label class="grid gap-1"
                             ><span class="text-sm font-medium"
                                 >Date of birth</span
