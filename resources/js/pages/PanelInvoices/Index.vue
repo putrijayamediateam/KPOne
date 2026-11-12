@@ -91,7 +91,17 @@ const reset = () => {
     router.get('/panel-invoices');
 };
 // The claim status word is shown exactly as the server sends it; the badge only adds the tone.
-const statusKey = (status: string) => status.toLowerCase().replaceAll(' ', '_');
+type Tone = 'neutral' | 'success' | 'warning' | 'danger';
+const tones: Record<string, Tone> = {
+    accepted: 'success',
+    paid: 'success',
+    partially_accepted: 'warning',
+    partially_paid: 'warning',
+    queried: 'warning',
+    rejected: 'danger',
+};
+const claimTone = (status: string): Tone =>
+    tones[status.toLowerCase().replaceAll(' ', '_')] ?? 'neutral';
 const canDownload = computed(() => props.ready && props.total > 0);
 </script>
 
@@ -307,7 +317,8 @@ const canDownload = computed(() => props.ready && props.total > 0);
                                 {{ row.invoiceNumber }}
                             </p>
                             <StatusBadge
-                                :status="statusKey(row.claimStatus)"
+                                :status="row.claimStatus"
+                                :tone="claimTone(row.claimStatus)"
                                 :label="row.claimStatus"
                                 class="shrink-0"
                             />
@@ -408,7 +419,8 @@ const canDownload = computed(() => props.ready && props.total > 0);
                             </td>
                             <td>
                                 <StatusBadge
-                                    :status="statusKey(row.claimStatus)"
+                                    :status="row.claimStatus"
+                                    :tone="claimTone(row.claimStatus)"
                                     :label="row.claimStatus"
                                 />
                                 <div
