@@ -484,8 +484,7 @@ const generalError = computed(
                                 class="mt-1 text-xs text-muted-foreground"
                             >
                                 Suggested {{ line.suggested }} {{ line.unit }}.
-                                This branch can spare {{ line.spare }}. More
-                                than that is refused.
+                                This branch can spare {{ line.spare }}.
                             </p>
                             <InputError
                                 :id="`line-${index}-error`"
