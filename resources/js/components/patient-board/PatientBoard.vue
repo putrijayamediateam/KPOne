@@ -306,10 +306,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                         class="px-3 py-2.5 align-middle"
                         data-label="Status"
                         :data-treatment-row="
-                            row.treatmentProgress?.state ||
-                            row.treatmentProgress?.canManage
-                                ? ''
-                                : undefined
+                            row.treatmentProgress?.state ? '' : undefined
                         "
                     >
                         <div class="flex flex-wrap items-center gap-1.5">
@@ -647,22 +644,33 @@ const rowWaitingTone = (row: PatientBoardRow) =>
         grid-column: 1 / -1;
     }
 }
-/* Frame review: a nine-column table needs about 1200 px, so cards run below 1280 px. From 640 px a card is four
-   columns wide so it does not stretch into two sparse columns. */
+/* Frame review: a nine-column table needs about 1200 px, so cards run below 1280 px. From 640 px a card is six
+   columns wide: Patient, Queue and Arrived on one row; Visit notes and Doctor; Payment, Duration and Status
+   side by side; Actions last. */
 @media (640px <= width < 1280px) {
     .patient-board tbody > tr {
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(6, minmax(0, 1fr));
     }
     .patient-board td[data-label='Patient'] {
+        grid-column: span 3;
+    }
+    .patient-board td[data-label='Queue'] {
+        grid-column: span 1;
+    }
+    .patient-board td[data-label='Arrived'] {
         grid-column: span 2;
     }
     .patient-board td[data-label='Visit notes'],
-    .patient-board td[data-label='Doctor'],
+    .patient-board td[data-label='Doctor'] {
+        grid-column: span 3;
+    }
     .patient-board td[data-label='Payment'],
     .patient-board td[data-label='Duration'],
-    .patient-board td[data-label='Status'],
-    .patient-board td[data-label='Actions'] {
+    .patient-board td[data-label='Status'] {
         grid-column: span 2;
+    }
+    .patient-board td[data-label='Actions'] {
+        grid-column: 1 / -1;
     }
     .patient-board td[data-label='Status'][data-treatment-row] {
         grid-column: 1 / -1;
