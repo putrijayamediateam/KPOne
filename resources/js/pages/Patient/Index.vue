@@ -157,9 +157,13 @@ const identifierLabel = (result: Result) =>
                     placeholder="Issuer"
                 />
                 <span v-else />
-                <Button type="submit" class="max-lg:h-11" :disabled="loading">{{
-                    loading ? 'Searching…' : 'Search'
-                }}</Button>
+                <Button
+                    type="submit"
+                    variant="outline"
+                    class="max-lg:h-11"
+                    :disabled="loading"
+                    >{{ loading ? 'Searching…' : 'Search' }}</Button
+                >
                 <InputError
                     v-if="error"
                     class="md:col-span-2 lg:col-span-4"
@@ -228,6 +232,10 @@ const identifierLabel = (result: Result) =>
                                 {{ identifierLabel(patient) }}
                             </td>
                             <td class="order-2 px-3 py-3 md:px-5 md:py-4">
+                                <span
+                                    class="block text-xs text-muted-foreground md:hidden"
+                                    >Phone</span
+                                >
                                 <span class="flex items-center gap-1">
                                     {{ patient.maskedPhone ?? 'Not recorded'
                                     }}<WhatsAppLink
