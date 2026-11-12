@@ -1,0 +1,444 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+import { runInNewContext } from 'node:vm';
+import ts from 'typescript';
+
+const read = (p) =>
+    readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
+const classic = read('resources/js/pages/Registration/Index.vue');
+const board = read(
+    'resources/js/composables/registration/useRegistrationBoard.ts',
+);
+const actions = read(
+    'resources/js/composables/registration/useRegistrationRowActions.ts',
+);
+const lib = read('resources/js/lib/registration-v2.ts');
+const page = read('resources/js/pages/Registration/V2/Index.vue');
+
+// Compile the pure helper file and run it with its imports stubbed.
+const load = () => {
+    const js = ts.transpileModule(lib, {
+        compilerOptions: { target: ts.ScriptTarget.ES2022 },
+    }).outputText;
+    const names = [...js.matchAll(/export const (\w+)/g)].map((m) => m[1]);
+    const wrapped = js
+        .replace(/^import .*$/gm, '')
+        .replace(/export const /g, 'const ');
+    const exports = {};
+    runInNewContext(
+        `const queuePresentationLabel = (x) => 'Removed: ' + x.removalReason;
+         ${wrapped}
+         Object.assign(exports, { ${names.join(', ')} });`,
+        { exports, encodeURIComponent },
+    );
+
+    return exports;
+};
+
+const visit = (over = {}) => ({
+    callHold: null,
+    canWhatsapp: false,
+    visitNumber: 'KPV-00000001',
+    patientNumber: 'KP-00000001',
+    patientName: 'Synthetic Patient',
+    visitType: 'consultation',
+    registeredAt: '10:00',
+    registeredAtDate: '2026-11-12',
+    visitReasonExcerpt: 'Cough',
+    doctorName: 'Dr A',
+    coverageLabel: 'Self-pay',
+    priority: 'normal',
+    status: 'registered',
+    queueNumber: 'A-001',
+    queueStatus: 'waiting',
+    isHeld: false,
+    holdStartedAt: null,
+    durationMinutes: 10,
+    visitLockVersion: 1,
+    queueLockVersion: 2,
+    can: {
+        viewPatient: false,
+        update: false,
+        cancel: false,
+        sendToWaiting: false,
+        call: false,
+        openConsultation: false,
+    },
+    ...over,
+});
+const plain = (value) => JSON.parse(JSON.stringify(value));
+const ids = (menu) => menu.groups.flatMap((g) => g.items.map((i) => i.id));
+
+test('V2 board: same search route, poll constants, pause rules and failure notice as Classic', () => {
+    assert.match(classic, /fetch\('\/registration\/search'/);
+    assert.match(board, /SEARCH_URL = '\/registration\/search'/);
+    assert.match(board, /POLL_INTERVAL_MS = 10_000/);
+    assert.match(board, /POLL_MAX_MS = 60_000/);
+    assert.match(board, /POLL_FAILURE_LIMIT = 3/);
+    assert.match(classic, /10_000 \* 2 \*\* pollFailures/);
+    assert.match(board, /POLL_INTERVAL_MS \* 2 \*\* pollFailures/);
+
+    for (const text of [
+        'Live refresh paused. Showing last successful results.',
+        ' Press Search to try again.',
+        'Registration search could not be completed.',
+    ]) {
+        assert.ok(classic.includes(text), `Classic has: ${text}`);
+        assert.ok(board.includes(text), `V2 has: ${text}`);
+    }
+
+    // The exact overlay and typing selectors that pause the refresh.
+    const overlay = classic.match(
+        /'(\[role="menu"\]\[data-state="open"\][^']+)'/,
+    )?.[1];
+    const typing = classic.match(/'(input, textarea, select[^']+)'/)?.[1];
+    assert.ok(overlay && typing, 'Classic selectors found');
+    assert.ok(board.includes(overlay), 'same open-overlay selector');
+    assert.ok(board.includes(typing), 'same typing-target selector');
+    assert.match(classic, /registration-board-search/);
+    assert.match(board, /SEARCH_INPUT_ID = 'registration-board-search'/);
+
+    // Same request body: the applied filters plus the page, with the CSRF header.
+    assert.match(
+        classic,
+        /JSON\.stringify\(\{ \.\.\.appliedFilters, page \}\)/,
+    );
+    assert.match(board, /JSON\.stringify\(\{ \.\.\.appliedFilters, page \}\)/);
+    assert.match(board, /'X-CSRF-TOKEN'/);
+
+    // Same filter field names, and the same QR URL.
+    for (const key of [
+        'patient_query',
+        'doctor_id',
+        'visit_type',
+        'priority',
+        'coverage_type',
+        'board_status',
+        'date_from',
+        'date_to',
+    ]) {
+        assert.ok(classic.includes(`${key}:`), `Classic form has ${key}`);
+        assert.ok(board.includes(`${key}:`), `V2 form has ${key}`);
+    }
+
+    assert.ok(board.includes("'/registration?tab=qr-intake'"));
+    assert.ok(classic.includes("'/registration?tab=qr-intake'"));
+});
+
+test('V2 board: every mutation keeps the Classic route, payload keys and from=registration', () => {
+    const cases = [
+        [
+            '/queue`',
+            [
+                'expected_branch_id',
+                'visit_lock_version',
+                "from: 'registration'",
+            ],
+            'post',
+        ],
+        [
+            '/queue/call`',
+            [
+                'expected_branch_id',
+                'visit_lock_version',
+                'queue_lock_version',
+                "from: 'registration'",
+            ],
+            'patch',
+        ],
+        [
+            '/encounter`',
+            ['expected_branch_id', 'visit_lock_version', 'queue_lock_version'],
+            'post',
+        ],
+        ['/dispense`', ['expected_branch_id'], 'post'],
+        ['/otc-queue/call`', ['expected_branch_id'], 'post'],
+    ];
+
+    for (const [route, keys, method] of cases) {
+        assert.ok(classic.includes(route), `Classic route ${route}`);
+        assert.ok(actions.includes(route), `V2 route ${route}`);
+
+        for (const key of keys) {
+            assert.ok(classic.includes(key), `Classic key ${key}`);
+            assert.ok(actions.includes(key), `V2 key ${key}`);
+        }
+
+        assert.ok(actions.includes(`method: '${method}'`));
+    }
+
+    assert.match(actions, /preserveScroll: true/);
+    assert.match(actions, /preserveState: true/);
+    assert.match(actions, /busyKey\.value = null/);
+    assert.match(actions, /if \(succeeded\)/);
+});
+
+test('V2 board menu: items come only from the server flags; none of the Queue-only items appear', () => {
+    const { rowMenu } = load();
+
+    // A view-only role sees only the Open group, with View Visit.
+    const viewOnly = rowMenu(visit());
+    assert.deepEqual(plain(viewOnly.groups.map((g) => g.label)), ['Open']);
+    assert.deepEqual(plain(ids(viewOnly)), ['view-visit']);
+
+    // Every flag on: items in the groups Open, Move, Call, Money, Danger, Cancel last.
+    const all = rowMenu(
+        visit({
+            historyUrl: '/visits/KPV-00000001/invoice',
+            billingUrl: '/billing/x',
+            dispensaryUrl: '/dispensary/x',
+            can: {
+                viewPatient: true,
+                update: true,
+                cancel: true,
+                sendToWaiting: true,
+                call: true,
+                openConsultation: true,
+                openDispensary: true,
+                openBilling: true,
+                dispense: true,
+                callDispensary: true,
+            },
+        }),
+    );
+    assert.deepEqual(plain(all.groups.map((g) => g.label)), [
+        'Open',
+        'Move',
+        'Call',
+        'Money',
+        'Danger',
+    ]);
+    assert.equal(ids(all).at(-1), 'cancel-visit');
+    assert.equal(all.groups.at(-1).items[0].label, 'Cancel Visit…');
+    assert.equal(all.groups.at(-1).items[0].tone, 'danger');
+
+    // Queue-board items are never offered on Registration, even with unknown flags set.
+    const odd = rowMenu(
+        visit({
+            can: {
+                viewPatient: false,
+                update: false,
+                cancel: false,
+                sendToWaiting: false,
+                call: false,
+                openConsultation: false,
+                recall: true,
+                callTreatment: true,
+            },
+            treatmentProgress: { canManage: true },
+        }),
+    );
+
+    for (const forbidden of [
+        'recall',
+        'call-again',
+        'call-treatment',
+        'treatment-progress',
+    ]) {
+        assert.ok(!ids(odd).includes(forbidden));
+        assert.ok(!ids(all).includes(forbidden));
+    }
+
+    assert.ok(
+        !/label: '(Call again|Call to treatment room|Treatment progress)/.test(
+            lib,
+        ),
+    );
+    assert.ok(
+        !/Call again|Call to treatment room|Treatment progress/.test(page),
+    );
+});
+
+test('V2 board menu: Call In is shown disabled with the reason while not ready; Override and call only for the doctor who may', () => {
+    const { rowMenu } = load();
+    const flags = {
+        viewPatient: false,
+        update: false,
+        cancel: false,
+        sendToWaiting: false,
+        call: true,
+        openConsultation: false,
+    };
+    const blocked = rowMenu(
+        visit({
+            callHold: {
+                id: 1,
+                lockVersion: 1,
+                active: true,
+                overridden: false,
+                reason: 'Awaiting payment or deposit',
+                canSet: false,
+                canClear: true,
+                canOverride: false,
+            },
+            can: flags,
+        }),
+    );
+    const callIn = blocked.groups.find((g) => g.label === 'Call').items[0];
+    assert.equal(callIn.allowed, false);
+    assert.match(
+        callIn.reason,
+        /Not ready to call: Awaiting payment or deposit/,
+    );
+    assert.ok(!ids(blocked).includes('override-call'));
+
+    const doctor = rowMenu(
+        visit({
+            callHold: {
+                id: 1,
+                lockVersion: 1,
+                active: true,
+                overridden: false,
+                reason: 'Other administrative',
+                canSet: false,
+                canClear: true,
+                canOverride: true,
+            },
+            can: flags,
+        }),
+    );
+    assert.ok(ids(doctor).includes('override-call'));
+    assert.equal(doctor.targets['override-call'].action, 'call');
+    assert.equal(doctor.targets['call-in'].action, 'call');
+
+    const free = rowMenu(visit({ can: flags }));
+    assert.equal(free.groups[0].items[0].allowed, true);
+    assert.ok(!ids(free).includes('override-call'));
+});
+
+test('V2 board: a cancel goes through the dialog (required reason), never a one-click cancel', () => {
+    const { rowMenu } = load();
+    const menu = rowMenu(
+        visit({
+            can: {
+                viewPatient: false,
+                update: false,
+                cancel: true,
+                sendToWaiting: false,
+                call: false,
+                openConsultation: false,
+            },
+        }),
+    );
+    assert.equal(menu.targets['cancel-visit'].action, 'cancel');
+    assert.match(actions, /if \(action === 'cancel'\)/);
+    assert.match(actions, /deps\.openCancel\(visit\)/);
+    assert.match(page, /VisitCancellationDialog/);
+    // The Classic dialog keeps the required, 500-character reason.
+    const dialog = read(
+        'resources/js/components/patient-board/VisitCancellationDialog.vue',
+    );
+    assert.match(dialog, /maxlength="500"|maxLength.*500|500/);
+});
+
+test('V2 board: status, wait ring and needs-attention follow the Classic rules', () => {
+    const { rowStatus, waitingMinutes, needsAttention, waitStats } = load();
+
+    assert.equal(rowStatus(visit()).label, 'Waiting');
+    assert.equal(rowStatus(visit()).tone, 'neutral');
+    assert.equal(
+        rowStatus(visit({ queueStatus: 'serving' })).label,
+        'Serving now',
+    );
+    assert.equal(rowStatus(visit({ isHeld: true })).label, 'On hold');
+    assert.equal(rowStatus(visit({ status: 'completed' })).label, 'Completed');
+    assert.equal(
+        rowStatus(visit({ awaitingBilling: true })).label,
+        'Awaiting billing',
+    );
+    assert.equal(
+        rowStatus(visit({ dispensaryStatus: 'pending' })).label,
+        'Dispensary: pending',
+    );
+    assert.equal(
+        rowStatus(visit({ status: 'cancelled', queueStatus: null })).label,
+        'Cancelled',
+    );
+    assert.equal(rowStatus(visit({ queueStatus: null })).label, 'Registered');
+
+    assert.equal(waitingMinutes(visit({ durationMinutes: 64 })), 64);
+    assert.equal(waitingMinutes(visit({ isHeld: true })), null);
+    assert.equal(waitingMinutes(visit({ queueStatus: 'serving' })), null);
+
+    const rows = [
+        visit({ durationMinutes: 64 }),
+        visit({
+            visitNumber: 'KPV-2',
+            queueNumber: 'A-002',
+            durationMinutes: 12,
+            callHold: { active: true, reason: 'Awaiting payment or deposit' },
+        }),
+    ];
+    const items = needsAttention(rows);
+    assert.equal(items.length, 2);
+    assert.ok(
+        items.some((i) => i.tone === 'danger' && /64 minutes/.test(i.title)),
+    );
+    assert.ok(
+        items.some((i) => i.tone === 'warning' && /not ready/.test(i.title)),
+    );
+    assert.deepEqual(plain(waitStats(rows)), {
+        waitingNow: 2,
+        longestWait: 64,
+    });
+    assert.deepEqual(plain(waitStats([])), {
+        waitingNow: 0,
+        longestWait: null,
+    });
+});
+
+test('V2 board page: uses the V2 blocks and the Classic props, tabs and filters; Classic does not import V2', () => {
+    for (const block of [
+        'V2WorkLayout',
+        'V2Tabs',
+        'V2Toolbar',
+        'V2Table',
+        'V2Chip',
+        'WaitRing',
+        'V2RowMenu',
+        'V2Pager',
+    ]) {
+        assert.ok(page.includes(`components/v2/${block}.vue`), block);
+    }
+
+    for (const prop of ['visits', 'options', 'canCreate', 'qrIntakes']) {
+        assert.ok(page.includes(`${prop}:`), `V2 prop ${prop}`);
+        assert.ok(classic.includes(`${prop}:`), `Classic prop ${prop}`);
+    }
+
+    for (const label of [
+        'All',
+        'Waiting',
+        'Serving now',
+        'Dispensary',
+        'Awaiting billing',
+        'Completed',
+        'Cancelled',
+        'QR intake',
+    ]) {
+        assert.ok(page.includes(`'${label}'`), label);
+    }
+
+    // A tab with no count from the server is not shown for Dispensary and Awaiting billing.
+    assert.match(page, /countedTabs\.has\(tab\.value\)/);
+
+    // Reused unchanged: the shared dialogs, the QR list and the WhatsApp link.
+    for (const shared of [
+        'VisitCancellationDialog',
+        'CallReadinessActions',
+        'QrIntakeTable',
+        'WhatsAppLink',
+    ]) {
+        assert.ok(page.includes(shared), shared);
+    }
+
+    assert.match(page, /router\.visit\(visit\.historyUrl\)/);
+    assert.match(page, /Needs attention/);
+    assert.match(page, /From the visits on this screen only/);
+    assert.ok(!/Doctors with a room|Recent activity/.test(page));
+    assert.ok(
+        !classic.includes('registration-v2') &&
+            !classic.includes('components/v2'),
+    );
+});
