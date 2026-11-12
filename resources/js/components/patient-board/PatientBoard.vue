@@ -551,6 +551,16 @@ const rowWaitingTone = (row: PatientBoardRow) =>
 </template>
 
 <style scoped>
+/* DisclosureText's md:block beats line-clamp-2's display, so a long note never clamped; restore the
+   two-line clamp for the narrow Visit notes column (the tooltip still carries the full text). */
+@media (width >= 768px) {
+    .patient-board td[data-label='Visit notes'] :deep(button) {
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+        overflow: hidden;
+    }
+}
 @media (width < 768px) {
     .patient-board table,
     .patient-board tbody {
