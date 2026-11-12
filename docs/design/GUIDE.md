@@ -577,6 +577,9 @@ pages inherit them and no page sets its own colour)
 - **Exception (approved 2026-11-12):** the Consultation queue board keeps a 1600 px maximum width, because it is a
   live 12-column board. Its header is a visible `PageHeader` titled "Consultation queue" with no description line.
   Do not copy this width to other pages without asking the Lead UI/UX Designer.
+- **Form pages (approved 2026-11-12):** a page that is mainly a settings form (Business details is the first) may
+  use a centred `max-w-4xl` column instead of 1280 px, because two-column forms read badly when very wide. The
+  header, cards and footer buttons follow the normal frame. Tables and boards do not get this width.
 - **Do** use the gradient only on the Me home (section 18). Working pages stay on the plain page colour.
 
 **Motion and icons**
