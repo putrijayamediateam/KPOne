@@ -583,6 +583,10 @@ pages inherit them and no page sets its own colour)
 - **Breakpoints (found in D4b, 2026-11-12):** in Tailwind v4 an arbitrary px breakpoint such as `min-[1440px]:` is
   written into the CSS before `lg:`, so `lg:` wins at 1440. Write custom breakpoints in rem (`min-[90rem]:`) so they
   sort with the built-in ones. Dispensary's layout is the example: two columns from 1024 to 1439, three from 1440.
+- **Reading order over visual order (D4b, 2026-11-12):** on pages where a two-column layout draws a side panel on the
+  other side of the lines, keep the DOM in safety order (patient, allergies, then the lines, then the actions) and say
+  so in a comment next to the grid. Do not make a side column sticky if it can be taller than the screen, and never
+  make a completing action sticky above content the person must read first.
 - **Do** use the gradient only on the Me home (section 18). Working pages stay on the plain page colour.
 
 **Motion and icons**
