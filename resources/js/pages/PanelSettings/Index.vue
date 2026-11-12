@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm } from '@inertiajs/vue3';
-import { Ellipsis } from '@lucide/vue';
+import { Ellipsis, Inbox } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,6 @@ import {
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
-import { EmptyState } from '@/components/ui/state';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
 
@@ -94,6 +93,10 @@ const saveMessage = () =>
         },
     });
 
+// Price tiers arrive as upper-case words; show them in sentence case.
+const tierLabel = (tier: string) =>
+    tier.charAt(0).toUpperCase() + tier.slice(1).toLowerCase();
+
 const tabs = computed(() => [
     { value: 'all', label: 'All', count: props.counts.all },
     { value: 'active', label: 'Active', count: props.counts.active },
@@ -119,41 +122,54 @@ const tabs = computed(() => [
             </template>
         </PageHeader>
 
-        <section class="grid gap-4" data-testid="panel-list">
-            <div>
-                <h2 class="text-base font-semibold">Panel payment method</h2>
-                <p class="text-sm text-muted-foreground">
-                    Add, edit, archive or restore your Panels. A Panel that has
-                    visits or claims is archived, never deleted.
-                </p>
+        <section
+            class="overflow-hidden rounded-xl border bg-card"
+            data-testid="panel-list"
+        >
+            <div class="grid gap-4 p-4 md:p-5">
+                <div>
+                    <h2 class="text-base font-semibold">
+                        Panel payment method
+                    </h2>
+                    <p class="text-sm text-muted-foreground">
+                        Add, edit, archive or restore your Panels. A Panel that
+                        has visits or claims is archived, never deleted.
+                    </p>
+                </div>
+
+                <OperationalTabs
+                    :model-value="tab"
+                    :tabs="tabs"
+                    label="Panel status"
+                    @update:model-value="
+                        (value) => go({ tab: value as string, page: 1 })
+                    "
+                />
+                <form class="flex" @submit.prevent="go({ page: 1 })">
+                    <Input
+                        v-model="search"
+                        type="search"
+                        placeholder="Search Panel"
+                        maxlength="100"
+                        aria-label="Search Panel"
+                        class="w-full rounded-lg max-lg:h-11 max-lg:text-base sm:max-w-xs"
+                    />
+                </form>
             </div>
 
-            <OperationalTabs
-                :model-value="tab"
-                :tabs="tabs"
-                label="Panel status"
-                @update:model-value="
-                    (value) => go({ tab: value as string, page: 1 })
-                "
-            />
-            <form class="flex" @submit.prevent="go({ page: 1 })">
-                <Input
-                    v-model="search"
-                    type="search"
-                    placeholder="Search Panel"
-                    maxlength="100"
-                    aria-label="Search Panel"
-                    class="w-full rounded-lg max-lg:h-11 max-lg:text-base sm:max-w-xs"
+            <div
+                v-if="panels.length === 0"
+                class="flex flex-col items-center gap-2 border-t px-4 py-8 text-center"
+            >
+                <Inbox
+                    class="size-5 text-muted-foreground"
+                    aria-hidden="true"
                 />
-            </form>
-
-            <EmptyState v-if="panels.length === 0" title="No Panels found." />
+                <p class="text-sm font-medium">No Panels found.</p>
+            </div>
             <template v-else>
                 <!-- Phones and tablets: one card per Panel. -->
-                <ul
-                    class="divide-y rounded-xl border bg-card lg:hidden"
-                    aria-label="Panels"
-                >
+                <ul class="divide-y border-t lg:hidden" aria-label="Panels">
                     <li
                         v-for="panel in panels"
                         :key="panel.id"
@@ -238,7 +254,7 @@ const tabs = computed(() => [
                                     :key="tier"
                                     variant="outline"
                                 >
-                                    {{ tier }}
+                                    {{ tierLabel(tier) }}
                                 </Badge>
                             </dd>
                             <dt class="text-muted-foreground">Status</dt>
@@ -279,7 +295,7 @@ const tabs = computed(() => [
                     </li>
                 </ul>
                 <OperationalTable
-                    class="hidden lg:block"
+                    class="hidden rounded-none! border-0! border-t! lg:block"
                     label="Panels"
                     :columns="5"
                     min-width="860px"
@@ -333,7 +349,7 @@ const tabs = computed(() => [
                                         :key="tier"
                                         variant="outline"
                                     >
-                                        {{ tier }}
+                                        {{ tierLabel(tier) }}
                                     </Badge>
                                 </div>
                             </td>
@@ -407,14 +423,15 @@ const tabs = computed(() => [
                 </OperationalTable>
             </template>
 
-            <CompactPagination
-                v-if="pagination.lastPage > 1"
-                class="justify-end"
-                :current-page="pagination.currentPage"
-                :last-page="pagination.lastPage"
-                :total="pagination.total"
-                @change="(value) => go({ page: value })"
-            />
+            <div v-if="pagination.lastPage > 1" class="border-t p-4 md:p-5">
+                <CompactPagination
+                    class="justify-end"
+                    :current-page="pagination.currentPage"
+                    :last-page="pagination.lastPage"
+                    :total="pagination.total"
+                    @change="(value) => go({ page: value })"
+                />
+            </div>
         </section>
 
         <section
@@ -502,14 +519,19 @@ const tabs = computed(() => [
                     class="flex min-h-11 items-center justify-between py-2.5"
                 >
                     <span>{{ method }}</span>
-                    <Badge variant="outline">SELF PAY</Badge>
+                    <Badge variant="outline">Self pay</Badge>
                 </li>
             </ul>
-            <EmptyState
+            <div
                 v-else
-                class="mt-3"
-                title="No active payment methods."
-            />
+                class="flex flex-col items-center gap-2 px-4 py-6 text-center"
+            >
+                <Inbox
+                    class="size-5 text-muted-foreground"
+                    aria-hidden="true"
+                />
+                <p class="text-sm font-medium">No active payment methods.</p>
+            </div>
         </section>
     </main>
 </template>

@@ -174,7 +174,7 @@ const submit = () => {
                 :message="(form.errors as Record<string, string>).panel"
             />
 
-            <div class="grid gap-5 lg:grid-cols-2">
+            <div class="grid gap-5 lg:grid-cols-2 lg:items-start">
                 <section
                     class="grid content-start gap-4 rounded-xl border bg-card p-4 md:p-5"
                 >
@@ -191,7 +191,7 @@ const submit = () => {
                                     v-model="form.panel_type"
                                     type="radio"
                                     value="tpa"
-                                    class="size-4 accent-primary"
+                                    class="size-4 accent-primary focus-visible:outline-none"
                                 />
                                 Third Party Administrator
                             </label>
@@ -202,7 +202,7 @@ const submit = () => {
                                     v-model="form.panel_type"
                                     type="radio"
                                     value="direct_company"
-                                    class="size-4 accent-primary"
+                                    class="size-4 accent-primary focus-visible:outline-none"
                                 />
                                 Direct company
                             </label>
@@ -218,6 +218,11 @@ const submit = () => {
                         >
                         <Input
                             v-model="form.company_registration_number"
+                            :aria-invalid="
+                                form.errors.company_registration_number
+                                    ? 'true'
+                                    : undefined
+                            "
                             inputmode="numeric"
                             maxlength="12"
                             placeholder="e.g. 202201234567"
@@ -233,6 +238,9 @@ const submit = () => {
                         Company name
                         <Input
                             v-model="form.company_name"
+                            :aria-invalid="
+                                form.errors.company_name ? 'true' : undefined
+                            "
                             maxlength="255"
                             class="rounded-lg max-lg:h-11 max-lg:text-base"
                         />
@@ -244,6 +252,9 @@ const submit = () => {
                         Panel name *
                         <Input
                             v-model="form.name"
+                            :aria-invalid="
+                                form.errors.name ? 'true' : undefined
+                            "
                             maxlength="255"
                             required
                             class="rounded-lg max-lg:h-11 max-lg:text-base"
@@ -256,6 +267,9 @@ const submit = () => {
                         Panel code *
                         <Input
                             v-model="form.code"
+                            :aria-invalid="
+                                form.errors.code ? 'true' : undefined
+                            "
                             maxlength="80"
                             :disabled="editing"
                             required
@@ -276,6 +290,11 @@ const submit = () => {
                         Income Tax Number (TIN) for e-invoice
                         <Input
                             v-model="form.income_tax_number"
+                            :aria-invalid="
+                                form.errors.income_tax_number
+                                    ? 'true'
+                                    : undefined
+                            "
                             maxlength="20"
                             placeholder="Example: C1234567"
                             class="rounded-lg max-lg:h-11 max-lg:text-base"
@@ -294,6 +313,11 @@ const submit = () => {
                         Person in charge
                         <Input
                             v-model="form.person_in_charge"
+                            :aria-invalid="
+                                form.errors.person_in_charge
+                                    ? 'true'
+                                    : undefined
+                            "
                             maxlength="255"
                             class="rounded-lg max-lg:h-11 max-lg:text-base"
                         />
@@ -305,6 +329,9 @@ const submit = () => {
                         Phone number
                         <Input
                             v-model="form.phone"
+                            :aria-invalid="
+                                form.errors.phone ? 'true' : undefined
+                            "
                             maxlength="32"
                             class="rounded-lg max-lg:h-11 max-lg:text-base"
                         />
@@ -316,6 +343,9 @@ const submit = () => {
                         Email
                         <Input
                             v-model="form.email"
+                            :aria-invalid="
+                                form.errors.email ? 'true' : undefined
+                            "
                             type="email"
                             maxlength="255"
                             class="rounded-lg max-lg:h-11 max-lg:text-base"
@@ -418,7 +448,7 @@ const submit = () => {
                                 v-model="form.verification_mode"
                                 type="radio"
                                 value="url"
-                                class="size-4 accent-primary"
+                                class="size-4 accent-primary focus-visible:outline-none"
                             />
                             URL to panel platform
                         </label>
@@ -429,7 +459,7 @@ const submit = () => {
                                 v-model="form.verification_mode"
                                 type="radio"
                                 value="remark"
-                                class="size-4 accent-primary"
+                                class="size-4 accent-primary focus-visible:outline-none"
                             />
                             Manual remark
                         </label>
@@ -441,6 +471,11 @@ const submit = () => {
                         Verification link
                         <Input
                             v-model="form.verification_url"
+                            :aria-invalid="
+                                form.errors.verification_url
+                                    ? 'true'
+                                    : undefined
+                            "
                             type="url"
                             maxlength="500"
                             placeholder="https://"
@@ -455,6 +490,11 @@ const submit = () => {
                         Manual remark
                         <Input
                             v-model="form.verification_remark"
+                            :aria-invalid="
+                                form.errors.verification_remark
+                                    ? 'true'
+                                    : undefined
+                            "
                             maxlength="500"
                             placeholder="e.g. Call the hotline to verify"
                             class="rounded-lg max-lg:h-11 max-lg:text-base"
@@ -489,7 +529,7 @@ const submit = () => {
                             >
                                 <input
                                     type="radio"
-                                    class="size-4 accent-primary"
+                                    class="size-4 accent-primary focus-visible:outline-none"
                                     :checked="!scheduled"
                                     @change="setScheduled(false)"
                                 />
@@ -500,7 +540,7 @@ const submit = () => {
                             >
                                 <input
                                     type="radio"
-                                    class="size-4 accent-primary"
+                                    class="size-4 accent-primary focus-visible:outline-none"
                                     :checked="scheduled"
                                     @change="setScheduled(true)"
                                 />
@@ -548,6 +588,11 @@ const submit = () => {
                             <span>by</span>
                             <Input
                                 v-model="form.claim_due_time"
+                                :aria-invalid="
+                                    form.errors.claim_due_time
+                                        ? 'true'
+                                        : undefined
+                                "
                                 type="time"
                                 class="w-full rounded-lg max-lg:h-11 max-lg:text-base sm:w-32"
                                 aria-label="Time"
@@ -598,7 +643,7 @@ const submit = () => {
                         <span
                             class="flex flex-wrap items-center gap-2 text-sm font-normal text-foreground"
                         >
-                            <span class="whitespace-nowrap"
+                            <span class="whitespace-nowrap max-sm:basis-full"
                                 >Follow up a claim after</span
                             >
                             <Input
