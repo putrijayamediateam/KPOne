@@ -25,6 +25,8 @@ final class OpeningImportController extends Controller
         return Inertia::render('Inventory/OpeningImport', ['import' => [
             'branchName' => $branch->name, 'expectedBranchId' => $branch->id,
             'columns' => OpeningImportService::COLUMNS, 'maxRows' => OpeningImportService::MAX_ROWS,
+            // After Record the page shows how many lines were recorded (a count only, from the redirect).
+            'recorded' => max(0, min(OpeningImportService::MAX_ROWS, (int) $request->query('recorded', 0))),
         ]]);
     }
 
@@ -49,9 +51,8 @@ final class OpeningImportController extends Controller
         } catch (ValidationException $exception) {
             throw $exception->redirectTo(route('inventory.opening-import'));
         }
-        Inertia::flash('toast', ['type' => 'success', 'message' => $result['recorded'].' opening '.($result['recorded'] === 1 ? 'line' : 'lines').' recorded. Each needs sign-off on Pilot readiness by someone else.']);
 
-        return to_route('inventory.readiness');
+        return to_route('inventory.opening-import', ['recorded' => $result['recorded']]);
     }
 
     public function template(OpeningImportService $service): HttpResponse

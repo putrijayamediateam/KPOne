@@ -204,12 +204,15 @@ final class OpeningImportTest extends VisitTestCase
         $this->actingAs($this->supervisor)->get(route('inventory.opening-import.template'))->assertOk()->assertHeader('Content-Type', 'text/csv; charset=UTF-8');
         $this->expectRefusal(fn () => app(OpeningImportService::class)->check($this->supervisor, $this->branch->id + 999, $file), 'expected_branch_id');
 
-        // Over HTTP: the check returns rows without internal ids, and recording lands on Pilot readiness.
+        // Over HTTP: the check returns rows without internal ids, and recording returns to the page with the count.
         $json = $this->actingAs($this->supervisor)->postJson(route('inventory.opening-import.check'), ['expected_branch_id' => $this->branch->id, 'file' => $file])->assertOk()->json();
         $this->assertArrayNotHasKey('sku_id', $json['rows'][0]);
         $this->assertArrayNotHasKey('batch_id', $json['rows'][0]);
         $this->actingAs($this->supervisor)->post(route('inventory.opening-import.store'), ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(), 'file_hash' => $json['hash'], 'file' => $file])
-            ->assertRedirect(route('inventory.readiness'));
+            ->assertRedirect(route('inventory.opening-import', ['recorded' => 1]));
+        // The page then shows the count, never anything else from the query.
+        $this->actingAs($this->supervisor)->get(route('inventory.opening-import', ['recorded' => 9999]))->assertOk()
+            ->assertInertia(fn ($page) => $page->where('import.recorded', OpeningImportService::MAX_ROWS));
         $this->assertSame(1, DB::table('inventory_opening_imports')->count());
     }
 

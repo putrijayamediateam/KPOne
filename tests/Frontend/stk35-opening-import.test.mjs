@@ -39,3 +39,22 @@ test('STK-35: Pilot readiness links to the import for CA Supervisors only', () =
     assert.match(readiness, /v-if="readiness\.canImportOpening"/);
     assert.match(readiness, /href="\/inventory\/opening-import"/);
 });
+
+test('STK-35 (Daniel): shared file button, a confirm before recording, Problem on bad rows and a success panel', () => {
+    assert.match(page, /<FileChooseButton/);
+    assert.doesNotMatch(page, /<input\s+type="file"/);
+    assert.match(page, /@click="askToRecord"/);
+    assert.match(page, /<OperationalConfirmDialog/);
+    assert.match(
+        page,
+        /They cannot be edited afterwards\. Each still needs sign-off by someone other than you\./,
+    );
+    assert.match(page, /processing-label="Recording…"/);
+    assert.match(page, />Problem<\/span/);
+    assert.match(page, /Go to Pilot readiness for sign-off/);
+    const readiness = read('resources/js/pages/Inventory/Readiness.vue');
+    assert.match(
+        readiness,
+        /Check each SKU and sign off openings\. Importing opening stock is a separate page\. No balance correction or pilot go-live approval\./,
+    );
+});

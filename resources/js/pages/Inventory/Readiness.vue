@@ -136,7 +136,7 @@ watch(
         >
         <PageHeader
             title="Pilot readiness"
-            :description="`${readiness.branchName} · Review only. No balance correction or pilot go-live approval.`"
+            :description="`${readiness.branchName} · Check each SKU and sign off openings. Importing opening stock is a separate page. No balance correction or pilot go-live approval.`"
         />
         <div v-if="readiness.canImportOpening" class="flex flex-wrap gap-2">
             <ActionLink
