@@ -124,7 +124,7 @@ final class ReorderSuggestionService
 
         return [
             'branchName' => $branch->name,
-            'canSeeCost' => $cost,
+            'canSeeCost' => $cost, 'canRequest' => $actor->can(PurchaseRequestService::CREATE),
             'lookBackDays' => self::LOOK_BACK_DAYS,
             'filters' => ['q' => $data['q'] ?? '', 'need' => $data['need'] ?? 'order'],
             'rows' => array_slice($rows, ($page - 1) * self::PER_PAGE, self::PER_PAGE),
