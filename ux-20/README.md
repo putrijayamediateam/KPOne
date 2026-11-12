@@ -14,6 +14,20 @@ temporary local harness on the Clinic management page, which is not in the PR.
 The figures are the same in light and dark. After a client-side visit to /staff, the trail falls back to the shell
 label, "Management".
 
-**shell-\*:** a page without PageFrame (today's Classic Quick create inside the V2 shell). The fallback "Front desk"
-is drawn by the shell at PageFrame's padding (16 px, then 32 px from 1024 px), because this Classic page has its own
-max-w-5xl container. It lines up exactly once the page uses PageFrame or places `<V2PageCrumbs in-frame />`.
+**shell-\*:** a page without PageFrame: today's Classic Quick create, shown inside the V2 shell. The shell draws the
+fallback "Front desk" at the side padding most pages use today (16 px, then 24 px from 768 px).
+
+| Width | crumb x | h1 x |
+|---|---|---|
+| 390 | 16 | 16 |
+| 1024 | 264 | 264 |
+| 1440 | 264 | 352 |
+
+At 1440 px this page centres its own max-w-5xl container. It lines up there once the page uses PageFrame, or places
+`<V2PageCrumbs in-frame />` itself.
+
+**focus-\*:** "Back to Classic" with keyboard focus. It now has a full-strength 2 px ring: 6.43:1 in light and 6.69:1
+in dark. The shared Button's 40% ring measured 1.95:1 and 2.16:1.
+
+**Not here yet:** Registration board, Register visit, visit page and Edit visit. Those V2 pages are Nurul's; they are
+not on main, and they need `usePageCrumbs` for "Registration > KPV-…". The shots follow once they use it.
