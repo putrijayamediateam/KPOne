@@ -178,12 +178,16 @@ final class BillingSpace
     {
         /** @var list<array<string, mixed>> $data */
         $data = array_values($page['data']);
+        // BIL-23: a bill can owe money due now as well as pay later. `remainingSen` is the pay-later part only, so the row
+        // adds the due-now amount for its visit and then agrees with the headline totals.
+        $dueNow = (array) ($page['dueNow'] ?? []);
+        $owed = fn (array $r): int => (int) $r['remainingSen'] + (int) ($dueNow[(string) $r['visitNumber']] ?? 0);
 
         return array_map(fn (array $r): array => [
             'invoiceNumber' => (string) $r['invoiceNumber'],
             'patient' => SpaceDisplay::shortName((string) $r['patientName']),
-            'amountText' => SpaceDisplay::rm((int) $r['remainingSen']),
-            'remainingSen' => (int) $r['remainingSen'],
+            'amountText' => SpaceDisplay::rm($owed($r)),
+            'remainingSen' => $owed($r),
             'dueText' => $this->dueText((string) $r['dueDate'], (int) $r['daysOverdue']),
             'tone' => (int) $r['daysOverdue'] >= 30 ? 'red' : ((int) $r['daysOverdue'] > 0 ? 'amber' : 'normal'),
             'daysOverdue' => (int) $r['daysOverdue'],
