@@ -3,6 +3,7 @@
 namespace App\Domain\Shared\Services;
 
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
@@ -807,7 +808,35 @@ class ClinicInsightsReportService
             ->whereIn('source_locations.branch_id', $branchIds)
             ->tap(fn (Builder $query) => $this->scopePeriod($query, $periods, 'stock_movements.occurred_at', 'source_locations.branch_id'))
             ->sum('stock_movements.quantity');
-        $wastage = (float) $stocktakeLoss + (float) $damageAdjustments;
+        // STK-15b: approved STK-5 governed write-offs (expired and other). A write-off whose reversal was later approved
+        // is left out, whenever the reversal happened, so the figure belongs to the period of the original write-off.
+        // Governed count losses already post stocktake_loss above, so nothing is counted twice.
+        $writeOffs = DB::table('stock_movements')
+            ->join('inventory_locations as source_locations', 'source_locations.id', '=', 'stock_movements.source_location_id')
+            ->join('inventory_governed_cases as cases', function ($join): void {
+                $join->on('cases.public_id', '=', 'stock_movements.reference_public_id')->on('cases.organisation_id', '=', 'stock_movements.organisation_id');
+            })
+            ->where('stock_movements.organisation_id', $actor->organisation_id)
+            ->whereIn('stock_movements.movement_type', [StockMovement::TYPE_EXPIRY_WRITEOFF, StockMovement::TYPE_STOCK_WRITEOFF])
+            ->where('stock_movements.reference_type', 'inventory_governed_case')
+            ->where('cases.kind', 'writeoff')
+            ->whereNotExists(fn (Builder $reversed) => $reversed->selectRaw('1')->from('inventory_governed_cases as reversals')
+                ->join('inventory_governed_actions as approvals', 'approvals.case_id', '=', 'reversals.id')
+                ->whereColumn('reversals.reverses_case_id', 'cases.id')->where('approvals.action', 'approved'))
+            ->whereIn('source_locations.branch_id', $branchIds)
+            ->tap(fn (Builder $query) => $this->scopePeriod($query, $periods, 'stock_movements.occurred_at', 'source_locations.branch_id'))
+            ->sum('stock_movements.quantity');
+        $wastage = (float) $stocktakeLoss + (float) $damageAdjustments + (float) $writeOffs;
+        // STK-15: treatment-room waste (STK-8), shown on its own line. An entry a supervisor later reversed is left out,
+        // whenever the reversal happened, so the figure belongs to the period of the original entry.
+        $treatmentWaste = DB::table('inventory_treatment_usages as usages')
+            ->leftJoin('inventory_treatment_usage_reversals as reversals', 'reversals.usage_id', '=', 'usages.id')
+            ->where('usages.organisation_id', $actor->organisation_id)
+            ->where('usages.kind', 'waste')
+            ->whereNull('reversals.id')
+            ->whereIn('usages.branch_id', $branchIds)
+            ->tap(fn (Builder $query) => $this->scopePeriod($query, $periods, 'usages.created_at', 'usages.branch_id'))
+            ->sum('usages.quantity');
         $medicines = DB::table('invoice_lines as lines')
             ->join('invoices', 'invoices.id', '=', 'lines.invoice_id')
             ->where('invoices.organisation_id', $actor->organisation_id)
@@ -821,6 +850,7 @@ class ClinicInsightsReportService
                 'lowStockItems' => $low,
                 'expiringBatchesNext30Days' => $expiring,
                 'wastageUnits' => $wastage,
+                'treatmentWasteUnits' => (float) $treatmentWaste,
                 'inventoryValueAvailable' => false,
                 'costOfInventorySoldAvailable' => false,
             ],
