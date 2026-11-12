@@ -498,7 +498,7 @@ pages inherit them and no page sets its own colour)
 
 | Thing | Value |
 |---|---|
-| Radius: list item, menu item, tab segment | 8 px |
+| Radius: list item, menu item | 8 px |
 | Radius: buttons, fields, selects, chips in rows | 10 px (one value for all controls; if the spaces sketch used 9 px, use 10) |
 | Radius: cards, tables, side panels | 14 px |
 | Radius: hero card, tiles, dialogs, bottom sheets | 18 px (20 px for the Me hero) |
@@ -547,7 +547,7 @@ pages inherit them and no page sets its own colour)
 
 - **Do** use the segmented control for tabs with up to five items and for small filters: a `muted` track, the selected
   segment a `card` pill with cobalt text, 44 px below 1024 px, scrolling with a fade on a phone. A count sits in the
-  label in words ("Waiting 2"). **Don't** use the pink underline tab any more on restyled pages.
+  label in words ("Waiting 2"). Track and selected segment are both a full pill (decided 2026-11-12, 0.4). **Don't** use the pink underline tab any more on restyled pages. A board with more than five tabs (Registration has eight) may scroll with the fade, as a deliberate exception; the selected tab scrolls into view.
 
 **Lists and tables** (section 6 still applies)
 
