@@ -193,7 +193,10 @@ class InventoryOperationsController extends Controller
         try {
             $service->create($request->user(), $request->only(['expected_branch_id', 'source_location_public_id', 'destination_location_public_id', 'lines']));
         } catch (ValidationException $exception) {
-            throw $this->stayOnInventory($exception);
+            // STK-31: a request sent from "Stock other branches need" stays on that page when refused.
+            throw $request->input('from') === 'branch-replenishment'
+                ? $exception->redirectTo(route('inventory.branch-replenishment'))
+                : $this->stayOnInventory($exception);
         }
 
         return $this->success('Stock Request submitted.');

@@ -64,7 +64,7 @@ final class StockRequestService
             $lockedActor = $this->authority->lockForBranch($actor, $branch, self::CREATE_PERMISSION);
             [$source, $destination] = $this->lockLocations($lockedActor, (string) ($attributes['source_location_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''));
             $this->assertSourceAuthority($lockedActor, $branch, $source);
-            $this->assertDestinationAuthority($lockedActor, $branch, $destination);
+            $this->assertRequestDestination($lockedActor, $branch, $destination);
             // STK-11: a two-stage transfer never touches a patient returns location.
             if (in_array(InventoryLocation::TYPE_DISPENSARY_RETURNS, [$source->type, $destination->type], true)) {
                 throw ValidationException::withMessages(['location' => 'Patient returns stock is not sent on a stock request. Write it off, or move it to another returns location.']);
@@ -82,7 +82,9 @@ final class StockRequestService
                 $line = new StockRequestLine;
                 $line->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $lockedActor->organisation_id, 'stock_request_id' => $request->id, 'inventory_sku_id' => $skus[$input['sku_public_id']]->id, 'requested_quantity' => $input['quantity']])->save();
             }
-            $this->audit->record('inventory.stock_request.requested', $request, ['request_number' => $request->request_number, 'line_count' => count($lines)], $lockedActor, $branch);
+            $this->audit->record('inventory.stock_request.requested', $request, ['request_number' => $request->request_number, 'line_count' => count($lines),
+                // STK-31: a request may now send stock to another branch; the audit names where it goes.
+                'destination_branch_id' => $destination->branch_id, 'cross_branch' => $destination->branch_id !== null && $destination->branch_id !== $branch->id], $lockedActor, $branch);
 
             return $request->load('lines');
         }, 3);
@@ -360,7 +362,10 @@ final class StockRequestService
             if ($status === StockRequest::STATUS_APPROVED) {
                 [$source, $destination] = $this->lockStoredLocations($lockedActor, $locked);
                 $this->assertSourceAuthority($lockedActor, $branch, $source);
-                $this->assertDestinationAuthority($lockedActor, $branch, $destination);
+                $this->assertRequestDestination($lockedActor, $branch, $destination);
+                if ($destination->type === InventoryLocation::TYPE_DISPENSARY_RETURNS) {
+                    throw ValidationException::withMessages(['location' => 'Patient returns stock is not sent on a stock request. Write it off, or move it to another returns location.']);
+                }
             }
             $locked->forceFill(['status' => $status, 'decided_by_user_id' => $lockedActor->id, 'decided_at' => now()->utc(), 'rejection_reason' => $reason, 'lock_version' => $locked->lock_version + 1])->save();
             $this->audit->record('inventory.stock_request.'.$status, $locked, ['from' => StockRequest::STATUS_REQUESTED, 'to' => $status], $lockedActor, $branch);
@@ -421,6 +426,22 @@ final class StockRequestService
             return;
         }
         abort_unless($source->branch_id === $branch->id, 404);
+    }
+
+    /**
+     * STK-31 (approved by B.E.R.N.I.S.S for the owner): the branch that holds the stock may send it to another branch of
+     * the same organisation. The source stays at the requester's own branch (assertSourceAuthority) and only the
+     * destination branch's own receivers receive it (assertDestinationAuthority at receive). The organisation is enforced
+     * by the location foreign keys; the returns rule by the callers and PostgreSQL.
+     */
+    private function assertRequestDestination(User $actor, Branch $branch, InventoryLocation $destination): void
+    {
+        if ($destination->branch_id === null) {
+            $this->assertDestinationAuthority($actor, $branch, $destination);
+
+            return;
+        }
+        abort_unless($destination->organisation_id === $actor->organisation_id, 404);
     }
 
     private function assertDestinationAuthority(User $actor, Branch $branch, InventoryLocation $destination): void
