@@ -169,7 +169,7 @@ final class DispensaryReturnsLocationTest extends VisitTestCase
         $this->actingAs($supervisor);
         foreach ([[$returns, '99.000'], [$f['location'], '50.000']] as [$location, $level]) {
             app(InventoryControlService::class)->setReorderLevel($supervisor, ['expected_branch_id' => $this->branch->id,
-                'location_public_id' => $location->public_id, 'sku_public_id' => $sku->public_id, 'reorder_level' => $level]);
+                'location_public_id' => $location->public_id, 'sku_public_id' => $sku->public_id, 'reorder_level' => $level, 'expected_lock_version' => null, 'idempotency_key' => (string) Str::uuid()]);
         }
         $page = app(InventoryStockReviewService::class)->page($supervisor, []);
         $low = collect($page['lists']['low_stock']['rows']);

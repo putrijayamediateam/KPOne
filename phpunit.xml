@@ -32,6 +32,8 @@
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresSupplierReturnTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresPurchaseRequestTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresReorderLevelTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresSupplierReturnGroupTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresTransferShortageTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresTreatmentUsageTest.php</exclude>
@@ -83,6 +85,8 @@
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
             <file>tests/Feature/Inventory/PostgresSupplierReturnTest.php</file>
+            <file>tests/Feature/Inventory/PostgresPurchaseRequestTest.php</file>
+            <file>tests/Feature/Inventory/PostgresReorderLevelTest.php</file>
             <file>tests/Feature/Inventory/PostgresSupplierReturnGroupTest.php</file>
             <file>tests/Feature/Inventory/PostgresTransferShortageTest.php</file>
             <file>tests/Feature/Inventory/PostgresTreatmentUsageTest.php</file>

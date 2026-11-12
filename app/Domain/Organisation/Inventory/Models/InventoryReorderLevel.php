@@ -21,6 +21,6 @@ class InventoryReorderLevel extends Model
 
     protected function casts(): array
     {
-        return ['reorder_level' => 'decimal:3'];
+        return ['reorder_level' => 'decimal:3', 'max_level' => 'decimal:3'];
     }
 }

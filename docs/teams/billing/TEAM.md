@@ -118,8 +118,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-18 | Pay-later list on phones and summary wording: below 1024 px the pay-later collection list is cards (amount and past-due chip first, the due-now note beside it, a 44 px Open billing); the Billing, Invoice and Visit history summary row "Approved pay later" reads "Pay later still owed" (prints unchanged). Layout and wording only. Design note: `BIL-18-DESIGN.md` | PR #471 |
 | BIL-19 | "Recorded by" on the completed-visit Invoice page: each receipt shows when it was received and who recorded it, by the BIL-2 name rule ("Staff member" when the viewer may not see the name); prints unchanged. Display only. Design note: `BIL-19-DESIGN.md` | PR #493 |
 | BIL-20 | PostgreSQL race tests for receipt corrections (BIL-16): two people correcting one receipt at once record one correction (one reversal, one replacement, one audit; the other is refused), and a correction racing a refund on the same receipt never both win, with no deadlock (both lock the patient and visit, then the invoice and the receipt); both orders are also forced in turn, and the same request sent twice at once records one correction. The race test cleanup also removes payment corrections. Test only. | PR #474 |
+| BIL-21 | Staff names by the branch day: a branch-level viewer sees a staff member's name while that person is assigned to the branch on the branch's own calendar day, as branch access already decides it. Between 00:00 and 08:00 Kuala Lumpur time the UTC date used to keep yesterday's leaver named and today's new starter hidden. One shared Access file (`StaffAccessService`), also used by the staff directory, Dispensary returns, patient history and Panel screens, and by who a branch-level viewer may open in the staff directory (`StaffPolicy`); their tests pass unchanged. | PR #491 |
 | BIL-23 | "Bills to collect": the pay-later collection list now shows every completed visit that still owes money, not only approved pay later: rows show Approved, Pay later, Due now and Still owed (the Billing page's Outstanding bill amount); money due now counts from the visit day and is past due from the next day ("N days since visit"); the page and its menu card are renamed (same link). Read-only. Design note: `BIL-23-DESIGN.md` | PR #538 |
 | BIL-25 | Receipt status badges: on the Invoice page and the read-only Billing payments list a receipt's status is the coloured status badge (Posted green, Reversed neutral grey) on its own row under the receipt number and time, instead of plain grey text; the manage-list badges use the same local tone. Frontend only | PR pending |
+| BIL-28 | The Outstanding bill box's link on the Billing page reads "View all bills to collect at this branch", naming the page it opens (BIL-23). Wording only. | PR #553 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -257,6 +259,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     after the visit ("N days since visit"); rename the page "Bills to collect", same link; the one existing assertion
     on the old title may change.
 41. BIL-25 receipt status badges (2026-11-11, the owner in the Billing session, "start with 1"; Siti's design, Daniel OK 2026-11-12): Reversed stays neutral grey (a settled correction, nothing to do), set locally in Billing so the shared status map, which HR also uses for 'reversed', is unchanged.
+43. BIL-28 (2026-11-12, the owner in the Billing session): the link reads "View all bills to collect at this branch"; the owner approved changing the one existing assertion that pinned the old words (bil-3 test).
 
 ## 7. Open items and known limits
 
@@ -286,9 +289,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Receipt "Recorded by" names (BIL-2) show on the Billing page, Manage payments and, since BIL-19, the completed-visit
   Invoice page; never on prints. The stock receiving screen still shows "Receiver: staff #ID"; that screen belongs to the
   Inventory team.
-- Staff name visibility (activity log and receipts) compares branch assignment dates with the UTC date, so
-  between 00:00 and 08:00 Kuala Lumpur time an assignment starting that day is not yet visible to branch-level
-  viewers (existing behaviour of `StaffAccessService`).
+- Staff name visibility (`StaffAccessService`) uses the branch's own calendar day since BIL-21. Still on the UTC date,
+  outside Billing: the staff directory's branch filter and its assignment state label (`StaffDirectoryService`), and
+  `StaffBranchAssignment::effectiveAt()` called without a date (primary-branch checks). Raised for their owner.
 - The pay-later collection list (BIL-3) is not audited per view, like the Finance / Billing work list and the
   Registration board; it shows patient name and KP number only. Payments are still recorded on each patient's
   Billing page.
@@ -298,8 +301,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   its totals include money due now while its rows show the pay-later part only (`remainingSen`), so a due-now-only
   bill reads RM 0.00 there until the space adds the `dueNow` map. Told the DS session; their file, their change.
 - Bills to collect (BIL-23) lists completed visits that owe money and approved pay later (also on open visits); an
-  open visit's own due-now money is not listed (it is being paid at the counter). The Billing page's "View all
-  pay-later to collect" link keeps its wording (pinned by an existing assertion). No "Check bill" badge for invoices
+  open visit's own due-now money is not listed (it is being paid at the counter). Since BIL-28 the Billing page's
+  link reads "View all bills to collect at this branch". No "Check bill" badge for invoices
   under review on this list (it would add a row field), so a bill on hold for correction or with stale source shows
   unflagged. An open visit with pay later and unpaid money due no longer shows the "also due now" note (that money
   is being paid at the counter). If an invoice's evidence did not reconcile, the list floors its due-now money at

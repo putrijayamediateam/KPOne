@@ -4,6 +4,7 @@ namespace App\Domain\DepartmentSpace;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\DepartmentSpace\Explain\FrontDeskExplainers;
 use App\Models\User;
 
 /**
@@ -22,6 +23,10 @@ final class SpaceAskService
         'front_desk.not_ready' => ['registration.index', []],
         'front_desk.awaiting_billing' => ['registration.index', []],
         'front_desk.qr_pending' => ['registration.index', ['tab' => 'qr-intake']],
+        'front_desk.waits_week' => ['queue.index', []],
+        'front_desk.waits_today' => ['queue.index', []],
+        'front_desk.busiest_hours' => ['queue.index', []],
+        'front_desk.left_waiting' => ['queue.index', []],
         'consultation.longest_waiting' => ['queue.index', []],
         'consultation.not_ready' => ['queue.index', []],
         'panel.most_unclaimed' => ['panel-claims.index', []],
@@ -42,7 +47,7 @@ final class SpaceAskService
         'billing.closings_missing' => ['cash-closings.month', []],
     ];
 
-    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private ConsultationSpace $consultation, private PanelSpace $panel, private StockSpace $stock, private HrSpace $hr, private ManagementSpace $management, private MeSpace $me, private AuditRecorder $audit) {}
+    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private ConsultationSpace $consultation, private PanelSpace $panel, private StockSpace $stock, private HrSpace $hr, private ManagementSpace $management, private MeSpace $me, private FrontDeskExplainers $explainers, private AuditRecorder $audit) {}
 
     /**
      * The questions this person may ask in a space. A question they cannot ask is absent, never greyed.
@@ -97,6 +102,7 @@ final class SpaceAskService
             'front_desk.waited_over_30', 'front_desk.not_ready' => $this->frontDesk->waiting($actor) !== null,
             'front_desk.awaiting_billing' => $this->frontDesk->awaitingBilling($actor) !== null,
             'front_desk.qr_pending' => $this->frontDesk->qrPending($actor) !== null,
+            'front_desk.waits_week', 'front_desk.waits_today', 'front_desk.busiest_hours', 'front_desk.left_waiting' => FrontDeskExplainers::permitted($actor),
             'billing.over_60', 'billing.owes_most' => $this->billing->payLaterRead($actor) !== null,
             'billing.closings_waiting', 'billing.closings_missing' => $this->billing->monthDays($actor) !== null,
             'consultation.longest_waiting', 'consultation.not_ready' => $this->consultation->snapshot($actor) !== null,
@@ -113,6 +119,30 @@ final class SpaceAskService
             'me.leave_requests' => $this->me->leaveRequests($actor) !== null,
             default => false,
         };
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function explainWaitsWeek(User $actor): array
+    {
+        return $this->explainers->waitsWeek($actor);
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function explainWaitsToday(User $actor): array
+    {
+        return $this->explainers->waitsToday($actor);
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function explainBusiestHours(User $actor): array
+    {
+        return $this->explainers->busiestHours($actor);
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function explainLeftWaiting(User $actor): array
+    {
+        return $this->explainers->leftWaiting($actor);
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */

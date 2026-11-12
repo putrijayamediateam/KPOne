@@ -7,12 +7,15 @@ use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Models\LeaveType;
+use App\Domain\HR\Leave\Services\LeaveEvidenceService;
 use App\Domain\HR\Roster\Models\RosterVersion;
 use App\Domain\HR\Roster\RosterPermissions;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -329,6 +332,20 @@ class LeaveTest extends VisitTestCase
         $this->delete(route('hr.leave.holidays.destroy', DB::table('hr_public_holidays')->where('name', 'Later')->value('id')))->assertSessionHasNoErrors();
     }
 
+    public function test_a_waiting_request_says_when_it_was_sent(): void
+    {
+        // For the HR space's "oldest waiting" line (Daniel, Kavitha): when the request was sent, ISO and in UTC.
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $type = $this->ready($hr, $ca, 10);
+        $this->travelTo(CarbonImmutable::parse('2027-03-01 01:30:00', 'UTC'));
+        $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => '2027-03-10', 'end_date' => '2027-03-10'])->assertSessionHasNoErrors();
+        $this->travelBack();
+        $this->selectBranch($hr);
+        $this->get(route('hr.leave.index', ['tab' => 'approvals']))->assertInertia(fn (Assert $page) => $page
+            ->where('leave.approvals.pending.0.sentAt', '2027-03-01T01:30:00+00:00'));
+    }
+
     public function test_the_roster_refuses_shifts_on_approved_leave_and_warns_for_pending_or_existing(): void
     {
         $hr = $this->actor('hr_manager');
@@ -531,6 +548,83 @@ class LeaveTest extends VisitTestCase
     // ---- helpers ----
 
     /** @param array<string, mixed> $overrides */
+    public function test_leave_years_older_than_seven_years_are_purged_with_their_evidence_and_only_by_the_purge(): void
+    {
+        // PDPA 15 (owner, 2026-11-11; the accountant confirms the 7 years before real use). PostgreSQL checks the leave year
+        // against its own clock, so this test works in real time: a year Y goes once the real year is Y + 8 or later.
+        Storage::fake(LeaveEvidenceService::DISK);
+        $real = CarbonImmutable::createFromTimestamp(time(), 'UTC');
+        $gone = $real->year - 8;
+        $kept = $real->year - 7;
+        $this->travelTo(CarbonImmutable::parse("{$gone}-03-01 09:00", $this->branch->timezone));
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $type = $this->leaveType($hr);
+        $this->workingDays($hr, [1, 2, 3, 4, 5]);
+        $year = function (int $year) use ($hr, $ca, $type): LeaveRequest {
+            $this->travelTo(CarbonImmutable::parse("{$year}-03-01 09:00", $this->branch->timezone));
+            $this->selectBranch($hr);
+            $this->put(route('hr.leave.entitlements.save'), ['year' => $year, 'rows' => [['leave_type_id' => $type->id, 'role' => 'ca', 'days' => '14']]])->assertSessionHasNoErrors();
+            $this->post(route('hr.leave.grant'), ['year' => $year, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+            $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => "{$year}-03-12", 'end_date' => "{$year}-03-12"])->assertSessionHasNoErrors();
+            $request = LeaveRequest::query()->where('year', $year)->sole();
+            $this->decide($hr, $request, 'approve')->assertSessionHasNoErrors();
+
+            return $request;
+        };
+        $old = $year($gone);
+        // A request of the old year never decided is abandoned and goes too (Suresh).
+        $this->apply($ca, ['leave_type_id' => $type->id, 'start_date' => "{$gone}-03-19", 'end_date' => "{$gone}-03-19"])->assertSessionHasNoErrors();
+        $pending = LeaveRequest::query()->where('status', 'pending')->sole();
+        // Evidence on the old request: the row, its event and the bytes all go.
+        Storage::disk(LeaveEvidenceService::DISK)->put('hr-leave-evidence/synthetic.bin', 'synthetic');
+        $file = DB::table('hr_leave_evidence_files')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $old->organisation_id,
+            'leave_request_id' => $old->id, 'uploaded_by_user_id' => $ca->id, 'on_behalf' => false, 'kind' => 'pdf', 'bytes' => 9, 'sha256' => str_repeat('a', 64),
+            'stored_path' => 'hr-leave-evidence/synthetic.bin', 'status' => 'active', 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('hr_leave_evidence_events')->insert(['organisation_id' => $old->organisation_id, 'evidence_file_id' => $file, 'action' => 'added',
+            'actor_user_id' => $ca->id, 'occurred_at' => now()]);
+        $recent = $year($kept);
+        $this->travelBack();
+
+        $this->artisan('hr-leave:purge')->expectsOutputToContain('Deleted 2 leave requests, 0 entries, 1 other ledger lines, 1 entitlements and 1 evidence files.')->assertSuccessful();
+        $this->assertSame([$recent->id], LeaveRequest::query()->orderBy('id')->pluck('id')->all());
+        $this->assertSame(0, DB::table('hr_leave_request_actions')->whereIn('leave_request_id', [$old->id, $pending->id])->count());
+        $this->assertSame([$kept, $kept], DB::table('hr_leave_ledger')->orderBy('id')->pluck('year')->map(fn ($y): int => (int) $y)->all()); // grant and taken
+        $this->assertSame([$kept], DB::table('hr_leave_entitlements')->pluck('year')->map(fn ($y): int => (int) $y)->all());
+        $this->assertSame(0, DB::table('hr_leave_evidence_files')->count());
+        $this->assertSame(0, DB::table('hr_leave_evidence_events')->count());
+        $this->assertFalse(Storage::disk(LeaveEvidenceService::DISK)->exists('hr-leave-evidence/synthetic.bin'));
+        $this->assertSame(1, LeaveType::query()->count()); // settings stay
+        $this->assertSame([['requests' => 2, 'entries' => 0, 'ledger' => 1, 'entitlements' => 1, 'files' => 1, 'retention_years' => 7]], DB::table('audit_logs')
+            ->where('event', 'hr.leave.retention_purged')->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
+        $this->artisan('hr-leave:purge')->expectsOutputToContain('Deleted 0 leave requests, 0 entries, 0 other ledger lines, 0 entitlements and 0 evidence files.')->assertSuccessful();
+        $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
+            ->filter(fn ($e): bool => str_contains((string) $e->command, 'hr-leave:purge'))->pluck('expression')->values()->all());
+
+        // Only the purge deletes, and only rows of a year past the 7 years; TRUNCATE stays refused.
+        $refused = function (callable $write): void {
+            try {
+                DB::transaction(function () use ($write): void {
+                    $write();
+                });
+                $this->fail('PostgreSQL accepted a delete it must refuse.');
+            } catch (QueryException $e) {
+                $this->assertSame('P0001', $e->errorInfo[0] ?? null);
+            }
+        };
+        $refused(fn () => DB::table('hr_leave_requests')->where('id', $recent->id)->delete());
+        $refused(function () use ($recent): void {
+            DB::statement("SELECT set_config('kpone.hr_leave_purge', 'on', true)");
+            DB::table('hr_leave_ledger')->where('leave_request_id', $recent->id)->delete();
+        });
+        $refused(function (): void {
+            DB::statement("SELECT set_config('kpone.hr_leave_purge', 'on', true)");
+            DB::table('hr_leave_entitlements')->delete();
+        });
+        $refused(fn () => DB::statement('TRUNCATE hr_leave_ledger CASCADE'));
+        $this->assertSame(1, LeaveRequest::query()->count());
+    }
+
     private function leaveType(User $manager, array $overrides = []): LeaveType
     {
         $this->selectBranch($manager);
