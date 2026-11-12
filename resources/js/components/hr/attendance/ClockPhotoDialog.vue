@@ -476,7 +476,7 @@ onBeforeUnmount(() => {
                         <button
                             ref="doneButton"
                             type="button"
-                            class="min-h-14 w-full rounded-full bg-[#0852da] text-[17px] font-bold text-white focus-visible:ring-2 focus-visible:ring-[#0852da] focus-visible:ring-offset-2 focus-visible:outline-none dark:bg-[#76adff] dark:text-[#0b1a33] dark:focus-visible:ring-[#76adff]"
+                            class="min-h-14 w-full rounded-full bg-primary text-[17px] font-bold text-primary-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:outline-none"
                             data-test="clock-photo-done-button"
                             @click="close"
                         >
