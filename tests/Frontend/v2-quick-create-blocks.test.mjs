@@ -54,3 +54,25 @@ test('The new blocks import nothing from the Classic ui components', () => {
         assert.doesNotMatch(v2(n), /from '@\/components\/ui\//);
     }
 });
+
+test('V2PatientPickList: one radio group with a roving tab stop and arrow, Home and End keys', () => {
+    const s = v2('V2PatientPickList');
+    assert.match(s, /role="radiogroup"/);
+    assert.match(s, /:aria-label="label"/);
+    assert.match(s, /ArrowDown/);
+    assert.match(s, /ArrowUp/);
+    assert.match(s, /'Home'/);
+    assert.match(s, /'End'/);
+    assert.match(s, /:tab-stop="tabStop\(index\)"/);
+    assert.match(
+        v2('V2PatientPickRow'),
+        /:tabindex="tabStop === false \? -1 : 0"/,
+    );
+});
+
+test('V2OptionGroup uses aria-pressed consistently (every option is a pressed button inside a named group)', () => {
+    const s = v2('V2OptionGroup');
+    assert.match(s, /role="group"/);
+    assert.doesNotMatch(s, /role="radio"/);
+    assert.match(s, /:aria-pressed=/);
+});
