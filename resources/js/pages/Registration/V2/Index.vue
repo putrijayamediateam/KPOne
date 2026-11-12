@@ -551,9 +551,7 @@ const filterBadge = computed(
                             <td
                                 class="max-w-56 min-w-0 text-sm max-lg:max-w-none max-lg:justify-start max-lg:!text-left"
                             >
-                                <span
-                                    class="min-w-0 max-lg:text-right lg:contents"
-                                >
+                                <span class="min-w-0 lg:contents">
                                     <span
                                         class="block truncate"
                                         :title="
@@ -675,11 +673,7 @@ const filterBadge = computed(
                                     >
                                 </div>
                             </td>
-                            <td
-                                data-label="Actions"
-                                data-actions
-                                class="text-right"
-                            >
+                            <td data-actions class="text-right">
                                 <div
                                     class="flex items-center justify-end gap-1 max-lg:gap-2 max-lg:[&_[data-slot=v2-row-menu]]:flex-1"
                                 >
