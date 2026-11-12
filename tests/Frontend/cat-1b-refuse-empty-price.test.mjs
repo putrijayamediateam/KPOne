@@ -108,7 +108,12 @@ test('on a Pricing card "Publish price" is the clear main action', () => {
     );
     assert.match(
         cards,
-        /variant="ghost"\s+class="min-h-11 w-full"\s+as-child\s+data-action="price-history"/,
+        /variant="outline"\s+class="min-h-11 w-full"\s+as-child\s+data-action="price-history"/,
+    );
+    // The desktop row button stays a plain ghost link.
+    assert.match(
+        pricing,
+        /size="sm"\s+variant="ghost"\s+as-child\s+data-action="price-history"/,
     );
     assert.match(
         cards,

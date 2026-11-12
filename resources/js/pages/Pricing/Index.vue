@@ -512,7 +512,7 @@ const toggleCharge = (charge: ChargeRow) => {
                     </Button>
                 </div>
                 <Button
-                    variant="ghost"
+                    variant="outline"
                     class="min-h-11 w-full"
                     as-child
                     data-action="price-history"
