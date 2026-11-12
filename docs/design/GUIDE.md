@@ -331,7 +331,7 @@ already allow, and the backend still decides.
 | Director | all eight |
 | Marketing, Business Development | none of the eight |
 | TV account | the TV only |
-| Everyone (not the TV) | **Me**: own roster, leave, claims, payslips |
+| Everyone (not the TV) | **Me**, in the account menu (not the sidebar): own roster, leave, attendance, claims, credentials, SOPs, payslips |
 
 The eight spaces are Front desk, Consultation, Pharmacy, Billing, Panel, Stock, HR and Management. A space a person
 cannot open is **absent from the sidebar**, never greyed out. Server-side permission and branch checks stay the
@@ -339,7 +339,7 @@ only authority (frontend visibility is a usability aid, as in `AGENTS.md`).
 
 **Layout**
 
-- **Do** use the shell from the sketch: a grouped sidebar (Clinic, Money, Back office, Oversight, then Me), a top
+- **Do** use the shell from the sketch: a grouped sidebar (Clinic, Money, Back office, Oversight; no Me, see below), a top
   bar with a search or command bar, the branch switcher and the account button, and one page body.
 - **Do** keep one `h1` per space through `PageHeader` (name, one line of description, actions at the right), then a
   segmented control for the space's tabs, then the work table, then the side panels.
@@ -394,11 +394,20 @@ only authority (frontend visibility is a usability aid, as in `AGENTS.md`).
 - **Don't** use purple-to-blue gradients, glow, glassmorphism or blur, sparkle or emoji icons, a "Welcome back!"
   hero, giant rounded shadowed cards, or a stock-SaaS look.
 
-**Me**
+**Me** (decision 2026-11-12, owner: more private and professional in the account menu)
 
-- **Do** give everyone (except the TV account) a **Me** area at the bottom of the sidebar. It shows only that
-  person's own records: roster, leave, claims and payslips. It never shows other people's records, and it is not a
-  place to approve anything.
+- **Do** put **Me** inside the **account menu** (the avatar at the top right), as the first group under the person's
+  name: My profile, My roster and leave, My attendance, My claims, My credentials, My SOPs, then Security and
+  Sign out. Everyone except the TV account has it. It shows only that person's own records, never other people's, and
+  is not a place to approve anything.
+- **Don't** show Me or a "You" heading in the sidebar or the phone space strip. This also frees a slot in the 390 px
+  strip.
+- **Do** keep one **Clock in** shortcut for staff who may clock in (`hr.attendance.clock.own`): a small outline
+  button in the top bar beside the branch switcher from 1024 px, and a row at the top of the account menu below it.
+  It shows "Clock in" or "Clock out" from the same state as My attendance, never a second source. It asks to confirm
+  Clock out, as My attendance does, and the server's 60-second and branch rules still apply. The button is 44 px
+  below 1024 px. Daily actions must not sit two taps deep.
+- **Do** show the person's name beside the avatar from 1024 px, and the avatar alone below it.
 
 **Accessibility and phone (sections 12 and 16 still apply)**
 
@@ -406,7 +415,7 @@ only authority (frontend visibility is a usability aid, as in `AGENTS.md`).
   current space has `aria-current="page"`, and the segmented control is a real tab list.
 - Below 1024 px every target is at least 44 px tall. The phone sidebar opens from a 44 px menu button and closes
   after a space is chosen.
-- A role sees at most the spaces in the table above plus Me; a CA sees three plus Me. Check the sidebar for each
+- A role sees at most the spaces in the table above; a CA sees three. Me is in the account menu for everyone but the TV. Check the sidebar for each
   role at 390 and 1440 px, in light and dark, before hand-off.
 
 **Open for the plan** (Kavitha's team decides with Daniel before building): how existing pages map into spaces and
