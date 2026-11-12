@@ -33,7 +33,18 @@ final class InventoryOperationsDirectoryService
         $purchaseOrderLines = $this->purchaseOrderLines($organisationId, array_values($purchaseOrders->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()));
         $stockRequests = DB::table('inventory_stock_requests as request')->join('inventory_locations as source', 'source.id', '=', 'request.source_location_id')->join('inventory_locations as destination', 'destination.id', '=', 'request.destination_location_id')
             ->where('request.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('request.requesting_branch_id', $branch->id)->orWhere('source.branch_id', $branch->id)->orWhere('destination.branch_id', $branch->id))->orderByDesc('request.created_at')->limit(50)
-            ->get(['request.id', 'request.public_id as publicId', 'request.request_number as number', 'request.status', 'request.lock_version as lockVersion', 'source.name as source', 'destination.name as destination', 'request.created_at as createdAt']);
+            ->get(['request.id', 'request.public_id as publicId', 'request.request_number as number', 'request.status', 'request.lock_version as lockVersion', 'source.name as source', 'destination.name as destination', 'request.created_at as createdAt',
+                'request.requesting_branch_id', 'source.branch_id as source_branch_id', 'destination.branch_id as destination_branch_id'])
+            // STK-31: a request can go to another branch; say which end this branch is (mirrors StockRequestService; the server decides).
+            ->map(function (object $row) use ($branch, $mayUseWarehouse): object {
+                $end = fn (mixed $branchId): bool => $branchId === null ? $mayUseWarehouse : (int) $branchId === $branch->id;
+                $row->atRequesting = (int) $row->requesting_branch_id === $branch->id;
+                $row->atSource = $end($row->source_branch_id);
+                $row->atDestination = $end($row->destination_branch_id);
+                unset($row->requesting_branch_id, $row->source_branch_id, $row->destination_branch_id);
+
+                return $row;
+            });
         $stockRequestIds = array_values($stockRequests->pluck('id')->map(fn (mixed $id): int => (int) $id)->all());
         $stockRequestLines = $this->requestLines($organisationId, $stockRequestIds);
         $transferDifferences = $this->transferDifferences($actor, $stockRequestIds);

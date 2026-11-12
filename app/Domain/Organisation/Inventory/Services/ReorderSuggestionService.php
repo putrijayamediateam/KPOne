@@ -143,7 +143,7 @@ final class ReorderSuggestionService
      * @param  list<int>  $skuIds
      * @return array<string,int>
      */
-    private function onOrder(int $organisationId, array $locationIds, array $skuIds): array
+    public function onOrder(int $organisationId, array $locationIds, array $skuIds): array
     {
         if ($locationIds === []) {
             return [];
@@ -166,7 +166,7 @@ final class ReorderSuggestionService
      * @param  list<int>  $skuIds
      * @return array<string,int>
      */
-    private function incoming(int $organisationId, array $locationIds, array $skuIds): array
+    public function incoming(int $organisationId, array $locationIds, array $skuIds): array
     {
         if ($locationIds === []) {
             return [];
