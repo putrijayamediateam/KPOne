@@ -13,6 +13,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Policies\ClinicalEncounterPolicy;
+use App\Domain\DepartmentSpace\UiVersionResolver;
 use App\Domain\Identity\Policies\StaffPolicy;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\PublicCheckInLink;
@@ -53,6 +54,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // One read of the Version 2 preference per request, shared by everything that needs it.
+        $this->app->scoped(UiVersionResolver::class);
         $this->app->scoped(AccessChangeActorContext::class);
         $this->app->scoped(BranchAccessService::class);
         // AG-10: the tenth agent data source joins the registry by tag (AgentToolRegistry stays unchanged).
