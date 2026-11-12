@@ -473,7 +473,9 @@ onMounted(() => {
                     </select>
                 </label>
                 <button
-                    v-if="accountMenu?.clock && clockVisible"
+                    v-if="
+                        accountMenu?.clock && clockVisible && space.key !== 'me'
+                    "
                     type="button"
                     class="space-clock"
                     data-test="clock-shortcut"
