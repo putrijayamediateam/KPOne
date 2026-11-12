@@ -527,6 +527,17 @@ pages inherit them and no page sets its own colour)
   level, and a red button only for a destructive confirm. 44 px tall below 1024 px, 36 px from 1024 px, 10 px
   corners, the label in words. Pink buttons are retired.
 
+**Links**
+
+- **Do** colour every text link cobalt (`text-primary`, 4.5:1 or better on the page and on cards) with a 44 px hit area
+  below 1024 px. A link inside a sentence or paragraph is **underlined**, so it never depends on colour alone.
+- **Do** use a link on its own line (a "View all ..." or "Open the approval inbox" link, a back link) **without an
+  underline**, with a non-colour cue instead: a trailing chevron or arrow icon (a back link has a leading arrow), and an
+  underline on hover and focus. A back link may stay the normal text colour with its arrow; it is navigation, not an
+  inline link, so the tests that pin "no underline" on the Billing and Finance back links stay valid.
+- **Don't** make a link look like plain text (the Billing "View all bills to collect" line today), or use pink for a link.
+- **Don't** use a link for an action that changes data; that is a button.
+
 **Chips and badges**
 
 - **Do** keep `StatusBadge`: a pill with a dot and a word, tone from the tokens (neutral, success, warning,
