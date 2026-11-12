@@ -18,7 +18,7 @@ test('on phones the live line sits under a full-width strip with 44 px tabs', ()
     );
     assert.match(
         page,
-        /class="shrink-0 text-\[11px\] text-muted-foreground max-sm:px-3 max-sm:py-1\.5"/,
+        /class="shrink-0 text-\[13px\] text-muted-foreground max-sm:px-3 max-sm:py-1\.5"/,
     );
 });
 

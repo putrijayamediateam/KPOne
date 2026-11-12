@@ -764,7 +764,7 @@ onBeforeUnmount(() => {
                 @update:model-value="selectOperationalTab"
             />
             <span
-                class="shrink-0 text-[11px] text-muted-foreground max-sm:px-3 max-sm:py-1.5"
+                class="shrink-0 text-[13px] text-muted-foreground max-sm:px-3 max-sm:py-1.5"
                 >{{
                     isRefreshing ? 'Refreshing…' : 'Live · every 3 seconds'
                 }}</span

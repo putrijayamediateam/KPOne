@@ -38,7 +38,9 @@ test('filters, pager and the treatment-room dialog are 44 px below 1024 px', () 
     );
 });
 
-test('the board sits in a hairline card frame', () => {
+test('the live line is 13 px and the board sits in a hairline card frame', () => {
+    assert.match(template, /text-\[13px\] text-muted-foreground max-sm:px-3/);
+    assert.doesNotMatch(template, /text-\[11px\]/);
     assert.match(
         template,
         /<section class="overflow-hidden rounded-xl border bg-card">/,
