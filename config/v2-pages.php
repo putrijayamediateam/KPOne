@@ -15,5 +15,6 @@
 return [
     'pages' => [
         'Registration/Index',
+        'Registration/Create',
     ],
 ];

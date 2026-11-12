@@ -550,3 +550,51 @@ test('V2 QR intake tab: same records, links, order and paging as the Classic tab
     assert.match(page, /qr_history_page/);
     assert.ok(!classicTable.includes('components/v2'));
 });
+
+test('V2 Register visit: same payload, search and rules as the Classic page, which stays unchanged', () => {
+    const classicCreate = read('resources/js/pages/Registration/Create.vue');
+    const composable = read(
+        'resources/js/composables/registration/useRegistrationCreate.ts',
+    );
+    const v2 = read('resources/js/pages/Registration/V2/Create.vue');
+
+    for (const shared of [
+        "'/patients/search'",
+        "form.post('/registration'",
+        'idempotency_key: props.options.idempotencyKey',
+        'expected_branch_id: props.options.branch.id',
+        'quick_patient: null',
+        'visit_reason_public_ids: []',
+        'coverage_panel_note',
+        'panel_note_panel_id',
+        'confirm_repeat',
+        "trimmed.toUpperCase().startsWith('KP-')",
+        '/^\\d{12}$/',
+        'query.length < 3',
+        'phoneError(',
+        'identityError(',
+        'Please enter the Patient name.',
+        'issuing_country_code:',
+        "'#quick-patient-name'",
+    ]) {
+        assert.ok(composable.includes(shared), `composable ${shared}`);
+        assert.ok(classicCreate.includes(shared), `Classic ${shared}`);
+    }
+
+    for (const shared of [
+        'GuardianFields',
+        'AdultConfirmation',
+        'RegistrationContactFields',
+        'PhoneInput',
+        'VisitReasonPicker',
+        'WhatsAppLink',
+    ]) {
+        assert.ok(v2.includes(shared), `V2 ${shared}`);
+        assert.ok(classicCreate.includes(shared), `Classic ${shared}`);
+    }
+
+    assert.match(v2, /useRegistrationCreate/);
+    assert.match(v2, /quick-patient-name/);
+    assert.ok(!classicCreate.includes('composables/registration/'));
+    assert.ok(!classicCreate.includes('components/v2'));
+});
