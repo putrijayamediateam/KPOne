@@ -622,6 +622,7 @@ const reload = () =>
                                             aria-describedby="logo-error"
                                             data-testid="choose-logo"
                                             @change="chooseLogo"
+                                            class="max-lg:min-h-11!"
                                         >
                                             <InputError
                                                 id="logo-error"
