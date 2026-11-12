@@ -25,7 +25,17 @@ test('the rooms table is for 1024 px and wider, and each room is a card below it
 });
 
 test('a room card keeps the table actions in the same words, with 44 px targets and a name for each room', () => {
-    const cards = template.slice(template.indexOf('data-test="room-cards"'));
+    const start = template.indexOf('data-test="room-cards"');
+    const cards = template.slice(start, template.indexOf('</ul>', start));
+    const table = template.slice(
+        template.indexOf('<table'),
+        template.indexOf('</table>'),
+    );
+
+    // The table row and the card run the same handlers.
+    for (const handler of ['beginEdit(room)', 'toggleRoom(room)', 'saveEdit']) {
+        assert.ok(cards.includes(handler) && table.includes(handler), handler);
+    }
 
     for (const word of ['Edit', 'Save', 'Cancel']) {
         assert.match(cards, new RegExp(`>${word}</Button`), word);
