@@ -220,11 +220,31 @@ const generalError = computed(
                 >
                     <template #head>
                         <tr class="text-left">
-                            <th scope="col">NAME</th>
+                            <th
+                                scope="col"
+                                class="lowercase first-letter:uppercase"
+                            >
+                                NAME
+                            </th>
                             <th scope="col">PIC</th>
-                            <th scope="col">PHONE</th>
-                            <th scope="col">STATUS</th>
-                            <th scope="col" class="text-right">ACTION</th>
+                            <th
+                                scope="col"
+                                class="lowercase first-letter:uppercase"
+                            >
+                                PHONE
+                            </th>
+                            <th
+                                scope="col"
+                                class="lowercase first-letter:uppercase"
+                            >
+                                STATUS
+                            </th>
+                            <th
+                                scope="col"
+                                class="text-right lowercase first-letter:uppercase"
+                            >
+                                ACTION
+                            </th>
                         </tr>
                     </template>
                     <template #body>
@@ -333,16 +353,24 @@ const generalError = computed(
                             >…</Button
                         >
                     </div>
-                    <dl class="mt-2 grid gap-1 text-sm">
+                    <dl class="mt-3 grid gap-3 text-sm">
                         <div
                             v-for="(contact, index) in supplier.contacts"
                             :key="index"
                             class="grid grid-cols-2 gap-2"
                         >
-                            <dd>{{ contact.name || '—' }}</dd>
-                            <dd class="text-muted-foreground">
-                                {{ contact.phone || '—' }}
-                            </dd>
+                            <div>
+                                <dt class="text-xs text-muted-foreground">
+                                    Contact
+                                </dt>
+                                <dd>{{ contact.name || '—' }}</dd>
+                            </div>
+                            <div>
+                                <dt class="text-xs text-muted-foreground">
+                                    Phone
+                                </dt>
+                                <dd>{{ contact.phone || '—' }}</dd>
+                            </div>
                         </div>
                         <div v-if="!supplier.contacts.length">—</div>
                     </dl>
