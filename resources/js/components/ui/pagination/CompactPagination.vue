@@ -44,7 +44,7 @@ const go = (page: number) => {
             Previous
         </Button>
         <span
-            class="order-first col-span-2 px-1 text-center text-xs text-muted-foreground sm:order-none sm:col-span-1 sm:text-left" aria-current="page">
+            class="order-first col-span-2 px-1 text-center text-[13px] text-muted-foreground sm:order-none sm:col-span-1 sm:text-left" aria-current="page">
             <template v-if="total !== undefined && perPage"
                 >{{ (currentPage - 1) * perPage + 1 }}–{{
                     Math.min(currentPage * perPage, total)
