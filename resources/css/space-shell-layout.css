@@ -851,8 +851,9 @@
 }
 .space-shell .me-tile {
     display: flex;
-    align-items: center;
-    gap: 12px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
     min-height: 84px;
     height: 100%;
     padding: 14px;
@@ -906,8 +907,12 @@
     color: var(--space-accent);
     font: inherit;
     font-weight: 600;
-    text-decoration: underline;
+    text-decoration: none;
     cursor: pointer;
+}
+.space-shell .me-photo-link button:hover,
+.space-shell .me-photo-link button:focus-visible {
+    text-decoration: underline;
 }
 @media (min-width: 1024px) {
     .space-shell .me-top {
@@ -934,9 +939,23 @@
     .space-shell .me-tiles {
         grid-template-columns: repeat(4, minmax(0, 1fr));
     }
+    .space-shell .me-tile {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
 }
 @media (prefers-reduced-motion: no-preference) {
     .space-shell .me-ring-fill {
         transition: stroke-dasharray 0.6s ease;
     }
+}
+.space-shell .me-photo-link button {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+.space-shell .me-photo-chevron {
+    width: 16px;
+    height: 16px;
 }

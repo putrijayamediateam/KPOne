@@ -4,6 +4,7 @@ import {
     Camera,
     CalendarClock,
     CalendarDays,
+    ChevronRight,
     Check,
     Clock,
     Minus,
@@ -287,6 +288,7 @@ const tileList = computed(() =>
                 @click="notice = true"
             >
                 About clock-in photos
+                <ChevronRight class="me-photo-chevron" aria-hidden="true" />
             </button>
         </p>
         <ClockPhotoNotice v-model:open="notice" mode="info" />

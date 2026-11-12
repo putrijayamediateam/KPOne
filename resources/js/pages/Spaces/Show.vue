@@ -338,9 +338,20 @@ const primaryAction = computed(
         props.stock?.primaryAction ??
         props.hr?.primaryAction ??
         props.management?.primaryAction ??
-        props.me?.primaryAction ??
         null,
 );
+
+// DS-13: the Open list keeps only the rows the four tiles above it do not already cover.
+const meLinks = computed(() => {
+    const covered = new Set<string>();
+    Object.values(props.me?.tiles ?? {}).forEach((t) => {
+        if (t) {
+            covered.add(t.href);
+        }
+    });
+
+    return (props.me?.links ?? []).filter((l) => !covered.has(l.href));
+});
 
 const waitDuration = (minutes: number): string => {
     if (minutes < 1440) {
@@ -1930,13 +1941,13 @@ onMounted(() => {
                     </Link>
                 </section>
                 <section
-                    v-if="me.links.length"
+                    v-if="meLinks.length"
                     class="space-card"
                     aria-labelledby="me-open"
                 >
                     <h2 id="me-open">Open</h2>
                     <ul class="space-list">
-                        <li v-for="l in me.links" :key="l.title">
+                        <li v-for="l in meLinks" :key="l.title">
                             <Link :href="l.href" class="space-row">
                                 <span>{{ l.title }}</span>
                                 <ChevronRight
