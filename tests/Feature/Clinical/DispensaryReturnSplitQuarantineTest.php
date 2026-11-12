@@ -14,6 +14,7 @@ use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -146,6 +147,18 @@ class DispensaryReturnSplitQuarantineTest extends VisitTestCase
             ->where('returns.lines.0.batches.0.available', '0')
             ->where('returns.lines.0.batches.1.available', '0.5')
             ->where('returns.lines.0.quarantineAvailable', '0.5'));
+    }
+
+    public function test_batch_labels_show_the_expiry_in_the_shared_date_format(): void
+    {
+        // DSP-19 (Daniel, design guide section 7): "exp 10 Jul 2027", never the ambiguous "10/07/2027".
+        $w = $this->twoBatchLine();
+        $this->record($w, '1');
+        $first = $w['f']['batch']->batch_number.' · exp '.CarbonImmutable::parse($w['f']['batch']->expiry_date)->format('j M Y');
+        $later = $w['later']->batch_number.' · exp '.CarbonImmutable::parse($w['later']->expiry_date)->format('j M Y');
+        $this->get(route('dispensary.show', $w['case']))->assertInertia(fn (Assert $page) => $page
+            ->where('returns.lines.0.batches.0.label', $first)
+            ->where('returns.lines.0.batches.1.label', $later));
     }
 
     public function test_a_share_over_its_batch_or_a_wrong_total_is_refused_and_nothing_moves(): void
