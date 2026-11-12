@@ -1,7 +1,7 @@
 <script setup lang="ts">
 /**
  * Version 2 summary rail: what is about to be submitted, with the actions under it. Sticky from 1024px (it sits
- * under the main panel on narrower screens). On phones the page also shows V2StickyBar for the main action.
+ * under the main panel from 640px). Below 640px it is hidden and the page shows V2StickyBar for the main action.
  */
 defineProps<{
     title: string;
@@ -12,7 +12,7 @@ defineProps<{
 <template>
     <aside
         data-slot="v2-sticky-summary"
-        class="flex min-w-0 flex-col gap-3 rounded-[14px] border bg-card p-4 lg:sticky lg:top-4"
+        class="flex min-w-0 flex-col gap-3 rounded-[14px] border bg-card p-4 max-sm:hidden lg:sticky lg:top-4"
     >
         <h2 class="text-base leading-[22px] font-semibold">{{ title }}</h2>
         <dl class="flex flex-col gap-2 text-sm">

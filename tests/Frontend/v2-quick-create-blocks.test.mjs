@@ -34,6 +34,7 @@ test('V2PatientPickRow: a 56px radio row, success tint when selected, identifier
 
 test('V2StickySummary and V2StickyBar: a sticky rail from 1024px and a phone bar with safe-area padding', () => {
     const rail = v2('V2StickySummary');
+    assert.match(rail, /max-sm:hidden/);
     assert.match(rail, /lg:sticky lg:top-4/);
     assert.match(rail, /<dl/);
     const bar = v2('V2StickyBar');
