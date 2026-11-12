@@ -101,3 +101,12 @@ test('both scan boxes use the outline Look up button (Daniel; ScanInput lookupVa
         );
     }
 });
+
+test('the one instruction in the warning stands out: always read the full allergy list (Daniel, Hakim)', () => {
+    const flat = warning.replace(/\s+/g, ' ');
+    assert.ok(
+        flat.includes(
+            'catalogue), <span class="font-medium text-foreground" >so always read the full allergy list.</span >',
+        ),
+    );
+});

@@ -54,7 +54,10 @@ const confirmed = defineModel<boolean>({ default: false });
         </p>
         <p class="mt-1 text-muted-foreground">
             It can miss an allergy (a drug group, brand name or spelling not
-            listed in the catalogue), so always read the full allergy list.
+            listed in the catalogue),
+            <span class="font-medium text-foreground"
+                >so always read the full allergy list.</span
+            >
         </p>
     </div>
 </template>
