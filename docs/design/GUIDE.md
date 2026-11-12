@@ -448,11 +448,20 @@ spaces and recent patients only, no clinical search); and the dark-mode neutral 
 
 ## 19. The app-wide look (decision 2026-11-12)
 
+> **Version 2 only (owner decision, 2026-11-12).** KPOne now has two looks. **Classic** (the original KPOne) keeps its
+> current look, and sections 1 to 17 remain its standard. **Version 2** is the look in this section and in section 18.
+> It shows only for a person who has turned on "Try the new layout" (each person chooses for themselves; default off,
+> so everyone starts in Classic), and always inside the department spaces. Everything below applies to Version 2 only.
+> Wherever this section says it wins over sections 1 to 17, read "in Version 2". A restyle must leave Classic
+> pixel-identical: the new tokens live under `[data-ui=v2]`, shared components add `v2:`-prefixed classes and keep their
+> old ones, and every V2 page has an explicit way back to Classic. In Version 2 every page sits inside the spaces'
+> sidebar shell (section 18); a page that belongs to no space is listed under the last sidebar group, "More".
+
 Owner decision: the Apple-like style chosen for the department spaces (option 1's look with option 4's layout, Recent
 activity as a strip at the bottom) is the style of the **whole app**, not only the spaces. It applies to the main
 working pages (Registration, Consultation, Dispensary, Billing, Inventory, Reports, Settings and the rest) as well as
 the spaces. The five alternative Front desk samples are retired and nothing is built from them. This section is the
-standard; where it differs from sections 1 to 17, this section wins for new and restyled screens. It is a look, not
+standard for Version 2; where it differs from sections 1 to 17, this section wins for new and restyled Version 2 screens. It is a look, not
 behaviour: a restyle never changes a permission, route, payload, validation or rule. Order and ownership of the
 restyle: [RESTYLE.md](RESTYLE.md). Print views, the TV screen and the public QR pages are not restyled (see the end).
 
