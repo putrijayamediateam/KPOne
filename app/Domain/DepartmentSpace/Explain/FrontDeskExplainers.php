@@ -126,8 +126,8 @@ final class FrontDeskExplainers
         usort($hours, fn (int $a, int $b): int => $perDay($b) <=> $perDay($a) ?: $a <=> $b);
         $top = array_slice($hours, 0, 3);
         $label = fn (int $h): string => sprintf('%02d:00', $h);
-        $named = array_map(fn (int $h): string => $label($h).' ('.(int) round($perDay($h)).($h === $top[0] ? ' arrivals a day' : '').')', $top);
-        $sentence = 'Busiest hours over the last 4 weeks: '.$this->joinList($named).'.';
+        $named = array_map(fn (int $h): string => $label($h).' ('.(int) round($perDay($h)).' a day)', $top);
+        $sentence = 'Busiest hours, busiest first: '.$this->joinList($named).', over the last 4 weeks.';
 
         $totalDoctorHours = array_sum(array_map('count', $doctorHours));
         $overall = $totalDoctorHours > 0 ? array_sum($arrivals) / $totalDoctorHours : null;
@@ -147,7 +147,7 @@ final class FrontDeskExplainers
             $sentence .= ' At '.$label($first).', '.number_format($arrivals[$first] / $dh, 1).' patients arrived per doctor who had a patient called, against '.number_format($overall, 1).' across all hours';
             $sentence .= $firstWait !== null ? ', and the average wait was '.$firstWait.' min.' : '.';
         }
-        $sentence .= ' Doctors are those who had at least one patient called in that hour, not a roster.';
+        $sentence .= ' Doctors counted are those who had at least one patient called in that hour; there is no roster in this answer.';
 
         return ['sentence' => $sentence, 'columns' => ['Hour', 'Arrivals a day', 'Average wait', 'Arrivals per doctor'], 'rows' => $rows];
     }

@@ -175,7 +175,7 @@ class FrontDeskExplainersTest extends QueueTestCase
         $this->selectBranch($this->actor('ca'));
         $json = $this->ask('front_desk.busiest_hours');
 
-        $this->assertStringStartsWith('Busiest hours over the last 4 weeks: 10:00 (6 arrivals a day) and 15:00 (1).', $json['sentence']);
+        $this->assertStringStartsWith('Busiest hours, busiest first: 10:00 (6 a day) and 15:00 (1 a day), over the last 4 weeks.', $json['sentence']);
         $this->assertStringContainsString('At 10:00, 3.0 patients arrived per doctor who had a patient called, against 2.3 across all hours, and the average wait was 20 min.', $json['sentence']);
         $this->assertSame(['Hour', 'Arrivals a day', 'Average wait', 'Arrivals per doctor'], $json['columns']);
         $this->assertSame(['10:00', '6 arrivals a day', '20 min average wait', '3.0 per doctor'], $json['rows'][0]);
@@ -266,7 +266,7 @@ class FrontDeskExplainersTest extends QueueTestCase
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
         $json = $this->ask('front_desk.busiest_hours');
-        $this->assertStringStartsWith('Busiest hours over the last 4 weeks:', $json['sentence']);
+        $this->assertStringStartsWith('Busiest hours, busiest first:', $json['sentence']);
         // The explainer itself, measured apart from the request (a cold first request pays for booting the app).
         $started = microtime(true);
         foreach (['waitsWeek', 'waitsToday', 'busiestHours', 'leftWaiting'] as $method) {
