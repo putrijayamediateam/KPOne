@@ -56,7 +56,7 @@ test('STK-26: the box is named, and a typed lot that matches it is pointed at', 
         boxLotHint(gs1('AB12', '2027-10-31'), lots(['', '']), date),
         {
             message:
-                'Box: batch AB12, exp D(2027-10-31). No lot has this batch yet. Type it in yourself.',
+                'Carton: batch AB12, exp D(2027-10-31). No lot has this batch yet. Type it in yourself.',
             warn: false,
         },
     );
@@ -67,7 +67,7 @@ test('STK-26: the box is named, and a typed lot that matches it is pointed at', 
             date,
         ),
         {
-            message: 'Box: batch AB12, exp D(2027-10-31). Matches lot 2.',
+            message: 'Carton: batch AB12, exp D(2027-10-31). Matches lot 2.',
             warn: false,
         },
     );
@@ -82,7 +82,7 @@ test('STK-26: the same batch with another expiry warns in words', () => {
         ),
         {
             message:
-                'Box: batch AB12, exp D(2027-10-31). Lot 1 has batch AB12, but a different expiry. Check the box.',
+                'Carton: batch AB12, exp D(2027-10-31). Lot 1 has batch AB12, but a different expiry. Check the carton.',
             warn: true,
         },
     );
@@ -97,7 +97,7 @@ test('STK-26: an uncertain batch is used only on an exact match, never shown as 
         ),
         {
             message:
-                'Box: exp D(2027-10-31). The batch could not be read from this code. Type it from the box.',
+                'Carton: exp D(2027-10-31). The batch could not be read from this code. Type it from the carton.',
             warn: false,
         },
     );
@@ -108,7 +108,7 @@ test('STK-26: an uncertain batch is used only on an exact match, never shown as 
             date,
         ),
         {
-            message: 'Box: batch AB12, exp D(2027-10-31). Matches lot 1.',
+            message: 'Carton: batch AB12, exp D(2027-10-31). Matches lot 1.',
             warn: false,
         },
     );
@@ -119,7 +119,7 @@ test('STK-26: a batch typed before its expiry is not a "different expiry" (Mei L
         boxLotHint(gs1('AB12', '2027-10-31'), lots(['AB12', '']), date),
         {
             message:
-                'Box: batch AB12, exp D(2027-10-31). Lot 1 has this batch; type its expiry.',
+                'Carton: batch AB12, exp D(2027-10-31). Lot 1 has this batch; type its expiry.',
             warn: false,
         },
     );
@@ -133,7 +133,8 @@ test('STK-26: several lots are named, and a conflicting lot is not hidden by a m
             date,
         ),
         {
-            message: 'Box: batch AB12, exp D(2027-10-31). Matches lots 1, 2.',
+            message:
+                'Carton: batch AB12, exp D(2027-10-31). Matches lots 1, 2.',
             warn: false,
         },
     );
@@ -145,7 +146,7 @@ test('STK-26: several lots are named, and a conflicting lot is not hidden by a m
         ),
         {
             message:
-                'Box: batch AB12, exp D(2027-10-31). Matches lot 1. Lot 2 has batch AB12, but a different expiry. Check the box.',
+                'Carton: batch AB12, exp D(2027-10-31). Matches lot 1. Lot 2 has batch AB12, but a different expiry. Check the carton.',
             warn: true,
         },
     );
@@ -157,7 +158,7 @@ test('STK-26: several lots are named, and a conflicting lot is not hidden by a m
         ),
         {
             message:
-                'Box: batch AB12, exp D(2027-10-31). Lots 1, 2 have batch AB12, but a different expiry. Check the box.',
+                'Carton: batch AB12, exp D(2027-10-31). Lots 1, 2 have batch AB12, but a different expiry. Check the carton.',
             warn: true,
         },
     );
@@ -167,14 +168,14 @@ test('STK-26: a box with only a batch, or only an expiry', () => {
     assert.deepEqual(
         boxLotHint(gs1('AB12', null), lots(['AB12', '2027-10-31']), date),
         {
-            message: 'Box: batch AB12. Matches lot 1.',
+            message: 'Carton: batch AB12. Matches lot 1.',
             warn: false,
         },
     );
     assert.deepEqual(
         boxLotHint(gs1(null, '2027-10-31'), lots(['AB12', '2027-10-31']), date),
         {
-            message: 'Box: exp D(2027-10-31).',
+            message: 'Carton: exp D(2027-10-31).',
             warn: false,
         },
     );
@@ -182,7 +183,7 @@ test('STK-26: a box with only a batch, or only an expiry', () => {
     assert.deepEqual(
         boxLotHint(gs1('  ', '2027-10-31'), lots(['', '']), date),
         {
-            message: 'Box: exp D(2027-10-31).',
+            message: 'Carton: exp D(2027-10-31).',
             warn: false,
         },
     );
@@ -193,7 +194,7 @@ test('STK-26: an uncertain batch never warns and is never shown unless it matche
         boxLotHint(gs1('AB12', null, false), lots(['ZZ', '']), date),
         {
             message:
-                'The batch could not be read from this code. Type it from the box.',
+                'The batch could not be read from this code. Type it from the carton.',
             warn: false,
         },
     );
@@ -205,7 +206,7 @@ test('STK-26: an uncertain batch never warns and is never shown unless it matche
         ),
         {
             message:
-                'Box: exp D(2027-10-31). The batch could not be read from this code. Type it from the box.',
+                'Carton: exp D(2027-10-31). The batch could not be read from this code. Type it from the carton.',
             warn: false,
         },
     );

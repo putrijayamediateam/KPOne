@@ -73,10 +73,10 @@ export function boxLotHint(
     if (candidate === null || (!certain && matches.length === 0)) {
         return {
             message: [
-                expiry ? `Box: ${expiry}.` : '',
+                expiry ? `Carton: ${expiry}.` : '',
                 candidate === null
                     ? ''
-                    : 'The batch could not be read from this code. Type it from the box.',
+                    : 'The batch could not be read from this code. Type it from the carton.',
             ]
                 .filter((part) => part !== '')
                 .join(' '),
@@ -84,10 +84,10 @@ export function boxLotHint(
         };
     }
 
-    const box = `Box: batch ${candidate}${expiry ? `, ${expiry}` : ''}.`;
+    const box = `Carton: batch ${candidate}${expiry ? `, ${expiry}` : ''}.`;
     const conflict =
         conflicts.length > 0
-            ? `${capital(lotWord(conflicts))} ${has(conflicts)} batch ${candidate}, but a different expiry. Check the box.`
+            ? `${capital(lotWord(conflicts))} ${has(conflicts)} batch ${candidate}, but a different expiry. Check the carton.`
             : '';
 
     if (matches.length > 0) {
