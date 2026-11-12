@@ -23,6 +23,6 @@ class PurchaseOrderLine extends Model
 
     protected function casts(): array
     {
-        return ['ordered_quantity' => 'decimal:3', 'received_quantity' => 'decimal:3'];
+        return ['ordered_quantity' => 'decimal:3', 'received_quantity' => 'decimal:3', 'not_delivered_quantity' => 'decimal:3'];
     }
 }

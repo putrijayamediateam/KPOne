@@ -3,15 +3,17 @@
 namespace App\Domain\Organisation\Inventory\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 final class InventoryOperationsDirectoryService
 {
-    public function __construct(private BranchAccessService $branches) {}
+    public function __construct(private BranchAccessService $branches, private StaffAccessService $staff) {}
 
     /** @return array<string, mixed> */
     public function directory(User $actor): array
@@ -29,7 +31,9 @@ final class InventoryOperationsDirectoryService
         $purchaseOrders = DB::table('inventory_purchase_orders as po')->join('inventory_suppliers as supplier', 'supplier.id', '=', 'po.supplier_id')->join('inventory_locations as location', 'location.id', '=', 'po.destination_location_id')
             ->leftJoin('inventory_purchase_requests as from_request', 'from_request.purchase_order_id', '=', 'po.id')
             ->where('po.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('location.branch_id', $branch->id)->when($mayUseWarehouse, fn (Builder $locations) => $locations->orWhereNull('location.branch_id')))->orderByDesc('po.created_at')->limit(50)
-            ->get(['po.id', 'po.public_id as publicId', 'po.order_number as number', 'po.status', 'po.lock_version as lockVersion', 'supplier.public_id as supplierPublicId', 'supplier.name as supplier', 'location.public_id as destinationPublicId', 'location.name as destination', 'po.created_at as createdAt', 'po.created_by_user_id', 'po.submitted_by_user_id', 'from_request.request_number as fromRequest']);
+            ->get(['po.id', 'po.public_id as publicId', 'po.order_number as number', 'po.status', 'po.lock_version as lockVersion', 'supplier.public_id as supplierPublicId', 'supplier.name as supplier', 'location.public_id as destinationPublicId', 'location.name as destination', 'po.created_at as createdAt', 'po.created_by_user_id', 'po.submitted_by_user_id', 'from_request.request_number as fromRequest', 'po.close_kind as closeKind', 'po.short_close_reason as shortCloseReason', 'po.short_close_note as shortCloseNote', 'po.closed_by_user_id', 'po.closed_at']);
+        $closerIds = $purchaseOrders->where('closeKind', 'short')->pluck('closed_by_user_id')->filter()->map(fn (mixed $id): int => (int) $id)->unique()->values()->all();
+        $closers = $closerIds === [] ? collect() : $this->staff->visibleUsers($actor)->whereIn('id', $closerIds)->pluck('name', 'id');
         $purchaseOrderLines = $this->purchaseOrderLines($organisationId, array_values($purchaseOrders->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()));
         $stockRequests = DB::table('inventory_stock_requests as request')->join('inventory_locations as source', 'source.id', '=', 'request.source_location_id')->join('inventory_locations as destination', 'destination.id', '=', 'request.destination_location_id')
             ->where('request.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('request.requesting_branch_id', $branch->id)->orWhere('source.branch_id', $branch->id)->orWhere('destination.branch_id', $branch->id))->orderByDesc('request.created_at')->limit(50)
@@ -73,11 +77,21 @@ final class InventoryOperationsDirectoryService
             'skus' => app(InventoryPickerService::class)->choices($actor, $branch, 'skus', 'operations'),
             'batches' => app(InventoryPickerService::class)->choices($actor, $branch, 'batches', 'operations'),
             // STK-19: whoever raised or submitted an order may not approve it, or cancel it once approved.
-            'purchaseOrders' => $purchaseOrders->map(function ($row) use ($purchaseOrderLines, $actor): array {
+            'purchaseOrders' => $purchaseOrders->map(function ($row) use ($purchaseOrderLines, $actor, $closers, $branch): array {
                 $raised = (int) $row->created_by_user_id === $actor->id || (int) $row->submitted_by_user_id === $actor->id;
-                unset($row->created_by_user_id, $row->submitted_by_user_id);
+                // STK-21: who closed an order short and when, the name following the staff-visibility rule.
+                $closedShort = $row->closeKind === 'short' ? [
+                    'closedBy' => $closers->get((int) $row->closed_by_user_id, 'Staff member'),
+                    'closedOn' => CarbonImmutable::parse((string) $row->closed_at, 'UTC')->setTimezone($branch->timezone)->format('j M Y'),
+                ] : [];
+                unset($row->created_by_user_id, $row->submitted_by_user_id, $row->closed_by_user_id, $row->closed_at);
 
-                return [...$this->documentWithLines($row, $purchaseOrderLines), 'raisedByYou' => $raised];
+                $document = $this->documentWithLines($row, $purchaseOrderLines);
+                // STK-21: what is still to come on each line, worked out exactly in thousandths.
+                $document['lines'] = array_map(fn (array $line): array => [...$line, 'outstandingQuantity' => StockUnitQuantity::format(
+                    StockUnitQuantity::scaled((string) $line['orderedQuantity'], true) - StockUnitQuantity::scaled((string) $line['receivedQuantity'], true))], $document['lines']);
+
+                return [...$document, ...$closedShort, 'raisedByYou' => $raised];
             })->all(),
             'stockRequests' => $stockRequests->map(fn ($row): array => [...$this->documentWithLines($row, $stockRequestLines), 'differences' => $transferDifferences[(int) $row->id] ?? []])->all(),
             'stocktakes' => $stocktakes->map(fn ($row): array => $this->documentWithLines($row, $stocktakeLines))->all(),
@@ -95,9 +109,9 @@ final class InventoryOperationsDirectoryService
      */
     private function purchaseOrderLines(int $organisationId, array $purchaseOrderIds): array
     {
-        return $this->groupLines(DB::table('inventory_purchase_order_lines as line')->join('inventory_skus as sku', 'sku.id', '=', 'line.inventory_sku_id')
+        return $this->groupLines(DB::table('inventory_purchase_order_lines as line')->join('inventory_skus as sku', 'sku.id', '=', 'line.inventory_sku_id')->join('inventory_items as item', 'item.id', '=', 'sku.inventory_item_id')
             ->where('line.organisation_id', $organisationId)->whereIn('line.purchase_order_id', $purchaseOrderIds)->orderBy('line.purchase_order_id')->orderBy('line.id')
-            ->get(['line.purchase_order_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'sku.stock_unit as stockUnit', 'line.ordered_quantity as orderedQuantity', 'line.received_quantity as receivedQuantity']));
+            ->get(['line.purchase_order_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'sku.stock_unit as stockUnit', 'line.ordered_quantity as orderedQuantity', 'line.received_quantity as receivedQuantity', 'line.not_delivered_quantity as notDeliveredQuantity', 'item.generic_name as item']));
     }
 
     /**

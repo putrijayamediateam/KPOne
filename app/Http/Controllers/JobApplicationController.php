@@ -6,6 +6,7 @@ use App\Domain\HR\Applications\Services\CandidateLink;
 use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationIntake;
+use App\Domain\HR\Applications\Services\JobApplicationService;
 use App\Domain\HR\Applications\Services\TalentPool;
 use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Http\RedirectResponse;
@@ -65,7 +66,8 @@ class JobApplicationController extends Controller
         $intake->ensureEnabled();
         $application = $links->resolve($request->cookie($this->cookieName()));
 
-        return Inertia::render('Careers/Status', ['clinicName' => 'Klinik Putrijaya', 'application' => $application === null ? null : $links->view($application)]);
+        return Inertia::render('Careers/Status', ['clinicName' => 'Klinik Putrijaya', 'application' => $application === null ? null : $links->view($application),
+            'erased' => $application === null && $request->session()->get('erased') === true]);
     }
 
     /** The page sends the token from the URL fragment once; it becomes an httpOnly cookie for this page only. */
@@ -135,6 +137,21 @@ class JobApplicationController extends Controller
 
         // The page then shows the stage as Withdrawn, and the clinic's "withdrawn" message.
         return redirect()->route('hr-applications.status');
+    }
+
+    /** Owner decision 2026-11-11: the candidate deletes their application and its personal details themselves. */
+    public function erase(Request $request, JobApplicationIntake $intake, CandidateLink $links, JobApplicationService $applications): RedirectResponse
+    {
+        $intake->ensureEnabled();
+        try {
+            $links->erase($request->cookie($this->cookieName()), $applications);
+        } catch (ValidationException $e) {
+            return redirect()->route('hr-applications.status')->withErrors($e->errors());
+        }
+
+        // The link no longer works; the page says the application was deleted.
+        return redirect()->route('hr-applications.status')->with('erased', true)
+            ->withCookie(Cookie::forget($this->cookieName(), $this->cookiePath()));
     }
 
     private function cookie(Request $request, #[\SensitiveParameter] string $token): HttpCookie

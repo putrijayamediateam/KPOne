@@ -116,7 +116,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-16 | Correct a receipt recorded in error on a completed visit, in one step: a Finance Officer who did not record it reverses it and records what was really received; only money not received becomes due (owner decisions). Never a refund. Append-only `payment_corrections` evidence (migration `2026_11_12_400100`), no new permission. Design note: `BIL-16-DESIGN.md` | PR #415 |
 | BIL-17 | Billing page display fixes: a fully paid pay-later reads "Paid in full · nothing left to collect"; voided invoices stay visible (number, total, who and when, receipts; never the reason); the "Use amount due" shortcut also shows on a completed visit with money due; the pay-later list notes money due now (paid first). Display only. Design note: `BIL-17-DESIGN.md` | PR #431 |
 | BIL-18 | Pay-later list on phones and summary wording: below 1024 px the pay-later collection list is cards (amount and past-due chip first, the due-now note beside it, a 44 px Open billing); the Billing, Invoice and Visit history summary row "Approved pay later" reads "Pay later still owed" (prints unchanged). Layout and wording only. Design note: `BIL-18-DESIGN.md` | PR #471 |
+| BIL-19 | "Recorded by" on the completed-visit Invoice page: each receipt shows when it was received and who recorded it, by the BIL-2 name rule ("Staff member" when the viewer may not see the name); prints unchanged. Display only. Design note: `BIL-19-DESIGN.md` | PR #493 |
 | BIL-20 | PostgreSQL race tests for receipt corrections (BIL-16): two people correcting one receipt at once record one correction (one reversal, one replacement, one audit; the other is refused), and a correction racing a refund on the same receipt never both win, with no deadlock (both lock the patient and visit, then the invoice and the receipt); both orders are also forced in turn, and the same request sent twice at once records one correction. The race test cleanup also removes payment corrections. Test only. | PR #474 |
+| BIL-21 | Staff names by the branch day: a branch-level viewer sees a staff member's name while that person is assigned to the branch on the branch's own calendar day, as branch access already decides it. Between 00:00 and 08:00 Kuala Lumpur time the UTC date used to keep yesterday's leaver named and today's new starter hidden. One shared Access file (`StaffAccessService`), also used by the staff directory, Dispensary returns, patient history and Panel screens, and by who a branch-level viewer may open in the staff directory (`StaffPolicy`); their tests pass unchanged. | PR #491 |
 | BIL-23 | "Bills to collect": the pay-later collection list now shows every completed visit that still owes money, not only approved pay later: rows show Approved, Pay later, Due now and Still owed (the Billing page's Outstanding bill amount); money due now counts from the visit day and is past due from the next day ("N days since visit"); the page and its menu card are renamed (same link). Read-only. Design note: `BIL-23-DESIGN.md` | PR #538 |
 | BIL-24 | Bills to collect at scale: the list now works out only bills that can still owe money (approved pay later still to collect, or a completed visit whose invoice has a payment reversal, since a visit completes only with nothing due now and afterwards only a receipt correction can make it owe). Same output, measured on 20,000-bill fixtures. No migration. Design note: `BIL-24-DESIGN.md` | PR #556 |
 | BIL-28 | The Outstanding bill box's link on the Billing page reads "View all bills to collect at this branch", naming the page it opens (BIL-23). Wording only. | PR #553 |
@@ -250,6 +252,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 37. BIL-18 (2026-11-10, the owner through B.E.R.N.I.S.S, "i want to start all that"): take Daniel's two Billing debt
     items, the pay-later list on phones and the "Approved pay later" summary row wording; layout and wording only.
     The owner also approved changing the existing assertion so the past-due chip reads "1 day" / "N days" (2026-11-10).
+38. BIL-19 (2026-11-10, the owner in the Billing session, "start with 1"): show "Recorded by" on the completed-visit
+    Invoice page, by the BIL-2 name rule.
 39. BIL-23 "Bills to collect" (2026-11-11, the owner in the Billing session): list every completed visit that still
     owes money (pay later plus money due now, the Outstanding bill amount); money due now is past due from the day
     after the visit ("N days since visit"); rename the page "Bills to collect", same link; the one existing assertion
@@ -283,12 +287,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Physical printer test of invoice and receipt still outstanding.
 - No tax or e-Invoice fields (accountant first).
 - BNPL provider fee and settlement tracking parked for the finance phase.
-- Receipt "Recorded by" names (BIL-2) are not on the completed-visit Invoice page, only on the Billing page and
-  Manage payments. The stock receiving screen still shows "Receiver: staff #ID"; that screen belongs to the
+- Receipt "Recorded by" names (BIL-2) show on the Billing page, Manage payments and, since BIL-19, the completed-visit
+  Invoice page; never on prints. The stock receiving screen still shows "Receiver: staff #ID"; that screen belongs to the
   Inventory team.
-- Staff name visibility (activity log and receipts) compares branch assignment dates with the UTC date, so
-  between 00:00 and 08:00 Kuala Lumpur time an assignment starting that day is not yet visible to branch-level
-  viewers (existing behaviour of `StaffAccessService`).
+- Staff name visibility (`StaffAccessService`) uses the branch's own calendar day since BIL-21. Still on the UTC date,
+  outside Billing: the staff directory's branch filter and its assignment state label (`StaffDirectoryService`), and
+  `StaffBranchAssignment::effectiveAt()` called without a date (primary-branch checks). Raised for their owner.
 - The pay-later collection list (BIL-3) is not audited per view, like the Finance / Billing work list and the
   Registration board; it shows patient name and KP number only. Payments are still recorded on each patient's
   Billing page.

@@ -235,3 +235,10 @@ test('DS-5: the Billing space shows pay later, cash closing and awaiting billing
     assert.match(page, /props\.billing\?\.primaryAction/);
     assert.doesNotMatch(page, /billing\.[a-zA-Z.]*patientName/);
 });
+
+test('the layout switch row shows a layout icon in the new layout and keeps the grid icon in Classic', () => {
+    const menu = read('resources/js/components/UserMenuContent.vue');
+    assert.match(menu, /<LayoutTemplate v-if="inNewLayout"/);
+    assert.match(menu, /<LayoutGrid v-else/);
+    assert.match(menu, /'Back to Classic layout' : 'Try the new layout'/);
+});

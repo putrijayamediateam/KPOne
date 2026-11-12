@@ -43,7 +43,7 @@ class PayrollSetupTest extends VisitTestCase
         }
         $this->selectBranch($this->actor('hr_manager'));
         $this->get(route('hr.payroll.index'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('HR/Payroll')
-            ->where('payroll.tabs', ['runs', 'profiles', 'tables', 'settings'])->where('payroll.canApprove', false)
+            ->where('payroll.tabs', ['runs', 'profiles', 'tables', 'settings', 'exports'])->where('payroll.canApprove', false)
             ->where('payroll.setUp', ['groups' => false, 'rates' => false, 'checkedTables' => false]));
         $this->get(route('hr.payroll.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page->where('payroll.settings.groups', [])
             ->where('payroll.settings.itemTypes', [])->where('payroll.settings.rates.version', 0)->where('payroll.settings.rates.daily', null));

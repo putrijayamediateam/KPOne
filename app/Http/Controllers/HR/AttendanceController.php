@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\DepartmentSpace\MeSpace;
 use App\Domain\HR\Attendance\Services\AttendancePageService;
 use App\Domain\HR\Attendance\Services\AttendanceSettingsService;
 use App\Domain\HR\Attendance\Services\ClockService;
@@ -28,19 +29,16 @@ class AttendanceController extends Controller
             'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
     }
 
-    /** DS-12: the same state My attendance shows, for the top-bar shortcut. Read only: the shortcut opens Attendance and never presses. */
-    public function clockState(Request $request, AttendancePageService $pages): JsonResponse
+    /**
+     * DS-12 and DS-13: the same state My attendance shows, for the top-bar shortcut and the Me home ring. Read only: it
+     * opens Attendance and never presses. The extra facts (clock-in time, shift, rostered minutes) come from the same rows
+     * and the same Late rule as Review.
+     */
+    public function clockState(Request $request, MeSpace $me): JsonResponse
     {
-        $my = (array) ($pages->page($request->user(), ['tab' => 'my'])['my'] ?? []);
+        $my = $me->attendanceMine($request->user()) ?? [];
 
-        return response()->json([
-            'state' => (string) ($my['state'] ?? 'out'),
-            'label' => $my['clockedInLabel'] ?? $my['doneLabel'] ?? null,
-            'canPress' => (bool) ($my['canPress'] ?? false),
-            'refusal' => $my['refusal'] ?? null,
-            // A branch that checks location needs the consent and position screens, which only the Attendance page has.
-            'needsAttendancePage' => ($my['location'] ?? null) !== null,
-        ]);
+        return response()->json($me->ring($request->user(), $my) + ['label' => $my['clockedInLabel'] ?? $my['doneLabel'] ?? null]);
     }
 
     public function clockIn(Request $request, ClockService $clock): RedirectResponse
