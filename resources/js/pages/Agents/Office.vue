@@ -357,14 +357,16 @@ watch(selected, async (code) => {
                             Click an agent for details
                         </span>
                     </div>
-                    <OfficeScene
-                        :feed="feed"
-                        :selected="selected"
-                        :clock="clock"
-                        :can-open-inbox="canOpenInbox"
-                        @select="select"
-                        @open-inbox="openInbox"
-                    />
+                    <div class="overflow-x-auto" data-test="office-scroll">
+                        <OfficeScene
+                            :feed="feed"
+                            :selected="selected"
+                            :clock="clock"
+                            :can-open-inbox="canOpenInbox"
+                            @select="select"
+                            @open-inbox="openInbox"
+                        />
+                    </div>
                     <ul
                         class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-xs text-[#8d9bb3]"
                         aria-label="What the lights mean"

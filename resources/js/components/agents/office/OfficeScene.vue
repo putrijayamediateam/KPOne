@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import AgentFigure from './AgentFigure.vue';
-import type { FeedAgent, OfficeFeed } from './office-layout';
+import type { FeedAgent, OfficeFeed, Rect, TagRequest } from './office-layout';
 import {
     avatarFor,
     box,
@@ -15,7 +15,11 @@ import {
     points,
     recentMessages,
     seatAgents,
+    BUBBLE_GAP_PX,
     shorten,
+    spreadTags,
+    tagBottom,
+    tagBox,
     standingAtInbox,
     VIEW_H,
     VIEW_W,
@@ -386,12 +390,80 @@ const bubbleFor = (code: string) => {
     return message ? shorten(message.summary, 38) : null;
 };
 const inboxCount = computed(() => props.feed.pendingProposals);
+
+// AG-13b: the scene is drawn in scene units and scaled to fit; tags are drawn in real pixels, so they need the scale.
+const SCENE_MIN_WIDTH = 560;
+const svgEl = ref<SVGSVGElement | null>(null);
+const sceneWidth = ref(VIEW_W);
+const phone = ref(false);
+let resizeObserver: ResizeObserver | undefined;
+let phoneQuery: MediaQueryList | undefined;
+const phoneChanged = () => {
+    phone.value = phoneQuery?.matches ?? false;
+};
+onMounted(() => {
+    if (svgEl.value && typeof ResizeObserver !== 'undefined') {
+        resizeObserver = new ResizeObserver((entries) => {
+            sceneWidth.value = entries[0]?.contentRect.width || VIEW_W;
+        });
+        resizeObserver.observe(svgEl.value);
+    }
+
+    phoneQuery = window.matchMedia('(max-width: 767px)');
+    phoneChanged();
+    phoneQuery.addEventListener('change', phoneChanged);
+});
+onBeforeUnmount(() => {
+    resizeObserver?.disconnect();
+    phoneQuery?.removeEventListener('change', phoneChanged);
+});
+const tagFactor = computed(() => VIEW_W / Math.max(sceneWidth.value, 1));
+const tagLayout = computed(() => {
+    const requests: TagRequest[] = items.value.flatMap((item) => {
+        if (item.kind !== 'figure') {
+            return [];
+        }
+
+        const box = tagBox(item.agent.displayName, !phone.value);
+
+        return [
+            {
+                code: item.agent.code,
+                x: item.x,
+                bottomY: item.y + tagBottom(item.seated, tagFactor.value),
+                w: box.w,
+                h: box.h,
+            },
+        ];
+    });
+    const label = director.badge;
+    const obstacles: Rect[] = [
+        { x: label.x - 44, y: label.y - 26, w: 88, h: 35 },
+    ];
+    const shifts = spreadTags(requests, obstacles, tagFactor.value, VIEW_W);
+    // The tag and, above it, a speech bubble may sit above the walls: make room in the view box.
+    let top = 0;
+
+    for (const request of requests) {
+        const dy = shifts.get(request.code)?.dy ?? 0;
+        top = Math.min(
+            top,
+            request.bottomY +
+                dy -
+                (request.h + BUBBLE_GAP_PX + 31) * tagFactor.value,
+        );
+    }
+
+    return { shifts, topPad: Math.ceil(-top) + 6 };
+});
 </script>
 
 <template>
     <svg
-        class="office-scene h-auto w-full select-none"
-        :viewBox="`0 0 ${VIEW_W} ${VIEW_H}`"
+        ref="svgEl"
+        class="office-scene control-room h-auto w-full select-none"
+        :style="{ minWidth: `${SCENE_MIN_WIDTH}px` }"
+        :viewBox="`0 ${-tagLayout.topPad} ${VIEW_W} ${VIEW_H + tagLayout.topPad}`"
         role="group"
         aria-label="Agent office"
         data-test="office-scene"
@@ -598,6 +670,19 @@ const inboxCount = computed(() => props.feed.pendingProposals);
                     r="1.6"
                     class="laptop-logo"
                 />
+                <circle
+                    v-for="led in [0, 1, 2]"
+                    :key="led"
+                    :cx="
+                        iso(item.gx + 1.15 + led * 0.14, item.gy + 0.18, 18.6).x
+                    "
+                    :cy="
+                        iso(item.gx + 1.15 + led * 0.14, item.gy + 0.18, 18.6).y
+                    "
+                    r="1.2"
+                    class="desk-led"
+                    :class="{ on: item.working || led === 0 }"
+                />
                 <polygon :points="papers(item.gx, item.gy).top" class="paper" />
                 <polygon
                     :points="papers(item.gx, item.gy).left"
@@ -641,6 +726,10 @@ const inboxCount = computed(() => props.feed.pendingProposals);
                 :walking="walking.has(item.agent.code)"
                 :selected="selected === item.agent.code"
                 :bubble="bubbleFor(item.agent.code)"
+                :tag-scale="tagFactor"
+                :tag-dx="tagLayout.shifts.get(item.agent.code)?.dx ?? 0"
+                :tag-dy="tagLayout.shifts.get(item.agent.code)?.dy ?? 0"
+                :show-role="!phone"
                 @select="emit('select', $event)"
             />
 
@@ -961,6 +1050,9 @@ const inboxCount = computed(() => props.feed.pendingProposals);
     --office-text: #0f172a;
     --office-muted: #be185d;
     --office-bubble: #ffffff;
+    --office-chip: #fce7f3;
+    --office-chip-border: #f9a8d4;
+    --office-chip-text: #9d174d;
     --office-focus: #db2777;
     font-family: inherit;
 }
@@ -1285,6 +1377,9 @@ const inboxCount = computed(() => props.feed.pendingProposals);
     --office-text: #f8fafc;
     --office-muted: #f9a8d4;
     --office-bubble: #1e293b;
+    --office-chip: rgb(167 139 250 / 0.16);
+    --office-chip-border: rgb(167 139 250 / 0.55);
+    --office-chip-text: #c4b5fd;
     --office-focus: #f472b6;
 }
 .dark .office-scene .window-frame {
@@ -1314,5 +1409,199 @@ const inboxCount = computed(() => props.feed.pendingProposals);
 .dark .office-scene .shelf-top,
 .dark .office-scene .cooler-top {
     fill: #94a3b8;
+}
+</style>
+<style>
+/* AG-13b: the Control room look of the KPOne Team Board: dark floor, cyan grid, neon walls, glass name tags. It
+   belongs to this drawing only (its own class), never to the page around it. */
+.dark .office-scene.office-scene.control-room,
+.office-scene.control-room {
+    --office-sky-a: #0b1730;
+    --office-sky-b: #1b1646;
+    --office-wall-left: #0d1830;
+    --office-wall-right: #101d38;
+    --office-trim: #5eead4;
+    --office-skirting: #070b14;
+    --office-floor-a: #0b1322;
+    --office-floor-b: #0e182a;
+    --office-desk-top: #1d2c49;
+    --office-desk-left: #111c33;
+    --office-desk-right: #0c1627;
+    --office-chair: #131c30;
+    --office-tag: rgb(10 16 28 / 0.9);
+    --office-tag-border: rgb(148 163 184 / 0.32);
+    --office-text: #e2e8f0;
+    --office-muted: #8d9bb3;
+    --office-bubble: rgb(14 21 38 / 0.95);
+    --office-chip: rgb(167 139 250 / 0.16);
+    --office-chip-border: rgb(167 139 250 / 0.55);
+    --office-chip-text: #c4b5fd;
+    --office-focus: #5eead4;
+}
+.office-scene.control-room .floor-a,
+.office-scene.control-room .floor-b {
+    stroke: rgb(94 234 212 / 0.14);
+    stroke-width: 0.6;
+}
+.office-scene.control-room .trim {
+    filter: drop-shadow(0 0 3px rgb(94 234 212 / 0.9));
+}
+.office-scene.control-room .wall-left,
+.office-scene.control-room .wall-right {
+    stroke: rgb(167 139 250 / 0.2);
+    stroke-width: 0.8;
+}
+.office-scene.control-room .window-frame {
+    fill: #0a1220;
+    stroke: rgb(167 139 250 / 0.7);
+    stroke-width: 1;
+}
+.office-scene.control-room .cloud {
+    fill: rgb(94 234 212 / 0.1);
+}
+.office-scene.control-room .clock-face {
+    fill: #0a1220;
+    stroke: #5eead4;
+}
+.office-scene.control-room .clock-hand {
+    stroke: #e2e8f0;
+}
+.office-scene.control-room .clock-pin {
+    fill: #5eead4;
+}
+.office-scene.control-room .board-frame {
+    fill: #1e293b;
+    stroke: rgb(167 139 250 / 0.6);
+}
+.office-scene.control-room .board {
+    fill: #0a1220;
+}
+.office-scene.control-room .wall-sign {
+    fill: rgb(10 16 28 / 0.9);
+    stroke: #5eead4;
+    stroke-width: 0.8;
+    filter: drop-shadow(0 0 2px rgb(94 234 212 / 0.8));
+}
+.office-scene.control-room .wall-sign-text {
+    fill: #5eead4;
+}
+.office-scene.control-room .rug {
+    opacity: 0.2;
+    stroke: rgb(94 234 212 / 0.45);
+    stroke-width: 0.8;
+}
+.office-scene.control-room .rug-meeting {
+    opacity: 0.16;
+}
+.office-scene.control-room .desk-top,
+.office-scene.control-room .table-top {
+    stroke: rgb(94 234 212 / 0.4);
+    stroke-width: 0.8;
+}
+.office-scene.control-room .leg {
+    fill: #1e293b;
+}
+.office-scene.control-room .chair-dark {
+    fill: #131c30;
+}
+.office-scene.control-room .chair-top {
+    fill: #1d2c49;
+}
+.office-scene.control-room .laptop-base {
+    fill: #1e293b;
+}
+.office-scene.control-room .laptop-lid {
+    fill: #08111f;
+    stroke: rgb(94 234 212 / 0.55);
+    stroke-width: 0.8;
+}
+.office-scene.control-room .laptop-lid.glow {
+    fill: #0a2a33;
+    stroke: #5eead4;
+    filter: drop-shadow(0 0 4px rgb(94 234 212 / 0.95));
+}
+.office-scene.control-room .laptop-logo {
+    fill: #5eead4;
+}
+.office-scene.control-room .desk-led {
+    fill: #334155;
+}
+.office-scene.control-room .desk-led.on {
+    fill: #5eead4;
+    filter: drop-shadow(0 0 2px #5eead4);
+}
+.office-scene.control-room .paper {
+    fill: #1e293b;
+}
+.office-scene.control-room .paper-side {
+    fill: #0f172a;
+}
+.office-scene.control-room .mug {
+    fill: #a78bfa;
+}
+.office-scene.control-room .mug-handle {
+    stroke: #a78bfa;
+}
+.office-scene.control-room .director-top {
+    fill: #2a2147;
+    stroke: rgb(167 139 250 / 0.6);
+}
+.office-scene.control-room .director-left {
+    fill: #1b1533;
+}
+.office-scene.control-room .director-right {
+    fill: #130f27;
+}
+.office-scene.control-room .plate {
+    fill: rgb(167 139 250 / 0.2);
+    stroke: #a78bfa;
+    stroke-width: 0.6;
+}
+.office-scene.control-room .plate-text {
+    fill: #c4b5fd;
+}
+.office-scene.control-room .lamp-base,
+.office-scene.control-room .lamp-head {
+    fill: #5eead4;
+}
+.office-scene.control-room .lamp-arm {
+    stroke: #5eead4;
+}
+.office-scene.control-room .tray-top {
+    fill: #1d2c49;
+}
+.office-scene.control-room .inbox-label {
+    stroke: rgb(94 234 212 / 0.55);
+}
+.office-scene.control-room .leaves {
+    fill: #0f9f6e;
+}
+.office-scene.control-room .leaf-light {
+    fill: #34d399;
+}
+.office-scene.control-room .pot-left {
+    fill: #312e81;
+}
+.office-scene.control-room .pot-right {
+    fill: #1e1b4b;
+}
+.office-scene.control-room .cooler-left,
+.office-scene.control-room .shelf-left {
+    fill: #1d2c49;
+}
+.office-scene.control-room .cooler-right,
+.office-scene.control-room .shelf-right {
+    fill: #111c33;
+}
+.office-scene.control-room .cooler-top,
+.office-scene.control-room .shelf-top {
+    fill: #263a5e;
+}
+.office-scene.control-room .rack-top {
+    fill: #1d2c49;
+}
+.office-scene.control-room .led {
+    fill: #5eead4;
+    filter: drop-shadow(0 0 2px #5eead4);
 }
 </style>
