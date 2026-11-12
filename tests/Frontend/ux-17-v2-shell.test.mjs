@@ -168,3 +168,25 @@ test('UX-17 DD-55: the sheet, the jump dialog and the sidebar chevron respect re
         /transition-transform group-open:rotate-90 motion-reduce:transition-none/,
     );
 });
+
+test('UX-17: a Version 2 page (Dir/V2/Name) gets the V2 layout, before every prefix case', () => {
+    const app = read('resources/js/app.ts');
+    const layout = read('resources/js/layouts/V2Layout.vue');
+
+    assert.match(app, /import V2Layout from '@\/layouts\/V2Layout\.vue';/);
+    assert.match(app, /case isV2Page\(name\):\s+return V2Layout;/);
+    assert.ok(
+        app.indexOf('case isV2Page(name)') <
+            app.indexOf("case name.startsWith('PublicCheckIn/')"),
+        'the V2 case comes before the prefix cases',
+    );
+    assert.ok(
+        app.indexOf("case name === 'QueueDisplay/Screen'") <
+            app.indexOf('case isV2Page(name)'),
+        'print views and the TV keep their own no-layout cases first',
+    );
+    assert.match(layout, /<V2AppShell v-if="shell" :shell="shell">/);
+    assert.match(layout, /<Toaster v-bind="STAFF_TOAST_PLACEMENT" \/>/);
+    assert.equal(layout.match(/<Toaster /g)?.length, 1);
+    assert.doesNotMatch(layout, /dataset\.ui|applyUiVersion/);
+});
