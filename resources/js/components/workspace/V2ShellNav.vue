@@ -104,7 +104,7 @@ const currentKey = computed(() => props.shell.current?.key ?? null);
                     {{ section.title }}
                     <span
                         aria-hidden="true"
-                        class="text-sidebar-foreground/60 transition-transform group-open:rotate-90"
+                        class="text-sidebar-foreground/60 transition-transform group-open:rotate-90 motion-reduce:transition-none"
                         >›</span
                     >
                 </summary>

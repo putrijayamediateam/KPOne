@@ -94,7 +94,7 @@ const enter = (event: KeyboardEvent) => {
 <template>
     <Dialog v-model:open="open">
         <DialogContent
-            class="top-[15%] translate-y-0 gap-0 p-0 sm:max-w-lg"
+            class="top-[15%] translate-y-0 gap-0 p-0 motion-reduce:transition-none motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none sm:max-w-lg"
             data-test="v2-jump-dialog"
         >
             <DialogTitle class="sr-only">Jump to a page</DialogTitle>

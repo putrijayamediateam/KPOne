@@ -150,3 +150,21 @@ test('UX-17 review: one current link (longest href), unique keys, IME-safe Enter
     assert.match(shell, /toast\.error\(/);
     assert.match(shell, /aria-label="Breadcrumb"/);
 });
+
+test('UX-17 DD-55: the sheet, the jump dialog and the sidebar chevron respect reduced motion', () => {
+    const reduce =
+        /motion-reduce:transition-none motion-reduce:data-\[state=closed\]:animate-none motion-reduce:data-\[state=open\]:animate-none/;
+
+    assert.match(
+        read('resources/js/components/workspace/V2AppShell.vue'),
+        reduce,
+    );
+    assert.match(
+        read('resources/js/components/workspace/V2JumpDialog.vue'),
+        reduce,
+    );
+    assert.match(
+        read('resources/js/components/workspace/V2ShellNav.vue'),
+        /transition-transform group-open:rotate-90 motion-reduce:transition-none/,
+    );
+});

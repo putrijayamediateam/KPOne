@@ -77,7 +77,7 @@ const crumb = computed(() => props.shell.current);
         <Sheet v-model:open="sheetOpen">
             <SheetContent
                 side="left"
-                class="h-full w-72 max-w-[85vw] gap-3 overflow-y-auto bg-sidebar p-4"
+                class="h-full w-72 max-w-[85vw] gap-3 overflow-y-auto bg-sidebar p-4 motion-reduce:transition-none motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none"
                 data-test="v2-shell-sheet"
             >
                 <SheetHeader class="p-0">
