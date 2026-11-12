@@ -167,6 +167,8 @@ final class PermissionCatalogue
             'inventory.supplier_invoices.record.branch',
             'inventory.supplier_invoices.approve.branch',
             'inventory.usage.record.branch',
+            'inventory.controlled_register.view.branch',
+            'inventory.controlled_register.check.branch',
             'inventory.cost.view.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
@@ -505,6 +507,13 @@ final class PermissionCatalogue
         }
         foreach (['finance_officer', 'director'] as $holder) {
             $roles[$holder][] = 'inventory.supplier_invoices.approve.branch';
+        }
+
+        // STK-24 (owner decisions 2026-11-11, "agree all"): the controlled-drug register (DRAFT pending pharmacist
+        // review) is viewed and checked by a CA Supervisor, Finance Officer or Director; the checker is a second person.
+        foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.controlled_register.view.branch';
+            $roles[$holder][] = 'inventory.controlled_register.check.branch';
         }
 
         foreach (AgentPermissions::grants() as $permission => $holders) {

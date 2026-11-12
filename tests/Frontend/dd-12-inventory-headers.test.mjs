@@ -28,6 +28,7 @@ test('the Inventory page opens with its header, then one row of task links', () 
         '/inventory/writeoffs',
         '/inventory/supplier-returns',
         '/inventory/supplier-invoices',
+        '/inventory/controlled-register',
         '/inventory/treatment-usage',
         '/inventory/stock-review',
         '/inventory/reorder-suggestions',
