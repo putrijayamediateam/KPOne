@@ -820,7 +820,7 @@ onBeforeUnmount(() => {
         </form>
 
         <section
-            class="overflow-hidden rounded-xl border bg-card max-md:rounded-none max-md:border-0 max-md:bg-transparent"
+            class="overflow-hidden rounded-xl border bg-card max-xl:rounded-none max-xl:border-0 max-xl:bg-transparent"
         >
             <div
                 class="flex flex-col gap-2 px-4 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"

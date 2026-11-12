@@ -63,7 +63,7 @@ test('the live line is 13 px and the board sits in a hairline card frame', () =>
     assert.doesNotMatch(template, /text-\[11px\]/);
     assert.match(
         template,
-        /<section\s+class="overflow-hidden rounded-xl border bg-card max-md:rounded-none max-md:border-0 max-md:bg-transparent"\s*>/,
+        /<section\s+class="overflow-hidden rounded-xl border bg-card max-xl:rounded-none max-xl:border-0 max-xl:bg-transparent"\s*>/,
     );
 });
 
