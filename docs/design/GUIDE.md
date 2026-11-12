@@ -494,8 +494,35 @@ pages inherit them and no page sets its own colour)
   floating things (menus, dialogs, the Clock in ring button), soft and low.
 - **Don't** stack shadowed cards inside cards. A card holds rows, not other cards. Group with a hairline and spacing.
 
+**Values to build with** (Wave 0.1 uses exactly these; a page never invents its own)
+
+| Thing | Value |
+|---|---|
+| Radius: list item, menu item, tab segment | 8 px |
+| Radius: buttons, fields, selects, chips in rows | 10 px (one value for all controls; if the spaces sketch used 9 px, use 10) |
+| Radius: cards, tables, side panels | 14 px |
+| Radius: hero card, tiles, dialogs, bottom sheets | 18 px (20 px for the Me hero) |
+| Radius: chips, segmented control, avatar | full pill or circle |
+| Shadow: cards, tables, buttons, fields | none (a 1 px hairline only) |
+| Shadow: menus and popovers | `0 8px 24px rgba(16,24,40,.12)` plus the hairline |
+| Shadow: dialogs and sheets | `0 16px 48px rgba(16,24,40,.18)` plus the hairline |
+| Shadow: Clock in ring button only | `0 12px 28px rgba(10,86,209,.32)` |
+| Shadow in dark mode | `rgba(0,0,0,.5)` at the same sizes; the hairline does most of the work |
+| Type, page title | 28 px / 34 px line height from 1024 px 30 / 36, weight 700, tracking -0.01em |
+| Type, section title | 20 px / 26, 650 |
+| Type, card title | 16 to 17 px / 22, 650 |
+| Type, body and fields | 15 px / 22 (14 px / 20 in dense tables), 400 |
+| Type, help, caption, chip | 13 px / 18, 500 to 600 |
+| Type, big number | 40 to 58 px / 1.05, 700, tabular figures |
+| Spacing | 4 px grid: 8 inside rows, 16 inside cards, 24 between cards, 32 around the page on desktop, 16 on a phone |
+
 **Buttons** (section 5 order and wording still apply)
 
+- **Do** keep **one cobalt button per screen or dialog** at the level of the whole page. **Don't** make a per-row action
+  cobalt: a row action is an outline button or a "..." menu, because a table of 25 rows would have 25 primaries.
+  When a page has bulk actions, the page shows no cobalt button until rows are ticked; then a selection bar appears
+  with the **one** bulk action in cobalt and the others outline. A page with no single obvious main action may have no
+  cobalt button at all.
 - **Do** use cobalt for the one main action, an outline button for everything else, a quiet text button for the lowest
   level, and a red button only for a destructive confirm. 44 px tall below 1024 px, 36 px from 1024 px, 10 px
   corners, the label in words. Pink buttons are retired.
