@@ -8,7 +8,6 @@ use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
@@ -59,7 +58,7 @@ final class PurchaseRequestService
         }
         $branch = $this->authority->activeBranch($actor, $data);
         $key = strtolower((string) $data['idempotency_key']);
-        $hash = hash('sha256', json_encode([strtolower((string) $data['destination_location_public_id']), $data['preferred_supplier_public_id'] ?? null, $lines], JSON_THROW_ON_ERROR));
+        $hash = hash('sha256', json_encode([strtolower((string) $data['destination_location_public_id']), strtolower((string) ($data['preferred_supplier_public_id'] ?? '')), $lines], JSON_THROW_ON_ERROR));
 
         return DB::transaction(function () use ($actor, $branch, $data, $lines, $key, $hash): string {
             $actor = $this->authority->lockForBranch($actor, $branch, self::CREATE);
@@ -132,22 +131,40 @@ final class PurchaseRequestService
 
         return DB::transaction(function () use ($actor, $branch, $publicId, $data, $quantities): string {
             $actor = $this->authority->lockForBranch($actor, $branch, ProcurementService::CREATE_PERMISSION);
-            $request = $this->lockWaiting($actor, $branch, $publicId, (int) $data['lock_version']);
+            $request = $this->lockRequest($actor, $branch, $publicId);
+            $supplierId = DB::table('inventory_suppliers')->where('organisation_id', $actor->organisation_id)->where('public_id', strtolower((string) $data['supplier_public_id']))->value('id');
+            $replay = $this->replayedConversion($actor, $request, (int) $data['lock_version'], $supplierId === null ? null : (int) $supplierId, $quantities);
+            if ($replay !== null) {
+                // The same reviewer pressed Convert again after a lost response: give back the draft order already made.
+                return $replay;
+            }
+            $this->assertWaiting($request, (int) $data['lock_version']);
             $this->refuseRequester($actor, $request, 'review');
             $lines = DB::table('inventory_purchase_request_lines as l')->join('inventory_skus as s', 's.id', '=', 'l.inventory_sku_id')
                 ->where('l.purchase_request_id', $request->id)->orderBy('l.id')->lockForUpdate()->get(['l.id', 's.public_id as sku_public_id']);
             if ($lines->pluck('id')->map(fn (mixed $id): int => (int) $id)->sort()->values()->all() !== collect(array_keys($quantities))->sort()->values()->all()) {
                 throw ValidationException::withMessages(['lines' => 'Give a quantity for every line, using 0 to leave one out.']);
             }
-            $location = InventoryLocation::query()->whereKey($request->destination_location_id)->firstOrFail();
+            $location = InventoryLocation::query()->whereKey($request->destination_location_id)->where('is_active', true)->first();
+            if ($location === null) {
+                throw ValidationException::withMessages(['request' => 'The delivery location is no longer active. Reject this request, and the person can send a new one.']);
+            }
+            if ($supplierId === null || ! DB::table('inventory_suppliers')->where('id', $supplierId)->where('is_active', true)->exists()) {
+                throw ValidationException::withMessages(['supplier_public_id' => 'Choose an active supplier.']);
+            }
             $orderLines = [];
             foreach ($lines as $line) {
                 if ($quantities[(int) $line->id] > 0) {
                     $orderLines[] = ['sku_public_id' => (string) $line->sku_public_id, 'quantity' => StockUnitQuantity::format($quantities[(int) $line->id])];
                 }
             }
-            $order = $this->procurement->create($actor, ['expected_branch_id' => $branch->id, 'supplier_public_id' => strtolower((string) $data['supplier_public_id']),
-                'destination_location_public_id' => $location->public_id, 'lines' => $orderLines]);
+            try {
+                $order = $this->procurement->create($actor, ['expected_branch_id' => $branch->id, 'supplier_public_id' => strtolower((string) $data['supplier_public_id']),
+                    'destination_location_public_id' => $location->public_id, 'lines' => $orderLines]);
+            } catch (ValidationException $e) {
+                // The order's own line numbers skip lines left out at 0, so its messages are shown for the whole request.
+                throw ValidationException::withMessages(['request' => collect($e->errors())->flatten()->first() ?? 'The draft order could not be made.']);
+            }
             DB::table('inventory_purchase_requests')->where('id', $request->id)->update(['status' => 'converted', 'decided_by_user_id' => $actor->id, 'decided_at' => now()->utc(),
                 'purchase_order_id' => $order->id, 'lock_version' => (int) $request->lock_version + 1]);
             foreach ($lines as $line) {
@@ -191,7 +208,7 @@ final class PurchaseRequestService
             $actor = $this->authority->lockForBranch($actor, $branch, self::CREATE);
             $request = $this->lockWaiting($actor, $branch, $publicId, (int) $data['lock_version']);
             if ((int) $request->requested_by_user_id !== $actor->id) {
-                throw new AuthorizationException('Only the person who sent this request can withdraw it.');
+                throw new PurchaseRequestRefusal('Only the person who sent this request can withdraw it.');
             }
             DB::table('inventory_purchase_requests')->where('id', $request->id)->update(['status' => 'withdrawn', 'decided_by_user_id' => $actor->id, 'decided_at' => now()->utc(),
                 'lock_version' => (int) $request->lock_version + 1]);
@@ -263,10 +280,11 @@ final class PurchaseRequestService
         if ($location === null || $items === []) {
             return null;
         }
-        $place = DB::table('inventory_locations')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('public_id', $location)->where('is_active', true)->first(['public_id', 'name']);
+        $place = DB::table('inventory_locations')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('public_id', $location)->where('is_active', true)
+            ->where('type', '!=', InventoryLocation::TYPE_DISPENSARY_RETURNS)->first(['public_id', 'name']);
         $wanted = [];
         foreach ($items as $item) {
-            if (is_array($item) && is_string($item['sku'] ?? null) && is_string($item['quantity'] ?? null) && preg_match('/^\d{1,12}(\.\d{1,3})?$/', $item['quantity']) === 1) {
+            if (is_array($item) && is_string($item['sku'] ?? null) && is_string($item['quantity'] ?? null) && preg_match('/^\d{1,12}(\.\d{1,3})?$/', $item['quantity']) === 1 && (float) $item['quantity'] > 0) {
                 $wanted[strtolower($item['sku'])] = $item['quantity'];
             }
         }
@@ -282,23 +300,55 @@ final class PurchaseRequestService
 
     private function lockWaiting(User $actor, Branch $branch, string $publicId, int $version): stdClass
     {
+        $request = $this->lockRequest($actor, $branch, $publicId);
+        $this->assertWaiting($request, $version);
+
+        return $request;
+    }
+
+    private function lockRequest(User $actor, Branch $branch, string $publicId): stdClass
+    {
         $request = DB::table('inventory_purchase_requests')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->where('public_id', strtolower($publicId))->lockForUpdate()->first();
         abort_unless($request !== null, 404);
+
+        return $request;
+    }
+
+    private function assertWaiting(stdClass $request, int $version): void
+    {
         if ((int) $request->lock_version !== $version) {
             throw ValidationException::withMessages(['lock_version' => 'This request changed. Reload and review it again.']);
         }
         if ($request->status !== 'waiting') {
             throw ValidationException::withMessages(['status' => 'This request is no longer waiting for review.']);
         }
+    }
 
-        return $request;
+    /**
+     * A repeated Convert by the same reviewer, from the same page, with the same supplier and quantities, returns the
+     * order the first press made instead of an error.
+     *
+     * @param  array<int, int>  $quantities
+     */
+    private function replayedConversion(User $actor, stdClass $request, int $version, ?int $supplierId, array $quantities): ?string
+    {
+        if ($request->status !== 'converted' || (int) $request->decided_by_user_id !== $actor->id || (int) $request->lock_version !== $version + 1 || $supplierId === null) {
+            return null;
+        }
+        $order = DB::table('inventory_purchase_orders')->where('id', $request->purchase_order_id)->where('supplier_id', $supplierId)->first(['public_id']);
+        $saved = DB::table('inventory_purchase_request_lines')->where('purchase_request_id', $request->id)->pluck('converted_quantity', 'id')
+            ->map(fn (mixed $q): int => StockUnitQuantity::scaled((string) $q, true))->all();
+        ksort($saved);
+        ksort($quantities);
+
+        return $order !== null && $saved === $quantities ? (string) $order->public_id : null;
     }
 
     /** Never the requester: whoever sent a request cannot convert or reject it (PostgreSQL repeats this). */
     private function refuseRequester(User $actor, stdClass $request, string $what): void
     {
         if ((int) $request->requested_by_user_id === $actor->id) {
-            throw new AuthorizationException('You sent this request, so another person must '.$what.' it.');
+            throw new PurchaseRequestRefusal('You sent this request, so another person must '.$what.' it.');
         }
     }
 

@@ -190,14 +190,18 @@ const requestThese = () => {
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">
                     <div class="flex min-w-0 items-start gap-3">
-                        <input
+                        <label
                             v-if="suggestions.canRequest && needsOrder(row)"
-                            v-model="ticked"
-                            type="checkbox"
-                            class="mt-1 size-5 lg:size-4"
-                            :value="row.key"
-                            :aria-label="`Ask for ${row.skuCode} at ${row.location}`"
-                        />
+                            class="-m-3 flex size-11 shrink-0 items-center justify-center lg:-m-2 lg:size-8"
+                        >
+                            <input
+                                v-model="ticked"
+                                type="checkbox"
+                                class="size-5 lg:size-4"
+                                :value="row.key"
+                                :aria-label="`Ask for ${row.skuCode} at ${row.location}`"
+                            />
+                        </label>
                         <div class="min-w-0">
                             <p class="font-medium break-words">
                                 {{ row.skuCode }} · {{ row.itemName }}

@@ -89,7 +89,8 @@ BEGIN
   IF NEW.status <> 'waiting' THEN
    RAISE EXCEPTION 'A purchase request starts waiting for review' USING ERRCODE = '23514';
   END IF;
-  IF NOT EXISTS (SELECT 1 FROM inventory_locations l WHERE l.id = NEW.destination_location_id AND l.organisation_id = NEW.organisation_id AND l.branch_id = NEW.branch_id)
+  IF NOT EXISTS (SELECT 1 FROM inventory_locations l WHERE l.id = NEW.destination_location_id AND l.organisation_id = NEW.organisation_id AND l.branch_id = NEW.branch_id
+    AND l.is_active AND l.type <> 'dispensary_returns')
    OR NOT EXISTS (SELECT 1 FROM branches b WHERE b.id = NEW.branch_id AND b.organisation_id = NEW.organisation_id)
    OR (NEW.preferred_supplier_id IS NOT NULL AND NOT EXISTS (SELECT 1 FROM inventory_suppliers s WHERE s.id = NEW.preferred_supplier_id AND s.organisation_id = NEW.organisation_id)) THEN
    RAISE EXCEPTION 'A purchase request belongs to its branch and organisation' USING ERRCODE = '23514';
@@ -102,7 +103,8 @@ BEGIN
   OR NEW.lock_version <> OLD.lock_version + 1 THEN
   RAISE EXCEPTION 'A purchase request is decided once and otherwise never changes' USING ERRCODE = '23514';
  END IF;
- IF NEW.status = 'converted' AND NOT EXISTS (SELECT 1 FROM inventory_purchase_orders po WHERE po.id = NEW.purchase_order_id AND po.organisation_id = NEW.organisation_id AND po.destination_location_id = NEW.destination_location_id) THEN
+ IF NEW.status = 'converted' AND NOT EXISTS (SELECT 1 FROM inventory_purchase_orders po WHERE po.id = NEW.purchase_order_id AND po.organisation_id = NEW.organisation_id AND po.destination_location_id = NEW.destination_location_id
+   AND po.status = 'draft' AND po.created_by_user_id = NEW.decided_by_user_id) THEN
   RAISE EXCEPTION 'A converted request points at its own draft order' USING ERRCODE = '23514';
  END IF;
  RETURN NEW;
@@ -131,8 +133,20 @@ BEGIN
  RETURN NEW;
 END $$;
 CREATE OR REPLACE FUNCTION guard_purchase_request_action() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE
+ request inventory_purchase_requests%ROWTYPE;
 BEGIN
- RAISE EXCEPTION 'Purchase request actions are append-only' USING ERRCODE = '23514';
+ IF TG_OP <> 'INSERT' THEN
+  RAISE EXCEPTION 'Purchase request actions are append-only' USING ERRCODE = '23514';
+ END IF;
+ -- An action records what actually happened to its own request, by the person who did it.
+ SELECT * INTO request FROM inventory_purchase_requests r WHERE r.id = NEW.purchase_request_id;
+ IF request.organisation_id IS DISTINCT FROM NEW.organisation_id
+  OR (NEW.action = 'sent' AND NEW.actor_user_id IS DISTINCT FROM request.requested_by_user_id)
+  OR (NEW.action <> 'sent' AND (request.status IS DISTINCT FROM NEW.action OR NEW.actor_user_id IS DISTINCT FROM request.decided_by_user_id)) THEN
+  RAISE EXCEPTION 'A purchase request action matches its request' USING ERRCODE = '23514';
+ END IF;
+ RETURN NEW;
 END $$;
 CREATE OR REPLACE FUNCTION refuse_purchase_request_truncate() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
@@ -148,7 +162,7 @@ BEGIN
 END $$;
 CREATE TRIGGER purchase_requests_guard BEFORE INSERT OR UPDATE OR DELETE ON inventory_purchase_requests FOR EACH ROW EXECUTE FUNCTION guard_purchase_request();
 CREATE TRIGGER purchase_request_lines_guard BEFORE INSERT OR UPDATE OR DELETE ON inventory_purchase_request_lines FOR EACH ROW EXECUTE FUNCTION guard_purchase_request_line();
-CREATE TRIGGER purchase_request_actions_guard BEFORE UPDATE OR DELETE ON inventory_purchase_request_actions FOR EACH ROW EXECUTE FUNCTION guard_purchase_request_action();
+CREATE TRIGGER purchase_request_actions_guard BEFORE INSERT OR UPDATE OR DELETE ON inventory_purchase_request_actions FOR EACH ROW EXECUTE FUNCTION guard_purchase_request_action();
 CREATE CONSTRAINT TRIGGER purchase_requests_converted AFTER UPDATE ON inventory_purchase_requests DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION check_purchase_request_converted();
 CREATE TRIGGER purchase_requests_no_truncate BEFORE TRUNCATE ON inventory_purchase_requests FOR EACH STATEMENT EXECUTE FUNCTION refuse_purchase_request_truncate();
 CREATE TRIGGER purchase_request_lines_no_truncate BEFORE TRUNCATE ON inventory_purchase_request_lines FOR EACH STATEMENT EXECUTE FUNCTION refuse_purchase_request_truncate();

@@ -14,6 +14,7 @@ import {
     DialogTitle,
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { OperationalSelect } from '@/components/ui/select';
@@ -103,7 +104,6 @@ const busy = ref(false);
 // Errors with no field of their own show at the top of the open dialog.
 const generalError = (bag: Record<string, string>, fields: RegExp) =>
     Object.entries(bag).find(([key]) => !fields.test(key))?.[1] ?? null;
-const pageError = ref<string | null>(null);
 
 // New request.
 type DraftLine = {
@@ -387,7 +387,16 @@ const rejectGeneral = computed(() =>
     generalError(rejectErrors.value, /^reason$/),
 );
 
-const withdraw = (request: PurchaseRequest) =>
+// Withdrawing cannot be undone, so it asks first.
+const withdrawing = ref<PurchaseRequest | null>(null);
+const withdrawError = ref('');
+const withdraw = () => {
+    const request = withdrawing.value;
+
+    if (!request) {
+        return;
+    }
+
     router.post(
         `/inventory/purchase-requests/${request.publicId}/withdraw`,
         {
@@ -398,12 +407,16 @@ const withdraw = (request: PurchaseRequest) =>
             preserveScroll: true,
             onStart: () => {
                 busy.value = true;
-                pageError.value = null;
+                withdrawError.value = '';
             },
             onFinish: () => (busy.value = false),
-            onError: (bag) => (pageError.value = Object.values(bag)[0] ?? null),
+            onSuccess: () => (withdrawing.value = null),
+            onError: (bag) =>
+                (withdrawError.value =
+                    Object.values(bag)[0] ?? 'The request was not withdrawn.'),
         },
     );
+};
 
 const tabs = computed(() =>
     (['waiting', 'converted', 'rejected', 'withdrawn'] as Tab[]).map((t) => ({
@@ -452,9 +465,6 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                 >New request</Button
             >
         </div>
-        <p v-if="pageError" role="alert" class="text-sm text-destructive">
-            {{ pageError }}
-        </p>
 
         <p
             v-if="!requests.requests.rows.length"
@@ -591,7 +601,10 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                         class="min-h-11 lg:min-h-9"
                         :disabled="busy"
                         :aria-label="`Withdraw ${request.number}`"
-                        @click="withdraw(request)"
+                        @click="
+                            withdrawError = '';
+                            withdrawing = request;
+                        "
                         >Withdraw</Button
                     >
                     <template v-if="requests.can.review">
@@ -673,9 +686,11 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                         />
                     </div>
                     <div class="space-y-1">
-                        <p class="text-sm font-medium">
-                            Preferred supplier (optional)
-                        </p>
+                        <label
+                            for="request-supplier"
+                            class="text-sm font-medium"
+                            >Preferred supplier (optional)</label
+                        >
                         <InventorySearchSelect
                             id="request-supplier"
                             v-model="send.supplier"
@@ -840,7 +855,11 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                         {{ convertGeneral }}
                     </p>
                     <div class="space-y-1">
-                        <p class="text-sm font-medium">Supplier</p>
+                        <label
+                            for="convert-supplier"
+                            class="text-sm font-medium"
+                            >Supplier</label
+                        >
                         <InventorySearchSelect
                             id="convert-supplier"
                             v-model="convert.supplier"
@@ -987,5 +1006,17 @@ const lineWord = (n: number) => (n === 1 ? '1 line' : `${n} lines`);
                 </form>
             </DialogContent>
         </Dialog>
+        <OperationalConfirmDialog
+            :open="withdrawing !== null"
+            :title="`Withdraw ${withdrawing?.number ?? ''}?`"
+            description="Nobody can convert it after this. You can send a new request later."
+            confirm-label="Withdraw request"
+            processing-label="Withdrawing…"
+            :processing="busy"
+            :error="withdrawError"
+            destructive
+            @update:open="(open: boolean) => !open && (withdrawing = null)"
+            @confirm="withdraw"
+        />
     </main>
 </template>

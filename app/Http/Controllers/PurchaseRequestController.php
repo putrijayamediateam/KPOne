@@ -3,9 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Services\PurchaseRequestRefusal;
 use App\Domain\Organisation\Inventory\Services\PurchaseRequestService;
 use App\Domain\Organisation\Models\Branch;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -49,8 +49,8 @@ final class PurchaseRequestController extends Controller
             $service->withdraw($request->user(), $purchaseRequest, $request->only(['expected_branch_id', 'lock_version']));
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
-        } catch (AuthorizationException $e) {
-            // "Never the requester" and "only the requester withdraws" stay on the page with their reason, not a bare 403.
+        } catch (PurchaseRequestRefusal $e) {
+            // "Never the requester" and "only the requester withdraws" stay on the page with their reason; a missing permission stays a 403.
             throw ValidationException::withMessages(['request' => $e->getMessage()])->redirectTo($back);
         }
 
