@@ -362,6 +362,7 @@
 }
 
 .space-shell .space-ask-list {
+    margin-top: 8px;
     display: flex;
     flex-wrap: wrap;
     gap: 8px;
@@ -394,7 +395,24 @@
 }
 .space-shell .space-ask-sentence {
     margin: 0 0 8px;
+    font-weight: 400;
+}
+.space-shell .space-ask-lead {
     font-weight: 600;
+}
+.space-shell .space-ask-change {
+    font-weight: 600;
+}
+.space-shell .space-nowrap {
+    white-space: nowrap;
+}
+@media (max-width: 400px) {
+    .space-shell .space-ask-dot {
+        display: none;
+    }
+    .space-shell .space-ask-meta .space-link {
+        display: block;
+    }
 }
 .space-shell .space-ask-error {
     margin: 0;
