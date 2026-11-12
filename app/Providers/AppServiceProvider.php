@@ -42,6 +42,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
 use Spatie\Permission\Events\RoleAttachedEvent;
@@ -72,6 +73,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('reports-downloads', fn (Request $request) => Limit::perMinute(10)->by('reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
         QueueEntry::updating(fn (QueueEntry $entry) => app(CallHoldService::class)->leavingWaiting($entry));
         QueueEntry::updating(fn (QueueEntry $entry) => app(TreatmentStepService::class)->leavingServing($entry));
+        // Version 2 pages: the same render() call gets the V2 page when the person is in V2 and the page is registered.
+        Inertia::transformComponentUsing(fn ($component) => is_string($component)
+            ? app(UiVersionResolver::class)->pageFor($component)
+            : $component);
         $this->configureDefaults();
         $this->configureAuthorization();
         $this->configureAuditListeners();
