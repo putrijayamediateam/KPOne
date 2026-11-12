@@ -71,7 +71,7 @@ export type InventoryOperations = {
     stockRequests: InventoryDocument[];
     stocktakes: InventoryDocument[];
     adjustments: Array<Record<string, string>>;
-    lowStock: Array<Record<string, string>>;
+    lowStock: Array<Record<string, string | null>>;
     expiringBatches: Array<Record<string, string>>;
 };
 
