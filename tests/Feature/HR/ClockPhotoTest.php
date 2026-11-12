@@ -8,6 +8,8 @@ use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
 use App\Domain\HR\Attendance\Photos\ClockPhotoLabels;
 use App\Domain\HR\Attendance\Photos\ClockPhotoService;
+use App\Domain\HR\Roster\Models\RosterVersion;
+use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
@@ -247,6 +249,36 @@ class ClockPhotoTest extends VisitTestCase
         $this->assertNull($labels[$session->public_id]['out']['thumbUrl']);
     }
 
+    public function test_the_camera_dialog_gets_the_time_and_a_chip_using_hr_grace_minutes(): void
+    {
+        $ca = $this->actor('ca');
+        $other = $this->actor('ca');
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $this->selectBranch($hr);
+        $this->put(route('hr.attendance.settings'), ['grace_minutes' => 5, 'forgotten_window_minutes' => 60, 'correction_days' => 7,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->roster($hr, $director, [[$ca, '08:00', '16:00', 60]]);
+
+        // 8:12 is 12 minutes after the shift starts: past the 5 grace minutes, the same as Review's "Late 12 min".
+        $this->travelTo(CarbonImmutable::parse('2027-03-08 08:12', $this->branch->timezone));
+        $this->selectBranch($ca);
+        $this->postJson(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, 'in')])->assertOk()
+            ->assertExactJson(['kind' => 'in', 'title' => 'Clocked in', 'time' => '8:12 AM', 'branch' => $this->branch->name, 'chip' => ['code' => 'late', 'label' => 'Late 12 min']]);
+        $this->travelTo(CarbonImmutable::parse('2027-03-08 15:57', $this->branch->timezone));
+        $this->postJson(route('hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, 'out')])->assertOk()
+            ->assertJsonPath('chip', ['code' => 'on_time', 'label' => 'On time'])->assertJsonPath('title', 'Clocked out')->assertJsonPath('time', '3:57 PM');
+        $this->get(route('hr.attendance.index', ['tab' => 'my']))->assertInertia(fn (Assert $page) => $page
+            ->where('attendance.my.week', fn ($week): bool => collect($week)->contains(fn (array $r): bool => collect($r['flags'])->contains('label', 'Late 12 min'))));
+
+        // No approved shift: "No shift set". A refused press answers 422 with the field's message.
+        $this->selectBranch($other);
+        $this->postJson(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid(), 'capture_token' => ClockPhotoFixture::token($this, 'in')])
+            ->assertUnprocessable()->assertJsonPath('errors.photo.0', ClockPhotoFiles::NEEDED);
+        $this->postJson(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, 'in')])->assertOk()
+            ->assertJsonPath('chip', ['code' => 'no_shift', 'label' => 'No shift set']);
+    }
+
     public function test_the_tv_account_cannot_take_a_capture_token(): void
     {
         $this->selectBranch($this->actor('queue_display'));
@@ -263,6 +295,23 @@ class ClockPhotoTest extends VisitTestCase
     private function press(string $kind, array $input): TestResponse
     {
         return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid(), ...$input]);
+    }
+
+    /** @param list<array{User, string, string, int}> $shifts */
+    private function roster(User $hr, User $director, array $shifts): void
+    {
+        $week = '2027-03-08';
+        $this->selectBranch($hr);
+        $this->post(route('hr.roster.drafts.store'), ['branch_id' => $this->branch->id, 'week' => $week, 'mode' => 'blank', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $version = RosterVersion::query()->latest('id')->firstOrFail();
+        foreach ($shifts as [$person, $start, $end, $break]) {
+            $this->post(route('hr.roster.shifts.store', $version->public_id), ['staff_user_id' => $person->id, 'date' => $week, 'start_time' => $start, 'end_time' => $end,
+                'break_minutes' => $break, 'session_type' => 'full_day', 'branch_room_id' => null, 'branch_id' => $this->branch->id, 'week' => $week,
+                'expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        }
+        $this->post(route('hr.roster.submit', $version->public_id), ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->selectBranch($director);
+        $this->post(route('hr.roster.approve', $version->public_id), ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
     }
 
     private function assertRefused(string $state, callable $write): void

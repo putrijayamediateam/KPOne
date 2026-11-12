@@ -2,10 +2,12 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
 use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use App\Domain\HR\Attendance\Services\AttendancePageService;
 use App\Domain\HR\Attendance\Services\AttendanceSettingsService;
+use App\Domain\HR\Attendance\Services\ClockResult;
 use App\Domain\HR\Attendance\Services\ClockService;
 use App\Domain\HR\Attendance\Services\CorrectionService;
 use App\Domain\HR\Attendance\Services\LocationCheckService;
@@ -30,26 +32,34 @@ class AttendanceController extends Controller
             'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
     }
 
-    public function clockIn(Request $request, ClockService $clock): RedirectResponse
+    public function clockIn(Request $request, ClockService $clock, ClockResult $result): RedirectResponse|JsonResponse
     {
-        $label = null;
-        $response = $this->run($request, 'my', null, function () use ($request, $clock, &$label): void {
-            $session = $clock->clockIn($request->user(), $this->pressInput($request));
-            $label = 'Clocked in at '.$session->clock_in_at->setTimezone($session->timezone)->format('g:i A').'.';
-        });
-        Inertia::flash('toast', ['type' => 'success', 'message' => $label]);
-
-        return $response;
+        return $this->press($request, 'in', fn () => $clock->clockIn($request->user(), $this->pressInput($request)), $result);
     }
 
-    public function clockOut(Request $request, ClockService $clock): RedirectResponse
+    public function clockOut(Request $request, ClockService $clock, ClockResult $result): RedirectResponse|JsonResponse
     {
-        $label = null;
-        $response = $this->run($request, 'my', null, function () use ($request, $clock, &$label): void {
-            $session = $clock->clockOut($request->user(), $this->pressInput($request));
-            $label = 'Clocked out at '.$session->clock_out_at?->setTimezone($session->timezone)->format('g:i A').'.';
+        return $this->press($request, 'out', fn () => $clock->clockOut($request->user(), $this->pressInput($request)), $result);
+    }
+
+    /**
+     * HR-PHOTO: the camera dialog asks for JSON and gets the confirmation (time and chip) or the 422 errors; the
+     * Attendance page's own form keeps its redirect and toast.
+     *
+     * @param  callable(): ClockSession  $action
+     */
+    private function press(Request $request, string $kind, callable $action, ClockResult $result): RedirectResponse|JsonResponse
+    {
+        $session = null;
+        $response = $this->run($request, 'my', null, function () use ($action, &$session): void {
+            $session = $action();
         });
-        Inertia::flash('toast', ['type' => 'success', 'message' => $label]);
+        /** @var ClockSession $session */
+        $confirmation = $result->for($session, $kind);
+        if ($request->wantsJson()) {
+            return response()->json($confirmation, 200, ['Cache-Control' => 'no-store, private']);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => $confirmation['title'].' at '.$confirmation['time'].'.']);
 
         return $response;
     }
