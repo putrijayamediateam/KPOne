@@ -409,6 +409,17 @@ only authority (frontend visibility is a usability aid, as in `AGENTS.md`).
   below 1024 px. Daily actions must not sit two taps deep.
 - **Do** show the person's name beside the avatar from 1024 px, and the avatar alone below it.
 
+**Photo clock-in** (decision 2026-11-12, owner chose option 2, "Camera app")
+
+- **Do** open a full-screen camera on a phone and a large dialog on desktop. The camera screen is always dark, in light and dark mode, with a close button at the top left (44 px, named "Close") and a switch-camera button at the top right.
+- **Do** show one oval face guide and the line "Centre your face in the oval". The shutter is one big round button at the bottom centre, at least 72 px, named "Take photo". No gallery picker: a live photo only.
+- **Do** end the review screen with two pills at the bottom: "Retake" (quiet) and "Use photo" (cobalt, the main one). KPOne records the time when "Use photo" is pressed, and the screen says so.
+- **Do** confirm with a full-screen success screen: "Clocked in" or "Clocked out", the time and branch, a chip in words ("On time", "Late 12 min", "No shift set"), and a Done button.
+- **Do** show the same wording on every failure: "KPOne needs your camera to clock in. Allow the camera, or ask HR to add your time as a correction." There is no way to clock in without a photo.
+- **Do** show the privacy line under the Clock in button: a live photo is taken, HR can see it, photos are kept for 7 years.
+- **Do** hide other people's photos, thumbnails included, behind an audited Show, as with bank details. A person's own photos show directly. An entry added by correction says "No photo (added by correction)".
+- **Don't** colour the chips only: each carries its word and a dot (section 10). Honour `prefers-reduced-motion` for any shutter or countdown animation.
+
 **Accessibility and phone (sections 12 and 16 still apply)**
 
 - Each space has a `main` landmark, a skip link and one `h1`. The sidebar is a `nav` with an accessible name, the
