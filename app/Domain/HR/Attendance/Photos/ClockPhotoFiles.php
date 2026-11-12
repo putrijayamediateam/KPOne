@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Attendance\Photos;
 
+use App\Domain\Organisation\Website\WebsiteImageOrientation;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Validation\ValidationException;
 
@@ -18,8 +19,8 @@ final class ClockPhotoFiles
 
     public const THUMB_EDGE = 240;
 
-    /** About a 24 MP photo; larger is refused before decoding, so it can never exhaust memory. */
-    public const MAX_SOURCE_PIXELS = 24_000_000;
+    /** About a 16 MP photo; larger is refused before decoding (a 16 MP decode is about 64 MB), Suresh m7. */
+    public const MAX_SOURCE_PIXELS = 16_000_000;
 
     public const NEEDED = 'Take a photo to clock in.';
 
@@ -61,6 +62,8 @@ final class ClockPhotoFiles
         }
         try {
             imagepalettetotruecolor($image);
+            // A phone file carries its rotation in EXIF, which the re-encode drops; turn it upright first (Suresh m1).
+            $image = WebsiteImageOrientation::upright($image, self::orientation($raw, $mime));
             $full = self::scaled($image, self::MAX_EDGE, $field);
             $thumb = self::scaled($image, self::THUMB_EDGE, $field);
             try {
@@ -82,6 +85,24 @@ final class ClockPhotoFiles
 
         return ['content' => $content, 'thumb' => $thumbContent, 'width' => $width, 'height' => $height, 'bytes' => strlen($content),
             'thumb_bytes' => strlen($thumbContent), 'sha256' => hash('sha256', $content)];
+    }
+
+    private static function orientation(string $raw, string $mime): int
+    {
+        if ($mime !== 'image/jpeg' || ! function_exists('exif_read_data')) {
+            return 1;
+        }
+        $stream = fopen('php://memory', 'r+b');
+        if ($stream === false) {
+            return 1;
+        }
+        fwrite($stream, $raw);
+        rewind($stream);
+        $exif = @exif_read_data($stream, 'IFD0');
+        fclose($stream);
+        $value = is_array($exif) ? ($exif['Orientation'] ?? 1) : 1;
+
+        return is_int($value) && $value >= 1 && $value <= 8 ? $value : 1;
     }
 
     private static function scaled(\GdImage $image, int $edge, string $field): \GdImage

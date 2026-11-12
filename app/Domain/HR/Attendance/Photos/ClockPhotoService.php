@@ -31,6 +31,10 @@ final class ClockPhotoService
 
     public const SIZES = ['full', 'thumb'];
 
+    public const TOO_LONG = 'The camera was open too long. Take the photo again.';
+
+    public const OPEN_AGAIN = 'Open the camera again and take a new photo.';
+
     public function __construct(private AttendanceSupport $support) {}
 
     /** @return array{token:string, expiresAt:string} */
@@ -57,7 +61,7 @@ final class ClockPhotoService
      * or failed transaction can delete the bytes it wrote.
      *
      * @param  array{content:string, thumb:string, width:int, height:int, bytes:int, thumb_bytes:int, sha256:string}|(\Closure(): array{content:string, thumb:string, width:int, height:int, bytes:int, thumb_bytes:int, sha256:string})|null  $prepared
-     *                                                                                                                                                                                                                       a closure is called here, so the press's own checks come first
+     *                                                                                                                                                                                                                                                    a closure is called here, so the press's own checks come first
      * @param  list<string>  $written
      */
     public function attach(User $actor, ClockSession $session, string $kind, array|\Closure|null $prepared, mixed $token, array &$written): ClockPhoto
@@ -70,9 +74,11 @@ final class ClockPhotoService
         }
         $now = CarbonImmutable::now('UTC');
         $row = is_string($token) && $token !== '' ? DB::table('hr_clock_capture_tokens')->where('token_hash', hash('sha256', $token))->lockForUpdate()->first() : null;
-        if ($row === null || (int) $row->user_id !== $actor->id || $row->kind !== $kind || $row->used_at !== null
-            || CarbonImmutable::parse((string) $row->expires_at)->lessThan($now)) {
-            throw ValidationException::withMessages(['photo' => 'The camera was open too long. Take the photo again.']);
+        if ($row === null || (int) $row->user_id !== $actor->id || $row->kind !== $kind || $row->used_at !== null) {
+            throw ValidationException::withMessages(['photo' => self::OPEN_AGAIN]);
+        }
+        if (CarbonImmutable::parse((string) $row->expires_at)->lessThan($now)) {
+            throw ValidationException::withMessages(['photo' => self::TOO_LONG]);
         }
         if (ClockPhoto::query()->where('user_id', $actor->id)->where('sha256', $prepared['sha256'])->exists()) {
             throw ValidationException::withMessages(['photo' => 'This photo was used before. Take a new one.']);

@@ -42,20 +42,20 @@ class ClockPhotoTest extends VisitTestCase
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
         $this->press('in', ['capture_token' => ClockPhotoFixture::token($this, 'in')])->assertSessionHasErrors(['photo' => ClockPhotoFiles::NEEDED]);
-        $this->press('in', ['photo' => ClockPhotoFixture::upload()])->assertSessionHasErrors(['photo' => 'The camera was open too long. Take the photo again.']);
+        $this->press('in', ['photo' => ClockPhotoFixture::upload()])->assertSessionHasErrors(['photo' => ClockPhotoService::OPEN_AGAIN]);
         $this->press('in', ['photo' => ClockPhotoFixture::upload(), 'capture_token' => ClockPhotoFixture::token($this, 'out')])
-            ->assertSessionHasErrors(['photo' => 'The camera was open too long. Take the photo again.']);
+            ->assertSessionHasErrors(['photo' => ClockPhotoService::OPEN_AGAIN]);
         $stale = ClockPhotoFixture::token($this, 'in');
         $this->travel(ClockPhotoService::TOKEN_MINUTES + 1)->minutes();
         $this->press('in', ['photo' => ClockPhotoFixture::upload(), 'capture_token' => $stale])
-            ->assertSessionHasErrors(['photo' => 'The camera was open too long. Take the photo again.']);
+            ->assertSessionHasErrors(['photo' => ClockPhotoService::TOO_LONG]);
         // Someone else's token never works for you.
         $other = $this->actor('ca');
         $this->selectBranch($other);
         $theirs = ClockPhotoFixture::token($this, 'in');
         $this->selectBranch($ca);
         $this->press('in', ['photo' => ClockPhotoFixture::upload(), 'capture_token' => $theirs])
-            ->assertSessionHasErrors(['photo' => 'The camera was open too long. Take the photo again.']);
+            ->assertSessionHasErrors(['photo' => ClockPhotoService::OPEN_AGAIN]);
         // Not an image at all.
         $this->press('in', ['photo' => UploadedFile::fake()->createWithContent('photo.jpg', 'not a photo'), 'capture_token' => ClockPhotoFixture::token($this, 'in')])
             ->assertSessionHasErrors(['photo' => ClockPhotoFiles::UNREADABLE]);
@@ -69,7 +69,7 @@ class ClockPhotoTest extends VisitTestCase
         // A token is good for one press.
         $this->travel(2)->minutes();
         $this->press('out', ['photo' => ClockPhotoFixture::upload(), 'capture_token' => $token])
-            ->assertSessionHasErrors(['photo' => 'The camera was open too long. Take the photo again.']);
+            ->assertSessionHasErrors(['photo' => ClockPhotoService::OPEN_AGAIN]);
         $this->assertSame('open', ClockSession::query()->sole()->status);
     }
 
@@ -101,6 +101,14 @@ class ClockPhotoTest extends VisitTestCase
             ->assertSessionHasErrors(['photo' => 'This photo was used before. Take a new one.']);
         $this->assertSame('open', ClockSession::query()->sole()->status);
         $this->assertCount(2, Storage::disk(ClockPhotoService::DISK)->allFiles('hr-clock-photos')); // the refused press left nothing
+        // A phone file whose EXIF says "rotated 90°" is stored upright (the re-encode drops the EXIF itself).
+        $tiff = "MM\x00\x2A\x00\x00\x00\x08\x00\x01\x01\x12\x00\x03\x00\x00\x00\x01\x00\x06\x00\x00\x00\x00\x00\x00";
+        $app1 = "Exif\x00\x00".$tiff;
+        $wide = ClockPhotoFixture::bytes(200, 100);
+        $rotated = substr($wide, 0, 2)."\xFF\xE1".pack('n', strlen($app1) + 2).$app1.substr($wide, 2);
+        $prepared = ClockPhotoFiles::fromString($rotated);
+        $this->assertSame([100, 200], [$prepared['width'], $prepared['height']]);
+
         // Audit holds no photo data.
         $this->assertSame(['local_date'], array_keys(json_decode((string) DB::table('audit_logs')->where('event', 'hr.attendance.clocked_in')->value('metadata'), true)));
     }
@@ -164,6 +172,16 @@ class ClockPhotoTest extends VisitTestCase
         $this->assertRefused('23514', fn () => DB::table('hr_clock_photos')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id,
             'user_id' => $other->id, 'clock_session_id' => $session->id, 'kind' => 'out', 'capture_token_id' => $token, 'stored_path' => 'x', 'bytes' => 1,
             'thumb_path' => 'y', 'thumb_bytes' => 1, 'width' => 1, 'height' => 1, 'sha256' => str_repeat('a', 64), 'created_at' => now()->utc()]));
+        $this->assertSame(1, ClockPhoto::query()->count());
+
+        // Rolling the migration back would drop attendance evidence, so it refuses while photos exist.
+        $migration = require database_path('migrations/2026_11_10_006800_create_hr_clock_photos.php');
+        try {
+            $migration->down();
+            $this->fail('Expected the rollback to refuse.');
+        } catch (\RuntimeException $e) {
+            $this->assertStringContainsString('cannot be rolled back', $e->getMessage());
+        }
         $this->assertSame(1, ClockPhoto::query()->count());
     }
 
@@ -245,7 +263,21 @@ class ClockPhotoTest extends VisitTestCase
             'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $labels = app(ClockPhotoLabels::class)->forSessions(ClockSession::query()->get(), $hr);
         $this->assertSame(ClockPhotoLabels::BY_CORRECTION, $labels[$session->public_id]['out']['label']);
+        $this->assertNull($labels[$session->public_id]['out']['thumbUrl']);
         $this->assertSame($photo->public_id, $labels[$session->public_id]['in']['id']);
+
+        // A correction that only moves the time of a press keeps its photo in view, saying the time changed.
+        $this->selectBranch($ca);
+        $this->post(route('hr.attendance.corrections.store'), ['kind' => 'change_in', 'session_id' => $session->public_id, 'in_time' => '2027-03-08T06:55',
+            'reason_code' => 'forgot', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $changed = AttendanceCorrection::query()->where('kind', 'change_in')->sole();
+        $this->selectBranch($hr);
+        $this->post(route('hr.attendance.corrections.decide', [$changed->public_id, 'approve']), ['expected_lock_version' => 1,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $labels = app(ClockPhotoLabels::class)->forSessions(ClockSession::query()->get(), $hr);
+        $this->assertSame($photo->public_id, $labels[$session->public_id]['in']['id']);
+        $this->assertSame(ClockPhotoLabels::TIME_CHANGED, $labels[$session->public_id]['in']['label']);
+        $this->assertTrue($labels[$session->public_id]['in']['needsShow']);
         $this->assertNull($labels[$session->public_id]['out']['thumbUrl']);
     }
 

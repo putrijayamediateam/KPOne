@@ -140,7 +140,10 @@ final class ClockService
     private function transaction(array &$written, callable $callback): mixed
     {
         try {
-            return DB::transaction(fn () => $callback(), 3);
+            $result = DB::transaction(fn () => $callback(), 3);
+            $written = []; // committed: these files now belong to a photo row (Suresh m8)
+
+            return $result;
         } catch (\Throwable $e) {
             $this->photos->forget($written);
             if (! $e instanceof QueryException) {

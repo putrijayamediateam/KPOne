@@ -64,9 +64,8 @@ return new class extends Migration
             AND width BETWEEN 1 AND 4000 AND height BETWEEN 1 AND 4000 AND sha256 ~ '^[0-9a-f]{64}$')");
 
         DB::unprepared(<<<'SQL'
--- A photo belongs to its own person's session, and uses an unused token of that person and kind, issued no more than
--- ten minutes before. The token is marked used in the same statement's transaction by the service; the check here is
--- the last line.
+-- A photo belongs to its own person's session, and uses a token of that person and kind whose window covers the photo's
+-- time. Single use is the unique index hr_clock_photos_token_once; the service also marks the token used.
 CREATE OR REPLACE FUNCTION guard_hr_clock_photo() RETURNS trigger LANGUAGE plpgsql AS $$
 DECLARE v_user bigint; v_token record;
 BEGIN
@@ -118,6 +117,10 @@ SQL);
 
     public function down(): void
     {
+        // Photos are attendance evidence kept 7 years; rolling back would drop them and leave their files behind (Suresh m5).
+        if (Schema::hasTable('hr_clock_photos') && DB::table('hr_clock_photos')->exists()) {
+            throw new RuntimeException('HR clock photos exist; this migration cannot be rolled back without losing attendance evidence.');
+        }
         DB::unprepared('DROP TRIGGER IF EXISTS hr_clock_events_photo ON hr_clock_events;
 DROP FUNCTION IF EXISTS guard_hr_clock_event_photo();');
         Schema::dropIfExists('hr_clock_photos');

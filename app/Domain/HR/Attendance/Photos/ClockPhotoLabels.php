@@ -19,6 +19,8 @@ final class ClockPhotoLabels
 
     public const NONE = 'No photo';
 
+    public const TIME_CHANGED = 'Time changed by correction';
+
     /**
      * @param  Collection<int, ClockSession>  $sessions
      * @return array<string, array{in: array<string, mixed>|null, out: array<string, mixed>|null}> by session public id
@@ -42,11 +44,13 @@ final class ClockPhotoLabels
                 $method = $methods[$session->id.'|'.$kind] ?? null;
                 if ($at === null) {
                     $one[$kind] = null;
-                } elseif ($photo !== null && $method !== 'correction') {
+                } elseif ($photo !== null) {
+                    // A correction that only moved the time keeps the press's photo in view: it is the evidence (Suresh m4).
                     $own = $photo->user_id === $viewer->id;
                     $one[$kind] = ['id' => $photo->public_id, 'own' => $own, 'needsShow' => ! $own,
                         'thumbUrl' => route('hr.attendance.photo', [$photo->public_id, 'thumb'], false),
-                        'fullUrl' => route('hr.attendance.photo', [$photo->public_id, 'full'], false), 'label' => null];
+                        'fullUrl' => route('hr.attendance.photo', [$photo->public_id, 'full'], false),
+                        'label' => $method === 'correction' ? self::TIME_CHANGED : null];
                 } else {
                     $one[$kind] = ['id' => null, 'own' => $session->user_id === $viewer->id, 'needsShow' => false, 'thumbUrl' => null, 'fullUrl' => null,
                         'label' => $method === 'correction' ? self::BY_CORRECTION : self::NONE];
