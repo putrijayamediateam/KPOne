@@ -397,7 +397,7 @@ only authority (frontend visibility is a usability aid, as in `AGENTS.md`).
 **Me** (decision 2026-11-12, owner: more private and professional in the account menu; built as DS-12)
 
 - **Do** put **Me** inside the **account menu** (the avatar at the top right), as the first group under the person's
-  name: My profile, My roster and leave, My attendance, My claims, My credentials, My SOPs, then Security and
+  name: My profile, My roster, My leave, My attendance, My claims, My credentials, My SOPs, then Security and
   Sign out. Everyone except the TV account has it. It shows only that person's own records, never other people's, and
   is not a place to approve anything.
 - **Don't** show Me or a "You" heading in the sidebar or the phone space strip. This also frees a slot in the 390 px
