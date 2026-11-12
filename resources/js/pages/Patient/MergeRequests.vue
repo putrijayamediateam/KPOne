@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { GitMerge } from '@lucide/vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 
 type MergeRequestRow = {
     publicId: string;
@@ -78,25 +78,14 @@ const decide = (
 <template>
     <Head title="Merge requests" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div class="flex items-center gap-3">
-            <div class="rounded-md bg-brand/10 p-2">
-                <GitMerge class="size-5 text-brand-strong" />
-            </div>
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Merge requests
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    Duplicate patient merges and unmerges waiting for a second
-                    person. Nothing changes until a different CA Supervisor or
-                    Director approves.
-                </p>
-            </div>
-        </div>
+        <PageHeader
+            title="Merge requests"
+            description="Duplicate patient merges and unmerges waiting for a second person. Nothing changes until a different CA Supervisor or Director approves."
+        />
 
-        <section class="rounded-lg border bg-card">
+        <section class="rounded-xl border bg-card">
             <div class="border-b px-5 py-4">
-                <h2 class="font-semibold">Waiting for approval</h2>
+                <h2 class="text-base font-semibold">Waiting for approval</h2>
             </div>
             <p
                 v-if="!requests.open.length"
@@ -118,7 +107,7 @@ const decide = (
                         {{ ' ' }}
                         <Link
                             v-if="request.mergedPatientNumber"
-                            class="font-mono underline"
+                            class="font-mono text-primary underline"
                             :href="
                                 '/patients/' +
                                 encodeURIComponent(request.mergedPatientNumber)
@@ -129,7 +118,7 @@ const decide = (
                         {{ request.kind === 'merge' ? 'into' : 'from' }}
                         <Link
                             v-if="request.keptPatientNumber"
-                            class="font-mono underline"
+                            class="font-mono text-primary underline"
                             :href="
                                 '/patients/' +
                                 encodeURIComponent(request.keptPatientNumber)
@@ -146,12 +135,16 @@ const decide = (
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <template v-if="request.canDecide">
-                        <Button size="sm" @click="decide(request, 'approve')"
+                        <Button
+                            size="sm"
+                            class="max-lg:h-11"
+                            @click="decide(request, 'approve')"
                             >Approve</Button
                         >
                         <Button
                             size="sm"
                             variant="outline"
+                            class="max-lg:h-11"
                             @click="decide(request, 'reject')"
                             >Reject</Button
                         >
@@ -160,6 +153,7 @@ const decide = (
                         v-if="request.canWithdraw"
                         size="sm"
                         variant="outline"
+                        class="max-lg:h-11"
                         @click="decide(request, 'withdraw')"
                         >Withdraw</Button
                     >
@@ -173,9 +167,9 @@ const decide = (
             </div>
         </section>
 
-        <section class="rounded-lg border bg-card">
+        <section class="rounded-xl border bg-card">
             <div class="border-b px-5 py-4">
-                <h2 class="font-semibold">Recent decisions</h2>
+                <h2 class="text-base font-semibold">Recent decisions</h2>
             </div>
             <p
                 v-if="!requests.recent.length"
@@ -192,9 +186,10 @@ const decide = (
                     <span class="font-medium">{{
                         request.kind === 'merge' ? 'Merge' : 'Unmerge'
                     }}</span>
-                    <span class="font-mono">
-                        {{ request.mergedPatientNumber }}</span
-                    >
+                    {{ ' ' }}
+                    <span class="font-mono">{{
+                        request.mergedPatientNumber
+                    }}</span>
                     {{ request.kind === 'merge' ? 'into' : 'from' }}
                     <span class="font-mono">{{
                         request.keptPatientNumber
