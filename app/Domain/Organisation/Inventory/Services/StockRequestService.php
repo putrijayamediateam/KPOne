@@ -10,7 +10,6 @@ use App\Domain\Organisation\Inventory\Models\StockRequest;
 use App\Domain\Organisation\Inventory\Models\StockRequestLine;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -52,6 +51,7 @@ final class StockRequestService
         private InventoryAuthorityService $authority,
         private InventoryMovementService $movements,
         private AuditRecorder $audit,
+        private InventoryBatchEligibility $eligibility,
     ) {}
 
     /** @param array<string, mixed> $attributes */
@@ -151,6 +151,7 @@ final class StockRequestService
                 $plans[] = ['line' => $line, 'input' => $input];
             }
             usort($plans, fn (array $left, array $right): int => $left['line']->inventory_sku_id <=> $right['line']->inventory_sku_id);
+            $sourceBranch = $source->branch_id === null ? $branch : Branch::query()->findOrFail($source->branch_id);
             $skus = InventorySku::query()->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->whereIn('id', array_map(fn (array $plan): int => $plan['line']->inventory_sku_id, $plans))->orderBy('id')->lockForUpdate()->get()->keyBy('id');
             abort_unless($skus->count() === count($plans), 404);
             foreach ($plans as $plan) {
@@ -159,8 +160,12 @@ final class StockRequestService
                 $sku = $skus->get($line->inventory_sku_id);
                 abort_unless($sku !== null, 404);
                 $batch = InventoryBatch::query()->where('public_id', $input['batch_public_id'])->where('organisation_id', $lockedActor->organisation_id)->where('inventory_sku_id', $sku->id)->where('status', InventoryBatch::STATUS_AVAILABLE)->lockForUpdate()->firstOrFail();
-                if (CarbonImmutable::parse($batch->expiry_date)->toDateString() <= now()->setTimezone($branch->timezone)->toDateString()) {
-                    throw ValidationException::withMessages(['lines' => 'Expired stock cannot be dispatched.']);
+                // STK-37: a stock request sends stock towards use, so it takes only usable stock, by the STK-2 rule
+                // dispensing uses, at the source's branch. Stock in an organisation store has no branch, so the
+                // active branch's date applies and no branch hold can.
+                $problem = $this->eligibility->problem($lockedActor->organisation_id, $sourceBranch, $batch->id, $source->branch_id !== null);
+                if ($problem !== null) {
+                    throw ValidationException::withMessages(['lines' => $sku->sku_code.': this batch can\'t be sent: '.$problem.'. Write it off, or move it to a store at this branch.']);
                 }
                 $this->movements->recordTransferDispatch($lockedActor, $source, $sku, $batch, $input['quantity'], $locked->public_id);
                 $line->forceFill(['inventory_batch_id' => $batch->id, 'dispatched_quantity' => $input['quantity']])->save();

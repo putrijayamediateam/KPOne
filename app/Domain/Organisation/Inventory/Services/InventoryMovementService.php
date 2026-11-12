@@ -10,6 +10,7 @@ use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Inventory\Models\InventoryStockBalance;
 use App\Domain\Organisation\Inventory\Models\InventorySupplier;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
+use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\DB;
@@ -18,7 +19,7 @@ use Illuminate\Validation\ValidationException;
 
 class InventoryMovementService
 {
-    public function __construct(private DispensaryAuthorityService $authority, private AuditRecorder $audit) {}
+    public function __construct(private DispensaryAuthorityService $authority, private AuditRecorder $audit, private InventoryBatchEligibility $eligibility) {}
 
     /** @param array<string,mixed> $attributes */
     public function openingBalance(User $actor, array $attributes): StockMovement
@@ -97,6 +98,7 @@ class InventoryMovementService
                 abort_unless($source->branch_id === $branch->id && $destination->branch_id === $branch->id, 404);
             }
             [$sku, $batch] = $this->lockSkuAndBatch($lockedActor, $attributes['sku_public_id'], $attributes['batch_public_id']);
+            $this->assertMovable($lockedActor, $branch, $source, $destination, $batch);
             $quantity = StockUnitQuantity::base($attributes['quantity'], $sku->stock_unit, $attributes['unit'] ?? null);
             $this->move($lockedActor->organisation_id, $source->id, $destination->id, $sku->id, $batch->id, $quantity);
             $movement = $this->movement($lockedActor, $sku, $batch, $source, $destination, $quantity, StockMovement::TYPE_TRANSFER, 'inventory_transfer', (string) Str::uuid());
@@ -104,6 +106,29 @@ class InventoryMovementService
 
             return $movement;
         }, 3);
+    }
+
+    /**
+     * STK-37: a direct transfer moves only usable stock (the STK-2 rule dispensing uses), with two exceptions where
+     * unusable stock may still move: between two returns locations (STK-11), and within one branch into a location
+     * that is neither a dispensary nor a returns location (the quarantine shelf STK-25 relies on). The branch hold,
+     * recall and expiry still apply there, so that stock can never be dispensed or sent onwards.
+     */
+    private function assertMovable(User $actor, Branch $branch, InventoryLocation $source, InventoryLocation $destination, InventoryBatch $batch): void
+    {
+        $returns = InventoryLocation::TYPE_DISPENSARY_RETURNS;
+        if ($source->type === $returns && $destination->type === $returns) {
+            return;
+        }
+        $sameBranch = $source->branch_id !== null && $source->branch_id === $destination->branch_id;
+        if ($sameBranch && ! in_array($destination->type, [InventoryLocation::TYPE_DISPENSARY, $returns], true)) {
+            return;
+        }
+        $checkBranch = $source->branch_id === null ? $branch : Branch::query()->findOrFail($source->branch_id);
+        $problem = $this->eligibility->problem($actor->organisation_id, $checkBranch, $batch->id, $source->branch_id !== null);
+        if ($problem !== null) {
+            throw ValidationException::withMessages(['location' => 'This batch can\'t be moved there: '.$problem.'. Unusable stock can only go to a store at this branch, or be written off.']);
+        }
     }
 
     public function debitForDispense(User $actor, InventoryLocation $location, InventorySku $sku, InventoryBatch $batch, string $quantity, int $allocationId, string $allocationPublicId): StockMovement
