@@ -120,7 +120,10 @@ final class DrugLabelService
             // DSP-10: the label prints no logo, so the logo file is never read here.
             $head = $this->letterheads->assemble($branch, fn (string $id): string => '');
             $details = $head->details;
-            $address = implode(', ', array_filter([$details['address_line_1'], $details['address_line_2'], $details['postcode'], $details['city'], $details['state'], $details['country']], fn ($s) => $s !== null && $s !== ''));
+            // DSP-21 (owner decision 2026-11-12, option A): a branch's short "Address on drug labels" is printed when it is set;
+            // otherwise the full address, as before. Either one must still fit the label's 96-character address budget.
+            $address = ($details['label_address'] ?? '') !== '' ? (string) $details['label_address']
+                : implode(', ', array_filter([$details['address_line_1'], $details['address_line_2'], $details['postcode'], $details['city'], $details['state'], $details['country']], fn ($s) => $s !== null && $s !== ''));
             $blocked = [];
             $output = [];
             $batchNotes = [];
