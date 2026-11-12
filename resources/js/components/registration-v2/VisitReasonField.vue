@@ -252,7 +252,7 @@ defineExpose({ focus: () => combo.value?.focus() });
         />
         <p
             v-if="inactiveExact"
-            class="rounded-[10px] border border-warning/40 bg-warning-soft px-3 py-2 text-sm"
+            class="rounded-[10px] border border-warning/40 bg-warning/10 px-3 py-2 text-sm"
         >
             This visit reason is inactive. Choose another or ask a Supervisor.
         </p>
