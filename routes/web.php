@@ -108,6 +108,7 @@ use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
+use App\Http\Controllers\StockHealthController;
 use App\Http\Controllers\SupplierInvoiceController;
 use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
@@ -910,6 +911,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/purchase-requests', [PurchaseRequestController::class, 'store'])->middleware(['permission:inventory.purchase_requests.create.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.purchase-requests.store');
         Route::post('inventory/purchase-requests/{purchaseRequest}/{action}', [PurchaseRequestController::class, 'act'])->whereUuid('purchaseRequest')->whereIn('action', ['convert', 'reject', 'withdraw'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.purchase-requests.act');
         Route::get('inventory/reorder-suggestions', [ReorderSuggestionController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.reorder-suggestions');
+        Route::get('inventory/stock-health', [StockHealthController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.stock-health');
         Route::get('inventory/branch-replenishment', [BranchReplenishmentController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.branch-replenishment');
         Route::get('inventory/skus', [SkuEditController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.skus');
         Route::put('inventory/skus/{sku}', [SkuEditController::class, 'update'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.update');
