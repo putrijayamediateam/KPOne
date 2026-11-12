@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { ChevronDown } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
@@ -346,12 +347,16 @@ const clearFilters = () => {
                 </section>
             </div>
             <div class="w-full space-y-2 lg:hidden">
-                <details class="rounded-lg border bg-card">
+                <details class="group rounded-lg border bg-card">
                     <summary
-                        class="flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium"
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium [&::-webkit-details-marker]:hidden"
                     >
                         Count and adjust ·
                         {{ canViewControlledRegister ? 6 : 5 }}
+                        <ChevronDown
+                            class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
+                            aria-hidden="true"
+                        />
                     </summary>
                     <div class="flex flex-wrap gap-2 px-3 pb-3">
                         <ActionLink
@@ -393,11 +398,15 @@ const clearFilters = () => {
                         >
                     </div>
                 </details>
-                <details class="rounded-lg border bg-card">
+                <details class="group rounded-lg border bg-card">
                     <summary
-                        class="flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium"
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium [&::-webkit-details-marker]:hidden"
                     >
                         Orders and suppliers · 7
+                        <ChevronDown
+                            class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
+                            aria-hidden="true"
+                        />
                     </summary>
                     <div class="flex flex-wrap gap-2 px-3 pb-3">
                         <ActionLink
@@ -444,11 +453,15 @@ const clearFilters = () => {
                         >
                     </div>
                 </details>
-                <details class="rounded-lg border bg-card">
+                <details class="group rounded-lg border bg-card">
                     <summary
-                        class="flex min-h-11 cursor-pointer items-center px-3 text-sm font-medium"
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium [&::-webkit-details-marker]:hidden"
                     >
                         Reports and checks · 3
+                        <ChevronDown
+                            class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
+                            aria-hidden="true"
+                        />
                     </summary>
                     <div class="flex flex-wrap gap-2 px-3 pb-3">
                         <ActionLink
