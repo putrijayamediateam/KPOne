@@ -142,21 +142,26 @@ const submitCancel = () => {
                 </p>
             </div>
             <div class="flex flex-wrap gap-2">
-                <Button variant="outline" as-child
+                <Button variant="outline" class="max-lg:h-11" as-child
                     ><Link href="/registration"
                         ><ArrowLeft class="size-4" /> Console</Link
                     ></Button
-                ><Button v-if="visit.can.update" as-child
+                ><Button v-if="visit.can.update" class="max-lg:h-11" as-child
                     ><Link :href="`/visits/${visit.visitNumber}/edit`"
                         ><Pencil class="size-4" /> Edit</Link
                     ></Button
-                ><Button v-if="canCreate" variant="outline" as-child
+                ><Button
+                    v-if="canCreate"
+                    variant="outline"
+                    class="max-lg:h-11"
+                    as-child
                     ><Link href="/registration/create"
                         >Register another Patient</Link
                     ></Button
                 >
                 <Button
                     v-if="visit.can.sendToWaiting"
+                    class="max-lg:h-11"
                     :disabled="queueForm.processing"
                     @click="sendToWaiting"
                 >
@@ -166,7 +171,7 @@ const submitCancel = () => {
             </div>
         </div>
         <section class="grid gap-4 md:grid-cols-3">
-            <div class="rounded-lg border bg-card p-4 md:col-span-2">
+            <div class="rounded-xl border bg-card p-4 md:col-span-2">
                 <div
                     class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                 >
@@ -183,7 +188,7 @@ const submitCancel = () => {
                     {{ visit.patient.sex }}
                 </div>
             </div>
-            <div class="rounded-lg border bg-card p-4">
+            <div class="rounded-xl border bg-card p-4">
                 <div
                     class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
                 >
@@ -213,7 +218,7 @@ const submitCancel = () => {
         </section>
         <section
             v-if="visit.queue"
-            class="flex items-center justify-between rounded-lg border border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900 dark:bg-emerald-950/30"
+            class="flex items-center justify-between rounded-xl border border-emerald-200 bg-emerald-50/40 p-4 dark:border-emerald-900 dark:bg-emerald-950/30"
         >
             <div class="flex items-center gap-3">
                 <ListOrdered
@@ -242,7 +247,7 @@ const submitCancel = () => {
                     </div>
                 </div>
             </div>
-            <Button variant="outline" as-child
+            <Button variant="outline" class="max-lg:h-11" as-child
                 ><Link href="/queue">Open Queue</Link></Button
             >
         </section>
@@ -253,8 +258,8 @@ const submitCancel = () => {
                 queueError('queue')
             "
         />
-        <section class="rounded-lg border bg-card p-4">
-            <h2 class="font-semibold">Visit Reason</h2>
+        <section class="rounded-xl border bg-card p-4">
+            <h2 class="text-base font-semibold">Visit Reason</h2>
             <template v-if="visit.visitReasons.primary">
                 <p class="mt-2 text-sm">
                     <span class="font-medium">Primary:</span>
@@ -274,9 +279,9 @@ const submitCancel = () => {
         </section>
         <section
             v-if="visit.coverage.type === 'panel'"
-            class="rounded-lg border bg-card p-4"
+            class="rounded-xl border bg-card p-4"
         >
-            <h2 class="font-semibold">Provisional Panel coverage</h2>
+            <h2 class="text-base font-semibold">Provisional Panel coverage</h2>
             <p class="mt-2 text-sm break-words">
                 {{ visit.coverage.panelName }}
             </p>
@@ -289,9 +294,9 @@ const submitCancel = () => {
         </section>
         <section
             v-if="visit.status === 'cancelled'"
-            class="rounded-lg border border-muted bg-muted/20 p-4"
+            class="rounded-xl border border-muted bg-muted/20 p-4"
         >
-            <h2 class="font-semibold">Cancelled</h2>
+            <h2 class="text-base font-semibold">Cancelled</h2>
             <p class="mt-1 text-sm text-muted-foreground">
                 {{ formatDateTime(visit.cancelledAt, visit.branch.timezone) }}
             </p>
@@ -301,11 +306,11 @@ const submitCancel = () => {
         </section>
         <section
             v-if="visit.can.cancel"
-            class="rounded-lg border border-destructive/25 bg-card"
+            class="rounded-xl border border-destructive/25 bg-card"
         >
             <button
                 type="button"
-                class="flex w-full items-center justify-between p-4 text-left"
+                class="flex min-h-11 w-full items-center justify-between p-4 text-left"
                 @click="cancelling = !cancelling"
             >
                 <span
@@ -328,7 +333,7 @@ const submitCancel = () => {
                     maxlength="500"
                     rows="3"
                     autocomplete="off"
-                    class="w-full rounded-md border bg-background px-3 py-2 text-sm"
+                    class="w-full rounded-[10px] border bg-background px-3 py-2 text-sm"
                     placeholder="Cancellation reason"
                 /><InputError
                     :message="
@@ -343,6 +348,7 @@ const submitCancel = () => {
                     <Button
                         type="submit"
                         variant="destructive"
+                        class="max-lg:h-11"
                         :disabled="cancelForm.processing"
                         >Confirm cancellation</Button
                     >

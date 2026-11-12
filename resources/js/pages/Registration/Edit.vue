@@ -4,6 +4,7 @@ import { ArrowLeft } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
@@ -101,21 +102,20 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
     <main
         class="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 p-4 md:p-6"
     >
-        <div class="flex justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-semibold">Edit registered Visit</h1>
-                <p class="font-mono text-sm text-muted-foreground">
-                    {{ visit.visitNumber }} · {{ visit.patient.fullName }}
-                </p>
-            </div>
-            <Button variant="outline" as-child
-                ><Link :href="`/visits/${visit.visitNumber}`"
-                    ><ArrowLeft class="size-4" /> Back</Link
-                ></Button
-            >
-        </div>
+        <PageHeader
+            title="Edit registered Visit"
+            :description="`${visit.visitNumber} · ${visit.patient.fullName}`"
+        >
+            <template #actions>
+                <Button variant="outline" class="max-lg:h-11" as-child
+                    ><Link :href="`/visits/${visit.visitNumber}`"
+                        ><ArrowLeft class="size-4" /> Back</Link
+                    ></Button
+                >
+            </template>
+        </PageHeader>
         <form class="space-y-4" @submit.prevent="submit">
-            <section class="rounded-lg border bg-card p-4">
+            <section class="rounded-xl border bg-card p-4">
                 <div class="grid gap-4 md:grid-cols-2">
                     <label class="grid gap-1" for="visit-type"
                         ><span class="text-sm font-medium">Visit type</span
@@ -144,7 +144,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         />
                         <div
                             v-else
-                            class="rounded-md border bg-muted/30 px-3 py-2 text-sm"
+                            class="rounded-[10px] border bg-muted/30 px-3 py-2 text-sm"
                         >
                             <p class="whitespace-pre-wrap">
                                 {{
@@ -198,7 +198,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 id="coverage-member-reference"
                                 v-model="form.coverage_member_reference"
                                 autocomplete="off"
-                                class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none" /><InputError
+                                class="h-9 w-full rounded-[10px] border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none max-lg:h-11" /><InputError
                                 :message="
                                     errorFor('coverage_member_reference')
                                 "
@@ -217,7 +217,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 v-model="form.coverage_panel_note"
                                 rows="2"
                                 maxlength="500"
-                                class="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                                class="w-full resize-y rounded-[10px] border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
                                 data-testid="registration-panel-note"
                             />
                             <span
@@ -245,7 +245,10 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 "
             />
             <div class="flex justify-end">
-                <Button type="submit" :disabled="form.processing"
+                <Button
+                    type="submit"
+                    class="max-lg:h-11"
+                    :disabled="form.processing"
                     >Save Visit</Button
                 >
             </div>
