@@ -510,10 +510,26 @@ const filterBadge = computed(
                                             item.visit.queueNumber
                                         }}
                                         · </template
-                                    >{{ item.visit.patientNumber }}</span
+                                    >{{ item.visit.patientNumber
+                                    }}<span class="lg:hidden">
+                                        ·
+                                        {{ compactTime(item.visit.registeredAt)
+                                        }}<template v-if="!isToday(item.visit)"
+                                            >,
+                                            {{
+                                                formatDate(
+                                                    item.visit.registeredAtDate,
+                                                    options.branch.timezone,
+                                                )
+                                            }}</template
+                                        ></span
+                                    ></span
                                 >
                             </td>
-                            <td data-label="Arrived" class="text-sm">
+                            <td
+                                data-label="Arrived"
+                                class="text-sm max-lg:!hidden"
+                            >
                                 <span
                                     class="whitespace-nowrap max-lg:text-right lg:contents"
                                 >
@@ -533,8 +549,7 @@ const filterBadge = computed(
                                 </span>
                             </td>
                             <td
-                                data-label="Doctor and notes"
-                                class="max-w-56 min-w-0 text-sm"
+                                class="max-w-56 min-w-0 text-sm max-lg:max-w-none max-lg:justify-start max-lg:!text-left"
                             >
                                 <span
                                     class="min-w-0 max-lg:text-right lg:contents"
@@ -567,10 +582,9 @@ const filterBadge = computed(
                                 data-label="Payment"
                                 class="text-sm whitespace-nowrap"
                                 :class="
-                                    /^self[- ]?pay$/i.test(
-                                        item.visit.coverageLabel,
-                                    ) && !item.visit.panelNote
-                                        ? 'max-lg:hidden'
+                                    !/panel/i.test(item.visit.coverageLabel) &&
+                                    !item.visit.panelNote
+                                        ? 'max-lg:!hidden'
                                         : ''
                                 "
                             >
@@ -586,9 +600,12 @@ const filterBadge = computed(
                                     >
                                 </span>
                             </td>
-                            <td data-status>
+                            <td
+                                data-status
+                                class="max-lg:order-[-1] max-lg:justify-start"
+                            >
                                 <div
-                                    class="flex min-w-0 flex-col gap-1.5 max-lg:items-end"
+                                    class="flex min-w-0 flex-col gap-1.5 max-lg:flex-row max-lg:flex-wrap max-lg:items-center max-lg:gap-x-3"
                                 >
                                     <div
                                         class="flex flex-wrap items-center gap-1.5 max-lg:justify-end"
