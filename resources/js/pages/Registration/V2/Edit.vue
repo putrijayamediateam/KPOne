@@ -181,8 +181,9 @@ const inputClass =
             <template #actions>
                 <Link
                     :href="`/visits/${visit.visitNumber}`"
-                    class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
-                    >Back to visit</Link
+                    class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:justify-start max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:text-primary lg:h-9"
+                    ><span class="max-sm:hidden">Back to visit</span
+                    ><span class="sm:hidden">← Visit</span></Link
                 >
             </template>
 

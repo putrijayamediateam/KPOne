@@ -27,9 +27,9 @@ const shown = computed(() =>
             <li
                 v-for="item in shown"
                 :key="item.id"
-                class="flex flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2"
+                class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
             >
-                <p class="min-w-0 flex-1 text-sm">
+                <p class="min-w-0 text-sm break-words">
                     <span class="font-medium"
                         >{{ item.label }} {{ item.patientName }}</span
                     >
@@ -39,12 +39,13 @@ const shown = computed(() =>
                 </p>
                 <V2Chip
                     v-if="item.notReadyReason"
+                    class="max-sm:col-span-2 max-sm:row-start-2 max-sm:justify-self-start"
                     tone="warning"
                     :label="`Not ready — ${item.notReadyReason}`"
                 />
                 <button
                     type="button"
-                    class="ml-auto inline-flex h-11 items-center text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                    class="inline-flex h-11 items-center text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:col-start-2 max-sm:row-start-1 lg:h-9"
                     :aria-label="`View ${item.label} ${item.patientName}`"
                     @click="$emit('view', item.visitNumber)"
                 >
