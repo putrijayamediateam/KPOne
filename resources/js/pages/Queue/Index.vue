@@ -862,14 +862,14 @@ onBeforeUnmount(() => {
             />
             <p
                 v-if="completedLine"
-                class="border-t px-3 py-2 text-xs text-muted-foreground"
+                class="border-t px-4 py-2 text-xs text-muted-foreground"
                 data-testid="completed-shown-count"
             >
                 {{ completedLine }}
             </p>
             <p
                 v-if="servingLine"
-                class="border-t px-3 py-2 text-xs text-muted-foreground"
+                class="border-t px-4 py-2 text-xs text-muted-foreground"
                 data-testid="serving-shown-count"
             >
                 {{ servingLine }}
@@ -879,7 +879,7 @@ onBeforeUnmount(() => {
                     (activeTab === 'all' || activeTab === 'waiting') &&
                     (live.waiting.lastPage > 1 || live.carryOver.lastPage > 1)
                 "
-                class="flex flex-wrap justify-end gap-2 border-t p-3"
+                class="flex flex-wrap justify-end gap-2 border-t p-4"
             >
                 <Button
                     size="sm"

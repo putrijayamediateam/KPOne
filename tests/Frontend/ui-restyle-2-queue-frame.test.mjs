@@ -45,6 +45,16 @@ test('the board has 24 px above the header from 1024 px and 16 px inside the car
         /gap-2 px-4 py-2 text-xs text-muted-foreground sm:flex-row/,
     );
     assert.match(template, /class="mx-4 mb-3 min-h-11"/);
+    // The shown-count lines and the pager line up with the strip at 16 px.
+    assert.equal(
+        (
+            template.match(
+                /border-t px-4 py-2 text-xs text-muted-foreground/g,
+            ) ?? []
+        ).length,
+        2,
+    );
+    assert.match(template, /justify-end gap-2 border-t p-4/);
 });
 
 test('the live line is 13 px and the board sits in a hairline card frame', () => {
