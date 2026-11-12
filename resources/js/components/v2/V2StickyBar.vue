@@ -1,7 +1,8 @@
 <script setup lang="ts">
 /**
  * Version 2 sticky action bar: below 640px, a full-width 44px action bar at the foot of the main column, clear of the
- * home indicator. From 640px it is hidden (the summary rail carries the actions).
+ * home indicator. From 640px it is hidden (the summary rail carries the actions). Its gutter is `-mx-4` (16px), which
+ * must match the 16px page gutter the shell gives V2WorkLayout: change one and you must change the other.
  */
 </script>
 

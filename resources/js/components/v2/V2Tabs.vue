@@ -3,7 +3,8 @@ import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 /**
  * Version 2 tabs: a full-pill segmented control. The selected tab is scrolled into view; the `trailing` slot sits at
- * the right end (for example the live-refresh note). Arrow keys, Home and End move between tabs.
+ * the right end (for example the live-refresh note). Arrow keys, Home and End move between tabs. The tabs only pick a
+ * value: the page owns the tabpanel (role="tabpanel", its id and aria-labelledby) and the `aria-controls` on the tabs.
  */
 type Tab = { value: string; label: string; count?: number; disabled?: boolean };
 

@@ -13,7 +13,7 @@ import { nextTick, ref, watch } from 'vue';
 /**
  * Version 2 dialog: 18px corners, a bottom sheet below 640px, a pinned footer, and the focus trap and Esc that the
  * Classic dialog has (from reka-ui). `reasonLabel` adds a required reason field: Confirm shows aria-disabled until
- * something is typed (it can still be pressed: that shows the error and moves focus to the box), and `confirm` emits the reason. At most one filled destructive button: `tone="danger"` makes the
+ * something is typed (it can still be pressed: that shows the error and moves focus to the box; it stays at full opacity, the error carries the message), and `confirm` emits the reason. At most one filled destructive button: `tone="danger"` makes the
  * Confirm button the destructive one, and Cancel is outline. The page decides what Confirm does.
  */
 const props = withDefaults(
@@ -103,7 +103,11 @@ const submit = () => {
                             v-model="reason"
                             rows="3"
                             :aria-invalid="tried && reason.trim() === ''"
-                            aria-describedby="v2-dialog-reason-error"
+                            :aria-describedby="
+                                tried && reason.trim() === ''
+                                    ? 'v2-dialog-reason-error'
+                                    : undefined
+                            "
                             class="w-full rounded-[10px] border bg-card px-3 py-2 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px]"
                             :class="
                                 tried && reason.trim() === ''
@@ -137,7 +141,7 @@ const submit = () => {
                                 ? 'true'
                                 : undefined
                         "
-                        class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 aria-disabled:opacity-60 lg:h-9"
+                        class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 lg:h-9"
                         :class="
                             tone === 'danger'
                                 ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'

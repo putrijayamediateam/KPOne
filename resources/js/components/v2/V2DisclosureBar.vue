@@ -3,7 +3,7 @@ import { ref } from 'vue';
 
 /**
  * Version 2 disclosure bar: a full-width bar with a title (for example "3 need attention") that opens a panel under
- * it. 44px target below 1024px; `aria-expanded` and `aria-controls` tie the button to the panel. It is closed by
+ * it. 44px below 1024px, 36px from 1024px; `aria-expanded` and `aria-controls` tie the button to the panel. It is closed by
  * default; `defaultOpen` opens it. `tone="warning"` adds an amber dot beside the title (hidden from screen readers; the
  * title carries the meaning), so a "5 need attention" bar does not read as a plain accordion.
  */
@@ -29,7 +29,7 @@ const id = `v2-bar-${Math.random().toString(36).slice(2, 8)}`;
             type="button"
             :aria-expanded="open"
             :aria-controls="id"
-            class="flex min-h-11 w-full items-center justify-between gap-3 rounded-[14px] px-4 py-2 text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            class="flex min-h-11 w-full items-center justify-between gap-3 rounded-[14px] px-4 py-2 text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:min-h-9"
             @click="open = !open"
         >
             <span class="flex min-w-0 items-center gap-2">
