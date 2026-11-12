@@ -50,7 +50,7 @@ const changeBranch = (value: unknown) => {
                 v-for="branch in context.available"
                 :key="branch.id"
                 :value="String(branch.id)"
-                class="min-h-8 rounded-lg px-2.5 text-[13px] data-[state=checked]:bg-primary/10 data-[state=checked]:text-primary"
+                class="min-h-8 rounded-lg px-2.5 text-[13px] data-[state=checked]:bg-brand/10 data-[state=checked]:text-brand-strong v2:data-[state=checked]:bg-primary/10 v2:data-[state=checked]:text-primary"
             >
                 {{ branch.name }}
             </SelectItem>
