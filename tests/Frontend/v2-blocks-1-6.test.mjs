@@ -174,3 +174,12 @@ test('V2DisclosureBar: a 44px button tied to its panel with aria-expanded and ar
     assert.match(s, /motion-reduce:transition-none/);
     assert.doesNotMatch(s, /from '@\/components\/ui\//);
 });
+
+test('V2DisclosureBar: tone warning adds an aria-hidden amber dot, neutral by default', () => {
+    const s = v2('V2DisclosureBar');
+    assert.match(s, /tone\?: 'neutral' \| 'warning'/);
+    assert.match(s, /tone: 'neutral'/);
+    assert.match(s, /v-if="tone === 'warning'"/);
+    assert.match(s, /bg-warning/);
+    assert.match(s, /aria-hidden="true"\n?\s*><\/span>/);
+});
