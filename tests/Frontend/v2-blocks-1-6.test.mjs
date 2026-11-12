@@ -95,3 +95,57 @@ test('v2.css only matches V2 classes, so Classic is untouched', () => {
         );
     }
 });
+
+test("Daniel's notes: words beside the ring from 30 minutes, primary field first in cards, fade on a cut-off tab strip", () => {
+    assert.match(v2('WaitRing'), /words\?: boolean/);
+    assert.match(v2('WaitRing'), /very long wait/);
+    assert.match(css, /td\[data-primary\]/);
+    assert.match(css, /td\[data-actions\] \{\s*order: 99;/);
+    assert.match(css, /td\[data-select\] \{\s*order: -2;/);
+    assert.match(v2('V2Tabs'), /mask-image:linear-gradient/);
+    assert.match(v2('V2Tabs'), /ResizeObserver/);
+});
+
+test('V2 muted text reaches 4.5:1 on the muted fill and on the page, light and dark', () => {
+    const appCss = read('resources/css/app.css');
+    const block = (selector) =>
+        Object.fromEntries(
+            [
+                ...appCss
+                    .slice(appCss.indexOf(`${selector} {`))
+                    .split('}')[0]
+                    .matchAll(/--([a-z-]+):\s*(#[0-9a-f]{6});/gi),
+            ].map((m) => [m[1], m[2]]),
+        );
+    const rgb = (hex) =>
+        [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+    const lum = (c) => {
+        const [r, g, b] = c
+            .map((v) => v / 255)
+            .map((v) =>
+                v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4,
+            );
+
+        return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    };
+    const ratio = (a, b) => {
+        const [hi, lo] = [lum(a), lum(b)].sort((x, y) => y - x);
+
+        return (hi + 0.05) / (lo + 0.05);
+    };
+
+    for (const [v2sel, base] of [
+        [":root[data-ui='v2']:not(.dark)", ':root'],
+        [".dark[data-ui='v2']", '.dark'],
+    ]) {
+        const t = { ...block(base), ...block(v2sel) };
+
+        for (const fill of ['muted', 'background', 'card']) {
+            const value = ratio(rgb(t['muted-foreground']), rgb(t[fill]));
+            assert.ok(
+                value >= 4.5,
+                `${v2sel} muted text on ${fill} is ${value.toFixed(2)}`,
+            );
+        }
+    }
+});

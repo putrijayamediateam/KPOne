@@ -4,11 +4,16 @@ import { computed } from 'vue';
 /**
  * Version 2 waiting-time ring: a ring that fills towards the danger time, with the minutes in the middle.
  * Neutral under `warnAt`, amber from `warnAt`, red from `dangerAt` (30 and 60 minutes, as the Classic chip).
- * "min" sits beside the ring for sighted users. The state is also spoken ("long wait"), never colour alone. Used by V2 views only.
+ * "min" sits beside the ring for sighted users, with "long wait" or "very long wait" from the warning time (turn off with `words=false` where there is no room). The state is also spoken ("long wait"), never colour alone. Used by V2 views only.
  */
 const props = withDefaults(
-    defineProps<{ minutes: number; warnAt?: number; dangerAt?: number }>(),
-    { warnAt: 30, dangerAt: 60 },
+    defineProps<{
+        minutes: number;
+        warnAt?: number;
+        dangerAt?: number;
+        words?: boolean;
+    }>(),
+    { warnAt: 30, dangerAt: 60, words: true },
 );
 
 const RADIUS = 14;

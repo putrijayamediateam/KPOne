@@ -44,9 +44,6 @@
         position: static !important;
         background: transparent !important;
     }
-    .v2-cards-lg td:first-child {
-        font-weight: 600;
-    }
     .v2-cards-lg td[data-label]::before {
         content: attr(data-label);
         color: var(--muted-foreground);
@@ -54,8 +51,21 @@
         font-weight: 400;
         text-align: left;
     }
-    .v2-cards-lg td[data-select] {
+    .v2-cards-lg td[data-primary] {
         order: -1;
+        display: block;
+        text-align: left;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    .v2-cards-lg td[data-primary]::before {
+        content: none;
+    }
+    .v2-cards-lg td[data-actions] {
+        order: 99;
+    }
+    .v2-cards-lg td[data-select] {
+        order: -2;
         min-height: 44px;
         align-items: center;
         justify-content: flex-start;
@@ -120,9 +130,6 @@
         position: static !important;
         background: transparent !important;
     }
-    .v2-cards-xl td:first-child {
-        font-weight: 600;
-    }
     .v2-cards-xl td[data-label]::before {
         content: attr(data-label);
         color: var(--muted-foreground);
@@ -130,8 +137,21 @@
         font-weight: 400;
         text-align: left;
     }
-    .v2-cards-xl td[data-select] {
+    .v2-cards-xl td[data-primary] {
         order: -1;
+        display: block;
+        text-align: left;
+        font-size: 16px;
+        font-weight: 600;
+    }
+    .v2-cards-xl td[data-primary]::before {
+        content: none;
+    }
+    .v2-cards-xl td[data-actions] {
+        order: 99;
+    }
+    .v2-cards-xl td[data-select] {
+        order: -2;
         min-height: 44px;
         align-items: center;
         justify-content: flex-start;

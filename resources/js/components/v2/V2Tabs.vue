@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { nextTick, onMounted, ref, watch } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 /**
  * Version 2 tabs: a full-pill segmented control. The selected tab is scrolled into view; the `trailing` slot sits at
@@ -16,6 +16,15 @@ const props = defineProps<{
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
 const list = ref<HTMLElement | null>(null);
+const more = ref(false);
+let observer: ResizeObserver | null = null;
+
+// A right-edge fade while more tabs are hidden on the right, so a cut-off tab is never a surprise.
+const measure = () => {
+    const el = list.value;
+
+    more.value = !!el && el.scrollWidth - el.clientWidth - el.scrollLeft > 1;
+};
 
 const reveal = () =>
     nextTick(() =>
@@ -24,7 +33,16 @@ const reveal = () =>
             ?.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
     );
 
-onMounted(reveal);
+onMounted(() => {
+    reveal();
+    measure();
+
+    if (typeof ResizeObserver !== 'undefined' && list.value) {
+        observer = new ResizeObserver(measure);
+        observer.observe(list.value);
+    }
+});
+onBeforeUnmount(() => observer?.disconnect());
 watch(() => props.modelValue, reveal);
 
 const move = (event: KeyboardEvent, index: number) => {
@@ -67,6 +85,12 @@ const move = (event: KeyboardEvent, index: number) => {
             role="tablist"
             :aria-label="ariaLabel"
             class="flex min-w-0 [scrollbar-width:none] gap-1 overflow-x-auto rounded-full bg-muted p-1 [&::-webkit-scrollbar]:hidden"
+            :class="
+                more
+                    ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
+                    : ''
+            "
+            @scroll.passive="measure"
         >
             <button
                 v-for="(tab, index) in tabs"
