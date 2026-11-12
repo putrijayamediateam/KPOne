@@ -958,7 +958,7 @@ const saveReorder = () =>
                         <fieldset
                             v-for="line in row.lines"
                             :key="line.publicId"
-                            class="grid gap-2 rounded-lg border p-2 sm:grid-cols-5"
+                            class="grid items-start gap-2 rounded-lg border p-2 sm:grid-cols-2"
                         >
                             <legend class="px-1 text-xs font-medium">
                                 {{ line.sku }} · {{ line.receivedQuantity }}/{{
@@ -966,22 +966,27 @@ const saveReorder = () =>
                                 }}
                                 · Base stock unit: {{ line.stockUnit }}
                             </legend>
-                            <Input
-                                v-model="receipt[line.publicId].batchNumber"
-                                :aria-label="`${line.sku} received batch number`"
-                                placeholder="Batch number"
-                            />
-                            <DateField
-                                v-model="receipt[line.publicId].expiryDate"
-                                :aria-label="`${line.sku} received batch expiry`"
-                                :echo="false"
-                            />
-                            <Input
-                                v-model="receipt[line.publicId].quantity"
-                                :aria-label="`${line.sku} receipt quantity`"
-                                placeholder="Quantity this receipt"
-                                inputmode="decimal"
-                            />
+                            <label class="grid min-w-0 gap-1 text-xs"
+                                >Batch number (required)
+                                <Input
+                                    v-model="receipt[line.publicId].batchNumber"
+                                    :aria-label="`${line.sku} received batch number`"
+                            /></label>
+                            <label class="grid min-w-0 gap-1 text-xs"
+                                >Expiry date (required)
+                                <DateField
+                                    v-model="receipt[line.publicId].expiryDate"
+                                    :aria-label="`${line.sku} expiry date`"
+                                    :echo="false"
+                            /></label>
+                            <label class="grid min-w-0 gap-1 text-xs"
+                                >Quantity this receipt ({{ line.stockUnit }},
+                                required)
+                                <Input
+                                    v-model="receipt[line.publicId].quantity"
+                                    :aria-label="`${line.sku} quantity this receipt`"
+                                    inputmode="decimal"
+                            /></label>
                             <div class="grid min-w-0 gap-1">
                                 <label class="grid min-w-0 gap-1 text-xs"
                                     >Total paid for this batch (RM, optional)

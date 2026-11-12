@@ -100,6 +100,44 @@ class OpenShiftsTest extends VisitTestCase
             ->where('openShifts.mine.0.requestStatusLabel', 'Not chosen: another locum was confirmed'));
     }
 
+    public function test_a_filled_shift_whose_roster_shift_is_moved_or_removed_needs_posting_again(): void
+    {
+        // HR-15b known limit: after a confirm, HR can still move or remove that shift on the draft roster. The filled shift
+        // then says "Needs posting again" until the roster has it again for the confirmed locum, at the same times.
+        $locum = $this->linkedLocum('first');
+        $shift = $this->post_($this->hr);
+        $this->selectBranch($locum);
+        $this->post(route('hr.open-shifts.ask', $shift), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->selectBranch($this->hr);
+        $ask = DB::table('hr_open_shift_requests')->sole();
+        $this->post(route('hr.open-shifts.confirm', $ask->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasNoErrors();
+        $needs = function (bool $expected): void {
+            $this->get(route('hr.open-shifts.index', ['tab' => 'closed']))->assertInertia(fn (Assert $page) => $page
+                ->has('openShifts.closed', 1)->where('openShifts.closed.0.status', 'filled')->where('openShifts.closed.0.needsPosting', $expected));
+        };
+        $needs(false);
+
+        $version = RosterVersion::query()->where('status', 'draft')->sole();
+        $row = RosterShift::query()->where('roster_version_id', $version->id)->sole();
+        $roster = app(RosterService::class);
+        $input = fn (string $start) => ['staff_user_id' => $locum->id, 'date' => '2026-11-17', 'start_time' => $start, 'end_time' => '14:00',
+            'break_minutes' => '30', 'session_type' => 'morning', 'expected_version_lock' => $version->refresh()->lock_version];
+        $roster->updateShift($this->hr, $version->public_id, $row->public_id, $input('09:00')); // moved
+        $needs(true);
+        $roster->updateShift($this->hr, $version->public_id, $row->public_id, $input('08:00')); // moved back
+        $needs(false);
+        $roster->removeShift($this->hr, $version->public_id, $row->public_id, ['expected_version_lock' => $version->refresh()->lock_version]);
+        $needs(true);
+        // Another person on the roster at the same times is not the confirmed locum.
+        $other = $this->actor('resident_doctor');
+        $roster->addShift($this->hr, $version->public_id, [...$input('08:00'), 'staff_user_id' => $other->id, 'idempotency_key' => (string) Str::uuid()]);
+        $needs(true);
+
+        // Nothing is stored: the shift and the ask are unchanged.
+        $this->assertSame(['filled', 'confirmed'], [DB::table('hr_open_shifts')->value('status'), DB::table('hr_open_shift_requests')->value('status')]);
+    }
+
     public function test_a_week_waiting_for_approval_is_not_changed_and_a_withdrawn_shift_declines_its_asks(): void
     {
         $locum = $this->linkedLocum('one');
