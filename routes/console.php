@@ -6,6 +6,7 @@ use App\Console\Commands\CleanupPublicPatientIntakes;
 use App\Console\Commands\PurgeCompliancePhotos;
 use App\Console\Commands\PurgeHrCredentials;
 use App\Console\Commands\PurgeHrDocuments;
+use App\Console\Commands\PurgeInterviewRecords;
 use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
 use App\Console\Commands\PurgeLeaveRecords;
@@ -59,6 +60,13 @@ Schedule::command(PurgeStaffClaims::class)
 
 // HR-13: closed job applications are cleared after the clinic-entered retention (none shipped; nothing until HR sets one).
 Schedule::command(PurgeJobApplications::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// PDPA 15 (owner, 2026-11-11): an unsuccessful candidate's interview time choices, bookings and document download
+// records are deleted 6 months after the application closed.
+Schedule::command(PurgeInterviewRecords::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
