@@ -36,12 +36,13 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits)
     <DialogOverlay />
     <DialogContent
       data-slot="dialog-content"
+      :data-sheet="sheetOnPhone ? 'true' : undefined"
       v-bind="{ ...$attrs, ...forwarded }"
       :class="
         cn(
-          'bg-card data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 fixed z-50 grid w-full gap-4 border p-6 shadow-[var(--shadow-dialog)] dark:border-foreground/20 duration-200 sm:top-[50%] sm:left-[50%] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-[18px] [&_[data-slot=dialog-title]]:pr-9',
+          'bg-card data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 group/dialog fixed z-50 grid w-full gap-4 border p-6 shadow-[var(--shadow-dialog)] dark:border-foreground/20 duration-200 sm:top-[50%] sm:left-[50%] sm:max-w-lg sm:translate-x-[-50%] sm:translate-y-[-50%] sm:rounded-[18px] [&_[data-slot=dialog-title]]:pr-9',
           sheetOnPhone
-            ? 'max-sm:inset-x-0 max-sm:bottom-0 max-sm:max-h-[90dvh] max-sm:overflow-y-auto max-sm:rounded-t-[18px] max-sm:pb-[max(1.5rem,env(safe-area-inset-bottom))] max-sm:data-[state=open]:slide-in-from-bottom-8 max-sm:data-[state=closed]:slide-out-to-bottom-8'
+            ? 'max-sm:inset-x-0 max-sm:bottom-0 max-sm:max-h-[90dvh] max-sm:overflow-y-auto max-sm:rounded-t-[18px] max-sm:data-[state=open]:slide-in-from-bottom-8 max-sm:data-[state=closed]:slide-out-to-bottom-8'
             : 'max-sm:top-[50%] max-sm:left-[50%] max-sm:max-w-[calc(100%-2rem)] max-sm:translate-x-[-50%] max-sm:translate-y-[-50%] max-sm:rounded-[18px]',
           props.class,
         )"
