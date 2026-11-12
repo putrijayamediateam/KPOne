@@ -604,11 +604,15 @@ const markScanned = (sku: ScannedSku, gs1: Gs1Read | null = null) => {
             ...scanBoxReads.value,
             ...Object.fromEntries(matched.map((item) => [item.publicId, gs1])),
         };
-        // Spoken once per scan; the scan box already says which line matched.
-        scanBatchAnnouncement.value = matched
+        // Spoken once per scan; the scan box already says which line matched. Set after the next render, so an identical
+        // repeat scan still changes the text (acceptScan cleared it) and is spoken again (Hakim).
+        const said = matched
             .map((item) => scanBatch(item)?.message)
             .filter((message): message is string => !!message)
             .join(' ');
+        void nextTick(() => {
+            scanBatchAnnouncement.value = said;
+        });
         const line = visibleItems.value.find(
             (item) =>
                 item.sku?.publicId === sku.public_id &&

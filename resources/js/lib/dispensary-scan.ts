@@ -246,6 +246,7 @@ export function boxBatchCheck(
               };
     }
 
+    // A line saved on a pre-STK-3 batch with the 9999-12-31 placeholder expiry always warns against a real box expiry.
     if (
         read.expiry !== null &&
         !same.some(
@@ -262,6 +263,6 @@ export function boxBatchCheck(
     return {
         kind: 'matches',
         warn: false,
-        message: `Batch ${candidate} matches the box.`,
+        message: `Saved batch ${candidate} matches the box.`,
     };
 }

@@ -43,7 +43,7 @@ test('a box batch saved on the line matches, ignoring case and spaces', () => {
 
     assert.equal(result.kind, 'matches');
     assert.equal(result.warn, false);
-    assert.equal(result.message, 'Batch pcm2405 matches the box.');
+    assert.equal(result.message, 'Saved batch pcm2405 matches the box.');
 });
 
 test('a box batch that is not saved on the line warns', () => {
@@ -66,6 +66,18 @@ test('the same batch number with another expiry warns', () => {
         result.message,
         'Box batch PCM2401 is saved on this line, but its expiry is different. Check the box.',
     );
+});
+
+test('a placeholder 9999-12-31 expiry always warns against a real box expiry', () => {
+    const old = [
+        { batchPublicId: 'b9', batchNumber: 'OLD1', expiryDate: '9999-12-31' },
+    ];
+
+    assert.equal(
+        boxBatchCheck(gs1('OLD1', '2027-07-10'), old).kind,
+        'expiry_differs',
+    );
+    assert.equal(boxBatchCheck(gs1('OLD1'), old).kind, 'matches');
 });
 
 test('a box with a batch but no expiry is compared by batch only', () => {
@@ -131,6 +143,12 @@ test('the note shows under the Checked by scan badge, in warning or success colo
         ),
     );
     assert.ok(flat.includes("scanBatchAnnouncement.value = '';"));
+    // Set after the next render, so an identical repeat scan is spoken again (Hakim).
+    assert.ok(
+        flat.includes(
+            'void nextTick(() => { scanBatchAnnouncement.value = said; });',
+        ),
+    );
 });
 
 test('it never selects, saves or blocks anything', () => {
