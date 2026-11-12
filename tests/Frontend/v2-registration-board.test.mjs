@@ -598,3 +598,55 @@ test('V2 Register visit: same payload, search and rules as the Classic page, whi
     assert.ok(!classicCreate.includes('composables/registration/'));
     assert.ok(!classicCreate.includes('components/v2'));
 });
+
+test('V2 Visit page and Edit visit: same routes, payload keys, permissions and rules as Classic, which stay unchanged', () => {
+    const norm = (text) => text.replace(/\s+/g, ' ');
+    const classicShow = norm(read('resources/js/pages/Registration/Show.vue'));
+    const v2Show = norm(read('resources/js/pages/Registration/V2/Show.vue'));
+    const classicEdit = norm(read('resources/js/pages/Registration/Edit.vue'));
+    const v2Edit = norm(read('resources/js/pages/Registration/V2/Edit.vue'));
+
+    for (const shared of [
+        '/queue`',
+        '/cancel`',
+        "from: 'registration'",
+        'visit_lock_version: props.visit.lockVersion',
+        'expected_branch_id',
+        'lock_version: props.visit.lockVersion',
+        'queue_lock_version: props.visit.queue?.lockVersion ?? null',
+        'cancellation_reason',
+        'visits.create.branch',
+        'medical_certificates.view.branch',
+        'attendance_documents.view.branch',
+        'attendance_documents.print.branch',
+        'visit.hasConsultation',
+        'No medical certificate: this visit was cancelled.',
+        'Medical certificates are available after the doctor starts the',
+        'visit.can.update',
+        'visit.can.sendToWaiting',
+        'visit.can.cancel',
+        '/medical-certificates`',
+        '/attendance/${copy.id}',
+    ]) {
+        assert.ok(v2Show.includes(shared), `V2 Show ${shared}`);
+        assert.ok(classicShow.includes(shared), `Classic Show ${shared}`);
+    }
+
+    for (const shared of [
+        'panel_note_idempotency_key: crypto.randomUUID()',
+        'panel_note_panel_id',
+        'queue_lock_version: props.visit.queue?.lockVersion ?? null',
+        "Reflect.deleteProperty(legacy, 'visit_reason_public_ids')",
+        '.patch(`/visits/${props.visit.visitNumber}`)',
+        'visit.visitReasons.structured.length',
+        'preserved unchanged.',
+    ]) {
+        assert.ok(v2Edit.includes(shared), `V2 Edit ${shared}`);
+        assert.ok(classicEdit.includes(shared), `Classic Edit ${shared}`);
+    }
+
+    assert.match(v2Show, /reason-label="Cancellation reason"/);
+    assert.match(v2Show, /tone="danger"/);
+    assert.ok(!classicShow.includes('components/v2'));
+    assert.ok(!classicEdit.includes('components/v2'));
+});

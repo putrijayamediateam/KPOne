@@ -16,5 +16,7 @@ return [
     'pages' => [
         'Registration/Index',
         'Registration/Create',
+        'Registration/Show',
+        'Registration/Edit',
     ],
 ];
