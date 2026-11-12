@@ -71,6 +71,17 @@ final class StockRequestService
             }
             $skus = InventorySku::query()->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->whereIn('public_id', array_column($lines, 'sku_public_id'))->orderBy('id')->lockForUpdate()->get()->keyBy('public_id');
             abort_unless($skus->count() === count($lines), 404);
+            // STK-31 (Daniel): a cross-branch request never sends more than this location can spare (usable stock above
+            // its own maximum or reorder level, less what is already waiting to be sent). Same-branch requests are unchanged.
+            if ($source->branch_id !== null && $destination->branch_id !== null && $destination->branch_id !== $source->branch_id) {
+                $spare = app(BranchReplenishmentService::class)->spareAt($lockedActor, $branch, $source->id, $skus->pluck('id')->map(fn ($id): int => (int) $id)->values()->all());
+                foreach ($lines as $index => $input) {
+                    $available = $spare[(int) $skus[$input['sku_public_id']]->id] ?? 0;
+                    if (StockUnitQuantity::scaled($input['quantity'], true) > $available) {
+                        throw ValidationException::withMessages(["lines.$index.quantity" => 'This branch can spare '.rtrim(rtrim(StockUnitQuantity::format(intdiv($available, 1000) * 1000), '0'), '.').' of this item. Lower the quantity.']);
+                    }
+                }
+            }
             $request = new StockRequest;
             $request->forceFill([
                 'public_id' => (string) Str::uuid(), 'organisation_id' => $lockedActor->organisation_id, 'requesting_branch_id' => $branch->id,

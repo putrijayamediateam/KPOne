@@ -237,7 +237,27 @@ final class BranchReplenishmentTest extends VisitTestCase
         $total = $rows->sum(fn (array $row): float => (float) $row['suggestedQuantity']);
         $this->assertSame(15.0, $total);
         $this->assertSame(['0.000', '10.000'], $rows->pluck('from.alreadySuggested')->all());
+        // Each line's cap in the dialog is what that location can spare in total.
+        $this->assertSame(['15.000', '15.000'], $rows->pluck('from.spare')->all());
         $this->assertSame(['10.000', '5.000'], $rows->pluck('suggestedQuantity')->all());
+    }
+
+    public function test_a_cross_branch_request_never_sends_more_than_this_location_can_spare(): void
+    {
+        // Daniel: 20 usable, our own level 5 → 15 to spare. 16 is refused under that line; 15 is accepted, and then a
+        // further request for 1 is refused because nothing is left. A request inside one branch is not capped.
+        $this->level($this->f['location'], '5.000');
+        $ca = $this->staff('ca');
+        try {
+            $this->request($ca, $this->f['location'], $this->theirs, '16');
+            $this->fail('A cross-branch request above the spare stock was accepted.');
+        } catch (ValidationException $exception) {
+            $this->assertSame(['lines.0.quantity' => ['This branch can spare 15 of this item. Lower the quantity.']], $exception->errors());
+        }
+        $this->assertInstanceOf(StockRequest::class, $this->request($ca, $this->f['location'], $this->theirs, '15'));
+        $this->expectRefusal(fn () => $this->request($ca, $this->f['location'], $this->theirs, '1'), ValidationException::class);
+        $local = $this->location($this->branch, 'Synthetic local store', InventoryLocation::TYPE_BRANCH_STORE);
+        $this->assertInstanceOf(StockRequest::class, $this->request($ca, $this->f['location'], $local, '18'));
     }
 
     public function test_only_the_right_branch_acts_on_each_step_and_the_audit_says_where_it_goes(): void

@@ -16,7 +16,7 @@ test('STK-31: the page explains its method and sends nothing by itself', () => {
     assert.match(page, /Nothing is sent from this page\./);
     assert.match(
         page,
-        /Their need = their maximum \(or reorder level\) − on hand − on order −\s+incoming\./,
+        /Their need is what brings them up to their maximum \(or reorder\s+level\)\./,
     );
     // Read only until a person checks the dialog and presses Send request.
     assert.doesNotMatch(page, /useForm|router\.(put|patch|delete)/);
@@ -29,7 +29,11 @@ test('STK-31: "Request these" sends one ordinary stock request for one pair of l
     assert.match(page, /destination_location_public_id: draft\.to,/);
     assert.match(page, /from: 'branch-replenishment',/);
     assert.match(page, /:disabled="!ticked\.length \|\| !onePair"/);
-    assert.match(page, /Tick suggestions with the same pair only\./);
+    assert.match(page, /Tick suggestions for one branch at a time\./);
+    // The dialog shows each line's cap and its own message under the box.
+    assert.match(page, /This branch can spare \{\{ line\.spare \}\}\./);
+    assert.match(page, /'Enter a quantity above 0\.'/);
+    assert.match(page, /:message="lineError\(index\)"/);
 });
 
 test('STK-31: cards show both sides, Maximum or Not set, and 44 px tick targets', () => {
@@ -39,7 +43,11 @@ test('STK-31: cards show both sides, Maximum or Not set, and 44 px tick targets'
         page,
         /<dd v-else class="text-muted-foreground">\s*Not set\s*<\/dd>/,
     );
-    assert.match(page, /size-11 shrink-0/);
+    // Below 1024 px the whole card header is the tick target, with a 24 px box.
+    assert.match(page, /:is="suggestions\.canRequest \? 'label' : 'div'"/);
+    assert.match(page, /min-h-11 min-w-0 cursor-pointer/);
+    assert.match(page, /size-6 shrink-0 lg:size-4/);
+    assert.match(page, /Already suggested\s*<\/dt>/);
 });
 
 test('STK-31: a cross-branch request offers each step only at the branch that may take it', () => {

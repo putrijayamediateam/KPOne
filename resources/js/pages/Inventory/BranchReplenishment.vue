@@ -41,6 +41,7 @@ type Row = {
         target: string;
         sending: string;
         alreadySuggested: string;
+        spare: string;
     };
     suggestedQuantity: string;
 };
@@ -74,6 +75,11 @@ const ticked = ref<string[]>([]);
 const tickedRows = computed(() =>
     props.suggestions.rows.filter((row) => ticked.value.includes(row.key)),
 );
+const oneDestination = computed(
+    () =>
+        new Set(tickedRows.value.map((row) => row.to.locationPublicId)).size <=
+        1,
+);
 const onePair = computed(
     () =>
         new Set(
@@ -97,6 +103,8 @@ const draft = reactive<{
         label: string;
         unit: string;
         quantity: string;
+        suggested: string;
+        spare: string;
     }[];
 }>({ from: '', fromName: '', to: '', toName: '', lines: [] });
 
@@ -115,12 +123,43 @@ const requestThese = () => {
         label: `${row.skuCode} · ${row.itemName}`,
         unit: row.stockUnit,
         quantity: trimQuantity(row.suggestedQuantity),
+        suggested: trimQuantity(row.suggestedQuantity),
+        spare: trimQuantity(row.from.spare),
     }));
     sendErrors.value = {};
+    localErrors.value = {};
     sendOpen.value = true;
 };
 
+// Checked here first so the person sees why at once; the server checks the same and decides.
+const localErrors = ref<Record<string, string>>({});
+const checkLines = (): boolean => {
+    localErrors.value = {};
+    draft.lines.forEach((line, index) => {
+        const value = line.quantity.trim();
+
+        if (!/^\d{1,12}(\.\d{1,3})?$/.test(value) || Number(value) <= 0) {
+            localErrors.value[`lines.${index}.quantity`] =
+                'Enter a quantity above 0.';
+        } else if (Number(value) > Number(line.spare)) {
+            localErrors.value[`lines.${index}.quantity`] =
+                `This branch can spare ${line.spare}. Lower the quantity.`;
+        }
+    });
+
+    return Object.keys(localErrors.value).length === 0;
+};
+const lineError = (index: number): string | undefined =>
+    localErrors.value[`lines.${index}.quantity`] ??
+    sendErrors.value[`lines.${index}.quantity`];
+
 const sendRequest = () => {
+    sendErrors.value = {};
+
+    if (!checkLines()) {
+        return;
+    }
+
     router.post(
         '/inventory/stock-requests',
         {
@@ -146,8 +185,12 @@ const sendRequest = () => {
         },
     );
 };
-const sendError = computed(
-    () => Object.values(sendErrors.value)[0] ?? undefined,
+// Any refusal that is not about one line's quantity shows once under the list.
+const generalError = computed(
+    () =>
+        Object.entries(sendErrors.value).find(
+            ([key]) => !/^lines\.\d+\.quantity$/.test(key),
+        )?.[1],
 );
 </script>
 
@@ -169,11 +212,10 @@ const sendError = computed(
             class="rounded-lg border bg-muted/40 p-3 text-sm"
             data-testid="replenishment-method"
         >
-            Their need = their maximum (or reorder level) − on hand − on order −
-            incoming. We can spare = usable stock − our own maximum (or reorder
-            level) − what is already waiting to be sent. Suggested = the smaller
-            of the two, in whole units, from our location with the most to
-            spare.
+            Their need is what brings them up to their maximum (or reorder
+            level). What we can spare is our usable stock above our own level,
+            less what is already waiting to be sent. The suggestion is the
+            smaller of the two, in whole units.
         </p>
 
         <form
@@ -205,9 +247,12 @@ const sendError = computed(
                     {{ ticked.length === 1 ? 'suggestion' : 'suggestions' }}
                     ticked.</template
                 >
+                <template v-else-if="!oneDestination"
+                    >Tick suggestions for one branch at a time.</template
+                >
                 <template v-else
-                    >A request goes from one of our locations to one of theirs.
-                    Tick suggestions with the same pair only.</template
+                    >Tick suggestions sent from one of our locations at a
+                    time.</template
                 >
             </p>
             <Button
@@ -233,29 +278,29 @@ const sendError = computed(
                 class="space-y-3 rounded-lg border bg-card p-4"
             >
                 <div class="flex flex-wrap items-start justify-between gap-2">
-                    <div class="flex min-w-0 items-start gap-3">
-                        <label
+                    <component
+                        :is="suggestions.canRequest ? 'label' : 'div'"
+                        class="flex min-h-11 min-w-0 cursor-pointer items-start gap-3 lg:min-h-0"
+                        data-testid="replenishment-card-header"
+                    >
+                        <input
                             v-if="suggestions.canRequest"
-                            class="-m-3 flex size-11 shrink-0 items-center justify-center lg:-m-2 lg:size-8"
-                        >
-                            <input
-                                v-model="ticked"
-                                type="checkbox"
-                                class="size-5 lg:size-4"
-                                :value="row.key"
-                                :aria-label="`Send ${row.skuCode} to ${row.to.branch}, ${row.to.location}`"
-                            />
-                        </label>
-                        <div class="min-w-0">
-                            <p class="font-medium break-words">
+                            v-model="ticked"
+                            type="checkbox"
+                            class="mt-0.5 size-6 shrink-0 lg:size-4"
+                            :value="row.key"
+                            :aria-label="`Send ${row.skuCode} to ${row.to.branch}, ${row.to.location}`"
+                        />
+                        <span class="min-w-0">
+                            <span class="block font-medium break-words">
                                 {{ row.skuCode }} · {{ row.itemName }}
-                            </p>
-                            <p class="text-sm text-muted-foreground">
+                            </span>
+                            <span class="block text-sm text-muted-foreground">
                                 From {{ row.from.location }} to
                                 {{ row.to.branch }} · {{ row.to.location }}
-                            </p>
-                        </div>
-                    </div>
+                            </span>
+                        </span>
+                    </component>
                     <div class="sm:text-right">
                         <p class="text-xs text-muted-foreground">
                             Suggested to send
@@ -374,7 +419,7 @@ const sendError = computed(
                             </div>
                             <div v-if="row.from.alreadySuggested !== '0.000'">
                                 <dt class="text-muted-foreground">
-                                    Already suggested above
+                                    Already suggested
                                 </dt>
                                 <dd class="tabular-nums">
                                     {{
@@ -428,16 +473,27 @@ const sendError = computed(
                                     v-model="line.quantity"
                                     inputmode="decimal"
                                     class="h-11 lg:h-9"
+                                    :aria-describedby="`line-${index}-cap line-${index}-error`"
                                     :aria-invalid="
-                                        sendErrors[`lines.${index}.quantity`]
-                                            ? true
-                                            : undefined
+                                        lineError(index) ? true : undefined
                                     "
                                 />
                             </label>
+                            <p
+                                :id="`line-${index}-cap`"
+                                class="mt-1 text-xs text-muted-foreground"
+                            >
+                                Suggested {{ line.suggested }} {{ line.unit }}.
+                                This branch can spare {{ line.spare }}. More
+                                than that is refused.
+                            </p>
+                            <InputError
+                                :id="`line-${index}-error`"
+                                :message="lineError(index)"
+                            />
                         </li>
                     </ul>
-                    <InputError :message="sendError" />
+                    <InputError :message="generalError" />
                     <div
                         class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end [&>button]:min-h-11 max-sm:[&>button]:w-full"
                     >

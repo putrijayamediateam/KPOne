@@ -114,7 +114,9 @@ final class BranchReplenishmentService
                 'from' => ['location' => $from['name'], 'locationPublicId' => $from['publicId'], 'usable' => StockUnitQuantity::format($from['usable']),
                     'target' => StockUnitQuantity::format($from['target']), 'sending' => StockUnitQuantity::format($from['sending']),
                     // What earlier suggestions on this page already take from the same location and SKU.
-                    'alreadySuggested' => StockUnitQuantity::format($earlier)],
+                    'alreadySuggested' => StockUnitQuantity::format($earlier),
+                    // The most a request may send of this SKU from this location (the server refuses more).
+                    'spare' => StockUnitQuantity::format(intdiv($from['surplus'], 1000) * 1000)],
                 'suggestedQuantity' => StockUnitQuantity::format($suggested),
             ];
         }
@@ -133,6 +135,25 @@ final class BranchReplenishmentService
             'lastPage' => $lastPage,
             'total' => $total,
         ];
+    }
+
+    /**
+     * Daniel's cap: what one of our locations can spare of each SKU (usable − our own target − already waiting to be
+     * sent), 0 when nothing. StockRequestService refuses a cross-branch line above it.
+     *
+     * @param  list<int>  $skuIds
+     * @return array<int, int> spare in thousandths, keyed by SKU id
+     */
+    public function spareAt(User $actor, Branch $branch, int $locationId, array $skuIds): array
+    {
+        $spare = array_fill_keys($skuIds, 0);
+        foreach ($this->surplus($actor, $branch, $skuIds) as $skuId => $locations) {
+            if (isset($locations[$locationId])) {
+                $spare[$skuId] = $locations[$locationId]['surplus'];
+            }
+        }
+
+        return $spare;
     }
 
     /**
