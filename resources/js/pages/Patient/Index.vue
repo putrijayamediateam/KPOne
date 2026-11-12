@@ -142,9 +142,9 @@ const identifierLabel = (result: Result) =>
                 <label class="relative"
                     ><span class="sr-only">Search patients</span
                     ><Search
-                        class="absolute top-3 left-3 size-4 text-muted-foreground max-lg:top-3.5" /><input
+                        class="absolute top-2.5 left-3 size-4 text-muted-foreground max-lg:top-3.5" /><input
                         v-model="form.query"
-                        class="h-10 w-full rounded-[10px] border bg-background pr-3 pl-9 text-sm max-lg:h-11"
+                        class="h-9 w-full rounded-[10px] border bg-background pr-3 pl-9 text-sm max-lg:h-11"
                         autocomplete="off"
                         placeholder="Enter at least 3 characters"
                 /></label>
@@ -153,7 +153,7 @@ const identifierLabel = (result: Result) =>
                     v-model="form.issuing_country_code"
                     aria-label="Passport issuing country (2-letter code)"
                     maxlength="2"
-                    class="h-10 rounded-[10px] border bg-background px-3 text-sm uppercase max-lg:h-11"
+                    class="h-9 rounded-[10px] border bg-background px-3 text-sm uppercase max-lg:h-11"
                     placeholder="Issuer"
                 />
                 <span v-else />
