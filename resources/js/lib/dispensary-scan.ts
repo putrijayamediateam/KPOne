@@ -1,8 +1,11 @@
 /**
  * DSP-11 scan to check at Dispensary (owner decision 2026-11-06): a scanned box is compared with the saved
  * medicine lines' mapped SKUs. It only warns: nothing is saved, recorded or blocked, and a mark lives on this
- * screen only. It does not check the quantity or the batch.
+ * screen only. It does not check the quantity. DSP-20 compares the batch on a GS1 box with the line's saved
+ * batches (`boxBatchCheck`).
  */
+import type { Gs1Read } from '@/lib/scan';
+
 export type ScanCheckLine = {
     publicId: string;
     name: string;
@@ -189,5 +192,85 @@ export function scanAddOutcome<T extends ScanAddMedicine>(
         kind: 'choose',
         medicine,
         message: `Found ${name(medicine)}. Set the quantity and batch, then press Add.`,
+    };
+}
+
+/** DSP-20: a batch saved on a medicine line (its allocations). */
+export type SavedBatch = {
+    batchNumber?: string | null;
+    expiryDate?: string | null;
+};
+
+export type BoxBatchCheck = {
+    kind: 'matches' | 'expiry_differs' | 'differs';
+    warn: boolean;
+    message: string;
+};
+
+const sameText = (a: string, b: string): boolean =>
+    a.trim().toUpperCase() === b.trim().toUpperCase();
+
+/**
+ * DSP-20 (owner: "go with DSP-20"): what the batch on a scanned GS1 box says about a line that scan to check marked.
+ * Warn only; nothing is saved or blocked. Returns null when there is nothing to compare: a plain barcode, a code with
+ * no batch, or a line with no saved batch yet. A batch read without separators may have swallowed a following field,
+ * so it is used only when it matches a saved batch exactly (as in DSP-18).
+ */
+export function boxBatchCheck(
+    read: Gs1Read | null,
+    saved: SavedBatch[],
+): BoxBatchCheck | null {
+    const savedNumbers = saved.filter(
+        (batch): batch is SavedBatch & { batchNumber: string } =>
+            typeof batch.batchNumber === 'string' &&
+            batch.batchNumber.trim() !== '',
+    );
+    const candidate =
+        (read?.batch ?? read?.batch_unconfirmed ?? '').trim() || null;
+
+    if (read === null || candidate === null || savedNumbers.length === 0) {
+        return null;
+    }
+
+    const same = savedNumbers.filter((batch) =>
+        sameText(batch.batchNumber, candidate),
+    );
+
+    if (same.length === 0) {
+        return read.batch === null
+            ? null
+            : {
+                  kind: 'differs',
+                  warn: true,
+                  message: `Box batch ${candidate} is not the batch saved on this line. Check the box.`,
+              };
+    }
+
+    // A line saved on a pre-STK-3 batch with the 9999-12-31 placeholder expiry always warns against a real box expiry.
+    if (
+        read.expiry !== null &&
+        !same.some(
+            (batch) => (batch.expiryDate ?? '').slice(0, 10) === read.expiry,
+        )
+    ) {
+        return {
+            kind: 'expiry_differs',
+            warn: true,
+            message: `Box batch ${candidate} is saved on this line, but its expiry is different. Check the box.`,
+        };
+    }
+
+    // A line split across two or more batches: the box is one of them, not the whole line (Daniel).
+    const distinct = new Set(
+        savedNumbers.map((batch) => batch.batchNumber.trim().toUpperCase()),
+    );
+
+    return {
+        kind: 'matches',
+        warn: false,
+        message:
+            distinct.size > 1
+                ? `Box batch ${candidate} is one of this line's saved batches.`
+                : `Saved batch ${candidate} matches the box.`,
     };
 }
