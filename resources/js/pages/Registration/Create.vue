@@ -18,6 +18,7 @@ import RegistrationContactFields from '@/components/patient/RegistrationContactF
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
@@ -421,29 +422,26 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
     <main
         class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-4 md:p-6"
     >
-        <div class="flex items-start justify-between gap-4">
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Register Visit
-                </h1>
-                <div
-                    class="mt-1 inline-flex items-center gap-1.5 rounded-full bg-muted px-2.5 py-1 text-xs font-medium text-muted-foreground"
-                >
+        <PageHeader title="Register Visit">
+            <template #description>
+                <span class="inline-flex items-center gap-1.5">
                     <MapPin class="size-3.5" />
                     {{ options.branch.name }} · current branch
-                </div>
-            </div>
-            <Button variant="outline" as-child
-                ><Link href="/registration"
-                    ><ArrowLeft class="size-4" /> Console</Link
-                ></Button
-            >
-        </div>
+                </span>
+            </template>
+            <template #actions>
+                <Button variant="outline" class="max-lg:h-11" as-child
+                    ><Link href="/registration"
+                        ><ArrowLeft class="size-4" /> Console</Link
+                    ></Button
+                >
+            </template>
+        </PageHeader>
 
-        <section class="overflow-hidden rounded-lg border bg-card">
+        <section class="overflow-hidden rounded-xl border bg-card">
             <div class="flex items-center justify-between px-4 pt-4 pb-2">
                 <div>
-                    <h2 class="font-semibold">1. Patient</h2>
+                    <h2 class="text-base font-semibold">1. Patient</h2>
                     <p class="text-xs text-muted-foreground">
                         Select an existing Patient or create a new one quickly.
                     </p>
@@ -507,7 +505,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 <form class="relative" @submit.prevent="searchPatients">
                     <label class="relative block"
                         ><Search
-                            class="absolute top-3 left-3 size-4 text-muted-foreground" /><input
+                            class="absolute top-2.5 left-3 size-4 text-muted-foreground max-lg:top-3.5" /><input
                             id="patient-search"
                             aria-describedby="patient-search-help"
                             v-model="patientQuery"
@@ -515,7 +513,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             autocomplete="off"
                             aria-controls="patient-results"
                             aria-label="Search Patient"
-                            class="h-10 w-full rounded-md border bg-background pr-10 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                            class="h-9 w-full rounded-[10px] border bg-background pr-10 pl-9 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none max-lg:h-11"
                             placeholder="Name / NRIC / Phone / Patient No."
                             @keydown="handlePatientSearchKeydown" /></label
                     ><LoaderCircle
@@ -614,6 +612,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         type="button"
                         size="sm"
                         variant="outline"
+                        class="max-lg:h-11 lg:h-9"
                         @click="startQuickCreate"
                         ><UserPlus class="size-4" /> Quick create</Button
                     >
@@ -627,6 +626,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         type="button"
                         size="sm"
                         variant="outline"
+                        class="max-lg:h-11 lg:h-9"
                         @click="startQuickCreate"
                     >
                         <UserPlus class="size-4" /> Quick create
@@ -642,7 +642,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         aria-describedby="quick-name-error"
                         v-model="quick.full_name"
                         autocomplete="off"
-                        class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11" /><InputError
                         id="quick-name-error"
                         :message="errorFor('quick_patient.full_name')"
                 /></label>
@@ -695,7 +695,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         "
                         aria-describedby="quick-identity-error"
                         maxlength="2"
-                        class="h-10 rounded-md border bg-background px-3 text-sm uppercase" /></label
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm uppercase max-lg:h-11" /></label
                 ><span v-else />
                 <PhoneInput
                     id="quick-phone"
@@ -747,7 +747,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         "
                         maxlength="2"
                         placeholder="MY"
-                        class="h-10 rounded-md border bg-background px-3 text-sm uppercase" /><InputError
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm uppercase max-lg:h-11" /><InputError
                         :message="errorFor('quick_patient.nationality_code')"
                 /></label>
                 <label class="grid gap-1" for="quick-gender"
@@ -797,9 +797,9 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             class="space-y-3 max-lg:flex max-lg:flex-col max-lg:gap-3 max-lg:space-y-0"
             @submit.prevent="submit"
         >
-            <section class="rounded-lg border bg-card">
+            <section class="rounded-xl border bg-card">
                 <div class="px-4 pt-4 pb-2">
-                    <h2 class="font-semibold">Visit details</h2>
+                    <h2 class="text-base font-semibold">Visit details</h2>
                     <p class="text-xs text-muted-foreground">
                         Consultation / OTC · Doctor · Reason · Coverage ·
                         Urgency
@@ -975,7 +975,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                     !!form.errors.coverage_member_reference
                                 "
                                 autocomplete="off"
-                                class="h-10 w-full rounded-md border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none" /><InputError
+                                class="h-9 w-full rounded-[10px] border border-input bg-background px-3 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none max-lg:h-11" /><InputError
                                 :message="
                                     errorFor('coverage_member_reference')
                                 "
@@ -994,7 +994,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 v-model="form.coverage_panel_note"
                                 rows="2"
                                 maxlength="500"
-                                class="w-full resize-y rounded-md border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                                class="w-full resize-y rounded-[10px] border border-input bg-background px-3 py-2 text-sm focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
                                 data-testid="registration-panel-note"
                             />
                             <span
@@ -1015,7 +1015,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             </section>
             <label
                 v-if="errorFor('confirm_repeat')"
-                class="flex items-start gap-3 rounded-lg border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
+                class="flex items-start gap-3 rounded-xl border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
                 ><input
                     v-model="form.confirm_repeat"
                     type="checkbox"
@@ -1031,7 +1031,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                 "
             />
             <div
-                class="sticky bottom-3 z-10 flex items-center justify-between gap-4 rounded-lg border bg-background/95 p-3 shadow-sm backdrop-blur max-lg:top-16 max-lg:bottom-auto max-lg:order-first"
+                class="sticky bottom-3 z-10 flex items-center justify-between gap-4 rounded-xl border bg-background/95 p-3 shadow-sm backdrop-blur max-lg:top-16 max-lg:bottom-auto max-lg:order-first"
             >
                 <div class="hidden min-w-0 sm:block">
                     <p class="truncate text-sm font-medium">
