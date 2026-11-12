@@ -24,7 +24,9 @@ test('0.3b: the page title is one shared class with the GUIDE section 19 sizes',
 
 test('0.3b: below 640 px only the primary action is full width, first; the rest share one row', () => {
     assert.match(header, /max-sm:w-full max-sm:\[&>\*\]:flex-1/);
+    assert.match(header, /:has\(>:nth-child\(3\)\)/);
     assert.match(header, /\[data-variant=primary\]\)\]:order-first/);
+    assert.doesNotMatch(header, /uppercase/);
     assert.match(header, /\[data-variant=primary\]\)\]:basis-full/);
 });
 

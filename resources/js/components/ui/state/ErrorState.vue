@@ -33,7 +33,7 @@ withDefaults(
         </svg>
         <div class="min-w-0">
             <p class="text-[15px] leading-[22px] font-semibold">{{ title }}</p>
-            <p class="text-sm leading-5">{{ message }}</p>
+            <p class="text-sm leading-5 text-foreground">{{ message }}</p>
             <div v-if="$slots.action" class="mt-2">
                 <slot name="action" />
             </div>
