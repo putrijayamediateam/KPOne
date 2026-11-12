@@ -59,8 +59,18 @@ test('DD-51: dark field fills use their own token, so darkening the border leave
     assert.deepEqual(offenders, []);
 });
 
-test('DD-51: the dark focus ring is the lighter cobalt and reaches 3:1 on the dark surfaces', () => {
-    const dark = css.slice(css.indexOf('.dark {'));
+test('DD-51: the dark focus ring is the lighter brand pink and stands out from the resting border', () => {
+    const dark = css.slice(css.indexOf('.dark'));
+    const ring = dark.match(/--ring:\s*hsl\(330 81% 72%\);/);
+    assert.ok(
+        ring,
+        'dark --ring should be hsl(330 81% 72%), the colour of --brand-strong',
+    );
+    assert.match(dark, /--brand-strong:\s*hsl\(330 81% 72%\);/);
+});
+
+test('DD-51 (Version 2): the dark focus ring is the lighter cobalt and reaches 3:1 on the dark surfaces', () => {
+    const dark = css.slice(css.indexOf(".dark[data-ui='v2'] {"));
     const ring = dark.match(/--ring:\s*(#[0-9a-f]{6});/i);
     assert.ok(ring, 'dark --ring should be a hex colour');
     assert.equal(ring[1].toLowerCase(), '#6ba6ff');

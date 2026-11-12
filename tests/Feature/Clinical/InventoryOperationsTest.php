@@ -810,7 +810,7 @@ class InventoryOperationsTest extends ClinicalTestCase
         $this->expectLegacyRefusal(fn () => $service->adjust($supervisor, $this->adjustment($fixture, 'out', '6.000')));
         $this->assertSame(1, DB::table('inventory_adjustments')->count());
         $this->assertDatabaseHas('inventory_stock_balances', ['inventory_location_id' => $fixture['location']->id, 'quantity' => 5]);
-        $service->setReorderLevel($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id, 'sku_public_id' => $fixture['sku']->public_id, 'reorder_level' => '5.000']);
+        $service->setReorderLevel($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id, 'sku_public_id' => $fixture['sku']->public_id, 'reorder_level' => '5.000', 'expected_lock_version' => null, 'idempotency_key' => (string) Str::uuid()]);
         $this->get(route('inventory.index'))->assertOk()->assertInertia(fn ($page) => $page->has('operations.lowStock', 1)->where('operations.lowStock.0.sku', 'P2-ADJ-SKU'));
 
         DB::table('inventory_stock_balances')->where('inventory_location_id', $fixture['location']->id)->update(['quantity' => '0.000']);

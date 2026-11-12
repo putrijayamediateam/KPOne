@@ -251,7 +251,8 @@ final class AppraisalService
             DB::table('hr_appraisals')->where('id', $appraisal->id)->update(['status' => 'signed_off', 'signed_off_by_user_id' => $actor->id, 'signed_off_at' => now()->utc(),
                 'lock_version' => (int) $appraisal->lock_version + 1, 'updated_at' => now()->utc()]);
             $this->support->remember($actor, $key, 'appraisal_sign_off', $hash, $appraisalId);
-            $this->support->audit->record('hr.appraisals.signed_off', null, ['appraisal_id' => (int) $appraisal->id, 'with_comment' => $appraisal->staff_commented_at !== null],
+            $this->support->audit->record('hr.appraisals.signed_off', null, ['appraisal_id' => (int) $appraisal->id, 'with_comment' => $appraisal->staff_commented_at !== null,
+                'same_person' => (int) $appraisal->appraiser_user_id === $actor->id],
                 $actor, null, $actor->organisation_id);
         }, 3);
     }
