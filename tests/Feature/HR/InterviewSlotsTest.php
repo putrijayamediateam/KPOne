@@ -290,6 +290,75 @@ class InterviewSlotsTest extends VisitTestCase
         $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', null)->where('application.stage', 'scheduling'));
     }
 
+    public function test_hr_gives_three_more_working_days_and_the_count_restarts_from_that_day(): void
+    {
+        // Owner, 2026-11-11 (#484 follow-up b). Filed Tue 10 (New): Wed 11, Thu 12, (Fri 13 holiday), Mon 16 = reminder, Tue 17 = closes.
+        [$waiting] = $this->filedWithToken('Synthetic Waiting');
+        [$invited, $invitedToken] = $this->scheduled('Synthetic Invited');
+        $run = fn (string $at): array => [$this->travelTo(CarbonImmutable::parse($at, $this->branch->timezone)), app(HiringDeadlines::class)->run()][1];
+        $this->assertSame([2, 0], $run('2026-11-16 09:00'));
+
+        // HR gives both more time on Mon 16: Tue 17, Wed 18, Thu 19 = new last day, Fri 20 = closes.
+        $key = (string) Str::uuid();
+        $lock = $this->row($waiting)->lock_version;
+        $this->extend($waiting, $key)->assertSessionHasNoErrors()->assertInertiaFlash('toast.message', 'More time given. New closing date: Fri 20 Nov 2026.');
+        $this->extend($waiting, $key, $lock)->assertSessionHasNoErrors(); // the same press again: replayed, not a second extension
+        $this->extend($invited)->assertSessionHasNoErrors();
+        $this->assertSame(2, DB::table('hr_job_application_events')->where('action', 'deadline_extended')->count());
+        $this->assertSame(['new', 'scheduling'], DB::table('hr_job_application_events')->where('action', 'deadline_extended')->orderBy('id')->pluck('from_status')->all());
+        $audit = DB::table('audit_logs')->where('event', 'hr.applications.deadline_extended')->orderBy('id')->first();
+        $this->assertSame(['application_id' => (int) $this->row($waiting)->id, 'stage' => 'new', 'closes_on' => '2026-11-20'], json_decode((string) $audit->metadata, true));
+        $this->get(route('hr.applications.index', ['status' => 'new']))->assertInertia(fn (Assert $p) => $p
+            ->where('applications.applications.rows.0.autoRejectOn', 'Fri 20 Nov 2026')->where('applications.applications.rows.0.autoRejectSoon', false)
+            ->where('applications.applications.rows.0.extendDays', 3));
+        $this->get(route('hr.applications.index', ['status' => 'scheduling']))->assertInertia(fn (Assert $p) => $p
+            ->where('applications.applications.rows.0.autoRejectOn', 'Fri 20 Nov 2026'));
+        auth()->logout();
+        $this->withCookie('kpone_career_status', $invitedToken)->get(route('hr-applications.status'))
+            ->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Thu 19 Nov 2026'));
+
+        // Nothing closes on the old day; HR gets a reminder of its own on the new last day (Suresh M1), and both close on Fri 20.
+        $this->assertSame([0, 0], $run('2026-11-17 09:00'));
+        $this->assertSame([2, 0], $run('2026-11-19 09:00'));
+        $this->assertSame([[0, 1], [0, 1]], DB::table('hr_job_application_messages')->whereIn('template', ['auto_reject_reminder', 'pick_reminder'])
+            ->orderBy('application_id')->orderBy('extension')->get(['application_id', 'extension'])->groupBy('application_id')
+            ->map(fn ($rows): array => $rows->pluck('extension')->map(fn ($e): int => (int) $e)->all())->values()->all());
+        $this->assertSame([0, 0], $run('2026-11-19 20:00')); // a reminder has a working day of its own before the close
+        // PostgreSQL: a sent reminder keeps its round and extension.
+        $this->assertDatabaseRefuses(fn () => DB::table('hr_job_application_messages')->where('template', 'auto_reject_reminder')->where('extension', 1)->update(['extension' => 0]));
+        $this->assertDatabaseRefuses(fn () => DB::table('hr_job_application_messages')->where('template', 'pick_reminder')->where('extension', 1)->update(['round' => 9]));
+        $this->assertSame([0, 2], $run('2026-11-20 08:20'));
+        $this->assertSame(['auto_rejected', 'auto_rejected'], [$this->row($waiting)->status, $this->row($invited)->status]);
+
+        // Refused once nothing is waiting: picked times are HR's turn, and a stale page is refused.
+        [$picked, $pickedToken] = $this->scheduled('Synthetic Picked');
+        $this->pick($pickedToken, array_slice($this->starts($picked), 0, 3))->assertSessionHasNoErrors();
+        $this->extend($picked)->assertSessionHasErrors('extend');
+        [$stale] = $this->filedWithToken('Synthetic Stale');
+        $this->extend($stale, null, $this->row($stale)->lock_version - 1)->assertSessionHasErrors();
+        $this->assertSame(2, DB::table('hr_job_application_events')->where('action', 'deadline_extended')->count());
+        // Owner, 2026-11-11 ("(b)"): at most 2 extensions in one stage, counted from the events; a third is refused.
+        [$capped] = $this->filedWithToken('Synthetic Capped');
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.applications.index', ['status' => 'new']))->assertInertia(fn (Assert $p) => $p
+            ->where('applications.applications.rows.0.extensionsUsed', 0)->where('applications.applications.rows.0.extensionsMax', 2));
+        $this->extend($capped)->assertSessionHasNoErrors();
+        $this->extend($capped)->assertSessionHasNoErrors();
+        $this->extend($capped)->assertSessionHasErrors(['extend' => 'More time has been given twice in this stage. Close the application or move it on; for a real exception, ask the Director.']);
+        $this->assertSame(2, DB::table('hr_job_application_events')->where('action', 'deadline_extended')->where('application_id', $this->row($capped)->id)->count());
+        $this->get(route('hr.applications.index', ['status' => 'new']))->assertInertia(fn (Assert $p) => $p
+            ->where('applications.applications.rows.0.extensionsUsed', 2));
+        // A new stage starts its own count.
+        $this->travel(1)->minutes();
+        $this->post(route('hr.applications.move', $capped), ['to' => 'phone_screening', 'expected_lock_version' => $this->row($capped)->lock_version,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->extend($capped)->assertSessionHasNoErrors();
+        // Only hiring managers give more time.
+        $this->actingAs($this->actor('ca'));
+        $this->post(route('hr.applications.extend-deadline', $stale), ['expected_lock_version' => $this->row($stale)->lock_version,
+            'idempotency_key' => (string) Str::uuid()])->assertForbidden();
+    }
+
     /** @return list<string> every slot start offered now */
     private function starts(string $id): array
     {
@@ -367,6 +436,14 @@ class InterviewSlotsTest extends VisitTestCase
 
         return $this->post(route('hr.applications.interview.ask-again', $id), ['expected_lock_version' => $this->row($id)->lock_version,
             'idempotency_key' => (string) Str::uuid()]);
+    }
+
+    private function extend(string $id, ?string $key = null, ?int $lock = null): TestResponse
+    {
+        $this->selectBranch($this->hr);
+
+        return $this->post(route('hr.applications.extend-deadline', $id), ['expected_lock_version' => $lock ?? $this->row($id)->lock_version,
+            'idempotency_key' => $key ?? (string) Str::uuid()]);
     }
 
     private function cancel(string $id, ?string $reason): TestResponse

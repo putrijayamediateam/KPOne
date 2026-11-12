@@ -167,6 +167,9 @@ Route::post('careers/status/leave-pool', [JobApplicationController::class, 'leav
 Route::post('careers/status/withdraw', [JobApplicationController::class, 'withdraw'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.withdraw');
+Route::post('careers/status/delete', [JobApplicationController::class, 'erase'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.status.delete');
 
 Route::get('check-in', PublicCheckInController::class)
     ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store:no-referrer'])
@@ -199,6 +202,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // DS-1 department spaces (the new front door; no menu link until the DS-2 switch).
     Route::put('spaces/preference', [SpacePreferenceController::class, 'update'])->middleware(['sensitive.no-store', 'throttle:20,1'])->name('spaces.preference');
     Route::post('spaces/{space}/ask', [SpaceAskController::class, 'ask'])->where('space', '[a-z_]+')->middleware(['sensitive.no-store', 'throttle:60,1'])->name('spaces.ask');
+    // DS-13: the Me home lives at /spaces/me; /me is a plain redirect to it.
+    Route::get('me', fn () => to_route('spaces.show', ['space' => 'me']))->middleware('sensitive.no-store')->name('me');
     Route::get('spaces', [DepartmentSpaceController::class, 'index'])->middleware('sensitive.no-store')->name('spaces.index');
     Route::get('spaces/{space}', [DepartmentSpaceController::class, 'show'])->where('space', '[a-z_]+')->middleware('sensitive.no-store')->name('spaces.show');
 
@@ -438,6 +443,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{application}/interview/confirm', 'confirmInterview')->whereUuid('application')->name('hr.applications.interview.confirm');
                 Route::post('{application}/interview/ask-again', 'askAgain')->whereUuid('application')->name('hr.applications.interview.ask-again');
                 Route::post('{application}/interview/cancel', 'cancelInterview')->whereUuid('application')->name('hr.applications.interview.cancel');
+                Route::post('{application}/extend-deadline', 'extendDeadline')->whereUuid('application')->name('hr.applications.extend-deadline');
                 Route::post('interview-documents', 'addDocument')->name('hr.applications.documents.store');
                 Route::post('interview-documents/{document}/remove', 'removeDocument')->whereUuid('document')->name('hr.applications.documents.remove');
                 // HR-17e talent pool and staff-account handoff.
