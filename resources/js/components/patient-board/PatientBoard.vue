@@ -96,16 +96,19 @@ const durationClass = (tone: WaitingTone) =>
     })[tone];
 const durationIconClass = (tone: WaitingTone) =>
     tone === 'normal' ? 'text-muted-foreground' : 'text-current';
-// Frame review: wrap the label between its word and its time, never inside the time ("3 hr 58 min").
+// Frame review: wrap the label between its word and its time, never inside a number and its unit
+// ("3 hr", "58 min"); only if the whole time cannot fit does it break between the pairs.
 const durationParts = (label: string) => {
     const match = /^(\D*?)(\d.*)$/.exec(label);
 
-    return match && match[1] !== ''
-        ? [
-              { text: `${match[1]}`, together: false },
-              { text: match[2], together: true },
-          ]
-        : [{ text: label, together: false }];
+    if (!match || match[1] === '') {
+        return { word: label, units: [] as string[] };
+    }
+
+    return {
+        word: match[1],
+        units: match[2].match(/\d+\s+[^\d\s]+/g) ?? [match[2]],
+    };
 };
 const rowWaitingTone = (row: PatientBoardRow) =>
     waitingTone(row.waitingMinutes);
@@ -257,7 +260,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                     </td>
                     <td class="px-3 py-2.5 align-middle" data-label="Duration">
                         <span
-                            class="inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 tabular-nums"
+                            class="inline-flex max-w-full items-center gap-1.5 rounded-md px-2 py-0.5 tabular-nums"
                             :class="durationClass(rowWaitingTone(row))"
                             :data-waiting-tone="rowWaitingTone(row)"
                         >
@@ -267,19 +270,26 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                 aria-hidden="true"
                             />
                             <span class="min-w-0"
-                                ><template
-                                    v-for="part in durationParts(
-                                        row.durationLabel,
-                                    )"
-                                    :key="part.text"
-                                >
-                                    <span
-                                        v-if="part.together"
-                                        class="whitespace-nowrap"
-                                        >{{ part.text }}</span
-                                    >
-                                    <template v-else>{{ part.text }}</template>
-                                </template></span
+                                >{{ durationParts(row.durationLabel).word
+                                }}<span
+                                    v-if="
+                                        durationParts(row.durationLabel).units
+                                            .length
+                                    "
+                                    class="inline-block"
+                                    ><template
+                                        v-for="(unit, index) in durationParts(
+                                            row.durationLabel,
+                                        ).units"
+                                        :key="unit"
+                                        ><template v-if="index > 0">{{
+                                            ' '
+                                        }}</template
+                                        ><span class="whitespace-nowrap">{{
+                                            unit
+                                        }}</span></template
+                                    ></span
+                                ></span
                             >
                             <span
                                 v-if="
