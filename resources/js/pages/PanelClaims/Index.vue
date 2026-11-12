@@ -854,7 +854,7 @@ const visitTypeLabel = (value: string) =>
                             "
                         />
                     </div>
-                    <label :class="labelClass" class="sm:col-span-2">
+                    <label :class="labelClass" class="sm:col-span-2 sm:gap-1">
                         Visit date
                         <span class="mt-1 grid grid-cols-2 flex-wrap gap-2">
                             <DateField
@@ -869,7 +869,7 @@ const visitTypeLabel = (value: string) =>
                             />
                         </span>
                     </label>
-                    <label :class="labelClass" class="sm:col-span-2">
+                    <label :class="labelClass" class="sm:col-span-2 sm:gap-1">
                         Due date
                         <span class="mt-1 grid grid-cols-2 flex-wrap gap-2">
                             <DateField
@@ -902,7 +902,7 @@ const visitTypeLabel = (value: string) =>
                     </template>
                 </template>
                 <template v-else>
-                    <label :class="labelClass">
+                    <label :class="labelClass" class="sm:gap-1">
                         Amount (RM)
                         <span class="mt-1 grid grid-cols-2 flex-wrap gap-2">
                             <input
@@ -934,7 +934,7 @@ const visitTypeLabel = (value: string) =>
                         <input v-model="draft.name" :class="fieldClass" />
                     </label>
                 </template>
-                <div class="flex sm:col-span-2 lg:col-span-1 lg:justify-end">
+                <div class="flex sm:col-span-2 lg:col-span-full lg:justify-end">
                     <Button
                         type="submit"
                         variant="outline"
