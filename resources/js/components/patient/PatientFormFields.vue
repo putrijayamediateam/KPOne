@@ -33,9 +33,9 @@ const genderOptions = [
 
 <template>
     <div class="space-y-6">
-        <section class="rounded-lg border bg-card">
+        <section class="rounded-xl border bg-card">
             <div class="border-b px-5 py-4">
-                <h2 class="font-semibold">Identity</h2>
+                <h2 class="text-base font-semibold">Identity</h2>
                 <p class="text-sm text-muted-foreground">
                     Record the stated identity. NRIC-derived values are never
                     authoritative.
@@ -48,7 +48,7 @@ const genderOptions = [
                         v-model="fields.full_name"
                         :aria-invalid="!!errors.full_name"
                         aria-describedby="patient-name-error"
-                        class="h-10 rounded-md border bg-background px-3 text-sm"
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11"
                         autocomplete="off"
                     />
                     <InputError
@@ -95,7 +95,7 @@ const genderOptions = [
                         labelledby="patient-gender-label"
                         :options="genderOptions"
                         :invalid="!!errors.sex"
-                        trigger-class="h-10"
+                        trigger-class="max-lg:data-[size=default]:h-11"
                     />
                     <InputError :message="errors.sex" />
                 </div>
@@ -115,7 +115,7 @@ const genderOptions = [
                         :aria-invalid="!!errors.nationality_code"
                         maxlength="2"
                         placeholder="MY"
-                        class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm uppercase max-lg:h-11"
                     />
                     <InputError :message="errors.nationality_code" />
                 </label>
@@ -130,9 +130,9 @@ const genderOptions = [
             :new-patient="newPatient"
             :errors="errors"
         />
-        <section class="rounded-lg border bg-card">
+        <section class="rounded-xl border bg-card">
             <div class="border-b px-5 py-4">
-                <h2 class="font-semibold">Contact</h2>
+                <h2 class="text-base font-semibold">Contact</h2>
             </div>
             <div class="grid gap-4 p-5 md:grid-cols-2">
                 <div class="grid content-start gap-2">
@@ -169,7 +169,7 @@ const genderOptions = [
                         :required="newPatient && requirements?.requireEmail"
                         :aria-invalid="!!errors.email"
                         type="email"
-                        class="h-10 rounded-md border bg-background px-3 text-sm"
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11"
                         autocomplete="off"
                     />
                     <InputError :message="errors.email" />
@@ -177,9 +177,9 @@ const genderOptions = [
             </div>
         </section>
 
-        <section class="rounded-lg border bg-card">
+        <section class="rounded-xl border bg-card">
             <div class="border-b px-5 py-4">
-                <h2 class="font-semibold">Address</h2>
+                <h2 class="text-base font-semibold">Address</h2>
             </div>
             <div class="grid gap-4 p-5 md:grid-cols-2">
                 <label class="grid gap-2 md:col-span-2">
@@ -194,7 +194,7 @@ const genderOptions = [
                         v-model="fields.address_line_1"
                         :required="newPatient && requirements?.requireAddress"
                         :aria-invalid="!!errors.address_line_1"
-                        class="h-10 rounded-md border bg-background px-3 text-sm"
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11"
                         autocomplete="off"
                     />
                     <InputError :message="errors.address_line_1" />
@@ -204,7 +204,7 @@ const genderOptions = [
                     <input
                         v-model="fields.address_line_2"
                         :aria-invalid="!!errors.address_line_2"
-                        class="h-10 rounded-md border bg-background px-3 text-sm"
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11"
                         autocomplete="off"
                     />
                     <InputError :message="errors.address_line_2" />
@@ -220,7 +220,7 @@ const genderOptions = [
                         v-model="fields.postcode"
                         :required="newPatient && requirements?.requireAddress"
                         :aria-invalid="!!errors.postcode"
-                        class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11" /><InputError
                         :message="errors.postcode"
                 /></label>
                 <label class="grid gap-2"
@@ -234,7 +234,7 @@ const genderOptions = [
                         v-model="fields.city"
                         :required="newPatient && requirements?.requireAddress"
                         :aria-invalid="!!errors.city"
-                        class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11" /><InputError
                         :message="errors.city"
                 /></label>
                 <label class="grid gap-2"
@@ -248,7 +248,7 @@ const genderOptions = [
                         v-model="fields.state"
                         :required="newPatient && requirements?.requireAddress"
                         :aria-invalid="!!errors.state"
-                        class="h-10 rounded-md border bg-background px-3 text-sm" /><InputError
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11" /><InputError
                         :message="errors.state"
                 /></label>
                 <label class="grid gap-2"
@@ -264,7 +264,7 @@ const genderOptions = [
                         :aria-invalid="!!errors.country_code"
                         maxlength="2"
                         placeholder="MY"
-                        class="h-10 rounded-md border bg-background px-3 text-sm uppercase" /><InputError
+                        class="h-9 rounded-[10px] border bg-background px-3 text-sm uppercase max-lg:h-11" /><InputError
                         :message="errors.country_code"
                 /></label>
             </div>

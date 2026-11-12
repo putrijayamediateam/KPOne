@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { usePage, Head, Link, useForm } from '@inertiajs/vue3';
-import { ArrowLeft, UserPlus } from '@lucide/vue';
+import { ArrowLeft } from '@lucide/vue';
 import InputError from '@/components/InputError.vue';
 import PatientFormFields from '@/components/patient/PatientFormFields.vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { knownMinor } from '@/lib/guardian-contact';
 import {
@@ -128,20 +129,10 @@ const submit = () => {
 <template>
     <Head title="Create patient" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div class="flex items-start gap-3">
-            <div class="rounded-xl bg-brand/10 p-2.5 text-brand-strong">
-                <UserPlus class="size-5" />
-            </div>
-            <div>
-                <h1 class="text-2xl font-semibold tracking-tight">
-                    Create Patient Master record
-                </h1>
-                <p class="text-sm text-muted-foreground">
-                    Organisation-level canonical identity. This is not a
-                    registration or encounter.
-                </p>
-            </div>
-        </div>
+        <PageHeader
+            title="Create Patient Master record"
+            description="Organisation-level canonical identity. This is not a registration or encounter."
+        />
         <form class="space-y-5" novalidate @submit.prevent="submit">
             <PatientFormFields
                 :model="form"
@@ -150,12 +141,12 @@ const submit = () => {
                 :errors="form.errors"
                 new-patient
             />
-            <section class="rounded-lg border bg-card">
+            <section class="rounded-xl border bg-card">
                 <div
                     class="flex items-start justify-between gap-4 border-b px-5 py-4"
                 >
                     <div>
-                        <h2 class="font-semibold">Identifiers</h2>
+                        <h2 class="text-base font-semibold">Identifiers</h2>
                         <p class="text-sm text-muted-foreground">
                             Required Malaysian IC or Passport. Values remain
                             reserved if later retired.
@@ -253,7 +244,7 @@ const submit = () => {
             </section>
             <label
                 v-if="form.errors.duplicate_override"
-                class="flex items-start gap-3 rounded-lg border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
+                class="flex items-start gap-3 rounded-xl border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
             >
                 <input
                     v-model="form.duplicate_override"
@@ -267,12 +258,15 @@ const submit = () => {
                 >
             </label>
             <div class="flex justify-end gap-3">
-                <Button variant="outline" as-child
+                <Button variant="outline" class="max-lg:h-11" as-child
                     ><Link href="/patients"
                         ><ArrowLeft class="size-4" /> Cancel</Link
                     ></Button
                 >
-                <Button type="submit" :disabled="form.processing"
+                <Button
+                    type="submit"
+                    class="max-lg:h-11"
+                    :disabled="form.processing"
                     >Create patient</Button
                 >
             </div>

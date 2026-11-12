@@ -3,6 +3,7 @@ import { usePage, Head, Link, useForm } from '@inertiajs/vue3';
 import { ArrowLeft, Save } from '@lucide/vue';
 import PatientFormFields from '@/components/patient/PatientFormFields.vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { knownMinor } from '@/lib/guardian-contact';
 import { phoneError, focusInvalidField } from '@/lib/patient-registration';
 import type { PatientDetail, PatientFormValues } from '@/types';
@@ -80,14 +81,12 @@ const submit = () => {
 <template>
     <Head :title="'Edit ' + patient.patientNumber" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div>
-            <h1 class="text-2xl font-semibold tracking-tight">
-                Edit Patient Master
-            </h1>
-            <p class="font-mono text-sm text-muted-foreground">
-                {{ patient.patientNumber }} · identifiers are managed separately
-            </p>
-        </div>
+        <PageHeader
+            title="Edit Patient Master"
+            :description="
+                patient.patientNumber + ' · identifiers are managed separately'
+            "
+        />
         <form class="space-y-5" @submit.prevent="submit">
             <PatientFormFields
                 :model="form"
@@ -101,12 +100,12 @@ const submit = () => {
             />
             <div
                 v-if="form.errors.lock_version"
-                class="rounded-md border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
+                class="rounded-xl border border-warning/25 bg-warning/10 p-4 text-sm text-warning-strong"
             >
                 {{ form.errors.lock_version }}
             </div>
             <div class="flex justify-end gap-3">
-                <Button variant="outline" as-child
+                <Button variant="outline" class="max-lg:h-11" as-child
                     ><Link
                         :href="
                             '/patients/' +
@@ -115,7 +114,10 @@ const submit = () => {
                         ><ArrowLeft class="size-4" /> Cancel</Link
                     ></Button
                 >
-                <Button type="submit" :disabled="form.processing"
+                <Button
+                    type="submit"
+                    class="max-lg:h-11"
+                    :disabled="form.processing"
                     ><Save class="size-4" /> Save changes</Button
                 >
             </div>

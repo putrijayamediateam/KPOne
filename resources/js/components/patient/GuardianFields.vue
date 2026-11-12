@@ -50,10 +50,10 @@ watch(
 <template>
     <section
         v-if="minor || guardian"
-        class="space-y-4 rounded-lg border bg-card p-5"
+        class="space-y-4 rounded-xl border bg-card p-5"
         data-guardian-fields
     >
-        <h2 class="font-semibold">
+        <h2 class="text-base font-semibold">
             Guardian contact{{ minor ? ' (required)' : '' }}
         </h2>
         <p class="text-sm text-muted-foreground">
