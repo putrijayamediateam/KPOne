@@ -12,7 +12,9 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
+import { OperationalTable } from '@/components/ui/table';
 
 type Supplier = {
     publicId: string;
@@ -112,20 +114,20 @@ const generalError = computed(
 <template>
     <Head title="Suppliers — Inventory and services settings" />
     <main
-        class="mx-auto grid w-full max-w-[1600px] gap-8 px-4 py-6 md:grid-cols-[220px_minmax(0,1fr)]"
+        class="mx-auto grid w-full max-w-[1280px] gap-8 px-4 py-6 md:px-6 lg:grid-cols-[220px_minmax(0,1fr)]"
     >
         <nav
             aria-label="Inventory and services settings"
-            class="flex flex-wrap gap-2 md:flex-col"
+            class="flex flex-wrap gap-2 lg:flex-col"
         >
             <Link
                 href="/inventory-services-settings/medicine-details"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
+                class="rounded-[10px] px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
                 >Medicine details</Link
             >
             <span
                 aria-current="page"
-                class="rounded-md bg-muted px-4 py-3 text-sm font-semibold"
+                class="rounded-[10px] bg-muted px-4 py-3 text-sm font-semibold"
                 >Suppliers</span
             >
         </nav>
@@ -134,11 +136,9 @@ const generalError = computed(
                 Clinic management <span class="mx-2">/</span> Inventory and
                 services settings
             </p>
-            <h1 class="border-b pb-3 text-2xl font-semibold">
-                Inventory and services settings
-            </h1>
-            <div class="mt-5">
-                <h2 class="text-lg font-medium">Suppliers</h2>
+            <PageHeader title="Inventory and services settings" />
+            <div class="mt-6">
+                <h2 class="text-xl font-semibold">Suppliers</h2>
                 <p class="text-sm text-muted-foreground">
                     Manage your suppliers and their contact persons.
                 </p>
@@ -150,7 +150,7 @@ const generalError = computed(
             >
                 {{ generalError }}
             </p>
-            <div class="mt-6 flex items-center justify-end gap-3 border-b pb-3">
+            <div class="mt-6 mb-4 flex items-center justify-end gap-3">
                 <form
                     v-if="searching"
                     class="flex min-w-0 items-center gap-2"
@@ -164,12 +164,13 @@ const generalError = computed(
                         type="search"
                         placeholder="Search suppliers"
                         maxlength="200"
-                        class="h-9 min-w-0 rounded-md border bg-background px-3 text-sm"
+                        class="h-11 min-w-0 rounded-[10px] border bg-card px-3 text-sm lg:h-9"
                     /><Button
                         type="submit"
                         variant="ghost"
                         size="sm"
                         aria-label="Search suppliers"
+                        class="min-h-11 min-w-11 lg:min-h-8 lg:min-w-8"
                         ><svg
                             viewBox="0 0 24 24"
                             class="size-5"
@@ -188,6 +189,7 @@ const generalError = computed(
                     variant="ghost"
                     size="sm"
                     aria-label="Search suppliers"
+                    class="min-h-11 min-w-11 lg:min-h-8 lg:min-w-8"
                     @click="searching = true"
                     ><svg
                         viewBox="0 0 24 24"
@@ -200,40 +202,38 @@ const generalError = computed(
                         <circle cx="10.5" cy="10.5" r="6.5" />
                         <path d="m16 16 4 4" /></svg
                 ></Button>
-                <Button type="button" @click="open">Add new</Button>
+                <Button type="button" class="max-lg:h-11" @click="open"
+                    >Add new</Button
+                >
             </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm">
-                    <thead>
-                        <tr class="border-b text-xs text-muted-foreground">
-                            <th scope="col" class="px-4 py-4 font-medium">
-                                NAME
-                            </th>
-                            <th scope="col" class="px-4 py-4 font-medium">
-                                PIC
-                            </th>
-                            <th scope="col" class="px-4 py-4 font-medium">
-                                PHONE
-                            </th>
-                            <th scope="col" class="px-4 py-4 font-medium">
-                                STATUS
-                            </th>
-                            <th
-                                scope="col"
-                                class="px-4 py-4 text-right font-medium"
-                            >
-                                ACTION
-                            </th>
+            <div class="hidden lg:block">
+                <OperationalTable
+                    label="Suppliers"
+                    :columns="5"
+                    min-width="0"
+                    :empty="!suppliers.length"
+                    :empty-message="
+                        q
+                            ? 'No suppliers match your search.'
+                            : 'No suppliers yet.'
+                    "
+                >
+                    <template #head>
+                        <tr class="text-left">
+                            <th scope="col">NAME</th>
+                            <th scope="col">PIC</th>
+                            <th scope="col">PHONE</th>
+                            <th scope="col">STATUS</th>
+                            <th scope="col" class="text-right">ACTION</th>
                         </tr>
-                    </thead>
-                    <tbody>
+                    </template>
+                    <template #body>
                         <tr
                             v-for="supplier in suppliers"
                             :key="supplier.publicId"
-                            class="border-b"
                         >
-                            <td class="px-4 py-4">{{ supplier.name }}</td>
-                            <td class="px-4 py-4">
+                            <td class="font-medium">{{ supplier.name }}</td>
+                            <td>
                                 <p
                                     v-for="(
                                         contact, index
@@ -245,7 +245,7 @@ const generalError = computed(
                                 </p>
                                 <span v-if="!supplier.contacts.length">—</span>
                             </td>
-                            <td class="px-4 py-4 whitespace-nowrap">
+                            <td class="whitespace-nowrap">
                                 <p
                                     v-for="(
                                         contact, index
@@ -257,32 +257,37 @@ const generalError = computed(
                                 </p>
                                 <span v-if="!supplier.contacts.length">—</span>
                             </td>
-                            <td class="px-4 py-4">
-                                <button
-                                    type="button"
-                                    role="switch"
-                                    :aria-checked="supplier.active"
-                                    :aria-label="`${supplier.active ? 'Archive' : 'Activate'} ${supplier.name}`"
-                                    :disabled="busySupplier !== null"
-                                    class="relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50"
-                                    :class="
-                                        supplier.active
-                                            ? 'bg-emerald-500'
-                                            : 'bg-muted-foreground/40'
-                                    "
-                                    @click="toggle(supplier)"
-                                >
-                                    <span
-                                        class="inline-block size-5 rounded-full bg-white shadow-sm transition-transform"
+                            <td>
+                                <div class="flex items-center gap-3">
+                                    <button
+                                        type="button"
+                                        role="switch"
+                                        :aria-checked="supplier.active"
+                                        :aria-label="`${supplier.active ? 'Archive' : 'Activate'} ${supplier.name}`"
+                                        :disabled="busySupplier !== null"
+                                        class="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50"
                                         :class="
                                             supplier.active
-                                                ? 'translate-x-5'
-                                                : 'translate-x-1'
+                                                ? 'bg-success'
+                                                : 'bg-muted-foreground/40'
                                         "
-                                    />
-                                </button>
+                                        @click="toggle(supplier)"
+                                    >
+                                        <span
+                                            class="inline-block size-5 rounded-full bg-white shadow-sm transition-transform"
+                                            :class="
+                                                supplier.active
+                                                    ? 'translate-x-6'
+                                                    : 'translate-x-1'
+                                            "
+                                        />
+                                    </button>
+                                    <span class="text-sm">{{
+                                        supplier.active ? 'Active' : 'Archived'
+                                    }}</span>
+                                </div>
                             </td>
-                            <td class="px-4 py-4 text-right">
+                            <td class="text-right">
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -294,21 +299,83 @@ const generalError = computed(
                                 >
                             </td>
                         </tr>
-                        <tr v-if="!suppliers.length">
-                            <td
-                                colspan="5"
-                                class="px-4 py-10 text-center text-muted-foreground"
-                            >
-                                {{
-                                    q
-                                        ? 'No suppliers match your search.'
-                                        : 'No suppliers yet.'
-                                }}
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                    </template>
+                </OperationalTable>
             </div>
+            <ul class="grid gap-3 lg:hidden" aria-label="Suppliers">
+                <li
+                    v-if="!suppliers.length"
+                    class="rounded-[14px] border border-dashed bg-card p-5 text-center text-sm text-muted-foreground"
+                >
+                    {{
+                        q
+                            ? 'No suppliers match your search.'
+                            : 'No suppliers yet.'
+                    }}
+                </li>
+                <li
+                    v-for="supplier in suppliers"
+                    :key="supplier.publicId"
+                    class="rounded-[14px] border bg-card p-4"
+                >
+                    <div class="flex items-start justify-between gap-3">
+                        <p class="min-w-0 font-medium [overflow-wrap:anywhere]">
+                            {{ supplier.name }}
+                        </p>
+                        <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            class="min-h-11 min-w-11 shrink-0"
+                            disabled
+                            :aria-label="`More actions for ${supplier.name}`"
+                            title="More actions are not available yet"
+                            >…</Button
+                        >
+                    </div>
+                    <dl class="mt-2 grid gap-1 text-sm">
+                        <div
+                            v-for="(contact, index) in supplier.contacts"
+                            :key="index"
+                            class="grid grid-cols-2 gap-2"
+                        >
+                            <dd>{{ contact.name || '—' }}</dd>
+                            <dd class="text-muted-foreground">
+                                {{ contact.phone || '—' }}
+                            </dd>
+                        </div>
+                        <div v-if="!supplier.contacts.length">—</div>
+                    </dl>
+                    <div class="mt-3 flex min-h-11 items-center gap-3">
+                        <button
+                            type="button"
+                            role="switch"
+                            :aria-checked="supplier.active"
+                            :aria-label="`${supplier.active ? 'Archive' : 'Activate'} ${supplier.name}`"
+                            :disabled="busySupplier !== null"
+                            class="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50"
+                            :class="
+                                supplier.active
+                                    ? 'bg-success'
+                                    : 'bg-muted-foreground/40'
+                            "
+                            @click="toggle(supplier)"
+                        >
+                            <span
+                                class="inline-block size-5 rounded-full bg-white shadow-sm transition-transform"
+                                :class="
+                                    supplier.active
+                                        ? 'translate-x-6'
+                                        : 'translate-x-1'
+                                "
+                            />
+                        </button>
+                        <span class="text-sm">{{
+                            supplier.active ? 'Active' : 'Archived'
+                        }}</span>
+                    </div>
+                </li>
+            </ul>
             <CompactPagination
                 v-if="pagination.total > 0"
                 class="mt-4"
@@ -341,7 +408,7 @@ const generalError = computed(
                             required
                             maxlength="200"
                             placeholder="Company name"
-                            class="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                            class="h-11 w-full rounded-[10px] border bg-card px-3 text-sm lg:h-10"
                         /><InputError :message="form.errors.name" />
                     </div>
                     <div
@@ -362,7 +429,7 @@ const generalError = computed(
                                     v-model="contact.name"
                                     maxlength="200"
                                     placeholder="Name"
-                                    class="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                                    class="h-11 w-full rounded-[10px] border bg-card px-3 text-sm lg:h-10"
                                 /><InputError
                                     :message="contactError(index, 'name')"
                                 />
@@ -377,7 +444,7 @@ const generalError = computed(
                                     <select
                                         v-model="contact.country"
                                         :aria-label="`Phone country ${index + 1}`"
-                                        class="h-10 w-24 min-w-0 rounded-md border bg-background px-1 text-sm"
+                                        class="h-11 w-24 min-w-0 rounded-[10px] border bg-card px-1 text-sm lg:h-10"
                                     >
                                         <option
                                             v-for="country in countries"
@@ -393,7 +460,7 @@ const generalError = computed(
                                         inputmode="tel"
                                         maxlength="40"
                                         placeholder="Phone number"
-                                        class="h-10 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm"
+                                        class="h-11 min-w-0 flex-1 rounded-[10px] border bg-card px-2 text-sm lg:h-10"
                                     />
                                 </div>
                                 <InputError
