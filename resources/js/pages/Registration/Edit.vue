@@ -122,6 +122,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         ><OperationalSelect
                             id="visit-type"
                             v-model="form.visit_type"
+                            trigger-class="max-lg:data-[size=default]:h-11"
                             label="Visit type"
                             :options="visitTypeOptions"
                     /></label>
@@ -130,6 +131,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         ><OperationalSelect
                             id="assigned-doctor"
                             v-model="form.assigned_doctor_user_id"
+                            trigger-class="max-lg:data-[size=default]:h-11"
                             label="Doctor"
                             :options="doctorOptions" /><InputError
                             :message="errorFor('assigned_doctor_user_id')"
@@ -162,6 +164,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         ><OperationalSelect
                             id="coverage-type"
                             v-model="form.coverage_type"
+                            trigger-class="max-lg:data-[size=default]:h-11"
                             label="Coverage"
                             :options="coverageOptions"
                     /></label>
@@ -170,6 +173,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                         ><OperationalSelect
                             id="visit-priority"
                             v-model="form.priority"
+                            trigger-class="max-lg:data-[size=default]:h-11"
                             label="Priority"
                             :options="priorityOptions"
                     /></label>
