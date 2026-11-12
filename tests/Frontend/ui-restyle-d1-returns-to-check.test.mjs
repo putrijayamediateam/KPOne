@@ -39,12 +39,12 @@ test('tokens only, and every D1 class change on a shared element is a v2: varian
 
     for (const classes of [
         'flex-col gap-4 px-4 py-6 md:px-6 v2:gap-5',
-        'text-xs text-muted-foreground v2:-mt-2 v2:text-[13px]',
+        'text-xs text-muted-foreground v2:-mt-2 v2:text-[13px] v2:leading-[inherit]',
         'class="v2:align-top"',
         'whitespace-nowrap v2:tabular-nums',
         'mr-2 v2:font-medium',
         'flex flex-col items-end gap-1 v2:gap-1.5',
-        'text-xs text-muted-foreground v2:max-w-56 v2:text-[13px]',
+        'text-xs text-muted-foreground v2:max-w-56 v2:text-[13px] v2:leading-[inherit]',
         'size="sm" class="v2:h-9 v2:px-3"',
     ]) {
         assert.ok(flat.includes(classes), classes);

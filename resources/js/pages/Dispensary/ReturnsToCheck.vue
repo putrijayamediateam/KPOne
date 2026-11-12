@@ -68,7 +68,9 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
         class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 md:px-6 v2:gap-5"
     >
         <PageHeader title="Returns to check" :description="help" />
-        <p class="text-xs text-muted-foreground v2:-mt-2 v2:text-[13px]">
+        <p
+            class="text-xs text-muted-foreground v2:-mt-2 v2:text-[13px] v2:leading-[inherit]"
+        >
             Open the case to dispose, quarantine or refuse a return. This list
             does not check anything. You cannot check a return you recorded.
         </p>
@@ -118,7 +120,7 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                                         {{ row.patient }}
                                     </span>
                                     <span
-                                        class="block font-mono text-xs text-muted-foreground v2:text-[13px]"
+                                        class="block font-mono text-xs text-muted-foreground v2:text-[13px] v2:leading-[inherit]"
                                         >{{ row.visitNumber }}</span
                                     >
                                 </td>
@@ -141,7 +143,7 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                                 <td>
                                     <span class="block">{{ reason(row) }}</span>
                                     <span
-                                        class="block text-xs text-muted-foreground v2:text-[13px]"
+                                        class="block text-xs text-muted-foreground v2:text-[13px] v2:leading-[inherit]"
                                         >{{ condition(row) }}</span
                                     >
                                 </td>
@@ -153,7 +155,7 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                                         <StatusBadge status="waiting_check" />
                                         <span
                                             v-if="row.recordedByMe"
-                                            class="text-xs text-muted-foreground v2:max-w-56 v2:text-[13px]"
+                                            class="text-xs text-muted-foreground v2:max-w-56 v2:text-[13px] v2:leading-[inherit]"
                                             >{{ ownNote }}</span
                                         >
                                         <ActionLink
