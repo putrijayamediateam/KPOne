@@ -32,6 +32,7 @@ test('the Inventory page opens with its header, then one row of task links', () 
         '/inventory/recalls',
         '/inventory/treatment-usage',
         '/inventory/stock-review',
+        '/inventory/stock-health',
         '/inventory/reorder-suggestions',
         '/inventory/branch-replenishment',
         '/inventory/purchase-requests',
