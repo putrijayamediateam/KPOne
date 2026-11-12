@@ -49,6 +49,7 @@ test('V2ChipChoice: remove x with a name, own 44px targets, a visible limit with
     assert.match(s, /:disabled="option\.disabled \|\| atLimit"/);
     assert.match(s, /inactiveMessage/);
     assert.match(s, /emit\('add'\)/);
+    assert.match(s, /:disabled="atLimit && !addAtLimit"/);
     assert.doesNotMatch(code('V2ChipChoice'), /fetch\(|axios|router|usePage/);
 });
 

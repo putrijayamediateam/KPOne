@@ -9,7 +9,7 @@ import { computed } from 'vue';
  *
  * `max` shows the limit in words ("Up to 5 reasons. 5 chosen.") and disables the unchosen chips at the limit, with
  * the reason shown. `inactiveMessage` shows a note about a chosen item that is no longer in use. `addLabel` shows an
- * "Add new" entry that emits `add`. The page supplies the rules and the endpoint.
+ * "Add new" entry that emits `add` (it is disabled at the limit unless `addAtLimit` is set). The page supplies the rules and the endpoint.
  */
 export type ChipOption = { value: string; label: string; disabled?: boolean };
 
@@ -23,12 +23,14 @@ const props = withDefaults(
         noun?: string;
         inactiveMessage?: string;
         addLabel?: string;
+        addAtLimit?: boolean;
     }>(),
     {
         max: undefined,
         noun: 'reasons',
         inactiveMessage: undefined,
         addLabel: undefined,
+        addAtLimit: false,
     },
 );
 
@@ -136,7 +138,8 @@ const target =
             <button
                 v-if="addLabel"
                 type="button"
-                :class="`${target} rounded-full border border-dashed border-primary px-4 text-sm font-medium text-primary hover:bg-primary/10`"
+                :disabled="atLimit && !addAtLimit"
+                :class="`${target} rounded-full border border-dashed border-primary px-4 text-sm font-medium text-primary hover:bg-primary/10 disabled:cursor-not-allowed disabled:border-border disabled:bg-transparent disabled:text-muted-foreground disabled:hover:bg-transparent`"
                 @click="emit('add')"
             >
                 + {{ addLabel }}
