@@ -52,7 +52,7 @@ const mood = computed(() => {
 });
 const f = computed(() => props.tagScale ?? 1);
 const box = computed(() =>
-    tagBox(props.agent.displayName, props.showRole ?? true),
+    tagBox(props.agent.displayName, props.showRole ?? false),
 );
 const roleText = computed(() =>
     props.agent.jobTitle.replace(/ \(AI agent\)$/, ''),
@@ -340,7 +340,7 @@ const pants = '#334155';
                 >{{ tagName(agent.displayName) }}</text
             >
             <text
-                v-if="showRole ?? true"
+                v-if="showRole ?? false"
                 class="tag-sub"
                 :x="-box.w / 2 + 26"
                 :y="-box.h + 38"

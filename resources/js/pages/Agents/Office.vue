@@ -21,6 +21,7 @@ import {
 import OfficeScene from '@/components/agents/office/OfficeScene.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { StatusBadge } from '@/components/ui/status';
+import { useScrollStrip } from '@/composables/useScrollStrip';
 import { requestJson } from '@/lib/json-client';
 import { formatDateTime } from '@/lib/presentation';
 
@@ -189,6 +190,12 @@ const waitingAgents = computed(() =>
 const activity = computed(() => feed.value.messages.slice(0, 6));
 const panelTitleId = 'office-panel-title';
 const closeButton = ref<HTMLButtonElement | null>(null);
+// On a phone the office scrolls sideways: its right edge fades while more of it is hidden there.
+const sceneScroller = ref<HTMLElement | null>(null);
+const { measure: measureScene, fadeStyle: sceneFade } = useScrollStrip(
+    sceneScroller,
+    '[data-office-start]',
+);
 watch(selected, async (code) => {
     if (code) {
         await nextTick();
@@ -200,7 +207,7 @@ watch(selected, async (code) => {
 <template>
     <Head title="Agent office" />
     <main
-        class="mx-auto flex w-full max-w-[1344px] flex-1 flex-col gap-5 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-[1440px] flex-1 flex-col gap-5 px-4 py-6 md:px-6"
     >
         <PageHeader
             title="Agent office"
@@ -274,7 +281,7 @@ watch(selected, async (code) => {
         </div>
 
         <div
-            class="grid items-start gap-5 xl:grid-cols-[288px_minmax(0,1fr)_320px]"
+            class="grid items-start gap-5 xl:grid-cols-[300px_minmax(0,1fr)_320px]"
         >
             <section
                 aria-labelledby="office-agents-heading"
@@ -354,10 +361,18 @@ watch(selected, async (code) => {
                             Studio floor · live
                         </span>
                         <span class="text-xs text-[#8d9bb3]">
-                            Click an agent for details
+                            <span class="md:hidden"
+                                >Scroll sideways to see the whole office. </span
+                            >Click an agent for details
                         </span>
                     </div>
-                    <div class="overflow-x-auto" data-test="office-scroll">
+                    <div
+                        ref="sceneScroller"
+                        class="overflow-x-auto"
+                        :style="sceneFade"
+                        data-test="office-scroll"
+                        @scroll.passive="measureScene"
+                    >
                         <OfficeScene
                             :feed="feed"
                             :selected="selected"

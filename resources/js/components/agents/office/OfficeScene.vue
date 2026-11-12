@@ -392,15 +392,9 @@ const bubbleFor = (code: string) => {
 const inboxCount = computed(() => props.feed.pendingProposals);
 
 // AG-13b: the scene is drawn in scene units and scaled to fit; tags are drawn in real pixels, so they need the scale.
-const SCENE_MIN_WIDTH = 560;
 const svgEl = ref<SVGSVGElement | null>(null);
 const sceneWidth = ref(VIEW_W);
-const phone = ref(false);
 let resizeObserver: ResizeObserver | undefined;
-let phoneQuery: MediaQueryList | undefined;
-const phoneChanged = () => {
-    phone.value = phoneQuery?.matches ?? false;
-};
 onMounted(() => {
     if (svgEl.value && typeof ResizeObserver !== 'undefined') {
         resizeObserver = new ResizeObserver((entries) => {
@@ -408,14 +402,9 @@ onMounted(() => {
         });
         resizeObserver.observe(svgEl.value);
     }
-
-    phoneQuery = window.matchMedia('(max-width: 767px)');
-    phoneChanged();
-    phoneQuery.addEventListener('change', phoneChanged);
 });
 onBeforeUnmount(() => {
     resizeObserver?.disconnect();
-    phoneQuery?.removeEventListener('change', phoneChanged);
 });
 const tagFactor = computed(() => VIEW_W / Math.max(sceneWidth.value, 1));
 const tagLayout = computed(() => {
@@ -424,7 +413,7 @@ const tagLayout = computed(() => {
             return [];
         }
 
-        const box = tagBox(item.agent.displayName, !phone.value);
+        const box = tagBox(item.agent.displayName, false);
 
         return [
             {
@@ -461,8 +450,7 @@ const tagLayout = computed(() => {
 <template>
     <svg
         ref="svgEl"
-        class="office-scene control-room h-auto w-full select-none"
-        :style="{ minWidth: `${SCENE_MIN_WIDTH}px` }"
+        class="office-scene control-room h-auto w-full select-none max-md:min-w-[560px]"
         :viewBox="`0 ${-tagLayout.topPad} ${VIEW_W} ${VIEW_H + tagLayout.topPad}`"
         role="group"
         aria-label="Agent office"
@@ -729,7 +717,7 @@ const tagLayout = computed(() => {
                 :tag-scale="tagFactor"
                 :tag-dx="tagLayout.shifts.get(item.agent.code)?.dx ?? 0"
                 :tag-dy="tagLayout.shifts.get(item.agent.code)?.dy ?? 0"
-                :show-role="!phone"
+                :show-role="false"
                 @select="emit('select', $event)"
             />
 
