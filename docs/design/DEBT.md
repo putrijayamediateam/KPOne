@@ -122,3 +122,4 @@ receipt and drug-label print layouts.
 - 2026-11-12: DD-68 marked Fixed (PR #537, `30cebaa`). DD-66 and DD-47 (PR #536) stay Open until it merges.
 - 2026-11-12: DD-66 and DD-47 marked Fixed (PR #536, `081302f`: 44 px pager buttons below 1024 px and the "1 record" plural).
 - 2026-11-12: DD-48 marked Fixed (BIL-18, PR #471: "1 day past due" / "N days past due", no chip at 0; a test fails if "day(s)" returns).
+- 2026-11-12: DS-12 merged (PR #543, `61ef8d4`): Me moved into the account menu with a Clock in shortcut. Later pass: a short helper line under "My space" to tell it apart from "My profile".
