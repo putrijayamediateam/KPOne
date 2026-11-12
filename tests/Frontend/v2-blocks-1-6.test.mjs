@@ -64,3 +64,34 @@ test('V2 blocks are V2-only and import nothing from the Classic ui components', 
         assert.doesNotMatch(v2(n), /from '@\/components\/ui\//);
     }
 });
+
+test('Debt carried into V2: wrapping chips, balanced titles, reduced motion, "min" beside the ring', () => {
+    assert.doesNotMatch(v2('V2Chip'), /whitespace-nowrap/);
+    assert.match(v2('V2Chip'), /text-balance/);
+    assert.match(css, /\.v2-page-title \{\s*text-wrap: balance;/);
+    assert.match(v2('V2Tabs'), /motion-reduce:transition-none/);
+    assert.match(v2('V2Toolbar'), /motion-reduce:transition-none/);
+    assert.match(v2('WaitRing'), />\s*min\s*<\/span/);
+});
+
+test('v2.css only matches V2 classes, so Classic is untouched', () => {
+    const selectors = css
+        .replace(/\/\*[\s\S]*?\*\//g, '')
+        .replace(/@media[^{]*\{/g, '')
+        .split('{')
+        .filter((_, i, a) => i < a.length - 1)
+        .map((chunk) => chunk.split('}').pop().trim())
+        .filter(Boolean)
+        .flatMap((group) => group.split(','))
+        .map((s) => s.trim());
+
+    assert.ok(selectors.length > 10);
+
+    for (const selector of selectors) {
+        assert.match(
+            selector,
+            /^\.v2-/,
+            `${selector} is not scoped to a V2 class`,
+        );
+    }
+});

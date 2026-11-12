@@ -58,7 +58,10 @@ const move = (event: KeyboardEvent, index: number) => {
 </script>
 
 <template>
-    <div data-slot="v2-tabs" class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
+    <div
+        data-slot="v2-tabs"
+        class="flex min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-3"
+    >
         <div
             ref="list"
             role="tablist"
@@ -73,7 +76,7 @@ const move = (event: KeyboardEvent, index: number) => {
                 :aria-selected="tab.value === modelValue"
                 :tabindex="tab.value === modelValue ? 0 : -1"
                 :disabled="tab.disabled"
-                class="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 lg:h-9"
+                class="inline-flex h-11 shrink-0 items-center gap-1.5 rounded-full px-4 text-sm whitespace-nowrap transition-colors outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:transition-none lg:h-9"
                 :class="
                     tab.value === modelValue
                         ? 'bg-card font-medium text-primary ring-1 ring-border dark:bg-foreground/8'

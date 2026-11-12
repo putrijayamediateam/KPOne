@@ -1,6 +1,7 @@
 <script setup lang="ts">
 /**
- * Version 2 status chip: a coloured dot and the word. Colour is never the only signal. Used by V2 views only.
+ * Version 2 status chip: a coloured dot and the word. Colour is never the only signal. A long label wraps inside the
+ * chip instead of overflowing. Labels are sentence case ("Awaiting billing"), which the page passes in. V2 views only.
  */
 defineProps<{
     tone: 'neutral' | 'info' | 'success' | 'warning' | 'danger';
@@ -19,7 +20,7 @@ const dots = {
 <template>
     <span
         data-slot="v2-chip"
-        class="inline-flex min-h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-medium whitespace-nowrap text-foreground"
+        class="inline-flex min-h-6 items-center gap-1.5 rounded-full border border-border bg-card px-2.5 py-0.5 text-xs leading-snug font-medium text-balance text-foreground"
     >
         <span
             class="size-2 shrink-0 rounded-full"

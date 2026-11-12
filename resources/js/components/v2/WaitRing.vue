@@ -4,7 +4,7 @@ import { computed } from 'vue';
 /**
  * Version 2 waiting-time ring: a ring that fills towards the danger time, with the minutes in the middle.
  * Neutral under `warnAt`, amber from `warnAt`, red from `dangerAt` (30 and 60 minutes, as the Classic chip).
- * The state is also spoken ("long wait"), never colour alone. Used by V2 views only.
+ * "min" sits beside the ring for sighted users. The state is also spoken ("long wait"), never colour alone. Used by V2 views only.
  */
 const props = withDefaults(
     defineProps<{ minutes: number; warnAt?: number; dangerAt?: number }>(),
@@ -49,39 +49,44 @@ const spoken = computed(
 <template>
     <span
         data-slot="wait-ring"
-        class="relative inline-flex size-9 shrink-0 items-center justify-center"
+        class="inline-flex shrink-0 items-center gap-1.5"
         role="img"
         :aria-label="spoken"
     >
-        <svg
-            viewBox="0 0 36 36"
-            class="absolute inset-0 size-9 -rotate-90"
-            aria-hidden="true"
-        >
-            <circle
-                cx="18"
-                cy="18"
-                :r="RADIUS"
-                fill="none"
-                stroke-width="3"
-                class="stroke-border"
-            />
-            <circle
-                cx="18"
-                cy="18"
-                :r="RADIUS"
-                fill="none"
-                stroke-width="3"
-                stroke-linecap="round"
-                :class="stroke"
-                :stroke-dasharray="`${filled} ${CIRCUMFERENCE}`"
-            />
-        </svg>
-        <span
-            class="relative text-[11px] leading-none font-semibold tabular-nums"
-            aria-hidden="true"
-        >
-            {{ minutes }}
+        <span class="relative inline-flex size-9 items-center justify-center">
+            <svg
+                viewBox="0 0 36 36"
+                class="absolute inset-0 size-9 -rotate-90"
+                aria-hidden="true"
+            >
+                <circle
+                    cx="18"
+                    cy="18"
+                    :r="RADIUS"
+                    fill="none"
+                    stroke-width="3"
+                    class="stroke-border"
+                />
+                <circle
+                    cx="18"
+                    cy="18"
+                    :r="RADIUS"
+                    fill="none"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    :class="stroke"
+                    :stroke-dasharray="`${filled} ${CIRCUMFERENCE}`"
+                />
+            </svg>
+            <span
+                class="relative text-[11px] leading-none font-semibold tabular-nums"
+                aria-hidden="true"
+            >
+                {{ minutes }}
+            </span>
         </span>
+        <span class="text-[13px] text-muted-foreground" aria-hidden="true"
+            >min</span
+        >
     </span>
 </template>

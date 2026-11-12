@@ -70,7 +70,7 @@ void props;
             >
                 More filters
                 <svg
-                    class="size-4 transition-transform"
+                    class="size-4 transition-transform motion-reduce:transition-none"
                     :class="open ? 'rotate-180' : ''"
                     viewBox="0 0 24 24"
                     fill="none"
