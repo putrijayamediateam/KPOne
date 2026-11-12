@@ -2,6 +2,9 @@
 
 @import 'tw-animate-css';
 
+@import './space-shell.css';
+@import './space-shell-layout.css';
+
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
@@ -44,6 +47,7 @@
 
     --color-border: var(--border);
     --color-input: var(--input);
+    --color-field-fill: var(--field-fill);
     --color-ring: var(--ring);
 
     --color-brand: var(--brand);
@@ -54,6 +58,15 @@
     --color-warning: var(--warning);
     --color-warning-foreground: var(--warning-foreground);
     --color-warning-strong: var(--warning-strong);
+    --color-success-soft: var(--success-soft);
+    --color-warning-soft: var(--warning-soft);
+    --color-destructive-soft: var(--destructive-soft);
+    --color-tint-1: var(--tint-1);
+    --color-tint-2: var(--tint-2);
+    --color-tint-3: var(--tint-3);
+    --color-tint-4: var(--tint-4);
+    --color-grad-1: var(--grad-1);
+    --color-grad-2: var(--grad-2);
 
     --color-chart-1: var(--chart-1);
     --color-chart-2: var(--chart-2);
@@ -102,98 +115,131 @@
 
 :root {
     color-scheme: light;
-    --background: #f8f9fa;
-    --foreground: #18181b;
+    --background: #f4f6fb;
+    --foreground: #161a24;
     --card: #ffffff;
-    --card-foreground: #18181b;
+    --card-foreground: #161a24;
     --popover: #ffffff;
-    --popover-foreground: #18181b;
-    --primary: #18181b;
+    --popover-foreground: #161a24;
+    --primary: #0a56d1;
     --primary-foreground: #ffffff;
     --secondary: #ffffff;
-    --secondary-foreground: #18181b;
-    --muted: #f4f4f5;
-    --muted-foreground: #71717a;
-    --accent: #f4f4f5;
-    --accent-foreground: #18181b;
-    --brand: #db2777;
+    --secondary-foreground: #161a24;
+    --muted: #eaeef7;
+    --muted-foreground: #4a5468;
+    --accent: #eaeef7;
+    --accent-foreground: #161a24;
+    --brand: #e8337f;
     --brand-foreground: #ffffff;
-    --brand-strong: #be185d;
-    --success: #047857;
+    --brand-strong: #c4155f;
+    --success: #0b6b34;
     --success-foreground: #ffffff;
-    --warning: #b45309;
+    --warning: #7d4400;
     --warning-foreground: #ffffff;
-    --warning-strong: #92400e;
-    --destructive: #b91c1c;
+    --warning-strong: #6a3a00;
+    --destructive: #b3261e;
     --destructive-foreground: #ffffff;
-    --border: #e4e4e7;
-    --input: #d4d4d8;
-    --ring: #db2777;
+    --border: #d5dbe9;
+    --input: #8a8a91;
+    --field-fill: #d4d4d8;
+    --ring: #0a56d1;
     --chart-1: hsl(12 76% 61%);
     --chart-2: hsl(173 58% 39%);
     --chart-3: hsl(197 37% 24%);
     --chart-4: hsl(43 74% 66%);
     --chart-5: hsl(27 87% 67%);
-    --radius: 0.75rem;
-    --sidebar-background: #f8f9fa;
-    --sidebar-foreground: #3f3f46;
-    --sidebar-primary: #18181b;
+    --radius: 0.625rem;
+    --sidebar-background: #f4f6fb;
+    --sidebar-foreground: #2a3345;
+    --sidebar-primary: #0a56d1;
     --sidebar-primary-foreground: #ffffff;
-    --sidebar-accent: #f4f4f5;
-    --sidebar-accent-foreground: #18181b;
-    --sidebar-border: #e4e4e7;
-    --sidebar-ring: #db2777;
-    --sidebar: #f8f9fa;
+    --sidebar-accent: #eaeef7;
+    --sidebar-accent-foreground: #161a24;
+    --sidebar-border: #d5dbe9;
+    --sidebar-ring: #0a56d1;
+    --sidebar: #f4f6fb;
+    --success-soft: #e1f3e8;
+    --warning-soft: #fcefd0;
+    --destructive-soft: #fde8e6;
+    --tint-1: #e0ebff;
+    --tint-2: #fde3ee;
+    --tint-3: #e1f3e8;
+    --tint-4: #fcefd0;
+    --grad-1: #ffdcc2;
+    --grad-2: #cfe2ff;
 }
 
 .dark {
     color-scheme: dark;
-    --background: hsl(0 0% 3.9%);
-    --foreground: hsl(0 0% 98%);
-    --card: hsl(0 0% 3.9%);
-    --card-foreground: hsl(0 0% 98%);
-    --popover: hsl(0 0% 3.9%);
-    --popover-foreground: hsl(0 0% 98%);
-    --primary: hsl(0 0% 98%);
-    --primary-foreground: hsl(0 0% 9%);
-    --secondary: hsl(0 0% 14.9%);
-    --secondary-foreground: hsl(0 0% 98%);
-    --muted: hsl(0 0% 16.08%);
-    --muted-foreground: hsl(0 0% 63.9%);
-    --accent: hsl(0 0% 14.9%);
-    --accent-foreground: hsl(0 0% 98%);
-    --brand: hsl(330 81% 60%);
-    --brand-foreground: hsl(0 0% 100%);
-    --brand-strong: hsl(330 81% 72%);
-    --success: hsl(160 84% 39%);
-    --success-foreground: hsl(0 0% 100%);
+    --background: #12141a;
+    --foreground: #f3f5fa;
+    --card: #1c1f27;
+    --card-foreground: #f3f5fa;
+    --popover: #1c1f27;
+    --popover-foreground: #f3f5fa;
+    --primary: #6ba6ff;
+    --primary-foreground: #0b1a33;
+    --secondary: #262a35;
+    --secondary-foreground: #f3f5fa;
+    --muted: #262a35;
+    --muted-foreground: #b0b8cc;
+    --accent: #262a35;
+    --accent-foreground: #f3f5fa;
+    --brand: #ff86ae;
+    --brand-foreground: #2a0a1a;
+    --brand-strong: #ffa3c0;
+    --success: #6fdc9a;
+    --success-foreground: #08210f;
     --warning: hsl(38 92% 50%);
     --warning-foreground: hsl(0 0% 9%);
     --warning-strong: hsl(48 96% 65%);
-    --destructive: hsl(0 84% 60%);
-    --destructive-foreground: hsl(0 0% 98%);
-    --border: hsl(0 0% 14.9%);
-    --input: hsl(0 0% 14.9%);
-    --ring: hsl(330 81% 60%);
+    --destructive: #ff8a80;
+    --destructive-foreground: #2a0a08;
+    --border: #323747;
+    --input: #666666;
+    --field-fill: hsl(0 0% 14.9%);
+    --ring: #6ba6ff;
     --chart-1: hsl(220 70% 50%);
     --chart-2: hsl(160 60% 45%);
     --chart-3: hsl(30 80% 55%);
     --chart-4: hsl(280 65% 60%);
     --chart-5: hsl(340 75% 55%);
-    --sidebar-background: hsl(0 0% 7%);
-    --sidebar-foreground: hsl(0 0% 95.9%);
-    --sidebar-primary: hsl(360, 100%, 100%);
-    --sidebar-primary-foreground: hsl(0 0% 100%);
-    --sidebar-accent: hsl(0 0% 15.9%);
-    --sidebar-accent-foreground: hsl(240 4.8% 95.9%);
-    --sidebar-border: hsl(0 0% 15.9%);
-    --sidebar-ring: hsl(330 81% 60%);
-    --sidebar: hsl(240 5.9% 10%);
+    --sidebar-background: #161922;
+    --sidebar-foreground: #e6e9f2;
+    --sidebar-primary: #6ba6ff;
+    --sidebar-primary-foreground: #0b1a33;
+    --sidebar-accent: #262a35;
+    --sidebar-accent-foreground: #f3f5fa;
+    --sidebar-border: #323747;
+    --sidebar-ring: #6ba6ff;
+    --sidebar: #161922;
+    --success-soft: #12301f;
+    --warning-soft: #3a2a0a;
+    --destructive-soft: #3c1a18;
+    --tint-1: #1e2c4a;
+    --tint-2: #3c2030;
+    --tint-3: #12301f;
+    --tint-4: #3a2a0a;
+    --grad-1: #5a3550;
+    --grad-2: #1c2a4a;
 }
 
 @layer base {
     * {
-        @apply border-border outline-ring/50;
+        @apply border-border outline-ring;
+    }
+    /* DD-51: a form control's edge must reach 3:1, including plain inputs that only set `border`. A class
+       such as border-input, border-destructive or focus-visible:border-ring still wins over this. */
+    input:not(
+        [type='checkbox'],
+        [type='radio'],
+        [type='range'],
+        [type='hidden'],
+        [type='file']
+    ),
+    select,
+    textarea {
+        border-color: var(--input);
     }
     body {
         @apply bg-background text-foreground;
@@ -264,4 +310,10 @@
         background: #fff !important;
         color: #000 !important;
     }
+}
+
+/* DD-54: the skip link moves focus to the main landmark; it is not a control, so it draws no outline. */
+main:focus,
+[role='main']:focus {
+    outline: none;
 }

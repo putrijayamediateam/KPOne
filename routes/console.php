@@ -7,6 +7,7 @@ use App\Console\Commands\PurgeCompliancePhotos;
 use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
+use App\Console\Commands\PurgeLocationResults;
 use App\Console\Commands\PurgePanelStatements;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -41,6 +42,12 @@ Schedule::command(PurgeHrDocuments::class)
 
 // HR-13: closed job applications are cleared after the clinic-entered retention (none shipped; nothing until HR sets one).
 Schedule::command(PurgeJobApplications::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// HR-16a retention (owner, 2026-11-11): location-check results are deleted after 90 days; the clock presses stay.
+Schedule::command(PurgeLocationResults::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();

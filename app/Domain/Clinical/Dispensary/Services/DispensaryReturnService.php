@@ -565,7 +565,7 @@ final class DispensaryReturnService
 
     private function batchLabel(DispensaryItemBatchAllocation $allocation): string
     {
-        return trim($allocation->batch->batch_number.' · exp '.($allocation->batch->expiry_date ? CarbonImmutable::parse($allocation->batch->expiry_date)->format('d/m/Y') : '-'));
+        return trim($allocation->batch->batch_number.' · exp '.($allocation->batch->expiry_date ? CarbonImmutable::parse($allocation->batch->expiry_date)->format('j M Y') : '-'));
     }
 
     private function trimmed(string $quantity): string
