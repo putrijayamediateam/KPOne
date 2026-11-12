@@ -185,10 +185,16 @@ const tabs = computed(() => [
                                     </Button>
                                 </DropdownMenuTrigger>
                                 <DropdownMenuContent align="end">
-                                    <DropdownMenuItem as-child>
+                                    <DropdownMenuItem
+                                        as-child
+                                        class="max-lg:min-h-11"
+                                    >
                                         <Link :href="panel.editUrl">Edit</Link>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem @select="toggle(panel)">
+                                    <DropdownMenuItem
+                                        class="max-lg:min-h-11"
+                                        @select="toggle(panel)"
+                                    >
                                         {{
                                             panel.isActive
                                                 ? 'Archive'

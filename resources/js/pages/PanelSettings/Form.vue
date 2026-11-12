@@ -593,7 +593,7 @@ const submit = () => {
                     >
                         Follow-up days
                         <span
-                            class="flex flex-wrap items-center gap-2 text-sm font-normal text-muted-foreground"
+                            class="flex flex-wrap items-center gap-2 text-sm font-normal text-foreground"
                         >
                             <span class="whitespace-nowrap"
                                 >Follow up a claim after</span
