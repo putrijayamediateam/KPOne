@@ -1458,6 +1458,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     v-if="dispensary.can.update && visibleItems.length"
                     context="dispensary"
                     refocus-key="dispensary-check"
+                    lookup-variant="outline"
                     :accept="acceptScan"
                     :describe="describeScan"
                     data-testid="dispensary-scan"
@@ -1961,6 +1962,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         <ScanInput
                             context="dispensary-add"
                             refocus-key="dispensary-add"
+                            lookup-variant="outline"
                             :describe="() => ''"
                             data-testid="dispensary-scan-add"
                             @found="scanToAdd"

@@ -73,3 +73,14 @@ test('help text inside the tinted allergy panels keeps 4.5:1 in light mode (Haki
     assert.equal(otc.includes('text-muted-foreground'), false);
     assert.equal((otc.match(/text-xs text-foreground\/75/g) ?? []).length, 3);
 });
+
+test('both scan boxes use the outline Look up button (Daniel; ScanInput lookupVariant from STK-18)', () => {
+    const flat = show.replace(/\s+/g, ' ');
+
+    for (const key of ['dispensary-check', 'dispensary-add']) {
+        assert.ok(
+            flat.includes(`refocus-key="${key}" lookup-variant="outline"`),
+            key,
+        );
+    }
+});
