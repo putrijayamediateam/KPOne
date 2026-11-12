@@ -318,15 +318,33 @@ main:focus,
     outline: none;
 }
 
-/* Table → cards on phones (opt-in with OperationalTable `cards`).
-   Cells carry data-label; the row becomes a 14px hairline card. */
-@media (max-width: 639.98px) {
-    .kp-table-cards table { min-width: 0 !important; }
-    .kp-table-cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
-    .kp-table-cards tbody, .kp-table-cards tr, .kp-table-cards td { display: block; }
-    .kp-table-cards tbody { display: grid; gap: 0.75rem; padding: 0.75rem; }
-    .kp-table-cards tbody tr { border: 1px solid var(--border); border-radius: 14px; padding: 0.25rem 0.75rem; }
-    .kp-table-cards tbody tr:last-child { border-bottom: 1px solid var(--border); }
-    .kp-table-cards td { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0 !important; text-align: right; }
-    .kp-table-cards td[data-label]::before { content: attr(data-label); color: var(--muted-foreground); font-size: 13px; text-align: left; }
+/* Table → cards (opt-in with OperationalTable `cards`; lg default, xl for boards).
+   Visible muted data-label per cell; first cell is the primary field; a
+   td[data-select] sits on top and td[data-actions] is a full-width 44px row. */
+@media (max-width: 1023.98px) {
+    .kp-table-cards-lg table { min-width: 0 !important; }
+    .kp-table-cards-lg thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .kp-table-cards-lg tbody { display: grid; gap: 0.75rem; padding: 0.75rem; }
+    .kp-table-cards-lg tr, .kp-table-cards-lg td { display: block; }
+    .kp-table-cards-lg tbody tr { border: 1px solid var(--border); border-radius: 14px; padding: 0.25rem 0.75rem; }
+    .kp-table-cards-lg td { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0 !important; text-align: right; }
+    .kp-table-cards-lg td:first-child { font-weight: 600; }
+    .kp-table-cards-lg td[data-label]::before { content: attr(data-label); color: var(--muted-foreground); font-size: 13px; font-weight: 400; text-align: left; }
+    .kp-table-cards-lg td[data-select] { order: -1; min-height: 44px; align-items: center; justify-content: flex-start; }
+    .kp-table-cards-lg td[data-actions] { min-height: 44px; justify-content: stretch; }
+    .kp-table-cards-lg td[data-actions] > * { flex: 1; min-height: 44px; }
+    .kp-table-cards-lg tr { display: flex; flex-direction: column; }
+}
+@media (max-width: 1279.98px) {
+    .kp-table-cards-xl table { min-width: 0 !important; }
+    .kp-table-cards-xl thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .kp-table-cards-xl tbody { display: grid; gap: 0.75rem; padding: 0.75rem; }
+    .kp-table-cards-xl tr, .kp-table-cards-xl td { display: block; }
+    .kp-table-cards-xl tbody tr { border: 1px solid var(--border); border-radius: 14px; padding: 0.25rem 0.75rem; display: flex; flex-direction: column; }
+    .kp-table-cards-xl td { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0 !important; text-align: right; }
+    .kp-table-cards-xl td:first-child { font-weight: 600; }
+    .kp-table-cards-xl td[data-label]::before { content: attr(data-label); color: var(--muted-foreground); font-size: 13px; font-weight: 400; text-align: left; }
+    .kp-table-cards-xl td[data-select] { order: -1; min-height: 44px; align-items: center; justify-content: flex-start; }
+    .kp-table-cards-xl td[data-actions] { min-height: 44px; justify-content: stretch; }
+    .kp-table-cards-xl td[data-actions] > * { flex: 1; min-height: 44px; }
 }

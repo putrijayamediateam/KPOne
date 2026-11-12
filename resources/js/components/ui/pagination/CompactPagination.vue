@@ -6,6 +6,7 @@ const props = defineProps<{
     currentPage: number;
     lastPage: number;
     total?: number;
+    perPage?: number;
     disabled?: boolean;
 }>();
 
@@ -29,7 +30,7 @@ const go = (page: number) => {
 
 <template>
     <nav
-        class="grid grid-cols-2 items-center gap-2 text-sm sm:flex sm:flex-wrap sm:justify-end"
+        class="grid grid-cols-2 items-center gap-2 text-sm sm:flex sm:flex-wrap sm:justify-end [&_button:disabled]:border-dashed [&_button:disabled]:text-muted-foreground"
         aria-label="Pagination"
     >
         <Button
@@ -44,7 +45,13 @@ const go = (page: number) => {
         </Button>
         <span
             class="order-first col-span-2 px-1 text-center text-xs text-muted-foreground sm:order-none sm:col-span-1 sm:text-left" aria-current="page">
-            <template v-if="total !== undefined"
+            <template v-if="total !== undefined && perPage"
+                >{{ (currentPage - 1) * perPage + 1 }}–{{
+                    Math.min(currentPage * perPage, total)
+                }}
+                of {{ total }} ·
+            </template>
+            <template v-else-if="total !== undefined"
                 >{{ recordsLabel(total) }} ·
             </template>
             Page {{ currentPage }} of {{ Math.max(lastPage, 1) }}

@@ -21,6 +21,9 @@ test('0.5: rows keep a 44px floor and numbers use tabular figures', () => {
 });
 test('0.5: phone cards are opt-in and use data-label', () => {
     assert.match(table, /cards\?: boolean/);
+    assert.match(table, /dense\?: boolean/);
+    assert.match(css, /kp-table-cards-xl/);
+    assert.match(css, /data-actions/);
     assert.match(css, /\.kp-table-cards/);
     assert.match(css, /attr\(data-label\)/);
 });
