@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import VisitCancellationDialog from '@/components/patient-board/VisitCancellationDialog.vue';
@@ -246,15 +246,6 @@ const changeQrHistoryPage = (qrHistoryPage: number) => {
     });
 };
 const selectTab = (value: string) => board.selectTab(value as BoardTab);
-// The live refresh treats the board search box as safe to refresh around while its text is unchanged (as Classic).
-// V2Toolbar owns the input and has no id prop yet, so the id is set here until that prop exists.
-onMounted(() => {
-    document
-        .querySelector<HTMLInputElement>(
-            '[data-slot="v2-toolbar"] input[type="search"]',
-        )
-        ?.setAttribute('id', SEARCH_INPUT_ID);
-});
 </script>
 
 <template>
@@ -315,6 +306,7 @@ onMounted(() => {
                 >
                     <V2Toolbar
                         v-model="form.patient_query"
+                        :input-id="SEARCH_INPUT_ID"
                         search-label="Search patients"
                         search-placeholder="Patient name or exact Patient No."
                         more-filters

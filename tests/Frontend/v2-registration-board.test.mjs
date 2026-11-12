@@ -435,6 +435,8 @@ test('V2 board page: uses the V2 blocks and the Classic props, tabs and filters;
 
     // The rows go in V2Table's named body slot.
     assert.match(page, /<template #body>/);
+    // The search box gets the id the live refresh looks for, through V2Toolbar's inputId prop.
+    assert.match(page, /:input-id="SEARCH_INPUT_ID"/);
     assert.match(page, /router\.visit\(visit\.historyUrl\)/);
     assert.match(page, /Needs attention/);
     assert.match(page, /From the visits on this screen only/);
