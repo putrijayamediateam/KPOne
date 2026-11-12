@@ -178,19 +178,6 @@
     .space-shell .space-side {
         position: relative;
     }
-    /* A fade on the right edge while more items are hidden (the DD-30 pattern). */
-    .space-shell .space-side.has-more {
-        -webkit-mask-image: linear-gradient(
-            to right,
-            #000 calc(100% - 64px),
-            transparent
-        );
-        mask-image: linear-gradient(
-            to right,
-            #000 calc(100% - 64px),
-            transparent
-        );
-    }
 }
 
 .space-shell .space-list {
