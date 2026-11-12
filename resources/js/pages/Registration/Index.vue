@@ -665,7 +665,7 @@ onBeforeUnmount(() => {
                 v-if="canCreate"
                 as-child
                 size="sm"
-                class="max-lg:h-11 max-lg:w-full lg:shrink-0"
+                class="max-lg:h-11 max-lg:w-full lg:h-9 lg:shrink-0"
                 ><Link href="/registration/create"
                     ><Plus class="size-4" /> Register Visit</Link
                 ></Button
@@ -733,6 +733,7 @@ onBeforeUnmount(() => {
                         size="sm"
                         type="submit"
                         variant="outline"
+                        class="max-lg:h-11 lg:h-9"
                         :disabled="loading"
                         ><LoaderCircle
                             v-if="loading"
