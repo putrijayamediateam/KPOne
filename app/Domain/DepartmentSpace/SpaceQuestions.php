@@ -38,6 +38,11 @@ final class SpaceQuestions
         'stock.no_order' => ['space' => 'stock', 'label' => 'Which low-stock items have nothing on order?', 'permission' => 'inventory.view.branch', 'date' => self::NOW, 'builder' => 'stockNoOrder', 'patientLevel' => false],
         'hr.away_this_week' => ['space' => 'hr', 'label' => 'Who is away this week?', 'permission' => 'hr.leave.manage.organisation', 'date' => self::NOW, 'builder' => 'hrAwayThisWeek', 'patientLevel' => false],
         'hr.credentials_due' => ['space' => 'hr', 'label' => 'Whose credentials are due for renewal soon?', 'permission' => 'hr.credentials.manage.organisation', 'date' => self::NOW, 'builder' => 'hrCredentialsDue', 'patientLevel' => false],
+        'management.documents_attention' => ['space' => 'management', 'label' => 'Which branches need their letters or footer fixed?', 'permission' => 'catalogue.settings.manage.organisation', 'date' => self::NOW, 'builder' => 'managementDocuments', 'patientLevel' => false],
+        'management.inactive_staff' => ['space' => 'management', 'label' => 'Which staff accounts are inactive?', 'permission' => 'staff.view.organisation', 'date' => self::NOW, 'builder' => 'managementInactiveStaff', 'patientLevel' => false],
+        'me.next_day_off' => ['space' => 'me', 'label' => 'When is my next day off?', 'permission' => 'hr.roster.view.own', 'date' => self::NOW, 'builder' => 'meNextDayOff', 'patientLevel' => false],
+        'me.leave_taken' => ['space' => 'me', 'label' => 'How much leave have I taken this year?', 'permission' => 'hr.leave.request.own', 'date' => self::NOW, 'builder' => 'meLeaveTaken', 'patientLevel' => false],
+        'me.leave_requests' => ['space' => 'me', 'label' => 'Which leave requests are still open?', 'permission' => 'hr.leave.request.own', 'date' => self::NOW, 'builder' => 'meLeaveRequests', 'patientLevel' => false],
     ];
 
     /** @return array<string, array{space: string, label: string, permission: string, date: string, builder: string, patientLevel: bool}> */
