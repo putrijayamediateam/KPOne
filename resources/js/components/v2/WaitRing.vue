@@ -91,7 +91,12 @@ const spoken = computed(
             </span>
         </span>
         <span class="text-[13px] text-muted-foreground" aria-hidden="true"
-            >min</span
+            >min<template v-if="words && level !== 'ok'">
+                ·
+                {{
+                    level === 'long' ? 'long wait' : 'very long wait'
+                }}</template
+            ></span
         >
     </span>
 </template>
