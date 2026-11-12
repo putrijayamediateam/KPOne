@@ -44,7 +44,11 @@ type Ask = {
     own: boolean;
     lockVersion: number;
 };
-type ManagedShift = Shift & { started: boolean; asks: Ask[] };
+type ManagedShift = Shift & {
+    started: boolean;
+    needsPosting: boolean;
+    asks: Ask[];
+};
 type MyAsk = Shift & {
     requestId: string;
     requestStatus: Ask['status'];
@@ -410,12 +414,27 @@ const withdrawAsk = (mine: MyAsk) => {
                                 :label="
                                     s.status === 'open'
                                         ? 'Open'
-                                        : s.status === 'filled'
-                                          ? 'Filled'
-                                          : 'Withdrawn'
+                                        : s.needsPosting
+                                          ? 'Needs posting again'
+                                          : s.status === 'filled'
+                                            ? 'Filled'
+                                            : 'Withdrawn'
                                 "
-                                :tone="shiftTone(s.status)"
+                                :tone="
+                                    s.needsPosting
+                                        ? 'warning'
+                                        : shiftTone(s.status)
+                                "
                             />
+                        </p>
+                        <p
+                            v-if="s.needsPosting"
+                            class="text-sm text-muted-foreground"
+                            data-test="open-shift-needs-posting"
+                        >
+                            The roster no longer has this shift for the
+                            confirmed locum. Post it again if it is still
+                            needed.
                         </p>
                         <p class="text-sm text-muted-foreground">
                             {{ s.branch }} · {{ s.sessionLabel }} ·
