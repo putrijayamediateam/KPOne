@@ -212,7 +212,7 @@ const cardRows = computed(() => {
             {
                 label: 'Recorded wastage',
                 value: `${value.summary.wastageUnits} units`,
-                note: 'Stocktake losses and damage adjustments. Counts all stock units together.',
+                note: 'Stocktake losses, damage adjustments and approved write-offs for expiry or other reasons. Reversed write-offs are left out. Counts all stock units together.',
             },
             {
                 label: 'Treatment-room waste',
