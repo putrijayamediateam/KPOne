@@ -735,7 +735,10 @@ const visitTypeLabel = (value: string) =>
             </p>
 
             <!-- Phones and tablets show the filters behind one button; from lg they are always open. -->
-            <div class="flex flex-wrap items-center justify-between gap-2">
+            <div
+                class="flex flex-wrap items-center justify-between gap-2"
+                :class="filtersActive ? '' : 'lg:hidden'"
+            >
                 <Button
                     type="button"
                     variant="outline"
@@ -778,7 +781,7 @@ const visitTypeLabel = (value: string) =>
                         :model-value="work.filters.range"
                         :options="rangeOptions"
                         label="Date range"
-                        trigger-class="w-full"
+                        trigger-class="w-full max-lg:data-[size=default]:h-11"
                         @update:model-value="
                             (value) =>
                                 go({ range: String(value), claims_page: null })
@@ -811,7 +814,7 @@ const visitTypeLabel = (value: string) =>
                         :model-value="draft.panel"
                         :options="panelOptions"
                         label="Panel"
-                        trigger-class="w-full"
+                        trigger-class="w-full max-lg:data-[size=default]:h-11"
                         @update:model-value="
                             (value) => {
                                 draft.panel = String(value);
@@ -842,7 +845,7 @@ const visitTypeLabel = (value: string) =>
                             :model-value="draft.visitType"
                             :options="visitTypeOptions"
                             label="Visit type"
-                            trigger-class="w-full"
+                            trigger-class="w-full max-lg:data-[size=default]:h-11"
                             @update:model-value="
                                 (value) => {
                                     draft.visitType = String(value);
@@ -854,7 +857,7 @@ const visitTypeLabel = (value: string) =>
                             "
                         />
                     </div>
-                    <label :class="labelClass" class="sm:col-span-2 sm:gap-1">
+                    <label :class="labelClass" class="sm:col-span-2 sm:gap-0.5">
                         Visit date
                         <span class="mt-1 grid grid-cols-2 flex-wrap gap-2">
                             <DateField
@@ -869,7 +872,7 @@ const visitTypeLabel = (value: string) =>
                             />
                         </span>
                     </label>
-                    <label :class="labelClass" class="sm:col-span-2 sm:gap-1">
+                    <label :class="labelClass" class="sm:col-span-2 sm:gap-0.5">
                         Due date
                         <span class="mt-1 grid grid-cols-2 flex-wrap gap-2">
                             <DateField
@@ -902,7 +905,7 @@ const visitTypeLabel = (value: string) =>
                     </template>
                 </template>
                 <template v-else>
-                    <label :class="labelClass" class="sm:gap-1">
+                    <label :class="labelClass" class="sm:gap-0.5">
                         Amount (RM)
                         <span class="mt-1 grid grid-cols-2 flex-wrap gap-2">
                             <input
