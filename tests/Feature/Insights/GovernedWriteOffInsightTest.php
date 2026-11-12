@@ -139,4 +139,39 @@ final class GovernedWriteOffInsightTest extends VisitTestCase
         // Every branch together: each write-off counted once.
         $this->assertSame(1.75, $report('all'));
     }
+
+    public function test_a_reversed_governed_count_loss_leaves_recorded_wastage(): void
+    {
+        // STK-15c: the same rule as write-offs. A count loss whose reversal is approved stops counting, on its own day.
+        $this->travelTo(now($this->branch->timezone)->setTime(10, 0));
+        $this->f = (new GovernedStockFixture($this->branch))->build('20.000');
+        $service = app(GovernedStockService::class);
+        $day = now($this->branch->timezone)->toDateString();
+        $countLoss = function (string $counted) use ($service): int {
+            app(BranchAccessService::class)->select($this->f['proposer'], $this->branch);
+            $id = $service->propose($this->f['proposer'], 'count', $this->proposal());
+            $service->act($this->f['proposer'], $id, 'counted', $this->command($id, $counted));
+            $service->act($this->actorAt('ca_supervisor'), $id, 'recounted', $this->command($id, $counted));
+            $service->act($this->actorAt('finance_officer'), $id, 'approved', $this->command($id));
+
+            return $id;
+        };
+        $kept = $countLoss('18.000');
+        $reversed = $countLoss('17.000');
+        $this->assertSame(3.0, (float) $this->summary($day)['wastageUnits']);
+
+        // A reversal proposed but not approved changes nothing.
+        app(BranchAccessService::class)->select($this->f['proposer'], $this->branch);
+        $service->propose($this->f['proposer'], 'reversal', $this->proposal(['reverses_case_id' => $kept]));
+        $this->assertSame(3.0, (float) $this->summary($day)['wastageUnits']);
+
+        // Approved on a later day, the reversed loss leaves its own day; the kept one stays.
+        $this->travel(1)->days();
+        app(BranchAccessService::class)->select($this->f['proposer'], $this->branch);
+        $reversal = $service->propose($this->f['proposer'], 'reversal', $this->proposal(['reverses_case_id' => $reversed]));
+        $service->act($this->actorAt('finance_officer'), $reversal, 'approved', $this->command($reversal));
+        $this->assertSame(2.0, (float) $this->summary($day)['wastageUnits']);
+        // The reversal itself is an adjustment and never counts as wastage.
+        $this->assertSame(0.0, (float) $this->summary(now($this->branch->timezone)->toDateString())['wastageUnits']);
+    }
 }
