@@ -214,6 +214,17 @@ export const rowMenu = (
         { label: 'Danger', items: danger },
     ].filter((group) => group.items.length > 0);
 
+    // Link items are real links in the menu, so middle-click and "open in new tab" work.
+    for (const group of groups) {
+        for (const item of group.items) {
+            const target = targets[item.id];
+
+            if (target?.kind === 'link' && item.allowed) {
+                item.href = target.href;
+            }
+        }
+    }
+
     return { groups, targets };
 };
 

@@ -504,7 +504,10 @@ const filterBadge = computed(
                                     >{{ item.visit.patientNumber }}</span
                                 >
                             </td>
-                            <td data-label="Queue" class="text-sm">
+                            <td
+                                data-label="Queue"
+                                class="text-sm whitespace-nowrap"
+                            >
                                 {{ item.visit.queueNumber ?? '—' }}
                             </td>
                             <td data-label="Arrived">
@@ -536,7 +539,7 @@ const filterBadge = computed(
                                     >
                                 </span>
                             </td>
-                            <td data-label="Payment">
+                            <td data-label="Payment" class="whitespace-nowrap">
                                 <span class="max-lg:text-right lg:contents">
                                     <span class="block">{{
                                         item.visit.coverageLabel
@@ -549,7 +552,7 @@ const filterBadge = computed(
                                     >
                                 </span>
                             </td>
-                            <td data-label="Duration">
+                            <td data-label="Duration" class="whitespace-nowrap">
                                 <WaitRing
                                     v-if="item.minutes !== null"
                                     :minutes="item.minutes"
@@ -623,6 +626,10 @@ const filterBadge = computed(
                                     <V2RowMenu
                                         :label="`Actions for ${item.visit.patientName}`"
                                         :groups="item.menu.groups"
+                                        :busy="
+                                            actions.busyKey.value ===
+                                            item.visit.visitNumber
+                                        "
                                         show-label
                                         @select="selectItem(item.visit, $event)"
                                     />
