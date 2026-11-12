@@ -118,6 +118,7 @@ const primaryButton =
     <Head :title="visit.visitNumber" />
     <PageFrame>
         <V2WorkLayout
+            eyebrow="Visit"
             :title="visit.visitNumber"
             :description="`${visit.branch.name} · ${formatDateTime(visit.registeredAt, visit.branch.timezone)}`"
             rail-width="narrow"
