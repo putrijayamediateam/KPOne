@@ -238,7 +238,10 @@ test('input and select controls remain visibly editable and accessible', () => {
     assert.match(input, /read-only:bg-muted/);
     assert.match(input, /disabled:cursor-not-allowed/);
     assert.match(select, /cursor-pointer/);
-    assert.match(select, /focus-visible:ring-\[3px\]/);
+    assert.match(
+        select,
+        /focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/,
+    );
 });
 
 test('operational action links use Button-as-Link semantics', () => {
