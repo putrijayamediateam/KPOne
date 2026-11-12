@@ -18,6 +18,7 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
 import { OperationalTable } from '@/components/ui/table';
@@ -179,32 +180,32 @@ const presetEmptyDescription = computed(() =>
 <template>
     <Head title="Consultation settings" />
     <main
-        class="mx-auto grid w-full max-w-[1600px] gap-8 px-4 py-6 md:grid-cols-[220px_minmax(0,1fr)]"
+        class="mx-auto grid w-full max-w-[1280px] gap-8 px-4 py-6 md:px-6 lg:grid-cols-[220px_minmax(0,1fr)]"
     >
         <nav
             aria-label="Clinic settings"
-            class="flex flex-wrap gap-2 md:flex-col"
+            class="flex flex-wrap gap-2 lg:flex-col"
         >
             <span
                 aria-disabled="true"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground"
+                class="rounded-[10px] px-4 py-3 text-sm font-medium text-muted-foreground"
                 >Registration settings</span
             >
             <span
                 aria-current="page"
-                class="rounded-md bg-muted px-4 py-3 text-sm font-semibold"
+                class="rounded-[10px] bg-muted px-4 py-3 text-sm font-semibold"
                 >Consultation settings</span
             >
             <Link
                 v-if="canCheckoutSettings"
                 href="/checkout-settings"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
+                class="rounded-[10px] px-4 py-3 text-sm font-medium text-muted-foreground hover:bg-muted"
                 >Checkout settings</Link
             >
             <span
                 v-else
                 aria-disabled="true"
-                class="rounded-md px-4 py-3 text-sm font-medium text-muted-foreground"
+                class="rounded-[10px] px-4 py-3 text-sm font-medium text-muted-foreground"
                 >Checkout settings</span
             >
         </nav>
@@ -213,17 +214,15 @@ const presetEmptyDescription = computed(() =>
                 Clinic management <span class="mx-2">/</span> Consultation
                 settings
             </p>
-            <h1 class="border-b pb-3 text-2xl font-semibold">
-                Consultation settings
-            </h1>
-            <div class="mt-5">
-                <h2 class="text-lg font-medium">Clinical modules</h2>
+            <PageHeader title="Consultation settings" />
+            <div class="mt-6">
+                <h2 class="text-xl font-semibold">Clinical modules</h2>
                 <p class="text-sm text-muted-foreground">
                     Turn on the record types your practice uses. They stay off
                     for general practice.
                 </p>
             </div>
-            <div class="mt-4 overflow-hidden rounded-lg border">
+            <div class="mt-4 overflow-hidden rounded-[14px] border bg-card">
                 <div
                     v-for="module in modules"
                     :key="module.name"
@@ -255,7 +254,7 @@ const presetEmptyDescription = computed(() =>
                 </div>
             </div>
             <div class="mt-8">
-                <h2 class="text-lg font-medium">Diagnosis list</h2>
+                <h2 class="text-xl font-semibold">Diagnosis list</h2>
                 <p class="text-sm text-muted-foreground">
                     Add, rename and archive your preset diagnoses.
                 </p>
@@ -267,27 +266,28 @@ const presetEmptyDescription = computed(() =>
             >
                 {{ generalError }}
             </p>
-            <div
-                class="mt-6 flex flex-wrap items-center justify-between gap-3 border-b"
-            >
-                <nav aria-label="Diagnosis status tabs" class="flex">
+            <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
+                <nav
+                    aria-label="Diagnosis status tabs"
+                    class="flex rounded-full bg-muted p-1"
+                >
                     <button
                         v-for="tab in ['all', 'active', 'archived']"
                         :key="tab"
                         type="button"
                         :aria-current="status === tab ? 'page' : undefined"
                         :class="[
-                            'min-h-11 border-b-2 px-5 py-3 text-sm font-medium capitalize',
+                            'min-h-11 rounded-full px-5 text-sm font-medium capitalize lg:min-h-9',
                             status === tab
-                                ? 'border-foreground'
-                                : 'border-transparent text-muted-foreground',
+                                ? 'bg-card text-primary shadow-sm'
+                                : 'text-muted-foreground',
                         ]"
                         @click="go(1, tab)"
                     >
                         {{ tab }}
                     </button>
                 </nav>
-                <div class="mb-2 ml-auto flex max-w-full items-center gap-2">
+                <div class="ml-auto flex max-w-full items-center gap-2">
                     <form
                         v-if="searching"
                         class="flex min-w-0 items-center gap-2"
@@ -303,13 +303,13 @@ const presetEmptyDescription = computed(() =>
                             type="search"
                             maxlength="200"
                             placeholder="Search diagnoses"
-                            class="h-9 min-w-0 rounded-md border bg-background px-3 text-sm"
+                            class="h-11 min-w-0 rounded-[10px] border bg-card px-3 text-sm lg:h-9"
                         /><Button
                             type="submit"
                             variant="ghost"
                             size="sm"
                             aria-label="Search diagnoses"
-                            class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
+                            class="min-h-11 min-w-11 lg:min-h-8 lg:min-w-8"
                             ><svg
                                 viewBox="0 0 24 24"
                                 class="size-5"
@@ -327,7 +327,7 @@ const presetEmptyDescription = computed(() =>
                         variant="ghost"
                         size="sm"
                         aria-label="Search diagnoses"
-                        class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"
+                        class="min-h-11 min-w-11 lg:min-h-8 lg:min-w-8"
                         @click="searching = true"
                         ><svg
                             viewBox="0 0 24 24"
@@ -340,11 +340,13 @@ const presetEmptyDescription = computed(() =>
                             <circle cx="10.5" cy="10.5" r="6.5" />
                             <path d="m16 16 4 4" /></svg
                     ></Button>
-                    <Button size="sm" @click="openAdd">Add diagnosis</Button>
+                    <Button size="sm" class="max-lg:h-11" @click="openAdd"
+                        >Add diagnosis</Button
+                    >
                 </div>
             </div>
             <section
-                class="mt-4 grid grid-cols-1 gap-3 md:hidden"
+                class="mt-4 grid grid-cols-1 gap-3 lg:hidden"
                 aria-label="Preset diagnoses"
                 data-testid="settings-cards"
             >
@@ -356,7 +358,7 @@ const presetEmptyDescription = computed(() =>
                 <article
                     v-for="preset in presets"
                     :key="preset.id"
-                    class="grid min-w-0 grid-cols-1 gap-3 rounded-xl border bg-card p-4"
+                    class="grid min-w-0 grid-cols-1 gap-3 rounded-[14px] border bg-card p-4"
                     data-testid="settings-card"
                 >
                     <div class="flex items-start justify-between gap-2">
@@ -423,7 +425,7 @@ const presetEmptyDescription = computed(() =>
                     </div>
                 </article>
             </section>
-            <div class="mt-4 hidden min-w-0 md:block">
+            <div class="mt-4 hidden min-w-0 lg:block">
                 <OperationalTable
                     label="Preset diagnoses"
                     class="[&_table]:table-fixed"
