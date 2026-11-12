@@ -293,6 +293,11 @@ const changeStatus = (method: PaymentMethodRow) => {
                                                 ? 'Active'
                                                 : 'Inactive'
                                         "
+                                        :tone="
+                                            method.isActive
+                                                ? 'success'
+                                                : 'neutral'
+                                        "
                                     />
                                 </td>
                                 <td>
@@ -353,6 +358,7 @@ const changeStatus = (method: PaymentMethodRow) => {
                                 :status="
                                     method.isActive ? 'Active' : 'Inactive'
                                 "
+                                :tone="method.isActive ? 'success' : 'neutral'"
                             />
                         </div>
                         <dl class="mt-3 grid grid-cols-2 gap-2 text-sm">
@@ -383,10 +389,10 @@ const changeStatus = (method: PaymentMethodRow) => {
                                 </dd>
                             </div>
                         </dl>
-                        <div class="mt-3 flex flex-wrap gap-2">
+                        <div class="mt-3 grid grid-cols-2 gap-2">
                             <Button
                                 variant="outline"
-                                class="max-lg:h-11"
+                                class="col-span-2 max-lg:h-11"
                                 @click="beginClassification(method)"
                                 >Change classification</Button
                             >
