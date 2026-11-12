@@ -585,11 +585,28 @@ test('V2 Register visit: same payload, search and rules as the Classic page, whi
         'GuardianFields',
         'AdultConfirmation',
         'RegistrationContactFields',
-        'PhoneInput',
         'WhatsAppLink',
     ]) {
         assert.ok(v2.includes(shared), `V2 ${shared}`);
         assert.ok(classicCreate.includes(shared), `Classic ${shared}`);
+    }
+
+    // The V2 phone field keeps the Classic country list and checks.
+    const phone = read(
+        'resources/js/components/registration-v2/V2PhoneField.vue',
+    );
+    const classicPhone = read('resources/js/components/patient/PhoneInput.vue');
+    assert.match(v2, /V2PhoneField/);
+
+    for (const shared of [
+        "from 'libphonenumber-js/max'",
+        'getCountryCallingCode(code)',
+        'phoneInputError(',
+        "'update:country'",
+        'unchangedValue',
+    ]) {
+        assert.ok(phone.includes(shared), `V2 phone ${shared}`);
+        assert.ok(classicPhone.includes(shared), `Classic phone ${shared}`);
     }
 
     // The V2 reason field keeps the Classic picker's endpoints, limit and messages.

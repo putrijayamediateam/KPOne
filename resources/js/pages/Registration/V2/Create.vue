@@ -3,9 +3,9 @@ import { Head, Link } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 import AdultConfirmation from '@/components/patient/AdultConfirmation.vue';
 import GuardianFields from '@/components/patient/GuardianFields.vue';
-import PhoneInput from '@/components/patient/PhoneInput.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
+import V2PhoneField from '@/components/registration-v2/V2PhoneField.vue';
 import VisitReasonField from '@/components/registration-v2/VisitReasonField.vue';
 import { DateField } from '@/components/ui/date-field';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -356,7 +356,7 @@ const inputClass =
                             />
                         </V2Field>
                         <span v-else class="max-md:hidden" />
-                        <PhoneInput
+                        <V2PhoneField
                             id="quick-phone"
                             v-model="quick.mobile_phone"
                             v-model:country="quick.phone_country"
@@ -381,25 +381,6 @@ const inputClass =
                                 "
                             />
                         </V2Field>
-                        <div
-                            v-if="
-                                !quick.date_of_birth &&
-                                !requirements.requireDateOfBirth
-                            "
-                            class="md:col-span-2"
-                        >
-                            <AdultConfirmation
-                                v-model="quick.adult_confirmed"
-                                :error="
-                                    c.errorFor(
-                                        'quick_patient.adult_confirmed',
-                                    ) ||
-                                    c.errorFor(
-                                        'quick_patient.adult_confirmation_key',
-                                    )
-                                "
-                            />
-                        </div>
                         <div
                             v-if="
                                 !quick.date_of_birth &&

@@ -84,6 +84,16 @@ const statusChip = computed(() => {
               : 'neutral') as 'success' | 'danger' | 'neutral',
     };
 });
+const dob = computed(() =>
+    props.visit.patient.dateOfBirth
+        ? formatDate(props.visit.patient.dateOfBirth)
+        : 'DOB not recorded',
+);
+const sexLabel = computed(() => {
+    const sex = props.visit.patient.sex ?? '';
+
+    return sex.charAt(0).toUpperCase() + sex.slice(1);
+});
 const errorText = computed(
     () =>
         queueError('visit_lock_version') ||
@@ -141,8 +151,13 @@ const primaryButton =
                         :class="linkButton"
                         >Register another patient</Link
                     >
-                    <Link href="/registration" :class="linkButton"
-                        >Back to registration</Link
+                    <Link
+                        href="/registration"
+                        :class="[
+                            linkButton,
+                            'max-sm:order-last max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:text-primary',
+                        ]"
+                        >← Registration</Link
                     >
                 </div>
             </template>
@@ -172,10 +187,7 @@ const primaryButton =
                     <p class="text-sm text-muted-foreground">
                         {{ visit.patient.patientNumber }}
                     </p>
-                    <p class="mt-2 text-sm">
-                        {{ visit.patient.dateOfBirth ?? 'DOB not recorded' }} ·
-                        {{ visit.patient.sex }}
-                    </p>
+                    <p class="mt-2 text-sm">{{ dob }} · {{ sexLabel }}</p>
                 </section>
 
                 <section class="rounded-[14px] border bg-card p-4 sm:p-5">
@@ -238,26 +250,6 @@ const primaryButton =
                         {{ visit.cancellationReason }}
                     </p>
                 </section>
-
-                <section
-                    v-if="visit.can.cancel"
-                    class="rounded-[14px] border border-destructive/30 bg-card p-4 sm:p-5"
-                >
-                    <h2 class="text-base font-semibold text-destructive">
-                        Cancel visit
-                    </h2>
-                    <p class="mt-1 text-sm text-muted-foreground">
-                        Cancellation is final. A cancelled visit cannot be
-                        edited or reopened.
-                    </p>
-                    <button
-                        type="button"
-                        class="mt-3 inline-flex h-11 items-center justify-center rounded-[10px] border border-destructive/40 bg-card px-4 text-sm font-medium text-destructive hover:bg-destructive-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:w-full lg:h-9"
-                        @click="cancelOpen = true"
-                    >
-                        Cancel visit…
-                    </button>
-                </section>
             </template>
 
             <template #rail>
@@ -299,10 +291,10 @@ const primaryButton =
                     <p class="mt-2 text-2xl font-semibold">
                         {{ visit.queue.queueNumber }}
                     </p>
-                    <p
-                        class="mt-1 flex flex-wrap items-center gap-2 text-sm text-muted-foreground"
-                    >
-                        {{ formatDate(visit.queue.operationalDate) }} ·
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        {{ formatDate(visit.queue.operationalDate) }}
+                    </p>
+                    <p class="mt-1.5">
                         <V2Chip
                             tone="neutral"
                             :label="
@@ -364,6 +356,25 @@ const primaryButton =
                             >
                         </template>
                     </div>
+                </section>
+                <section
+                    v-if="visit.can.cancel"
+                    class="rounded-[14px] border border-destructive/30 bg-card p-4 sm:p-5"
+                >
+                    <h2 class="text-base font-semibold text-destructive">
+                        Cancel visit
+                    </h2>
+                    <p class="mt-1 text-sm text-muted-foreground">
+                        Cancellation is final. A cancelled visit cannot be
+                        edited or reopened.
+                    </p>
+                    <button
+                        type="button"
+                        class="mt-3 inline-flex h-11 items-center justify-center rounded-[10px] border border-destructive/40 bg-card px-4 text-sm font-medium text-destructive hover:bg-destructive-soft focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:w-full lg:h-9"
+                        @click="cancelOpen = true"
+                    >
+                        Cancel visit…
+                    </button>
                 </section>
             </template>
         </V2WorkLayout>

@@ -122,6 +122,13 @@ const summary = computed(() => [
                 : 'Self-pay',
     },
 ]);
+// Save is an outline button while the form is clean and the primary (cobalt) one once something has changed.
+const saveClass = computed(() => [
+    'inline-flex items-center justify-center rounded-[10px] px-4 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50',
+    form.isDirty
+        ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+        : 'border border-border bg-card text-foreground hover:bg-muted',
+]);
 const inputClass =
     'h-11 w-full rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9';
 </script>
@@ -289,7 +296,7 @@ const inputClass =
                     <V2StickyBar>
                         <button
                             type="submit"
-                            class="inline-flex items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50"
+                            :class="saveClass"
                             :disabled="form.processing"
                         >
                             {{ form.processing ? 'Saving…' : 'Save visit' }}
@@ -303,7 +310,7 @@ const inputClass =
                     <button
                         type="submit"
                         form="v2-edit-visit-form"
-                        class="inline-flex items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50"
+                        :class="saveClass"
                         :disabled="form.processing"
                     >
                         {{ form.processing ? 'Saving…' : 'Save visit' }}

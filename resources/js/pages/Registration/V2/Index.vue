@@ -497,7 +497,7 @@ const filterBadge = computed(
                     <V2Table
                         label="Visits"
                         :columns="6"
-                        cards="lg"
+                        cards="xl"
                         min-width="880px"
                         :empty="!rows.length"
                         :empty-message="
@@ -540,7 +540,7 @@ const filterBadge = computed(
                                             }}
                                             · </template
                                         >{{ item.visit.patientNumber
-                                        }}<span class="lg:hidden">
+                                        }}<span class="xl:hidden">
                                             ·
                                             {{
                                                 compactTime(
@@ -562,10 +562,10 @@ const filterBadge = computed(
                                 </td>
                                 <td
                                     data-label="Arrived"
-                                    class="text-sm max-lg:!hidden"
+                                    class="text-sm max-xl:!hidden"
                                 >
                                     <span
-                                        class="whitespace-nowrap max-lg:text-right lg:contents"
+                                        class="whitespace-nowrap max-xl:text-right xl:contents"
                                     >
                                         <span class="block">{{
                                             compactTime(item.visit.registeredAt)
@@ -583,9 +583,9 @@ const filterBadge = computed(
                                     </span>
                                 </td>
                                 <td
-                                    class="max-w-56 min-w-0 text-sm max-lg:max-w-none max-lg:justify-start max-lg:!text-left"
+                                    class="max-w-56 min-w-0 text-sm max-xl:max-w-none max-xl:justify-start max-xl:!text-left"
                                 >
-                                    <span class="min-w-0 lg:contents">
+                                    <span class="min-w-0 xl:contents">
                                         <span
                                             class="block truncate"
                                             :title="
@@ -617,11 +617,11 @@ const filterBadge = computed(
                                         !/panel/i.test(
                                             item.visit.coverageLabel,
                                         ) && !item.visit.panelNote
-                                            ? 'max-lg:!hidden'
+                                            ? 'max-xl:!hidden'
                                             : ''
                                     "
                                 >
-                                    <span class="max-lg:text-right lg:contents">
+                                    <span class="max-xl:text-right xl:contents">
                                         <span class="block">{{
                                             item.visit.coverageLabel
                                         }}</span>
@@ -635,13 +635,13 @@ const filterBadge = computed(
                                 </td>
                                 <td
                                     data-status
-                                    class="max-lg:order-[-1] max-lg:justify-start"
+                                    class="max-xl:order-[-1] max-xl:justify-start"
                                 >
                                     <div
-                                        class="flex min-w-0 flex-col gap-1.5 max-lg:flex-row max-lg:flex-wrap max-lg:items-center max-lg:gap-x-3"
+                                        class="flex min-w-0 flex-col gap-1.5 max-xl:flex-row max-xl:flex-wrap max-xl:items-center max-xl:gap-x-3"
                                     >
                                         <div
-                                            class="flex flex-wrap items-center gap-1.5 max-lg:justify-end"
+                                            class="flex flex-wrap items-center gap-1.5 max-xl:justify-end"
                                         >
                                             <V2Chip
                                                 :tone="item.status.tone"
@@ -692,7 +692,7 @@ const filterBadge = computed(
                                         </div>
                                         <p
                                             v-if="item.visit.callHold?.active"
-                                            class="max-w-56 truncate text-xs text-muted-foreground max-lg:text-right"
+                                            class="max-w-56 truncate text-xs text-muted-foreground max-xl:text-right"
                                             :title="
                                                 item.visit.callHold.reason ??
                                                 undefined
@@ -717,7 +717,7 @@ const filterBadge = computed(
                                 </td>
                                 <td data-actions class="text-right">
                                     <div
-                                        class="flex items-center justify-end gap-1 max-lg:gap-2 max-lg:[&_[data-slot=v2-row-menu]]:flex-1"
+                                        class="flex items-center justify-end gap-1 max-xl:gap-2 max-xl:[&_[data-slot=v2-row-menu]]:flex-1"
                                     >
                                         <WhatsAppLink
                                             :can-whatsapp="
