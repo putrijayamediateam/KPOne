@@ -14,6 +14,6 @@
 
 return [
     'pages' => [
-        // 'Registration/Index',
+        'Registration/Index',
     ],
 ];
