@@ -96,6 +96,17 @@ const durationClass = (tone: WaitingTone) =>
     })[tone];
 const durationIconClass = (tone: WaitingTone) =>
     tone === 'normal' ? 'text-muted-foreground' : 'text-current';
+// Frame review: wrap the label between its word and its time, never inside the time ("3 hr 58 min").
+const durationParts = (label: string) => {
+    const match = /^(\D*?)(\d.*)$/.exec(label);
+
+    return match && match[1] !== ''
+        ? [
+              { text: `${match[1]}`, together: false },
+              { text: match[2], together: true },
+          ]
+        : [{ text: label, together: false }];
+};
 const rowWaitingTone = (row: PatientBoardRow) =>
     waitingTone(row.waitingMinutes);
 </script>
@@ -255,7 +266,21 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                                 :class="durationIconClass(rowWaitingTone(row))"
                                 aria-hidden="true"
                             />
-                            {{ row.durationLabel }}
+                            <span class="min-w-0"
+                                ><template
+                                    v-for="part in durationParts(
+                                        row.durationLabel,
+                                    )"
+                                    :key="part.text"
+                                >
+                                    <span
+                                        v-if="part.together"
+                                        class="whitespace-nowrap"
+                                        >{{ part.text }}</span
+                                    >
+                                    <template v-else>{{ part.text }}</template>
+                                </template></span
+                            >
                             <span
                                 v-if="
                                     waitingToneDescription(rowWaitingTone(row))
