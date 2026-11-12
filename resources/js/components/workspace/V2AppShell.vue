@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
-import { Menu, Search } from '@lucide/vue';
+import { Menu, Search, Undo2 } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { toast } from 'vue-sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
@@ -53,6 +53,11 @@ const backToClassic = () =>
                 ),
         },
     );
+
+// Daniel (real-shell review, 2026-11-12): a quiet ghost control, not an outline page action, and the same 36 px
+// height and small text as the branch switcher beside it.
+const QUIET_BACK =
+    'h-9 gap-1.5 rounded-lg px-2.5 text-xs font-normal text-muted-foreground hover:text-foreground';
 
 const crumb = computed(() => props.shell.current);
 </script>
@@ -132,12 +137,14 @@ const crumb = computed(() => props.shell.current);
                     <WorkspaceBranchSwitcher />
                     <!-- Below 640 px the way back lives in the menu sheet's footer and the account menu (Daniel). -->
                     <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
+                        :class="QUIET_BACK"
                         class="max-sm:hidden"
                         data-test="v2-back-to-classic"
                         @click="backToClassic"
                     >
+                        <Undo2 class="size-3.5" aria-hidden="true" />
                         Back to Classic
                     </Button>
                     <DropdownMenu>
