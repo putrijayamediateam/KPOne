@@ -158,7 +158,7 @@ const genderOptions = [
                         class="justify-self-start"
                     />
                 </div>
-                <label class="grid gap-2">
+                <label class="grid content-start gap-2">
                     <span class="text-sm font-medium"
                         >Email{{
                             newPatient && requirements?.requireEmail ? ' *' : ''

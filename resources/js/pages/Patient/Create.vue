@@ -128,7 +128,9 @@ const submit = () => {
 
 <template>
     <Head title="Create patient" />
-    <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
+    <main
+        class="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-5 p-4 md:p-7"
+    >
         <PageHeader
             title="Create Patient Master record"
             description="Organisation-level canonical identity. This is not a registration or encounter."
