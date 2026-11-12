@@ -64,17 +64,31 @@ final class InventoryBatchEligibility
 
     public function assertEligible(int $organisationId, Branch $branch, int $batchId, string $medicine): void
     {
+        $problem = $this->problem($organisationId, $branch, $batchId);
+        if ($problem !== null) {
+            throw ValidationException::withMessages(['allocations' => $medicine.': '.$problem.'.']);
+        }
+    }
+
+    /**
+     * Why a batch is not usable at a branch, in the same words dispensing uses, or null when it is usable (STK-37:
+     * stock moves share this rule). Without branch holds, a branch hold is ignored: stock in an organisation store
+     * belongs to no branch, so no branch hold can apply to it.
+     */
+    public function problem(int $organisationId, Branch $branch, int $batchId, bool $branchHolds = true): ?string
+    {
         $row = $this->query($organisationId, $branch)->where('eligibility.id', $batchId)->first();
         $reason = $row->eligibility_reason ?? ($row ? null : 'missing_reference');
-        if ($reason !== null) {
-            $message = match ($reason) {
-                'inactive_sku' => 'the stock SKU is inactive', 'inactive_item' => 'the inventory item is inactive',
-                'unavailable_status' => 'the batch status is not available', 'expiry' => 'the batch expiry must be after the branch-local current date',
-                'recalled' => 'the batch is under a recall at every branch',
-                'held' => 'the batch is held at this branch ('.$row->hold_reason.')', default => 'the inventory reference is unavailable',
-            };
-            throw ValidationException::withMessages(['allocations' => $medicine.': '.$message.'.']);
+        if ($reason === null || ($reason === 'held' && ! $branchHolds)) {
+            return null;
         }
+
+        return match ($reason) {
+            'inactive_sku' => 'the stock SKU is inactive', 'inactive_item' => 'the inventory item is inactive',
+            'unavailable_status' => 'the batch status is not available', 'expiry' => 'the batch expiry must be after the branch-local current date',
+            'recalled' => 'the batch is under a recall at every branch',
+            'held' => 'the batch is held at this branch ('.$row->hold_reason.')', default => 'the inventory reference is unavailable',
+        };
     }
 
     public function earlierEligible(int $organisationId, Branch $branch, int $skuId, int $batchId): bool
