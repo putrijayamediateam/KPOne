@@ -82,7 +82,7 @@ const statusClass = (tone: PatientBoardRow['statusTone']) =>
     ({
         neutral: 'border-border text-muted-foreground',
         waiting: 'border-border bg-muted text-foreground',
-        serving: 'border-brand/25 bg-brand/10 text-brand-strong',
+        serving: 'border-primary/25 bg-primary/10 text-primary',
         held: 'border-warning/25 bg-warning/10 text-warning-strong',
         cancelled: 'border-border text-muted-foreground',
         removed: 'border-border text-muted-foreground',
@@ -112,10 +112,10 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                     <th class="w-[15%] px-3 py-2">Patient</th>
                     <th class="w-[7%] px-3 py-2">Queue</th>
                     <th class="w-[9%] px-3 py-2">Arrived</th>
-                    <th class="w-[12%] px-3 py-2">Visit notes</th>
+                    <th class="w-[9%] px-3 py-2">Visit notes</th>
                     <th class="w-[10%] px-3 py-2">Doctor</th>
                     <th class="w-[18%] px-3 py-2">Payment</th>
-                    <th class="w-[8%] px-3 py-2">Duration</th>
+                    <th class="w-[11%] px-3 py-2">Duration</th>
                     <th class="w-[15%] px-3 py-2">Status</th>
                     <th class="w-[112px] px-3 py-2 text-right">Actions</th>
                 </tr>
@@ -281,6 +281,11 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                             <span
                                 class="inline-flex rounded-md border px-2 py-0.5 text-[11px] font-normal"
                                 :class="statusClass(row.statusTone)"
+                                ><span
+                                    v-if="row.statusTone === 'serving'"
+                                    class="mr-1.5 size-1.5 self-center rounded-full bg-current"
+                                    aria-hidden="true"
+                                ></span
                                 >{{ row.statusLabel }}</span
                             >
                             <span
@@ -572,6 +577,13 @@ const rowWaitingTone = (row: PatientBoardRow) =>
         display: block;
         color: var(--muted-foreground);
         font-size: 11px;
+    }
+    /* Frame review: in a card the Actions label and its icons share the left edge. */
+    .patient-board td[data-label='Actions'] {
+        text-align: left;
+    }
+    .patient-board td[data-label='Actions'] > div {
+        justify-content: flex-start;
     }
     .patient-board td[data-label='Patient'],
     .patient-board td[data-label='Visit notes'],

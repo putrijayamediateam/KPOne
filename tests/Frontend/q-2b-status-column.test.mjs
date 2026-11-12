@@ -21,10 +21,10 @@ test('Status is 15% and Payment 18% wide; the other columns are unchanged', () =
         ['Patient', 15],
         ['Queue', 7],
         ['Arrived', 9],
-        ['Visit notes', 12],
+        ['Visit notes', 9],
         ['Doctor', 10],
         ['Payment', 18],
-        ['Duration', 8],
+        ['Duration', 11],
         ['Status', 15],
     ]);
     assert.equal(
