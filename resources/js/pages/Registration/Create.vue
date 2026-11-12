@@ -439,7 +439,9 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
         </PageHeader>
 
         <section class="overflow-hidden rounded-xl border bg-card">
-            <div class="flex items-center justify-between px-4 pt-4 pb-2">
+            <div
+                class="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-2"
+            >
                 <div>
                     <h2 class="text-base font-semibold">1. Patient</h2>
                     <p class="text-xs text-muted-foreground">
@@ -450,7 +452,8 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     v-if="visitReady"
                     type="button"
                     size="sm"
-                    variant="ghost"
+                    variant="outline"
+                    class="max-lg:h-11"
                     @click="changePatient"
                     >Change patient</Button
                 >
@@ -629,7 +632,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             </div>
             <div v-else class="grid gap-3 p-4 md:grid-cols-2">
                 <label class="grid gap-1 md:col-span-2"
-                    ><span class="text-sm font-medium">Name</span
+                    ><span class="text-sm font-medium">Name *</span
                     ><input
                         id="quick-patient-name"
                         :aria-invalid="!!errorFor('quick_patient.full_name')"

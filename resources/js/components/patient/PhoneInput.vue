@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { ChevronDown } from '@lucide/vue';
 import { getCountries, getCountryCallingCode } from 'libphonenumber-js/max';
 import { computed, ref } from 'vue';
 import { phoneInputError } from '@/lib/patient-registration';
@@ -47,26 +48,32 @@ const countries = getCountries()
             >Phone <span v-if="required">*</span></label
         >
         <div class="flex flex-col gap-2 sm:flex-row">
-            <select
-                :id="id + '-country'"
-                :value="country"
-                aria-label="Phone country"
-                class="h-9 w-full min-w-0 rounded-[10px] border bg-background px-2 text-sm max-lg:h-11 sm:w-36"
-                @change="
-                    emit(
-                        'update:country',
-                        ($event.target as HTMLSelectElement).value,
-                    )
-                "
-            >
-                <option
-                    v-for="option in countries"
-                    :key="option.code"
-                    :value="option.code"
+            <div class="relative w-full sm:w-36">
+                <select
+                    :id="id + '-country'"
+                    :value="country"
+                    aria-label="Phone country"
+                    class="h-9 w-full min-w-0 appearance-none rounded-[10px] border bg-background pr-8 pl-2 text-sm font-normal max-lg:h-11 sm:w-36"
+                    @change="
+                        emit(
+                            'update:country',
+                            ($event.target as HTMLSelectElement).value,
+                        )
+                    "
                 >
-                    {{ option.name }} (+{{ option.prefix }})
-                </option>
-            </select>
+                    <option
+                        v-for="option in countries"
+                        :key="option.code"
+                        :value="option.code"
+                    >
+                        {{ option.name }} (+{{ option.prefix }})
+                    </option>
+                </select>
+                <ChevronDown
+                    class="pointer-events-none absolute top-1/2 right-2.5 size-4 -translate-y-1/2 text-muted-foreground"
+                    aria-hidden="true"
+                />
+            </div>
             <input
                 :id="id"
                 :value="modelValue"
