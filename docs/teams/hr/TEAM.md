@@ -468,6 +468,11 @@ check items, keep them"). The rest stand unless the owner changes them.
     (the 7-year face-photo retention is flagged as a PDPA risk). AGENTS.md's "optional selfie" wording is changed by
     B.E.R.N.I.S.S. HR-16a's location check stays separate and off (PDPA 16). Screens wait for Daniel's sketch, which the
     owner sees first.
+97. Owner delegation (2026-11-12, relayed by B.E.R.N.I.S.S): the owner's words were "answer to all team for me" and
+    "be me, i just ask you what i need and what i want". The HR team sends questions, plans, assertion changes and
+    ship-it requests to B.E.R.N.I.S.S, and her decision or ship-it counts as the owner's. She takes these to the owner
+    herself: go-live or production, real data, legal, PDPA or tax questions, new permissions or modules, money or stock
+    policy, deleting data, and anything that costs money. The owner's own words in an HR session still win.
 
 ## 7. Open items and known limits
 
@@ -573,6 +578,10 @@ check items, keep them"). The rest stand unless the owner changes them.
 - PDPA 15 credentials purge known limit: when a leaver's records go after 7 years, their version numbers go too, so if
   the same person is rehired later their credential versions start again at 1. The newest version of a current staff
   member's credential type is never deleted, so a current person's numbering never restarts.
+- HR-PHOTO staff wording: the notice says photos are kept 7 years "(to confirm in the PDPA review)" and My attendance
+  says "Kept for 7 years (to confirm)." (Daniel and B.E.R.N.I.S.S, 2026-11-12). Remove both "to confirm" phrases from the
+  staff text, and from the `hr-photo-clock-in` and `hr-3a-attendance` frontend pins, once the owner has the PDPA answer
+  on retention; raise the notice version with the wording.
 
 ## 8. Rules (every task)
 
