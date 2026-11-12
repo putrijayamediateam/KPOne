@@ -432,7 +432,7 @@ const reload = () =>
                 </li>
             </ul>
         </section>
-        <p v-if="!canEdit" class="mb-3 text-xs text-muted-foreground">
+        <p v-if="!canEdit" class="mb-3 text-sm text-muted-foreground">
             You can view these details. Only an authorised editor can save
             changes. The print footer below can be edited separately.
         </p>
@@ -520,7 +520,7 @@ const reload = () =>
                                 />
                                 <p
                                     id="phone-help"
-                                    class="mt-1 text-xs text-muted-foreground"
+                                    class="mt-1 text-sm text-muted-foreground"
                                 >
                                     Include the country code for numbers outside
                                     Malaysia.
@@ -547,7 +547,7 @@ const reload = () =>
                                 />
                                 <p
                                     id="phone_secondary-help"
-                                    class="mt-1 text-xs text-muted-foreground"
+                                    class="mt-1 text-sm text-muted-foreground"
                                 >
                                     For documents that show two numbers, as
                                     "Tel: A / B".
@@ -581,7 +581,7 @@ const reload = () =>
                                 >
                                     Company logo
                                 </h3>
-                                <p class="mb-3 text-xs text-muted-foreground">
+                                <p class="mb-3 text-sm text-muted-foreground">
                                     One logo for all branches. JPG or PNG, up to
                                     2 MB and 4096 × 4096 pixels. Preferred
                                     aspect ratio 16:9.
@@ -599,7 +599,7 @@ const reload = () =>
                                         />
                                         <span
                                             v-else
-                                            class="text-xs text-muted-foreground"
+                                            class="text-sm text-muted-foreground"
                                             >No logo</span
                                         >
                                     </div>
@@ -632,7 +632,7 @@ const reload = () =>
                                             v-if="logoUrl"
                                             type="button"
                                             variant="outline"
-                                            class="min-h-11 text-xs lg:min-h-9"
+                                            class="min-h-11 lg:min-h-9"
                                             @click="removeLogo"
                                             >Remove logo</Button
                                         >
@@ -753,7 +753,7 @@ const reload = () =>
             </h2>
             <p
                 id="print-footer-help"
-                class="my-2 text-xs text-muted-foreground"
+                class="my-2 text-sm text-muted-foreground"
             >
                 Optional plain text for this branch’s invoice and receipt print
                 views. Maximum 1,000 characters; no HTML. Settings editors can
@@ -782,7 +782,7 @@ const reload = () =>
                     footerForm.errors.expected_branch_id
                 "
                 role="alert"
-                class="my-2 text-xs text-destructive"
+                class="my-2 text-sm text-destructive"
             >
                 {{
                     footerForm.errors.lock_version ||
@@ -796,6 +796,7 @@ const reload = () =>
             <div class="mt-3 flex justify-end">
                 <Button
                     type="submit"
+                    variant="outline"
                     class="max-lg:h-11 lg:h-9"
                     :disabled="blocked || footerForm.processing"
                     >{{
