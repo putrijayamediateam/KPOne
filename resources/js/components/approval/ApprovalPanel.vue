@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { RequestPayload } from '@inertiajs/core';
 import { router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, useId } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -61,6 +61,12 @@ const props = withDefaults(
     },
 );
 
+// Several panels can share a page, so every id is unique per panel.
+const uid = useId();
+const titleId = `approval-panel-title-${uid}`;
+const reasonId = `approval-panel-reason-${uid}`;
+const reasonErrorId = `approval-panel-reason-error-${uid}`;
+
 const busy = ref<'approve' | 'reject' | null>(null);
 const errors = ref<Record<string, string>>({});
 const rejectOpen = ref(false);
@@ -70,9 +76,14 @@ const firstError = computed(() => Object.values(errors.value)[0] ?? '');
 const reasonError = computed(
     () => errors.value[props.reject.reasonField] ?? '',
 );
+/** The full sentence: the visible lines say the same in two parts, and the avatar stack reads it out. */
 const recorderText = computed(
     () =>
         `Recorded by ${props.recordedBy}${props.recordedAt ? `, ${props.recordedAt}` : ''}. Needs a second person${props.neededFrom ? ` (${props.neededFrom})` : ''}.`,
+);
+const recordedLine = computed(
+    () =>
+        `Recorded by ${props.recordedBy}${props.recordedAt ? `, ${props.recordedAt}` : ''}.`,
 );
 
 const send = (
@@ -130,7 +141,7 @@ const confirmReject = () => {
 <template>
     <section
         class="flex flex-col gap-3 rounded-[14px] border bg-card p-4"
-        aria-labelledby="approval-panel-title"
+        :aria-labelledby="titleId"
         data-test="approval-panel"
     >
         <div class="flex items-start gap-3">
@@ -140,7 +151,7 @@ const confirmReject = () => {
                 :aria-label="recorderText"
             >
                 <span
-                    class="flex size-8 items-center justify-center rounded-full border-2 border-card bg-muted text-xs font-semibold text-foreground"
+                    class="relative z-10 flex size-8 items-center justify-center rounded-full border-2 border-card bg-secondary text-xs font-semibold text-foreground"
                     aria-hidden="true"
                     >{{ getInitials(recordedBy) }}</span
                 >
@@ -158,12 +169,17 @@ const confirmReject = () => {
                     Waiting for a second person
                 </p>
                 <h3
-                    id="approval-panel-title"
+                    :id="titleId"
                     class="text-[15px] font-semibold text-foreground"
                 >
                     {{ title }}
                 </h3>
-                <p class="text-sm text-muted-foreground">{{ recorderText }}</p>
+                <p class="text-sm text-muted-foreground">
+                    {{ recordedLine
+                    }}<template v-if="neededFrom">
+                        Needs {{ neededFrom }}.</template
+                    >
+                </p>
             </div>
         </div>
 
@@ -225,31 +241,31 @@ const confirmReject = () => {
                     novalidate
                     @submit.prevent="confirmReject"
                 >
-                    <Label for="approval-panel-reason">{{
+                    <Label :for="reasonId">{{
                         reject.reasonLabel ?? 'Reason'
                     }}</Label>
                     <OperationalSelect
                         v-if="reject.reasons?.length"
-                        id="approval-panel-reason"
+                        :id="reasonId"
                         v-model="reason"
                         :options="reject.reasons"
                         :label="reject.reasonLabel ?? 'Reason'"
                         placeholder="Choose a reason"
                         :invalid="reasonError !== ''"
-                        describedby="approval-panel-reason-error"
+                        :describedby="reasonErrorId"
                         trigger-class="max-sm:h-11"
                     />
                     <Textarea
                         v-else
-                        id="approval-panel-reason"
+                        :id="reasonId"
                         v-model="reason as string"
                         rows="3"
                         :maxlength="reject.maxLength ?? 500"
                         :aria-invalid="reasonError !== '' || undefined"
-                        aria-describedby="approval-panel-reason-error"
+                        aria-:describedby="reasonErrorId"
                     />
                     <InputError
-                        id="approval-panel-reason-error"
+                        :id="reasonErrorId"
                         :message="reasonError || (rejectOpen ? firstError : '')"
                     />
                     <DialogFooter class="mt-2 gap-2">

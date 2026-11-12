@@ -83,6 +83,14 @@ test('UX-18: the avatar stack has a text equivalent and the empty dashed circle'
     assert.match(source, /border-dashed/);
     assert.match(source, /Waiting for a second person/);
     assert.match(source, /Needs a second person/);
+    assert.match(source, /relative z-10/);
+});
+
+test('UX-18 review: ids are unique per panel, so two panels can share a page', () => {
+    assert.match(source, /const uid = useId\(\);/);
+    assert.doesNotMatch(source, /\sid="approval-panel/);
+    assert.match(source, /:id="reasonId"/);
+    assert.match(source, /:aria-labelledby="titleId"/);
 });
 
 test('UX-18: 44 px controls below 640 px', () => {
