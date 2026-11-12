@@ -114,7 +114,7 @@ test('Registration and Queue share one two-line Payment column with full-name/no
         board,
         /TooltipContent[^>]*>[\s\S]*?\{\{ row.coverageLabel \}\}[\s\S]*?v-if="row.panelNote"[\s\S]*?\{\{ row.panelNote \}\}/,
     );
-    assert.match(board, /@media \(width < 768px\)/);
+    assert.match(board, /@media \(width < 1280px\)/);
     assert.match(board, /content: attr\(data-label\)/);
     assert.match(
         board,

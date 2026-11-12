@@ -117,7 +117,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
 <template>
     <div class="patient-board overflow-x-auto">
         <table
-            class="w-full table-fixed text-left text-[13px] leading-5 md:min-w-[1040px]"
+            class="w-full table-fixed text-left text-[13px] leading-5 xl:min-w-[1040px]"
         >
             <thead
                 class="border-y bg-muted/25 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase"
@@ -167,7 +167,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
                     </td>
                     <td class="px-3 py-2.5 align-middle" data-label="Queue">
                         <span
-                            class="inline-flex min-w-9 justify-center rounded-md bg-muted/65 px-2 py-0.5 font-normal text-foreground tabular-nums"
+                            class="inline-flex min-w-9 justify-center rounded-md bg-muted/65 px-2 py-0.5 font-normal whitespace-nowrap text-foreground tabular-nums"
                             >{{ row.queueNumber ?? '—' }}</span
                         >
                     </td>
@@ -589,7 +589,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
 /* TEMPORARY WORKAROUND for the shared DisclosureText: its md:block beats line-clamp-2's display, so a long
    note never clamps. Remove this rule once DisclosureText is fixed (Staff Experience). It keeps the Visit
    notes column to two lines; the tooltip still carries the full text. */
-@media (width >= 768px) {
+@media (width >= 1280px) {
     .patient-board td[data-label='Visit notes'] :deep(button) {
         display: -webkit-box;
         -webkit-box-orient: vertical;
@@ -597,7 +597,7 @@ const rowWaitingTone = (row: PatientBoardRow) =>
         overflow: hidden;
     }
 }
-@media (width < 768px) {
+@media (width < 1280px) {
     .patient-board table,
     .patient-board tbody {
         display: block;
@@ -638,6 +638,27 @@ const rowWaitingTone = (row: PatientBoardRow) =>
         grid-column: 1 / -1;
     }
     /* Q-2: a row with treatment progress gives its Status cell the full card width. */
+    .patient-board td[data-label='Status'][data-treatment-row] {
+        grid-column: 1 / -1;
+    }
+}
+/* Frame review: a nine-column table needs about 1200 px, so cards run below 1280 px. From 640 px a card is four
+   columns wide so it does not stretch into two sparse columns. */
+@media (640px <= width < 1280px) {
+    .patient-board tbody > tr {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+    .patient-board td[data-label='Patient'] {
+        grid-column: span 2;
+    }
+    .patient-board td[data-label='Visit notes'],
+    .patient-board td[data-label='Doctor'],
+    .patient-board td[data-label='Payment'],
+    .patient-board td[data-label='Duration'],
+    .patient-board td[data-label='Status'],
+    .patient-board td[data-label='Actions'] {
+        grid-column: span 2;
+    }
     .patient-board td[data-label='Status'][data-treatment-row] {
         grid-column: 1 / -1;
     }
