@@ -137,14 +137,14 @@ const decide = (
                     <template v-if="request.canDecide">
                         <Button
                             size="sm"
-                            class="max-lg:h-11"
+                            class="max-lg:h-11 lg:h-9"
                             @click="decide(request, 'approve')"
                             >Approve</Button
                         >
                         <Button
                             size="sm"
                             variant="outline"
-                            class="max-lg:h-11"
+                            class="max-lg:h-11 lg:h-9"
                             @click="decide(request, 'reject')"
                             >Reject</Button
                         >
@@ -153,7 +153,7 @@ const decide = (
                         v-if="request.canWithdraw"
                         size="sm"
                         variant="outline"
-                        class="max-lg:h-11"
+                        class="max-lg:h-11 lg:h-9"
                         @click="decide(request, 'withdraw')"
                         >Withdraw</Button
                     >
