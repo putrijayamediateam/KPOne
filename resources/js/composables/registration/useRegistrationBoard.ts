@@ -77,7 +77,9 @@ export function useRegistrationBoard(input: {
         visit_type: '',
         priority: '',
         coverage_type: '',
-        board_status: input.initialTab as BoardTab,
+        board_status: (input.initialTab === 'qr-intake'
+            ? 'all'
+            : input.initialTab) as BoardTab,
         date_from: today,
         date_to: today,
     });

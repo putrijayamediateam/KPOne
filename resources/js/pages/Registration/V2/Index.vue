@@ -16,8 +16,10 @@ import V2Tabs from '@/components/v2/V2Tabs.vue';
 import V2Toolbar from '@/components/v2/V2Toolbar.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import WaitRing from '@/components/v2/WaitRing.vue';
-import { useRegistrationBoard } from '@/composables/registration/useRegistrationBoard';
-import { SEARCH_INPUT_ID } from '@/composables/registration/useRegistrationBoard';
+import {
+    SEARCH_INPUT_ID,
+    useRegistrationBoard,
+} from '@/composables/registration/useRegistrationBoard';
 import type { BoardTab } from '@/composables/registration/useRegistrationBoard';
 import { useRegistrationRowActions } from '@/composables/registration/useRegistrationRowActions';
 import { formatDate } from '@/lib/presentation';
@@ -79,6 +81,7 @@ const page = usePage();
 
 const cancelOpen = ref(false);
 const cancellationVisit = ref<VisitRow | null>(null);
+// Declared after `board` because the row actions refresh it; `pageBusy` only reads `actions` later, never during setup.
 const board = useRegistrationBoard({
     visits: props.visits,
     timezone: props.options.branch.timezone,
@@ -246,6 +249,21 @@ const changeQrHistoryPage = (qrHistoryPage: number) => {
     });
 };
 const selectTab = (value: string) => board.selectTab(value as BoardTab);
+const openQrIntake = (event: MouseEvent) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button) {
+        return;
+    }
+
+    event.preventDefault();
+    selectTab('qr-intake');
+};
+const filtersOpen = ref(false);
+const filterBadge = computed(
+    () =>
+        advancedFilterCount.value +
+        [form.doctor_id, form.coverage_type, form.priority].filter(Boolean)
+            .length,
+);
 </script>
 
 <template>
@@ -256,22 +274,28 @@ const selectTab = (value: string) => board.selectTab(value as BoardTab);
         rail-label="Attention and waiting"
     >
         <template #actions>
-            <Link
-                v-if="qrIntakes && !isQrIntake"
-                href="/registration?tab=qr-intake"
-                class="inline-flex h-11 items-center gap-2 rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
-                @click.prevent="selectTab('qr-intake')"
-                >QR intake
-                <V2Chip
-                    :tone="qrIntakes.pendingCount ? 'warning' : 'neutral'"
-                    :label="`${qrIntakes.pendingCount} to review`"
-            /></Link>
-            <Link
-                v-if="canCreate"
-                href="/registration/create"
-                class="inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none lg:h-9"
-                >Register Visit</Link
-            >
+            <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+                <Link
+                    v-if="qrIntakes && !isQrIntake"
+                    href="/registration?tab=qr-intake"
+                    class="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:order-2 lg:h-9"
+                    @click="openQrIntake"
+                    >QR intake
+                    <span class="whitespace-nowrap"
+                        ><V2Chip
+                            :tone="
+                                qrIntakes.pendingCount ? 'warning' : 'neutral'
+                            "
+                            :label="`${qrIntakes.pendingCount} to review`"
+                    /></span>
+                </Link>
+                <Link
+                    v-if="canCreate"
+                    href="/registration/create"
+                    class="inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none max-sm:order-1 lg:h-9"
+                    >Register Visit</Link
+                >
+            </div>
         </template>
 
         <template #main>
@@ -281,13 +305,7 @@ const selectTab = (value: string) => board.selectTab(value as BoardTab);
                 :tabs="tabs"
                 ariaLabel="Patient board status"
                 @update:model-value="selectTab"
-            >
-                <template #trailing>
-                    <span v-if="!isQrIntake" role="status">{{
-                        liveRefreshNotice || 'Live · refreshes every 10 seconds'
-                    }}</span>
-                </template>
-            </V2Tabs>
+            />
 
             <QrIntakeTable
                 v-if="isQrIntake && qrIntakes"
@@ -309,26 +327,24 @@ const selectTab = (value: string) => board.selectTab(value as BoardTab);
                         :input-id="SEARCH_INPUT_ID"
                         search-label="Search patients"
                         search-placeholder="Patient name or exact Patient No."
-                        more-filters
                         @search="board.search(1)"
-                        @reset="board.resetFilters"
                     >
                         <template #filters>
-                            <div class="w-full sm:w-44">
+                            <div class="hidden w-44 sm:block">
                                 <OperationalSelect
                                     v-model="form.doctor_id"
                                     label="Doctor"
                                     :options="doctorOptions"
                                 />
                             </div>
-                            <div class="w-full sm:w-44">
+                            <div class="hidden w-44 sm:block">
                                 <OperationalSelect
                                     v-model="form.coverage_type"
                                     label="Coverage"
                                     :options="coverageOptions"
                                 />
                             </div>
-                            <div class="w-full sm:w-44">
+                            <div class="hidden w-44 sm:block">
                                 <OperationalSelect
                                     v-model="form.priority"
                                     label="Urgency"
@@ -337,35 +353,93 @@ const selectTab = (value: string) => board.selectTab(value as BoardTab);
                             </div>
                         </template>
                         <template #primary>
+                            <div class="flex gap-2 max-sm:w-full">
+                                <button
+                                    type="button"
+                                    class="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:flex-none lg:h-9"
+                                    :aria-expanded="filtersOpen"
+                                    aria-controls="v2-registration-filters"
+                                    @click="filtersOpen = !filtersOpen"
+                                >
+                                    <span class="sm:hidden"
+                                        >Filters{{
+                                            filterBadge
+                                                ? ` (${filterBadge})`
+                                                : ''
+                                        }}</span
+                                    ><span class="max-sm:hidden"
+                                        >More filters</span
+                                    >
+                                </button>
+                                <button
+                                    type="submit"
+                                    class="inline-flex h-11 flex-1 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:flex-none lg:h-9"
+                                    :disabled="loading"
+                                >
+                                    {{ loading ? 'Applying…' : 'Apply' }}
+                                </button>
+                            </div>
+                        </template>
+                    </V2Toolbar>
+                    <div
+                        v-if="filtersOpen"
+                        id="v2-registration-filters"
+                        class="flex flex-wrap items-end gap-2 rounded-[14px] border bg-card p-3"
+                    >
+                        <div class="w-full sm:hidden">
+                            <OperationalSelect
+                                v-model="form.doctor_id"
+                                label="Doctor"
+                                :options="doctorOptions"
+                            />
+                        </div>
+                        <div class="w-full sm:hidden">
+                            <OperationalSelect
+                                v-model="form.coverage_type"
+                                label="Coverage"
+                                :options="coverageOptions"
+                            />
+                        </div>
+                        <div class="w-full sm:hidden">
+                            <OperationalSelect
+                                v-model="form.priority"
+                                label="Urgency"
+                                :options="urgencyOptions"
+                            />
+                        </div>
+                        <label class="grid min-w-40 gap-1 text-xs max-sm:w-full"
+                            >Visit type
+                            <OperationalSelect
+                                v-model="form.visit_type"
+                                label="Visit type"
+                                :options="visitTypeOptions"
+                            />
+                        </label>
+                        <label class="grid gap-1 text-xs max-sm:w-full"
+                            >From<DateField
+                                v-model="form.date_from"
+                                :echo="false"
+                        /></label>
+                        <label class="grid gap-1 text-xs max-sm:w-full"
+                            >To<DateField v-model="form.date_to" :echo="false"
+                        /></label>
+                        <div class="flex gap-2 max-sm:w-full">
                             <button
                                 type="submit"
-                                class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9"
+                                class="inline-flex h-11 flex-1 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:hidden"
                                 :disabled="loading"
                             >
                                 {{ loading ? 'Applying…' : 'Apply' }}
                             </button>
-                        </template>
-                        <template #more>
-                            <label class="grid min-w-40 gap-1 text-xs"
-                                >Visit type
-                                <OperationalSelect
-                                    v-model="form.visit_type"
-                                    label="Visit type"
-                                    :options="visitTypeOptions"
-                                />
-                            </label>
-                            <label class="grid gap-1 text-xs"
-                                >From<DateField
-                                    v-model="form.date_from"
-                                    :echo="false"
-                            /></label>
-                            <label class="grid gap-1 text-xs"
-                                >To<DateField
-                                    v-model="form.date_to"
-                                    :echo="false"
-                            /></label>
-                        </template>
-                    </V2Toolbar>
+                            <button
+                                type="button"
+                                class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:flex-1 lg:h-9"
+                                @click="board.resetFilters"
+                            >
+                                Reset
+                            </button>
+                        </div>
+                    </div>
                     <p
                         v-if="advancedFilterCount"
                         class="text-xs text-muted-foreground"
@@ -377,9 +451,17 @@ const selectTab = (value: string) => board.selectTab(value as BoardTab);
                     <InputError :message="error" />
                 </form>
 
-                <p class="text-[13px] text-muted-foreground">
-                    {{ resultLine }} · 25 per page
-                </p>
+                <div
+                    class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[13px] text-muted-foreground"
+                >
+                    <p>{{ resultLine }} · 25 per page</p>
+                    <p role="status">
+                        {{
+                            liveRefreshNotice ||
+                            'Live · refreshes every 10 seconds'
+                        }}
+                    </p>
+                </div>
 
                 <V2Table
                     label="Visits"
@@ -414,7 +496,7 @@ const selectTab = (value: string) => board.selectTab(value as BoardTab);
                             @click="rowClick($event, item.visit)"
                         >
                             <td data-label="Patient" data-primary>
-                                <span class="block font-medium">{{
+                                <span class="block font-medium lg:text-sm">{{
                                     item.visit.patientName
                                 }}</span>
                                 <span
@@ -422,11 +504,13 @@ const selectTab = (value: string) => board.selectTab(value as BoardTab);
                                     >{{ item.visit.patientNumber }}</span
                                 >
                             </td>
-                            <td data-label="Queue">
+                            <td data-label="Queue" class="text-sm">
                                 {{ item.visit.queueNumber ?? '—' }}
                             </td>
                             <td data-label="Arrived">
-                                <span class="max-lg:text-right lg:contents">
+                                <span
+                                    class="whitespace-nowrap max-lg:text-right lg:contents"
+                                >
                                     {{
                                         formatDate(
                                             item.visit.registeredAtDate,
@@ -476,7 +560,7 @@ const selectTab = (value: string) => board.selectTab(value as BoardTab);
                             </td>
                             <td data-label="Status">
                                 <div
-                                    class="flex flex-wrap items-center gap-1.5"
+                                    class="flex flex-wrap items-center gap-1.5 max-lg:justify-end"
                                 >
                                     <V2Chip
                                         :tone="item.status.tone"
@@ -528,7 +612,7 @@ const selectTab = (value: string) => board.selectTab(value as BoardTab);
                                 class="text-right"
                             >
                                 <div
-                                    class="flex items-center justify-end gap-1"
+                                    class="flex items-center justify-end gap-1 max-lg:gap-2 max-lg:[&_[data-slot=v2-row-menu]]:flex-1"
                                 >
                                     <WhatsAppLink
                                         :can-whatsapp="item.visit.canWhatsapp"
