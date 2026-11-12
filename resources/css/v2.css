@@ -1,0 +1,168 @@
+/* Version 2 table: rows become cards on phones (V2Table `cards`). The visible label comes from each cell's data-label;
+   the first cell is the primary field; td[data-select] sits on top; td[data-actions] is a full-width 44px row. */
+@media (max-width: 1023.98px) {
+    .v2-table.v2-cards-lg {
+        border: 0;
+        background: transparent;
+        border-radius: 0;
+        overflow: visible !important;
+        mask-image: none !important;
+    }
+    .v2-cards-lg table {
+        min-width: 0 !important;
+    }
+    .v2-cards-lg thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+    }
+    .v2-cards-lg tbody {
+        display: grid;
+        gap: 0.75rem;
+    }
+    .v2-cards-lg tr,
+    .v2-cards-lg td {
+        display: block;
+    }
+    .v2-cards-lg tbody tr {
+        display: flex;
+        flex-direction: column;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.25rem 0.75rem;
+    }
+    .v2-cards-lg td {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.5rem 0 !important;
+        text-align: right;
+        position: static !important;
+        background: transparent !important;
+    }
+    .v2-cards-lg td:first-child {
+        font-weight: 600;
+    }
+    .v2-cards-lg td[data-label]::before {
+        content: attr(data-label);
+        color: var(--muted-foreground);
+        font-size: 13px;
+        font-weight: 400;
+        text-align: left;
+    }
+    .v2-cards-lg td[data-select] {
+        order: -1;
+        min-height: 44px;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    .v2-cards-lg td[data-select] > label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 44px;
+        min-width: 44px;
+    }
+    .v2-cards-lg td[data-actions] {
+        min-height: 44px;
+        justify-content: stretch;
+    }
+    .v2-cards-lg td[data-actions] > * {
+        flex: 1;
+        min-height: 44px;
+    }
+}
+@media (max-width: 1279.98px) {
+    .v2-table.v2-cards-xl {
+        border: 0;
+        background: transparent;
+        border-radius: 0;
+        overflow: visible !important;
+        mask-image: none !important;
+    }
+    .v2-cards-xl table {
+        min-width: 0 !important;
+    }
+    .v2-cards-xl thead {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+    }
+    .v2-cards-xl tbody {
+        display: grid;
+        gap: 0.75rem;
+    }
+    .v2-cards-xl tr,
+    .v2-cards-xl td {
+        display: block;
+    }
+    .v2-cards-xl tbody tr {
+        display: flex;
+        flex-direction: column;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 14px;
+        padding: 0.25rem 0.75rem;
+    }
+    .v2-cards-xl td {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        gap: 1rem;
+        padding: 0.5rem 0 !important;
+        text-align: right;
+        position: static !important;
+        background: transparent !important;
+    }
+    .v2-cards-xl td:first-child {
+        font-weight: 600;
+    }
+    .v2-cards-xl td[data-label]::before {
+        content: attr(data-label);
+        color: var(--muted-foreground);
+        font-size: 13px;
+        font-weight: 400;
+        text-align: left;
+    }
+    .v2-cards-xl td[data-select] {
+        order: -1;
+        min-height: 44px;
+        align-items: center;
+        justify-content: flex-start;
+    }
+    .v2-cards-xl td[data-select] > label {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        min-height: 44px;
+        min-width: 44px;
+    }
+    .v2-cards-xl td[data-actions] {
+        min-height: 44px;
+        justify-content: stretch;
+    }
+    .v2-cards-xl td[data-actions] > * {
+        flex: 1;
+        min-height: 44px;
+    }
+}
+
+/* Version 2 page title: 28/34 on phones, 30/36 from 64rem, bold. */
+.v2-page-title {
+    font-size: 28px;
+    line-height: 34px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
+}
+@media (min-width: 64rem) {
+    .v2-page-title {
+        font-size: 30px;
+        line-height: 36px;
+    }
+}
