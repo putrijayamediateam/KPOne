@@ -361,6 +361,10 @@ watch(
     (d) => (newType.warn = String(d)),
     { immediate: true },
 );
+// HR forms (Daniel, 2026-11-12): a Save is cobalt only when pressing it would do something; a new type needs a code or a name.
+const newTypeStarted = computed(
+    () => newType.code.trim() !== '' || newType.name.trim() !== '',
+);
 const yesNo = [
     { value: 'yes', label: 'Yes' },
     { value: 'no', label: 'No' },
@@ -749,7 +753,10 @@ const archiveType = () => {
                         />
                     </div>
                     <div class="flex flex-wrap gap-2">
-                        <Button type="submit" class="max-lg:min-h-11"
+                        <Button
+                            type="submit"
+                            variant="outline"
+                            class="max-lg:min-h-11"
                             >Show</Button
                         >
                         <Button
@@ -1157,6 +1164,7 @@ const archiveType = () => {
                 </fieldset>
                 <Button
                     type="submit"
+                    :variant="newTypeStarted ? 'default' : 'outline'"
                     class="self-start max-lg:min-h-11"
                     :disabled="newType.processing"
                     data-test="type-save"
