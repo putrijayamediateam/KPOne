@@ -31,3 +31,12 @@ in dark. The shared Button's 40% ring measured 1.95:1 and 2.16:1.
 
 **Not here yet:** Registration board, Register visit, visit page and Edit visit. Those V2 pages are Nurul's; they are
 not on main, and they need `usePageCrumbs` for "Registration > KPV-…". The shots follow once they use it.
+
+**collapse-\*:** a three-item harness trail, "Registration › KPV-00000008 › Edit visit".
+- Below 640 px it shows "… › Edit visit". The "…" is a 44 × 44 px link to the nearest earlier page, named
+  "Back to KPV-00000008".
+- At 1440 px the full trail shows.
+- Two-item trails are unchanged and still wrap on phones.
+
+**crumbfocus-\*:** keyboard focus on a crumb link. A local 2 px ring measures 5.95:1 in light and 7.47:1 in dark
+against the page. The shared Button is untouched (DD-74).
