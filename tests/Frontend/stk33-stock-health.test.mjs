@@ -58,3 +58,10 @@ test('STK-33 (Daniel): more than a year, labelled values, sort note and the peri
     assert.doesNotMatch(page, />Show<\/Button/);
     assert.match(page, /class="grid grid-cols-3 gap-2 sm:gap-3"/);
 });
+
+test('STK-33 (Daniel): on phones the expiry loss spans both columns', () => {
+    assert.match(
+        page,
+        /<div class="col-span-2 lg:col-span-1">\s*<dt class="text-muted-foreground">Expiry loss<\/dt>/,
+    );
+});

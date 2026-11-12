@@ -239,7 +239,7 @@ const plural = (count: number, one: string, many: string) =>
                             Not enough stock history
                         </dd>
                     </div>
-                    <div>
+                    <div class="col-span-2 lg:col-span-1">
                         <dt class="text-muted-foreground">Expiry loss</dt>
                         <dd
                             v-if="row.expiryLossPercent !== null"
