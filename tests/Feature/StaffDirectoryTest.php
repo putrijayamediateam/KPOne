@@ -40,6 +40,24 @@ class StaffDirectoryTest extends TestCase
         $this->finance = Department::query()->where('name', 'Finance')->firstOrFail();
     }
 
+    public function test_the_deactivation_date_is_shown_only_to_viewers_who_manage_staff(): void
+    {
+        $subject = $this->createStaff('ca', $this->clinical, [$this->cheras], 'left.us@kpone.test');
+        $subject->forceFill(['is_active' => false, 'deactivated_at' => '2026-11-05 03:00:00'])->save();
+
+        foreach (['director', 'hr_manager'] as $role) {
+            $viewer = $this->createStaff($role, $this->clinical, [$this->cheras]);
+            $this->actingAs($viewer)->get(route('staff.index', ['status' => 'inactive']))->assertOk()->assertInertia(fn (Assert $page) => $page
+                ->where('staff.data.0.id', $subject->id)
+                ->where('staff.data.0.deactivatedAt', fn ($v) => str_starts_with((string) $v, '2026-11-05')));
+        }
+
+        $marketing = $this->createStaff('marketing', $this->clinical, [$this->cheras]);
+        $this->actingAs($marketing)->get(route('staff.index', ['status' => 'inactive']))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('staff.data.0.id', $subject->id)
+            ->where('staff.data.0.deactivatedAt', null));
+    }
+
     public function test_organisation_scoped_directory_supports_server_side_search_and_filters(): void
     {
         $viewer = $this->createStaff('director', $this->clinical, []);
