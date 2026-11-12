@@ -457,6 +457,17 @@ check items, keep them"). The rest stand unless the owner changes them.
     inside, outside or not available with an accuracy band (a reading rougher than 1 km is not available); a refusal never
     blocks; Review shows plain muted words; staff see their own latest result (Suresh, m3); the audit log records only that a
     press was checked, never the result (Suresh, M1). HR-16b (photo) is not built.
+96. HR-PHOTO (owner, 2026-11-12, relayed by B.E.R.N.I.S.S; plan approved the same day): a live camera photo is
+    **compulsory** for both clock in and clock out ("its a compulsary and wajib through the flow"); no photo, no clock
+    event. This **supersedes decision 6** (no selfie or face photo) and **HR-PLAN section 22** (off by default, 30 days,
+    a refusal never blocks). Photos are kept 7 years (2,555 days, the HR evidence cap) and purged; each person sees their
+    own, the HR Manager and the Director see everyone's, every view of someone else's photo is audited (ids only). The
+    clock-in chip reads Late (against the person's own rostered shift, with HR's grace minutes, so it agrees with
+    Review), On time, or No shift set; clock out has no tag. No face matching or AI of any kind. A refused or missing
+    camera records nothing; the correction flow is the way out. Photos stay synthetic-only until the owner's PDPA review
+    (the 7-year face-photo retention is flagged as a PDPA risk). AGENTS.md's "optional selfie" wording is changed by
+    B.E.R.N.I.S.S. HR-16a's location check stays separate and off (PDPA 16). Screens wait for Daniel's sketch, which the
+    owner sees first.
 
 ## 7. Open items and known limits
 
