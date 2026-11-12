@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import VisitReasonField from '@/components/registration-v2/VisitReasonField.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Field from '@/components/v2/V2Field.vue';
@@ -9,7 +10,6 @@ import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2StickySummary from '@/components/v2/V2StickySummary.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
-import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue';
 import type { BranchContext, VisitDetail, VisitOptions } from '@/types';
 
@@ -177,9 +177,9 @@ const inputClass =
                             </V2Field>
                             <div class="md:col-span-2">
                                 <p class="mb-1.5 text-sm font-medium">
-                                    Visit reason (up to 5, first is primary)
+                                    Visit reason
                                 </p>
-                                <VisitReasonPicker
+                                <VisitReasonField
                                     v-if="visit.visitReasons.structured.length"
                                     v-model="form.visit_reason_public_ids"
                                     v-model:selected="selectedVisitReasons"
@@ -238,7 +238,7 @@ const inputClass =
                                 </V2Field>
                                 <V2Field
                                     v-slot="{ id, describedBy, invalid }"
-                                    label="Member or staff reference"
+                                    label="Member or staff reference (optional)"
                                     :error="
                                         errorFor('coverage_member_reference')
                                     "

@@ -1,15 +1,17 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import AdultConfirmation from '@/components/patient/AdultConfirmation.vue';
 import GuardianFields from '@/components/patient/GuardianFields.vue';
 import PhoneInput from '@/components/patient/PhoneInput.vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
+import VisitReasonField from '@/components/registration-v2/VisitReasonField.vue';
 import { DateField } from '@/components/ui/date-field';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
@@ -18,7 +20,6 @@ import V2SearchCombobox from '@/components/v2/V2SearchCombobox.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2StickySummary from '@/components/v2/V2StickySummary.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
-import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
 import { useRegistrationCreate } from '@/composables/registration/useRegistrationCreate';
 import { knownMinor } from '@/lib/guardian-contact';
 import { formatDate } from '@/lib/presentation';
@@ -87,6 +88,14 @@ const pick = (number: string) => {
         c.selectPatient(patient);
     }
 };
+const searchBox = ref<{ focus: () => void } | null>(null);
+const refocusSearch = () =>
+    void nextTick(() => nextTick(() => searchBox.value?.focus()));
+const changePatient = () => {
+    c.changePatient();
+    refocusSearch();
+};
+const changeQuickToSearch = () => changePatient();
 const visitTypeOptions = [
     { value: 'consultation', label: 'Consultation' },
     { value: 'otc', label: 'OTC' },
@@ -100,7 +109,14 @@ const urgencyOptions = [
     { value: 'urgent', label: 'Urgent' },
 ];
 const summary = computed(() => [
-    { label: 'Patient', value: c.patientSummaryName.value },
+    {
+        label: 'Patient',
+        value: selectedPatient.value
+            ? c.patientSummaryName.value
+            : quickMode.value
+              ? quick.value.full_name.trim() || 'New patient'
+              : 'Not chosen yet',
+    },
     {
         label: 'Visit type',
         value: form.visit_type === 'consultation' ? 'Consultation' : 'OTC',
@@ -133,8 +149,9 @@ const inputClass =
             <template #actions>
                 <Link
                     href="/registration"
-                    class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
-                    >Back to registration</Link
+                    class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:h-11 max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:text-primary lg:h-9"
+                    ><span class="max-sm:hidden">Back to registration</span
+                    ><span class="sm:hidden">← Registration</span></Link
                 >
             </template>
 
@@ -142,7 +159,7 @@ const inputClass =
                 <V2FormCard
                     :step="1"
                     title="Patient"
-                    description="Select an existing patient or create a new one quickly. Search first; Quick create appears when nothing matches."
+                    description="Search for a patient. If nothing matches, create one."
                 >
                     <div
                         v-if="selectedPatient"
@@ -178,7 +195,7 @@ const inputClass =
                             <button
                                 type="button"
                                 class="inline-flex h-11 items-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
-                                @click="c.changePatient"
+                                @click="changePatient"
                             >
                                 Change patient
                             </button>
@@ -188,6 +205,7 @@ const inputClass =
                     <template v-else-if="!quickMode">
                         <!-- The "no match" row and Quick create sit right under the box, so an empty result list stays hidden. -->
                         <V2SearchCombobox
+                            ref="searchBox"
                             class="[&_ul[role=listbox]:not(:has([role=option],[role=status]))]:hidden"
                             v-model="patientQuery"
                             label="Search patient"
@@ -256,10 +274,24 @@ const inputClass =
                         </div>
                     </template>
 
-                    <div v-else class="grid gap-4 md:grid-cols-2">
-                        <h3 class="text-[13px] font-semibold md:col-span-2">
-                            New patient (Quick create)
-                        </h3>
+                    <div
+                        v-else
+                        class="grid gap-4 md:grid-cols-2 [&_input:not([type=checkbox])]:!h-11 [&_input:not([type=checkbox])]:!bg-card [&_input:not([type=checkbox])]:!text-base md:[&_input:not([type=checkbox])]:!text-[15px] lg:[&_input:not([type=checkbox])]:!h-9 [&_label:has(input[type=checkbox])]:!gap-0 [&_select]:!h-11 [&_select]:!bg-card sm:[&_select]:!w-52 lg:[&_select]:!h-9"
+                    >
+                        <div
+                            class="flex flex-wrap items-baseline justify-between gap-2 md:col-span-2"
+                        >
+                            <h3 class="text-[13px] font-semibold">
+                                New patient (Quick create)
+                            </h3>
+                            <button
+                                type="button"
+                                class="inline-flex h-11 items-center text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                                @click="changeQuickToSearch"
+                            >
+                                Back to search
+                            </button>
+                        </div>
                         <div class="md:col-span-2">
                             <V2Field
                                 v-slot="{ describedBy, invalid }"
@@ -368,34 +400,25 @@ const inputClass =
                                 "
                             />
                         </div>
-                        <V2Field
-                            v-slot="{ id, describedBy, invalid }"
-                            label="Nationality country code"
-                            :required="requirements.requireNationality"
-                            :error="
-                                c.errorFor('quick_patient.nationality_code')
+                        <div
+                            v-if="
+                                !quick.date_of_birth &&
+                                !requirements.requireDateOfBirth
                             "
+                            class="md:col-span-2"
                         >
-                            <input
-                                :id="id"
-                                v-model="quick.nationality_code"
-                                :aria-describedby="describedBy"
-                                :aria-invalid="invalid"
-                                :required="requirements.requireNationality"
-                                maxlength="2"
-                                placeholder="MY"
-                                :class="`${inputClass} uppercase`"
+                            <AdultConfirmation
+                                v-model="quick.adult_confirmed"
+                                :error="
+                                    c.errorFor(
+                                        'quick_patient.adult_confirmed',
+                                    ) ||
+                                    c.errorFor(
+                                        'quick_patient.adult_confirmation_key',
+                                    )
+                                "
                             />
-                        </V2Field>
-                        <V2Field label="Gender">
-                            <OperationalSelect
-                                v-model="quick.sex"
-                                label="Gender"
-                                :invalid="!!c.errorFor('quick_patient.sex')"
-                                :options="c.genderOptions"
-                                trigger-class="h-11 lg:h-9"
-                            />
-                        </V2Field>
+                        </div>
                         <div class="md:col-span-2">
                             <GuardianFields
                                 v-model="quick.guardian"
@@ -405,14 +428,108 @@ const inputClass =
                                 :errors="c.contactErrors.value"
                             />
                         </div>
-                        <RegistrationContactFields
+                        <template v-if="requirements.requireNationality">
+                            <V2Field
+                                v-slot="{ id, describedBy, invalid }"
+                                label="Nationality country code"
+                                :required="requirements.requireNationality"
+                                :error="
+                                    c.errorFor('quick_patient.nationality_code')
+                                "
+                            >
+                                <input
+                                    :id="id"
+                                    v-model="quick.nationality_code"
+                                    :aria-describedby="describedBy"
+                                    :aria-invalid="invalid"
+                                    :required="requirements.requireNationality"
+                                    maxlength="2"
+                                    placeholder="MY"
+                                    :class="`${inputClass} uppercase`"
+                                />
+                            </V2Field>
+                        </template>
+                        <div
+                            v-if="
+                                requirements.requireEmail ||
+                                requirements.requireAddress
+                            "
                             class="md:col-span-2"
-                            :model="quick"
-                            :require-email="requirements.requireEmail"
-                            :require-address="requirements.requireAddress"
-                            :errors="c.contactErrors.value"
-                            id-prefix="quick-contact"
-                        />
+                        >
+                            <RegistrationContactFields
+                                :model="quick"
+                                :require-email="requirements.requireEmail"
+                                :require-address="requirements.requireAddress"
+                                :errors="c.contactErrors.value"
+                                id-prefix="quick-contact"
+                            />
+                        </div>
+                        <div class="md:col-span-2">
+                            <V2DisclosureBar title="More details (optional)">
+                                <div
+                                    class="grid gap-4 border-t p-4 md:grid-cols-2"
+                                >
+                                    <V2Field
+                                        v-if="!requirements.requireNationality"
+                                        v-slot="{ id, describedBy, invalid }"
+                                        label="Nationality country code"
+                                        :required="
+                                            requirements.requireNationality
+                                        "
+                                        :error="
+                                            c.errorFor(
+                                                'quick_patient.nationality_code',
+                                            )
+                                        "
+                                    >
+                                        <input
+                                            :id="id"
+                                            v-model="quick.nationality_code"
+                                            :aria-describedby="describedBy"
+                                            :aria-invalid="invalid"
+                                            :required="
+                                                requirements.requireNationality
+                                            "
+                                            maxlength="2"
+                                            placeholder="MY"
+                                            :class="`${inputClass} uppercase`"
+                                        />
+                                    </V2Field>
+                                    <V2Field label="Gender">
+                                        <OperationalSelect
+                                            v-model="quick.sex"
+                                            label="Gender"
+                                            :invalid="
+                                                !!c.errorFor(
+                                                    'quick_patient.sex',
+                                                )
+                                            "
+                                            :options="c.genderOptions"
+                                            trigger-class="h-11 lg:h-9"
+                                        />
+                                    </V2Field>
+                                    <div
+                                        v-if="
+                                            !requirements.requireEmail &&
+                                            !requirements.requireAddress
+                                        "
+                                        class="md:col-span-2"
+                                    >
+                                        <RegistrationContactFields
+                                            :model="quick"
+                                            :require-email="
+                                                requirements.requireEmail
+                                            "
+                                            :require-address="
+                                                requirements.requireAddress
+                                            "
+                                            :errors="c.contactErrors.value"
+                                            id-prefix="quick-contact"
+                                        />
+                                    </div>
+                                </div>
+                            </V2DisclosureBar>
+                        </div>
                         <label
                             v-if="
                                 c.errorFor('quick_patient.duplicate_override')
@@ -431,15 +548,6 @@ const inputClass =
                                 Confirm only after review.</span
                             ></label
                         >
-                        <div class="md:col-span-2">
-                            <button
-                                type="button"
-                                class="inline-flex h-11 items-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
-                                @click="c.changePatient"
-                            >
-                                Back to search
-                            </button>
-                        </div>
                     </div>
                 </V2FormCard>
 
@@ -487,14 +595,14 @@ const inputClass =
                             </V2Field>
                             <div class="md:col-span-2">
                                 <p class="mb-1.5 text-sm font-medium">
-                                    Visit reason (up to 5, first is primary)
+                                    Visit reason
                                     <span
                                         v-if="form.visit_type === 'otc'"
                                         class="font-normal text-muted-foreground"
                                         >(optional)</span
                                     >
                                 </p>
-                                <VisitReasonPicker
+                                <VisitReasonField
                                     v-model="form.visit_reason_public_ids"
                                     v-model:selected="
                                         c.selectedVisitReasons.value
@@ -540,8 +648,7 @@ const inputClass =
                                 </V2Field>
                                 <V2Field
                                     v-slot="{ id, describedBy, invalid }"
-                                    label="Member or staff reference"
-                                    hint="Optional."
+                                    label="Member or staff reference (optional)"
                                     :error="
                                         c.errorFor('coverage_member_reference')
                                     "
@@ -640,7 +747,9 @@ const inputClass =
                     <p class="text-[13px] text-muted-foreground">
                         {{
                             visitReady
-                                ? 'Registers the visit now. The patient joins the list on the Registration board.'
+                                ? quickMode
+                                    ? 'Creates the patient and registers the visit.'
+                                    : 'Registers the visit now. The patient joins the list on the Registration board.'
                                 : 'Choose or create a patient first.'
                         }}
                     </p>

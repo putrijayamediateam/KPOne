@@ -586,11 +586,39 @@ test('V2 Register visit: same payload, search and rules as the Classic page, whi
         'AdultConfirmation',
         'RegistrationContactFields',
         'PhoneInput',
-        'VisitReasonPicker',
         'WhatsAppLink',
     ]) {
         assert.ok(v2.includes(shared), `V2 ${shared}`);
         assert.ok(classicCreate.includes(shared), `Classic ${shared}`);
+    }
+
+    // The V2 reason field keeps the Classic picker's endpoints, limit and messages.
+    const field = read(
+        'resources/js/components/registration-v2/VisitReasonField.vue',
+    );
+    const picker = read('resources/js/components/visit/VisitReasonPicker.vue');
+    assert.match(v2, /VisitReasonField/);
+    assert.match(classicCreate, /VisitReasonPicker/);
+
+    for (const shared of [
+        '/visit-reasons?',
+        "'/visit-reasons'",
+        "method: 'POST'",
+        'JSON.stringify({ name: query.value })',
+        'props.selected.length < 5',
+        'isActive === false',
+        'ask a Supervisor.',
+        'X-CSRF-TOKEN',
+    ]) {
+        assert.ok(
+            field.includes(shared) ||
+                field.replace(/\s+/g, ' ').includes(shared),
+            `V2 field ${shared}`,
+        );
+        assert.ok(
+            picker.replace(/\s+/g, ' ').includes(shared),
+            `Classic picker ${shared}`,
+        );
     }
 
     assert.match(v2, /useRegistrationCreate/);
