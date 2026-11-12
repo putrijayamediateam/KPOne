@@ -4,6 +4,8 @@ namespace App\Domain\HR\OpenShifts\Services;
 
 use App\Domain\HR\OpenShifts\OpenShiftPermissions;
 use App\Domain\HR\Records\Services\LocumSignIns;
+use App\Domain\HR\Roster\Models\RosterVersion;
+use App\Domain\HR\Roster\Models\RosterWeek;
 use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
@@ -20,6 +22,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class OpenShiftsPageService
 {
+    public function __construct(private RosterRules $rules) {}
+
     /**
      * @param  array<string, mixed>  $query
      * @return array<string, mixed>
@@ -70,8 +74,10 @@ final class OpenShiftsPageService
                 ->whereIn('r.open_shift_id', $shifts->pluck('id')->all())->orderBy('r.asked_at')->orderBy('r.id') // two asks in the same second keep the order they were made in
                 ->get(['r.*', 'u.name as locum_name'])->groupBy('open_shift_id');
             $zone = (string) ($branches->first()->timezone ?? 'UTC');
+            $needsPosting = $this->needsPosting($shifts, $requests, $branches);
             $props[$tab === 'closed' ? 'closed' : 'open'] = array_values($shifts->map(fn (\stdClass $s): array => [...$row($s),
                 'started' => CarbonImmutable::parse((string) $s->starts_at, 'UTC')->lessThanOrEqualTo($now),
+                'needsPosting' => in_array((int) $s->id, $needsPosting, true),
                 'asks' => array_values(($requests->get($s->id) ?? collect())->map(fn (\stdClass $r): array => ['id' => (string) $r->public_id,
                     'locum' => (string) $r->locum_name, 'askedOn' => CarbonImmutable::parse((string) $r->asked_at, 'UTC')->setTimezone($zone)->format('j M Y, g:i A'),
                     'status' => (string) $r->status, 'statusLabel' => $this->askLabel((string) $r->status, $r->decline_reason, manager: true),
@@ -79,6 +85,45 @@ final class OpenShiftsPageService
         }
 
         return $props;
+    }
+
+    /**
+     * Filled open shifts that the week's current roster no longer has for the confirmed locum at the same times: HR
+     * removed or moved that roster shift after the confirm (an HR-15b known limit). The current roster is the open draft
+     * if there is one, otherwise the latest approved version. Worked out when the page opens; nothing is stored.
+     *
+     * @param  \Illuminate\Support\Collection<int, \stdClass>  $shifts
+     * @param  \Illuminate\Support\Collection<array-key, \Illuminate\Support\Collection<int, \stdClass>>  $requests
+     * @param  Collection<int, Branch>  $branches
+     * @return list<int> open shift ids
+     */
+    private function needsPosting(\Illuminate\Support\Collection $shifts, \Illuminate\Support\Collection $requests, Collection $branches): array
+    {
+        $byId = $branches->keyBy('id');
+        $current = []; // memo: branch id and week start => roster version id, or null
+        $needs = [];
+        foreach ($shifts->where('status', 'filled') as $s) {
+            $confirmed = ($requests->get($s->id) ?? collect())->firstWhere('status', 'confirmed');
+            $branch = $byId->get($s->branch_id);
+            if ($confirmed === null || ! $branch instanceof Branch) {
+                continue;
+            }
+            $weekStart = $this->rules->weekStart($branch, CarbonImmutable::parse((string) $s->starts_at, 'UTC')->setTimezone((string) $s->timezone)->toDateString())->toDateString();
+            $key = $s->branch_id.':'.$weekStart;
+            if (! array_key_exists($key, $current)) {
+                $week = RosterWeek::query()->where('branch_id', $s->branch_id)->whereDate('week_start', $weekStart)->first();
+                $versions = $week === null ? collect() : RosterVersion::query()->where('roster_week_id', $week->id)->orderByDesc('version_number')->get();
+                $version = $versions->first(fn (RosterVersion $v): bool => $v->isOpen()) ?? $versions->firstWhere('status', 'approved');
+                $current[$key] = $version?->id;
+            }
+            $rostered = $current[$key] !== null && DB::table('hr_roster_shifts')->where('roster_version_id', $current[$key])
+                ->where('staff_user_id', $confirmed->locum_user_id)->where('starts_at', $s->starts_at)->where('ends_at', $s->ends_at)->exists();
+            if (! $rostered) {
+                $needs[] = (int) $s->id;
+            }
+        }
+
+        return $needs;
     }
 
     /** @return Collection<int, StaffBranchAssignment> the locum's assignments that have not ended */
