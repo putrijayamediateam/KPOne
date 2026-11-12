@@ -33,14 +33,22 @@ test('V2SearchCombobox: combobox and listbox roles, keyboard, chip slot, and no 
     );
 });
 
-test('V2ChipChoice: chips with one primary kept inside the chosen set, 44px, visible Primary word', () => {
+test('V2ChipChoice: remove x with a name, own 44px targets, a visible limit with a disabled state, inactive note, add entry', () => {
     const s = v2('V2ChipChoice');
     assert.match(s, /role="group"/);
-    assert.match(s, /:aria-pressed=/);
     assert.match(s, /update:primary/);
     assert.match(s, /Make primary/);
     assert.match(s, />\s*Primary\s*</);
-    assert.match(s, /h-11/);
+    assert.match(s, /:aria-label="`Remove \$\{option\.label\}`"/);
+    assert.match(s, /h-11 min-w-11/);
+    assert.match(
+        s,
+        /Up to \{\{ max \}\} \{\{ noun \}\}\. \{\{ modelValue\.length \}\} chosen\./,
+    );
+    assert.match(s, /Limit reached\. Remove one to add another\./);
+    assert.match(s, /:disabled="option\.disabled \|\| atLimit"/);
+    assert.match(s, /inactiveMessage/);
+    assert.match(s, /emit\('add'\)/);
     assert.doesNotMatch(code('V2ChipChoice'), /fetch\(|axios|router|usePage/);
 });
 

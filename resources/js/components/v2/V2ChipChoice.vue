@@ -1,35 +1,67 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+
 /**
- * Version 2 chip choice (the reason picker): chips where several can be chosen and one is the primary. The first one
- * chosen becomes primary; a chosen chip that is not primary offers "Make primary"; if the primary is unchosen the
- * next chosen one takes over. The block only keeps the primary inside the chosen set. Which reasons exist and which
- * may be primary is the page's rule.
+ * Version 2 chip choice (the reason picker): chips where several can be chosen and one is the primary. A chosen chip
+ * shows its label, a "Primary" word or a "Make primary" button, and a × button named "Remove <label>"; each of those
+ * buttons is its own 44px target and tab stop, so nothing toggles by accident. An unchosen chip adds itself when
+ * pressed. The first chosen becomes primary, and if the primary is removed the next chosen one takes over.
+ *
+ * `max` shows the limit in words ("Up to 5 reasons. 5 chosen.") and disables the unchosen chips at the limit, with
+ * the reason shown. `inactiveMessage` shows a note about a chosen item that is no longer in use. `addLabel` shows an
+ * "Add new" entry that emits `add`. The page supplies the rules and the endpoint.
  */
 export type ChipOption = { value: string; label: string; disabled?: boolean };
 
-const props = defineProps<{
-    label: string;
-    options: ChipOption[];
-    modelValue: string[];
-    primary: string | null;
-}>();
+const props = withDefaults(
+    defineProps<{
+        label: string;
+        options: ChipOption[];
+        modelValue: string[];
+        primary: string | null;
+        max?: number;
+        noun?: string;
+        inactiveMessage?: string;
+        addLabel?: string;
+    }>(),
+    {
+        max: undefined,
+        noun: 'reasons',
+        inactiveMessage: undefined,
+        addLabel: undefined,
+    },
+);
 
 const emit = defineEmits<{
     'update:modelValue': [value: string[]];
     'update:primary': [value: string | null];
+    add: [];
 }>();
 
-const toggle = (value: string) => {
-    const chosen = props.modelValue.includes(value)
-        ? props.modelValue.filter((v) => v !== value)
-        : [...props.modelValue, value];
+const atLimit = computed(
+    () => props.max !== undefined && props.modelValue.length >= props.max,
+);
 
-    emit('update:modelValue', chosen);
+const chosen = (value: string) => props.modelValue.includes(value);
 
-    if (!chosen.includes(props.primary ?? '')) {
-        emit('update:primary', chosen[0] ?? null);
+const change = (next: string[]) => {
+    emit('update:modelValue', next);
+
+    if (!next.includes(props.primary ?? '')) {
+        emit('update:primary', next[0] ?? null);
     }
 };
+
+const add = (value: string) => {
+    if (!atLimit.value) {
+        change([...props.modelValue, value]);
+    }
+};
+const remove = (value: string) =>
+    change(props.modelValue.filter((v) => v !== value));
+
+const target =
+    'inline-flex h-11 min-w-11 items-center justify-center outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background';
 </script>
 
 <template>
@@ -40,47 +72,75 @@ const toggle = (value: string) => {
         class="flex min-w-0 flex-col gap-1.5"
     >
         <p class="text-sm font-medium text-foreground">{{ label }}</p>
-        <div class="flex flex-wrap gap-2">
-            <span
-                v-for="option in options"
-                :key="option.value"
-                class="inline-flex items-center"
+        <p v-if="max !== undefined" class="text-[13px] text-muted-foreground">
+            Up to {{ max }} {{ noun }}. {{ modelValue.length }} chosen.
+            <span v-if="atLimit">
+                Limit reached. Remove one to add another.</span
             >
-                <button
-                    type="button"
-                    :aria-pressed="modelValue.includes(option.value)"
-                    :disabled="option.disabled"
-                    class="inline-flex h-11 items-center gap-1.5 border px-4 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50"
-                    :class="[
-                        modelValue.includes(option.value)
-                            ? 'border-primary bg-primary/10 text-primary'
-                            : 'border-border bg-card text-foreground hover:bg-muted',
-                        modelValue.includes(option.value) &&
-                        option.value !== primary
-                            ? 'rounded-l-full rounded-r-none border-r-0'
-                            : 'rounded-full',
-                    ]"
-                    @click="toggle(option.value)"
+        </p>
+        <p
+            v-if="inactiveMessage"
+            class="rounded-[10px] border border-warning/40 bg-warning-soft px-3 py-2 text-sm text-foreground"
+        >
+            {{ inactiveMessage }}
+        </p>
+        <div class="flex flex-wrap items-center gap-2">
+            <template v-for="option in options" :key="option.value">
+                <span
+                    v-if="chosen(option.value)"
+                    class="inline-flex items-center rounded-full border border-primary bg-primary/10 pl-4 text-sm font-medium text-primary"
                 >
                     {{ option.label }}
                     <span
                         v-if="option.value === primary"
-                        class="rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
+                        class="ml-1.5 rounded-full bg-primary px-2 py-0.5 text-xs text-primary-foreground"
                         >Primary</span
                     >
-                </button>
+                    <button
+                        v-else
+                        type="button"
+                        :class="`${target} px-2 text-primary underline-offset-2 hover:underline`"
+                        @click="emit('update:primary', option.value)"
+                    >
+                        Make primary
+                    </button>
+                    <button
+                        type="button"
+                        :aria-label="`Remove ${option.label}`"
+                        :class="`${target} rounded-full`"
+                        @click="remove(option.value)"
+                    >
+                        <svg
+                            class="size-4"
+                            viewBox="0 0 24 24"
+                            fill="none"
+                            stroke="currentColor"
+                            stroke-width="2.25"
+                            stroke-linecap="round"
+                            aria-hidden="true"
+                        >
+                            <path d="M6 6l12 12M18 6 6 18" />
+                        </svg>
+                    </button>
+                </span>
                 <button
-                    v-if="
-                        modelValue.includes(option.value) &&
-                        option.value !== primary
-                    "
+                    v-else
                     type="button"
-                    class="inline-flex h-11 items-center rounded-l-none rounded-r-full border border-l-0 border-primary bg-primary/10 pr-4 pl-2 text-sm text-primary underline-offset-2 outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-                    @click="emit('update:primary', option.value)"
+                    :disabled="option.disabled || atLimit"
+                    :class="`${target} rounded-full border border-border bg-card px-4 text-sm font-medium text-foreground hover:bg-muted disabled:cursor-not-allowed disabled:border-dashed disabled:bg-transparent disabled:text-muted-foreground disabled:hover:bg-transparent`"
+                    @click="add(option.value)"
                 >
-                    Make primary
+                    {{ option.label }}
                 </button>
-            </span>
+            </template>
+            <button
+                v-if="addLabel"
+                type="button"
+                :class="`${target} rounded-full border border-dashed border-primary px-4 text-sm font-medium text-primary hover:bg-primary/10`"
+                @click="emit('add')"
+            >
+                + {{ addLabel }}
+            </button>
         </div>
     </div>
 </template>
