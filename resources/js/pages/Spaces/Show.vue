@@ -2,6 +2,7 @@
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
 import { computed, onMounted, ref } from 'vue';
+import MeHome from '@/components/spaces/MeHome.vue';
 import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import {
@@ -222,18 +223,36 @@ type HrHome = {
 type MeHome = {
     branchName: string | null;
     asOf: string | null;
-    shift: {
-        text: string;
-        today: boolean;
-        empty: boolean;
-        href: string;
+    greeting: { text: string; date: string } | null;
+    time: { serverNow: string; timezone: string } | null;
+    ring: {
+        state: 'in' | 'out' | 'done';
+        canPress: boolean;
+        refusal: string | null;
+        needsAttendancePage: boolean;
+        serverNow: string;
+        timezone: string;
+        clockedInAt: string | null;
+        clockedInLabel: string | null;
+        doneLabel: string | null;
+        shiftLabel: string | null;
+        rosteredMinutes: number | null;
+        onTime: boolean | null;
+        lateMinutes: number | null;
     } | null;
-    clock: { state: string; text: string } | null;
-    leave:
-        | { notSetUp: true }
-        | { total: number; rows: Array<{ name: string; left: string }> }
-        | null;
-    claims: { text: string } | null;
+    week: {
+        days: Array<{
+            day: string;
+            date: string;
+            result: string;
+            word: string;
+        }>;
+        summary: string;
+    } | null;
+    tiles: Record<
+        'leave' | 'claims' | 'roster' | 'attendance',
+        { title: string; text: string; href: string } | null
+    >;
     credentials: {
         total: number;
         rows: Array<{ name: string; words: string; expired: boolean }>;
@@ -319,9 +338,20 @@ const primaryAction = computed(
         props.stock?.primaryAction ??
         props.hr?.primaryAction ??
         props.management?.primaryAction ??
-        props.me?.primaryAction ??
         null,
 );
+
+// DS-13: the Open list keeps only the rows the four tiles above it do not already cover.
+const meLinks = computed(() => {
+    const covered = new Set<string>();
+    Object.values(props.me?.tiles ?? {}).forEach((t) => {
+        if (t) {
+            covered.add(t.href);
+        }
+    });
+
+    return (props.me?.links ?? []).filter((l) => !covered.has(l.href));
+});
 
 const waitDuration = (minutes: number): string => {
     if (minutes < 1440) {
@@ -454,7 +484,9 @@ onMounted(() => {
                     </select>
                 </label>
                 <button
-                    v-if="accountMenu?.clock && clockVisible"
+                    v-if="
+                        accountMenu?.clock && clockVisible && space.key !== 'me'
+                    "
                     type="button"
                     class="space-clock"
                     data-test="clock-shortcut"
@@ -1833,88 +1865,20 @@ onMounted(() => {
                 </section>
             </template>
             <template v-else-if="me">
+                <MeHome
+                    :greeting="me.greeting"
+                    :ring="me.ring"
+                    :week="me.week"
+                    :tiles="me.tiles"
+                    :server-now="me.time?.serverNow ?? null"
+                    :timezone="me.time?.timezone ?? null"
+                />
                 <SpaceAsOf
                     v-if="me.branchName"
                     :branch-name="me.branchName"
                     :as-of="me.asOf"
                     only="me"
                 />
-                <section
-                    v-if="me.shift"
-                    class="space-card"
-                    aria-labelledby="me-shift"
-                >
-                    <h2 id="me-shift">
-                        {{
-                            me.shift.today ? 'My shift today' : 'My next shift'
-                        }}
-                    </h2>
-                    <p :class="me.shift.empty ? 'space-muted' : ''">
-                        {{ me.shift.text }}
-                    </p>
-                    <Link
-                        v-if="me.shift.empty"
-                        :href="me.shift.href"
-                        class="space-row"
-                    >
-                        <span>Open roster</span>
-                        <ChevronRight
-                            class="space-chevron"
-                            aria-hidden="true"
-                        />
-                    </Link>
-                </section>
-                <section
-                    v-if="me.clock"
-                    class="space-card"
-                    aria-labelledby="me-clock"
-                >
-                    <h2 id="me-clock">Clock</h2>
-                    <p>{{ me.clock.text }}</p>
-                </section>
-                <section
-                    v-if="me.leave"
-                    class="space-card"
-                    aria-labelledby="me-leave"
-                >
-                    <h2 id="me-leave">My leave</h2>
-                    <p v-if="'notSetUp' in me.leave" class="space-muted">
-                        Leave is not set up yet.
-                    </p>
-                    <template v-else>
-                        <ul class="space-list">
-                            <li
-                                v-for="r in me.leave.rows"
-                                :key="r.name"
-                                class="space-row"
-                            >
-                                <span class="space-row-body">
-                                    <span class="space-row-text">
-                                        <span class="space-row-main">{{
-                                            r.name
-                                        }}</span>
-                                        <span>{{ r.left }}</span>
-                                    </span>
-                                </span>
-                            </li>
-                        </ul>
-                        <p
-                            v-if="me.leave.total > me.leave.rows.length"
-                            class="space-muted"
-                        >
-                            Showing {{ me.leave.rows.length }} of
-                            {{ me.leave.total }}
-                        </p>
-                    </template>
-                </section>
-                <section
-                    v-if="me.claims"
-                    class="space-card"
-                    aria-labelledby="me-claims"
-                >
-                    <h2 id="me-claims">My claims</h2>
-                    <p class="space-muted">{{ me.claims.text }}</p>
-                </section>
                 <section
                     v-if="me.credentials"
                     class="space-card"
@@ -1977,13 +1941,13 @@ onMounted(() => {
                     </Link>
                 </section>
                 <section
-                    v-if="me.links.length"
+                    v-if="meLinks.length"
                     class="space-card"
                     aria-labelledby="me-open"
                 >
                     <h2 id="me-open">Open</h2>
                     <ul class="space-list">
-                        <li v-for="l in me.links" :key="l.title">
+                        <li v-for="l in meLinks" :key="l.title">
                             <Link :href="l.href" class="space-row">
                                 <span>{{ l.title }}</span>
                                 <ChevronRight
@@ -1996,10 +1960,12 @@ onMounted(() => {
                 </section>
                 <section
                     v-if="
-                        !me.shift &&
-                        !me.clock &&
-                        !me.leave &&
-                        !me.claims &&
+                        !me.ring &&
+                        !me.week &&
+                        !me.tiles.leave &&
+                        !me.tiles.claims &&
+                        !me.tiles.roster &&
+                        !me.tiles.attendance &&
                         !me.credentials &&
                         !me.payslip &&
                         !me.links.length
