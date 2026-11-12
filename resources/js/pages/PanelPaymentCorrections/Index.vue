@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { computed, nextTick, reactive, ref } from 'vue';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
@@ -134,20 +135,17 @@ const turnPage = (value: number) =>
     <main
         class="mx-auto flex w-full max-w-7xl flex-1 flex-col gap-4 px-4 py-6 md:px-6"
     >
+        <Link
+            href="/panel-invoices"
+            class="inline-flex w-fit items-center gap-1.5 text-sm text-muted-foreground underline-offset-2 hover:text-foreground hover:underline max-lg:min-h-11"
+        >
+            <ArrowLeft class="size-4" aria-hidden="true" />
+            Back to Panel invoices
+        </Link>
         <PageHeader
             title="Correct a Panel payment"
             :description="`${branch.name} · Reverse a Panel payment recorded by mistake. Nothing is deleted.`"
         />
-        <div class="flex flex-wrap gap-2">
-            <Button
-                as-child
-                variant="outline"
-                size="sm"
-                class="max-sm:min-h-11"
-            >
-                <Link href="/panel-invoices">Back to Panel invoices</Link>
-            </Button>
-        </div>
         <p class="text-sm text-muted-foreground">
             Not a refund. You cannot reverse a payment you recorded.
         </p>
@@ -165,7 +163,7 @@ const turnPage = (value: number) =>
         <p
             v-for="message in errorMessages"
             :key="message"
-            class="rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+            class="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
             role="alert"
         >
             {{ message }}
@@ -242,7 +240,7 @@ const turnPage = (value: number) =>
 
                 <p
                     v-if="payment.reversal"
-                    class="rounded-md bg-muted p-2 text-xs wrap-anywhere"
+                    class="rounded-lg bg-muted p-3 text-xs wrap-anywhere"
                     data-testid="reversal-details"
                 >
                     Reversed on {{ payment.reversal.reversedDate }} by
@@ -262,22 +260,24 @@ const turnPage = (value: number) =>
                         type="button"
                         variant="outline"
                         size="sm"
-                        class="max-sm:min-h-11"
+                        class="max-lg:min-h-11"
                         @click="start(payment)"
                     >
                         Reverse this payment
                     </Button>
                     <form
                         v-else
-                        class="grid max-w-xl gap-3 rounded-lg border p-3"
+                        class="grid max-w-xl gap-4 rounded-xl border bg-muted/30 p-4"
                         @submit.prevent="reverse(payment)"
                     >
-                        <label class="grid min-w-0 gap-1 text-xs">
+                        <label
+                            class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                        >
                             Reason *
                             <select
                                 :id="`reverse-reason-${payment.publicId}`"
                                 v-model="form.reason"
-                                class="h-9 w-full min-w-0 rounded-md border bg-background px-2 text-sm"
+                                class="h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-sm font-normal outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 max-lg:text-base dark:bg-field-fill/30"
                                 :aria-invalid="
                                     errors.reason_code ? 'true' : undefined
                                 "
@@ -305,7 +305,9 @@ const turnPage = (value: number) =>
                                 >{{ errors.reason_code }}</span
                             >
                         </label>
-                        <label class="grid min-w-0 gap-1 text-xs">
+                        <label
+                            class="grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground"
+                        >
                             What was wrong *
                             <textarea
                                 v-model="form.note"
@@ -313,7 +315,7 @@ const turnPage = (value: number) =>
                                 rows="2"
                                 :aria-invalid="errors.note ? 'true' : undefined"
                                 :aria-describedby="`reverse-note-hint-${payment.publicId}`"
-                                class="w-full min-w-0 rounded-md border bg-background px-3 py-2 text-sm"
+                                class="w-full min-w-0 rounded-lg border border-input bg-card px-3 py-2 text-sm font-normal outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:text-base dark:bg-field-fill/30"
                             />
                             <span
                                 :id="`reverse-note-hint-${payment.publicId}`"
@@ -328,11 +330,13 @@ const turnPage = (value: number) =>
                                 }}</span
                             >
                         </label>
-                        <label class="flex items-start gap-2 text-xs">
+                        <label
+                            class="flex items-start gap-2 text-xs max-lg:min-h-11 max-lg:items-center"
+                        >
                             <input
                                 v-model="form.confirmed"
                                 type="checkbox"
-                                class="mt-0.5 size-4"
+                                class="mt-0.5 size-4 max-lg:mt-0 max-lg:size-5"
                             />
                             <span>
                                 This corrects a recording mistake. It is not a
@@ -370,7 +374,7 @@ const turnPage = (value: number) =>
                                 type="submit"
                                 variant="destructive"
                                 size="sm"
-                                class="max-sm:min-h-11"
+                                class="max-lg:min-h-11"
                                 :disabled="!canSubmit"
                             >
                                 {{
@@ -383,7 +387,7 @@ const turnPage = (value: number) =>
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                class="max-sm:min-h-11"
+                                class="max-lg:min-h-11"
                                 :disabled="form.busy"
                                 @click="close(payment)"
                             >
