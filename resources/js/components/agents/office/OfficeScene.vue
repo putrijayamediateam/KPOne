@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import { useUiVersion } from '@/composables/useUiVersion';
 import AgentFigure from './AgentFigure.vue';
 import type { FeedAgent, OfficeFeed, Rect, TagRequest } from './office-layout';
 import {
@@ -407,7 +408,16 @@ onBeforeUnmount(() => {
     resizeObserver?.disconnect();
 });
 const tagFactor = computed(() => VIEW_W / Math.max(sceneWidth.value, 1));
+// Classic (the default look) draws the office as it always did; the control room look is Version 2 only.
+const { isV2 } = useUiVersion();
 const tagLayout = computed(() => {
+    if (!isV2.value) {
+        return {
+            shifts: new Map<string, { dx: number; dy: number }>(),
+            topPad: 0,
+        };
+    }
+
     const requests: TagRequest[] = items.value.flatMap((item) => {
         if (item.kind !== 'figure') {
             return [];
@@ -450,7 +460,8 @@ const tagLayout = computed(() => {
 <template>
     <svg
         ref="svgEl"
-        class="office-scene control-room h-auto w-full select-none max-md:min-w-[560px]"
+        class="office-scene h-auto w-full select-none"
+        :class="{ 'control-room max-md:min-w-[560px]': isV2 }"
         :viewBox="`0 ${-tagLayout.topPad} ${VIEW_W} ${VIEW_H + tagLayout.topPad}`"
         role="group"
         aria-label="Agent office"
@@ -658,19 +669,29 @@ const tagLayout = computed(() => {
                     r="1.6"
                     class="laptop-logo"
                 />
-                <circle
-                    v-for="led in [0, 1, 2]"
-                    :key="led"
-                    :cx="
-                        iso(item.gx + 1.15 + led * 0.14, item.gy + 0.18, 18.6).x
-                    "
-                    :cy="
-                        iso(item.gx + 1.15 + led * 0.14, item.gy + 0.18, 18.6).y
-                    "
-                    r="1.2"
-                    class="desk-led"
-                    :class="{ on: item.working || led === 0 }"
-                />
+                <template v-if="isV2">
+                    <circle
+                        v-for="led in [0, 1, 2]"
+                        :key="led"
+                        :cx="
+                            iso(
+                                item.gx + 1.15 + led * 0.14,
+                                item.gy + 0.18,
+                                18.6,
+                            ).x
+                        "
+                        :cy="
+                            iso(
+                                item.gx + 1.15 + led * 0.14,
+                                item.gy + 0.18,
+                                18.6,
+                            ).y
+                        "
+                        r="1.2"
+                        class="desk-led"
+                        :class="{ on: item.working || led === 0 }"
+                    />
+                </template>
                 <polygon :points="papers(item.gx, item.gy).top" class="paper" />
                 <polygon
                     :points="papers(item.gx, item.gy).left"
@@ -718,6 +739,7 @@ const tagLayout = computed(() => {
                 :tag-dx="tagLayout.shifts.get(item.agent.code)?.dx ?? 0"
                 :tag-dy="tagLayout.shifts.get(item.agent.code)?.dy ?? 0"
                 :show-role="false"
+                :v2="isV2"
                 @select="emit('select', $event)"
             />
 
