@@ -102,11 +102,8 @@ test('UX-17: the crumb comes only from the server and every link comes from work
     const shell = read('resources/js/components/workspace/V2AppShell.vue');
     const nav = read('resources/js/components/workspace/V2ShellNav.vue');
 
-    assert.match(
-        shell,
-        /const crumb = computed\(\(\) => props\.shell\.current\);/,
-    );
-    assert.match(shell, /v-if="crumb && !focusMode"/);
+    assert.match(shell, /providePageCrumbs\(\(\) =>\s+props\.shell\.current/);
+    assert.match(shell, /v-if="!focusMode && crumbsInFrame === 0"/);
     assert.match(nav, /v-for="group in shell\.groups"/);
     assert.match(nav, /v-for="section in shell\.more"/);
     assert.doesNotMatch(nav, /href="\/(?!")/);
@@ -148,7 +145,10 @@ test('UX-17 review: one current link (longest href), unique keys, IME-safe Enter
     assert.match(jump, /if \(!event\.isComposing\)/);
     assert.match(jump, /scrollIntoView\(\{ block: 'nearest' \}\)/);
     assert.match(shell, /toast\.error\(/);
-    assert.match(shell, /aria-label="Breadcrumb"/);
+    assert.match(
+        read('resources/js/components/workspace/V2PageCrumbs.vue'),
+        /aria-label="Breadcrumb"/,
+    );
 });
 
 test('UX-17 DD-55: the sheet, the jump dialog and the sidebar chevron respect reduced motion', () => {
@@ -189,4 +189,23 @@ test('UX-17: a Version 2 page (Dir/V2/Name) gets the V2 layout, before every pre
     assert.match(layout, /<Toaster v-bind="STAFF_TOAST_PLACEMENT" \/>/);
     assert.equal(layout.match(/<Toaster /g)?.length, 1);
     assert.doesNotMatch(layout, /dataset\.ui|applyUiVersion/);
+});
+
+test('UX-19: Back to Classic in the top bar is a quiet ghost control the height of the branch switcher', () => {
+    const shell = squash(
+        read('resources/js/components/workspace/V2AppShell.vue'),
+    );
+    const switcher = read(
+        'resources/js/components/workspace/WorkspaceBranchSwitcher.vue',
+    );
+
+    assert.match(
+        shell,
+        /<Button variant="ghost" size="sm" :class="QUIET_BACK" class="max-sm:hidden" data-test="v2-back-to-classic" @click="backToClassic" > <Undo2 class="size-3\.5" aria-hidden="true" \/> Back to Classic <\/Button>/,
+    );
+    assert.match(
+        shell,
+        /const QUIET_BACK = 'h-9 gap-1\.5 rounded-lg px-2\.5 text-xs font-normal/,
+    );
+    assert.match(switcher, /class="h-9 w-auto/);
 });
