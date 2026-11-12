@@ -434,7 +434,7 @@ onMounted(() => {
                                 {{ item.visit.queueNumber ?? '—' }}
                             </td>
                             <td data-label="Arrived">
-                                <span class="max-lg:text-right sm:contents">
+                                <span class="max-lg:text-right lg:contents">
                                     {{
                                         formatDate(
                                             item.visit.registeredAtDate,
@@ -447,7 +447,7 @@ onMounted(() => {
                                 </span>
                             </td>
                             <td data-label="Doctor and notes">
-                                <span class="max-lg:text-right sm:contents">
+                                <span class="max-lg:text-right lg:contents">
                                     <span class="block">{{
                                         item.visit.doctorName ?? 'Unassigned'
                                     }}</span>
@@ -461,7 +461,7 @@ onMounted(() => {
                                 </span>
                             </td>
                             <td data-label="Payment">
-                                <span class="max-lg:text-right sm:contents">
+                                <span class="max-lg:text-right lg:contents">
                                     <span class="block">{{
                                         item.visit.coverageLabel
                                     }}</span>
