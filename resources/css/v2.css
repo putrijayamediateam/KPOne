@@ -173,11 +173,11 @@
     }
 }
 
-/* Version 2 page title: 28/34 on phones, 30/36 from 64rem, bold. */
+/* Version 2 page title: 24/30 on phones (text-2xl), 30/36 from 64rem, bold. */
 .v2-page-title {
     text-wrap: balance;
-    font-size: 28px;
-    line-height: 34px;
+    font-size: 24px;
+    line-height: 30px;
     font-weight: 700;
     letter-spacing: -0.01em;
 }
