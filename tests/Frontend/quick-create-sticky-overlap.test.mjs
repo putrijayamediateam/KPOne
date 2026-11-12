@@ -6,22 +6,22 @@ import { parse } from '@vue/compiler-sfc';
 const source = readFileSync(new URL('../../resources/js/pages/Registration/Create.vue', import.meta.url), 'utf8');
 const template = parse(source).descriptor.template.content;
 
-test('small-screen sticky action occupies its own row before visit fields; desktop keeps its bottom bar', () => {
+// RESTYLE-7: the action bar is the shared StickyActionBar. It takes its own space at the end of the page, so it never
+// overlaps the visit fields at any width (the earlier top-sticky phone row is gone).
+test('the Register Visit action sits in the shared sticky bar after the page and still submits the visit form', () => {
     const form = template.match(/<form\b[^>]*v-if="visitReady"[^>]*>/)?.[0];
     assert.ok(form, 'visit fields and submit action retain their existing form');
-
-    for (const token of ['max-lg:flex', 'max-lg:flex-col', 'max-lg:gap-3', 'max-lg:space-y-0']) {
-        assert.ok(form.includes(token), `small-screen normal-flow row: ${token}`);
-    }
-
-    const card = template.match(/<div\s+class="sticky bottom-3 z-10[^"]*"/);
-    assert.ok(card, 'desktop retains the existing sticky bottom card');
-
-    for (const token of ['max-lg:order-first', 'max-lg:top-16', 'max-lg:bottom-auto']) {
-        assert.ok(card[0].includes(token), `small-screen action row: ${token}`);
-    }
-
+    assert.match(form, /id="register-visit-form"/);
     assert.match(form, /@submit\.prevent="submit"/);
-    assert.match(template, /class="sticky bottom-3 z-10[^"\n]*p-3[^"\n]*"/);
-    assert.match(template, /type="submit"\s+size="lg"/);
+
+    assert.match(template, /<StickyActionBar v-if="visitReady"/);
+    assert.ok(!/class="sticky bottom-3/.test(template), 'no hand-built sticky card remains');
+
+    const button = template.match(/<Button\s+type="submit"[\s\S]*?>/)?.[0] ?? '';
+    assert.match(button, /form="register-visit-form"/);
+    assert.match(button, /size="lg"/);
+    assert.match(button, /:disabled="form\.processing"/);
+
+    // The bar comes after the page content, not inside the form column.
+    assert.ok(template.indexOf('<StickyActionBar') > template.indexOf('</form>'));
 });

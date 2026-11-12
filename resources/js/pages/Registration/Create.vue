@@ -18,6 +18,7 @@ import RegistrationContactFields from '@/components/patient/RegistrationContactF
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
+import { StickyActionBar } from '@/components/ui/page-frame';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import VisitReasonPicker from '@/components/visit/VisitReasonPicker.vue';
@@ -420,7 +421,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
 <template>
     <Head title="Register Visit" />
     <main
-        class="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 p-4 md:p-6"
+        class="mx-auto flex w-full max-w-4xl flex-1 flex-col gap-4 p-4 md:p-6"
     >
         <PageHeader title="Register Visit">
             <template #description>
@@ -788,10 +789,11 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             </div>
         </section>
 
-        <!-- Small screens reserve a row above the fields for the sticky action. -->
+        <!-- The Register Visit action sits in the shared sticky bar after the page (form="register-visit-form"). -->
         <form
             v-if="visitReady"
-            class="space-y-3 max-lg:flex max-lg:flex-col max-lg:gap-3 max-lg:space-y-0"
+            id="register-visit-form"
+            class="space-y-3"
             @submit.prevent="submit"
         >
             <section class="rounded-xl border bg-card">
@@ -1027,35 +1029,27 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                     errorFor('expected_branch_id') || errorFor('quick_patient')
                 "
             />
-            <div
-                class="sticky bottom-3 z-10 flex items-center justify-between gap-4 rounded-xl border bg-background p-3 max-lg:top-16 max-lg:bottom-auto max-lg:order-first"
-            >
-                <div class="hidden min-w-0 sm:block">
-                    <p class="truncate text-sm font-medium">
-                        {{ patientSummaryName }}
-                    </p>
-                    <p class="text-xs text-muted-foreground">
-                        {{ options.branch.name }} ·
-                        {{
-                            form.visit_type === 'consultation'
-                                ? 'Consultation'
-                                : 'OTC'
-                        }}
-                    </p>
-                </div>
-                <Button
-                    type="submit"
-                    size="lg"
-                    class="ml-auto min-w-40"
-                    :disabled="form.processing"
-                >
-                    <LoaderCircle
-                        v-if="form.processing"
-                        class="size-4 animate-spin"
-                    />
-                    {{ form.processing ? 'Registering…' : 'Register Visit' }}
-                </Button>
-            </div>
         </form>
     </main>
+    <StickyActionBar v-if="visitReady" width="narrow">
+        <p class="mr-auto hidden min-w-0 truncate text-sm sm:block">
+            <span class="font-medium">{{ patientSummaryName }}</span>
+            <span class="text-muted-foreground">
+                · {{ options.branch.name }} ·
+                {{
+                    form.visit_type === 'consultation' ? 'Consultation' : 'OTC'
+                }}</span
+            >
+        </p>
+        <Button
+            type="submit"
+            form="register-visit-form"
+            size="lg"
+            class="min-w-40"
+            :disabled="form.processing"
+        >
+            <LoaderCircle v-if="form.processing" class="size-4 animate-spin" />
+            {{ form.processing ? 'Registering…' : 'Register Visit' }}
+        </Button>
+    </StickyActionBar>
 </template>
