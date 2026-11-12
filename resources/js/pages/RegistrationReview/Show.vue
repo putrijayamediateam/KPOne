@@ -808,7 +808,7 @@ watch(
             >
         </form>
 
-        <Card
+        <Card class="rounded-xl"
             ><CardHeader
                 ><CardTitle>Visit and Queue</CardTitle
                 ><CardDescription
@@ -880,7 +880,7 @@ watch(
             ></Card
         >
 
-        <Card v-if="canMutate"
+        <Card v-if="canMutate" class="rounded-xl"
             ><CardHeader
                 ><CardTitle>Controlled alternatives</CardTitle></CardHeader
             ><CardContent class="flex flex-wrap items-end gap-3"
