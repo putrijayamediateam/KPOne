@@ -56,6 +56,8 @@ export type InventoryDocument = {
     lines: InventoryDocumentLine[];
     differences?: InventoryTransferDifference[];
     raisedByYou?: boolean;
+    // STK-18: the purchase request a draft order came from.
+    fromRequest?: string | null;
 };
 
 export type InventoryOperations = {
