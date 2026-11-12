@@ -1,14 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { Ellipsis } from '@lucide/vue';
-import {
-    computed,
-    nextTick,
-    onBeforeUnmount,
-    onMounted,
-    ref,
-    watch,
-} from 'vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -29,6 +22,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
 import { OperationalTable } from '@/components/ui/table';
+import { useScrollStrip } from '@/composables/useScrollStrip';
 
 type Option = {
     id: number;
@@ -72,53 +66,30 @@ const emptyTitle = computed(() =>
 const emptyDescription = computed(() =>
     props.q ? 'Try another search.' : 'Add one with Add new.',
 );
-// DD-30 pattern (Daniel, CAT-5): on a phone the tab strip scrolls, so fade its right edge while more tabs are hidden
-// and bring the current or focused tab into view.
+// On a phone the tab strip scrolls: the shared strip fades its right edge while more tabs are hidden and brings the
+// current tab into view (DD-68); a focused tab is brought into view too.
 const tabStrip = ref<HTMLElement | null>(null);
-const moreTabsRight = ref(false);
-const updateTabFade = () => {
+const { measure, fadeStyle } = useScrollStrip(
+    tabStrip,
+    '[aria-current="page"]',
+);
+const revealFocusedTab = (event: FocusEvent) => {
     const nav = tabStrip.value;
+    const tab = event.target as HTMLElement | null;
 
-    moreTabsRight.value =
-        nav !== null &&
-        nav.scrollWidth > nav.clientWidth + 1 &&
-        nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
+    if (nav && tab) {
+        const navBox = nav.getBoundingClientRect();
+        const tabBox = tab.getBoundingClientRect();
+
+        if (tabBox.left < navBox.left) {
+            nav.scrollLeft -= navBox.left - tabBox.left;
+        } else if (tabBox.right > navBox.right) {
+            nav.scrollLeft += tabBox.right - navBox.right;
+        }
+
+        measure();
+    }
 };
-const revealTab = (tab: HTMLElement | null | undefined) => {
-    const nav = tabStrip.value;
-
-    if (!nav || !tab) {
-        return;
-    }
-
-    const navBox = nav.getBoundingClientRect();
-    const tabBox = tab.getBoundingClientRect();
-
-    if (tabBox.left < navBox.left) {
-        nav.scrollLeft -= navBox.left - tabBox.left;
-    } else if (tabBox.right > navBox.right) {
-        nav.scrollLeft += tabBox.right - navBox.right;
-    }
-
-    updateTabFade();
-};
-const revealFocusedTab = (event: FocusEvent) =>
-    revealTab(event.target as HTMLElement | null);
-let tabResizeObserver: ResizeObserver | undefined;
-onMounted(() => {
-    void nextTick(() => {
-        revealTab(
-            tabStrip.value?.querySelector<HTMLElement>('[aria-current="page"]'),
-        );
-        updateTabFade();
-    });
-
-    if (typeof ResizeObserver !== 'undefined' && tabStrip.value) {
-        tabResizeObserver = new ResizeObserver(updateTabFade);
-        tabResizeObserver.observe(tabStrip.value);
-    }
-});
-onBeforeUnmount(() => tabResizeObserver?.disconnect());
 const dialogType = ref(props.type);
 const addForm = useForm({
     expected_branch_id: props.branchId,
@@ -268,13 +239,9 @@ const labelError = (index: number) =>
                     ref="tabStrip"
                     aria-label="Medicine details tabs"
                     class="flex max-w-full overflow-x-auto"
-                    :class="
-                        moreTabsRight
-                            ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
-                            : ''
-                    "
+                    :style="fadeStyle"
                     data-testid="medicine-details-tabs"
-                    @scroll.passive="updateTabFade"
+                    @scroll.passive="measure"
                     @focusin="revealFocusedTab"
                 >
                     <Link

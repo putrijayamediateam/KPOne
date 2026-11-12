@@ -173,16 +173,16 @@ test('Daniel (CAT-5 review): Medicine details tabs fade at the right edge and br
     );
     assert.match(medicine, /ref="tabStrip"/);
     assert.match(
-        medicine,
-        /moreTabsRight \? '\[mask-image:linear-gradient\(to_right,#000_calc\(100%-2\.5rem\),transparent\)\]'/,
+        source,
+        /useScrollStrip\(\s*tabStrip,\s*'\[aria-current="page"\]',?\s*\)/,
     );
-    assert.match(medicine, /@scroll\.passive="updateTabFade"/);
-    assert.match(medicine, /@focusin="revealFocusedTab"/);
     assert.match(
         source,
-        /querySelector<HTMLElement>\('\[aria-current="page"\]'\)/,
+        /import \{ useScrollStrip \} from '@\/composables\/useScrollStrip'/,
     );
-    assert.match(source, /new ResizeObserver\(updateTabFade\)/);
+    assert.match(medicine, /:style="fadeStyle"/);
+    assert.match(medicine, /@scroll\.passive="measure"/);
+    assert.match(medicine, /@focusin="revealFocusedTab"/);
 });
 
 test('Daniel (CAT-5 review): empty states name the tab and the next step; wording and search names', () => {
