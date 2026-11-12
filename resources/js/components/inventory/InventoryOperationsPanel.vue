@@ -260,7 +260,16 @@ const canRequest = (
     row: DocumentRow,
     action: 'decide' | 'dispatch' | 'receive',
 ) =>
-    stockRequestActionAllowed(row.status, action, props.operations.permissions);
+    stockRequestActionAllowed(
+        row.status,
+        action,
+        props.operations.permissions,
+        {
+            atRequesting: row.atRequesting,
+            atSource: row.atSource,
+            atDestination: row.atDestination,
+        },
+    );
 
 watchEffect(() => {
     const context = receiptRememberContext();
