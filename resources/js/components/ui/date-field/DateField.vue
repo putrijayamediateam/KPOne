@@ -184,7 +184,7 @@ const calendarValue = computed(() => normaliseIso(parseDisplayDate(text.value)) 
             data-kpone-field="date"
             :class="
                 cn(
-                    'h-full w-full min-w-0 border border-input bg-card px-3 py-1 pr-11 text-base transition-[background-color,border-color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground hover:border-foreground/25 read-only:bg-muted/70 read-only:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-destructive/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] dark:aria-invalid:ring-destructive/40',
+                    'h-full w-full min-w-0 border border-input bg-card px-3 py-1 pr-11 text-base transition-[background-color,border-color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground hover:border-foreground/60 read-only:bg-muted read-only:text-foreground disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-60 aria-invalid:border-destructive aria-invalid:ring-destructive/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] dark:aria-invalid:ring-destructive/40',
                     props.look === 'patient'
                         ? 'rounded-xl border-border shadow-none md:text-base'
                         : 'rounded-[10px]',
