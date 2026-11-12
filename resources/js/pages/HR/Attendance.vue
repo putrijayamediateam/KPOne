@@ -861,7 +861,7 @@ const correctionStatusTone = (
                         data-test="privacy-line"
                     >
                         KPOne records the time and a photo of you at each press.
-                        HR can see it. Kept for 7 years.
+                        HR can see it. Kept for 7 years (to confirm).
                     </p>
                     <button
                         type="button"

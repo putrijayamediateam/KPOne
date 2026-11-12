@@ -54,7 +54,7 @@ test('the privacy line says the time and a photo are recorded', () => {
     // HR-PHOTO (owner-approved change, 2026-11-12): every press carries a live photo, so the line says so.
     assert.match(
         template,
-        /KPOne records the time and a photo of you at each press\.\s+HR can see it\. Kept for 7 years\./,
+        /KPOne records the time and a photo of you at each press\.\s+HR can see it\. Kept for 7 years \(to confirm\)\./,
     );
     // The camera lives in the shared ClockPhotoDialog; this page only opens it, and never takes a file upload.
     assert.match(source, /useClockPhoto\(\)/);
