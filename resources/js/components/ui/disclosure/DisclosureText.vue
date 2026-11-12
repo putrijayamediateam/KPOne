@@ -30,8 +30,12 @@ withDefaults(
                     <button
                         type="button"
                         :class="[
-                            'hidden w-full rounded text-left text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none md:block',
-                            variant === 'clamp-2' ? 'line-clamp-2' : 'truncate',
+                            'hidden w-full rounded text-left text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none',
+                            // md:block would override line-clamp's display (-webkit-box) and stop the clamp from 768 px,
+                            // so the clamp variant gets its display from md:line-clamp-2 itself.
+                            variant === 'clamp-2'
+                                ? 'md:line-clamp-2'
+                                : 'md:block truncate',
                         ]"
                     >
                         {{ text }}
