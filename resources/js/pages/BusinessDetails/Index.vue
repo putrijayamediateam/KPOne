@@ -334,7 +334,7 @@ const reload = () =>
                 <li
                     v-for="row in readiness"
                     :key="row.branchId"
-                    class="grid min-w-0 gap-1 rounded-md border p-3 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto] md:items-center md:gap-3"
+                    class="grid min-w-0 gap-1 rounded-[10px] border p-3 lg:grid-cols-[minmax(0,14rem)_minmax(0,1fr)_auto] lg:items-center lg:gap-3"
                     data-testid="readiness-row"
                 >
                     <p class="min-w-0 text-sm font-medium break-words">
@@ -364,13 +364,13 @@ const reload = () =>
                         </div>
                         <template v-if="row.missing.length">
                             <p
-                                class="hidden text-xs break-words text-muted-foreground md:block"
+                                class="hidden text-xs break-words text-muted-foreground lg:block"
                                 data-testid="missing-full"
                             >
                                 Missing: {{ row.missing.join(', ') }}
                             </p>
                             <p
-                                class="text-xs break-words text-muted-foreground md:hidden"
+                                class="text-xs break-words text-muted-foreground lg:hidden"
                                 data-testid="missing-short"
                             >
                                 Missing: {{ shownMissing(row).join(', ')
@@ -383,7 +383,7 @@ const reload = () =>
                             </p>
                             <details
                                 v-if="hiddenMissing(row).length"
-                                class="text-xs text-muted-foreground md:hidden"
+                                class="text-xs text-muted-foreground lg:hidden"
                             >
                                 <summary
                                     class="flex min-h-11 cursor-pointer items-center font-medium text-foreground"
@@ -410,7 +410,7 @@ const reload = () =>
                             v-if="row.isActive && canFix(row)"
                             variant="ghost"
                             size="sm"
-                            class="min-h-11 md:min-h-8"
+                            class="min-h-11 lg:min-h-8"
                             as-child
                         >
                             <a
@@ -632,7 +632,7 @@ const reload = () =>
                                             v-if="logoUrl"
                                             type="button"
                                             variant="outline"
-                                            class="min-h-11 text-xs sm:min-h-9"
+                                            class="min-h-11 text-xs lg:min-h-9"
                                             @click="removeLogo"
                                             >Remove logo</Button
                                         >

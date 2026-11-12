@@ -22,7 +22,7 @@ test('the logo is chosen with a real button and its state sits on its own line (
     assert.match(c, /defineOptions\(\{ inheritAttrs: false \}\)/);
     assert.match(
         c,
-        /<Button v-bind="\$attrs" :aria-describedby="describedBy" type="button" variant="outline" class="min-h-11 w-fit sm:min-h-9"/,
+        /<Button v-bind="\$attrs" :aria-describedby="describedBy" type="button" variant="outline" class="min-h-11 w-fit lg:min-h-9"/,
     );
     assert.match(c, /@click="input\?\.click\(\)"/);
     // Ravi: the state line is read with the button, before the parent's own description (the error).
@@ -54,7 +54,7 @@ test('the logo is chosen with a real button and its state sits on its own line (
         /<InputError id="logo-error" :message="form\.errors\.logo" \/> <\/FileChooseButton>/,
     );
     assert.equal((business.match(/id="logo-error"/g) ?? []).length, 1);
-    assert.match(b, /class="min-h-11 text-xs sm:min-h-9" @click="removeLogo"/);
+    assert.match(b, /class="min-h-11 text-xs lg:min-h-9" @click="removeLogo"/);
     assert.match(b, /v-if="canEdit" class="min-w-0 flex-1 basis-40 space-y-2"/);
     // Daniel: a file that failed the check is never previewed; the box falls back to the saved logo or "No logo".
     assert.match(

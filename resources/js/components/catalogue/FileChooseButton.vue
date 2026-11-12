@@ -52,7 +52,7 @@ defineExpose({
             :aria-describedby="describedBy"
             type="button"
             variant="outline"
-            class="min-h-11 w-fit sm:min-h-9"
+            class="min-h-11 w-fit lg:min-h-9"
             :disabled="disabled"
             @click="input?.click()"
             >{{ label }}</Button
