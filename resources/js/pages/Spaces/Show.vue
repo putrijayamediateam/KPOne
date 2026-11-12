@@ -829,7 +829,7 @@ onMounted(async () => {
                     aria-labelledby="bl-paylater"
                 >
                     <h2 id="bl-paylater">
-                        Pay later to collect ({{ billing.payLater.count }})
+                        Bills to collect ({{ billing.payLater.count }})
                     </h2>
                     <ul class="space-stats is-glance">
                         <li>
