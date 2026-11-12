@@ -59,11 +59,13 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
 
 <template>
     <Head title="Returns to check" />
+    <!-- UI-RESTYLE D1 (GUIDE section 19): one frame up to 1280 px, a table from 1024 px and one card per row below it,
+         with label and value pairs and a 44 px Open case button. Layout only: the same data, links and words. -->
     <main
-        class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-4 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-5 px-4 py-6 md:px-6"
     >
         <PageHeader title="Returns to check" :description="help" />
-        <p class="text-xs text-muted-foreground">
+        <p class="-mt-2 text-[13px] text-muted-foreground">
             Open the case to dispose, quarantine or refuse a return. This list
             does not check anything. You cannot check a return you recorded.
         </p>
@@ -75,7 +77,7 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
         />
 
         <template v-else>
-            <div class="hidden md:block">
+            <div class="hidden lg:block">
                 <OperationalTable
                     label="Returns to check"
                     :columns="7"
@@ -96,9 +98,10 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                         <tr
                             v-for="row in returns.rows"
                             :key="row.publicId"
+                            class="align-top"
                             data-testid="return-to-check-row"
                         >
-                            <td class="whitespace-nowrap">
+                            <td class="whitespace-nowrap tabular-nums">
                                 {{ row.recordedAt }}
                             </td>
                             <td>
@@ -106,12 +109,14 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                                     {{ row.patient }}
                                 </span>
                                 <span
-                                    class="block font-mono text-xs text-muted-foreground"
+                                    class="block font-mono text-[13px] text-muted-foreground"
                                     >{{ row.visitNumber }}</span
                                 >
                             </td>
                             <td>
-                                <span class="mr-2">{{ row.medicine }}</span>
+                                <span class="mr-2 font-medium">{{
+                                    row.medicine
+                                }}</span>
                                 <Badge
                                     v-if="row.controlled"
                                     variant="outline"
@@ -127,23 +132,24 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                             <td>
                                 <span class="block">{{ reason(row) }}</span>
                                 <span
-                                    class="block text-xs text-muted-foreground"
+                                    class="block text-[13px] text-muted-foreground"
                                     >{{ condition(row) }}</span
                                 >
                             </td>
                             <td>{{ by(row) }}</td>
                             <td class="text-right">
-                                <div class="flex flex-col items-end gap-1">
+                                <div class="flex flex-col items-end gap-1.5">
                                     <StatusBadge status="waiting_check" />
                                     <span
                                         v-if="row.recordedByMe"
-                                        class="text-xs text-muted-foreground"
+                                        class="max-w-56 text-[13px] text-muted-foreground"
                                         >{{ ownNote }}</span
                                     >
                                     <ActionLink
                                         :href="caseLink(row)"
                                         variant="secondary"
                                         size="sm"
+                                        class="h-9 px-3"
                                         :aria-label="`Open case for ${row.medicine}, ${row.visitNumber}`"
                                     >
                                         Open case
@@ -155,45 +161,70 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                 </OperationalTable>
             </div>
 
-            <ul class="space-y-3 md:hidden" aria-label="Returns to check">
+            <ul class="space-y-3 lg:hidden" aria-label="Returns to check">
                 <li
                     v-for="row in returns.rows"
                     :key="row.publicId"
-                    class="space-y-2 rounded-xl border bg-card p-4 text-sm"
+                    class="space-y-3 rounded-[14px] border bg-card p-4"
                     data-testid="return-to-check-card"
                 >
                     <div
                         class="flex flex-wrap items-start justify-between gap-2"
                     >
-                        <h2 class="text-sm font-medium">
+                        <h2 class="text-base leading-snug font-semibold">
                             {{ row.medicine }}
                             <Badge
                                 v-if="row.controlled"
                                 variant="outline"
-                                class="ml-1"
+                                class="ml-1 align-middle"
                                 >Controlled</Badge
                             >
                         </h2>
                         <StatusBadge status="waiting_check" />
                     </div>
-                    <p class="tabular-nums">
-                        Qty returned {{ row.quantity }} {{ row.unit }} ·
-                        {{ reason(row) }}
-                    </p>
-                    <p>
-                        {{ row.patient }} ·
-                        <span class="font-mono text-xs text-muted-foreground">{{
-                            row.visitNumber
-                        }}</span>
-                    </p>
-                    <p class="text-xs text-muted-foreground">
-                        {{ row.recordedAt }} · by
-                        {{ row.recordedByMe ? 'you' : row.recordedBy }} ·
-                        {{ condition(row) }}
-                    </p>
+                    <dl
+                        class="grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-2 text-[15px]"
+                    >
+                        <dt class="text-[13px] text-muted-foreground">
+                            Qty returned
+                        </dt>
+                        <dd class="min-w-0 break-words tabular-nums">
+                            {{ row.quantity }} {{ row.unit }}
+                        </dd>
+                        <dt class="text-[13px] text-muted-foreground">
+                            Patient / Visit
+                        </dt>
+                        <dd class="min-w-0 break-words">
+                            {{ row.patient }}
+                            <span
+                                class="block font-mono text-[13px] text-muted-foreground"
+                                >{{ row.visitNumber }}</span
+                            >
+                        </dd>
+                        <dt class="text-[13px] text-muted-foreground">
+                            Reason / Condition
+                        </dt>
+                        <dd class="min-w-0 break-words">
+                            {{ reason(row) }}
+                            <span
+                                class="block text-[13px] text-muted-foreground"
+                                >{{ condition(row) }}</span
+                            >
+                        </dd>
+                        <dt class="text-[13px] text-muted-foreground">
+                            Recorded
+                        </dt>
+                        <dd class="min-w-0 break-words tabular-nums">
+                            {{ row.recordedAt }}
+                        </dd>
+                        <dt class="text-[13px] text-muted-foreground">
+                            Recorded by
+                        </dt>
+                        <dd class="min-w-0 break-words">{{ by(row) }}</dd>
+                    </dl>
                     <p
                         v-if="row.recordedByMe"
-                        class="text-xs text-muted-foreground"
+                        class="text-[13px] text-muted-foreground"
                     >
                         {{ ownNote }}
                     </p>
