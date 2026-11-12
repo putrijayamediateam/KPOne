@@ -547,6 +547,46 @@ pages inherit them and no page sets its own colour)
   screen (its own look), the sign-in screens, and the public QR pages (own brand styling). They
   inherit new tokens only if the owner and Daniel agree for that screen.
 
+**Restyle checklist (one list for every team; the spaces sketch is the reference:
+<https://claude.ai/artifact/6SGv7ub1FTF2gDgfB6SY39>, and the Me home board "Me and Clock-in Chosen")**
+
+Page anatomy, top to bottom. Tick each before you send shots.
+
+1. **Frame:** `PageHeader` with one `h1` (name), one muted line, and the actions at the right. Content centred at 1280 px
+   from 1440 px. Back link above the title only where the page is a child page.
+2. **One primary action:** exactly one cobalt button on the page (or per dialog). Everything else is outline or quiet.
+   It sits in the header's action area, or at the right of the toolbar above the work, never both.
+3. **Tabs and filters:** one segmented control for the tabs (up to five), then one filter row. Counts in the label.
+4. **Cards:** a 14 px card holds one idea: a title, then rows. Stat cards show a muted label, a big number and one muted
+   line. No card inside a card, no coloured fill except the tint tiles on the Me home.
+5. **Lists and tables:** `OperationalTable` from 1024 px, one card per row below it, numbers right-aligned, the row's
+   action as a 44 px button or a "..." menu named for the row. Short lists in side panels are plain list rows.
+6. **Side panels:** "Needs attention" and "Waiting for a second person" in the right column, one list row each with its
+   chip and a next-step button.
+7. **Recent activity strip:** full width at the very bottom, only where the page has activity the person may see.
+8. **Forms:** label above, 44 px field, help and error below in words, required marked, one Save at the right and a
+   Cancel beside it. Sections separated by a hairline and a 16 px section title.
+9. **Dialogs:** `card` surface, title in sentence case, one cobalt action at the right, Cancel beside it, close button
+   named "Close". A form dialog is a bottom sheet on a phone. A destructive question uses the shared confirm.
+10. **Empty, loading and error states:** an empty list says what is missing and the next step in one muted sentence with
+    a button ("No purchase requests yet. Press New request."); loading uses a skeleton of the same shape; an error says
+    what happened and offers Retry (section 11).
+11. **Dark mode and phone:** both checked at 390 and 1440 px; 44 px targets below 1024 px; no sideways page scroll.
+
+Do and don't pairs (each is a quick test in review):
+
+| Do | Don't |
+|---|---|
+| One cobalt button per screen; the rest outline | Two filled buttons side by side, or a pink button |
+| `bg-card border-border` and `text-muted-foreground` | `bg-white`, `bg-slate-50`, `text-gray-500`, a hex |
+| Segmented tabs with a count in words | The pink underline tab; a count as a bare badge |
+| A status chip with a dot and a word (`StatusBadge`) | A coloured square, or a chip with colour only |
+| Cards that hold rows | A card that holds cards, or a shadow on every card |
+| A table that becomes cards below 1024 px | A table that scrolls sideways on a phone |
+| "No requests yet. Press New request." | A blank panel, or "No data" |
+| The page title at the left of the 1280 px frame | A title stranded at the far left of a 1440 px screen |
+| A dialog with one main action at the right | A dialog with a big close "X" as the only way out |
+
 **Rules for the restyle PRs** (full plan in [RESTYLE.md](RESTYLE.md))
 
 - **Do** keep each PR to one page family and **layout only**: no behaviour, permission, route, data or wording change

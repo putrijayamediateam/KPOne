@@ -1,6 +1,6 @@
 # KPOne restyle plan (proposal, 2026-11-12)
 
-**Status: proposal for the owner. Nothing here is approved or started.** It follows GUIDE section 19 (the app-wide
+**Status: superseded by the owner starting UI-RESTYLE on 2026-11-12. Teams now send their own page plans to the coordinator; this file is kept only as a record of the first proposal and of which shared pieces Staff Experience owns (Wave 0).** It follows GUIDE section 19 (the app-wide
 look). Every slice is layout only: no behaviour, permission, route, payload, data or wording change. Each is a small PR
 with before and after shots at 390 and 1440 px, light and dark, reviewed by the Lead UI/UX Designer through the
 coordinator. Sizes: S is one or two pages, M is three to six, L is seven or more or has a risky screen.
