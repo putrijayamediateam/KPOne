@@ -322,7 +322,7 @@ const generalError = computed(
                     </template>
                 </OperationalTable>
             </div>
-            <ul class="grid gap-3 lg:hidden" aria-label="Suppliers">
+            <ul class="grid gap-3 lg:hidden" role="list" aria-label="Suppliers">
                 <li
                     v-if="!suppliers.length"
                     class="rounded-[14px] border border-dashed bg-card p-5 text-center text-sm text-muted-foreground"
@@ -372,7 +372,7 @@ const generalError = computed(
                                 <dd>{{ contact.phone || '—' }}</dd>
                             </div>
                         </div>
-                        <div v-if="!supplier.contacts.length">—</div>
+                        <div v-if="!supplier.contacts.length"><dd>—</dd></div>
                     </dl>
                     <div class="mt-3 flex min-h-11 items-center gap-3">
                         <button
