@@ -188,7 +188,7 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                         <dt class="text-[13px] text-muted-foreground">
                             Qty returned
                         </dt>
-                        <dd class="tabular-nums">
+                        <dd class="min-w-0 break-words tabular-nums">
                             {{ row.quantity }} {{ row.unit }}
                         </dd>
                         <dt class="text-[13px] text-muted-foreground">
@@ -204,7 +204,7 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                         <dt class="text-[13px] text-muted-foreground">
                             Reason / Condition
                         </dt>
-                        <dd class="min-w-0">
+                        <dd class="min-w-0 break-words">
                             {{ reason(row) }}
                             <span
                                 class="block text-[13px] text-muted-foreground"
@@ -214,11 +214,13 @@ const help = `${props.returns.branchName} · Medicine returns waiting for a chec
                         <dt class="text-[13px] text-muted-foreground">
                             Recorded
                         </dt>
-                        <dd class="tabular-nums">{{ row.recordedAt }}</dd>
+                        <dd class="min-w-0 break-words tabular-nums">
+                            {{ row.recordedAt }}
+                        </dd>
                         <dt class="text-[13px] text-muted-foreground">
                             Recorded by
                         </dt>
-                        <dd>{{ by(row) }}</dd>
+                        <dd class="min-w-0 break-words">{{ by(row) }}</dd>
                     </dl>
                     <p
                         v-if="row.recordedByMe"
