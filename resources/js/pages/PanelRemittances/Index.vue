@@ -160,7 +160,8 @@ const canRecord = computed(
 );
 
 // Phone text size and dark fill for the amount boxes; kept apart so the pinned class string (ending max-lg:h-11) stays intact.
-const amountFieldExtra = 'max-lg:text-base dark:bg-field-fill/30';
+const amountFieldExtra =
+    'max-lg:text-base max-lg:scroll-mb-24 dark:bg-field-fill/30';
 
 // One quiet line above Record payment for the one case no other line on the page explains.
 const recordHelp = computed(() =>
@@ -300,7 +301,7 @@ const record = () => {
                     Panel
                     <select
                         :value="filters.panel"
-                        class="h-9 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 lg:text-sm dark:bg-field-fill/30"
+                        class="h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 lg:text-sm dark:bg-field-fill/30"
                         aria-label="Panel"
                         @change="
                             choosePanel(
@@ -402,7 +403,7 @@ const record = () => {
                         type="button"
                         variant="secondary"
                         size="sm"
-                        class="max-lg:h-11"
+                        class="max-lg:min-h-11"
                         :disabled="!amountSen"
                         @click="fillOldestFirst"
                     >
@@ -412,7 +413,7 @@ const record = () => {
                         type="button"
                         variant="outline"
                         size="sm"
-                        class="max-lg:h-11"
+                        class="max-lg:min-h-11"
                         @click="clearSplit"
                     >
                         Clear split
@@ -468,7 +469,7 @@ const record = () => {
                                             ? 'split-amount-error'
                                             : undefined
                                     "
-                                    class="h-9 w-32 rounded-lg border border-input bg-background px-2 text-right text-sm text-foreground tabular-nums focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-invalid:border-destructive aria-invalid:ring-destructive/30 max-lg:h-11"
+                                    class="h-9 w-32 rounded-lg border border-input bg-card px-2 text-right text-sm text-foreground tabular-nums focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-invalid:border-destructive aria-invalid:ring-destructive/30 max-lg:h-11"
                                     :class="amountFieldExtra"
                                 />
                             </label>
@@ -543,7 +544,7 @@ const record = () => {
                                                 ? 'split-amount-error'
                                                 : undefined
                                         "
-                                        class="h-9 w-28 rounded-lg border border-input bg-background px-2 text-right text-sm tabular-nums focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-invalid:border-destructive aria-invalid:ring-destructive/30 dark:bg-field-fill/30"
+                                        class="h-9 w-28 rounded-lg border border-input bg-card px-2 text-right text-sm tabular-nums focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 aria-invalid:border-destructive aria-invalid:ring-destructive/30 dark:bg-field-fill/30"
                                     />
                                 </td>
                             </tr>
@@ -621,13 +622,12 @@ const record = () => {
                     v-if="recordHelp"
                     id="record-help"
                     class="text-sm text-muted-foreground"
-                    aria-live="polite"
                 >
                     {{ recordHelp }}
                 </p>
                 <Button
                     type="button"
-                    class="max-lg:h-11 max-sm:w-full"
+                    class="max-lg:min-h-11 max-sm:w-full"
                     :disabled="!canRecord"
                     :aria-describedby="recordHelp ? 'record-help' : undefined"
                     @click="record"
@@ -648,7 +648,7 @@ const record = () => {
                     as-child
                     variant="outline"
                     size="sm"
-                    class="max-lg:h-11 max-sm:w-full"
+                    class="max-lg:min-h-11 max-sm:w-full"
                 >
                     <Link href="/panel-payment-corrections"
                         >Correct a Panel payment</Link

@@ -322,7 +322,7 @@ const useTicked = () =>
                         ref="fileInput"
                         type="file"
                         accept=".csv,text/csv,text/plain"
-                        class="block w-full min-w-0 text-sm font-normal file:mr-3 file:h-9 file:rounded-lg file:border file:border-input file:bg-background file:px-3 file:text-sm file:font-medium file:text-foreground max-lg:file:h-11"
+                        class="block w-full min-w-0 text-sm font-normal file:mr-3 file:h-9 file:rounded-lg file:border file:border-input file:bg-card file:px-3 file:text-sm file:font-medium file:text-foreground max-lg:file:h-11"
                         :aria-invalid="error ? 'true' : undefined"
                         :aria-describedby="
                             error ? 'statement-error' : undefined
@@ -338,7 +338,7 @@ const useTicked = () =>
                     type="submit"
                     variant="outline"
                     size="sm"
-                    class="max-lg:h-11 max-sm:w-full"
+                    class="max-lg:min-h-11 max-sm:w-full"
                     :disabled="!upload.statement || upload.processing"
                 >
                     {{ upload.processing ? 'Reading…' : 'Read statement' }}
@@ -369,7 +369,7 @@ const useTicked = () =>
                                     ? ''
                                     : String(statement.mapping[column.key])
                             "
-                            class="h-9 w-full min-w-0 rounded-lg border border-input bg-background px-3 text-base font-normal outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 lg:text-sm dark:bg-field-fill/30"
+                            class="h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-base font-normal outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 lg:text-sm dark:bg-field-fill/30"
                             @change="
                                 chooseColumn(
                                     column.key,
@@ -670,7 +670,7 @@ const useTicked = () =>
                         type="button"
                         variant="secondary"
                         size="sm"
-                        class="max-lg:h-11"
+                        class="max-lg:min-h-11"
                         :disabled="tickedRows.length === 0"
                         @click="useTicked"
                     >
@@ -680,7 +680,7 @@ const useTicked = () =>
                         type="button"
                         variant="outline"
                         size="sm"
-                        class="max-lg:h-11"
+                        class="max-lg:min-h-11"
                         @click="removeFile"
                     >
                         Remove file
