@@ -18,6 +18,7 @@ import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 import { StatusBadge } from '@/components/ui/status';
 import {
+    boxBatchCheck,
     checkScan,
     checkedCount,
     isChecked,
@@ -25,7 +26,11 @@ import {
     scanAddOutcome,
     scannableCount,
 } from '@/lib/dispensary-scan';
-import type { ScanCheckLine, ScanMarks } from '@/lib/dispensary-scan';
+import type {
+    BoxBatchCheck,
+    ScanCheckLine,
+    ScanMarks,
+} from '@/lib/dispensary-scan';
 import { boxBatchHint } from '@/lib/gs1-batch';
 import type { BoxBatchHint } from '@/lib/gs1-batch';
 import { formatInventoryReason } from '@/lib/inventory-picker';
@@ -81,6 +86,12 @@ type Item = {
     original: Original;
     sku: { publicId: string; unit: string } | null;
     availability: Availability[];
+    // DSP-20: the batches saved on the line, compared with a scanned GS1 box.
+    allocations?: {
+        batchPublicId: string | null;
+        batchNumber?: string | null;
+        expiryDate?: string | null;
+    }[];
     exception: {
         public_id: string;
         status: string;
@@ -466,11 +477,23 @@ const scanChecked = computed(() =>
 );
 const isScanChecked = (item: Item): boolean =>
     isChecked(toScanLine(item), scanMarks.value);
+// DSP-20: the GS1 read that checked each line (null for a plain barcode), compared live with the saved batches, so a
+// later save of another batch updates the note. Screen only; it goes when the line loses its mark.
+const scanBoxReads = ref<Record<string, Gs1Read | null>>({});
+const scanBatchAnnouncement = ref('');
+const scanBatch = (item: Item): BoxBatchCheck | null =>
+    isScanChecked(item)
+        ? boxBatchCheck(
+              scanBoxReads.value[item.publicId] ?? null,
+              item.allocations ?? [],
+          )
+        : null;
 const scanOutcome = (sku: ScannedSku) =>
     checkScan(sku, scanLines.value, removedScanLines.value, scanMarks.value);
 const acceptScan = (sku: ScannedSku): string | null => {
     // DSP-17: any new scan clears the batch hint, including one refused here (Hakim).
     clearLineHint();
+    scanBatchAnnouncement.value = '';
     const outcome = scanOutcome(sku);
 
     return outcome.kind === 'removed' || outcome.kind === 'not_on_case'
@@ -574,6 +597,22 @@ const markScanned = (sku: ScannedSku, gs1: Gs1Read | null = null) => {
 
     if (outcome.kind === 'match' || outcome.kind === 'already') {
         scanMarks.value = outcome.marks;
+        const matched = visibleItems.value.filter(
+            (item) => item.sku?.publicId === sku.public_id,
+        );
+        scanBoxReads.value = {
+            ...scanBoxReads.value,
+            ...Object.fromEntries(matched.map((item) => [item.publicId, gs1])),
+        };
+        // Spoken once per scan; the scan box already says which line matched. Set after the next render, so an identical
+        // repeat scan still changes the text (acceptScan cleared it) and is spoken again (Hakim).
+        const said = matched
+            .map((item) => scanBatch(item)?.message)
+            .filter((message): message is string => !!message)
+            .join(' ');
+        void nextTick(() => {
+            scanBatchAnnouncement.value = said;
+        });
         const line = visibleItems.value.find(
             (item) =>
                 item.sku?.publicId === sku.public_id &&
@@ -594,6 +633,11 @@ const clearBatchHint = (publicId: string) => {
 // A removed, restored or changed line loses its mark, so it must be scanned again.
 watch(scanLines, (lines) => {
     scanMarks.value = keepCurrentMarks(lines, scanMarks.value);
+    scanBoxReads.value = Object.fromEntries(
+        Object.entries(scanBoxReads.value).filter(
+            ([publicId]) => scanMarks.value[publicId] !== undefined,
+        ),
+    );
 });
 const unsaved = computed(() =>
     visibleItems.value.filter(
@@ -1420,6 +1464,14 @@ const exceptionStatusLabels: Record<string, string> = {
                     @keydown.enter.capture="clearLineHint"
                     @found="markScanned"
                 />
+                <p
+                    v-if="dispensary.can.update && visibleItems.length"
+                    role="status"
+                    class="sr-only"
+                    data-testid="scan-batch-announcement"
+                >
+                    {{ scanBatchAnnouncement }}
+                </p>
                 <section class="divide-y rounded-lg border bg-background">
                     <article
                         v-for="item in visibleItems"
@@ -1454,6 +1506,27 @@ const exceptionStatusLabels: Record<string, string> = {
                             <span v-if="isScanChecked(item)" class="sr-only"
                                 >, not saved</span
                             >
+                            <p
+                                v-if="scanBatch(item)"
+                                class="mt-1 flex items-start gap-1 text-xs font-medium"
+                                :class="
+                                    scanBatch(item)?.warn
+                                        ? 'text-warning-strong'
+                                        : 'text-success'
+                                "
+                                :data-testid="`scan-batch-${scanBatch(item)?.kind}`"
+                            >
+                                <TriangleAlert
+                                    v-if="scanBatch(item)?.warn"
+                                    class="mt-px size-3.5 shrink-0"
+                                    aria-hidden="true"
+                                />
+                                <CheckCircle2
+                                    v-else
+                                    class="mt-px size-3.5 shrink-0"
+                                    aria-hidden="true"
+                                />{{ scanBatch(item)?.message }}
+                            </p>
                             <p
                                 v-if="item.source === 'doctor'"
                                 class="mt-2 text-xs text-muted-foreground"
