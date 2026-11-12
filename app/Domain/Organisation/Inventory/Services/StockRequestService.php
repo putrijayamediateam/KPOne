@@ -74,7 +74,7 @@ final class StockRequestService
             // STK-31 (Daniel): a cross-branch request never sends more than this location can spare (usable stock above
             // its own maximum or reorder level, less what is already waiting to be sent). Same-branch requests are unchanged.
             if ($source->branch_id !== null && $destination->branch_id !== null && $destination->branch_id !== $source->branch_id) {
-                $spare = app(BranchReplenishmentService::class)->spareAt($lockedActor, $branch, $source->id, $skus->pluck('id')->map(fn ($id): int => (int) $id)->values()->all());
+                $spare = app(BranchReplenishmentService::class)->spareAt($lockedActor, $branch, $source->id, array_values(array_map(fn (InventorySku $sku): int => (int) $sku->id, $skus->all())));
                 foreach ($lines as $index => $input) {
                     $available = $spare[(int) $skus[$input['sku_public_id']]->id] ?? 0;
                     if (StockUnitQuantity::scaled($input['quantity'], true) > $available) {
