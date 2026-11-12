@@ -452,7 +452,7 @@ test('V2 board page: uses the V2 blocks and the Classic props, tabs and filters;
     assert.match(page, /:input-id="SEARCH_INPUT_ID"/);
     assert.match(page, /router\.visit\(visit\.historyUrl\)/);
     assert.match(page, /Needs attention/);
-    assert.match(page, /from the visits on this screen only/);
+    assert.match(page, /From the visits on this screen only/);
     assert.ok(!/Doctors with a room|Recent activity/.test(page));
     assert.ok(
         !classic.includes('registration-v2') &&

@@ -8,6 +8,7 @@ import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
+import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
 import V2RowMenu from '@/components/v2/V2RowMenu.vue';
 import V2Table from '@/components/v2/V2Table.vue';
@@ -221,7 +222,6 @@ const rowsWithMenu = computed(() =>
     })),
 );
 const attention = computed(() => needsAttention(rows.value));
-const attentionOpen = ref(false);
 const sheetOpen = ref(false);
 const isToday = (visit: VisitRow) => visit.registeredAtDate === board.today;
 
@@ -278,6 +278,8 @@ const filterBadge = computed(
     <Head title="Registration" />
     <V2WorkLayout
         title="Registration"
+        rail-from="2xl"
+        rail-label="Needs attention"
         :description="`${options.branch.name} · Register, send to waiting, call and follow every visit.`"
     >
         <template #actions>
@@ -303,6 +305,32 @@ const filterBadge = computed(
                     >Register Visit</Link
                 >
             </div>
+        </template>
+
+        <template #rail-collapsed>
+            <V2DisclosureBar
+                v-if="attention.length"
+                :title="`${attention.length} needs attention`"
+            >
+                <ul class="divide-y border-t">
+                    <li
+                        v-for="item in attention"
+                        :key="item.id"
+                        class="px-4 py-3"
+                    >
+                        <p class="text-sm font-medium">{{ item.title }}</p>
+                        <p class="text-xs text-muted-foreground">
+                            {{ item.why }}
+                        </p>
+                    </li>
+                </ul>
+                <p class="px-4 pb-3 text-xs text-muted-foreground">
+                    From the visits on this screen only.
+                </p>
+            </V2DisclosureBar>
+            <p v-else class="text-sm text-muted-foreground">
+                Nothing needs attention on this screen.
+            </p>
         </template>
 
         <template #main>
@@ -428,49 +456,6 @@ const filterBadge = computed(
                     </p>
                     <InputError :message="error" />
                 </form>
-
-                <section
-                    v-if="attention.length"
-                    class="rounded-[14px] border bg-card"
-                    aria-label="Needs attention"
-                >
-                    <button
-                        type="button"
-                        class="flex min-h-11 w-full items-center justify-between gap-3 rounded-[14px] px-4 text-left text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        :aria-expanded="attentionOpen"
-                        aria-controls="v2-attention-list"
-                        @click="attentionOpen = !attentionOpen"
-                    >
-                        <span
-                            >{{ attention.length }} needs attention
-                            <span class="font-normal text-muted-foreground"
-                                >· from the visits on this screen only</span
-                            ></span
-                        >
-                        <span aria-hidden="true">{{
-                            attentionOpen ? '▴' : '▾'
-                        }}</span>
-                    </button>
-                    <ul
-                        v-if="attentionOpen"
-                        id="v2-attention-list"
-                        class="divide-y border-t"
-                    >
-                        <li
-                            v-for="item in attention"
-                            :key="item.id"
-                            class="px-4 py-3"
-                        >
-                            <p class="text-sm font-medium">{{ item.title }}</p>
-                            <p class="text-xs text-muted-foreground">
-                                {{ item.why }}
-                            </p>
-                        </li>
-                    </ul>
-                </section>
-                <p v-else class="text-sm text-muted-foreground">
-                    Nothing needs attention on this screen.
-                </p>
 
                 <div
                     class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[13px] text-muted-foreground"
@@ -713,6 +698,40 @@ const filterBadge = computed(
                     @change="board.search($event)"
                 />
             </template>
+        </template>
+        <template #rail>
+            <section
+                class="rounded-[14px] border bg-card"
+                aria-labelledby="v2-attention"
+            >
+                <h2
+                    id="v2-attention"
+                    class="px-4 pt-3 text-[15px] font-semibold"
+                >
+                    Needs attention
+                </h2>
+                <p class="px-4 pb-2 text-xs text-muted-foreground">
+                    From the visits on this screen only.
+                </p>
+                <ul v-if="attention.length" class="divide-y border-t">
+                    <li
+                        v-for="item in attention"
+                        :key="item.id"
+                        class="px-4 py-3"
+                    >
+                        <p class="text-sm font-medium">{{ item.title }}</p>
+                        <p class="text-xs text-muted-foreground">
+                            {{ item.why }}
+                        </p>
+                    </li>
+                </ul>
+                <p
+                    v-else
+                    class="border-t px-4 py-4 text-sm text-muted-foreground"
+                >
+                    Nothing needs attention on this screen.
+                </p>
+            </section>
         </template>
     </V2WorkLayout>
 
