@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import { ActionLink } from '@/components/ui/action-link';
 import {
     Dialog,
     DialogContent,
@@ -10,6 +12,8 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { PageHeader } from '@/components/ui/page-header';
+import { formatDate } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
 import {
     firstReason,
@@ -124,7 +128,7 @@ function showRecord(row: StockRow) {
     form.unit = row.stock_unit;
     form.kind = 'usage';
     form.reason = firstReason(props.usage.reasons, form.kind);
-    label.value = `${row.item_name} · ${row.sku_code} · batch ${row.batch_number} (expires ${row.expiry_date}) · ${row.location} · on hand ${row.on_hand} ${row.stock_unit}`;
+    label.value = `${row.item_name} · ${row.sku_code} · batch ${row.batch_number} (expires ${formatDate(row.expiry_date)}) · ${row.location} · on hand ${row.on_hand} ${row.stock_unit}`;
     operation.value = 'record';
     endpoint.value = '/inventory/treatment-usage';
     open.value = true;
@@ -177,15 +181,17 @@ watch(
 <template>
     <Head title="Treatment room usage" />
     <main class="mx-auto w-full max-w-6xl space-y-6 p-4 md:p-7">
-        <nav class="flex flex-wrap gap-4">
-            <a
-                class="inline-flex min-h-11 items-center underline"
-                href="/inventory"
-                >Inventory</a
-            >
-        </nav>
-        <h1 class="text-2xl font-semibold">Treatment room usage</h1>
-        <p>{{ usage.branchName }}</p>
+        <ActionLink
+            href="/inventory"
+            variant="ghost"
+            class="-ml-3 min-h-11 self-start"
+            ><ArrowLeft class="size-4" aria-hidden="true" />
+            Inventory</ActionLink
+        >
+        <PageHeader
+            title="Treatment room usage"
+            :description="usage.branchName"
+        />
         <p class="text-sm text-muted-foreground">
             Record stock used in treatment (for example a dressing, a syringe or
             nebuliser solution) or wasted, outside dispensing. Each entry takes
@@ -243,8 +249,11 @@ watch(
                     </p>
                     <p class="break-words text-muted-foreground">
                         batch {{ row.batch_number }} (expires
-                        {{ row.expiry_date }}) · {{ row.location }} · on hand
-                        {{ row.on_hand }} {{ row.stock_unit }}
+                        <span class="whitespace-nowrap">{{
+                            formatDate(row.expiry_date)
+                        }}</span
+                        >) · {{ row.location }} · on hand {{ row.on_hand }}
+                        {{ row.stock_unit }}
                         <span
                             v-if="!row.usable"
                             class="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs font-medium whitespace-nowrap text-foreground"

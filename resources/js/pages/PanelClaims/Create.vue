@@ -3,6 +3,7 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { myr } from '@/types/billing';
 import type { InvoiceAdjustmentSummary } from '@/types/billing';
 
@@ -279,14 +280,12 @@ const fieldAnnouncedErrors = new Set(['submitted_date', 'remarks', 'photos']);
                             for="submitted-date"
                             class="mb-2 block text-sm font-medium"
                             >Submitted date</label
-                        ><input
+                        ><DateField
                             id="submitted-date"
                             v-model="form.submitted_date"
-                            type="date"
                             required
                             :min="allocation.visitDate"
                             :max="branch.today"
-                            class="w-full rounded-md border bg-background px-3 py-2"
                         /><InputError :message="form.errors.submitted_date" />
                     </div>
                     <div>

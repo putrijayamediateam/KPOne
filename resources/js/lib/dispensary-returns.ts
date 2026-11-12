@@ -18,6 +18,8 @@ export type DispensaryReturnRow = {
         locationName: string | null;
         refuseReason: string | null;
         refuseNote: string | null;
+        // DSP-15: the batch or batches a quarantined return went back to, earliest expiry first.
+        batches: { label: string; quantity: string }[];
     } | null;
 };
 
@@ -33,7 +35,9 @@ export type DispensaryReturnLine = {
     returned: string;
     returnable: string;
     returnCount: number;
-    batches: { publicId: string; label: string }[];
+    // DSP-15: earliest expiry first; available is what can still go back to the batch (checkers only).
+    batches: { publicId: string; label: string; available: string }[];
+    quarantineAvailable: string | null;
     returns: DispensaryReturnRow[];
 };
 
@@ -70,4 +74,47 @@ export const refuseReasonLabels: Record<string, string> = {
     wrong_quantity: 'Wrong quantity',
     recorded_twice: 'Recorded twice',
     other: 'Other',
+};
+
+// DSP-15: thousandths of a quantity typed by a checker ("2.5" → 2500); null when it is not a valid number.
+export const toThousandths = (value: string): number | null => {
+    const trimmed = value.trim();
+
+    if (trimmed === '') {
+        return 0;
+    }
+
+    const match = /^(\d{1,11})(?:\.(\d{1,3}))?$/.exec(trimmed);
+
+    if (match === null) {
+        return null;
+    }
+
+    return Number(match[1]) * 1000 + Number((match[2] ?? '').padEnd(3, '0'));
+};
+
+// DSP-15: thousandths back to the short form the panel uses ("2500" → "2.5", "3000" → "3").
+export const fromThousandths = (value: number): string => {
+    const whole = Math.trunc(value / 1000);
+    const part = String(Math.abs(value % 1000))
+        .padStart(3, '0')
+        .replace(/0+$/, '');
+
+    return part === '' ? String(whole) : `${whole}.${part}`;
+};
+
+// DSP-15: the history line under a quarantined return.
+export const batchesLine = (
+    batches: { label: string; quantity: string }[],
+    unit: string,
+): string | null => {
+    if (batches.length === 0) {
+        return null;
+    }
+
+    if (batches.length === 1) {
+        return `Batch ${batches[0].label}`;
+    }
+
+    return `Batches: ${batches.map((b) => `${b.label} (${b.quantity} ${unit})`).join(', ')}`;
 };

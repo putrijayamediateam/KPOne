@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Payroll\Services;
 
+use App\Domain\HR\Payroll\PayProfileMtd;
 use App\Domain\HR\Payroll\PayrollPermissions;
 use App\Domain\HR\Records\Models\Worker;
 use App\Domain\HR\Records\Services\RecordSupport;
@@ -139,10 +140,10 @@ final class PayrollPageService
         foreach (['epf' => 'EPF', 'socso' => 'SOCSO', 'eis' => 'EIS', 'mtd' => 'MTD', 'hrd' => 'HRD levy'] as $key => $label) {
             if ($p->{$key}) {
                 $category = in_array($key, ['epf', 'socso'], true) ? $p->{"{$key}_category"} : null;
-                if ($key === 'mtd' && ($p->mtd_category ?? null) !== null) {
-                    // HR-7d: the MTD details that let KPOne work MTD out (HR-PLAN 18.3).
-                    $category = 'category '.(int) $p->mtd_category.', '.(int) $p->mtd_children.' '.((int) $p->mtd_children === 1 ? 'child' : 'children')
-                        .($p->mtd_disabled_self ? ', disabled' : '').($p->mtd_disabled_spouse ? ', disabled spouse' : '');
+                if ($key === 'mtd' && ($d = PayProfileMtd::read($p)) !== null) {
+                    // HR-7d: the MTD details that let KPOne work MTD out (HR-PLAN 18.3); stored encrypted since HR-7e.
+                    $category = 'category '.$d['category'].', '.$d['children'].' '.($d['children'] === 1 ? 'child' : 'children')
+                        .($d['disabled_self'] ? ', disabled' : '').($d['disabled_spouse'] ? ', disabled spouse' : '');
                 }
                 $schemes[] = $category === null ? $label : "{$label} ({$category})";
             }

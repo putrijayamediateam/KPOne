@@ -11,6 +11,7 @@ use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Department;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
 use Illuminate\Support\Collection;
@@ -36,7 +37,8 @@ class StaffDirectoryService
                 'staffProfile.branchAssignments' => fn ($query) => $query
                     ->with('branch:id,code,name')
                     ->orderByDesc('is_primary')
-                    ->orderBy('valid_from'),
+                    ->orderBy('valid_from')
+                    ->orderBy('id'),
             ]);
 
         $search = trim((string) ($filters['search'] ?? ''));
@@ -87,7 +89,11 @@ class StaffDirectoryService
         $subject->load([
             'roles:id,name',
             'staffProfile.department:id,name',
-            'staffProfile.branchAssignments.branch:id,code,name',
+            'staffProfile.branchAssignments' => fn ($query) => $query
+                ->with('branch:id,code,name')
+                ->orderByDesc('is_primary')
+                ->orderBy('valid_from')
+                ->orderBy('id'),
         ]);
 
         $profile = $subject->staffProfile;
@@ -173,6 +179,8 @@ class StaffDirectoryService
             'department' => $profile?->department?->name,
             'departmentId' => $profile?->department_id,
             'isActive' => $subject->is_active,
+            // Only for viewers who manage staff: Marketing and Business Development read name, role and branch only.
+            'deactivatedAt' => ! $subject->is_active && $viewer->can('staff.manage.organisation') ? ($subject->deactivated_at === null ? null : CarbonImmutable::parse((string) $subject->deactivated_at, 'UTC')->toIso8601String()) : null,
             'roles' => $subject->roles->pluck('name')->sort()->values(),
             'primaryBranch' => ($primary = $current->firstWhere('is_primary', true))
                 ? $primary->branch->only(['id', 'code', 'name'])

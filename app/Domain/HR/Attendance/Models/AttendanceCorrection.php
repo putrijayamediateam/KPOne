@@ -26,6 +26,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int|null $decided_by_user_id
  * @property CarbonImmutable|null $decided_at
  * @property string|null $decision_reason
+ * @property int|null $withdrawn_by_user_id
+ * @property CarbonImmutable|null $withdrawn_at
  * @property int $lock_version
  * @property CarbonImmutable $created_at
  * @property-read User $person
@@ -39,7 +41,7 @@ class AttendanceCorrection extends Model
 
     protected function casts(): array
     {
-        return ['proposed_in_at' => 'immutable_datetime', 'proposed_out_at' => 'immutable_datetime', 'decided_at' => 'immutable_datetime',
+        return ['proposed_in_at' => 'immutable_datetime', 'proposed_out_at' => 'immutable_datetime', 'decided_at' => 'immutable_datetime', 'withdrawn_at' => 'immutable_datetime',
             'created_at' => 'immutable_datetime', 'note_encrypted' => 'encrypted', 'user_id' => 'integer', 'branch_id' => 'integer',
             'clock_session_id' => 'integer', 'proposed_by_user_id' => 'integer', 'decided_by_user_id' => 'integer', 'lock_version' => 'integer'];
     }

@@ -6,7 +6,7 @@ A short list of what only the owner can decide, or that needs a code or setup ch
 
 | # | Decision | Why it matters |
 |---|---|---|
-| 1 | **Who is the data protection officer / contact?** | **Decided (owner, 2026-11-10): Data Protection Officer: HR Manager** (role; the owner keeps the name and contact outside the repository). Every notice and procedure names the role |
+| 1 | **Who is the data protection officer / contact?** | **Decided (owner, 2026-11-10): Data Protection Officer: HR Manager** (role; the owner keeps the name and contact outside the repository). Every notice and procedure names the role. Check whether the DPO must be registered with the Commissioner **[CONFIRM]** |
 | 2 | **Registered company name and branch addresses** for the notices | Placeholders in 02 |
 | 3 | **Hosting provider and country** | Drives the cross-border answer and the notice |
 | 4 | **Retention periods** (table in 04), especially patient records and signed paper MCs (1 year is probably too short) | Cannot go live without them |

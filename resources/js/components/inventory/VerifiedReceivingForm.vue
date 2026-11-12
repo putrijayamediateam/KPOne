@@ -2,6 +2,7 @@
 import { useForm } from '@inertiajs/vue3';
 import { nextTick, ref, watch } from 'vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import { DateField } from '@/components/ui/date-field';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import type { ScannedSku } from '@/lib/scan';
 import type { InventoryDocument } from '@/types/inventory-operations';
@@ -231,11 +232,9 @@ watch(
                                 class="h-11 min-w-0 rounded border bg-background px-3"
                         /></label>
                         <label class="grid gap-1 text-sm"
-                            >Real expiry date<input
+                            >Real expiry date<DateField
                                 v-model="entry.expiry_date"
-                                type="date"
                                 required
-                                class="h-11 min-w-0 rounded border bg-background px-3"
                         /></label>
                         <label class="grid gap-1 text-sm"
                             >Lot quantity<input
