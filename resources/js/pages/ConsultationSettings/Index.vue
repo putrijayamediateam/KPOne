@@ -245,7 +245,7 @@ const presetEmptyDescription = computed(() =>
                         :aria-label="module.name"
                         :aria-checked="false"
                         disabled
-                        class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-muted-foreground/30"
+                        class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full bg-muted-foreground/30 before:absolute before:-inset-x-1 before:-inset-y-3"
                     >
                         <span
                             class="size-4 translate-x-1 rounded-full bg-white"
@@ -402,7 +402,7 @@ const presetEmptyDescription = computed(() =>
                             :aria-label="`${preset.active ? 'Archive' : 'Restore'} ${preset.name}`"
                             :disabled="busy !== null"
                             :class="[
-                                'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50',
+                                'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors before:absolute before:-inset-x-1 before:-inset-y-3 disabled:opacity-50',
                                 preset.active
                                     ? 'bg-success'
                                     : 'bg-muted-foreground/40',
@@ -454,7 +454,7 @@ const presetEmptyDescription = computed(() =>
                                         :aria-label="`${preset.active ? 'Archive' : 'Restore'} ${preset.name}`"
                                         :disabled="busy !== null"
                                         :class="[
-                                            'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50',
+                                            'relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors before:absolute before:-inset-x-1 before:-inset-y-3 disabled:opacity-50',
                                             preset.active
                                                 ? 'bg-success'
                                                 : 'bg-muted-foreground/40',
