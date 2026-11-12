@@ -4,7 +4,8 @@ import { computed, ref } from 'vue';
 /**
  * Version 2 search combobox: a named search box with a keyboard-navigable results list. Arrow keys move, Enter picks,
  * Esc closes. The `chip` slot sits inside the box at the right (for example the inferred-type chip). It holds NO
- * search or matching logic: the page passes `options` and handles `select`.
+ * search or matching logic: the page passes `options` and handles `select`. `focus()` (exposed) focuses the input, for
+ * example after a "Change patient" button; there is deliberately no id prop.
  */
 export type ComboOption = { id: string; label: string; detail?: string };
 
@@ -24,6 +25,14 @@ const emit = defineEmits<{
     'update:modelValue': [value: string];
     select: [option: ComboOption];
 }>();
+
+const input = ref<HTMLInputElement | null>(null);
+
+function focus(): void {
+    input.value?.focus();
+}
+
+defineExpose({ focus });
 
 const base = `v2-combo-${Math.random().toString(36).slice(2, 8)}`;
 const open = ref(false);
@@ -80,6 +89,7 @@ const onKey = (event: KeyboardEvent) => {
                 <path d="m20 20-3.5-3.5" />
             </svg>
             <input
+                ref="input"
                 role="combobox"
                 type="text"
                 autocomplete="off"

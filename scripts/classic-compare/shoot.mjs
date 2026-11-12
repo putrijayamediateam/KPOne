@@ -43,6 +43,15 @@ const FROZEN = new Date('2026-11-12T10:00:00+08:00');
  localStorage.setItem('appearance', t); 
 } catch {} 
 }, theme);
+                // A blinking caret in a focused field can differ between two shots: hide it on every document.
+                await ctx.addInitScript(() => {
+                    document.addEventListener('DOMContentLoaded', () => {
+                        const style = document.createElement('style');
+
+                        style.textContent = '* { caret-color: transparent !important; }';
+                        document.head.appendChild(style);
+                    });
+                });
                 await ctx.clock.setFixedTime(FROZEN);
                 const page = await ctx.newPage();
 

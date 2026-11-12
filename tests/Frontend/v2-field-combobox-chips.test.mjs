@@ -58,3 +58,11 @@ test('The new blocks import nothing from the Classic ui components', () => {
         assert.doesNotMatch(v2(n), /from '@\/components\/ui\//);
     }
 });
+
+test('V2SearchCombobox: exposes focus() that focuses its input, and takes no id prop', () => {
+    const s = v2('V2SearchCombobox');
+    assert.match(s, /defineExpose\(\{ focus \}\)/);
+    assert.match(s, /input\.value\?\.focus\(\)/);
+    assert.match(s, /ref="input"/);
+    assert.doesNotMatch(s, /\n\s+inputId\??:/);
+});
