@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
@@ -53,6 +53,14 @@ type InventoryDirectory = {
     currentPage: number;
     lastPage: number;
 };
+
+// STK-24: the controlled-drug register link shows only for its viewers (the server checks too).
+const page = usePage();
+const canViewControlledRegister = computed(() =>
+    page.props.auth.permissions.includes(
+        'inventory.controlled_register.view.branch',
+    ),
+);
 
 const props = defineProps<{
     inventory: InventoryDirectory;
@@ -116,6 +124,7 @@ const statusOptions = [
     { value: '', label: 'All statuses' },
     { value: 'active', label: 'Available' },
     { value: 'inactive', label: 'Unavailable' },
+    { value: 'returns', label: 'Patient returns only' },
 ];
 const movementOptions = [
     { value: '', label: 'All movement types' },
@@ -187,52 +196,100 @@ const clearFilters = () => {
 </script>
 
 <template>
-    <div class="flex flex-wrap gap-3 px-4">
-        <a
-            href="/inventory/counts"
-            class="inline-flex min-h-11 items-center underline"
-            >Stock count (governed)</a
-        ><a
-            href="/inventory/writeoffs"
-            class="inline-flex min-h-11 items-center underline"
-            >Write-off (governed)</a
-        ><a
-            href="/inventory/supplier-returns"
-            class="inline-flex min-h-11 items-center underline"
-            >Supplier returns</a
-        ><a
-            href="/inventory/treatment-usage"
-            class="inline-flex min-h-11 items-center underline"
-            >Treatment room usage</a
-        >
-    </div>
-    <a
-        href="/inventory/stock-review"
-        class="inline-flex min-h-11 items-center px-4 underline"
-        >Stock review</a
-    >
-    <a
-        href="/inventory/batch-holds"
-        class="mx-4 mt-4 inline-flex min-h-11 items-center self-start rounded-md border px-4 text-sm underline"
-        >Batch safety holds</a
-    >
-    <a
-        href="/inventory/readiness"
-        class="mx-4 mt-4 inline-flex min-h-11 items-center self-start rounded-md border px-4 text-sm"
-        >Pilot readiness</a
-    >
     <Head title="Inventory" />
     <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
         <PageHeader
             title="Inventory"
             :description="`Stock, batches and movement history for ${inventory.branch}.`"
-        >
-            <template #actions>
-                <ActionLink href="/workspace" variant="secondary">
-                    Return to Workspace
-                </ActionLink>
-            </template>
-        </PageHeader>
+        />
+
+        <nav aria-label="Inventory tasks" class="kp-control-group">
+            <ActionLink
+                href="/inventory/counts"
+                variant="outline"
+                class="min-h-11"
+                >Stock count (governed)</ActionLink
+            >
+            <ActionLink
+                href="/inventory/writeoffs"
+                variant="outline"
+                class="min-h-11"
+                >Write-off (governed)</ActionLink
+            >
+            <ActionLink
+                href="/inventory/supplier-returns"
+                variant="outline"
+                class="min-h-11"
+                >Supplier returns</ActionLink
+            >
+            <ActionLink
+                href="/inventory/supplier-invoices"
+                variant="outline"
+                class="min-h-11"
+                >Supplier invoices</ActionLink
+            >
+            <ActionLink
+                href="/inventory/controlled-register"
+                variant="outline"
+                v-if="canViewControlledRegister"
+                class="min-h-11"
+                >Controlled register</ActionLink
+            >
+            <ActionLink
+                href="/inventory/recalls"
+                variant="outline"
+                class="min-h-11"
+                >Recalls</ActionLink
+            >
+            <ActionLink
+                href="/inventory/treatment-usage"
+                variant="outline"
+                class="min-h-11"
+                >Treatment room usage</ActionLink
+            >
+            <ActionLink
+                href="/inventory/stock-review"
+                variant="outline"
+                class="min-h-11"
+                >Stock review</ActionLink
+            >
+            <ActionLink
+                href="/inventory/reorder-suggestions"
+                variant="outline"
+                class="min-h-11"
+                >Reorder suggestions</ActionLink
+            >
+            <ActionLink
+                href="/inventory/purchase-requests"
+                variant="outline"
+                class="min-h-11"
+                >Purchase requests</ActionLink
+            >
+            <ActionLink
+                href="/inventory/supplier-terms"
+                variant="outline"
+                class="min-h-11"
+                >Supplier price list</ActionLink
+            >
+            <ActionLink
+                href="/inventory/skus"
+                variant="outline"
+                class="min-h-11"
+                >SKUs</ActionLink
+            >
+            <ActionLink
+                href="/inventory/batch-holds"
+                variant="outline"
+                class="min-h-11"
+                >Batch safety holds</ActionLink
+            >
+            <ActionLink
+                href="/inventory/readiness"
+                variant="outline"
+                class="min-h-11"
+                >Pilot readiness</ActionLink
+            >
+        </nav>
 
         <section
             class="grid gap-3 sm:grid-cols-3"

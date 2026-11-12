@@ -100,6 +100,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
 | PNL-17 | Panel summary: six new columns at the end of the page and CSV, "Awaiting decision" (submitted or queried claims with no Panel decision yet: count, current claim amount, and ageing from the first submitted date in 0-30, 31-60, 61-90 and over 90 days); Accepted outstanding and every earlier figure unchanged; the basis text says so | #359 (merged as `2fe5719`) |
 | PNL-18 | Panel statement near matches: a "Not found" row whose invoice number equals exactly one open claim's, compared group by group, apart from spaces, punctuation, capitals, leading zeros, or look-alike letters (O, I, L, S, B, Z) before a real digit at the same length, is offered as "Near match: check" with both numbers shown and the look-alike letters marked; never ticked automatically; a digit typed wrongly, a suffix or a split number is never suggested, because invoice numbers run in sequence; nothing is recorded from the file | #363 (merged as `01d3a7c`) |
 | PNL-19 | The claim pack letterhead (cover and each claim page) prints the branch's optional second clinic phone (CAT-9) on the existing line as "Tel: A / B", like the referral and attendance letters; each number stays whole when the line wraps; both numbers print through the shared `PrintedPhone` format; a branch without a second phone prints as before | #367 (merged as `2cb6e04`) |
+| PNL-20 | Two small tidy items: the Panel statement helper (PNL-7, PNL-18) shows one quiet line, "Near matches were checked against this Panel's N oldest open claims at this branch only. A row that says Not found may still belong to a newer claim, so check those by hand.", when the near-match pass compared only the oldest 500 open claims because the Panel has more, and only while a row is still "Not found" (the server sends `nearCut` and `nearLimit`); and the claim pack page drops its local `PrintLetterhead` widening for `phone_secondary`, now in the shared type | #421 (merged as `1b89032`) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -180,7 +181,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
     letterhead prints the second clinic phone as "Tel: A / B" on one line; Arjun asked that each number stay whole and that a
     lone second phone print "Tel: B"; Daniel asked that both numbers go through `PrintedPhone`, as invoices and receipts do
     in BIL-9. The pack widens the shared `PrintLetterhead` type locally for `phone_secondary`; CAT-13 (#372) has since
-    added it to the shared type, so a later Panel tidy can drop the local widening.
+    added it to the shared type; PNL-20 (#421) has since dropped the local widening.
+30. PNL-20 (B.E.R.N.I.S.S for the owner, 2026-11-10, after the owner's "i want to start all that"): the 500-claim cut gets an
+    on-screen note and the pack's local letterhead widening is dropped, in one PR. Arjun asked for `role="note"` (not a live
+    region) and a little space under it; Priya's minors were a boundary test (exactly 500 is not a cut), required
+    parameters and "at this branch" in the wording; Daniel said OK on the shots. `PanelStatementService` is no longer
+    `final` and the limit sits behind a protected method only so a test can use a small number. Decision 16 is confirmed:
+    prepared-but-never-submitted claims stay on the Follow-up list (labelled; no change).
 
 ## 7. Open items and known limits
 
@@ -238,8 +245,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`.
   different claims the row is "More than one claim"), and a member reference only for a row with neither, and
   only among claims still waiting for payment. Since PNL-18 a "Not found" row whose invoice number differs only in
   format or look-alike letters is offered as a near match (never pre-ticked); a digit typo is still "Not found",
-  and only the 500 oldest open claims of the Panel at the branch are compared for near matches, with no note on
-  screen when that cut is reached (Farah's minor; a later Panel tidy). The claim
+  and only the 500 oldest open claims of the Panel at the branch are compared for near matches; since PNL-20 a quiet
+  line says so when that cut is reached and a row is still "Not found". The claim
   number column is never pre-selected (a Panel's own claim number is not KPOne's). Amounts read "1,000.00" and
   "10,00" (a comma before two final digits) as ringgit and sen, but "1.000,00" is "Amount not readable"; only
   the 200 oldest open claims can be filled into the split. A file past its 30 days stops showing at once; the
@@ -329,3 +336,4 @@ Second backlog, chosen by the owner on 2026-11-05 ("panel order ok", relayed by 
 16. **PNL-17 Awaiting decision on the Panel summary. (Built 2026-11-06, PR #359.)** Count, amount and ageing columns at the end.
 17. **PNL-18 Statement near matches. (Built 2026-11-06, PR #363.)** Suggest only; never a digit typo.
 15. **PNL-19 Second clinic phone on the claim pack. (Built 2026-11-06, PR #367.)** "Tel: A / B" on both letterheads, through `PrintedPhone`.
+18. **PNL-20 Near-match cut note and pack type tidy. (Built 2026-11-10, PR #421.)** One quiet line when only the oldest 500 open claims were compared; the local letterhead widening is gone.

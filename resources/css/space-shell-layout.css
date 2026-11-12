@@ -1,0 +1,626 @@
+/* DS-1 shell: grouped sidebar, content column, cards. Every selector is scoped to .space-shell. */
+.space-shell {
+    display: grid;
+    grid-template-columns: var(--space-sidebar-width) minmax(0, 1fr);
+    min-height: 100vh;
+    background: var(--space-bg);
+    color: var(--space-fg);
+    font-family: var(--space-font);
+}
+.space-shell .space-side {
+    background: var(--space-side);
+    padding: 16px 12px;
+    display: grid;
+    gap: 4px;
+    align-content: start;
+}
+.space-shell .space-logo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 650;
+    padding: 4px 8px 12px;
+    color: var(--space-fg);
+    text-decoration: none;
+}
+.space-shell .space-logo-mark {
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: var(--space-logo-mark);
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+}
+.space-shell .space-group {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--space-muted);
+    padding: 10px 8px 2px;
+}
+.space-shell .space-item {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0 10px;
+    border-radius: var(--space-radius-item);
+    color: var(--space-fg);
+    text-decoration: none;
+}
+.space-shell .space-item:hover {
+    background: var(--space-hover);
+}
+.space-shell .space-item.is-on {
+    background: var(--space-accent-tint);
+    color: var(--space-accent);
+    font-weight: 600;
+}
+.space-shell .space-item:focus-visible,
+.space-shell .space-logo:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+.space-shell .space-main {
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    outline: none;
+}
+/* Recent activity rides along the bottom of the content column. */
+.space-shell .space-recent {
+    margin-top: auto;
+}
+.space-shell .space-title {
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0;
+}
+.space-shell .space-card {
+    background: var(--space-surface);
+    border-radius: var(--space-radius-card);
+    padding: 16px;
+    box-shadow: 0 0 0 0.5px var(--space-line);
+}
+.space-shell .space-card h2 {
+    font-size: 16px;
+    font-weight: 650;
+    margin: 0 0 6px;
+}
+.space-shell .space-muted {
+    color: var(--space-muted);
+    margin: 0;
+}
+@media (max-width: 767px) {
+    .space-shell {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: auto 1fr;
+    }
+    .space-shell .space-side {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+        overflow-x: auto;
+        padding: 8px 12px;
+    }
+    .space-shell .space-item {
+        white-space: nowrap;
+        flex: none;
+    }
+    .space-shell .space-group,
+    .space-shell .space-logo {
+        display: none;
+    }
+}
+
+.space-shell .space-nav {
+    display: grid;
+    gap: 4px;
+}
+.space-shell .space-block {
+    display: grid;
+    gap: 4px;
+}
+.space-shell .space-top {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+.space-shell .space-branch {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.space-shell .space-select,
+.space-shell .space-account {
+    min-height: 44px;
+    border-radius: var(--space-radius-control);
+    border: 1px solid var(--space-line);
+    background: var(--space-surface);
+    color: var(--space-fg);
+    padding: 0 12px;
+    font: inherit;
+}
+.space-shell .space-account {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+/* DS-12: a small outline Clock in / Clock out beside the branch switcher, from 1024 px; phones use the account menu row. */
+.space-shell .space-clock {
+    display: none;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: var(--space-radius-control);
+    border: 1px solid var(--space-line);
+    background: transparent;
+    color: var(--space-fg);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+.space-shell .space-clock:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+.space-shell .space-clock:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+@media (min-width: 1024px) {
+    .space-shell .space-clock {
+        display: inline-flex;
+    }
+}
+/* DS-12: the name sits beside the avatar from 1024 px; below that the avatar stands alone. */
+@media (max-width: 1023px) {
+    .space-shell .space-account {
+        flex: none;
+        padding: 0 6px;
+    }
+    .space-shell .space-account > div {
+        display: none;
+    }
+}
+.space-shell .space-select:focus-visible,
+.space-shell .space-account:focus-visible,
+.space-shell .space-existing a:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+.space-shell .space-existing {
+    margin: 10px 0 0;
+}
+.space-shell .space-existing a {
+    color: var(--space-accent);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+}
+@media (max-width: 767px) {
+    .space-shell .space-nav {
+        display: contents;
+    }
+    .space-shell .space-block {
+        display: contents;
+    }
+    .space-shell .space-side {
+        position: relative;
+    }
+}
+
+.space-shell .space-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+}
+.space-shell .space-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-height: 44px;
+    padding: 6px 4px;
+    color: var(--space-fg);
+    text-decoration: none;
+    border-top: 1px solid var(--space-line);
+}
+.space-shell .space-row:hover {
+    background: var(--space-hover);
+}
+.space-shell .space-row:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: -2px;
+}
+.space-shell .space-row-main {
+    font-weight: 600;
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+/* Below 640 px the branch select and an initials-only account button share one row. */
+@media (max-width: 639px) {
+    .space-shell .space-top {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+    }
+    .space-shell .space-branch {
+        flex: 1;
+        min-width: 0;
+    }
+    .space-shell .space-branch > .space-muted {
+        display: none;
+    }
+    .space-shell .space-select {
+        width: 100%;
+        min-width: 0;
+    }
+    .space-shell .space-account {
+        flex: none;
+        padding: 0 6px;
+    }
+    .space-shell .space-account > div {
+        display: none;
+    }
+}
+
+.space-shell .space-qno {
+    display: inline-block;
+    flex: none;
+    padding: 1px 8px;
+    border-radius: 999px;
+    background: var(--space-accent-tint);
+    color: var(--space-accent);
+    font-weight: 650;
+    font-variant-numeric: tabular-nums;
+}
+.space-shell .space-row-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.space-shell .space-wait.is-amber {
+    color: var(--space-warn);
+    font-weight: 650;
+}
+.space-shell .space-wait.is-red {
+    color: var(--space-bad);
+    font-weight: 700;
+}
+.space-shell .space-chevron {
+    width: 18px;
+    height: 18px;
+    color: var(--space-muted);
+    flex: none;
+}
+.space-shell .space-stats {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+.space-shell .space-stats li {
+    display: grid;
+}
+.space-shell .space-stats strong {
+    font-size: 24px;
+    font-variant-numeric: tabular-nums;
+}
+
+.space-shell .space-row-body {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex-wrap: nowrap;
+}
+.space-shell .space-row-text {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0 12px;
+}
+.space-shell .space-link {
+    color: var(--space-accent);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+}
+.space-shell .space-link:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+
+.space-shell .space-nowrap {
+    white-space: nowrap;
+}
+
+.space-shell .space-row-meta {
+    min-width: 0;
+    max-width: 100%;
+}
+.space-shell .space-wait {
+    min-width: 0;
+}
+
+.space-shell .space-ask-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.space-shell .space-ask-btn {
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: var(--space-radius-control);
+    border: 1px solid var(--space-line);
+    background: var(--space-surface);
+    color: var(--space-fg);
+    font: inherit;
+    cursor: pointer;
+}
+.space-shell .space-ask-btn.is-on {
+    background: var(--space-accent-tint);
+    color: var(--space-accent);
+    font-weight: 600;
+}
+.space-shell .space-ask-btn:disabled {
+    cursor: progress;
+}
+.space-shell .space-ask-btn:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+.space-shell .space-ask-answer {
+    margin-top: 12px;
+    min-height: 24px;
+}
+.space-shell .space-ask-sentence {
+    margin: 0 0 8px;
+    font-weight: 600;
+}
+.space-shell .space-ask-error {
+    margin: 0;
+    color: var(--space-bad);
+}
+.space-shell .space-ask-table {
+    overflow-x: auto;
+}
+.space-shell .space-ask-table table {
+    border-collapse: collapse;
+    width: 100%;
+}
+.space-shell .space-ask-table th,
+.space-shell .space-ask-table td {
+    text-align: left;
+    padding: 8px 12px 8px 0;
+    border-top: 1px solid var(--space-line);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+.space-shell .space-ask-table th {
+    color: var(--space-muted);
+    font-weight: 600;
+}
+
+.space-shell .space-ask-skeleton {
+    display: grid;
+    gap: 8px;
+}
+.space-shell .space-ask-skeleton span {
+    display: block;
+    height: 16px;
+    border-radius: 6px;
+    background: var(--space-hover);
+}
+.space-shell .space-ask-skeleton span:first-child {
+    width: 60%;
+}
+.space-shell .space-visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+.space-shell .space-ask-meta {
+    margin: 8px 0 0;
+}
+@media (max-width: 639px) {
+    .space-shell .space-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .space-shell .space-stats strong {
+        font-size: 18px;
+    }
+    .space-shell .space-stats .space-muted {
+        font-size: 12px;
+    }
+}
+
+@media (max-width: 639px) {
+    .space-shell .space-ask-table th,
+    .space-shell .space-ask-table td {
+        white-space: normal;
+        padding-right: 8px;
+        vertical-align: top;
+    }
+}
+
+.space-shell .space-ask-failed {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+}
+.space-shell .space-ask-failed .space-ask-error {
+    margin: 0;
+}
+@media (min-width: 640px) {
+    .space-shell .space-ask-failed {
+        flex-direction: row;
+        align-items: center;
+        gap: 12px;
+    }
+}
+@media (max-width: 639px) {
+    /* A short name or number never breaks across lines; only the wait may wrap. */
+    .space-shell .space-ask-table.is-numbered td:nth-child(1),
+    .space-shell .space-ask-table.is-numbered td:nth-child(2) {
+        white-space: nowrap;
+    }
+}
+
+.space-shell .space-asof {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px 12px;
+}
+.space-shell .space-refresh {
+    min-height: 44px;
+    padding: 0 14px;
+    border-radius: var(--space-radius-control);
+    border: 1px solid var(--space-line);
+    background: var(--space-surface);
+    color: var(--space-fg);
+    font: inherit;
+    cursor: pointer;
+}
+.space-shell .space-refresh:disabled {
+    cursor: progress;
+    opacity: 0.7;
+}
+.space-shell .space-refresh:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+
+.space-shell .space-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px 16px;
+    flex-wrap: wrap;
+}
+.space-shell .space-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0 18px;
+    border-radius: var(--space-radius-control);
+    background: var(--space-accent);
+    color: var(--space-accent-fg);
+    font-weight: 650;
+    text-decoration: none;
+}
+.space-shell .space-primary:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+@media (max-width: 479px) {
+    /* The primary action is a full-width button under the title; every row puts the name first, the wait second. */
+    .space-shell .space-primary {
+        width: 100%;
+    }
+    .space-shell .space-row-text {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 2px;
+    }
+    .space-shell .space-stats.is-glance {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .space-shell .space-ask-list {
+        flex-direction: column;
+    }
+    .space-shell .space-ask-btn {
+        width: 100%;
+        text-align: left;
+    }
+}
+
+.space-shell .space-pill {
+    display: inline-block;
+    padding: 2px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--space-line);
+    font-weight: 650;
+}
+.space-shell .space-pill.is-approved {
+    color: var(--space-ok);
+}
+.space-shell .space-pill.is-waiting,
+.space-shell .space-pill.is-not_counted {
+    color: var(--space-warn);
+}
+.space-shell .space-pill.is-returned {
+    color: var(--space-bad);
+}
+.space-shell .space-row-static {
+    display: flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 6px 4px;
+    border-top: 1px solid var(--space-line);
+}
+
+/* Answers show as cards below lg and as a table from lg. */
+.space-shell .space-ask-cards {
+    display: none;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+@media (max-width: 1023px) {
+    .space-shell .space-ask-table {
+        display: none;
+    }
+    .space-shell .space-ask-cards {
+        display: block;
+    }
+    .space-shell .space-ask-cards li {
+        display: grid;
+        gap: 2px;
+        padding: 10px 0;
+        border-top: 1px solid var(--space-line);
+        min-width: 0;
+    }
+}
+
+/* A secondary line in a row (a location, a Panel): its own muted line, no separator dot. */
+.space-shell .space-row-sub {
+    display: block;
+    color: var(--space-muted);
+    font-size: 13px;
+}
+
+/* DS-12: no department space and no Clinic management link means no rail at all. */
+.space-shell.is-bare {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+}
+.space-shell.is-bare .space-side {
+    display: none;
+}
