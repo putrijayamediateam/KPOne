@@ -112,8 +112,10 @@ final class InventoryRecallTest extends VisitTestCase
 
         $this->actingAs($starter)->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), $lift)
             ->assertSessionHasErrors(['status' => 'You started this recall, so another person must lift it.']);
-        // Until the owner decides, only a Director lifts.
-        $this->actingAs($this->actorAt('finance_officer'))->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), $lift)->assertForbidden();
+        // Only a Director or a Finance Officer lifts (owner decision "recall A").
+        foreach (['ca', 'ca_supervisor', 'administrator'] as $role) {
+            $this->actingAs($this->actorAt($role))->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), $lift)->assertForbidden();
+        }
         $this->actingAs($this->actorAt('director'))->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), [...$lift, 'reason' => 'other'])
             ->assertSessionHasErrors(['note' => 'Add a note to explain why the recall is lifted.']);
         $other = $this->actorAt('director');
@@ -129,6 +131,25 @@ final class InventoryRecallTest extends VisitTestCase
         // A batch can be recalled again once its recall is lifted.
         $this->actingAs($starter)->post(route('inventory.recalls.store'), $this->startInput($f))->assertSessionHasNoErrors();
         $this->assertSame('recalled', $this->reason($this->branch, $f['batch']->id));
+    }
+
+    public function test_a_finance_officer_lifts_a_recall_a_director_started_and_the_starter_still_cannot(): void
+    {
+        $f = (new GovernedStockFixture($this->branch))->build('10.000');
+        $starter = $this->actorAt('director');
+        $this->actingAs($starter)->post(route('inventory.recalls.store'), $this->startInput($f))->assertSessionHasNoErrors();
+        $recall = DB::table('inventory_recalls')->sole();
+        $lift = ['expected_branch_id' => $this->branch->id, 'lock_version' => 1, 'retry_key' => (string) Str::uuid(), 'reason' => 'supplier_cleared'];
+
+        $this->actingAs($starter)->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), $lift)
+            ->assertSessionHasErrors(['status' => 'You started this recall, so another person must lift it.']);
+        $finance = $this->actorAt('finance_officer');
+        $page = $this->actingAs($finance)->get(route('inventory.recalls'))->viewData('page')['props']['recalls'];
+        $this->assertSame([true, false, false], [$page['can']['lift'], $page['can']['start'], $page['recalls']['rows'][0]['startedByYou']]);
+        $this->actingAs($finance)->post(route('inventory.recalls.lift', ['recall' => $recall->public_id]), $lift)
+            ->assertRedirect(route('inventory.recalls', ['tab' => 'lifted']))->assertSessionHasNoErrors();
+        $this->assertSame(['lifted', (int) $finance->id], [DB::table('inventory_recalls')->value('status'), (int) DB::table('inventory_recalls')->value('lifted_by_user_id')]);
+        $this->assertNull($this->reason($this->branch, $f['batch']->id));
     }
 
     public function test_one_active_recall_per_batch_and_a_retry_returns_the_same_recall(): void

@@ -518,10 +518,12 @@ final class PermissionCatalogue
             $roles[$holder][] = 'inventory.controlled_register.check.branch';
         }
 
-        // STK-25 (owner programme 2026-11-11): a Director starts a recall across branches. Lifting is its own
-        // permission, never used by the starter; Director only until the owner decides who else may lift.
+        // STK-25 (owner programme 2026-11-11): a Director starts a recall across branches. A Director or a Finance
+        // Officer lifts one, never the person who started it (owner decision 2026-11-12, "recall A").
         $roles['director'][] = 'inventory.recalls.manage.organisation';
-        $roles['director'][] = 'inventory.recalls.lift.organisation';
+        foreach (['director', 'finance_officer'] as $holder) {
+            $roles[$holder][] = 'inventory.recalls.lift.organisation';
+        }
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {

@@ -25,8 +25,8 @@ use stdClass;
  * item at every branch at once, today and for stock that arrives later (another expiry or pack size included),
  * through the shared batch eligibility rule
  * ({@see InventoryBatchEligibility}). No stock moves; recalled stock is removed through the governed write-off or a
- * supplier return. Independent of STK-2 branch holds. A Director starts a recall; it is lifted once, never by the
- * person who started it (service and PostgreSQL). Notes are encrypted and never audited.
+ * supplier return. Independent of STK-2 branch holds. A Director starts a recall; a Director or a Finance Officer
+ * lifts it once, never the person who started it (owner decision 2026-11-12, "recall A"; service and PostgreSQL). Notes are encrypted and never audited.
  */
 final class InventoryRecallService
 {
