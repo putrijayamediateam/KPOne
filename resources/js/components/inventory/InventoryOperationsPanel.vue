@@ -1284,7 +1284,7 @@ const saveReorder = () =>
                     />
                     <p class="text-xs text-muted-foreground">
                         With a maximum, reorder suggestions fill up to it. Leave
-                        blank to use the reorder level.
+                        blank to remove any maximum.
                     </p>
                     <Button type="submit" :disabled="busy">Save level</Button>
                 </form>
@@ -1307,6 +1307,9 @@ const saveReorder = () =>
                     <strong>{{ row.sku }}</strong> ·
                     {{ row.availableQuantity }} available /
                     {{ row.reorderLevel }} reorder
+                    <template v-if="row.maxLevel !== null">
+                        · max {{ row.maxLevel }}
+                    </template>
                 </div>
                 <h4 class="pt-2 text-sm font-semibold">Expiring in 90 days</h4>
                 <p

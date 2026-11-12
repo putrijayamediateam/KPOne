@@ -76,7 +76,12 @@ final class InventoryControlService
             'max_level' => ['nullable', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'],
         ])->validate();
         $max = filled($values['max_level'] ?? null) ? StockUnitQuantity::scaled((string) $values['max_level'], true) : null;
-        if ($max !== null && $max < StockUnitQuantity::scaled((string) $values['reorder_level'], true)) {
+        $reorder = StockUnitQuantity::scaled((string) $values['reorder_level'], true);
+        if ($max !== null && $reorder === 0) {
+            // A level of 0 never lists the item as low, so a maximum would do nothing.
+            throw ValidationException::withMessages(['max_level' => 'Set a reorder level above 0 to use a maximum.']);
+        }
+        if ($max !== null && $max < $reorder) {
             throw ValidationException::withMessages(['max_level' => 'The maximum must be at least the reorder level.']);
         }
 

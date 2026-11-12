@@ -232,6 +232,14 @@ final class ReorderSuggestionTest extends VisitTestCase
         $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload('5', '4.999'))->assertRedirect(route('inventory.index'))->assertSessionHasErrors('max_level');
         $this->assertSame('12.500', (string) $stored()->max_level);
 
+        // A maximum on a level of 0 would never be used, so it is refused.
+        $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload('0', '5'))->assertSessionHasErrors('max_level');
+        $this->assertSame('12.500', (string) $stored()->max_level);
+
+        // The low-stock list on the Inventory page shows the maximum, so a change to it is visible.
+        $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload(StockUnitQuantity::format($f['onHand'] + 5000), StockUnitQuantity::format($f['onHand'] + 9000)))->assertSessionHasNoErrors();
+        $this->actingAs($supervisor)->get(route('inventory.index'))->assertOk()->assertInertia(fn ($page) => $page->where('operations.lowStock', fn ($rows) => collect($rows)->contains(fn ($row) => $row['maxLevel'] === StockUnitQuantity::format($f['onHand'] + 9000))));
+
         // Equal is allowed; blank clears it.
         $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload('5', '5'))->assertSessionHasNoErrors();
         $this->assertSame('5.000', (string) $stored()->max_level);
@@ -242,6 +250,9 @@ final class ReorderSuggestionTest extends VisitTestCase
         $this->actingAs($f['actors']->actor('ca'))->put(route('inventory.reorder-levels.update'), $payload('5', '9'))->assertForbidden();
 
         // PostgreSQL refuses a maximum below the level whatever the caller.
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
         $this->expectException(QueryException::class);
         DB::table('inventory_reorder_levels')->where('id', $stored()->id)->update(['max_level' => '1.000']);
     }
