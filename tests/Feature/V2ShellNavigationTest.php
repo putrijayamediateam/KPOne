@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Domain\Access\ClinicManagementNavigation;
+use App\Domain\DepartmentSpace\UiVersionResolver;
 use App\Domain\DepartmentSpace\V2ShellNavigation;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -140,5 +141,35 @@ class V2ShellNavigationTest extends VisitTestCase
         $shell = app(V2ShellNavigation::class)->for($finance, 'registration/create');
         $this->assertNull($shell['current']);
         $this->assertSame('billing', app(V2ShellNavigation::class)->for($finance, 'billing/work')['current']['key'] ?? null);
+    }
+
+    public function test_json_polls_cost_the_same_queries_with_version_2_on_as_off(): void
+    {
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+
+        // The Registration board poll runs the shared props (the queue poll skips them); both are checked.
+        $count = function () use ($director): int {
+            DB::flushQueryLog();
+            $this->actingAs($director)->postJson(route('registration.search'))->assertOk();
+            $this->actingAs($director)->postJson(route('queue.search'))->assertOk();
+
+            return count(DB::getQueryLog());
+        };
+
+        DB::enableQueryLog();
+        $count();
+        $off = $count();
+        $this->turnOn($director);
+        // The resolver keeps each person's switch state for one request; a test reuses the app, so start fresh.
+        $this->app->forgetInstance(UiVersionResolver::class);
+        $this->get('/registration/create')->assertInertia(fn (Assert $p) => $p->where('workspace.spaces.enabled', true));
+        $count();
+        $on = $count();
+        DB::disableQueryLog();
+
+        // The sidebar is a lazy prop: a poll never builds it, so Version 2 adds no query to a poll. (The Director is
+        // used because building their sidebar costs a query; an eager prop fails this test with 13 against 12.)
+        $this->assertSame($off, $on);
     }
 }
