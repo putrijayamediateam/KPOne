@@ -35,15 +35,15 @@ test('each identifier box on Patient create is a shrinkable one-column grid on p
     const create = read('resources/js/pages/Patient/Create.vue');
     assert.match(
         create,
-        /class="grid grid-cols-1 gap-3 rounded-md border p-4 md:grid-cols-3"/,
+        /class="grid grid-cols-1 gap-3 rounded-xl border p-4 md:grid-cols-3"/,
     );
     assert.match(
         create,
-        /class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm uppercase"/,
+        /class="h-9 w-full min-w-0 rounded-\[10px\] border bg-background px-3 text-sm uppercase max-lg:h-11"/,
     );
     assert.match(
         create,
-        /autocomplete="off"\s+class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm"\s+placeholder="Identifier value"/,
+        /autocomplete="off"\s+class="h-9 w-full min-w-0 rounded-\[10px\] border bg-background px-3 text-sm max-lg:h-11"\s+placeholder="Identifier value"/,
     );
 });
 

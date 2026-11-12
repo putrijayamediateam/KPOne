@@ -163,7 +163,7 @@ const submit = () => {
                     <div
                         v-for="(identifier, index) in form.identifiers"
                         :key="index"
-                        class="grid grid-cols-1 gap-3 rounded-md border p-4 md:grid-cols-3"
+                        class="grid grid-cols-1 gap-3 rounded-xl border p-4 md:grid-cols-3"
                     >
                         <div class="grid gap-2">
                             <span
@@ -179,7 +179,7 @@ const submit = () => {
                                     'patient-identifier-type-label-' + index
                                 "
                                 :options="identityTypeOptions"
-                                trigger-class="h-10"
+                                trigger-class="max-lg:data-[size=default]:h-11"
                                 @update:model-value="
                                     updateIdentifierType(identifier, $event)
                                 "
@@ -196,7 +196,7 @@ const submit = () => {
                                 :disabled="
                                     identifier.identifier_type === 'nric'
                                 "
-                                class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm uppercase"
+                                class="h-9 w-full min-w-0 rounded-[10px] border bg-background px-3 text-sm uppercase max-lg:h-11"
                             />
                         </label>
                         <label class="grid gap-2"
@@ -222,7 +222,7 @@ const submit = () => {
                                 "
                                 :aria-describedby="'identity-error-' + index"
                                 autocomplete="off"
-                                class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm"
+                                class="h-9 w-full min-w-0 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11"
                                 placeholder="Identifier value"
                             />
                         </label>
