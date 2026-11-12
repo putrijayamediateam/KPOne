@@ -169,6 +169,8 @@ final class PermissionCatalogue
             'inventory.usage.record.branch',
             'inventory.controlled_register.view.branch',
             'inventory.controlled_register.check.branch',
+            'inventory.recalls.manage.organisation',
+            'inventory.recalls.lift.organisation',
             'inventory.cost.view.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
@@ -514,6 +516,13 @@ final class PermissionCatalogue
         foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
             $roles[$holder][] = 'inventory.controlled_register.view.branch';
             $roles[$holder][] = 'inventory.controlled_register.check.branch';
+        }
+
+        // STK-25 (owner programme 2026-11-11): a Director starts a recall across branches. A Director or a Finance
+        // Officer lifts one, never the person who started it (owner decision 2026-11-12, "recall A").
+        $roles['director'][] = 'inventory.recalls.manage.organisation';
+        foreach (['director', 'finance_officer'] as $holder) {
+            $roles[$holder][] = 'inventory.recalls.lift.organisation';
         }
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
