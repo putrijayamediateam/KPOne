@@ -152,3 +152,25 @@ test('V2 muted text reaches 4.5:1 on the muted fill and on the page, light and d
         }
     }
 });
+
+test('V2WorkLayout: railFrom puts the rail beside the main panel from lg or from 2xl, with a collapsed slot below 2xl', () => {
+    const s = v2('V2WorkLayout');
+    assert.match(s, /railFrom\?: 'lg' \| '2xl'/);
+    assert.match(s, /2xl:grid-cols-\[minmax\(0,1fr\)_18rem\]/);
+    assert.match(s, /hidden 2xl:flex/);
+    assert.match(s, /\$slots\['rail-collapsed'\]/);
+    assert.match(s, /name="rail-collapsed"/);
+    assert.match(s, /class="2xl:hidden"/);
+    // The default is unchanged: the rail sits beside the main panel from lg.
+    assert.match(s, /railFrom: 'lg'/);
+    assert.match(s, /lg:grid-cols-\[minmax\(0,1fr\)_21rem\]/);
+});
+
+test('V2DisclosureBar: a 44px button tied to its panel with aria-expanded and aria-controls', () => {
+    const s = v2('V2DisclosureBar');
+    assert.match(s, /:aria-expanded="open"/);
+    assert.match(s, /:aria-controls="id"/);
+    assert.match(s, /min-h-11/);
+    assert.match(s, /motion-reduce:transition-none/);
+    assert.doesNotMatch(s, /from '@\/components\/ui\//);
+});
