@@ -2,6 +2,8 @@
 
 **Version 2 only (owner decision, 2026-11-12).** Every restyle slice is for Version 2 only: the new look shows behind the per-user "Try the new layout" switch (default off, each person chooses for themselves), and Classic must stay pixel-identical (before and after shots of the main Classic pages at 390 and 1440 px, light and dark, with V2 off). New tokens live under `[data-ui=v2]`; components keep their old classes and add `v2:` ones. In V2 every page sits inside the spaces' sidebar shell, and a page with no space goes under "More". Gate and token split first, then the component reworks, then the V2 shell (first check: Quick create), then the spaces, then the shared approval panel.
 
+**Classic restyle slices closed (owner decision, 2026-11-12).** The owner said "close": 38 Classic restyle PRs (Wave 0 and every page restyle) were closed unmerged, because Classic stays exactly as it was. All new-look work now goes into per-page Version 2 layouts, built from V2-only blocks under `components/v2/` and designed page by page (Registration first, then Queue, Billing, Dispensary and the rest). The wave plan and slice list below are kept only as a record of the first proposal.
+
 **Status: superseded by the owner starting UI-RESTYLE on 2026-11-12. Teams now send their own page plans to the coordinator; this file is kept only as a record of the first proposal and of which shared pieces Staff Experience owns (Wave 0).** It follows GUIDE section 19 (the app-wide
 look). Every slice is layout only: no behaviour, permission, route, payload, data or wording change. Each is a small PR
 with before and after shots at 390 and 1440 px, light and dark, reviewed by the Lead UI/UX Designer through the
