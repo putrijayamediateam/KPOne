@@ -225,22 +225,27 @@ const toggleCharge = (charge: ChargeRow) => {
 
 <template>
     <main
-        class="mx-auto flex w-full max-w-6xl min-w-0 flex-1 flex-col gap-6 px-4 py-6 md:px-6"
+        class="mx-auto flex w-full max-w-[1280px] min-w-0 flex-1 flex-col gap-6 px-4 py-6 md:px-6"
     >
         <PageHeader
             title="Pricing"
             description="Manage charge definitions, price books and published prices."
         >
             <template #actions>
-                <Button variant="outline" size="sm" as-child>
+                <Button
+                    variant="outline"
+                    size="sm"
+                    class="max-lg:h-11"
+                    as-child
+                >
                     <Link href="/pricing/price-check">Check price list</Link>
                 </Button>
             </template>
         </PageHeader>
 
         <section class="grid gap-4 md:grid-cols-2">
-            <div class="min-w-0 rounded-xl border bg-card p-4">
-                <h2 class="text-sm font-semibold">New price book</h2>
+            <div class="min-w-0 rounded-[14px] border bg-card p-5">
+                <h2 class="text-lg font-semibold">New price book</h2>
                 <form class="mt-3 grid gap-3" @submit.prevent="submitBook">
                     <div class="grid gap-2">
                         <Label id="book-scope-label" for="book-scope"
@@ -266,6 +271,7 @@ const toggleCharge = (charge: ChargeRow) => {
                         <Label for="book-name">Name *</Label>
                         <Input
                             id="book-name"
+                            class="max-lg:h-11"
                             v-model="bookForm.name"
                             autocomplete="off"
                             maxlength="150"
@@ -277,15 +283,15 @@ const toggleCharge = (charge: ChargeRow) => {
                     <Button
                         type="submit"
                         size="sm"
-                        class="justify-self-start"
+                        class="justify-self-start max-lg:h-11"
                         :disabled="bookForm.processing"
                         >Create price book</Button
                     >
                 </form>
             </div>
 
-            <div class="min-w-0 rounded-xl border bg-card p-4">
-                <h2 class="text-sm font-semibold">New charge definition</h2>
+            <div class="min-w-0 rounded-[14px] border bg-card p-5">
+                <h2 class="text-lg font-semibold">New charge definition</h2>
                 <form class="mt-3 grid gap-3" @submit.prevent="submitCharge">
                     <div class="grid gap-2">
                         <Label id="charge-type-label" for="charge-type"
@@ -343,6 +349,7 @@ const toggleCharge = (charge: ChargeRow) => {
                         <Label for="charge-code">Code *</Label>
                         <Input
                             id="charge-code"
+                            class="max-lg:h-11"
                             v-model="chargeForm.code"
                             autocomplete="off"
                             maxlength="64"
@@ -357,6 +364,7 @@ const toggleCharge = (charge: ChargeRow) => {
                         <Label for="charge-display-name">Display name *</Label>
                         <Input
                             id="charge-display-name"
+                            class="max-lg:h-11"
                             v-model="chargeForm.display_name"
                             autocomplete="off"
                             maxlength="500"
@@ -370,7 +378,7 @@ const toggleCharge = (charge: ChargeRow) => {
                     <Button
                         type="submit"
                         size="sm"
-                        class="justify-self-start"
+                        class="justify-self-start max-lg:h-11"
                         :disabled="chargeForm.processing"
                         >Create charge definition</Button
                     >
@@ -378,8 +386,8 @@ const toggleCharge = (charge: ChargeRow) => {
             </div>
         </section>
 
-        <section class="grid gap-3 md:hidden" aria-label="Charge definitions">
-            <h2 class="text-sm font-semibold">Charge definitions</h2>
+        <section class="grid gap-3 lg:hidden" aria-label="Charge definitions">
+            <h2 class="text-lg font-semibold">Charge definitions</h2>
             <EmptyState
                 v-if="charges.length === 0"
                 title="No charge definitions yet."
@@ -388,7 +396,7 @@ const toggleCharge = (charge: ChargeRow) => {
             <article
                 v-for="charge in charges"
                 :key="charge.publicId"
-                class="grid min-w-0 gap-3 rounded-xl border bg-card p-4"
+                class="grid min-w-0 gap-3 rounded-[14px] border bg-card p-5"
                 data-testid="charge-card"
             >
                 <div class="flex min-w-0 items-start justify-between gap-3">
@@ -456,7 +464,7 @@ const toggleCharge = (charge: ChargeRow) => {
                             v-model="publishForm(charge).priceBook"
                             :label="`Price book for ${charge.displayName}`"
                             :options="bookOptions()"
-                            trigger-class="h-auto min-h-11 py-1.5 data-[size=default]:h-auto text-left whitespace-normal md:min-h-9 *:data-[slot=select-value]:line-clamp-2 *:data-[slot=select-value]:[overflow-wrap:anywhere]"
+                            trigger-class="h-auto min-h-11 py-1.5 data-[size=default]:h-auto text-left whitespace-normal lg:min-h-9 *:data-[slot=select-value]:line-clamp-2 *:data-[slot=select-value]:[overflow-wrap:anywhere]"
                             :content-avoid-collisions="false"
                         />
                     </div>
@@ -517,7 +525,7 @@ const toggleCharge = (charge: ChargeRow) => {
             </article>
         </section>
 
-        <div class="hidden min-w-0 md:block">
+        <div class="hidden min-w-0 lg:block">
             <OperationalTable
                 label="Charge definitions"
                 class="[&_td]:align-top"
@@ -569,7 +577,7 @@ const toggleCharge = (charge: ChargeRow) => {
                                         v-model="publishForm(charge).priceBook"
                                         :label="`Price book for ${charge.displayName}`"
                                         :options="bookOptions()"
-                                        trigger-class="h-auto min-h-11 py-1.5 data-[size=default]:h-auto text-left whitespace-normal md:min-h-9 *:data-[slot=select-value]:line-clamp-2 *:data-[slot=select-value]:[overflow-wrap:anywhere]"
+                                        trigger-class="h-auto min-h-11 py-1.5 data-[size=default]:h-auto text-left whitespace-normal lg:min-h-9 *:data-[slot=select-value]:line-clamp-2 *:data-[slot=select-value]:[overflow-wrap:anywhere]"
                                         :content-avoid-collisions="false"
                                     />
                                 </div>
