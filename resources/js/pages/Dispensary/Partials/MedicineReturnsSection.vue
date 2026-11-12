@@ -46,9 +46,9 @@ for (const field of ['quantity', 'reason', 'note', 'condition'] as const) {
 }
 
 const fieldClass =
-    'mt-1 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40';
+    'mt-1 w-full rounded-[10px] border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40';
 const tileClass =
-    'flex min-h-11 cursor-pointer items-center gap-2 rounded-md border px-3 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand lg:min-h-9';
+    'flex min-h-11 cursor-pointer items-center gap-2 rounded-[10px] border bg-card px-3 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand lg:min-h-9';
 
 const waitingCount = computed(
     () =>
@@ -244,20 +244,20 @@ const onChecked = async (row: ReturnRow, message: string) => {
         <div
             class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1"
         >
-            <h2 id="returns-heading" class="text-base font-semibold">
+            <h2 id="returns-heading" class="text-xl font-semibold">
                 Medicine returns
             </h2>
-            <p class="text-xs text-muted-foreground tabular-nums">
+            <p class="text-[13px] text-muted-foreground tabular-nums">
                 {{ countsLine }}
             </p>
         </div>
-        <p class="-mt-2 text-sm text-muted-foreground">
+        <p class="-mt-2 text-[13px] text-muted-foreground">
             Record medicine the patient brings back. Nothing goes back into
             stock until someone else checks the return.
         </p>
         <p
             role="note"
-            class="rounded-md border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning-strong"
+            class="rounded-[10px] border border-warning/25 bg-warning/10 px-3 py-2 text-sm text-warning-strong"
             data-testid="returns-no-refund"
         >
             <span class="font-semibold"
@@ -275,17 +275,17 @@ const onChecked = async (row: ReturnRow, message: string) => {
                     :id="`line-${line.publicId}`"
                     :aria-labelledby="`return-${line.publicId}-heading`"
                     :data-line="line.publicId"
-                    class="grid gap-4 rounded-lg border bg-card p-4 lg:grid-cols-[minmax(220px,1fr)_minmax(0,2fr)]"
+                    class="grid gap-4 rounded-[14px] border bg-card p-4 lg:grid-cols-[minmax(220px,1fr)_minmax(0,2fr)] lg:p-5"
                 >
                     <div class="grid content-start gap-2">
                         <div>
                             <h3
                                 :id="`return-${line.publicId}-heading`"
-                                class="text-sm font-semibold"
+                                class="text-base font-semibold"
                             >
                                 {{ line.name }}
                             </h3>
-                            <p class="text-xs text-muted-foreground">
+                            <p class="text-[13px] text-muted-foreground">
                                 {{
                                     [line.strength, line.dosageForm, line.code]
                                         .filter(Boolean)
@@ -300,7 +300,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
                             >Controlled</Badge
                         >
                         <dl
-                            class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-0.5 text-xs tabular-nums"
+                            class="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-[13px] tabular-nums"
                         >
                             <dt class="text-muted-foreground">Dispensed</dt>
                             <dd>{{ line.dispensed }} {{ line.unit }}</dd>
@@ -335,7 +335,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
                             type="button"
                             variant="outline"
                             size="sm"
-                            class="w-full sm:w-fit"
+                            class="w-full sm:w-fit lg:h-9"
                             :aria-controls="`return-${line.publicId}-form`"
                             aria-expanded="false"
                             data-action="open-return-form"
@@ -357,7 +357,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
                             v-if="openLine === line.publicId"
                             :id="`return-${line.publicId}-form`"
                             :aria-labelledby="`return-${line.publicId}-form-title`"
-                            class="grid gap-4 rounded-md border bg-background p-4"
+                            class="grid gap-4 rounded-[10px] bg-muted/50 p-4"
                             novalidate
                             data-testid="return-form"
                             :aria-busy="form.processing"
@@ -365,14 +365,14 @@ const onChecked = async (row: ReturnRow, message: string) => {
                         >
                             <p
                                 :id="`return-${line.publicId}-form-title`"
-                                class="text-sm font-semibold"
+                                class="text-[15px] font-semibold"
                             >
                                 Record a return: {{ line.name }}
                             </p>
                             <p
                                 v-if="serverAlert"
                                 role="alert"
-                                class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+                                class="rounded-[10px] border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
                             >
                                 {{ serverAlert }}
                             </p>
@@ -602,18 +602,18 @@ const onChecked = async (row: ReturnRow, message: string) => {
 
                         <div v-if="line.returns.length" class="grid gap-2">
                             <h4
-                                class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
+                                class="text-[13px] font-semibold text-muted-foreground"
                             >
                                 Returns on this line ({{ line.returns.length }})
                             </h4>
-                            <ol class="grid gap-2">
+                            <ol class="divide-y rounded-[10px] border">
                                 <li
                                     v-for="row in line.returns"
                                     :key="row.publicId"
                                     tabindex="-1"
                                     data-return-item
                                     :data-return-id="row.publicId"
-                                    class="grid gap-1 rounded-md border bg-background p-3 text-xs outline-none focus-visible:ring-3 focus-visible:ring-ring/40"
+                                    class="grid gap-1 p-3 text-xs outline-none first:rounded-t-[10px] last:rounded-b-[10px] focus-visible:ring-3 focus-visible:ring-ring/40"
                                 >
                                     <p
                                         class="flex flex-wrap items-center gap-2 text-sm font-medium tabular-nums"

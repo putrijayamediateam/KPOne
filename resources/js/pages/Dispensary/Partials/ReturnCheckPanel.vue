@@ -182,7 +182,7 @@ for (const field of [
 }
 
 const tileClass =
-    'flex min-h-11 cursor-pointer items-start gap-2 rounded-md border px-3 py-2 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 lg:min-h-9';
+    'flex min-h-11 cursor-pointer items-start gap-2 rounded-[10px] border bg-card px-3 py-2 text-sm focus-within:ring-3 focus-within:ring-ring/40 has-[:checked]:border-brand has-[:disabled]:cursor-not-allowed has-[:disabled]:opacity-60 lg:min-h-9';
 // DSP-19 (Daniel): one-line reason tiles centre the radio and the words; outcome tiles keep a top-aligned description.
 const reasonTileClass = tileClass.replace('items-start', 'items-center');
 const amount = computed(() => `${props.row.quantity} ${props.line.unit}`);
@@ -380,14 +380,14 @@ const serverAlert = computed(() => {
 <template>
     <div
         :id="id('panel')"
-        class="mt-2 grid gap-3 rounded-md border bg-card p-3"
+        class="mt-2 grid gap-3 rounded-[10px] bg-muted/50 p-3"
         data-testid="return-check-panel"
     >
-        <p class="text-sm font-semibold">Check this return</p>
+        <p class="text-[15px] font-semibold">Check this return</p>
         <p
             v-if="serverAlert"
             role="alert"
-            class="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
+            class="rounded-[10px] border border-destructive/30 bg-destructive/10 px-3 py-2 text-xs text-destructive"
         >
             {{ serverAlert }}
         </p>
@@ -540,7 +540,7 @@ const serverAlert = computed(() => {
                                     ? `${id(`share-${batch.publicId}-available`)} ${id(`share-${batch.publicId}-error`)}`
                                     : id(`share-${batch.publicId}-available`)
                             "
-                            class="h-9 w-24 rounded-md border border-input bg-card px-3 text-right tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60 aria-invalid:border-destructive max-lg:h-11"
+                            class="h-9 w-24 rounded-[10px] border border-input bg-card px-3 text-right tabular-nums outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40 disabled:cursor-not-allowed disabled:opacity-60 aria-invalid:border-destructive max-lg:h-11"
                             data-field="check-share"
                         />
                         <span class="text-muted-foreground">{{
@@ -662,7 +662,7 @@ const serverAlert = computed(() => {
                             ? `${id('refuse-note')}-help ${id('refuse-note')}-error`
                             : `${id('refuse-note')}-help`
                     "
-                    class="mt-1 w-full rounded-md border border-input bg-card px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
+                    class="mt-1 w-full rounded-[10px] border border-input bg-card px-3 py-2 outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
                     data-field="check-refuse-note"
                 />
                 <span

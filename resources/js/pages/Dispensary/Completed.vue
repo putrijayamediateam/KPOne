@@ -34,6 +34,7 @@ defineProps<{
                     as-child
                     variant="outline"
                     size="sm"
+                    class="lg:h-9"
                     ><a
                         :href="dispensary.labelUrl"
                         target="_blank"
@@ -41,27 +42,40 @@ defineProps<{
                         >Print current labels</a
                     ></Button
                 >
-                <Button as-child variant="outline" size="sm">
+                <Button as-child variant="outline" size="sm" class="lg:h-9">
                     <Link href="/registration">Return to Registration</Link>
                 </Button>
-                <Button v-if="dispensary.billingUrl" as-child size="sm"
+                <Button
+                    v-if="dispensary.billingUrl"
+                    as-child
+                    size="sm"
+                    class="lg:h-9"
                     ><Link :href="dispensary.billingUrl"
                         >Continue to Billing</Link
                     ></Button
                 >
             </template>
         </PageHeader>
-        <p v-if="dispensary.completedAt" class="mt-3 text-sm">
-            Completed {{ dispensary.completedAt }}
-        </p>
-        <p class="mt-1 text-sm text-muted-foreground">
-            This case is read-only. Fulfilment has finished and it cannot be
-            returned to the doctor.
-            <template v-if="returns?.lines.length"
-                >If the patient brings medicine back, record it under Medicine
-                returns.</template
+        <!-- UI-RESTYLE D2 (GUIDE section 19): the status and the read-only note sit in one calm card. Layout only. -->
+        <div
+            class="mt-5 grid gap-1 rounded-[14px] border bg-card p-4"
+            data-testid="completed-summary"
+        >
+            <p
+                v-if="dispensary.completedAt"
+                class="text-[15px] font-semibold tabular-nums"
             >
-        </p>
+                Completed {{ dispensary.completedAt }}
+            </p>
+            <p class="text-[13px] text-muted-foreground">
+                This case is read-only. Fulfilment has finished and it cannot be
+                returned to the doctor.
+                <template v-if="returns?.lines.length"
+                    >If the patient brings medicine back, record it under
+                    Medicine returns.</template
+                >
+            </p>
+        </div>
         <MedicineReturnsSection
             v-if="returns && returns.lines.length"
             :returns="returns"
