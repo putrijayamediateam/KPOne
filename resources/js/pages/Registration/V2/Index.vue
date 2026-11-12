@@ -319,6 +319,7 @@ const filterBadge = computed(
             <V2DisclosureBar
                 v-if="!isQrIntake && attention.length"
                 :title="`${attention.length} needs attention`"
+                tone="warning"
             >
                 <ul class="divide-y border-t">
                     <li
