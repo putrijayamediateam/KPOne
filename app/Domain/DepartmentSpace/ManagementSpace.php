@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Identity\Services\StaffDirectoryService;
 use App\Domain\Organisation\BusinessDetails\DocumentReadinessService;
 use App\Models\User;
+use Carbon\CarbonImmutable;
 use Illuminate\Support\Collection;
 
 /**
@@ -93,7 +94,7 @@ final class ManagementSpace
     /**
      * Inactive staff accounts (first 10 of the directory's own inactive list): short name, role and branch only.
      *
-     * @return list<array{name: string, role: string, branch: string}>|null
+     * @return list<array{name: string, role: string, branch: string, since: string|null}>|null
      */
     public function inactiveStaff(User $actor): ?array
     {
@@ -101,6 +102,7 @@ final class ManagementSpace
             return null;
         }
         $rows = [];
+        $zone = (string) $this->branches->activeBranch($actor)->timezone;
         foreach ($this->staff->search($actor, ['status' => 'inactive'])->items() as $r) {
             $roles = $r['roles'];
             $first = $roles instanceof Collection ? $roles->first() : (is_array($roles) ? ($roles[0] ?? null) : null);
@@ -108,6 +110,7 @@ final class ManagementSpace
                 'name' => SpaceDisplay::shortName((string) $r['name']),
                 'role' => ucfirst(str_replace('_', ' ', is_string($first) ? $first : '')),
                 'branch' => (string) (($r['primaryBranch']['name'] ?? null) ?? 'No current branch'),
+                'since' => ($r['deactivatedAt'] ?? null) === null ? null : CarbonImmutable::parse((string) $r['deactivatedAt'])->setTimezone($zone)->format('j M Y'),
             ];
         }
 
