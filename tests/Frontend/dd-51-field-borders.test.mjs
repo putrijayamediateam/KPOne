@@ -64,6 +64,7 @@ test('DD-51: the dark focus ring is the lighter cobalt and reaches 3:1 on the da
     const ring = dark.match(/--ring:\s*(#[0-9a-f]{6});/i);
     assert.ok(ring, 'dark --ring should be a hex colour');
     assert.equal(ring[1].toLowerCase(), '#6ba6ff');
+
     for (const surface of ['--background', '--card']) {
         const hex = dark.match(
             new RegExp(`${surface}:\\s*(#[0-9a-f]{6});`, 'i'),
@@ -74,6 +75,7 @@ test('DD-51: the dark focus ring is the lighter cobalt and reaches 3:1 on the da
             `dark ring against ${surface} must reach 3:1`,
         );
     }
+
     assert.match(dark, /--brand-strong:\s*#ffa3c0;/i);
 });
 
