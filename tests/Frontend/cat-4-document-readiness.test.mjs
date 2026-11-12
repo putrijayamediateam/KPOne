@@ -72,7 +72,7 @@ test('at most two missing items, then "+N more" with the full list', () => {
         template,
         /\+\{\{\s*hiddenMissing\(row\)\.length\s*\}\}\s*more/,
     );
-    // Daniel: the full list from 768 px only; on a phone the short line plus "Show all N missing".
+    // Daniel: the full list from 1024 px only; on a phone the short line plus "Show all N missing".
     assert.match(
         template,
         /class="hidden text-xs break-words text-muted-foreground lg:block"\s+data-testid="missing-full"/,
@@ -122,7 +122,7 @@ test('no logo is fine, the empty state uses the shared component, and the page w
     );
 });
 
-test('rows stack on a phone and line up from 768 px without widening the page', () => {
+test('rows stack on a phone and line up from 1024 px without widening the page', () => {
     assert.match(
         template,
         /class="grid min-w-0 gap-1 rounded-\[10px\] border p-3 lg:grid-cols-\[minmax\(0,14rem\)_minmax\(0,1fr\)_auto\] lg:items-center lg:gap-3"/,
