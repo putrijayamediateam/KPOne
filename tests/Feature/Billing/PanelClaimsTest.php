@@ -805,6 +805,30 @@ class PanelClaimsTest extends BillingTestCase
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_invoices.exported')->count());
     }
 
+    public function test_a_ready_panel_invoices_page_carries_a_working_download_link(): void
+    {
+        // The page sent downloadUrl as null even when ready, so its Download CSV button was always disabled.
+        [$panelOfficer, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        $params = ['panel' => $allocation->panel_name_snapshot];
+
+        $this->get(route('panel-invoices.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('ready', false)->where('downloadUrl', null));
+
+        $url = null;
+        $this->get(route('panel-invoices.index', $params))->assertOk()
+            ->assertInertia(function (Assert $page) use (&$url): void {
+                $page->where('ready', true)->where('total', 1)->where('downloadUrl', function ($value) use (&$url): bool {
+                    $url = $value;
+
+                    return is_string($value) && str_starts_with($value, route('panel-invoices.download'));
+                });
+            });
+
+        $response = $this->get((string) $url)->assertOk();
+        $this->assertStringContainsString($invoice->invoice_number, $response->streamedContent());
+    }
+
     public function test_panel_invoices_are_limited_to_panel_officer_finance_officer_and_director_and_the_active_branch(): void
     {
         $holders = Role::query()->whereHas('permissions', fn ($q) => $q->where('name', 'panel.invoices.export.branch'))->pluck('name')->sort()->values()->all();

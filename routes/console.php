@@ -3,9 +3,11 @@
 use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\AutoRejectJobApplications;
 use App\Console\Commands\CleanupPublicPatientIntakes;
+use App\Console\Commands\PurgeCompliancePhotos;
 use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
+use App\Console\Commands\PurgeLocationResults;
 use App\Console\Commands\PurgePanelStatements;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -44,6 +46,12 @@ Schedule::command(PurgeJobApplications::class)
     ->withoutOverlapping()
     ->onOneServer();
 
+// HR-16a retention (owner, 2026-11-11): location-check results are deleted after 90 days; the clock presses stay.
+Schedule::command(PurgeLocationResults::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // HR-17b: an application left at New or Phone screening for 3 working days gets one reminder to the hiring mailbox,
 // then is closed as Auto-rejected. Each application's branch-local date decides, so hourly is safe and catches up.
 Schedule::command(AutoRejectJobApplications::class)
@@ -60,5 +68,11 @@ Schedule::command(AgentsDailyRun::class, ['0700'])
 
 Schedule::command(AgentsDailyRun::class, ['1400'])
     ->hourlyAt(10)
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// HR-11c: audit and task photo files are deleted after the clinic's own retention; nothing is deleted until a number is set.
+Schedule::command(PurgeCompliancePhotos::class)
+    ->daily()
     ->withoutOverlapping()
     ->onOneServer();

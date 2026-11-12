@@ -9,6 +9,7 @@ use App\Domain\HR\Attendance\Services\LocationCheckService;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Debug\ExceptionHandler;
 use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Exceptions\Handler;
@@ -194,6 +195,46 @@ class LocationCheckTest extends VisitTestCase
         // A result against a version no longer in force is refused (Suresh, m2).
         $this->turnOn($this->director, ['radius_metres' => 200])->assertSessionHasNoErrors();
         $this->refused('23514', fn () => DB::table('hr_clock_location_checks')->insert([...$check, 'result' => 'unavailable', 'unavailable_reason' => 'failed']));
+    }
+
+    public function test_results_are_purged_after_90_days_and_only_by_the_purge(): void
+    {
+        // Retention (owner, 2026-11-11): a location result is kept 90 days, then deleted by the daily purge. The clock
+        // presses and the consent acknowledgements stay. PostgreSQL checks the 90 days against its own clock, so this
+        // test works in real time: presses 100 and 89 days ago, then the purge now.
+        $real = CarbonImmutable::createFromTimestamp(time(), 'UTC');
+        $this->travelTo($real->subDays(100));
+        $this->turnOn($this->director)->assertSessionHasNoErrors();
+        $ca = $this->actor('ca');
+        $this->clock($ca, 'in', ['clock_position' => self::NEAR, 'location_consent' => true])->assertSessionHasNoErrors();
+        $this->travelTo($real->subDays(100)->addHours(4));
+        $this->clock($ca, 'out', ['location_unavailable' => 'declined'])->assertSessionHasNoErrors();
+        $this->travelTo($real->subDays(89));
+        $this->clock($ca, 'in', ['clock_position' => self::FAR])->assertSessionHasNoErrors();
+        $recent = ClockSession::query()->where('status', 'open')->sole();
+        $this->travelBack();
+
+        $this->artisan('hr-location-checks:purge')->expectsOutputToContain('Deleted 2 location-check results.')->assertSuccessful();
+        $this->assertSame([$recent->id], DB::table('hr_clock_location_checks')->pluck('clock_session_id')->map(fn ($id): int => (int) $id)->all());
+        $this->assertSame(2, ClockSession::query()->count()); // the presses stay
+        $this->assertSame(1, DB::table('hr_location_consents')->count());
+        $this->assertSame([['count' => 2, 'retention_days' => 90]], DB::table('audit_logs')->where('event', 'hr.attendance.location_results_purged')
+            ->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
+        $this->artisan('hr-location-checks:purge')->expectsOutputToContain('Deleted 0 location-check results.')->assertSuccessful();
+        $this->assertSame('', DB::selectOne("SELECT current_setting('kpone.hr_location_purge', true) AS v")->v); // switched off again
+
+        // It runs daily from the scheduler.
+        $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
+            ->filter(fn ($e): bool => str_contains((string) $e->command, 'hr-location-checks:purge'))->pluck('expression')->values()->all());
+
+        // Only the purge deletes, and only rows past 90 days; TRUNCATE stays refused.
+        $this->refused('P0001', fn () => DB::table('hr_clock_location_checks')->delete());
+        $this->refused('P0001', function (): void {
+            DB::statement("SELECT set_config('kpone.hr_location_purge', 'on', true)");
+            DB::table('hr_clock_location_checks')->delete(); // 89 days old
+        });
+        $this->refused('P0001', fn () => DB::statement('TRUNCATE hr_clock_location_checks'));
+        $this->assertSame(1, DB::table('hr_clock_location_checks')->count());
     }
 
     // ---- fixture ----

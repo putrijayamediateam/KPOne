@@ -164,7 +164,15 @@ final class PermissionCatalogue
             'inventory.variances.approve.branch',
             'inventory.supplier_returns.request.branch',
             'inventory.supplier_returns.approve.branch',
+            'inventory.supplier_invoices.record.branch',
+            'inventory.supplier_invoices.approve.branch',
             'inventory.usage.record.branch',
+            'inventory.purchase_requests.create.branch',
+            'inventory.controlled_register.view.branch',
+            'inventory.controlled_register.check.branch',
+            'inventory.recalls.manage.organisation',
+            'inventory.recalls.lift.organisation',
+            'inventory.cost.view.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -484,6 +492,44 @@ final class PermissionCatalogue
         // STK-8 (owner decision 2026-11-05): CA and CA Supervisor record treatment-room usage and waste.
         foreach (['ca', 'ca_supervisor'] as $holder) {
             $roles[$holder][] = 'inventory.usage.record.branch';
+        }
+
+        // STK-13 (owner decision 2026-11-11, "agree all"): only a Director or Finance Officer sees inventory cost.
+        foreach (['director', 'finance_officer'] as $holder) {
+            $roles[$holder][] = 'inventory.cost.view.organisation';
+        }
+
+        // STK-19 (owner decision 2026-11-11, "agree all"): a Finance Officer approves purchase orders as well as the
+        // Director, never one they raised or submitted (ProcurementService and PostgreSQL).
+        $roles['finance_officer'][] = 'inventory.purchase_orders.approve.organisation';
+
+        // STK-22 (owner decisions 2026-11-11, "agree all"): a CA Supervisor or Finance Officer records a supplier
+        // invoice; a Finance Officer or Director, never the recorder, accepts or rejects a mismatch.
+        foreach (['ca_supervisor', 'finance_officer'] as $holder) {
+            $roles[$holder][] = 'inventory.supplier_invoices.record.branch';
+        }
+        foreach (['finance_officer', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.supplier_invoices.approve.branch';
+        }
+
+        // STK-18 (owner decision 2026-11-12, "agree purchase requests"): a CA or CA Supervisor asks for stock with a
+        // purchase request; converting it into a draft order uses the existing purchase order permission.
+        foreach (['ca', 'ca_supervisor'] as $holder) {
+            $roles[$holder][] = 'inventory.purchase_requests.create.branch';
+        }
+
+        // STK-24 (owner decisions 2026-11-11, "agree all"): the controlled-drug register (DRAFT pending pharmacist
+        // review) is viewed and checked by a CA Supervisor, Finance Officer or Director; the checker is a second person.
+        foreach (['ca_supervisor', 'finance_officer', 'director'] as $holder) {
+            $roles[$holder][] = 'inventory.controlled_register.view.branch';
+            $roles[$holder][] = 'inventory.controlled_register.check.branch';
+        }
+
+        // STK-25 (owner programme 2026-11-11): a Director starts a recall across branches. A Director or a Finance
+        // Officer lifts one, never the person who started it (owner decision 2026-11-12, "recall A").
+        $roles['director'][] = 'inventory.recalls.manage.organisation';
+        foreach (['director', 'finance_officer'] as $holder) {
+            $roles[$holder][] = 'inventory.recalls.lift.organisation';
         }
 
         foreach (AgentPermissions::grants() as $permission => $holders) {

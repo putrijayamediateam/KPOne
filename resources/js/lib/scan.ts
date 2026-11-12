@@ -7,17 +7,37 @@ export type ScannedSku = {
     active: boolean;
 };
 
+/** DSP-18: what a GS1 code says about the box; present only when the scanned code was a GS1 element string. */
+export type Gs1Read = {
+    gtin: string;
+    /** Set only when the batch's end was known. */
+    batch: string | null;
+    /** A batch that ran to the end of a code without separators, so it may have swallowed another field: compare only. */
+    batch_unconfirmed: string | null;
+    expiry: string | null;
+    /** Every field was understood and ended cleanly. Not used by the Dispensary; for receiving (STK-26). */
+    complete: boolean;
+};
+
 export type ScanLookup =
-    | { status: 'found'; code: string; sku: ScannedSku }
-    | { status: 'not_found'; code: string }
-    | { status: 'shared'; code: string; skus: string[] };
+    | { status: 'found'; code: string; sku: ScannedSku; gs1?: Gs1Read }
+    | { status: 'not_found'; code: string; gs1?: Gs1Read }
+    | { status: 'shared'; code: string; skus: string[]; gs1?: Gs1Read };
+
+/** DSP-18: the GS separator inside a GS1 code is invisible; show it as a space in messages. */
+export function shownCode(code: string): string {
+    return code.replace(/\u001D/g, ' ').trim();
+}
 
 export type CameraSupport = 'supported' | 'insecure' | 'unsupported';
 
-/** Scanners may add Tab, Enter or other control characters; trim them but never change the code itself. */
+/**
+ * Scanners may add Tab, Enter or other control characters; trim them but never change the code itself. DSP-18: the GS
+ * character (U+001D) is kept, because in a GS1 code it marks where a batch number ends.
+ */
 export function cleanScannedCode(raw: string): string {
     return raw
-        .replace(/[\p{Cc}\p{Cf}]/gu, '')
+        .replace(/(?!\u001D)[\p{Cc}\p{Cf}]/gu, '')
         .trim()
         .slice(0, 100);
 }
@@ -35,7 +55,7 @@ export function scanMessage(
     }
 
     if (result.status === 'not_found') {
-        return `No SKU has the code ${result.code}. Check the code or search by name.`;
+        return `No SKU has the code ${shownCode(result.code)}. Check the code or search by name.`;
     }
 
     if (result.status === 'shared') {
@@ -108,7 +128,7 @@ export function isRepeat(
 /** DSP-11 wording on the Dispensary page, where a scan only checks the box against the case. */
 function dispensaryScanMessage(result: ScanLookup): string {
     if (result.status === 'not_found') {
-        return `No medicine has the code ${result.code}. Check the code, or check the box by eye.`;
+        return `No medicine has the code ${shownCode(result.code)}. Check the code, or check the box by eye.`;
     }
 
     if (result.status === 'shared') {
@@ -125,7 +145,7 @@ function dispensaryScanMessage(result: ScanLookup): string {
 /** DSP-12 wording when scanning to find a medicine to add: it ends by pointing back to the name search. */
 function dispensaryAddScanMessage(result: ScanLookup): string {
     if (result.status === 'not_found') {
-        return `No medicine has the code ${result.code}. Search by name instead.`;
+        return `No medicine has the code ${shownCode(result.code)}. Search by name instead.`;
     }
 
     if (result.status === 'shared') {

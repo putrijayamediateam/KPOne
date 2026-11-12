@@ -28,17 +28,23 @@ final class DisciplinePageService
     {
         $tab = ($query['tab'] ?? null) === 'closed' ? 'closed' : 'open';
         $zone = DisciplineService::zone((int) $actor->organisation_id);
-        $cases = DB::table('hr_discipline_cases')->where('organisation_id', $actor->organisation_id)->orderByDesc('opened_at')->limit(300)->get();
-        $subjects = User::query()->with('roles')->whereIn('id', $cases->pluck('subject_user_id')->filter()->all())->get()->keyBy('id');
-        $workers = Worker::query()->with('user')->whereIn('id', $cases->pluck('worker_id')->all())->get()->keyBy('id');
-        $visible = $cases->filter(fn (\stdClass $c): bool => $this->discipline->refusalFor($actor, $c->subject_user_id === null ? null : $subjects->get($c->subject_user_id)) === null
-            && ($c->subject_user_id === null || $subjects->has($c->subject_user_id)));
+        // Who is visible is worked out per person first, so the counts are exact and the 300-row limit applies to the tab
+        // after that filter, never before it.
+        $subjectIds = DB::table('hr_discipline_cases')->where('organisation_id', $actor->organisation_id)->whereNotNull('subject_user_id')->distinct()->pluck('subject_user_id');
+        $visibleIds = User::query()->with('roles')->whereIn('id', $subjectIds->all())->get()
+            ->filter(fn (User $u): bool => $this->discipline->refusalFor($actor, $u) === null)->pluck('id')->all();
+        $noSubjectVisible = $this->discipline->refusalFor($actor, null) === null;
+        $scope = fn () => DB::table('hr_discipline_cases')->where('organisation_id', $actor->organisation_id)
+            ->where(fn ($q) => $q->whereIn('subject_user_id', $visibleIds)->when($noSubjectVisible, fn ($q) => $q->orWhereNull('subject_user_id')));
+        $counts = $scope()->groupBy('status')->selectRaw('status, count(*) as n')->pluck('n', 'status');
+        $visible = $scope()->where('status', $tab)->orderByDesc('opened_at')->orderByDesc('id')->limit(300)->get();
+        $workers = Worker::query()->with('user')->whereIn('id', $visible->pluck('worker_id')->all())->get()->keyBy('id');
         $entries = DB::table('hr_discipline_events')->whereIn('case_id', $visible->pluck('id')->all())->groupBy('case_id')->selectRaw('case_id, count(*) as n')->pluck('n', 'case_id');
 
         return [
             'tab' => $tab,
-            'counts' => ['open' => $visible->where('status', 'open')->count(), 'closed' => $visible->where('status', 'closed')->count()],
-            'cases' => array_values($visible->where('status', $tab)->map(function (\stdClass $c) use ($workers, $zone, $entries): array {
+            'counts' => ['open' => (int) ($counts['open'] ?? 0), 'closed' => (int) ($counts['closed'] ?? 0)],
+            'cases' => array_values($visible->map(function (\stdClass $c) use ($workers, $zone, $entries): array {
                 $worker = $workers->get($c->worker_id);
 
                 return ['id' => (string) $c->public_id, 'person' => $worker instanceof Worker ? $worker->name() : 'Staff member',
