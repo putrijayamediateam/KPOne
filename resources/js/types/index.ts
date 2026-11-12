@@ -24,7 +24,12 @@ export type BranchContext = {
 export type V2Shell = {
     groups: Array<{
         title: string;
-        items: Array<{ key: string; title: string; href: string }>;
+        items: Array<{
+            key: string;
+            title: string;
+            href: string;
+            links: Array<{ title: string; href: string }>;
+        }>;
     }>;
     more: Array<{
         title: string;

@@ -18,7 +18,9 @@ const matches = (href: string) =>
 // rows can share an href (Checkout settings and Claims message template); only the first one is marked.
 const hereHref = computed(() => {
     const hrefs = [
-        ...props.shell.groups.flatMap((g) => g.items.map((i) => i.href)),
+        ...props.shell.groups.flatMap((g) =>
+            g.items.flatMap((i) => [i.href, ...i.links.map((l) => l.href)]),
+        ),
         ...props.shell.more.flatMap((m) => m.links.map((l) => l.href)),
     ].filter(matches);
 
@@ -27,7 +29,10 @@ const hereHref = computed(() => {
 const firstTitleFor = computed(() => {
     const seen = new Map<string, string>();
 
-    for (const link of props.shell.more.flatMap((m) => m.links)) {
+    for (const link of [
+        ...props.shell.groups.flatMap((g) => g.items.flatMap((i) => i.links)),
+        ...props.shell.more.flatMap((m) => m.links),
+    ]) {
         if (!seen.has(link.href)) {
             seen.set(link.href, link.title);
         }
@@ -50,21 +55,38 @@ const currentKey = computed(() => props.shell.current?.key ?? null);
             <p class="px-3 pb-1 text-xs font-medium text-sidebar-foreground/70">
                 {{ group.title }}
             </p>
-            <Link
-                v-for="item in group.items"
-                :key="item.key"
-                :href="item.href"
-                class="flex min-h-9 items-center rounded-lg px-3 text-sidebar-foreground hover:bg-sidebar-accent max-[719.98px]:min-h-11"
-                :class="{
-                    'bg-sidebar-accent font-medium text-sidebar-primary':
-                        item.key === currentKey || isHere(item.href),
-                }"
-                :aria-current="isHere(item.href) ? 'page' : undefined"
-                data-test="v2-shell-space"
-                @click="emit('navigate')"
-            >
-                {{ item.title }}
-            </Link>
+            <template v-for="item in group.items" :key="item.key">
+                <Link
+                    :href="item.href"
+                    class="flex min-h-9 items-center rounded-lg px-3 text-sidebar-foreground hover:bg-sidebar-accent max-lg:min-h-11"
+                    :class="{
+                        'bg-sidebar-accent font-medium text-sidebar-primary':
+                            isHere(item.href),
+                        'font-medium text-sidebar-primary':
+                            item.key === currentKey && !isHere(item.href),
+                    }"
+                    :aria-current="isHere(item.href) ? 'page' : undefined"
+                    data-test="v2-shell-space"
+                    @click="emit('navigate')"
+                >
+                    {{ item.title }}
+                </Link>
+                <Link
+                    v-for="link in item.links"
+                    :key="`${link.href}|${link.title}`"
+                    :href="link.href"
+                    class="ml-3 flex min-h-9 items-center rounded-lg px-3 text-sidebar-foreground/90 hover:bg-sidebar-accent max-lg:min-h-11"
+                    :class="{
+                        'bg-sidebar-accent font-medium text-sidebar-primary':
+                            isHereLink(link),
+                    }"
+                    :aria-current="isHereLink(link) ? 'page' : undefined"
+                    data-test="v2-shell-space-page"
+                    @click="emit('navigate')"
+                >
+                    {{ link.title }}
+                </Link>
+            </template>
         </div>
         <div v-if="shell.more.length > 0" data-test="v2-shell-more">
             <p class="px-3 pb-1 text-xs font-medium text-sidebar-foreground/70">
@@ -77,7 +99,7 @@ const currentKey = computed(() => props.shell.current?.key ?? null);
                 :open="holdsHere(section.links)"
             >
                 <summary
-                    class="flex min-h-9 cursor-pointer list-none items-center justify-between rounded-lg px-3 text-sidebar-foreground hover:bg-sidebar-accent max-[719.98px]:min-h-11"
+                    class="flex min-h-9 cursor-pointer list-none items-center justify-between rounded-lg px-3 text-sidebar-foreground hover:bg-sidebar-accent max-lg:min-h-11"
                 >
                     {{ section.title }}
                     <span
@@ -90,7 +112,7 @@ const currentKey = computed(() => props.shell.current?.key ?? null);
                     v-for="link in section.links"
                     :key="`${link.href}|${link.title}`"
                     :href="link.href"
-                    class="ml-3 flex min-h-9 items-center rounded-lg px-3 text-sidebar-foreground/90 hover:bg-sidebar-accent max-[719.98px]:min-h-11"
+                    class="ml-3 flex min-h-9 items-center rounded-lg px-3 text-sidebar-foreground/90 hover:bg-sidebar-accent max-lg:min-h-11"
                     :class="{
                         'bg-sidebar-accent font-medium text-sidebar-primary':
                             isHereLink(link),

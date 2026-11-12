@@ -25,11 +25,14 @@ type Entry = { title: string; group: string; href: string };
 
 const entries = computed<Entry[]>(() => [
     ...props.shell.groups.flatMap((group) =>
-        group.items.map((item) => ({
-            title: item.title,
-            group: group.title,
-            href: item.href,
-        })),
+        group.items.flatMap((item) => [
+            { title: item.title, group: group.title, href: item.href },
+            ...item.links.map((link) => ({
+                title: link.title,
+                group: item.title,
+                href: link.href,
+            })),
+        ]),
     ),
     ...props.shell.more.flatMap((section) =>
         section.links.map((link) => ({

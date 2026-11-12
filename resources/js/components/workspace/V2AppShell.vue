@@ -26,7 +26,7 @@ import type { V2Shell } from '@/types';
 
 /**
  * UX-17: the Version 2 frame around a working page (GUIDE sections 18 and 19, Daniel's frame rules): the spaces'
- * grouped sidebar on the left (a full-height sheet below 720 px, opened from a menu button), and a top bar with
+ * grouped sidebar on the left (a full-height sheet below 1024 px, opened from a menu button; Daniel, 2026-11-12), and a top bar with
  * "Search or jump to…", the branch switcher, "Back to Classic" and the account button. A small crumb above the page
  * links to the space the page belongs to. Shown only when "Try the new layout" is on; Classic never renders it.
  */
@@ -61,7 +61,7 @@ const crumb = computed(() => props.shell.current);
     <div class="flex min-h-screen w-full bg-background" data-test="v2-shell">
         <div
             v-if="!focusMode"
-            class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-4 min-[720px]:flex"
+            class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-4 lg:flex"
             data-test="v2-shell-sidebar"
         >
             <Link
@@ -87,6 +87,16 @@ const crumb = computed(() => props.shell.current);
                     >
                 </SheetHeader>
                 <V2ShellNav :shell="shell" @navigate="sheetOpen = false" />
+                <div class="mt-auto border-t border-sidebar-border pt-3">
+                    <Button
+                        variant="outline"
+                        class="h-11 w-full"
+                        data-test="v2-sheet-back-to-classic"
+                        @click="backToClassic"
+                    >
+                        Back to Classic layout
+                    </Button>
+                </div>
             </SheetContent>
         </Sheet>
 
@@ -99,7 +109,7 @@ const crumb = computed(() => props.shell.current);
                 <Button
                     variant="ghost"
                     size="icon"
-                    class="size-11 min-[720px]:hidden"
+                    class="size-11 lg:hidden"
                     aria-label="Open menu"
                     @click="sheetOpen = true"
                 >
@@ -120,15 +130,15 @@ const crumb = computed(() => props.shell.current);
                 </button>
                 <div class="ml-auto flex shrink-0 items-center gap-2">
                     <WorkspaceBranchSwitcher />
+                    <!-- Below 640 px the way back lives in the menu sheet's footer and the account menu (Daniel). -->
                     <Button
                         variant="outline"
                         size="sm"
-                        class="max-sm:h-11"
+                        class="max-sm:hidden"
                         data-test="v2-back-to-classic"
                         @click="backToClassic"
                     >
-                        <span class="max-sm:hidden">Back to Classic</span>
-                        <span class="sm:hidden">Classic</span>
+                        Back to Classic
                     </Button>
                     <DropdownMenu>
                         <DropdownMenuTrigger as-child>

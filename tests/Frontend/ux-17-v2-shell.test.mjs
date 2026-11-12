@@ -62,13 +62,13 @@ test('UX-17: the shell never sets data-ui or touches the gate files', () => {
     }
 });
 
-test('UX-17: sidebar below 720 px is a sheet from a menu button; focus mode hides the chrome', () => {
+test('UX-17: sidebar below 1024 px is a sheet from a menu button; focus mode hides the chrome', () => {
     const shell = read('resources/js/components/workspace/V2AppShell.vue');
 
-    assert.match(shell, /hidden h-screen w-60[^"]*min-\[720px\]:flex/);
+    assert.match(shell, /hidden h-screen w-60[^"]*lg:flex/);
     assert.match(shell, /<Sheet v-model:open="sheetOpen">/);
     assert.match(shell, /<SheetContent\s+side="left"/);
-    assert.match(shell, /min-\[720px\]:hidden"\s+aria-label="Open menu"/);
+    assert.match(shell, /lg:hidden"\s+aria-label="Open menu"/);
     assert.match(
         shell,
         /<div\s+v-if="!focusMode"\s+class="sticky top-0 hidden h-screen/,
@@ -88,8 +88,14 @@ test('UX-17: Back to Classic uses the existing switch endpoint with the lock ver
         /router\.put\( '\/spaces\/preference', \{ enabled: false, lock_version: page\.props\.workspace\?\.spaces\?\.lockVersion \?\? 0, \}, \{ onError:/,
     );
     assert.match(shell, /data-test="v2-back-to-classic"/);
-    assert.match(shell, />Back to Classic</);
-    assert.match(shell, /<span class="sm:hidden">Classic<\/span>/);
+    assert.match(
+        shell,
+        /class="max-sm:hidden"\s+data-test="v2-back-to-classic"/,
+    );
+    assert.match(
+        shell,
+        /data-test="v2-sheet-back-to-classic"[\s\S]*?Back to Classic layout/,
+    );
 });
 
 test('UX-17: the crumb comes only from the server and every link comes from workspace.shell', () => {

@@ -20,65 +20,107 @@ final class V2ShellNavigation
     ];
 
     /**
-     * Which space a working page belongs to, by its first path segment, for the small crumb above the page title.
-     * A page not listed here shows no crumb; it is still reachable from "More".
+     * Which space a page belongs to, by its first path segment (GUIDE section 18; Daniel, 2026-11-12). It drives the
+     * crumb above the page title and where a Clinic management page is listed: under its space when the person can
+     * enter that space, otherwise under "More". A page not listed here belongs to no space and stays under "More".
      */
     public const SPACE_FOR_PATH = [
         'registration' => 'front_desk',
+        'registration-review' => 'front_desk',
         'patients' => 'front_desk',
-        'dispensary' => 'pharmacy',
         'queue' => 'consultation',
         'encounters' => 'consultation',
+        'dispensary' => 'pharmacy',
         'billing' => 'billing',
-        'cash-closings' => 'billing',
+        'financial-work' => 'billing',
         'pay-later-collections' => 'billing',
+        'payment-reconciliations' => 'billing',
+        'cash-closings' => 'billing',
         'panel-claims' => 'panel',
         'panel-invoices' => 'panel',
         'panel-remittances' => 'panel',
+        'panel-payment-corrections' => 'panel',
+        'panel-responsibility' => 'panel',
         'inventory' => 'stock',
+        'medicines' => 'stock',
+        'clinical-services' => 'stock',
+        'pricing' => 'stock',
+        'inventory-services-settings' => 'stock',
         'hr' => 'hr',
         'business-details' => 'management',
+        'registration-settings' => 'management',
+        'consultation-settings' => 'management',
+        'checkout-settings' => 'management',
+        'payment-methods' => 'management',
+        'billing-approval-limits' => 'management',
+        'public-checkin-links' => 'management',
+        'staff' => 'management',
+        'branches' => 'management',
+        'access-control' => 'management',
+        'audit-logs' => 'management',
     ];
 
     public function __construct(private DepartmentSpaceNavigation $spaces, private ClinicManagementNavigation $hub) {}
 
     /**
      * @return array{
-     *     groups: list<array{title: string, items: list<array{key: string, title: string, href: string}>}>,
+     *     groups: list<array{title: string, items: list<array{key: string, title: string, href: string, links: list<array{title: string, href: string}>}>}>,
      *     more: list<array{title: string, links: list<array{title: string, href: string}>}>,
      *     current: array{key: string, title: string, href: string}|null
      * }
      */
     public function for(User $actor, string $path): array
     {
+        /** @var array<string, array{key: string, title: string, href: string, links: list<array{title: string, href: string}>}> $spaces */
         $spaces = [];
         foreach ($this->spaces->spaces($actor) as $space) {
-            $spaces[$space['key']] = ['key' => $space['key'], 'title' => $space['title'], 'href' => route('spaces.show', ['space' => $space['key']], absolute: false)];
+            $spaces[$space['key']] = ['key' => $space['key'], 'title' => $space['title'], 'href' => route('spaces.show', ['space' => $space['key']], absolute: false), 'links' => []];
+        }
+
+        // A Clinic management page goes under its space when the person can enter that space, otherwise under "More".
+        $more = [];
+        foreach ($this->hub->groups($actor) as $group) {
+            $left = [];
+            foreach ($group['links'] as $link) {
+                $row = ['title' => $link['title'], 'href' => $link['href']];
+                $space = self::spaceFor($link['href']);
+                if ($space !== null && isset($spaces[$space])) {
+                    $spaces[$space]['links'][] = $row;
+                } else {
+                    $left[] = $row;
+                }
+            }
+            if ($left !== []) {
+                $more[] = ['title' => $group['title'], 'links' => $left];
+            }
         }
 
         $groups = [];
         foreach (self::GROUPS as [$title, $keys]) {
-            $items = array_values(array_filter(array_map(fn (string $key) => $spaces[$key] ?? null, $keys)));
+            $items = [];
+            foreach ($keys as $key) {
+                if (isset($spaces[$key])) {
+                    $items[] = $spaces[$key];
+                }
+            }
             if ($items !== []) {
                 $groups[] = ['title' => $title, 'items' => $items];
             }
         }
 
-        $more = [];
-        foreach ($this->hub->groups($actor) as $group) {
-            $more[] = [
-                'title' => $group['title'],
-                'links' => array_map(fn (array $link) => ['title' => $link['title'], 'href' => $link['href']], $group['links']),
-            ];
-        }
+        $currentKey = self::spaceFor($path);
+        $current = $currentKey !== null && isset($spaces[$currentKey])
+            ? ['key' => $spaces[$currentKey]['key'], 'title' => $spaces[$currentKey]['title'], 'href' => $spaces[$currentKey]['href']]
+            : null;
 
-        $segment = explode('/', trim($path, '/'))[0];
-        $currentKey = self::SPACE_FOR_PATH[$segment] ?? null;
+        return ['groups' => $groups, 'more' => $more, 'current' => $current];
+    }
 
-        return [
-            'groups' => $groups,
-            'more' => $more,
-            'current' => $currentKey !== null ? ($spaces[$currentKey] ?? null) : null,
-        ];
+    /** The space a path or href belongs to, by its first segment; null for a page that belongs to no space. */
+    public static function spaceFor(string $pathOrHref): ?string
+    {
+        $path = (string) parse_url($pathOrHref, PHP_URL_PATH);
+
+        return self::SPACE_FOR_PATH[explode('/', trim($path, '/'))[0]] ?? null;
     }
 }

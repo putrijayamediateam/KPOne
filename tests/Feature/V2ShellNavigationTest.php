@@ -12,6 +12,28 @@ use Tests\Feature\Visit\VisitTestCase;
 /** UX-17: the Version 2 sidebar shell. Sent only when "Try the new layout" is on, and only with pages the person can open. */
 class V2ShellNavigationTest extends VisitTestCase
 {
+    /** @return array{groups: list<array{title: string, items: list<array{key: string, title: string, href: string, links: list<array{title: string, href: string}>}>}>, more: list<array{title: string, links: list<array{title: string, href: string}>}>, current: array{key: string, title: string, href: string}|null} */
+    private function shellFor(User $user): array
+    {
+        return app(V2ShellNavigation::class)->for($user, 'registration/create');
+    }
+
+    /**
+     * @param  array{more: list<array{title: string, links: list<array{title: string, href: string}>}>}  $shell
+     * @return list<string>
+     */
+    private function moreHrefs(array $shell): array
+    {
+        $hrefs = [];
+        foreach ($shell['more'] as $section) {
+            foreach ($section['links'] as $link) {
+                $hrefs[] = $link['href'];
+            }
+        }
+
+        return $hrefs;
+    }
+
     private function turnOn(User $user): void
     {
         DB::table('user_space_preferences')->insert(['user_id' => $user->id, 'enabled' => true, 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
@@ -33,15 +55,43 @@ class V2ShellNavigationTest extends VisitTestCase
         $this->selectBranch($ca);
         $this->turnOn($ca);
 
-        $more = collect(app(ClinicManagementNavigation::class)->groups($ca))
-            ->map(fn (array $g) => ['title' => $g['title'], 'links' => array_map(fn (array $l) => ['title' => $l['title'], 'href' => $l['href']], $g['links'])])
-            ->all();
-
         $this->get('/registration/create')->assertOk()->assertInertia(fn (Assert $p) => $p
             ->where('workspace.shell.groups.0.title', 'Clinic')
-            ->where('workspace.shell.groups.0.items.0', ['key' => 'front_desk', 'title' => 'Front desk', 'href' => '/spaces/front_desk'])
-            ->where('workspace.shell.current', ['key' => 'front_desk', 'title' => 'Front desk', 'href' => '/spaces/front_desk'])
-            ->where('workspace.shell.more', $more));
+            ->where('workspace.shell.groups.0.items.0.key', 'front_desk')
+            ->where('workspace.shell.groups.0.items.0.href', '/spaces/front_desk')
+            ->where('workspace.shell.current', ['key' => 'front_desk', 'title' => 'Front desk', 'href' => '/spaces/front_desk']));
+
+        $shell = $this->shellFor($ca);
+        $frontDesk = array_column($shell['groups'][0]['items'][0]['links'], 'href');
+        // Front desk pages sit under Front desk, not under More (Daniel, 2026-11-12).
+        $this->assertContains('/registration', $frontDesk);
+        $this->assertContains('/registration-review', $frontDesk);
+        $this->assertNotContains('/registration', $this->moreHrefs($shell));
+        // A CA cannot enter Consultation, so the Consultation queue stays under More rather than vanishing.
+        $this->assertContains('/queue', $this->moreHrefs($shell));
+        // Nothing is lost or added: the sidebar holds exactly the person's Clinic management links.
+        $hub = [];
+        foreach (app(ClinicManagementNavigation::class)->groups($ca) as $group) {
+            foreach ($group['links'] as $link) {
+                $hub[] = $link['href'].'|'.$link['title'];
+            }
+        }
+        $sidebar = [];
+        foreach ($shell['groups'] as $group) {
+            foreach ($group['items'] as $item) {
+                foreach ($item['links'] as $link) {
+                    $sidebar[] = $link['href'].'|'.$link['title'];
+                }
+            }
+        }
+        foreach ($shell['more'] as $section) {
+            foreach ($section['links'] as $link) {
+                $sidebar[] = $link['href'].'|'.$link['title'];
+            }
+        }
+        sort($hub);
+        sort($sidebar);
+        $this->assertSame($hub, $sidebar);
 
         // A CA has no Stock or Management space, so neither appears anywhere in the sidebar groups.
         $this->get('/registration/create')->assertInertia(function (Assert $p): void {
