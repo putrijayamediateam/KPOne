@@ -35,6 +35,21 @@ const toggle = (role: string, on: boolean) => {
         ? [...new Set([...form.roles, role])]
         : form.roles.filter((r) => r !== role);
 };
+// Daniel (GUIDE §19): cobalt only while this form has unsaved changes, or before anything is saved.
+const unsaved = computed(() => {
+    const c = props.card.current;
+
+    return (
+        !c ||
+        form.normal_multiplier !== c.normalMultiplier ||
+        form.rest_day_multiplier !== c.restDayMultiplier ||
+        form.public_holiday_multiplier !== c.publicHolidayMultiplier ||
+        form.nearing_hours !== String(c.nearingHours) ||
+        form.limit_hours !== String(c.limitHours) ||
+        [...form.roles].sort().join() !== [...c.roles].sort().join() ||
+        form.effective_from !== props.today
+    );
+});
 const save = () => {
     form.processing = true;
     router.put(
@@ -194,7 +209,7 @@ const save = () => {
             <div>
                 <Button
                     type="submit"
-                    variant="outline"
+                    :variant="unsaved ? 'default' : 'outline'"
                     class="min-h-11 sm:min-h-9"
                     :disabled="form.processing"
                 >

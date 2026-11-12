@@ -58,6 +58,19 @@ const blockedBy = computed(() =>
     onAt.value && String(onAt.value.id) !== form.branchId ? onAt.value : null,
 );
 
+// Daniel (GUIDE §19): cobalt only while this form differs from the branch's saved check.
+const unsaved = computed(() => {
+    const b = branch.value;
+
+    return (
+        !b?.enabled ||
+        form.centreLat !== (b.centreLat ?? '') ||
+        form.centreLng !== (b.centreLng ?? '') ||
+        form.radius !== String(b.radiusMetres ?? '') ||
+        form.consentEn !== (b.consentEn ?? '') ||
+        form.consentBm !== (b.consentBm ?? '')
+    );
+});
 const put = (enabled: boolean) => {
     form.processing = true;
     router.put(
@@ -236,7 +249,7 @@ const put = (enabled: boolean) => {
                 </Button>
                 <Button
                     type="submit"
-                    variant="outline"
+                    :variant="unsaved ? 'default' : 'outline'"
                     class="max-lg:min-h-11"
                     :disabled="form.processing || !!blockedBy"
                     data-test="location-check-save"

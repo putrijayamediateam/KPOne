@@ -640,6 +640,19 @@ const settingsForm = reactive({
     processing: false,
     key: crypto.randomUUID(),
 });
+// Daniel (GUIDE §19): a Save is cobalt only while its own form has unsaved changes, or before anything is saved.
+const settingsUnsaved = computed(() => {
+    const current = props.attendance.settings?.current;
+
+    return (
+        !current ||
+        settingsForm.grace_minutes !== String(current.graceMinutes) ||
+        settingsForm.forgotten_window_minutes !==
+            String(current.forgottenWindowMinutes) ||
+        settingsForm.correction_days !== String(current.correctionDays) ||
+        settingsForm.effective_from !== (props.attendance.settings?.today ?? '')
+    );
+});
 const saveSettings = () => {
     settingsForm.processing = true;
     router.put(
@@ -1653,7 +1666,7 @@ const correctionStatusTone = (
                 <div>
                     <Button
                         type="submit"
-                        variant="outline"
+                        :variant="settingsUnsaved ? 'default' : 'outline'"
                         class="min-h-11 sm:min-h-9"
                         :disabled="settingsForm.processing"
                     >
