@@ -433,6 +433,8 @@ test('V2 board page: uses the V2 blocks and the Classic props, tabs and filters;
         assert.ok(page.includes(shared), shared);
     }
 
+    // The rows go in V2Table's named body slot.
+    assert.match(page, /<template #body>/);
     assert.match(page, /router\.visit\(visit\.historyUrl\)/);
     assert.match(page, /Needs attention/);
     assert.match(page, /From the visits on this screen only/);

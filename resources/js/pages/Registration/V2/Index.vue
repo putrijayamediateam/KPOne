@@ -322,21 +322,27 @@ onMounted(() => {
                         @reset="board.resetFilters"
                     >
                         <template #filters>
-                            <OperationalSelect
-                                v-model="form.doctor_id"
-                                label="Doctor"
-                                :options="doctorOptions"
-                            />
-                            <OperationalSelect
-                                v-model="form.coverage_type"
-                                label="Coverage"
-                                :options="coverageOptions"
-                            />
-                            <OperationalSelect
-                                v-model="form.priority"
-                                label="Urgency"
-                                :options="urgencyOptions"
-                            />
+                            <div class="w-full sm:w-44">
+                                <OperationalSelect
+                                    v-model="form.doctor_id"
+                                    label="Doctor"
+                                    :options="doctorOptions"
+                                />
+                            </div>
+                            <div class="w-full sm:w-44">
+                                <OperationalSelect
+                                    v-model="form.coverage_type"
+                                    label="Coverage"
+                                    :options="coverageOptions"
+                                />
+                            </div>
+                            <div class="w-full sm:w-44">
+                                <OperationalSelect
+                                    v-model="form.priority"
+                                    label="Urgency"
+                                    :options="urgencyOptions"
+                                />
+                            </div>
                         </template>
                         <template #primary>
                             <button
@@ -406,130 +412,142 @@ onMounted(() => {
                             <th scope="col" class="text-right">Actions</th>
                         </tr>
                     </template>
-                    <tr
-                        v-for="item in rowsWithMenu"
-                        :key="item.visit.visitNumber"
-                        :class="item.visit.historyUrl ? 'cursor-pointer' : ''"
-                        @click="rowClick($event, item.visit)"
-                    >
-                        <td data-label="Patient" data-primary>
-                            <span class="block font-medium">{{
-                                item.visit.patientName
-                            }}</span>
-                            <span class="block text-xs text-muted-foreground">{{
-                                item.visit.patientNumber
-                            }}</span>
-                        </td>
-                        <td data-label="Queue">
-                            {{ item.visit.queueNumber ?? '—' }}
-                        </td>
-                        <td data-label="Arrived">
-                            {{
-                                formatDate(
-                                    item.visit.registeredAtDate,
-                                    options.branch.timezone,
-                                )
-                            }}
-                            <span class="text-muted-foreground">{{
-                                compactTime(item.visit.registeredAt)
-                            }}</span>
-                        </td>
-                        <td data-label="Doctor and notes">
-                            <span class="block">{{
-                                item.visit.doctorName ?? 'Unassigned'
-                            }}</span>
-                            <span class="block text-xs text-muted-foreground">{{
-                                item.visit.visitReasonExcerpt ??
-                                'No reason recorded'
-                            }}</span>
-                        </td>
-                        <td data-label="Payment">
-                            <span class="block">{{
-                                item.visit.coverageLabel
-                            }}</span>
-                            <span
-                                v-if="item.visit.panelNote"
-                                class="block max-w-56 truncate text-xs text-muted-foreground"
-                                :title="item.visit.panelNote"
-                                >{{ item.visit.panelNote }}</span
-                            >
-                        </td>
-                        <td data-label="Duration">
-                            <WaitRing
-                                v-if="item.minutes !== null"
-                                :minutes="item.minutes"
-                            />
-                            <template v-else>{{
-                                durationText(item.visit)
-                            }}</template>
-                        </td>
-                        <td data-label="Status">
-                            <div class="flex flex-wrap items-center gap-1.5">
-                                <V2Chip
-                                    :tone="item.status.tone"
-                                    :label="item.status.label"
-                                />
-                                <V2Chip
-                                    v-if="item.visit.priority === 'urgent'"
-                                    tone="danger"
-                                    label="Urgent"
-                                />
-                                <V2Chip
-                                    v-if="item.visit.returnedFromDispensary"
-                                    tone="neutral"
-                                    label="Returned"
-                                />
-                                <span
-                                    v-if="item.visit.completedAt"
-                                    class="text-xs text-muted-foreground"
-                                    >{{ item.visit.completedAt }}</span
-                                >
-                                <V2Chip
-                                    v-if="
-                                        item.visit.callHold?.active ||
-                                        item.visit.callHold?.overridden
-                                    "
-                                    tone="warning"
-                                    :label="`${
-                                        item.visit.callHold.active
-                                            ? 'Not ready to call'
-                                            : 'Overridden by doctor'
-                                    }: ${item.visit.callHold.reason}`"
-                                    data-testid="call-readiness-badge"
-                                />
-                                <CallReadinessActions
-                                    :row="item.legacy"
-                                    :branch-id="options.branch.id"
-                                    from="registration"
-                                    @changed="
-                                        board.refreshAppliedBoard(
-                                            (run) => void nextTick(run),
-                                        )
-                                    "
-                                />
-                            </div>
-                        </td>
-                        <td
-                            data-label="Actions"
-                            data-actions
-                            class="text-right"
+                    <template #body>
+                        <tr
+                            v-for="item in rowsWithMenu"
+                            :key="item.visit.visitNumber"
+                            :class="
+                                item.visit.historyUrl ? 'cursor-pointer' : ''
+                            "
+                            @click="rowClick($event, item.visit)"
                         >
-                            <div class="flex items-center justify-end gap-1">
-                                <WhatsAppLink
-                                    :can-whatsapp="item.visit.canWhatsapp"
-                                    :route-key="item.visit.visitNumber"
-                                    context="visit"
-                                    compact
+                            <td data-label="Patient" data-primary>
+                                <span class="block font-medium">{{
+                                    item.visit.patientName
+                                }}</span>
+                                <span
+                                    class="block text-xs text-muted-foreground"
+                                    >{{ item.visit.patientNumber }}</span
+                                >
+                            </td>
+                            <td data-label="Queue">
+                                {{ item.visit.queueNumber ?? '—' }}
+                            </td>
+                            <td data-label="Arrived">
+                                {{
+                                    formatDate(
+                                        item.visit.registeredAtDate,
+                                        options.branch.timezone,
+                                    )
+                                }}
+                                <span class="text-muted-foreground">{{
+                                    compactTime(item.visit.registeredAt)
+                                }}</span>
+                            </td>
+                            <td data-label="Doctor and notes">
+                                <span class="block">{{
+                                    item.visit.doctorName ?? 'Unassigned'
+                                }}</span>
+                                <span
+                                    class="block text-xs text-muted-foreground"
+                                    >{{
+                                        item.visit.visitReasonExcerpt ??
+                                        'No reason recorded'
+                                    }}</span
+                                >
+                            </td>
+                            <td data-label="Payment">
+                                <span class="block">{{
+                                    item.visit.coverageLabel
+                                }}</span>
+                                <span
+                                    v-if="item.visit.panelNote"
+                                    class="block max-w-56 truncate text-xs text-muted-foreground"
+                                    :title="item.visit.panelNote"
+                                    >{{ item.visit.panelNote }}</span
+                                >
+                            </td>
+                            <td data-label="Duration">
+                                <WaitRing
+                                    v-if="item.minutes !== null"
+                                    :minutes="item.minutes"
                                 />
-                                <V2RowMenu
-                                    :label="`Actions for ${item.visit.patientName}`"
-                                    :groups="item.menu.groups"
-                                    show-label
-                                    @select="selectItem(item.visit, $event)"
-                                />
-                            </div>
-                        </td>
-                    </tr>
+                                <template v-else>{{
+                                    durationText(item.visit)
+                                }}</template>
+                            </td>
+                            <td data-label="Status">
+                                <div
+                                    class="flex flex-wrap items-center gap-1.5"
+                                >
+                                    <V2Chip
+                                        :tone="item.status.tone"
+                                        :label="item.status.label"
+                                    />
+                                    <V2Chip
+                                        v-if="item.visit.priority === 'urgent'"
+                                        tone="danger"
+                                        label="Urgent"
+                                    />
+                                    <V2Chip
+                                        v-if="item.visit.returnedFromDispensary"
+                                        tone="neutral"
+                                        label="Returned"
+                                    />
+                                    <span
+                                        v-if="item.visit.completedAt"
+                                        class="text-xs text-muted-foreground"
+                                        >{{ item.visit.completedAt }}</span
+                                    >
+                                    <V2Chip
+                                        v-if="
+                                            item.visit.callHold?.active ||
+                                            item.visit.callHold?.overridden
+                                        "
+                                        tone="warning"
+                                        :label="`${
+                                            item.visit.callHold.active
+                                                ? 'Not ready to call'
+                                                : 'Overridden by doctor'
+                                        }: ${item.visit.callHold.reason}`"
+                                        data-testid="call-readiness-badge"
+                                    />
+                                    <CallReadinessActions
+                                        :row="item.legacy"
+                                        :branch-id="options.branch.id"
+                                        from="registration"
+                                        @changed="
+                                            board.refreshAppliedBoard(
+                                                (run) => void nextTick(run),
+                                            )
+                                        "
+                                    />
+                                </div>
+                            </td>
+                            <td
+                                data-label="Actions"
+                                data-actions
+                                class="text-right"
+                            >
+                                <div
+                                    class="flex items-center justify-end gap-1"
+                                >
+                                    <WhatsAppLink
+                                        :can-whatsapp="item.visit.canWhatsapp"
+                                        :route-key="item.visit.visitNumber"
+                                        context="visit"
+                                        compact
+                                    />
+                                    <V2RowMenu
+                                        :label="`Actions for ${item.visit.patientName}`"
+                                        :groups="item.menu.groups"
+                                        show-label
+                                        @select="selectItem(item.visit, $event)"
+                                    />
+                                </div>
+                            </td>
+                        </tr>
+                    </template>
                 </V2Table>
 
                 <V2Pager
