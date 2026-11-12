@@ -1,11 +1,12 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Plus, Search, UserRoundSearch } from '@lucide/vue';
+import { Plus, Search } from '@lucide/vue';
 import { reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import MergedFromNote from '@/components/patient/MergedFromNote.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
 
 defineOptions({
@@ -99,37 +100,29 @@ const identifierLabel = (result: Result) =>
 <template>
     <Head title="Patient directory" />
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
-        <div
-            class="flex flex-col justify-between gap-4 md:flex-row md:items-start"
+        <PageHeader
+            title="Patient directory"
+            description="Find an organisation-level Patient Master record."
         >
-            <div class="flex items-start gap-3">
-                <div class="rounded-xl bg-brand/10 p-2.5 text-brand-strong">
-                    <UserRoundSearch class="size-5" />
-                </div>
-                <div>
-                    <h1 class="text-2xl font-semibold tracking-tight">
-                        Patient directory
-                    </h1>
-                    <p class="text-sm text-muted-foreground">
-                        Find an organisation-level Patient Master record.
-                    </p>
-                </div>
-            </div>
-            <div class="flex flex-wrap gap-2">
-                <Button v-if="canSeeMergeRequests" variant="outline" as-child
+            <template #actions>
+                <Button
+                    v-if="canSeeMergeRequests"
+                    variant="outline"
+                    class="max-lg:h-11"
+                    as-child
                     ><Link href="/patient-merges">Merge requests</Link></Button
                 >
-                <Button v-if="canCreate" as-child
+                <Button v-if="canCreate" class="max-lg:h-11" as-child
                     ><Link href="/patients/create"
                         ><Plus class="size-4" /> Create patient</Link
                     ></Button
                 >
-            </div>
-        </div>
+            </template>
+        </PageHeader>
 
-        <section class="rounded-lg border bg-card">
+        <section class="rounded-xl border bg-card">
             <div class="border-b px-5 py-4">
-                <h2 class="font-semibold">Search Patient Master</h2>
+                <h2 class="text-base font-semibold">Search Patient Master</h2>
                 <p class="text-sm text-muted-foreground">
                     Search is server-side. Identity and phone values are masked
                     in results.
@@ -144,14 +137,14 @@ const identifierLabel = (result: Result) =>
                     v-model="form.search_type"
                     label="Search type"
                     :options="searchTypeOptions"
-                    trigger-class="h-10"
+                    trigger-class="max-lg:data-[size=default]:h-11"
                 />
                 <label class="relative"
                     ><span class="sr-only">Search patients</span
                     ><Search
-                        class="absolute top-3 left-3 size-4 text-muted-foreground" /><input
+                        class="absolute top-3 left-3 size-4 text-muted-foreground max-lg:top-3.5" /><input
                         v-model="form.query"
-                        class="h-10 w-full rounded-md border bg-background pr-3 pl-9 text-sm"
+                        class="h-10 w-full rounded-[10px] border bg-background pr-3 pl-9 text-sm max-lg:h-11"
                         autocomplete="off"
                         placeholder="Enter at least 3 characters"
                 /></label>
@@ -160,11 +153,11 @@ const identifierLabel = (result: Result) =>
                     v-model="form.issuing_country_code"
                     aria-label="Passport issuing country (2-letter code)"
                     maxlength="2"
-                    class="h-10 rounded-md border bg-background px-3 text-sm uppercase"
+                    class="h-10 rounded-[10px] border bg-background px-3 text-sm uppercase max-lg:h-11"
                     placeholder="Issuer"
                 />
                 <span v-else />
-                <Button type="submit" :disabled="loading">{{
+                <Button type="submit" class="max-lg:h-11" :disabled="loading">{{
                     loading ? 'Searching…' : 'Search'
                 }}</Button>
                 <InputError
@@ -177,7 +170,7 @@ const identifierLabel = (result: Result) =>
 
         <section
             v-if="searched"
-            class="overflow-hidden rounded-lg border bg-card"
+            class="overflow-hidden rounded-xl border bg-card"
         >
             <div class="border-b px-5 py-3 text-sm text-muted-foreground">
                 {{ total }} matching record{{ total === 1 ? '' : 's' }}
@@ -185,7 +178,7 @@ const identifierLabel = (result: Result) =>
             <div v-if="results.length" class="overflow-x-auto">
                 <table class="block w-full text-left text-sm md:table">
                     <thead
-                        class="hidden border-b bg-muted/40 text-xs text-muted-foreground uppercase md:table-header-group"
+                        class="hidden border-b bg-muted/60 text-[13px] font-medium text-muted-foreground md:table-header-group"
                     >
                         <tr>
                             <th class="px-5 py-3">Patient</th>
@@ -194,7 +187,9 @@ const identifierLabel = (result: Result) =>
                             <th class="px-5 py-3">Phone</th>
                         </tr>
                     </thead>
-                    <tbody class="block divide-y md:table-row-group">
+                    <tbody
+                        class="block divide-y md:table-row-group [&_tr]:transition-colors [&_tr]:hover:bg-muted/40"
+                    >
                         <tr
                             v-for="patient in results"
                             :key="patient.patientNumber"
@@ -205,7 +200,7 @@ const identifierLabel = (result: Result) =>
                             >
                                 <Link
                                     :href="patientHref(patient.patientNumber)"
-                                    class="font-medium text-brand-strong hover:underline"
+                                    class="font-medium text-primary hover:underline"
                                     >{{ patient.fullName }}</Link
                                 >
                                 <div
@@ -255,6 +250,7 @@ const identifierLabel = (result: Result) =>
                 <Button
                     variant="outline"
                     size="sm"
+                    class="max-lg:h-11"
                     :disabled="currentPage === 1"
                     @click="search(currentPage - 1)"
                     >Previous</Button
@@ -262,6 +258,7 @@ const identifierLabel = (result: Result) =>
                 <Button
                     variant="outline"
                     size="sm"
+                    class="max-lg:h-11"
                     :disabled="currentPage === lastPage"
                     @click="search(currentPage + 1)"
                     >Next</Button
@@ -270,7 +267,7 @@ const identifierLabel = (result: Result) =>
         </section>
         <section
             v-else
-            class="rounded-lg border border-dashed p-12 text-center text-sm text-muted-foreground"
+            class="rounded-xl border border-dashed p-12 text-center text-sm text-muted-foreground"
         >
             Start with a patient number, identity document, name, or phone.
         </section>
