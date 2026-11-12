@@ -77,7 +77,7 @@ own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for h
 | DD-65 | Shared `OperationalConfirmDialog`, `components/ui/OperationalConfirmDialog.vue` | No disabled state for the confirm button while a request runs or a reason is missing (seen in the HR-10c look); each page adds its own | 8, 11 | Staff Experience | Minor | HR-10c look | Open |
 | DD-66 | Shared `CompactPagination` (Previous, Next and the count line) | The buttons are 32 px tall on every page, including below 1024 px where 44 px is required (found in the STK-13 look; the page worked around it locally and was told not to) | 12, 16 | Staff Experience | Major | STK-13 look | Open |
 | DD-67 | Plain native radios, `<input type="radio" class="accent-brand">` (about 30 across KPOne, for example the Dispensary "Check this return" and "Record a return" tiles) | In dark mode (`color-scheme: dark`, UX-8) an unselected radio is a filled grey disc with no clear ring, so it can be mistaken for a selected one next to the pink selected radio | 11, 13 | Staff Experience (shared radio) | Major | DSP-19 look | Open |
-| DD-68 | Phone top strip at 390 px: the department-spaces strip clipped the active space or "Clinic management" mid-word, and the Insights tab strip (shared tabs, DD-30 style) was 38 px tall and clipped "Invent" | A name cut mid-word on first view and tabs under 44 px | 12, 16 | Staff Experience | Minor | Department-spaces reviews | Open (PR #537 in review) |
+| DD-68 | Phone top strip at 390 px: the department-spaces strip clipped the active space or "Clinic management" mid-word, and the Insights tab strip (shared tabs, DD-30 style) was 38 px tall and clipped "Invent" | A name cut mid-word on first view and tabs under 44 px | 12, 16 | Staff Experience | Minor | Department-spaces reviews | Fixed (PR #537, `30cebaa`) |
 
 ## Not debt (out of scope, owner-approved)
 
@@ -119,3 +119,4 @@ receipt and drug-label print layouts.
 - 2026-11-11: DD-67 added (native radios in dark mode: unselected looks like a filled disc, found in DSP-19).
 
 - 2026-11-12: DD-68 added (top strip clipping at 390 px, PR #537), together with the DD-66 and DD-47 pager fixes (PR #536) still to be marked Fixed on merge.
+- 2026-11-12: DD-68 marked Fixed (PR #537, `30cebaa`). DD-66 and DD-47 (PR #536) stay Open until it merges.
