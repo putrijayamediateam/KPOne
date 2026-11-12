@@ -513,7 +513,7 @@ const removePoster = (posterId: string) => {
                         <Button
                             size="sm"
                             variant="destructive"
-                            class="w-full"
+                            class="w-full max-lg:min-h-11"
                             @click="removePoster(poster.id)"
                             >Remove</Button
                         >

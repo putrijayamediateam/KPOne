@@ -27,6 +27,6 @@ test('the Activate and Deactivate button in a room row is an outline button, not
 test('removing a poster stays destructive, because it removes the poster', () => {
     assert.match(
         settings,
-        /variant="destructive"\s+class="w-full"\s+@click="removePoster\(poster\.id\)"/,
+        /variant="destructive"\s+class="w-full max-lg:min-h-11"\s+@click="removePoster\(poster\.id\)"/,
     );
 });
