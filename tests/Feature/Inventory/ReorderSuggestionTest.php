@@ -11,6 +11,7 @@ use App\Domain\Organisation\Inventory\Services\StockUnitQuantity;
 use App\Domain\Organisation\Inventory\Services\SupplierTermsService;
 use App\Domain\Organisation\Inventory\Services\TreatmentUsageService;
 use App\Domain\Organisation\Models\Branch;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Tests\Feature\Visit\VisitTestCase;
@@ -60,11 +61,11 @@ final class ReorderSuggestionTest extends VisitTestCase
         return [...$f, 'onHand' => $onHand, 'actors' => $actors];
     }
 
-    private function setLevel(array $f, int $levelMilli): void
+    private function setLevel(array $f, int $levelMilli, ?int $maxMilli = null): void
     {
         DB::table('inventory_reorder_levels')->updateOrInsert(
             ['organisation_id' => $this->branch->organisation_id, 'inventory_location_id' => $f['location']->id, 'inventory_sku_id' => $f['sku']->id],
-            ['reorder_level' => StockUnitQuantity::format($levelMilli), 'updated_by_user_id' => $f['finance']->id, 'created_at' => now(), 'updated_at' => now()],
+            ['reorder_level' => StockUnitQuantity::format($levelMilli), 'max_level' => $maxMilli === null ? null : StockUnitQuantity::format($maxMilli), 'updated_by_user_id' => $f['finance']->id, 'created_at' => now(), 'updated_at' => now()],
         );
     }
 
@@ -191,5 +192,68 @@ final class ReorderSuggestionTest extends VisitTestCase
         $row = collect($this->page($finance, ['need' => 'all'])['rows'])->firstWhere('skuCode', $f['sku']->sku_code);
         // 6 dispensed over 30 days is 0.2 a day; 10 opening − 6 leaves 4 on hand, so 1 whole unit to reach 5.
         $this->assertSame(['4.000', '0.200', '1.000'], [$row['onHand'], $row['averageDailyUse'], $row['suggestedQuantity']]);
+    }
+
+    public function test_with_a_maximum_the_suggestion_fills_up_to_it(): void
+    {
+        $f = $this->setUpBranch();
+        $sku = $f['sku']->sku_code;
+        $finance = $f['actors']->actor('finance_officer');
+        $this->setLevel($f, $f['onHand'] + 20000, $f['onHand'] + 40000);
+
+        $row = collect($this->page($finance)['rows'])->firstWhere('skuCode', $sku);
+        // STK-30: Need = (on hand + 40) − on hand − 6 on order − 0 incoming + 1 = 35: 4 packs of 10.
+        $this->assertSame([StockUnitQuantity::format($f['onHand'] + 40000), 4, '40.000'], [$row['maxLevel'], $row['suggestedPacks'], $row['suggestedQuantity']]);
+
+        // Above the reorder level the row is not listed, even when below the maximum.
+        $this->setLevel($f, max(0, $f['onHand'] - 1000), $f['onHand'] + 40000);
+        $this->assertNull(collect($this->page($finance, ['need' => 'all'])['rows'])->firstWhere('skuCode', $sku));
+
+        // Without a maximum the row says so.
+        $this->setLevel($f, $f['onHand'] + 20000);
+        $this->assertNull(collect($this->page($finance)['rows'])->firstWhere('skuCode', $sku)['maxLevel']);
+    }
+
+    public function test_the_maximum_is_saved_validated_audited_and_guarded(): void
+    {
+        $f = $this->setUpBranch();
+        $supervisor = $f['actors']->actor('ca_supervisor');
+        app(BranchAccessService::class)->select($supervisor, $this->branch);
+        $payload = fn (string $level, ?string $max) => ['expected_branch_id' => $this->branch->id, 'location_public_id' => $f['location']->public_id,
+            'sku_public_id' => $f['sku']->public_id, 'reorder_level' => $level, 'max_level' => $max];
+        $stored = fn () => DB::table('inventory_reorder_levels')->where('inventory_location_id', $f['location']->id)->where('inventory_sku_id', $f['sku']->id)->first();
+
+        $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload('5', '12.5'))->assertRedirect(route('inventory.index'))->assertSessionHasNoErrors();
+        $this->assertSame(['5.000', '12.500'], [(string) $stored()->reorder_level, (string) $stored()->max_level]);
+        $audit = DB::table('audit_logs')->where('event', 'inventory.reorder_level.updated')->latest('id')->first();
+        $this->assertSame(['reorder_level' => '5.000', 'max_level' => '12.500'], array_intersect_key(json_decode((string) $audit->metadata, true), ['reorder_level' => 1, 'max_level' => 1]));
+
+        // A maximum below the reorder level is refused and nothing changes.
+        $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload('5', '4.999'))->assertRedirect(route('inventory.index'))->assertSessionHasErrors('max_level');
+        $this->assertSame('12.500', (string) $stored()->max_level);
+
+        // A maximum on a level of 0 would never be used, so it is refused.
+        $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload('0', '5'))->assertSessionHasErrors('max_level');
+        $this->assertSame('12.500', (string) $stored()->max_level);
+
+        // The low-stock list on the Inventory page shows the maximum, so a change to it is visible.
+        $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload(StockUnitQuantity::format($f['onHand'] + 5000), StockUnitQuantity::format($f['onHand'] + 9000)))->assertSessionHasNoErrors();
+        $this->actingAs($supervisor)->get(route('inventory.index'))->assertOk()->assertInertia(fn ($page) => $page->where('operations.lowStock', fn ($rows) => collect($rows)->contains(fn ($row) => $row['maxLevel'] === StockUnitQuantity::format($f['onHand'] + 9000))));
+
+        // Equal is allowed; blank clears it.
+        $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload('5', '5'))->assertSessionHasNoErrors();
+        $this->assertSame('5.000', (string) $stored()->max_level);
+        $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload('5', ''))->assertSessionHasNoErrors();
+        $this->assertNull($stored()->max_level);
+
+        // Staff without the reorder permission cannot set it.
+        $this->actingAs($f['actors']->actor('ca'))->put(route('inventory.reorder-levels.update'), $payload('5', '9'))->assertForbidden();
+
+        // PostgreSQL refuses a maximum below the level whatever the caller.
+        if (DB::getDriverName() !== 'pgsql') {
+            return;
+        }
+        $this->expectException(QueryException::class);
+        DB::table('inventory_reorder_levels')->where('id', $stored()->id)->update(['max_level' => '1.000']);
     }
 }

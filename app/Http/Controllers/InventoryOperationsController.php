@@ -322,7 +322,7 @@ class InventoryOperationsController extends Controller
     public function reorderLevel(Request $request, InventoryControlService $service): RedirectResponse
     {
         try {
-            $service->setReorderLevel($request->user(), $request->only(['expected_branch_id', 'location_public_id', 'sku_public_id', 'reorder_level']));
+            $service->setReorderLevel($request->user(), $request->only(['expected_branch_id', 'location_public_id', 'sku_public_id', 'reorder_level', 'max_level']));
         } catch (ValidationException $exception) {
             throw $this->stayOnInventory($exception);
         }
