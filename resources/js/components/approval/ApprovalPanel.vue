@@ -71,6 +71,10 @@ const titleId = `approval-panel-title-${uid}`;
 const reasonId = `approval-panel-reason-${uid}`;
 const reasonErrorId = `approval-panel-reason-error-${uid}`;
 
+// One destructive-outline style for the card's Reject and the dialog's Reject (never a filled red button).
+const REJECT_OUTLINE =
+    'border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive';
+
 const busy = ref<'approve' | 'reject' | null>(null);
 const errors = ref<Record<string, string>>({});
 const rejectOpen = ref(false);
@@ -171,17 +175,22 @@ const confirmReject = () => {
         <div class="flex items-start gap-3">
             <div
                 class="flex shrink-0 -space-x-2"
-                role="img"
+                role="group"
                 :aria-label="recorderText"
             >
                 <span
-                    class="relative z-10 flex size-8 items-center justify-center rounded-full border-2 border-card bg-secondary text-xs font-semibold text-foreground"
-                    aria-hidden="true"
-                    >{{ getInitials(recordedBy) }}</span
+                    class="relative z-10 flex size-8 items-center justify-center rounded-full border-2 border-card bg-foreground/10 text-xs font-semibold text-foreground"
+                    role="img"
+                    :aria-label="`Recorded by ${recordedBy}`"
+                    data-test="approval-panel-recorder"
+                    ><span aria-hidden="true">{{
+                        getInitials(recordedBy)
+                    }}</span></span
                 >
                 <span
                     class="size-8 rounded-full border-2 border-dashed border-muted-foreground/60 bg-card"
-                    aria-hidden="true"
+                    role="img"
+                    aria-label="Second person: not yet"
                     data-test="approval-panel-empty"
                 />
             </div>
@@ -226,7 +235,7 @@ const confirmReject = () => {
             </Button>
             <Button
                 variant="outline"
-                class="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive max-sm:h-11 max-sm:w-full"
+                :class="[REJECT_OUTLINE, 'max-sm:h-11 max-sm:w-full']"
                 :disabled="busy !== null"
                 data-test="approval-panel-reject"
                 @click="openReject"
@@ -255,9 +264,11 @@ const confirmReject = () => {
             <DialogContent
                 class="motion-reduce:transition-none motion-reduce:data-[state=closed]:animate-none motion-reduce:data-[state=open]:animate-none sm:max-w-md"
             >
-                <DialogHeader>
-                    <DialogTitle>Reject: {{ title }}</DialogTitle>
-                    <DialogDescription>
+                <DialogHeader class="text-left sm:text-left">
+                    <DialogTitle class="pr-8 text-left"
+                        >Reject: {{ title }}</DialogTitle
+                    >
+                    <DialogDescription class="text-left">
                         Say why you are rejecting it. A reason is required.
                     </DialogDescription>
                 </DialogHeader>
@@ -307,7 +318,7 @@ const confirmReject = () => {
                         <Button
                             type="submit"
                             variant="outline"
-                            class="border-destructive/50 text-destructive hover:border-destructive hover:bg-destructive/10 hover:text-destructive max-sm:h-11"
+                            :class="[REJECT_OUTLINE, 'max-sm:h-11']"
                             :disabled="busy !== null"
                             data-test="approval-panel-reject-confirm"
                         >

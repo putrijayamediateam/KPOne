@@ -25,6 +25,9 @@ const buttons = () => {
 
     return out;
 };
+const directiveExp = (node, arg) =>
+    node.props.find((p) => p.type === 7 && p.arg?.content === arg)?.exp
+        ?.content;
 const attr = (node, name) =>
     node.props.find((p) => p.type === 6 && p.name === name)?.value?.content;
 
@@ -42,9 +45,23 @@ test('UX-18: Approve is outline and Reject is destructive-outline; no filled but
         (b) => attr(b, 'data-test') === 'approval-panel-reject',
     );
 
+    assert.equal(
+        directiveExp(reject, 'class'),
+        "[REJECT_OUTLINE, 'max-sm:h-11 max-sm:w-full']",
+    );
+    // Daniel: the dialog's Reject is the same destructive-outline as the card's, never filled.
+    const confirm = buttons().find(
+        (b) => attr(b, 'data-test') === 'approval-panel-reject-confirm',
+    );
+
+    assert.equal(attr(confirm, 'variant'), 'outline');
+    assert.equal(
+        directiveExp(confirm, 'class'),
+        "[REJECT_OUTLINE, 'max-sm:h-11']",
+    );
     assert.match(
-        attr(reject, 'class'),
-        /border-destructive\/50 text-destructive/,
+        source,
+        /const REJECT_OUTLINE =\s+'border-destructive\/50 text-destructive/,
     );
     assert.match(source, /data-test="approval-panel-approve"/);
 });
@@ -82,7 +99,10 @@ test('UX-18: it calls only the caller-given endpoint with the caller payload, an
 });
 
 test('UX-18: the avatar stack has a text equivalent and the empty dashed circle', () => {
-    assert.match(source, /role="img"\s+:aria-label="recorderText"/);
+    assert.match(source, /role="group"\s+:aria-label="recorderText"/);
+    assert.match(source, /aria-label="Second person: not yet"/);
+    assert.match(source, /bg-foreground\/10/);
+    assert.match(source, /<DialogTitle class="pr-8 text-left"\s*>/);
     assert.match(source, /border-dashed/);
     assert.match(source, /Waiting for a second person/);
     assert.match(source, /Needs a second person/);
