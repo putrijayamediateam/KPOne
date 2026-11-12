@@ -15,10 +15,12 @@ use Symfony\Component\HttpFoundation\Response as HttpResponse;
 /** STK-35: import opening stock from one CSV. The rules live in OpeningImportService. */
 final class OpeningImportController extends Controller
 {
-    public function index(Request $request): Response
+    public function index(Request $request, OpeningImportService $service): Response
     {
         $branch = app(BranchAccessService::class)->activeBranch($request->user());
-        abort_unless($branch !== null && $request->user()->hasRole('ca_supervisor'), 403);
+        abort_unless($branch !== null, 403);
+        // The same checks as Check and Record: active, CA Supervisor, assigned to the active branch today.
+        $service->context($request->user(), $branch->id);
 
         return Inertia::render('Inventory/OpeningImport', ['import' => [
             'branchName' => $branch->name, 'expectedBranchId' => $branch->id,
@@ -34,6 +36,7 @@ final class OpeningImportController extends Controller
         return response()->json([
             'hash' => $review['hash'],
             'errors' => $review['errors'],
+            'newBatches' => $review['newBatches'],
             // Internal ids never leave the server.
             'rows' => array_map(fn (array $row): array => array_intersect_key($row, array_flip(['line', 'location', 'sku', 'stock_unit', 'batch_number', 'new_batch', 'expiry_date', 'quantity', 'unit_cost_sen', 'problems'])), $review['rows']),
         ])->header('Cache-Control', 'private, no-store');

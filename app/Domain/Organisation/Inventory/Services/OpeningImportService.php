@@ -13,10 +13,12 @@ use App\Domain\Organisation\Models\Organisation;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /**
  * STK-35 (approved by B.E.R.N.I.S.S for the owner, inside the 2026-11-11 inventory authorisation): record a branch's
@@ -43,7 +45,7 @@ final class OpeningImportService
     /**
      * Checks a file and says, row by row, what would be recorded. Writes nothing.
      *
-     * @return array{hash: string, rows: list<array<string, mixed>>, errors: int}
+     * @return array{hash: string, rows: list<array<string, mixed>>, errors: int, newBatches: int}
      */
     public function check(User $actor, mixed $expectedBranchId, mixed $file): array
     {
@@ -78,7 +80,7 @@ final class OpeningImportService
             $earlier = DB::table('inventory_opening_imports')->where('organisation_id', $actor->organisation_id)->where('idempotency_key', $key)->first();
             if ($earlier !== null) {
                 if ((int) $earlier->branch_id !== $branch->id || (int) $earlier->actor_user_id !== $actor->id || $earlier->file_hash !== $hash) {
-                    throw ValidationException::withMessages(['idempotency_key' => 'This import key was already used with a different file.']);
+                    throw ValidationException::withMessages(['idempotency_key' => 'This import key was already used. Reload the page and try again.']);
                 }
 
                 return ['import_id' => (int) $earlier->id, 'recorded' => (int) $earlier->row_count, 'replayed' => true];
@@ -91,19 +93,29 @@ final class OpeningImportService
             $references = app(InventoryReferenceAdministrationService::class);
             $movements = app(InventoryMovementService::class);
             $newBatches = 0;
-            foreach ($review['rows'] as $index => $row) {
-                $sku = InventorySku::query()->whereKey($row['sku_id'])->where('organisation_id', $actor->organisation_id)->firstOrFail();
-                $batch = $row['batch_id'] === null ? null : InventoryBatch::query()->whereKey($row['batch_id'])->firstOrFail();
+            /** @var array<string, InventoryBatch> $created a new batch is made once and reused by later rows (Mei Ling) */
+            $created = [];
+            // Rows are written in location and SKU order, so concurrent writers take their locks in the same order.
+            $ordered = $review['rows'];
+            usort($ordered, fn (array $a, array $b): int => [$a['location_id'], $a['sku_id'], $a['line']] <=> [$b['location_id'], $b['sku_id'], $b['line']]);
+            foreach ($ordered as $row) {
                 try {
-                    if ($batch === null) {
-                        $batch = $references->createBatch($actor, $sku, ['batch_number' => $row['batch_number'], 'expiry_date' => $row['expiry_date'], 'status' => InventoryBatch::STATUS_AVAILABLE]);
+                    $sku = InventorySku::query()->whereKey($row['sku_id'])->where('organisation_id', $actor->organisation_id)->firstOrFail();
+                    $batch = $row['batch_id'] === null ? null : InventoryBatch::query()->whereKey($row['batch_id'])->where('organisation_id', $actor->organisation_id)->firstOrFail();
+                    $batchKey = $row['sku_id'].'|'.Str::lower($row['batch_number']).'|'.$row['expiry_date'];
+                    if ($batch === null && isset($created[$batchKey])) {
+                        $batch = $created[$batchKey];
+                    } elseif ($batch === null) {
+                        $batch = $created[$batchKey] = $references->createBatch($actor, $sku, ['batch_number' => $row['batch_number'], 'expiry_date' => $row['expiry_date'], 'status' => InventoryBatch::STATUS_AVAILABLE]);
                         $newBatches++;
                     }
                     $movements->openingBalance($actor, ['expected_branch_id' => $branch->id, 'location_public_id' => $row['location_public_id'], 'sku_public_id' => $sku->public_id,
                         'batch_public_id' => $batch->public_id, 'quantity' => $row['quantity'], 'unit_cost_sen' => $row['unit_cost_sen']]);
                 } catch (ValidationException $exception) {
                     // The whole import rolls back; say which row the existing service refused.
-                    throw ValidationException::withMessages(['file' => 'Row '.($index + 2).': '.collect($exception->errors())->flatten()->first().' Nothing was recorded.']);
+                    throw ValidationException::withMessages(['file' => 'Row '.$row['line'].': '.collect($exception->errors())->flatten()->first().' Nothing was recorded.']);
+                } catch (AuthorizationException|ModelNotFoundException|HttpException) {
+                    throw ValidationException::withMessages(['file' => 'Row '.$row['line'].': this row can no longer be recorded (a location, SKU or batch changed, or your access did). Check the file again. Nothing was recorded.']);
                 }
             }
             $id = DB::table('inventory_opening_imports')->insertGetId(['organisation_id' => $actor->organisation_id, 'branch_id' => $branch->id, 'actor_user_id' => $actor->id,
@@ -117,11 +129,11 @@ final class OpeningImportService
     /** The template a person fills in, with one synthetic example row. */
     public function template(): string
     {
-        return implode(',', self::COLUMNS)."\r\n".'DISP-01,SKU-0001,BATCH-001,'.now()->addYear()->format('Y').'-12-31,100,0.25'."\r\n";
+        return implode(',', self::COLUMNS)."\r\n".'DISP-01,SKU-0001,BATCH-001,2030-12-31,100,0.25'."\r\n";
     }
 
     /** @return array{0: User, 1: Branch} */
-    private function context(User $actor, mixed $expectedBranchId): array
+    public function context(User $actor, mixed $expectedBranchId): array
     {
         $actor = $actor->fresh()?->load(['roles.permissions', 'permissions']);
         abort_unless($actor && $actor->is_active && $actor->can(self::PERMISSION), 403);
@@ -163,7 +175,15 @@ final class OpeningImportService
         if ($header !== self::COLUMNS && $header !== array_slice(self::COLUMNS, 0, 5)) {
             throw ValidationException::withMessages(['file' => 'The first row must be: '.implode(',', self::COLUMNS).' (unit_cost may be left out). Download the template.']);
         }
-        $lines = array_values(array_filter($lines, fn (string $line): bool => trim($line) !== ''));
+        $width = count($header);
+        // Keep each row's line number in the file (the header is line 1), even when blank lines are skipped.
+        $numbered = [];
+        foreach ($lines as $index => $line) {
+            if (trim($line) !== '') {
+                $numbered[$index + 2] = $line;
+            }
+        }
+        $lines = $numbered;
         if ($lines === []) {
             throw ValidationException::withMessages(['file' => 'The file has no rows under the header.']);
         }
@@ -171,15 +191,19 @@ final class OpeningImportService
             throw ValidationException::withMessages(['file' => 'The file has more than '.self::MAX_ROWS.' rows. Split it into smaller files.']);
         }
         $rows = [];
-        foreach ($lines as $index => $line) {
+        foreach ($lines as $number => $line) {
             $cells = array_map(fn (?string $cell): string => trim((string) $cell), str_getcsv($line, ',', '"', ''));
+            // An unquoted "1,000" would shift every later cell: refuse a row whose width differs from the header's.
+            if (count($cells) !== $width) {
+                throw ValidationException::withMessages(['file' => 'Row '.$number.' has '.count($cells).' cells; expected '.$width.'. Put quotes around numbers with commas, or remove the commas.']);
+            }
             foreach ($cells as $cell) {
                 // A spreadsheet formula is never read as data.
                 if ($cell !== '' && in_array($cell[0], ['=', '+', '-', '@'], true)) {
-                    throw ValidationException::withMessages(['file' => 'Row '.($index + 2).' holds a formula or a negative number. Save plain values only.']);
+                    throw ValidationException::withMessages(['file' => 'Row '.$number.' holds a formula or a negative number. Save plain values only.']);
                 }
             }
-            $rows[] = array_combine(self::COLUMNS, array_pad(array_slice($cells, 0, count(self::COLUMNS)), count(self::COLUMNS), ''));
+            $rows[] = ['line' => (string) $number, ...array_combine(self::COLUMNS, array_pad($cells, count(self::COLUMNS), ''))];
         }
 
         return [$hash, $rows];
@@ -187,7 +211,7 @@ final class OpeningImportService
 
     /**
      * @param  list<array<string, string>>  $rows
-     * @return array{hash: string, rows: list<array<string, mixed>>, errors: int}
+     * @return array{hash: string, rows: list<array<string, mixed>>, errors: int, newBatches: int}
      */
     private function review(User $actor, Branch $branch, string $hash, array $rows): array
     {
@@ -197,10 +221,23 @@ final class OpeningImportService
             ->whereIn(DB::raw('LOWER(code)'), array_map(fn (array $row): string => Str::lower($row['location_code']), $rows))->get()->keyBy(fn (InventoryLocation $l): string => Str::lower($l->code));
         $skus = InventorySku::query()->where('organisation_id', $organisationId)
             ->whereIn(DB::raw('LOWER(sku_code)'), array_map(fn (array $row): string => Str::lower($row['sku_code']), $rows))->get()->keyBy(fn (InventorySku $s): string => Str::lower($s->sku_code));
+        // Two queries for the whole file instead of two per row (Mei Ling): the SKUs' batches, and the openings
+        // already recorded at these locations.
+        $skuIds = $skus->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $batches = $skuIds === [] ? collect() : InventoryBatch::query()->where('organisation_id', $organisationId)->whereIn('inventory_sku_id', $skuIds)
+            ->whereIn(DB::raw('LOWER(batch_number)'), array_map(fn (array $row): string => Str::lower($row['batch_number']), $rows))->get()
+            ->groupBy(fn (InventoryBatch $b): string => $b->inventory_sku_id.'|'.Str::lower($b->batch_number));
+        $locationIds = $locations->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        $openings = $locationIds === [] ? [] : array_flip(StockMovement::query()->where('organisation_id', $organisationId)->where('movement_type', StockMovement::TYPE_OPENING)
+            ->whereIn('destination_location_id', $locationIds)->whereIn('inventory_sku_id', $skuIds)->get(['destination_location_id', 'inventory_sku_id', 'inventory_batch_id'])
+            ->map(fn (StockMovement $m): string => $m->destination_location_id.'|'.$m->inventory_sku_id.'|'.$m->inventory_batch_id)->all());
         $seen = [];
+        $expiryInFile = [];
         $out = [];
         $errors = 0;
+        $canCreateBatches = $actor->can(InventoryReferenceAdministrationService::PERMISSION);
         foreach ($rows as $row) {
+            $line = (int) $row['line'];
             $problems = [];
             $location = $locations[Str::lower($row['location_code'])] ?? null;
             $sku = $skus[Str::lower($row['sku_code'])] ?? null;
@@ -239,15 +276,23 @@ final class OpeningImportService
             }
             $batch = null;
             if ($sku !== null && $expiry !== null && $row['batch_number'] !== '') {
-                $existing = InventoryBatch::query()->where('organisation_id', $organisationId)->where('inventory_sku_id', $sku->id)
-                    ->whereRaw('LOWER(batch_number) = ?', [Str::lower($row['batch_number'])])->get();
+                $existing = $batches[$sku->id.'|'.Str::lower($row['batch_number'])] ?? collect();
                 $batch = $existing->first(fn (InventoryBatch $b): bool => CarbonImmutable::parse($b->expiry_date)->format('Y-m-d') === $expiry);
                 if ($batch === null && $existing->isNotEmpty()) {
                     $problems[] = 'This batch already exists with expiry '.CarbonImmutable::parse($existing->first()->expiry_date)->format('Y-m-d').'. Check the date.';
                 }
-                if ($batch !== null && $location !== null && StockMovement::query()->where('organisation_id', $organisationId)->where('movement_type', StockMovement::TYPE_OPENING)
-                    ->where('destination_location_id', $location->id)->where('inventory_sku_id', $sku->id)->where('inventory_batch_id', $batch->id)->exists()) {
+                if ($batch !== null && $location !== null && isset($openings[$location->id.'|'.$sku->id.'|'.$batch->id])) {
                     $problems[] = 'An opening is already recorded for this location, SKU and batch.';
+                }
+                // One batch number has one expiry, in the file as in the database (the same rule both ways).
+                $numberKey = $sku->id.'|'.Str::lower($row['batch_number']);
+                if (isset($expiryInFile[$numberKey]) && $expiryInFile[$numberKey][0] !== $expiry) {
+                    $problems[] = 'This batch has a different expiry on row '.$expiryInFile[$numberKey][1].'. Check the date.';
+                } elseif (! isset($expiryInFile[$numberKey])) {
+                    $expiryInFile[$numberKey] = [$expiry, $line];
+                }
+                if ($batch === null && ! $canCreateBatches) {
+                    $problems[] = 'This is a new batch, and you may not create batches. Ask someone who manages Inventory references.';
                 }
             }
             // A batch is its number and expiry, as InventoryBatch is unique on both.
@@ -255,13 +300,13 @@ final class OpeningImportService
             if (isset($seen[$identity])) {
                 $problems[] = 'The same location, SKU and batch are already on row '.$seen[$identity].'.';
             } else {
-                $seen[$identity] = count($out) + 2;
+                $seen[$identity] = $line;
             }
             $errors += $problems === [] ? 0 : 1;
             $out[] = [
-                'line' => count($out) + 2,
+                'line' => $line,
                 'location' => $location !== null ? $location->name : $row['location_code'],
-                'location_public_id' => $location?->public_id,
+                'location_public_id' => $location?->public_id, 'location_id' => $location?->id,
                 'sku' => $row['sku_code'], 'sku_id' => $sku?->id, 'stock_unit' => $sku?->stock_unit,
                 'batch_number' => $row['batch_number'], 'batch_id' => $batch?->id, 'new_batch' => $batch === null,
                 'expiry_date' => $row['expiry_date'], 'quantity' => $quantity ?? $row['quantity'], 'unit_cost_sen' => $cost,
@@ -269,6 +314,8 @@ final class OpeningImportService
             ];
         }
 
-        return ['hash' => $hash, 'rows' => $out, 'errors' => $errors];
+        $newBatches = count(array_unique(array_map(fn (array $row): string => $row['sku'].'|'.Str::lower($row['batch_number']).'|'.$row['expiry_date'], array_filter($out, fn (array $row): bool => $row['new_batch']))));
+
+        return ['hash' => $hash, 'rows' => $out, 'errors' => $errors, 'newBatches' => $newBatches];
     }
 }

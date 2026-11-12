@@ -4,6 +4,7 @@ namespace Tests\Feature\Inventory;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Inventory\Services\InventoryReadinessService;
 use App\Domain\Organisation\Inventory\Services\OpeningImportService;
 use App\Domain\Organisation\Models\Branch;
@@ -142,7 +143,8 @@ final class OpeningImportTest extends VisitTestCase
         $this->assertSame(['Enter a quantity above 0, with up to 3 decimals.'], $problems[7]);
         $this->assertSame(['Enter the unit cost in RM with up to 2 decimals, or leave it empty.'], $problems[8]);
         $this->assertStringStartsWith('This batch already exists with expiry ', $problems[9][0]);
-        $this->assertSame(['An opening is already recorded for this location, SKU and batch.'], $problems[10]);
+        // Row 12 repeats the fixture's batch number with its real expiry, after row 11 used it with another date.
+        $this->assertSame(['An opening is already recorded for this location, SKU and batch.', 'This batch has a different expiry on row 11. Check the date.'], $problems[10]);
         $this->assertSame(['The same location, SKU and batch are already on row 2.'], $problems[11]);
         $this->assertSame(11, $review['errors']);
 
@@ -209,6 +211,84 @@ final class OpeningImportTest extends VisitTestCase
         $this->actingAs($this->supervisor)->post(route('inventory.opening-import.store'), ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(), 'file_hash' => $json['hash'], 'file' => $file])
             ->assertRedirect(route('inventory.readiness'));
         $this->assertSame(1, DB::table('inventory_opening_imports')->count());
+    }
+
+    public function test_one_new_batch_at_two_locations_is_created_once_and_the_existing_batch_is_found_in_any_case(): void
+    {
+        $store = tap(new InventoryLocation, fn (InventoryLocation $l) => $l->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id,
+            'branch_id' => $this->branch->id, 'code' => 'OI-STORE', 'name' => 'Synthetic store', 'type' => InventoryLocation::TYPE_BRANCH_STORE, 'is_active' => true])->save());
+        $existingExpiry = substr((string) DB::table('inventory_batches')->where('id', $this->f['batch']->id)->value('expiry_date'), 0, 10);
+        $file = $this->csv([
+            $this->row('SHARED-1', '4'),
+            $this->row('shared-1', '6', '', null, $store->code),
+            // The fixture's batch, in lower case, at the store: the existing batch is reused, not a new one.
+            $this->row(Str::lower($this->f['batch']->batch_number), '2', '', $existingExpiry, $store->code),
+        ]);
+        $batches = DB::table('inventory_batches')->count();
+        $review = $this->check($file);
+        $this->assertSame([0, 1], [$review['errors'], $review['newBatches']]);
+        $this->assertSame([true, true, false], array_column($review['rows'], 'new_batch'));
+        $this->record($file, $review['hash']);
+        $this->assertSame($batches + 1, DB::table('inventory_batches')->count());
+        $shared = DB::table('inventory_batches')->whereRaw('LOWER(batch_number) = ?', ['shared-1'])->sole();
+        $this->assertSame(2, DB::table('stock_movements')->where('movement_type', 'opening_balance')->where('inventory_batch_id', $shared->id)->count());
+        $this->assertSame(1, DB::table('stock_movements')->where('movement_type', 'opening_balance')->where('inventory_batch_id', $this->f['batch']->id)->where('destination_location_id', $store->id)->count());
+    }
+
+    public function test_a_row_with_a_different_number_of_cells_is_refused_and_one_batch_has_one_expiry(): void
+    {
+        // An unquoted "1,000" shifts the cells: refused, never read as 1.
+        foreach ([
+            $this->csv([$this->row('WIDE', '5', '1,000.50')]),
+            $this->csv([implode(',', [$this->f['location']->code, $this->f['sku']->sku_code, 'NARROW', $this->expiry, '1,000'])], implode(',', array_slice(OpeningImportService::COLUMNS, 0, 5))),
+        ] as $file) {
+            $this->expectRefusal(fn () => $this->check($file), 'file');
+        }
+        // Quoted, the comma is part of the value, which is then refused as a quantity, not misread.
+        $quoted = $this->check($this->csv([implode(',', [$this->f['location']->code, $this->f['sku']->sku_code, 'QUOTED', $this->expiry, '"1,000"', ''])]));
+        $this->assertSame(['Enter a quantity above 0, with up to 3 decimals.'], $quoted['rows'][0]['problems']);
+
+        // The same batch number with two expiry dates in one file is refused, as it is against the database.
+        $review = $this->check($this->csv([$this->row('TWO-DATES'), $this->row('two-dates', '1', '', now($this->branch->timezone)->addYears(2)->toDateString())]));
+        $this->assertSame(['This batch has a different expiry on row 2. Check the date.'], $review['rows'][1]['problems']);
+
+        // Blank lines keep the file's own row numbers.
+        $blank = UploadedFile::fake()->createWithContent('opening.csv', implode(',', OpeningImportService::COLUMNS)."\n\n".$this->row('LINE', '0')."\n");
+        $this->assertSame(3, $this->check($blank)['rows'][0]['line']);
+    }
+
+    public function test_a_refusal_part_way_through_recording_keeps_nothing(): void
+    {
+        $file = $this->csv([$this->row('PART-1'), $this->row('PART-2'), $this->row('PART-3')]);
+        $review = $this->check($file);
+        $before = $this->counts();
+        $written = 0;
+        // The existing opening service refuses the third row while the first two are already written.
+        StockMovement::creating(function () use (&$written): void {
+            if (++$written === 3) {
+                throw ValidationException::withMessages(['quantity' => 'Synthetic refusal.']);
+            }
+        });
+        try {
+            $this->record($file, $review['hash']);
+            $this->fail('A refused row did not stop the import.');
+        } catch (ValidationException $exception) {
+            $this->assertStringContainsString('Synthetic refusal. Nothing was recorded.', $exception->errors()['file'][0]);
+        }
+        $this->assertSame($before, $this->counts());
+    }
+
+    public function test_a_replay_by_someone_else_is_refused_and_the_check_shows_no_internal_ids(): void
+    {
+        $file = $this->csv([$this->row('KEYED')]);
+        $review = $this->check($file);
+        $key = (string) Str::uuid();
+        $this->record($file, $review['hash'], $key);
+        $other = $this->staff('ca_supervisor');
+        $this->expectRefusal(fn () => app(OpeningImportService::class)->record($other, ['expected_branch_id' => $this->branch->id, 'idempotency_key' => $key, 'file_hash' => $review['hash']], $file), 'idempotency_key');
+
+        $json = $this->actingAs($this->supervisor)->postJson(route('inventory.opening-import.check'), ['expected_branch_id' => $this->branch->id, 'file' => $this->csv([$this->row('LEAK')])])->assertOk()->json();
+        $this->assertSame([], array_intersect(array_keys($json['rows'][0]), ['sku_id', 'batch_id', 'location_id', 'location_public_id']));
     }
 
     private function expectRefusal(callable $call, string $key): void

@@ -6,6 +6,7 @@ import InputError from '@/components/InputError.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { PageHeader } from '@/components/ui/page-header';
+import { formatDate } from '@/lib/presentation';
 import { formatRinggit, trimQuantity } from '@/lib/supplier-terms';
 
 type CheckedRow = {
@@ -37,6 +38,7 @@ const recording = ref(false);
 const checked = ref<{
     hash: string;
     errors: number;
+    newBatches: number;
     rows: CheckedRow[];
 } | null>(null);
 const fileError = ref<string | undefined>();
@@ -232,12 +234,8 @@ const record = () => {
                     Every row is OK. Recording adds
                     {{ checked.rows.length }} opening
                     {{ checked.rows.length === 1 ? 'line' : 'lines' }} and
-                    {{ checked.rows.filter((r) => r.new_batch).length }} new
-                    {{
-                        checked.rows.filter((r) => r.new_batch).length === 1
-                            ? 'batch'
-                            : 'batches'
-                    }}.
+                    {{ checked.newBatches }} new
+                    {{ checked.newBatches === 1 ? 'batch' : 'batches' }}.
                 </p>
                 <Button
                     type="button"
@@ -245,7 +243,10 @@ const record = () => {
                     :disabled="recording || !ready"
                     data-testid="opening-import-record"
                     @click="record"
-                    >Record {{ checked.rows.length }} openings</Button
+                    >Record {{ checked.rows.length }}
+                    {{
+                        checked.rows.length === 1 ? 'opening' : 'openings'
+                    }}</Button
                 >
             </div>
             <ul class="space-y-2" aria-label="Checked rows">
@@ -270,7 +271,14 @@ const record = () => {
                                 >New batch</span
                             ></span
                         >
-                        <span>Exp {{ row.expiry_date }}</span>
+                        <span
+                            >Exp
+                            {{
+                                /^\d{4}-\d{2}-\d{2}$/.test(row.expiry_date)
+                                    ? formatDate(row.expiry_date)
+                                    : row.expiry_date
+                            }}</span
+                        >
                         <span class="tabular-nums"
                             >{{ trimQuantity(row.quantity) }}
                             {{ row.stock_unit ?? '' }}</span
