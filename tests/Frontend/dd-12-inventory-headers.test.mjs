@@ -23,25 +23,49 @@ test('the Inventory page opens with its header, then one row of task links', () 
             /<ActionLink\s+href="(\/inventory\/[a-z-]+)"\s+variant="outline"/g,
         ),
     ].map((match) => match[1]);
-    assert.deepEqual(links, [
+    // DD-75: the same 16 links, grouped, once for lg and once for the phone disclosures, in the same order.
+    const grouped = [
         '/inventory/counts',
         '/inventory/writeoffs',
-        '/inventory/supplier-returns',
-        '/inventory/supplier-invoices',
-        '/inventory/controlled-register',
-        '/inventory/recalls',
         '/inventory/treatment-usage',
-        '/inventory/stock-review',
-        '/inventory/stock-health',
+        '/inventory/batch-holds',
+        '/inventory/recalls',
+        '/inventory/controlled-register',
+        '/inventory/purchase-requests',
         '/inventory/reorder-suggestions',
         '/inventory/branch-replenishment',
-        '/inventory/purchase-requests',
+        '/inventory/supplier-invoices',
+        '/inventory/supplier-returns',
         '/inventory/supplier-terms',
         '/inventory/skus',
-        '/inventory/batch-holds',
+        '/inventory/stock-review',
+        '/inventory/stock-health',
         '/inventory/readiness',
-    ]);
+    ];
+    assert.deepEqual(links, [...grouped, ...grouped]);
     assert.doesNotMatch(page, /<a\s/);
+});
+
+test('DD-75: both link layouts show the controlled register only to its viewers, and the phone count follows', () => {
+    const page = template(read('resources/js/pages/Inventory/Index.vue'));
+    const guarded = [
+        ...page.matchAll(
+            /href="\/inventory\/controlled-register"\s+variant="outline"\s+v-if="canViewControlledRegister"/g,
+        ),
+    ];
+    assert.equal(guarded.length, 2);
+    assert.equal(
+        [...page.matchAll(/href="\/inventory\/controlled-register"/g)].length,
+        2,
+    );
+    assert.match(
+        page,
+        /Count and adjust ·\s+\{\{ canViewControlledRegister \? 6 : 5 \}\}/,
+    );
+    assert.match(page, /Orders and suppliers · 7/);
+    assert.match(page, /Reports and checks · 3/);
+    assert.match(page, /class="hidden w-full gap-6 lg:grid lg:grid-cols-3"/);
+    assert.match(page, /class="w-full space-y-2 lg:hidden"/);
 });
 
 test('every governed Inventory page uses the page header with one small back link', () => {
