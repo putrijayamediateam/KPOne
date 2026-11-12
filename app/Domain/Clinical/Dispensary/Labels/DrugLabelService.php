@@ -122,7 +122,8 @@ final class DrugLabelService
             $details = $head->details;
             // DSP-21 (owner decision 2026-11-12, option A): a branch's short "Address on drug labels" is printed when it is set;
             // otherwise the full address, as before. Either one must still fit the label's 96-character address budget.
-            $address = ($details['label_address'] ?? '') !== '' ? (string) $details['label_address']
+            // A label address that is blank once whitespace is collapsed (as DrugLabelLayout::clean() does) falls back too.
+            $address = trim((string) preg_replace('/\s+/u', ' ', (string) ($details['label_address'] ?? ''))) !== '' ? (string) $details['label_address']
                 : implode(', ', array_filter([$details['address_line_1'], $details['address_line_2'], $details['postcode'], $details['city'], $details['state'], $details['country']], fn ($s) => $s !== null && $s !== ''));
             $blocked = [];
             $output = [];

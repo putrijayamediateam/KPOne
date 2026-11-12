@@ -109,4 +109,16 @@ class DrugLabelShortAddressTest extends VisitTestCase
         $this->assertNotSame($changed['token'], $cleared['token']);
         $this->assertSame([], $cleared['items'], 'back to the long full address, so the label is blocked again');
     }
+
+    public function test_a_label_address_that_is_only_whitespace_falls_back_to_the_full_address(): void
+    {
+        $f = $this->fixture();
+        $this->saveDetails($f, ['address_line_1' => '42 Synthetic Street', 'postcode' => '50000', 'city' => 'Synthetic City', 'state' => 'Synthetic State']);
+        // The web form cannot save this (it trims), but a direct write can, and the PostgreSQL CHECK only trims spaces (Hakim).
+        DB::table('branch_business_profiles')->where('branch_id', $f['visit']->branch_id)->update(['label_address' => "\t"]);
+
+        $text = str_replace("\n", ' ', implode("\n", $this->labels($f)['items'][0]['lines']));
+
+        $this->assertStringContainsString('42 Synthetic Street, 50000, Synthetic City', $text);
+    }
 }
