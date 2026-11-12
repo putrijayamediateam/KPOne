@@ -67,3 +67,9 @@ test('the header button is 36 px from 1024 px; the page keeps its wide frame', (
     assert.ok(show.includes('max-w-[1500px] px-4 py-6'));
     assert.equal(form.includes('sm:'), false);
 });
+
+test('help text inside the tinted allergy panels keeps 4.5:1 in light mode (Hakim)', () => {
+    const otc = left.slice(left.indexOf('data-testid="otc-allergy"'));
+    assert.equal(otc.includes('text-muted-foreground'), false);
+    assert.equal((otc.match(/text-xs text-foreground\/75/g) ?? []).length, 3);
+});

@@ -1208,7 +1208,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     <p class="text-[15px] font-semibold">
                         Ask the patient about allergies
                     </p>
-                    <p class="text-xs text-muted-foreground">
+                    <p class="text-xs text-foreground/75">
                         Record what the patient tells you. Saved allergies are
                         compared with medicine names and catalogue drug groups
                         by text only, so the check can miss one. Always ask.
@@ -1322,12 +1322,12 @@ const exceptionStatusLabels: Record<string, string> = {
                                     otcAllergyChoice === 'has_allergy' &&
                                     !otcHasRecordedAllergy
                                 "
-                                class="text-xs text-muted-foreground"
+                                class="text-xs text-foreground/75"
                                 >Add the allergy before you confirm.</span
                             >
                             <span
                                 v-else-if="!otcAllergyChoice"
-                                class="text-xs text-muted-foreground"
+                                class="text-xs text-foreground/75"
                                 >Choose what the patient reports, then
                                 confirm.</span
                             >
