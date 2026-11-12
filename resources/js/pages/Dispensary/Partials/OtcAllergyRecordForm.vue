@@ -27,7 +27,7 @@ const form = useForm({
 });
 const allergenInput = ref<HTMLInputElement | null>(null);
 const fieldClass =
-    'mt-1 w-full rounded-md border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40';
+    'mt-1 w-full rounded-[10px] border border-input bg-card px-3 outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40';
 
 const submit = () => {
     if (form.allergen_text.trim() === '') {
@@ -64,7 +64,7 @@ const submit = () => {
 
 <template>
     <form
-        class="mt-3 grid gap-3 rounded-md border border-warning/50 bg-card p-3"
+        class="mt-3 grid gap-3 rounded-[10px] border border-warning/50 bg-card p-3"
         novalidate
         data-testid="otc-allergy-form"
         :aria-busy="form.processing"
@@ -87,7 +87,7 @@ const submit = () => {
                         ? 'otc-allergy-allergen-help otc-allergy-allergen-error'
                         : 'otc-allergy-allergen-help'
                 "
-                :class="[fieldClass, 'h-11 sm:h-9']"
+                :class="[fieldClass, 'h-11 lg:h-9']"
                 data-field="otc-allergy-allergen"
             />
             <span
@@ -108,7 +108,7 @@ const submit = () => {
                 id="otc-allergy-category"
                 v-model="form.category"
                 class="mt-1"
-                trigger-class="h-11 sm:h-9"
+                trigger-class="h-11 lg:h-9"
                 :disabled="form.processing"
                 label="Allergy category"
                 :options="allergyCategoryOptions"
@@ -121,7 +121,7 @@ const submit = () => {
                 id="otc-allergy-severity"
                 v-model="form.severity"
                 class="mt-1"
-                trigger-class="h-11 sm:h-9"
+                trigger-class="h-11 lg:h-9"
                 :disabled="form.processing"
                 label="Allergy severity"
                 :options="allergySeverityOptions"
@@ -177,10 +177,10 @@ const submit = () => {
             Saved to the patient's allergy profile. Only a doctor can change or
             remove it.
         </p>
-        <div class="flex flex-col gap-2 sm:flex-row">
+        <div class="flex flex-col gap-2 lg:flex-row">
             <Button
                 type="submit"
-                class="h-11 w-full sm:h-9 sm:w-auto"
+                class="h-11 w-full lg:h-9 lg:w-auto"
                 :disabled="form.processing"
                 data-action="add-otc-allergy-record"
             >
@@ -190,7 +190,7 @@ const submit = () => {
                 v-if="optional"
                 type="button"
                 variant="outline"
-                class="h-11 w-full sm:h-9 sm:w-auto"
+                class="h-11 w-full lg:h-9 lg:w-auto"
                 :disabled="form.processing"
                 data-action="cancel-otc-allergy-form"
                 @click="emit('cancel')"

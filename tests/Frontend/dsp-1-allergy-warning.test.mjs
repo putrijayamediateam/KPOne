@@ -17,7 +17,11 @@ test('the warning names the allergy, asks for the confirmation and says text mat
     assert.ok(warning.includes('It can miss an allergy'));
     assert.ok(warning.includes('always read the full allergy'));
     assert.ok(warning.includes('role="region"'));
-    assert.ok(warning.includes('dark:bg-red-950/60'), 'readable in dark mode');
+    // UI-RESTYLE D4a (owner-approved): the danger token is readable in light and dark.
+    assert.ok(
+        warning.includes('border-destructive/40 bg-destructive/10'),
+        'readable in dark mode',
+    );
 });
 
 test('the warning appears on an edited line, a removed line being put back and a medicine being added', () => {

@@ -15,10 +15,12 @@ const confirmed = defineModel<boolean>({ default: false });
     <div
         role="region"
         aria-label="Possible allergy match"
-        class="rounded-md border border-red-300 bg-red-50 p-3 text-xs text-red-900 dark:border-red-500/60 dark:bg-red-950/60 dark:text-red-100"
+        class="rounded-[10px] border border-destructive/40 bg-destructive/10 p-3 text-xs text-foreground"
         data-testid="allergy-match-warning"
     >
-        <p class="flex items-start gap-2 text-sm font-semibold">
+        <p
+            class="flex items-start gap-2 text-sm font-semibold text-destructive"
+        >
             <TriangleAlert class="mt-0.5 size-4 shrink-0" aria-hidden="true" />
             Possible allergy match
         </p>
@@ -40,16 +42,16 @@ const confirmed = defineModel<boolean>({ default: false });
                 :id="fieldId"
                 v-model="confirmed"
                 type="checkbox"
-                class="size-4 accent-red-700 dark:accent-red-400"
+                class="size-4 accent-destructive"
                 data-field="allergy-confirmation"
             />
             I have checked with the patient/doctor
         </label>
-        <p class="mt-1 text-red-800 dark:text-red-200">
+        <p class="mt-1 text-destructive">
             This check compares the allergy text with the medicine name, generic
             name, catalogue other names and catalogue drug groups only.
         </p>
-        <p class="mt-1 text-red-800 dark:text-red-200">
+        <p class="mt-1 text-destructive">
             It can miss an allergy (a drug group, brand name or spelling not
             listed in the catalogue), so always read the full allergy list.
         </p>

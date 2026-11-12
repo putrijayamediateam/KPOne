@@ -27,7 +27,8 @@ test('the warnings keep their light-mode colours', () => {
     );
     const show = read('resources/js/pages/Dispensary/Show.vue');
     assert.ok(panel.includes('border-amber-200 bg-amber-50/40 dark:'));
-    assert.ok(show.includes("'border-amber-300 bg-amber-50/70 dark:"));
+    // UI-RESTYLE D4a (owner-approved): the allergy panels moved to the shared warning tokens.
+    assert.ok(show.includes("'border-warning/30 bg-warning/10'"));
     assert.ok(
         show.includes(
             'border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:',

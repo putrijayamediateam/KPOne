@@ -1129,11 +1129,12 @@ const exceptionStatusLabels: Record<string, string> = {
 <template>
     <Head title="Dispensary" />
     <main
-        class="mx-auto w-full max-w-[1500px] px-4 py-4 lg:px-6 max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
+        class="mx-auto w-full max-w-[1500px] px-4 py-6 lg:px-6 max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
     >
-        <!-- DD-25: the page title names the task; the patient card below is the one place that names the patient. -->
+        <!-- DD-25: the page title names the task; the patient card below is the one place that names the patient.
+             UI-RESTYLE D4a (GUIDE section 19): the frame, header and left column use the app-wide look; layout only. -->
         <PageHeader
-            class="mb-4 border-b pb-3"
+            class="mb-5"
             title="Dispensary"
             description="Check each line, save it, then complete."
         >
@@ -1146,7 +1147,7 @@ const exceptionStatusLabels: Record<string, string> = {
                 "
                 #actions
             >
-                <Button as-child variant="outline" size="sm">
+                <Button as-child variant="outline" size="sm" class="lg:h-9">
                     <a
                         :href="`/dispensary/${dispensary.publicId}/labels`"
                         target="_blank"
@@ -1166,19 +1167,19 @@ const exceptionStatusLabels: Record<string, string> = {
         >
             <aside class="flex flex-col gap-4" data-testid="dispensary-left">
                 <section
-                    class="rounded-xl border bg-card p-4 text-sm"
+                    class="rounded-[14px] border bg-card p-4 text-sm"
                     data-testid="dispensary-patient"
                 >
-                    <p
-                        class="text-xs font-medium tracking-wide text-muted-foreground uppercase"
-                    >
+                    <p class="text-[13px] font-medium text-muted-foreground">
                         Patient
                     </p>
-                    <h2 class="text-base font-semibold break-words">
+                    <h2
+                        class="text-[17px] leading-snug font-semibold break-words"
+                    >
                         {{ dispensary.patient.name }}
                     </h2>
                     <dl
-                        class="mt-2 grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5 text-xs"
+                        class="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 text-[13px]"
                     >
                         <dt class="text-muted-foreground">KP number</dt>
                         <dd>{{ dispensary.patient.patientNumber }}</dd>
@@ -1196,15 +1197,17 @@ const exceptionStatusLabels: Record<string, string> = {
                 </section>
                 <div
                     v-if="isOtc"
-                    class="rounded-xl border p-4 text-sm"
+                    class="rounded-[14px] border p-4 text-sm"
                     :class="
                         otcAllergyConfirmed
-                            ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/30'
-                            : 'border-amber-300 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/30'
+                            ? 'border-success/30 bg-success/10'
+                            : 'border-warning/30 bg-warning/10'
                     "
                     data-testid="otc-allergy"
                 >
-                    <p class="font-medium">Ask the patient about allergies</p>
+                    <p class="text-[15px] font-semibold">
+                        Ask the patient about allergies
+                    </p>
                     <p class="text-xs text-muted-foreground">
                         Record what the patient tells you. Saved allergies are
                         compared with medicine names and catalogue drug groups
@@ -1280,7 +1283,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             "
                             type="button"
                             variant="outline"
-                            class="mt-2 h-11 w-full sm:h-9 sm:w-auto"
+                            class="mt-2 h-11 w-full lg:h-9 lg:w-auto"
                             data-action="open-otc-allergy-form"
                             @click="otcAddingAnother = true"
                         >
@@ -1302,7 +1305,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             <Button
                                 size="sm"
                                 variant="outline"
-                                class="h-11 w-full sm:h-9 sm:w-auto"
+                                class="h-11 w-full lg:h-9 lg:w-auto"
                                 :disabled="busy || otcConfirmBlocked"
                                 data-action="confirm-otc-allergy"
                                 @click="confirmOtcAllergy"
@@ -1311,7 +1314,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             </Button>
                             <span
                                 v-if="otcAllergyConfirmed"
-                                class="text-xs text-emerald-800 dark:text-emerald-300"
+                                class="text-xs font-medium text-success"
                                 >Recorded</span
                             >
                             <span
@@ -1333,11 +1336,11 @@ const exceptionStatusLabels: Record<string, string> = {
                 </div>
                 <div
                     v-else
-                    class="rounded-xl border p-4 text-sm"
+                    class="rounded-[14px] border p-4 text-sm"
                     :class="
                         dispensary.allergySafety.isCurrent
-                            ? 'border-emerald-200 bg-emerald-50/50 dark:border-emerald-900 dark:bg-emerald-950/30'
-                            : 'border-amber-300 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/30'
+                            ? 'border-success/30 bg-success/10'
+                            : 'border-warning/30 bg-warning/10'
                     "
                     data-testid="dispensary-allergies"
                 >

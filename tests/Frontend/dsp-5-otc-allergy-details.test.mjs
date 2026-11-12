@@ -58,8 +58,9 @@ test('the form is accessible and fits a phone', () => {
     }
 
     assert.ok(form.includes('otc-allergy-allergen-error'));
-    assert.ok(form.includes('trigger-class="h-11 sm:h-9"'));
-    assert.ok(form.includes('h-11 w-full sm:h-9 sm:w-auto'));
+    // UI-RESTYLE D4a (owner-approved): 44 px up to 1024 px, as on the rest of the Dispensary (DD-24).
+    assert.ok(form.includes('trigger-class="h-11 lg:h-9"'));
+    assert.ok(form.includes('h-11 w-full lg:h-9 lg:w-auto'));
     assert.ok(show.includes('flex min-h-11 items-center gap-2'));
 });
 

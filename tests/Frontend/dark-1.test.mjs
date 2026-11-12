@@ -34,10 +34,11 @@ test('DARK-1 S1-006: both selected sign-in cards adapt to dark mode and retain t
 test('DARK-1 S1-007: confirmed and unconfirmed OTC allergy states have dark surfaces and readable Recorded text', () => {
     const nodes = elements(template('Dispensary/Show.vue'));
     const panel = nodes.find((node) => attribute(node, 'data-testid') === 'otc-allergy');
-    includes(classes(panel, { otcAllergyConfirmed: true }), `border-emerald-200 bg-emerald-50/50 ${green}`);
-    includes(classes(panel, { otcAllergyConfirmed: false }), 'border-amber-300 bg-amber-50/70 dark:border-amber-900 dark:bg-amber-950/30');
+    // UI-RESTYLE D4a (owner-approved): the shared success and warning tokens carry their own dark values.
+    includes(classes(panel, { otcAllergyConfirmed: true }), 'border-success/30 bg-success/10');
+    includes(classes(panel, { otcAllergyConfirmed: false }), 'border-warning/30 bg-warning/10');
     const recorded = elements(panel).find((node) => node.tag === 'span' && directive(node, 'if') === 'otcAllergyConfirmed');
-    includes(classes(recorded), 'text-emerald-800 dark:text-emerald-300');
+    includes(classes(recorded), 'font-medium text-success');
 });
 
 test('DARK-1 S1-008: visit queue card and icon adapt to dark mode without changing the light styles', () => {
