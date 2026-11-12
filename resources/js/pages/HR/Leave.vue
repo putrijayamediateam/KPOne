@@ -818,6 +818,25 @@ const personEntitlements = computed(
     () => props.leave.settings?.entitlements.filter((e) => e.userId) ?? [],
 );
 const entitlementSaving = ref(false);
+// Save turns cobalt only while the grid differs from what is saved (GUIDE section 19: one cobalt action per screen).
+const entitlementsUnsaved = computed(() => {
+    const saved = new Map<string, string>();
+
+    for (const row of props.leave.settings?.entitlements ?? []) {
+        if (row.role) {
+            saved.set(`${row.leaveTypeId}:${row.role}`, String(row.days));
+        }
+    }
+
+    const typed = Object.entries(entitlementValues).filter(
+        ([, days]) => days !== '' && days !== undefined && days !== null,
+    );
+
+    return (
+        typed.length !== saved.size ||
+        typed.some(([key, days]) => saved.get(key) !== String(days))
+    );
+});
 const saveEntitlements = () => {
     const rows = Object.entries(entitlementValues)
         .filter(([, days]) => days !== '' && days !== undefined)
@@ -935,6 +954,15 @@ const toggleDay = (day: number, on: boolean) => {
         ? [...new Set([...workingDays.value, day])].sort()
         : workingDays.value.filter((d) => d !== day);
 };
+const workingDaysUnsaved = computed(() => {
+    if (!workingRow.value) {
+        return true;
+    }
+
+    const saved = [...workingRow.value.weekdays].sort().join(',');
+
+    return [...workingDays.value].sort().join(',') !== saved;
+});
 const saveWorkingDays = () =>
     router.put(
         '/hr/leave/working-days',
@@ -1852,6 +1880,9 @@ const calendarDays = computed(() =>
                         class="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap"
                     >
                         <Button
+                            :variant="
+                                entitlementsUnsaved ? 'default' : 'outline'
+                            "
                             class="min-h-11 sm:min-h-9"
                             :disabled="entitlementSaving"
                             @click="saveEntitlements"
@@ -1979,6 +2010,7 @@ const calendarDays = computed(() =>
                 </fieldset>
                 <InputError :message="errors.weekdays" />
                 <Button
+                    :variant="workingDaysUnsaved ? 'default' : 'outline'"
                     class="mt-3 min-h-11 sm:min-h-9"
                     @click="saveWorkingDays"
                     >Save working days</Button
@@ -2159,6 +2191,7 @@ const calendarDays = computed(() =>
                     <div class="flex items-end">
                         <Button
                             type="submit"
+                            :variant="entryForm.isDirty ? 'default' : 'outline'"
                             class="min-h-11 w-full sm:min-h-9 sm:w-fit"
                             :disabled="entryForm.processing"
                             >Send for a check</Button
