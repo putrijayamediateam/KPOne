@@ -59,14 +59,24 @@ test('DD-51: dark field fills use their own token, so darkening the border leave
     assert.deepEqual(offenders, []);
 });
 
-test('DD-51: the dark focus ring is the lighter brand pink and stands out from the resting border', () => {
-    const dark = css.slice(css.indexOf('.dark'));
-    const ring = dark.match(/--ring:\s*hsl\(330 81% 72%\);/);
-    assert.ok(
-        ring,
-        'dark --ring should be hsl(330 81% 72%), the colour of --brand-strong',
-    );
-    assert.match(dark, /--brand-strong:\s*hsl\(330 81% 72%\);/);
+test('DD-51: the dark focus ring is the lighter cobalt and reaches 3:1 on the dark surfaces', () => {
+    const dark = css.slice(css.indexOf('.dark {'));
+    const ring = dark.match(/--ring:\s*(#[0-9a-f]{6});/i);
+    assert.ok(ring, 'dark --ring should be a hex colour');
+    assert.equal(ring[1].toLowerCase(), '#6ba6ff');
+
+    for (const surface of ['--background', '--card']) {
+        const hex = dark.match(
+            new RegExp(`${surface}:\\s*(#[0-9a-f]{6});`, 'i'),
+        );
+        assert.ok(hex, `${surface} should be a hex colour`);
+        assert.ok(
+            ratio(ring[1], hex[1]) >= 3,
+            `dark ring against ${surface} must reach 3:1`,
+        );
+    }
+
+    assert.match(dark, /--brand-strong:\s*#ffa3c0;/i);
 });
 
 test('DD-51: plain inputs that only set `border` also get the field border colour', () => {
