@@ -19,9 +19,11 @@ import {
 } from '@/components/ui/sheet';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import V2JumpDialog from '@/components/workspace/V2JumpDialog.vue';
+import V2PageCrumbs from '@/components/workspace/V2PageCrumbs.vue';
 import V2ShellNav from '@/components/workspace/V2ShellNav.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
 import { getInitials } from '@/composables/useInitials';
+import { providePageCrumbs } from '@/composables/usePageCrumbs';
 import type { V2Shell } from '@/types';
 
 /**
@@ -59,7 +61,12 @@ const backToClassic = () =>
 const QUIET_BACK =
     'h-9 gap-1.5 rounded-lg px-2.5 text-xs font-normal text-muted-foreground hover:text-foreground';
 
-const crumb = computed(() => props.shell.current);
+// UX-20: a page may set its own crumb trail (usePageCrumbs); the space this page belongs to is the fallback.
+const { placed: crumbsInFrame } = providePageCrumbs(() =>
+    props.shell.current
+        ? { title: props.shell.current.title, href: props.shell.current.href }
+        : null,
+);
 </script>
 
 <template>
@@ -174,18 +181,13 @@ const crumb = computed(() => props.shell.current);
                 </div>
             </header>
 
-            <nav
-                v-if="crumb && !focusMode"
-                aria-label="Breadcrumb"
-                class="px-4 pt-4 md:px-6"
+            <!-- A page with PageFrame draws the crumb inside its own frame, at the content edge. For a page without one the
+                 shell draws it here, at PageFrame's padding (16 px, 32 px from 1024 px). -->
+            <V2PageCrumbs
+                v-if="!focusMode && crumbsInFrame === 0"
+                class="px-4 pt-4 lg:px-8"
                 data-test="v2-shell-crumb"
-            >
-                <Link
-                    :href="crumb.href"
-                    class="inline-flex items-center text-xs font-medium text-muted-foreground hover:text-foreground hover:underline max-sm:min-h-11"
-                    >{{ crumb.title }}</Link
-                >
-            </nav>
+            />
 
             <slot />
         </div>
