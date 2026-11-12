@@ -34,7 +34,7 @@ test('the icon tile is never empty and a destructive question uses the destructi
 test('UX-16: a non-destructive question uses the brand tone', () => {
     assert.match(
         dialog,
-        /:\s*'bg-brand\/10 text-brand-strong dark:bg-brand\/15'/,
+        /:\s*'bg-primary\/10 text-primary dark:bg-primary\/15'/,
     );
     assert.doesNotMatch(dialog, /pink-\d+/);
 });

@@ -98,7 +98,7 @@ const onOpenAutoFocus = (event: Event) => {
                         :class="
                             destructive
                                 ? 'bg-destructive/10 text-destructive dark:bg-destructive/15'
-                                : 'bg-brand/10 text-brand-strong dark:bg-brand/15'
+                                : 'bg-primary/10 text-primary dark:bg-primary/15'
                         "
                         data-testid="confirm-dialog-icon"
                         aria-hidden="true"
