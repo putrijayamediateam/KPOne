@@ -35,19 +35,23 @@ const go = (page: number) => {
             type="button"
             variant="secondary"
             size="sm"
+            class="max-lg:h-11 max-lg:px-4"
             :disabled="disabled || currentPage <= 1"
             @click="go(currentPage - 1)"
         >
             Previous
         </Button>
         <span class="px-1 text-xs text-muted-foreground" aria-current="page">
-            <template v-if="total !== undefined">{{ total }} records · </template>
+            <template v-if="total !== undefined"
+                >{{ total }} {{ total === 1 ? 'record' : 'records' }} ·
+            </template>
             Page {{ currentPage }} of {{ Math.max(lastPage, 1) }}
         </span>
         <Button
             type="button"
             variant="secondary"
             size="sm"
+            class="max-lg:h-11 max-lg:px-4"
             :disabled="disabled || currentPage >= lastPage"
             @click="go(currentPage + 1)"
         >
