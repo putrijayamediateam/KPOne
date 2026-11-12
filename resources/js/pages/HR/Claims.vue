@@ -949,10 +949,10 @@ const dialogOpen = computed(
                             >Director approves claims above</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
+                            class="flex h-9 w-44 items-stretch overflow-hidden rounded-md border border-input bg-card shadow-xs transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/40 max-lg:h-11 dark:bg-field-fill/30"
                         >
                             <span
-                                class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
+                                class="flex items-center border-r bg-muted px-3 text-sm font-medium text-foreground"
                                 aria-hidden="true"
                                 >RM</span
                             >
@@ -960,7 +960,7 @@ const dialogOpen = computed(
                                 id="claim-director-level"
                                 v-model="settingsForm.level"
                                 inputmode="decimal"
-                                class="border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11 dark:bg-transparent"
+                                class="h-full rounded-none border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:ring-0 dark:bg-transparent"
                                 aria-describedby="claim-director-level-help"
                             />
                         </div>
@@ -1038,7 +1038,9 @@ const dialogOpen = computed(
                     v-if="unusedSuggestions.length"
                     class="flex flex-wrap items-center gap-2 text-sm"
                 >
-                    <span class="text-muted-foreground">Suggested:</span>
+                    <span class="w-full text-muted-foreground sm:w-auto"
+                        >Suggested:</span
+                    >
                     <Button
                         v-for="s in unusedSuggestions"
                         :key="s"
@@ -1346,10 +1348,10 @@ const dialogOpen = computed(
                             >Limit a claim (optional)</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
+                            class="flex h-9 w-44 items-stretch overflow-hidden rounded-md border border-input bg-card shadow-xs transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/40 max-lg:h-11 dark:bg-field-fill/30"
                         >
                             <span
-                                class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
+                                class="flex items-center border-r bg-muted px-3 text-sm font-medium text-foreground"
                                 aria-hidden="true"
                                 >RM</span
                             >
@@ -1357,7 +1359,7 @@ const dialogOpen = computed(
                                 id="category-per-claim"
                                 v-model="categoryForm.perClaim"
                                 inputmode="decimal"
-                                class="border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11 dark:bg-transparent"
+                                class="h-full rounded-none border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:ring-0 dark:bg-transparent"
                             />
                         </div>
                         <InputError :message="errors.per_claim_limit" />
@@ -1367,10 +1369,10 @@ const dialogOpen = computed(
                             >Limit a month for each person (optional)</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
+                            class="flex h-9 w-44 items-stretch overflow-hidden rounded-md border border-input bg-card shadow-xs transition-[border-color,box-shadow] focus-within:border-ring focus-within:ring-[3px] focus-within:ring-ring/40 max-lg:h-11 dark:bg-field-fill/30"
                         >
                             <span
-                                class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
+                                class="flex items-center border-r bg-muted px-3 text-sm font-medium text-foreground"
                                 aria-hidden="true"
                                 >RM</span
                             >
@@ -1378,7 +1380,7 @@ const dialogOpen = computed(
                                 id="category-monthly"
                                 v-model="categoryForm.monthly"
                                 inputmode="decimal"
-                                class="border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:ring-0 max-lg:h-11 dark:bg-transparent"
+                                class="h-full rounded-none border-0 bg-transparent text-right tabular-nums shadow-none focus-visible:ring-0 dark:bg-transparent"
                             />
                         </div>
                         <InputError :message="errors.monthly_limit" />
