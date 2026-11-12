@@ -317,3 +317,16 @@ main:focus,
 [role='main']:focus {
     outline: none;
 }
+
+/* Table → cards on phones (opt-in with OperationalTable `cards`).
+   Cells carry data-label; the row becomes a 14px hairline card. */
+@media (max-width: 639.98px) {
+    .kp-table-cards table { min-width: 0 !important; }
+    .kp-table-cards thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    .kp-table-cards tbody, .kp-table-cards tr, .kp-table-cards td { display: block; }
+    .kp-table-cards tbody { display: grid; gap: 0.75rem; padding: 0.75rem; }
+    .kp-table-cards tbody tr { border: 1px solid var(--border); border-radius: 14px; padding: 0.25rem 0.75rem; }
+    .kp-table-cards tbody tr:last-child { border-bottom: 1px solid var(--border); }
+    .kp-table-cards td { display: flex; justify-content: space-between; gap: 1rem; padding: 0.5rem 0 !important; text-align: right; }
+    .kp-table-cards td[data-label]::before { content: attr(data-label); color: var(--muted-foreground); font-size: 13px; text-align: left; }
+}

@@ -29,7 +29,7 @@ const go = (page: number) => {
 
 <template>
     <nav
-        class="flex flex-wrap items-center justify-end gap-2 text-sm"
+        class="grid grid-cols-2 items-center gap-2 text-sm sm:flex sm:flex-wrap sm:justify-end"
         aria-label="Pagination"
     >
         <Button
@@ -42,7 +42,8 @@ const go = (page: number) => {
         >
             Previous
         </Button>
-        <span class="px-1 text-xs text-muted-foreground" aria-current="page">
+        <span
+            class="order-first col-span-2 px-1 text-center text-xs text-muted-foreground sm:order-none sm:col-span-1 sm:text-left" aria-current="page">
             <template v-if="total !== undefined"
                 >{{ recordsLabel(total) }} ·
             </template>
