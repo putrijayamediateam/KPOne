@@ -160,8 +160,8 @@ const save = () => {
                     </div>
                 </div>
             </fieldset>
-            <div class="grid gap-3 sm:grid-cols-2">
-                <div class="grid gap-1">
+            <div class="grid items-start gap-3 sm:grid-cols-2">
+                <div class="grid content-start gap-1">
                     <Label for="overtime-nearing"
                         >Warn from (hours a week) *</Label
                     >
@@ -173,7 +173,7 @@ const save = () => {
                     />
                     <InputError :message="errors.nearing_hours" />
                 </div>
-                <div class="grid gap-1">
+                <div class="grid content-start gap-1">
                     <Label for="overtime-limit">Weekly limit (hours) *</Label>
                     <Input
                         id="overtime-limit"
