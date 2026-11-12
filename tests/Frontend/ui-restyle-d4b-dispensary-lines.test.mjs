@@ -112,7 +112,7 @@ test('field labels stay short, with the label budget as a hint under each box (D
     assert.equal(
         (
             flat.match(
-                /<span class="mt-1 block text-muted-foreground" ?>Max \{\{ dispensary\.labelLimits\?\.\w+ \}\} characters<\/span/g,
+                /<span class="mt-1 block text-muted-foreground" ?>Label max \{\{ dispensary\.labelLimits\?\.\w+ \}\} characters<\/span/g,
             ) ?? []
         ).length,
         10,

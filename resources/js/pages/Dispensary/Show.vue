@@ -1576,7 +1576,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     maxlength="500"
                                     data-field="dosage"
                                 /><span class="mt-1 block text-muted-foreground"
-                                    >Max
+                                    >Label max
                                     {{ dispensary.labelLimits?.dosage }}
                                     characters</span
                                 ></label
@@ -1589,7 +1589,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     maxlength="500"
                                     data-field="frequency"
                                 /><span class="mt-1 block text-muted-foreground"
-                                    >Max
+                                    >Label max
                                     {{ dispensary.labelLimits?.frequency }}
                                     characters</span
                                 ></label
@@ -1602,7 +1602,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     maxlength="500"
                                     data-field="duration"
                                 /><span class="mt-1 block text-muted-foreground"
-                                    >Max
+                                    >Label max
                                     {{ dispensary.labelLimits?.duration }}
                                     characters</span
                                 ></label
@@ -1626,7 +1626,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     maxlength="2000"
                                     data-field="instruction"
                                 /><span class="mt-1 block text-muted-foreground"
-                                    >Max
+                                    >Label max
                                     {{ dispensary.labelLimits?.instruction }}
                                     characters</span
                                 ></label
@@ -1639,7 +1639,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     maxlength="2000"
                                     data-field="precaution"
                                 /><span class="mt-1 block text-muted-foreground"
-                                    >Max
+                                    >Label max
                                     {{ dispensary.labelLimits?.precaution }}
                                     characters</span
                                 ></label
@@ -2041,7 +2041,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 maxlength="500"
                                 data-field="add-dosage"
                             /><span class="mt-1 block text-muted-foreground"
-                                >Max
+                                >Label max
                                 {{ dispensary.labelLimits?.dosage }}
                                 characters</span
                             ></label
@@ -2054,7 +2054,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 maxlength="500"
                                 data-field="add-frequency"
                             /><span class="mt-1 block text-muted-foreground"
-                                >Max
+                                >Label max
                                 {{ dispensary.labelLimits?.frequency }}
                                 characters</span
                             ></label
@@ -2066,7 +2066,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 :class="inputClass"
                                 maxlength="500"
                             /><span class="mt-1 block text-muted-foreground"
-                                >Max
+                                >Label max
                                 {{ dispensary.labelLimits?.duration }}
                                 characters</span
                             ></label
@@ -2088,7 +2088,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 :class="inputClass"
                                 maxlength="2000"
                             /><span class="mt-1 block text-muted-foreground"
-                                >Max
+                                >Label max
                                 {{ dispensary.labelLimits?.instruction }}
                                 characters</span
                             ></label
@@ -2100,7 +2100,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 :class="inputClass"
                                 maxlength="2000"
                             /><span class="mt-1 block text-muted-foreground"
-                                >Max
+                                >Label max
                                 {{ dispensary.labelLimits?.precaution }}
                                 characters</span
                             ></label
