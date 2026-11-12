@@ -11,6 +11,7 @@ const show = readFileSync('resources/js/pages/Spaces/Show.vue', 'utf8');
 
 test('the Me home ring only opens Attendance through the shared clock shortcut', () => {
     assert.match(home, /useClockShortcut/);
+
     for (const id of [
         'me-time',
         'me-clock-in',
@@ -22,6 +23,7 @@ test('the Me home ring only opens Attendance through the shared clock shortcut',
     ]) {
         assert.ok(home.includes(id), id);
     }
+
     assert.doesNotMatch(home, /router\.(post|put|patch|delete)/);
     assert.doesNotMatch(home, /break/i);
 });
