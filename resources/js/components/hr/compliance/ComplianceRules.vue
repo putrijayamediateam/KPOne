@@ -97,6 +97,36 @@ watch(
     { immediate: true, deep: true },
 );
 
+// HR forms (Daniel, 2026-11-12): a Save is cobalt only when pressing it would do something (changes, or a first save of a real version).
+const coverUnsaved = computed(() => {
+    const c = props.settings.coverage;
+
+    if (c.version === 0) {
+        return true;
+    }
+
+    return (
+        String(cover.min) !== String(c.minDoctors ?? 0) ||
+        days.some(
+            ([d]) =>
+                (cover.hours[d]?.open ?? '') !== (c.hours[d]?.open ?? '') ||
+                (cover.hours[d]?.close ?? '') !== (c.hours[d]?.close ?? ''),
+        )
+    );
+});
+const workUnsaved = computed(() => {
+    const w = props.settings.workHours;
+
+    if (w.version === 0) {
+        return true;
+    }
+
+    return (
+        String(work.days) !== String(w.maxDaysInRow ?? '') ||
+        String(work.rest) !== String(w.minRestHours ?? '') ||
+        String(work.week) !== String(w.maxWeekHours ?? '')
+    );
+});
 const saveCover = () => {
     cover.processing = true;
     router.put(
@@ -227,7 +257,7 @@ const saveWork = () => {
                 </div>
                 <Button
                     type="submit"
-                    variant="outline"
+                    :variant="coverUnsaved ? 'default' : 'outline'"
                     class="self-start max-lg:min-h-11"
                     :disabled="cover.processing"
                     data-test="coverage-save"
@@ -297,7 +327,7 @@ const saveWork = () => {
                 </div>
                 <Button
                     type="submit"
-                    variant="outline"
+                    :variant="workUnsaved ? 'default' : 'outline'"
                     class="self-start max-lg:min-h-11"
                     :disabled="work.processing"
                     data-test="work-hours-save"

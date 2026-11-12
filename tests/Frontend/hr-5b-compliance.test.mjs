@@ -71,10 +71,15 @@ test('rules: KPOne ships no number, the form only suggests, each limit can be le
         assert.match(rules, new RegExp(`<Label for="${id}"`));
     }
 
-    for (const t of ['coverage-save', 'work-hours-save']) {
+    for (const [flag, t] of [
+        ['coverUnsaved', 'coverage-save'],
+        ['workUnsaved', 'work-hours-save'],
+    ]) {
         assert.match(
             rules,
-            new RegExp(`variant="outline"[\\s\\S]{0,200}data-test="${t}"`),
+            new RegExp(
+                `:variant="${flag} \\? 'default' : 'outline'"[\\s\\S]{0,200}data-test="${t}"`,
+            ),
         );
     }
 
