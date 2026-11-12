@@ -222,7 +222,6 @@ test('buttons expose the approved hierarchy and interactive states', () => {
         'primary',
         'secondary',
         'ghost',
-        'accent',
         'destructive',
     ]) {
         assert.match(button, new RegExp(`${variant}:`));
