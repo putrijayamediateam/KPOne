@@ -29,9 +29,10 @@ test('the warnings keep their light-mode colours', () => {
     assert.ok(panel.includes('border-amber-200 bg-amber-50/40 dark:'));
     // UI-RESTYLE D4a (owner-approved): the allergy panels moved to the shared warning tokens.
     assert.ok(show.includes("'border-warning/30 bg-warning/10'"));
+    // UI-RESTYLE D4b (owner-approved): the action error banner uses the shared danger tokens.
     assert.ok(
         show.includes(
-            'border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:',
+            'border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive',
         ),
     );
     assert.ok(show.includes('border-pink-300 bg-pink-50/60 p-3 text-sm dark:'));

@@ -1116,7 +1116,7 @@ const changeLabel = (item: Item) =>
 const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
 // DSP-17: brand line colour only (not the error look); replaces the focus ring while shown.
 const batchHintClass =
-    'border-brand ring-2 ring-brand ring-offset-2 ring-offset-background focus-visible:ring-brand';
+    'border-primary ring-2 ring-primary ring-offset-2 ring-offset-background focus-visible:ring-primary';
 
 // Plain words for an earlier partial dispense, never the stored code (Daniel, guide section 15).
 const exceptionStatusLabels: Record<string, string> = {
@@ -1163,9 +1163,15 @@ const exceptionStatusLabels: Record<string, string> = {
         </PageHeader>
 
         <div
-            class="grid gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)]"
+            class="grid items-start gap-4 lg:grid-cols-[minmax(0,1fr)_minmax(0,300px)] lg:grid-rows-[auto_1fr] min-[90rem]:grid-cols-[minmax(0,280px)_minmax(0,1fr)_minmax(0,300px)] min-[90rem]:grid-rows-none"
         >
-            <aside class="flex flex-col gap-4" data-testid="dispensary-left">
+            <!-- UI-RESTYLE D4b (Daniel): from 1024 to 1279 px the page has two columns, the lines on the left and the
+                 patient, allergy, summary and actions stacked on the right, so the line fields never crush; three
+                 columns from 1440 px (owner decision). The reading order (left, lines, right) is unchanged. -->
+            <aside
+                class="flex flex-col gap-4 lg:col-start-2 lg:row-start-1 min-[90rem]:col-start-1"
+                data-testid="dispensary-left"
+            >
                 <section
                     class="rounded-[14px] border bg-card p-4 text-sm"
                     data-testid="dispensary-patient"
@@ -1379,13 +1385,13 @@ const exceptionStatusLabels: Record<string, string> = {
                 </div>
             </aside>
             <div
-                class="flex min-w-0 flex-col gap-4"
+                class="flex min-w-0 flex-col gap-4 lg:col-start-1 lg:row-span-2 lg:row-start-1 min-[90rem]:col-start-2 min-[90rem]:row-span-1"
                 data-testid="dispensary-main"
             >
                 <p
                     v-if="actionError"
                     role="alert"
-                    class="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800 dark:border-red-900 dark:bg-red-950/40 dark:text-red-200"
+                    class="rounded-[10px] border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
                 >
                     {{ actionError }}
                 </p>
@@ -1394,7 +1400,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         dispensary.can.update &&
                         (unsaved.length || unsavedServices.length)
                     "
-                    class="flex items-center justify-between rounded-lg border border-amber-300 bg-amber-50/70 px-3 py-2 text-sm dark:border-amber-900 dark:bg-amber-950/30"
+                    class="flex items-center justify-between rounded-[10px] border border-warning/30 bg-warning/10 px-3 py-2 text-sm"
                     data-testid="dispensary-unsaved"
                 >
                     <span
@@ -1420,11 +1426,11 @@ const exceptionStatusLabels: Record<string, string> = {
                     @keydown.enter.capture="clearLineHint"
                     @found="markScanned"
                 />
-                <section class="divide-y rounded-lg border bg-background">
+                <section class="divide-y rounded-[14px] border bg-card">
                     <article
                         v-for="item in visibleItems"
                         :key="item.publicId"
-                        class="grid gap-3 p-3 lg:grid-cols-[minmax(220px,1fr)_minmax(0,3fr)]"
+                        class="grid gap-3 p-3 min-[90rem]:grid-cols-[minmax(220px,1fr)_minmax(0,3fr)]"
                         :data-testid="`line-${item.publicId}`"
                     >
                         <div>
@@ -1480,7 +1486,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             </p>
                             <p
                                 v-if="item.exception"
-                                class="mt-1 text-xs text-amber-700 dark:text-amber-300"
+                                class="mt-1 text-xs font-medium text-warning-strong"
                             >
                                 Earlier partial dispense:
                                 {{
@@ -1519,21 +1525,35 @@ const exceptionStatusLabels: Record<string, string> = {
                             v-if="dispensary.can.update && forms[item.publicId]"
                             class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
                         >
-                            <p class="text-muted-foreground sm:col-span-full">
-                                Label limits (characters; saved clinical text is
-                                unchanged): dosage
-                                {{ dispensary.labelLimits?.dosage }}, frequency
-                                {{ dispensary.labelLimits?.frequency }},
-                                duration {{ dispensary.labelLimits?.duration }},
-                                instruction
-                                {{ dispensary.labelLimits?.instruction }},
-                                precaution
-                                {{ dispensary.labelLimits?.precaution }},
-                                quantity {{ dispensary.labelLimits?.quantity }}.
-                                Dosage, frequency and instruction share 3
-                                printed rows. Route is not printed. Over-budget
-                                labels are blocked, never truncated.
-                            </p>
+                            <details
+                                class="text-muted-foreground sm:col-span-full"
+                                data-testid="label-limits"
+                            >
+                                <summary
+                                    class="flex min-h-11 w-fit cursor-pointer items-center font-medium lg:min-h-0"
+                                >
+                                    Label limits
+                                </summary>
+                                <p class="mt-1">
+                                    Label limits (characters; saved clinical
+                                    text is unchanged): dosage
+                                    {{ dispensary.labelLimits?.dosage }},
+                                    frequency
+                                    {{ dispensary.labelLimits?.frequency }},
+                                    duration
+                                    {{ dispensary.labelLimits?.duration }},
+                                    instruction
+                                    {{ dispensary.labelLimits?.instruction }},
+                                    precaution
+                                    {{ dispensary.labelLimits?.precaution }},
+                                    quantity
+                                    {{ dispensary.labelLimits?.quantity }}.
+                                    Dosage, frequency and instruction share 3
+                                    printed rows. Route is not printed.
+                                    Over-budget labels are blocked, never
+                                    truncated.
+                                </p>
+                            </details>
                             <label
                                 >Quantity ({{ item.unit }})<input
                                     v-model="forms[item.publicId].quantity"
@@ -1635,7 +1655,7 @@ const exceptionStatusLabels: Record<string, string> = {
                             >
                                 <span
                                     role="status"
-                                    class="block font-medium text-brand-strong empty:hidden"
+                                    class="block font-medium text-primary empty:hidden"
                                     ><span
                                         v-if="batchHint === item.publicId"
                                         class="inline-flex items-start gap-1"
@@ -1692,13 +1712,13 @@ const exceptionStatusLabels: Record<string, string> = {
                             </p>
                             <p
                                 v-if="!item.sku"
-                                class="text-xs text-amber-700 sm:col-span-2 dark:text-amber-300"
+                                class="text-xs font-medium text-warning-strong sm:col-span-2"
                             >
                                 No approved inventory SKU mapping.
                             </p>
                             <p
                                 v-else-if="!item.availability.length"
-                                class="text-xs text-amber-700 sm:col-span-2 dark:text-amber-300"
+                                class="text-xs font-medium text-warning-strong sm:col-span-2"
                             >
                                 No eligible stock in this branch's Dispensary.
                                 Stock at other locations requires transfer
@@ -1790,11 +1810,11 @@ const exceptionStatusLabels: Record<string, string> = {
 
                 <section
                     v-if="removedItems.length"
-                    class="mt-3 rounded-lg border border-dashed p-3 text-sm"
+                    class="mt-3 rounded-[14px] border border-dashed bg-card p-4 text-sm"
                     data-testid="removed-lines"
                 >
                     <h2
-                        class="mb-1 text-xs font-semibold text-muted-foreground uppercase"
+                        class="mb-1 text-[13px] font-semibold text-muted-foreground"
                     >
                         Removed from the list
                     </h2>
@@ -1840,18 +1860,16 @@ const exceptionStatusLabels: Record<string, string> = {
 
                 <section
                     v-if="dispensary.can.update"
-                    class="mt-3 rounded-lg border p-3 text-sm"
+                    class="mt-3 rounded-[14px] border bg-card p-4 text-sm"
                     data-testid="add-medicine"
                 >
-                    <h2
-                        class="mb-2 text-xs font-semibold text-muted-foreground uppercase"
-                    >
+                    <h2 class="mb-2 text-[15px] font-semibold">
                         Add a medicine
                     </h2>
                     <div class="flex flex-wrap gap-2">
                         <input
                             v-model="searchTerm"
-                            class="h-9 w-full rounded-md border px-2 sm:max-w-sm"
+                            class="h-9 w-full rounded-[10px] border px-2 sm:max-w-sm"
                             placeholder="Search medicine name or code"
                             aria-label="Search medicine"
                             data-field="medicine-search"
@@ -1904,7 +1922,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     <p
                         v-if="scanAddAllergy"
                         role="alert"
-                        class="mt-2 flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 font-medium text-destructive"
+                        class="mt-2 flex items-start gap-2 rounded-[10px] border border-destructive/40 bg-destructive/10 px-3 py-2 font-medium text-destructive"
                         data-testid="scan-add-allergy"
                     >
                         <TriangleAlert
@@ -1923,7 +1941,7 @@ const exceptionStatusLabels: Record<string, string> = {
                     </p>
                     <ul
                         v-if="!chosen && results.length"
-                        class="mt-2 divide-y rounded-md border"
+                        class="mt-2 divide-y rounded-[10px] border"
                     >
                         <li
                             v-for="medicine in results"
@@ -1939,7 +1957,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                 }}</span>
                                 <span
                                     v-if="matchesFor(medicine).length"
-                                    class="ml-1 inline-block rounded-md bg-red-100 px-1.5 py-0.5 text-[11px] font-medium text-red-800 dark:bg-red-950/70 dark:text-red-100"
+                                    class="ml-1 inline-block rounded-full border border-destructive/40 bg-destructive/10 px-1.5 py-0.5 text-[11px] font-medium text-destructive"
                                     data-testid="allergy-match-badge"
                                     >Possible allergy match</span
                                 ></span
@@ -2071,7 +2089,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         >
                             <span
                                 role="status"
-                                class="block font-medium text-brand-strong empty:hidden"
+                                class="block font-medium text-primary empty:hidden"
                                 ><span
                                     v-if="batchHint === 'add'"
                                     class="inline-flex items-start gap-1"
@@ -2122,21 +2140,31 @@ const exceptionStatusLabels: Record<string, string> = {
                             selected. A later batch needs a controlled reason
                             when an eligible earlier-expiry batch exists.
                         </p>
-                        <p
+                        <details
                             class="text-xs text-muted-foreground sm:col-span-full"
+                            data-testid="label-limits-add"
                         >
-                            Label limits: dosage
-                            {{ dispensary.labelLimits?.dosage }}, frequency
-                            {{ dispensary.labelLimits?.frequency }}, duration
-                            {{ dispensary.labelLimits?.duration }}, instruction
-                            {{ dispensary.labelLimits?.instruction }},
-                            precaution {{ dispensary.labelLimits?.precaution }},
-                            quantity
-                            {{ dispensary.labelLimits?.quantity }} characters.
-                            Dosage, frequency and instruction share 3 printed
-                            rows. Route is not printed. Printing does not
-                            truncate saved text.
-                        </p>
+                            <summary
+                                class="flex min-h-11 w-fit cursor-pointer items-center font-medium lg:min-h-0"
+                            >
+                                Label limits
+                            </summary>
+                            <p class="mt-1">
+                                Label limits: dosage
+                                {{ dispensary.labelLimits?.dosage }}, frequency
+                                {{ dispensary.labelLimits?.frequency }},
+                                duration {{ dispensary.labelLimits?.duration }},
+                                instruction
+                                {{ dispensary.labelLimits?.instruction }},
+                                precaution
+                                {{ dispensary.labelLimits?.precaution }},
+                                quantity
+                                {{ dispensary.labelLimits?.quantity }}
+                                characters. Dosage, frequency and instruction
+                                share 3 printed rows. Route is not printed.
+                                Printing does not truncate saved text.
+                            </p>
+                        </details>
                         <AllergyMatchWarning
                             v-if="matchesFor(chosen).length"
                             v-model="addAllergyCheck"
@@ -2170,12 +2198,10 @@ const exceptionStatusLabels: Record<string, string> = {
                 </section>
                 <section
                     v-if="!isOtc"
-                    class="mt-6 rounded-lg border bg-background"
+                    class="mt-6 rounded-[14px] border bg-card"
                     data-testid="dispensary-services"
                 >
-                    <h2
-                        class="border-b px-3 py-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                    >
+                    <h2 class="border-b px-4 py-3 text-[15px] font-semibold">
                         Services
                     </h2>
                     <p
@@ -2188,7 +2214,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         <article
                             v-for="line in visibleServices"
                             :key="line.publicId"
-                            class="grid gap-3 p-3 lg:grid-cols-[minmax(220px,1fr)_minmax(0,3fr)]"
+                            class="grid gap-3 p-3 min-[90rem]:grid-cols-[minmax(220px,1fr)_minmax(0,3fr)]"
                             :data-testid="`service-${line.publicId}`"
                         >
                             <div>
@@ -2223,7 +2249,7 @@ const exceptionStatusLabels: Record<string, string> = {
                                     class="mt-1 text-xs"
                                     :class="
                                         line.disposition === 'performed'
-                                            ? 'text-emerald-700 dark:text-emerald-300'
+                                            ? 'text-success'
                                             : 'text-muted-foreground'
                                     "
                                 >
@@ -2302,7 +2328,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         data-testid="removed-services"
                     >
                         <h3
-                            class="mb-1 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
+                            class="mb-1 text-[13px] font-semibold text-muted-foreground"
                         >
                             Removed from the list
                         </h3>
@@ -2334,15 +2360,13 @@ const exceptionStatusLabels: Record<string, string> = {
                         class="border-t p-3 text-sm"
                         data-testid="add-service"
                     >
-                        <h3
-                            class="mb-2 text-xs font-semibold tracking-wide text-muted-foreground uppercase"
-                        >
+                        <h3 class="mb-2 text-[15px] font-semibold">
                             Add a service
                         </h3>
                         <div class="flex gap-2">
                             <input
                                 v-model="serviceTerm"
-                                class="h-9 w-full max-w-sm rounded-md border px-2"
+                                class="h-9 w-full max-w-sm rounded-[10px] border px-2"
                                 placeholder="Search service name or code"
                                 aria-label="Search service"
                                 data-field="service-search"
@@ -2358,7 +2382,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         </div>
                         <ul
                             v-if="!chosenService && serviceResults.length"
-                            class="mt-2 divide-y rounded-md border"
+                            class="mt-2 divide-y rounded-[10px] border"
                         >
                             <li
                                 v-for="service in serviceResults"
@@ -2421,7 +2445,10 @@ const exceptionStatusLabels: Record<string, string> = {
                     </div>
                 </section>
             </div>
-            <aside class="flex flex-col gap-4" data-testid="dispensary-right">
+            <aside
+                class="flex flex-col gap-4 lg:col-start-2 lg:row-start-2 min-[90rem]:col-start-3 min-[90rem]:row-start-1"
+                data-testid="dispensary-right"
+            >
                 <section
                     class="rounded-xl border bg-card p-4 text-sm"
                     data-testid="dispensary-summary"

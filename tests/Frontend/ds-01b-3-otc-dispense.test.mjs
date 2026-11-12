@@ -30,7 +30,7 @@ test('the OTC Dispensary page records the patient allergy statement before Compl
 });
 
 test('the OTC page hides the doctor-only services panel', () => {
-    assert.match(show, /v-if="!isOtc"\s+class="mt-6 rounded-lg border bg-background"\s+data-testid="dispensary-services"/);
+    assert.match(show, /v-if="!isOtc"\s+class="mt-6 rounded-\[14px\] border bg-card"\s+data-testid="dispensary-services"/);
 });
 
 test('the OTC routes are permission-gated', () => {
