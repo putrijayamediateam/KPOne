@@ -64,8 +64,8 @@ test('DS-1: the shell has a named nav, a branch switcher, an account menu, a way
     assert.match(page, /id="space-branch"/);
     assert.match(page, /UserMenuContent/);
     assert.match(page, /Open the existing \{\{ existing\.title \}\} screens/);
-    assert.match(page, /scrollIntoView/);
-    assert.match(css, /\.has-more/);
+    assert.match(page, /useScrollStrip\(side, '\[aria-current="page"\]'\)/);
+    assert.match(page, /:style="fadeStyle"/);
     assert.match(css, /\.space-select,[\s\S]*min-height: 44px/);
 });
 
