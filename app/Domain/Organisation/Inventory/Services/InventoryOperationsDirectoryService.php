@@ -33,7 +33,18 @@ final class InventoryOperationsDirectoryService
         $purchaseOrderLines = $this->purchaseOrderLines($organisationId, array_values($purchaseOrders->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()));
         $stockRequests = DB::table('inventory_stock_requests as request')->join('inventory_locations as source', 'source.id', '=', 'request.source_location_id')->join('inventory_locations as destination', 'destination.id', '=', 'request.destination_location_id')
             ->where('request.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('request.requesting_branch_id', $branch->id)->orWhere('source.branch_id', $branch->id)->orWhere('destination.branch_id', $branch->id))->orderByDesc('request.created_at')->limit(50)
-            ->get(['request.id', 'request.public_id as publicId', 'request.request_number as number', 'request.status', 'request.lock_version as lockVersion', 'source.name as source', 'destination.name as destination', 'request.created_at as createdAt']);
+            ->get(['request.id', 'request.public_id as publicId', 'request.request_number as number', 'request.status', 'request.lock_version as lockVersion', 'source.name as source', 'destination.name as destination', 'request.created_at as createdAt',
+                'request.requesting_branch_id', 'source.branch_id as source_branch_id', 'destination.branch_id as destination_branch_id'])
+            // STK-31: a request can go to another branch; say which end this branch is (mirrors StockRequestService; the server decides).
+            ->map(function (object $row) use ($branch, $mayUseWarehouse): object {
+                $end = fn (mixed $branchId): bool => $branchId === null ? $mayUseWarehouse : (int) $branchId === $branch->id;
+                $row->atRequesting = (int) $row->requesting_branch_id === $branch->id;
+                $row->atSource = $end($row->source_branch_id);
+                $row->atDestination = $end($row->destination_branch_id);
+                unset($row->requesting_branch_id, $row->source_branch_id, $row->destination_branch_id);
+
+                return $row;
+            });
         $stockRequestIds = array_values($stockRequests->pluck('id')->map(fn (mixed $id): int => (int) $id)->all());
         $stockRequestLines = $this->requestLines($organisationId, $stockRequestIds);
         $transferDifferences = $this->transferDifferences($actor, $stockRequestIds);
@@ -190,8 +201,8 @@ final class InventoryOperationsDirectoryService
             ->leftJoin('inventory_stock_balances as balance', fn ($join) => $join->on('balance.organisation_id', '=', 'reorder.organisation_id')->on('balance.inventory_location_id', '=', 'reorder.inventory_location_id')->on('balance.inventory_sku_id', '=', 'reorder.inventory_sku_id'))
             ->leftJoin('inventory_batches as batch', 'batch.id', '=', 'balance.inventory_batch_id')->where('reorder.organisation_id', $organisationId)->whereIn('reorder.inventory_location_id', $locationIds)
             ->where('location.is_active', true)->where('location.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('sku.is_active', true)->where('item.is_active', true)
-            ->groupBy(['reorder.id', 'location.name', 'sku.sku_code', 'item.generic_name', 'reorder.reorder_level'])->havingRaw($availableQuantity.' <= reorder.reorder_level', [$localDate])
-            ->orderByRaw('sku.sku_code COLLATE "C"')->orderBy('reorder.id')->limit(100)->selectRaw('location.name as location, sku.sku_code as sku, item.generic_name as item, reorder.reorder_level as "reorderLevel", '.$availableQuantity.' as "availableQuantity"', [$localDate])->get()->map(fn ($row): array => (array) $row)->all());
+            ->groupBy(['reorder.id', 'location.name', 'sku.sku_code', 'item.generic_name', 'reorder.reorder_level', 'reorder.max_level'])->havingRaw($availableQuantity.' <= reorder.reorder_level', [$localDate])
+            ->orderByRaw('sku.sku_code COLLATE "C"')->orderBy('reorder.id')->limit(100)->selectRaw('location.name as location, sku.sku_code as sku, item.generic_name as item, reorder.reorder_level as "reorderLevel", reorder.max_level as "maxLevel", '.$availableQuantity.' as "availableQuantity"', [$localDate])->get()->map(fn ($row): array => (array) $row)->all());
     }
 
     /**

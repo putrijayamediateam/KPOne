@@ -347,6 +347,8 @@ final class OvertimePageService
 
             return [
                 'publicId' => $r->public_id,
+                // When the request was sent (ISO, UTC), so the HR space can show how long the oldest has waited.
+                'sentAt' => CarbonImmutable::parse($r->created_at)->utc()->toIso8601String(),
                 'person' => (string) ($names[$r->user_id] ?? 'Staff member'),
                 'dayLabel' => AttendanceSupport::day($r->local_date).($times !== '' ? ', '.$times : ''),
                 'branch' => $branch !== null ? $branch->name : '',

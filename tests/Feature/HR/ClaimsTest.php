@@ -304,6 +304,21 @@ class ClaimsTest extends VisitTestCase
         $this->assertStringNotContainsString('private purpose', (string) json_encode(session()->all()));
     }
 
+    public function test_a_waiting_claim_says_when_it_was_sent(): void
+    {
+        // For the HR space's "oldest waiting" line (Daniel, Kavitha): when the claim was sent, ISO and in UTC.
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $this->travelTo(CarbonImmutable::parse('2026-11-10 02:15:00', 'UTC'));
+        $meals = $this->makeCategory($hr, 'Meals', true, '50.00', '200.00');
+        $this->settings($hr, ['director_level' => '500.00', 'days_back' => 30, 'expected_version' => 0])->assertSessionHasNoErrors();
+        $this->send($ca, ['category_id' => $meals, 'spent_on' => '2026-11-09', 'amount' => '45.60', 'purpose' => self::PURPOSE], [$this->pdf()])->assertSessionHasNoErrors();
+        $this->travelBack();
+        $this->selectBranch($hr);
+        $this->get(route('hr.claims.index', ['tab' => 'approvals']))->assertInertia(fn (Assert $page) => $page
+            ->where('claims.approvals.claims.0.sentAt', '2026-11-10T02:15:00+00:00'));
+    }
+
     public function test_another_organisations_claims_and_categories_are_not_found(): void
     {
         $org = new Organisation;

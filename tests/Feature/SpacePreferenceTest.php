@@ -10,7 +10,7 @@ use Tests\Feature\Visit\VisitTestCase;
 /** DS-2: the per-person "Try the new layout" switch. */
 class SpacePreferenceTest extends VisitTestCase
 {
-    public function test_default_is_off_and_only_the_director_is_offered_the_switch(): void
+    public function test_default_is_off_and_every_staff_account_but_the_tv_is_offered_the_switch(): void
     {
         $director = $this->actor('director');
         $this->selectBranch($director);
@@ -20,9 +20,14 @@ class SpacePreferenceTest extends VisitTestCase
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
         $this->get('/spaces/front_desk')->assertInertia(fn (Assert $p) => $p
-            ->where('workspace.spaces.offered', false));
+            ->where('workspace.spaces', ['offered' => true, 'enabled' => false, 'lockVersion' => 0]));
+        $this->put('/spaces/preference', ['enabled' => true, 'lock_version' => 0])->assertRedirect(route('spaces.index'));
+        $this->assertTrue((bool) DB::table('user_space_preferences')->where('user_id', $ca->id)->value('enabled'));
+
+        $tv = $this->actor('queue_display');
+        $this->selectBranch($tv);
         $this->put('/spaces/preference', ['enabled' => true, 'lock_version' => 0])->assertForbidden();
-        $this->assertSame(0, DB::table('user_space_preferences')->count());
+        $this->assertSame(0, DB::table('user_space_preferences')->where('user_id', $tv->id)->count());
     }
 
     public function test_switching_on_and_off_is_versioned_audited_and_rejects_a_stale_page(): void

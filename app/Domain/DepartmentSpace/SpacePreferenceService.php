@@ -10,18 +10,20 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /**
- * DS-2: the "Try the new layout" switch. A rollout choice, not an access right: it only shows or hides the Spaces
- * menu link and never grants anything. Offered to the Director first; widen OFFERED_TO_ROLES one role at a time.
+ * DS-2: the "Try the new layout" switch (Version 2). A rollout choice, not an access right: it only shows or hides the
+ * Spaces menu link and the Version 2 look and never grants anything. Owner decision 2026-11-12: offered to every staff
+ * account, each person choosing for themselves (default off, so everyone starts in Classic). The waiting-room TV
+ * account is a display, not a person at a desk, so it is never offered the switch.
  */
 final class SpacePreferenceService
 {
-    public const OFFERED_TO_ROLES = [PermissionCatalogue::PROTECTED_AUTHORITY_ROLE];
+    public const NOT_OFFERED_TO_ROLES = [PermissionCatalogue::QUEUE_DISPLAY_ROLE];
 
     public function __construct(private AuditRecorder $audit) {}
 
     public function offered(User $user): bool
     {
-        return $user->hasAnyRole(self::OFFERED_TO_ROLES);
+        return ! $user->hasAnyRole(self::NOT_OFFERED_TO_ROLES);
     }
 
     /** @return array{offered: bool, enabled: bool, lockVersion: int} */

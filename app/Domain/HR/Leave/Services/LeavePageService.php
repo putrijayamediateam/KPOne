@@ -140,6 +140,8 @@ final class LeavePageService
             return [...$this->requestRow($r, $r->type->name), 'person' => $r->person->name ?? 'Staff member', 'role' => $this->roleLabel($r->person),
                 'evidenceNeeded' => $r->type->evidence_needed, 'evidenceReference' => $r->evidence_reference_encrypted, 'reason' => $r->reason_encrypted,
                 'leftAfter' => $left === null ? null : LeaveSupport::days($left), 'warnings' => $warnings,
+                // When the request was sent (ISO, UTC), so the HR space can show how long the oldest has waited.
+                'sentAt' => CarbonImmutable::parse($r->created_at)->utc()->toIso8601String(),
                 'evidence' => $canSee ? $this->evidence($r, $r->type, $actor, false, $zone, $files) : null];
         })->values()->all();
 

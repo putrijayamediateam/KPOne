@@ -13,8 +13,8 @@ use Illuminate\Support\Facades\Validator;
  * STK-16: read-only reorder suggestions for the active branch. It writes nothing.
  *
  * A row is every SKU and location that Stock review lists as low stock (usable quantity at or below a positive
- * reorder level). Suggested = reorder level − on hand − on order − incoming + average daily use × lead time,
- * floored at zero, then rounded up to whole packs and at least the preferred supplier's minimum order. All
+ * reorder level). Suggested = target − on hand − on order − incoming + average daily use × lead time, where the
+ * target is the maximum when one is set (STK-30, order up to max) and otherwise the reorder level, floored at zero, then rounded up to whole packs and at least the preferred supplier's minimum order. All
  * arithmetic is in exact thousandths of the SKU's base stock unit, as STK-1 requires.
  */
 final class ReorderSuggestionService
@@ -48,7 +48,7 @@ final class ReorderSuggestionService
         /** @var list<\stdClass> $low */
         $low = app(InventoryStockReviewService::class)->lowStockQuery($actor, $branch)
             ->when($needle, fn ($query) => $query->where(fn ($match) => $match->where('s.sku_code', 'ilike', $needle)->orWhere('i.generic_name', 'ilike', $needle)->orWhere('l.name', 'ilike', $needle)))
-            ->addSelect(['s.public_id as sku_public_id', 'l.public_id as location_public_id'])
+            ->addSelect(['s.public_id as sku_public_id', 'l.public_id as location_public_id', 'r.max_level'])
             ->orderBy('s.sku_code')->orderBy('l.name')->orderBy('l.id')
             ->get()->all();
 
@@ -63,6 +63,8 @@ final class ReorderSuggestionService
         foreach ($low as $row) {
             $key = $row->location_id.':'.$row->sku_id;
             $level = StockUnitQuantity::scaled((string) $row->reorder_level, true);
+            // STK-30: a row still appears only at or below its reorder level; then it is filled up to the maximum.
+            $max = $row->max_level === null ? null : StockUnitQuantity::scaled((string) $row->max_level, true);
             $onHand = StockUnitQuantity::scaled((string) $row->quantity, true);
             $ordered = $onOrder[$key] ?? 0;
             $coming = $incoming[$key] ?? 0;
@@ -71,7 +73,7 @@ final class ReorderSuggestionService
             $lead = $term === null ? 0 : (int) $term->lead_time_days;
             // Average daily use × lead time, rounded up to the next thousandth.
             $cover = intdiv($usedMilli * $lead + self::LOOK_BACK_DAYS - 1, self::LOOK_BACK_DAYS);
-            $need = max(0, $level - $onHand - $ordered - $coming + $cover);
+            $need = max(0, ($max ?? $level) - $onHand - $ordered - $coming + $cover);
 
             $packs = null;
             $suggested = 0;
@@ -98,6 +100,7 @@ final class ReorderSuggestionService
                 'location' => $row->location,
                 'stockUnit' => $row->stock_unit,
                 'reorderLevel' => StockUnitQuantity::format($level),
+                'maxLevel' => $max === null ? null : StockUnitQuantity::format($max),
                 'onHand' => StockUnitQuantity::format($onHand),
                 'onOrder' => StockUnitQuantity::format($ordered),
                 'incoming' => StockUnitQuantity::format($coming),
@@ -140,7 +143,7 @@ final class ReorderSuggestionService
      * @param  list<int>  $skuIds
      * @return array<string,int>
      */
-    private function onOrder(int $organisationId, array $locationIds, array $skuIds): array
+    public function onOrder(int $organisationId, array $locationIds, array $skuIds): array
     {
         if ($locationIds === []) {
             return [];
@@ -163,7 +166,7 @@ final class ReorderSuggestionService
      * @param  list<int>  $skuIds
      * @return array<string,int>
      */
-    private function incoming(int $organisationId, array $locationIds, array $skuIds): array
+    public function incoming(int $organisationId, array $locationIds, array $skuIds): array
     {
         if ($locationIds === []) {
             return [];
