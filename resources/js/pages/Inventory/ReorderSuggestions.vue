@@ -278,11 +278,12 @@ const requestThese = () => {
                             {{ quantity(row.reorderLevel, row.stockUnit) }}
                         </dd>
                     </div>
-                    <div v-if="row.maxLevel !== null">
+                    <div>
                         <dt class="text-muted-foreground">Maximum</dt>
-                        <dd class="tabular-nums">
+                        <dd v-if="row.maxLevel !== null" class="tabular-nums">
                             {{ quantity(row.maxLevel, row.stockUnit) }}
                         </dd>
+                        <dd v-else class="text-muted-foreground">Not set</dd>
                     </div>
                     <div>
                         <dt class="text-muted-foreground">On order</dt>

@@ -10,7 +10,17 @@ test('STK-30: the reorder form sends an optional maximum and the list shows it',
         'resources/js/components/inventory/InventoryOperationsPanel.vue',
     );
     assert.match(panel, /max_level: reorder\.max,/);
-    assert.match(panel, /aria-label="Maximum \(optional\)"/);
+    // Daniel: both boxes carry a visible label, and the maximum's message sits under its own box.
+    assert.match(
+        panel,
+        /<label class="grid gap-1 text-sm"\s*>Reorder level\s*<Input/,
+    );
+    assert.match(
+        panel,
+        /<label class="grid gap-1 text-sm"\s*>Maximum \(optional\)\s*<Input/,
+    );
+    assert.match(panel, /<InputError\s+id="reorder-max-error"/);
+    assert.match(panel, /reorderErrors\.max_level = errors\.max_level;/);
     assert.match(panel, /Leave\s+blank to remove any maximum\./);
     assert.match(
         panel,
@@ -18,12 +28,16 @@ test('STK-30: the reorder form sends an optional maximum and the list shows it',
     );
 });
 
-test('STK-30: Reorder suggestions shows the maximum only when one is set', () => {
+test('STK-30: Reorder suggestions shows the maximum, or Not set, on every card', () => {
     const page = read('resources/js/pages/Inventory/ReorderSuggestions.vue');
     assert.match(page, /maxLevel: string \| null;/);
     assert.match(
         page,
-        /<div v-if="row\.maxLevel !== null">\s*<dt class="text-muted-foreground">Maximum<\/dt>/,
+        /<dt class="text-muted-foreground">Maximum<\/dt>\s*<dd\s+v-if="row\.maxLevel !== null"/,
+    );
+    assert.match(
+        page,
+        /<dd v-else class="text-muted-foreground">Not set<\/dd>/,
     );
     assert.match(
         page,
