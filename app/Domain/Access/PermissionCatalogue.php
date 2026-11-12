@@ -167,6 +167,7 @@ final class PermissionCatalogue
             'inventory.supplier_invoices.record.branch',
             'inventory.supplier_invoices.approve.branch',
             'inventory.usage.record.branch',
+            'inventory.purchase_requests.create.branch',
             'inventory.controlled_register.view.branch',
             'inventory.controlled_register.check.branch',
             'inventory.recalls.manage.organisation',
@@ -509,6 +510,12 @@ final class PermissionCatalogue
         }
         foreach (['finance_officer', 'director'] as $holder) {
             $roles[$holder][] = 'inventory.supplier_invoices.approve.branch';
+        }
+
+        // STK-18 (owner decision 2026-11-12, "agree purchase requests"): a CA or CA Supervisor asks for stock with a
+        // purchase request; converting it into a draft order uses the existing purchase order permission.
+        foreach (['ca', 'ca_supervisor'] as $holder) {
+            $roles[$holder][] = 'inventory.purchase_requests.create.branch';
         }
 
         // STK-24 (owner decisions 2026-11-11, "agree all"): the controlled-drug register (DRAFT pending pharmacist
