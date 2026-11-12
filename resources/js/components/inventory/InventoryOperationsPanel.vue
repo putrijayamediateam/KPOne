@@ -3,6 +3,7 @@ import { router, useRemember } from '@inertiajs/vue3';
 import { Boxes } from '@lucide/vue';
 import { computed, reactive, ref, shallowRef, watchEffect } from 'vue';
 import type { Ref } from 'vue';
+import InputError from '@/components/InputError.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import ReceivingReviews from '@/components/inventory/ReceivingReviews.vue';
 import TransferDifferences from '@/components/inventory/TransferDifferences.vue';
@@ -171,7 +172,9 @@ const stockRequest = reactive({
     lines: [blankLine()],
 });
 const dispatchBatch = reactive<Record<string, string>>({});
-const reorder = reactive({ location: '', sku: '', level: '' });
+const reorder = reactive({ location: '', sku: '', level: '', max: '' });
+// STK-30: Daniel asked for the maximum's message under its own box as well as in the panel's banner.
+const reorderErrors = reactive<{ max_level?: string }>({});
 const canPurchase = (
     row: DocumentRow,
     action: 'submit' | 'approve' | 'receive' | 'close' | 'cancel',
@@ -309,6 +312,7 @@ const send = (
     url: string,
     data: RequestPayload,
     done?: () => void,
+    failed?: (errors: Record<string, string>) => void,
 ) => {
     if (busy.value) {
         return;
@@ -322,6 +326,7 @@ const send = (
         onStart: () => (busy.value = true),
         onFinish: () => (busy.value = false),
         onError: (errors) => {
+            failed?.(errors);
             operationError.value =
                 firstInventoryOperationError(errors) ??
                 'The Inventory operation could not be completed.';
@@ -624,12 +629,23 @@ const confirmTransferDifference = (
             ),
     });
 const saveReorder = () =>
-    send('put', '/inventory/reorder-levels', {
-        expected_branch_id: props.operations.expectedBranchId,
-        location_public_id: reorder.location,
-        sku_public_id: reorder.sku,
-        reorder_level: reorder.level,
-    });
+    send(
+        'put',
+        '/inventory/reorder-levels',
+        {
+            expected_branch_id: props.operations.expectedBranchId,
+            location_public_id: reorder.location,
+            sku_public_id: reorder.sku,
+            reorder_level: reorder.level,
+            max_level: reorder.max,
+        },
+        () => {
+            reorderErrors.max_level = undefined;
+        },
+        (errors) => {
+            reorderErrors.max_level = errors.max_level;
+        },
+    );
 </script>
 
 <template>
@@ -801,6 +817,13 @@ const saveReorder = () =>
                         {{ row.supplier }} → {{ row.destination }}
                     </p>
                     <p
+                        v-if="row.fromRequest"
+                        class="text-sm text-muted-foreground"
+                        data-testid="po-from-request"
+                    >
+                        From purchase request {{ row.fromRequest }}
+                    </p>
+                    <p
                         v-for="line in row.lines"
                         :key="line.publicId"
                         class="text-xs text-muted-foreground"
@@ -951,7 +974,7 @@ const saveReorder = () =>
                         <fieldset
                             v-for="line in row.lines"
                             :key="line.publicId"
-                            class="grid gap-2 rounded-lg border p-2 sm:grid-cols-5"
+                            class="grid items-start gap-2 rounded-lg border p-2 sm:grid-cols-2"
                         >
                             <legend class="px-1 text-xs font-medium">
                                 {{ line.sku }} · {{ line.receivedQuantity }}/{{
@@ -959,22 +982,27 @@ const saveReorder = () =>
                                 }}
                                 · Base stock unit: {{ line.stockUnit }}
                             </legend>
-                            <Input
-                                v-model="receipt[line.publicId].batchNumber"
-                                :aria-label="`${line.sku} received batch number`"
-                                placeholder="Batch number"
-                            />
-                            <DateField
-                                v-model="receipt[line.publicId].expiryDate"
-                                :aria-label="`${line.sku} received batch expiry`"
-                                :echo="false"
-                            />
-                            <Input
-                                v-model="receipt[line.publicId].quantity"
-                                :aria-label="`${line.sku} receipt quantity`"
-                                placeholder="Quantity this receipt"
-                                inputmode="decimal"
-                            />
+                            <label class="grid min-w-0 gap-1 text-xs"
+                                >Batch number (required)
+                                <Input
+                                    v-model="receipt[line.publicId].batchNumber"
+                                    :aria-label="`${line.sku} received batch number`"
+                            /></label>
+                            <label class="grid min-w-0 gap-1 text-xs"
+                                >Expiry date (required)
+                                <DateField
+                                    v-model="receipt[line.publicId].expiryDate"
+                                    :aria-label="`${line.sku} expiry date`"
+                                    :echo="false"
+                            /></label>
+                            <label class="grid min-w-0 gap-1 text-xs"
+                                >Quantity this receipt ({{ line.stockUnit }},
+                                required)
+                                <Input
+                                    v-model="receipt[line.publicId].quantity"
+                                    :aria-label="`${line.sku} quantity this receipt`"
+                                    inputmode="decimal"
+                            /></label>
                             <div class="grid min-w-0 gap-1">
                                 <label class="grid min-w-0 gap-1 text-xs"
                                     >Total paid for this batch (RM, optional)
@@ -1258,12 +1286,38 @@ const saveReorder = () =>
                         kind="skus"
                         context="operations"
                         :expected-branch-id="operations.expectedBranchId"
-                    /><Input
-                        v-model="reorder.level"
-                        aria-label="Reorder level"
-                        placeholder="Reorder level"
-                        required
-                    /><Button type="submit" :disabled="busy">Save level</Button>
+                    />
+                    <label class="grid gap-1 text-sm"
+                        >Reorder level
+                        <Input
+                            v-model="reorder.level"
+                            inputmode="decimal"
+                            required
+                        />
+                    </label>
+                    <label class="grid gap-1 text-sm"
+                        >Maximum (optional)
+                        <Input
+                            v-model="reorder.max"
+                            inputmode="decimal"
+                            aria-describedby="reorder-max-help reorder-max-error"
+                            :aria-invalid="
+                                reorderErrors.max_level ? true : undefined
+                            "
+                        />
+                    </label>
+                    <p
+                        id="reorder-max-help"
+                        class="text-xs text-muted-foreground"
+                    >
+                        With a maximum, reorder suggestions fill up to it. Leave
+                        blank to remove any maximum.
+                    </p>
+                    <InputError
+                        id="reorder-max-error"
+                        :message="reorderErrors.max_level"
+                    />
+                    <Button type="submit" :disabled="busy">Save level</Button>
                 </form>
                 <p class="text-xs text-muted-foreground">
                     Up to 100 low-stock entries and 100 near-expiry batches are
@@ -1284,6 +1338,9 @@ const saveReorder = () =>
                     <strong>{{ row.sku }}</strong> ·
                     {{ row.availableQuantity }} available /
                     {{ row.reorderLevel }} reorder
+                    <template v-if="row.maxLevel !== null">
+                        · max {{ row.maxLevel }}
+                    </template>
                 </div>
                 <h4 class="pt-2 text-sm font-semibold">Expiring in 90 days</h4>
                 <p

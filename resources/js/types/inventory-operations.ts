@@ -56,6 +56,8 @@ export type InventoryDocument = {
     lines: InventoryDocumentLine[];
     differences?: InventoryTransferDifference[];
     raisedByYou?: boolean;
+    // STK-18: the purchase request a draft order came from.
+    fromRequest?: string | null;
 };
 
 export type InventoryOperations = {
@@ -69,7 +71,7 @@ export type InventoryOperations = {
     stockRequests: InventoryDocument[];
     stocktakes: InventoryDocument[];
     adjustments: Array<Record<string, string>>;
-    lowStock: Array<Record<string, string>>;
+    lowStock: Array<Record<string, string | null>>;
     expiringBatches: Array<Record<string, string>>;
 };
 

@@ -26,13 +26,23 @@ final class SpaceAskService
         'consultation.not_ready' => ['queue.index', []],
         'panel.most_unclaimed' => ['panel-claims.index', []],
         'panel.overdue_amount' => ['panel-claims.index', ['tab' => 'overdue']],
+        'stock.held_batches' => ['inventory.batch-holds', []],
+        'stock.written_off' => ['inventory.governed-writeoffs', []],
+        'stock.no_order' => ['inventory.reorder-suggestions', []],
+        'hr.away_this_week' => ['hr.leave.index', ['tab' => 'calendar']],
+        'hr.credentials_due' => ['hr.credentials.index', ['tab' => 'register']],
+        'management.documents_attention' => ['business-details.index', []],
+        'management.inactive_staff' => ['staff.index', ['status' => 'inactive']],
+        'me.next_day_off' => ['hr.roster.index', []],
+        'me.leave_taken' => ['hr.leave.index', []],
+        'me.leave_requests' => ['hr.leave.index', []],
         'billing.over_60' => ['billing.pay-later-collections', []],
         'billing.owes_most' => ['billing.pay-later-collections', []],
         'billing.closings_waiting' => ['cash-closings.month', []],
         'billing.closings_missing' => ['cash-closings.month', []],
     ];
 
-    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private ConsultationSpace $consultation, private PanelSpace $panel, private AuditRecorder $audit) {}
+    public function __construct(private BranchAccessService $branches, private PharmacySpace $pharmacy, private FrontDeskSpace $frontDesk, private BillingSpace $billing, private ConsultationSpace $consultation, private PanelSpace $panel, private StockSpace $stock, private HrSpace $hr, private ManagementSpace $management, private MeSpace $me, private AuditRecorder $audit) {}
 
     /**
      * The questions this person may ask in a space. A question they cannot ask is absent, never greyed.
@@ -91,8 +101,138 @@ final class SpaceAskService
             'billing.closings_waiting', 'billing.closings_missing' => $this->billing->monthDays($actor) !== null,
             'consultation.longest_waiting', 'consultation.not_ready' => $this->consultation->snapshot($actor) !== null,
             'panel.most_unclaimed', 'panel.overdue_amount' => $this->panel->toClaim($actor) !== null,
+            'stock.held_batches' => $this->stock->heldBatches($actor) !== null,
+            'stock.written_off' => $this->stock->writtenOffThisMonth($actor) !== null,
+            'stock.no_order' => $this->stock->reorderNeeded($actor) !== null,
+            'hr.away_this_week' => $this->hr->away($actor) !== null,
+            'hr.credentials_due' => $this->hr->credentialsDue($actor) !== null,
+            'management.documents_attention' => $this->management->documentSummary($actor) !== null,
+            'management.inactive_staff' => $this->management->inactiveStaff($actor) !== null,
+            'me.next_day_off' => $this->me->daysOff($actor) !== null,
+            'me.leave_taken' => $this->me->leaveTaken($actor) !== null,
+            'me.leave_requests' => $this->me->leaveRequests($actor) !== null,
             default => false,
         };
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function managementDocuments(User $actor): array
+    {
+        $docs = $this->management->documentSummary($actor);
+        abort_if($docs === null, 403);
+        if ($docs['attention'] === []) {
+            return ['sentence' => 'Every branch is ready for its letters and has a footer.', 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        foreach ($docs['attention'] as $r) {
+            $rows[] = [$r['name'], $r['text']];
+        }
+
+        return ['sentence' => 'Branches that need attention.', 'columns' => ['Branch', 'What is needed'], 'rows' => $rows];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function managementInactiveStaff(User $actor): array
+    {
+        $staff = $this->management->inactiveStaff($actor);
+        abort_if($staff === null, 403);
+        if ($staff === []) {
+            return ['sentence' => 'No staff account is inactive.', 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        $withDate = count(array_filter($staff, fn (array $r): bool => $r['since'] !== null)) > 0;
+        foreach ($staff as $r) {
+            $rows[] = $withDate ? [$r['name'], $r['role'], $r['branch'], $r['since'] ?? 'Date not recorded'] : [$r['name'], $r['role'], $r['branch']];
+        }
+        $n = count($rows);
+
+        return ['sentence' => ($n === 1 ? '1 staff account is' : $n.' staff accounts are').' inactive.'.($n >= 10 ? ' The first 10 are shown.' : ''), 'columns' => $withDate ? ['Staff', 'Role', 'Branch', 'Inactive since'] : ['Staff', 'Role', 'Branch'], 'rows' => $rows];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function hrAwayThisWeek(User $actor): array
+    {
+        $away = $this->hr->away($actor);
+        abort_if($away === null, 403);
+        if ($away['week'] === []) {
+            return ['sentence' => 'Nobody is away this week.', 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        foreach (array_slice($away['week'], 0, 10) as $r) {
+            $rows[] = [$r['name'], $r['text']];
+        }
+        $n = count($away['week']);
+
+        return ['sentence' => ($n === 1 ? '1 person is' : $n.' people are').' away this week.', 'columns' => ['Staff', 'Away'], 'rows' => $rows];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function hrCredentialsDue(User $actor): array
+    {
+        $due = $this->hr->credentialsDue($actor);
+        abort_if($due === null, 403);
+        if ($due === []) {
+            return ['sentence' => 'No credential is due for renewal soon.', 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        foreach (array_slice($due, 0, 10) as $r) {
+            $rows[] = [$r['name'], $r['credential'], $r['expires']];
+        }
+        $n = count($due);
+
+        return ['sentence' => ($n === 1 ? '1 credential is' : $n.' credentials are').' due for renewal soon.'.($n > 10 ? ' The first 10 are shown.' : ''), 'columns' => ['Staff', 'Credential', 'Expires'], 'rows' => $rows];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function stockHeldBatches(User $actor): array
+    {
+        $held = $this->stock->heldBatches($actor);
+        abort_if($held === null, 403);
+        if ($held['rows'] === []) {
+            return ['sentence' => 'No batch is on hold.'.($held['complete'] ? '' : ' Only the first 100 batches were checked.'), 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        foreach (array_slice($held['rows'], 0, 10) as $r) {
+            $rows[] = [$r['sku'], 'Batch '.$r['batch'], ($r['since'] !== '' ? 'On hold since '.$r['since'].' · ' : '').$r['reason']];
+        }
+        $n = count($held['rows']);
+
+        return ['sentence' => ($n === 1 ? '1 batch is' : $n.' batches are').' on hold.'.($held['complete'] ? '' : ' Only the first 100 batches were checked.'), 'columns' => ['SKU', 'Batch', 'Reason'], 'rows' => $rows];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function stockWrittenOff(User $actor): array
+    {
+        $off = $this->stock->writtenOffThisMonth($actor);
+        abort_if($off === null, 403);
+        if ($off['total'] === 0) {
+            return ['sentence' => 'Nothing was written off in '.$off['month'].'.', 'columns' => [], 'rows' => []];
+        }
+        arsort($off['byReason']);
+        $rows = [];
+        foreach ($off['byReason'] as $reason => $n) {
+            $rows[] = [ucfirst(str_replace('_', ' ', (string) $reason)), $n.($n === 1 ? ' write-off' : ' write-offs')];
+        }
+
+        return ['sentence' => $off['total'].($off['total'] === 1 ? ' write-off was' : ' write-offs were').' posted in '.$off['month'].'.'.($off['complete'] ? '' : ' Only the latest 100 cases were checked.'), 'columns' => ['Reason', 'Write-offs'], 'rows' => $rows];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function stockNoOrder(User $actor): array
+    {
+        $need = $this->stock->reorderNeeded($actor);
+        abort_if($need === null, 403);
+        $none = array_values(array_filter($need['all'], fn (array $r): bool => (float) $r['onOrder'] <= 0 && (float) $r['incoming'] <= 0));
+        if ($none === []) {
+            return ['sentence' => 'Every low-stock item needing an order already has one on its way.', 'columns' => [], 'rows' => []];
+        }
+        $rows = [];
+        foreach (array_slice($none, 0, 10) as $r) {
+            $rows[] = [(string) $r['skuCode'], (string) $r['location'], SpaceDisplay::quantityText((string) $r['onHand'], (string) ($r['stockUnit'] ?? '')).' on hand, level '.rtrim(rtrim(number_format((float) $r['reorderLevel'], 3, '.', ''), '0'), '.')];
+        }
+        $n = count($none);
+
+        return ['sentence' => ($n === 1 ? '1 low-stock item has' : $n.' low-stock items have').' nothing on order.'.($need['total'] > count($need['all']) ? ' Only the first page of suggestions was checked.' : ''), 'columns' => ['SKU', 'Location', 'Stock'], 'rows' => $rows];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
@@ -308,10 +448,10 @@ final class SpaceAskService
         abort_if($read === null, 403);
         $hits = array_values(array_filter($read['rows'], fn (array $r): bool => (int) $r['daysOverdue'] > 60));
         if ($hits === []) {
-            return ['sentence' => 'No pay-later bill is over 60 days.', 'columns' => [], 'rows' => []];
+            return ['sentence' => 'No bill to collect is over 60 days.', 'columns' => [], 'rows' => []];
         }
 
-        return $this->billingTable($hits, count($hits) === 1 ? '1 pay-later bill is' : count($hits).' pay-later bills are', ' over 60 days.', $read['complete']);
+        return $this->billingTable($hits, count($hits) === 1 ? '1 bill to collect is' : count($hits).' bills to collect are', ' over 60 days.', $read['complete']);
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
@@ -320,12 +460,12 @@ final class SpaceAskService
         $read = $this->billing->payLaterRead($actor);
         abort_if($read === null, 403);
         if ($read['rows'] === []) {
-            return ['sentence' => 'No pay-later bill is open.', 'columns' => [], 'rows' => []];
+            return ['sentence' => 'No bill to collect is open.', 'columns' => [], 'rows' => []];
         }
         $rows = $read['rows'];
         usort($rows, fn (array $a, array $b): int => $b['remainingSen'] <=> $a['remainingSen']);
 
-        return $this->billingTable(array_slice($rows, 0, 5), 'The 5 largest open pay-later bills', ' are shown.', $read['complete']);
+        return $this->billingTable(array_slice($rows, 0, 5), 'The 5 largest bills to collect', ' are shown.', $read['complete']);
     }
 
     /**
@@ -372,5 +512,42 @@ final class SpaceAskService
             'columns' => [],
             'rows' => [],
         ];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function meNextDayOff(User $actor): array
+    {
+        $days = $this->me->daysOff($actor);
+        abort_if($days === null, 403);
+        if ($days === []) {
+            return ['sentence' => 'No shift is planned in the next two weeks, so there is no day off to show.', 'columns' => [], 'rows' => []];
+        }
+        $rows = array_map(fn (string $d): array => [$d], $days);
+
+        return ['sentence' => 'Your next day off is '.$days[0].'.', 'columns' => count($days) > 1 ? ['Days off'] : [], 'rows' => count($days) > 1 ? $rows : []];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function meLeaveTaken(User $actor): array
+    {
+        $rows = $this->me->leaveTaken($actor);
+        abort_if($rows === null, 403);
+        if ($rows === []) {
+            return ['sentence' => 'Leave is not set up yet.', 'columns' => [], 'rows' => []];
+        }
+
+        return ['sentence' => 'Leave taken and booked this year.', 'columns' => ['Leave', 'Taken', 'Booked'], 'rows' => array_map(fn (array $r): array => [$r['name'], $r['taken'], $r['booked']], $rows)];
+    }
+
+    /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
+    private function meLeaveRequests(User $actor): array
+    {
+        $rows = $this->me->leaveRequests($actor);
+        abort_if($rows === null, 403);
+        if ($rows === []) {
+            return ['sentence' => 'You have no leave request waiting or coming up.', 'columns' => [], 'rows' => []];
+        }
+
+        return ['sentence' => count($rows) === 1 ? '1 leave request is waiting or coming up.' : count($rows).' leave requests are waiting or coming up.', 'columns' => ['Dates', 'Days', 'Status'], 'rows' => array_map(fn (array $r): array => [$r['dates'], $r['days'], $r['status']], $rows)];
     }
 }
