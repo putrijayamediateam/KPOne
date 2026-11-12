@@ -478,10 +478,10 @@ final class SpaceAskService
         abort_if($read === null, 403);
         $hits = array_values(array_filter($read['rows'], fn (array $r): bool => (int) $r['daysOverdue'] > 60));
         if ($hits === []) {
-            return ['sentence' => 'No pay-later bill is over 60 days.', 'columns' => [], 'rows' => []];
+            return ['sentence' => 'No bill to collect is over 60 days.', 'columns' => [], 'rows' => []];
         }
 
-        return $this->billingTable($hits, count($hits) === 1 ? '1 pay-later bill is' : count($hits).' pay-later bills are', ' over 60 days.', $read['complete']);
+        return $this->billingTable($hits, count($hits) === 1 ? '1 bill to collect is' : count($hits).' bills to collect are', ' over 60 days.', $read['complete']);
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
@@ -490,12 +490,12 @@ final class SpaceAskService
         $read = $this->billing->payLaterRead($actor);
         abort_if($read === null, 403);
         if ($read['rows'] === []) {
-            return ['sentence' => 'No pay-later bill is open.', 'columns' => [], 'rows' => []];
+            return ['sentence' => 'No bill to collect is open.', 'columns' => [], 'rows' => []];
         }
         $rows = $read['rows'];
         usort($rows, fn (array $a, array $b): int => $b['remainingSen'] <=> $a['remainingSen']);
 
-        return $this->billingTable(array_slice($rows, 0, 5), 'The 5 largest open pay-later bills', ' are shown.', $read['complete']);
+        return $this->billingTable(array_slice($rows, 0, 5), 'The 5 largest bills to collect', ' are shown.', $read['complete']);
     }
 
     /**

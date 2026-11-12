@@ -59,12 +59,13 @@ final class PanelInvoiceReportService
             $lastPage = max(1, (int) ceil($total / self::PER_PAGE));
             $current = min(max(1, $page), $lastPage);
 
-            return $base + [
+            // array_merge, not +: `+` keeps the left `downloadUrl => null` and the page never got a download link.
+            return array_merge($base, [
                 'ready' => true,
                 'rows' => array_slice($rows, ($current - 1) * self::PER_PAGE, self::PER_PAGE),
                 'total' => $total, 'currentPage' => $current, 'lastPage' => $lastPage, 'truncated' => $truncated,
                 'downloadUrl' => route('panel-invoices.download', $filters['query']),
-            ];
+            ]);
         });
     }
 

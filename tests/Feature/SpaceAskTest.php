@@ -141,9 +141,9 @@ class SpaceAskTest extends VisitTestCase
         $this->selectBranch($ca);
         $this->get('/spaces/billing')->assertInertia(fn (Assert $p) => $p->has('questions', 3));
         $this->postJson('/spaces/billing/ask', ['question' => 'billing.over_60'])
-            ->assertOk()->assertJsonPath('sentence', 'No pay-later bill is over 60 days.')->assertJsonPath('href', '/pay-later-collections');
+            ->assertOk()->assertJsonPath('sentence', 'No bill to collect is over 60 days.')->assertJsonPath('href', '/pay-later-collections');
         $this->postJson('/spaces/billing/ask', ['question' => 'billing.owes_most'])
-            ->assertOk()->assertJsonPath('sentence', 'No pay-later bill is open.');
+            ->assertOk()->assertJsonPath('sentence', 'No bill to collect is open.');
         $this->postJson('/spaces/billing/ask', ['question' => 'billing.closings_missing'])->assertOk();
         $this->postJson('/spaces/billing/ask', ['question' => 'billing.closings_waiting'])->assertForbidden();
 
