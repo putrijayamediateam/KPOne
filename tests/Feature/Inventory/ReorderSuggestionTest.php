@@ -5,6 +5,7 @@ namespace Tests\Feature\Inventory;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Dispensary\Services\DispensaryService;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Inventory\Services\InventoryControlService;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
 use App\Domain\Organisation\Inventory\Services\StockRequestService;
 use App\Domain\Organisation\Inventory\Services\StockUnitQuantity;
@@ -14,6 +15,7 @@ use App\Domain\Organisation\Models\Branch;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\OtcDispensaryFixtures;
 use Tests\Support\SupplierReturnFixture;
@@ -219,9 +221,11 @@ final class ReorderSuggestionTest extends VisitTestCase
         $f = $this->setUpBranch();
         $supervisor = $f['actors']->actor('ca_supervisor');
         app(BranchAccessService::class)->select($supervisor, $this->branch);
-        $payload = fn (string $level, ?string $max) => ['expected_branch_id' => $this->branch->id, 'location_public_id' => $f['location']->public_id,
-            'sku_public_id' => $f['sku']->public_id, 'reorder_level' => $level, 'max_level' => $max];
         $stored = fn () => DB::table('inventory_reorder_levels')->where('inventory_location_id', $f['location']->id)->where('inventory_sku_id', $f['sku']->id)->first();
+        // STK-30b: each save sends the saved version (null for a new level) and a fresh key.
+        $payload = fn (string $level, ?string $max) => ['expected_branch_id' => $this->branch->id, 'location_public_id' => $f['location']->public_id,
+            'sku_public_id' => $f['sku']->public_id, 'reorder_level' => $level, 'max_level' => $max,
+            'expected_lock_version' => $stored()?->lock_version, 'idempotency_key' => (string) Str::uuid()];
 
         $this->actingAs($supervisor)->put(route('inventory.reorder-levels.update'), $payload('5', '12.5'))->assertRedirect(route('inventory.index'))->assertSessionHasNoErrors();
         $this->assertSame(['5.000', '12.500'], [(string) $stored()->reorder_level, (string) $stored()->max_level]);
@@ -255,5 +259,62 @@ final class ReorderSuggestionTest extends VisitTestCase
         }
         $this->expectException(QueryException::class);
         DB::table('inventory_reorder_levels')->where('id', $stored()->id)->update(['max_level' => '1.000']);
+    }
+
+    public function test_saving_a_reorder_level_is_versioned_and_idempotent(): void
+    {
+        $f = $this->setUpBranch();
+        $supervisor = $f['actors']->actor('ca_supervisor');
+        app(BranchAccessService::class)->select($supervisor, $this->branch);
+        $service = app(InventoryControlService::class);
+        $base = ['expected_branch_id' => $this->branch->id, 'location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id];
+        $key = (string) Str::uuid();
+        $first = [...$base, 'reorder_level' => '5', 'max_level' => '9', 'expected_lock_version' => null, 'idempotency_key' => $key];
+
+        // The form reads nothing for a new pair, then the saved level and its version.
+        $current = fn () => $this->actingAs($supervisor)->getJson(route('inventory.reorder-levels.current', $base))->assertOk()->assertHeader('Cache-Control', 'max-age=0, must-revalidate, no-store, private')->json('level');
+        $this->assertNull($current());
+
+        $level = $service->setReorderLevel($supervisor, $first);
+        $this->assertSame(1, (int) $level->lock_version);
+        $this->assertSame(['reorderLevel' => '5.000', 'maxLevel' => '9.000', 'lockVersion' => 1], $current());
+
+        // A repeat with the same key and details returns the saved level and writes nothing more.
+        $audits = DB::table('audit_logs')->where('event', 'inventory.reorder_level.updated')->count();
+        $this->assertSame($level->id, $service->setReorderLevel($supervisor, $first)->id);
+        $this->assertSame($audits, DB::table('audit_logs')->where('event', 'inventory.reorder_level.updated')->count());
+        $this->assertSame(1, DB::table('inventory_reorder_level_commands')->count());
+
+        // The same key with different details is refused.
+        $this->assertValidationKey(fn () => $service->setReorderLevel($supervisor, [...$first, 'reorder_level' => '6']), 'idempotency_key');
+
+        // A stale or missing version is refused; the current version saves and goes up by one.
+        $this->assertValidationKey(fn () => $service->setReorderLevel($supervisor, [...$base, 'reorder_level' => '6', 'max_level' => null, 'expected_lock_version' => null, 'idempotency_key' => (string) Str::uuid()]), 'expected_lock_version');
+        $this->assertValidationKey(fn () => $service->setReorderLevel($supervisor, [...$base, 'reorder_level' => '6', 'max_level' => null, 'expected_lock_version' => 2, 'idempotency_key' => (string) Str::uuid()]), 'expected_lock_version');
+        $this->assertValidationKey(fn () => $service->setReorderLevel($supervisor, [...$base, 'reorder_level' => '6', 'max_level' => null, 'idempotency_key' => (string) Str::uuid()]), 'expected_lock_version');
+        $this->assertValidationKey(fn () => $service->setReorderLevel($supervisor, [...$base, 'reorder_level' => '6', 'max_level' => null, 'expected_lock_version' => 1]), 'idempotency_key');
+        $saved = $service->setReorderLevel($supervisor, [...$base, 'reorder_level' => '6', 'max_level' => null, 'expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()]);
+        $this->assertSame([2, '6.000', null], [(int) $saved->lock_version, (string) $saved->reorder_level, $saved->max_level]);
+        $audit = DB::table('audit_logs')->where('event', 'inventory.reorder_level.updated')->latest('id')->first();
+        $this->assertSame(2, json_decode((string) $audit->metadata, true)['lock_version']);
+
+        // Only reorder managers read the saved level.
+        $this->actingAs($f['actors']->actor('ca'))->getJson(route('inventory.reorder-levels.current', $base))->assertForbidden();
+
+        // Retry records are append-only.
+        if (DB::getDriverName() === 'pgsql') {
+            $this->expectException(QueryException::class);
+            DB::table('inventory_reorder_level_commands')->delete();
+        }
+    }
+
+    private function assertValidationKey(callable $call, string $key): void
+    {
+        try {
+            $call();
+            $this->fail('Expected a validation error on '.$key.'.');
+        } catch (ValidationException $exception) {
+            $this->assertArrayHasKey($key, $exception->errors());
+        }
     }
 }

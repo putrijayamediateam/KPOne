@@ -12,6 +12,7 @@ use App\Domain\Organisation\Inventory\Services\ReceiptCorrectionService;
 use App\Domain\Organisation\Inventory\Services\ReceivingReviewService;
 use App\Domain\Organisation\Inventory\Services\StockRequestService;
 use App\Domain\Organisation\Inventory\Services\SupplierAdministrationService;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -319,10 +320,17 @@ class InventoryOperationsController extends Controller
         return $this->success('Inventory adjustment posted.');
     }
 
+    /** STK-30b: the saved level for the chosen location and SKU, so the form can show it and send its version. */
+    public function currentReorderLevel(Request $request, InventoryControlService $service): JsonResponse
+    {
+        return response()->json(['level' => $service->currentReorderLevel($request->user(), $request->only(['expected_branch_id', 'location_public_id', 'sku_public_id']))])
+            ->header('Cache-Control', 'private, no-store');
+    }
+
     public function reorderLevel(Request $request, InventoryControlService $service): RedirectResponse
     {
         try {
-            $service->setReorderLevel($request->user(), $request->only(['expected_branch_id', 'location_public_id', 'sku_public_id', 'reorder_level', 'max_level']));
+            $service->setReorderLevel($request->user(), $request->only(['expected_branch_id', 'location_public_id', 'sku_public_id', 'reorder_level', 'max_level', 'expected_lock_version', 'idempotency_key']));
         } catch (ValidationException $exception) {
             throw $this->stayOnInventory($exception);
         }

@@ -2,6 +2,7 @@
 
 namespace App\Domain\Organisation\Inventory\Services;
 
+use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Inventory\Models\InventoryAdjustment;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
@@ -65,7 +66,11 @@ final class InventoryControlService
         LegacyStockPath::refuse($actor, self::ADJUST_PERMISSION, $attributes);
     }
 
-    /** @param array<string, mixed> $attributes */
+    /**
+     * STK-30b: optimistic locking (expected_lock_version: null for a new level) and an idempotency key.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
     public function setReorderLevel(User $actor, array $attributes): InventoryReorderLevel
     {
         $branch = $this->authority->activeBranch($actor, $attributes);
@@ -74,6 +79,8 @@ final class InventoryControlService
             'reorder_level' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'],
             // STK-30: optional maximum; blank clears it. Suggestions order up to it, nothing is ordered automatically.
             'max_level' => ['nullable', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'],
+            'expected_lock_version' => ['present', 'nullable', 'integer', 'min:1'],
+            'idempotency_key' => ['required', 'uuid'],
         ])->validate();
         $max = filled($values['max_level'] ?? null) ? StockUnitQuantity::scaled((string) $values['max_level'], true) : null;
         $reorder = StockUnitQuantity::scaled((string) $values['reorder_level'], true);
@@ -84,18 +91,64 @@ final class InventoryControlService
         if ($max !== null && $max < $reorder) {
             throw ValidationException::withMessages(['max_level' => 'The maximum must be at least the reorder level.']);
         }
+        $expected = $values['expected_lock_version'] === null ? null : (int) $values['expected_lock_version'];
+        $key = strtolower((string) $values['idempotency_key']);
+        $hash = hash('sha256', json_encode([(int) $actor->id, $values['location_public_id'], $values['sku_public_id'],
+            StockUnitQuantity::format($reorder), $max === null ? null : StockUnitQuantity::format($max), $expected], JSON_THROW_ON_ERROR));
 
-        return DB::transaction(function () use ($actor, $values, $max, $branch): InventoryReorderLevel {
+        return DB::transaction(function () use ($actor, $values, $reorder, $max, $expected, $key, $hash, $branch): InventoryReorderLevel {
+            // Two first uses of one key race on the unique key index; the transaction retry then replays or refuses.
             $lockedActor = $this->authority->lockForBranch($actor, $branch, self::REORDER_PERMISSION);
+            $command = DB::table('inventory_reorder_level_commands')->where('organisation_id', $lockedActor->organisation_id)
+                ->where('idempotency_key', $key)->lockForUpdate()->first();
+            if ($command !== null) {
+                if ((int) $command->branch_id !== $branch->id || $command->payload_hash !== $hash) {
+                    throw ValidationException::withMessages(['idempotency_key' => 'This request key was already used with different details.']);
+                }
+
+                return InventoryReorderLevel::query()->whereKey($command->inventory_reorder_level_id)
+                    ->where('organisation_id', $lockedActor->organisation_id)->lockForUpdate()->firstOrFail();
+            }
             $location = $this->lockLocation($lockedActor, $branch, $values['location_public_id']);
             $sku = InventorySku::query()->where('public_id', $values['sku_public_id'])->where('organisation_id', $lockedActor->organisation_id)->where('is_active', true)->lockForUpdate()->firstOrFail();
-            $level = InventoryReorderLevel::query()->where('organisation_id', $lockedActor->organisation_id)->where('inventory_location_id', $location->id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->first() ?? new InventoryReorderLevel;
-            $level->forceFill(['organisation_id' => $lockedActor->organisation_id, 'inventory_location_id' => $location->id, 'inventory_sku_id' => $sku->id, 'reorder_level' => number_format((float) $values['reorder_level'], 3, '.', ''),
-                'max_level' => $max === null ? null : StockUnitQuantity::format($max), 'updated_by_user_id' => $lockedActor->id])->save();
-            $this->audit->record('inventory.reorder_level.updated', $level, ['reorder_level' => $level->reorder_level, 'max_level' => $level->max_level], $lockedActor, $branch);
+            $level = InventoryReorderLevel::query()->where('organisation_id', $lockedActor->organisation_id)->where('inventory_location_id', $location->id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->first();
+            if (($level === null) !== ($expected === null) || ($level !== null && (int) $level->lock_version !== $expected)) {
+                throw ValidationException::withMessages(['expected_lock_version' => 'This reorder level changed. Reload and try again.']);
+            }
+            $level ??= new InventoryReorderLevel;
+            $level->forceFill(['organisation_id' => $lockedActor->organisation_id, 'inventory_location_id' => $location->id, 'inventory_sku_id' => $sku->id,
+                'reorder_level' => StockUnitQuantity::format($reorder), 'max_level' => $max === null ? null : StockUnitQuantity::format($max),
+                'lock_version' => $level->exists ? (int) $level->lock_version + 1 : 1, 'updated_by_user_id' => $lockedActor->id])->save();
+            DB::table('inventory_reorder_level_commands')->insert(['organisation_id' => $lockedActor->organisation_id, 'branch_id' => $branch->id,
+                'inventory_reorder_level_id' => $level->id, 'idempotency_key' => $key, 'payload_hash' => $hash, 'created_at' => now()->utc()]);
+            $this->audit->record('inventory.reorder_level.updated', $level, ['reorder_level' => $level->reorder_level, 'max_level' => $level->max_level, 'lock_version' => $level->lock_version], $lockedActor, $branch);
 
             return $level;
         }, 3);
+    }
+
+    /**
+     * STK-30b: the saved level for one location and SKU, so the form can show it and send its version. Read only.
+     *
+     * @param  array<string, mixed>  $input
+     * @return array{reorderLevel: string, maxLevel: string|null, lockVersion: int}|null
+     */
+    public function currentReorderLevel(User $actor, array $input): ?array
+    {
+        $branch = $this->authority->activeBranch($actor, $input);
+        $values = validator($input, ['location_public_id' => ['required', 'uuid'], 'sku_public_id' => ['required', 'uuid']])->validate();
+        $actor = $actor->fresh()?->load(['roles.permissions', 'permissions']);
+        abort_unless($actor && $actor->is_active && $actor->can(self::REORDER_PERMISSION) && app(BranchAccessService::class)->hasEffectiveAssignment($actor, $branch), 403);
+        $location = InventoryLocation::query()->where('public_id', $values['location_public_id'])->where('organisation_id', $actor->organisation_id)->where('is_active', true)->firstOrFail();
+        abort_unless($location->branch_id === $branch->id || ($location->branch_id === null && $actor->can(self::WAREHOUSE_PERMISSION)), 404);
+        $sku = InventorySku::query()->where('public_id', $values['sku_public_id'])->where('organisation_id', $actor->organisation_id)->where('is_active', true)->firstOrFail();
+        $level = InventoryReorderLevel::query()->where('organisation_id', $actor->organisation_id)->where('inventory_location_id', $location->id)->where('inventory_sku_id', $sku->id)->first();
+
+        return $level === null ? null : [
+            'reorderLevel' => StockUnitQuantity::format(StockUnitQuantity::scaled((string) $level->reorder_level, true)),
+            'maxLevel' => $level->max_level === null ? null : StockUnitQuantity::format(StockUnitQuantity::scaled((string) $level->max_level, true)),
+            'lockVersion' => (int) $level->lock_version,
+        ];
     }
 
     private function lockLocation(User $actor, Branch $branch, string $publicId): InventoryLocation

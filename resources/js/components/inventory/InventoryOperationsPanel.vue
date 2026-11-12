@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router, useRemember } from '@inertiajs/vue3';
 import { Boxes } from '@lucide/vue';
-import { computed, reactive, ref, shallowRef, watchEffect } from 'vue';
+import { computed, reactive, ref, shallowRef, watch, watchEffect } from 'vue';
 import type { Ref } from 'vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import ReceivingReviews from '@/components/inventory/ReceivingReviews.vue';
@@ -17,6 +17,7 @@ import {
     purchaseOrderActionAllowed,
     stockRequestActionAllowed,
 } from '@/lib/inventory-operation-transitions';
+import { requestJson } from '@/lib/json-client';
 import { formatDate } from '@/lib/presentation';
 import type { TransferReceiptLinePayload } from '@/lib/transfer-receipt';
 import type {
@@ -171,7 +172,63 @@ const stockRequest = reactive({
     lines: [blankLine()],
 });
 const dispatchBatch = reactive<Record<string, string>>({});
-const reorder = reactive({ location: '', sku: '', level: '', max: '' });
+const reorder = reactive({
+    location: '',
+    sku: '',
+    level: '',
+    max: '',
+    // STK-30b: the saved level's version (null for a new level) and one key per save attempt.
+    lockVersion: null as number | null,
+    key: crypto.randomUUID(),
+    loading: false,
+});
+type CurrentReorderLevel = {
+    reorderLevel: string;
+    maxLevel: string | null;
+    lockVersion: number;
+} | null;
+let reorderLookup = 0;
+const loadReorderLevel = async () => {
+    const lookup = ++reorderLookup;
+    reorder.lockVersion = null;
+    reorder.key = crypto.randomUUID();
+
+    if (!reorder.location || !reorder.sku) {
+        return;
+    }
+
+    reorder.loading = true;
+
+    try {
+        const query = new URLSearchParams({
+            expected_branch_id: String(props.operations.expectedBranchId),
+            location_public_id: reorder.location,
+            sku_public_id: reorder.sku,
+        });
+        const { level } = await requestJson<{ level: CurrentReorderLevel }>(
+            `/inventory/reorder-levels/current?${query.toString()}`,
+        );
+
+        if (lookup !== reorderLookup) {
+            return;
+        }
+
+        reorder.level = level?.reorderLevel ?? '';
+        reorder.max = level?.maxLevel ?? '';
+        reorder.lockVersion = level?.lockVersion ?? null;
+    } catch {
+        if (lookup === reorderLookup) {
+            operationErrorContext.value = 'Reorder level action';
+            operationError.value =
+                'The saved reorder level could not be loaded. Choose the location and SKU again.';
+        }
+    } finally {
+        if (lookup === reorderLookup) {
+            reorder.loading = false;
+        }
+    }
+};
+watch(() => [reorder.location, reorder.sku], loadReorderLevel);
 const canPurchase = (
     row: DocumentRow,
     action: 'submit' | 'approve' | 'receive' | 'close' | 'cancel',
@@ -624,13 +681,20 @@ const confirmTransferDifference = (
             ),
     });
 const saveReorder = () =>
-    send('put', '/inventory/reorder-levels', {
-        expected_branch_id: props.operations.expectedBranchId,
-        location_public_id: reorder.location,
-        sku_public_id: reorder.sku,
-        reorder_level: reorder.level,
-        max_level: reorder.max,
-    });
+    send(
+        'put',
+        '/inventory/reorder-levels',
+        {
+            expected_branch_id: props.operations.expectedBranchId,
+            location_public_id: reorder.location,
+            sku_public_id: reorder.sku,
+            reorder_level: reorder.level,
+            max_level: reorder.max,
+            expected_lock_version: reorder.lockVersion,
+            idempotency_key: reorder.key,
+        },
+        loadReorderLevel,
+    );
 </script>
 
 <template>
@@ -1286,7 +1350,9 @@ const saveReorder = () =>
                         With a maximum, reorder suggestions fill up to it. Leave
                         blank to remove any maximum.
                     </p>
-                    <Button type="submit" :disabled="busy">Save level</Button>
+                    <Button type="submit" :disabled="busy || reorder.loading"
+                        >Save level</Button
+                    >
                 </form>
                 <p class="text-xs text-muted-foreground">
                     Up to 100 low-stock entries and 100 near-expiry batches are
