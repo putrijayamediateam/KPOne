@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useForm } from '@inertiajs/vue3';
-import { Plus } from '@lucide/vue';
+import { Ellipsis, Plus } from '@lucide/vue';
 import { computed, reactive, ref } from 'vue';
 import CatalogueFormSectionHeading from '@/components/catalogue/CatalogueFormSectionHeading.vue';
 import CatalogueOptionPicker from '@/components/catalogue/CatalogueOptionPicker.vue';
@@ -16,6 +16,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -286,6 +292,7 @@ const toggleDescription = computed(() => {
         </PageHeader>
 
         <ConsultationTariffPanel
+            class="max-lg:order-last"
             :tariff="consultationTariff"
             :can-manage-prices="setup.canManagePrices"
             :can-publish-prices="setup.canPublishPrices"
@@ -381,22 +388,36 @@ const toggleDescription = computed(() => {
                         </dd>
                     </div>
                 </dl>
-                <div class="grid grid-cols-2 gap-2">
+                <div class="flex items-center gap-2">
                     <Button
                         variant="outline"
-                        class="min-h-11"
+                        class="min-h-11 flex-1"
                         :aria-label="`Edit ${row.displayName}`"
                         @click="openEdit(row)"
                         >Edit</Button
                     >
-                    <Button
-                        class="min-h-11"
-                        :variant="row.isActive ? 'ghost' : 'secondary'"
-                        :aria-label="`${row.isActive ? 'Deactivate' : 'Activate'} ${row.displayName}`"
-                        @click="requestToggle(row)"
-                    >
-                        {{ row.isActive ? 'Deactivate' : 'Activate' }}
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger as-child>
+                            <Button
+                                variant="outline"
+                                size="icon"
+                                class="min-h-11 min-w-11"
+                                :aria-label="`More actions for ${row.displayName}`"
+                                data-action="service-row-menu"
+                            >
+                                <Ellipsis class="size-4" aria-hidden="true" />
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" class="w-48">
+                            <DropdownMenuItem
+                                class="min-h-11"
+                                @select="requestToggle(row)"
+                                >{{
+                                    row.isActive ? 'Deactivate' : 'Activate'
+                                }}</DropdownMenuItem
+                            >
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
             </article>
         </section>
@@ -476,18 +497,35 @@ const toggleDescription = computed(() => {
                                     @click="openEdit(row)"
                                     >Edit</Button
                                 >
-                                <Button
-                                    size="sm"
-                                    :variant="
-                                        row.isActive ? 'ghost' : 'secondary'
-                                    "
-                                    :aria-label="`${row.isActive ? 'Deactivate' : 'Activate'} ${row.displayName}`"
-                                    @click="requestToggle(row)"
-                                >
-                                    {{
-                                        row.isActive ? 'Deactivate' : 'Activate'
-                                    }}
-                                </Button>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger as-child>
+                                        <Button
+                                            size="icon"
+                                            variant="ghost"
+                                            class="size-8"
+                                            :aria-label="`More actions for ${row.displayName}`"
+                                            data-action="service-row-menu"
+                                        >
+                                            <Ellipsis
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                        align="end"
+                                        class="w-48"
+                                    >
+                                        <DropdownMenuItem
+                                            @select="requestToggle(row)"
+                                            >{{
+                                                row.isActive
+                                                    ? 'Deactivate'
+                                                    : 'Activate'
+                                            }}</DropdownMenuItem
+                                        >
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
                             </div>
                         </td>
                     </tr>
