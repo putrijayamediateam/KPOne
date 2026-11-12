@@ -52,6 +52,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->dontFlash([
             'password',
             'clock_position', // HR-16a: a person's position at a press is never flashed
+            'capture_token', // HR-PHOTO: a one-press camera token is never flashed
             'ratings',
             'comment',
             'allegation',

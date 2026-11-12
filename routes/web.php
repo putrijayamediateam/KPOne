@@ -232,6 +232,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time; HR-16a may keep a location result, never a position.
     Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.attendance.clock.own,hr.attendance.review.organisation')->name('hr.attendance.index');
+        // HR-PHOTO: a capture token when the camera opens, and the photo itself (own, or a reviewer's audited Show).
+        Route::post('capture', 'capture')->middleware(['permission:hr.attendance.clock.own', 'throttle:20,1'])->name('hr.attendance.capture');
+        Route::get('photos/{photo}/{size}', 'photo')->whereUuid('photo')->whereIn('size', ['full', 'thumb'])
+            ->middleware(['same-origin.open', 'permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:240,1'])->name('hr.attendance.photo');
         Route::middleware(['permission:hr.attendance.clock.own', 'throttle:10,1'])->group(function (): void {
             Route::post('clock-in', 'clockIn')->name('hr.attendance.clock-in');
             Route::post('clock-out', 'clockOut')->name('hr.attendance.clock-out');

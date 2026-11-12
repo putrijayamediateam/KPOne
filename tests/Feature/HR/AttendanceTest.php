@@ -22,6 +22,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\ClockPhotoFixture;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 
 /**
@@ -439,7 +440,7 @@ class AttendanceTest extends VisitTestCase
 
         $this->at('2027-03-08 07:55');
         $this->selectBranch($ca, $puchong);
-        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, 'in')])->assertSessionHasNoErrors();
         $this->at('2027-03-08 14:10');
         $this->clock($ca, 'out')->assertSessionHasNoErrors();
         $this->at('2027-03-08 16:00');
@@ -632,7 +633,7 @@ class AttendanceTest extends VisitTestCase
     {
         $this->selectBranch($actor);
 
-        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => $key ?? (string) Str::uuid()]);
+        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => $key ?? (string) Str::uuid(), ...ClockPhotoFixture::press($this, $kind)]);
     }
 
     /** @param array<string, mixed> $input */

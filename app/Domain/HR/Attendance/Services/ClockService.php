@@ -5,6 +5,8 @@ namespace App\Domain\HR\Attendance\Services;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
+use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -14,8 +16,10 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 /**
- * HR-3a Clock in and Clock out on the staff member's own account. The time is the server's; no location, IP address,
- * photo or device data is stored (TEAM.md decision 6). HR-16a: where a Director has turned the location check on for the
+ * HR-3a Clock in and Clock out on the staff member's own account. The time is the server's; no location, IP address
+ * or device data is stored (TEAM.md decision 6). HR-PHOTO (owner, 2026-11-12, superseding decision 6 for photos only):
+ * every press carries a live photo taken with a fresh capture token, stored encrypted in the same transaction; a press
+ * without one is refused, here and by PostgreSQL. HR-16a: where a Director has turned the location check on for the
  * branch, the press also keeps a result (inside, outside or not available), never the position itself. One open session per person (service and PostgreSQL). A press
  * within a minute of the last one is a double tap and is refused. A clock-in older than 16 hours, or one whose shift
  * ended more than the forgotten window ago when the person's next shift that day is about to start (a split shift), is
@@ -24,14 +28,16 @@ use Illuminate\Validation\ValidationException;
 final class ClockService
 {
     public function __construct(private AttendanceSupport $support, private BranchAccessService $branches, private AttendanceDays $days,
-        private LocationCheckService $location) {}
+        private LocationCheckService $location, private ClockPhotoService $photos) {}
 
     /** @param array<string, mixed> $input */
     public function clockIn(User $actor, array $input): ClockSession
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
+        $written = [];
 
-        return $this->transaction(function () use ($actor, $key, $input): ClockSession {
+        return $this->transaction($written, function () use ($actor, $key, $input, &$written): ClockSession {
+            $this->photos->forget($written); // a retried transaction must not leave the earlier attempt's photo behind
             $actor = $this->support->lock($actor, ClockPermissions::CLOCK_OWN);
             $hash = $this->support->hash([$actor->id, 'in']);
             if (($replay = $this->support->replay($actor, $key, 'clock_in', $hash)) !== null) {
@@ -59,6 +65,7 @@ final class ClockService
             $session->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id, 'user_id' => $actor->id,
                 'branch_id' => $branch->id, 'local_date' => $local->toDateString(), 'timezone' => $branch->timezone,
                 'clock_in_at' => $now, 'status' => 'open'])->save();
+            $this->photos->attach($actor, $session, 'in', $input['photo_prepared'] ?? null, $input['capture_token'] ?? null, $written);
             $this->event($session, 'in', $now, $actor);
             $this->location->recordPress($actor, $session, 'in', $input); // HR-16a: only when on at this branch
             $this->support->remember($actor, $key, 'clock_in', $hash, $session->public_id);
@@ -72,8 +79,10 @@ final class ClockService
     public function clockOut(User $actor, array $input): ClockSession
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
+        $written = [];
 
-        return $this->transaction(function () use ($actor, $key, $input): ClockSession {
+        return $this->transaction($written, function () use ($actor, $key, $input, &$written): ClockSession {
+            $this->photos->forget($written);
             $actor = $this->support->lock($actor, ClockPermissions::CLOCK_OWN);
             $hash = $this->support->hash([$actor->id, 'out']);
             if (($replay = $this->support->replay($actor, $key, 'clock_out', $hash)) !== null) {
@@ -91,6 +100,7 @@ final class ClockService
                 throw ValidationException::withMessages(['clock' => 'You clocked in less than a minute ago.']);
             }
             $session->forceFill(['clock_out_at' => $now, 'status' => 'closed', 'lock_version' => $session->lock_version + 1])->save();
+            $this->photos->attach($actor, $session, 'out', $input['photo_prepared'] ?? null, $input['capture_token'] ?? null, $written);
             $this->event($session, 'out', $now, $actor);
             $this->location->recordPress($actor, $session, 'out', $input); // HR-16a: only when on at the session's branch
             $this->support->remember($actor, $key, 'clock_out', $hash, $session->public_id);
@@ -123,20 +133,31 @@ final class ClockService
     /**
      * @template T
      *
+     * @param  list<string>  $written  photo files this press wrote, deleted again if it fails
      * @param  callable(): T  $callback
      * @return T
      */
-    private function transaction(callable $callback): mixed
+    private function transaction(array &$written, callable $callback): mixed
     {
         try {
             return DB::transaction(fn () => $callback(), 3);
-        } catch (QueryException $e) {
+        } catch (\Throwable $e) {
+            $this->photos->forget($written);
+            if (! $e instanceof QueryException) {
+                throw $e;
+            }
             // PostgreSQL is the last line for one open session per person and no overlapping sessions.
+            if (($e->errorInfo[0] ?? null) === '23505' && str_contains($e->getMessage(), 'hr_clock_photos')) {
+                throw ValidationException::withMessages(['photo' => 'This photo was used before. Take a new one.']);
+            }
             if (($e->errorInfo[0] ?? null) === '23505') {
                 throw ValidationException::withMessages(['clock' => 'You are already clocked in. Reload the page.']);
             }
             if (($e->errorInfo[0] ?? null) === '23P01') {
                 throw ValidationException::withMessages(['clock' => 'This time overlaps another clock-in. Ask HR to check your times.']);
+            }
+            if (($e->errorInfo[0] ?? null) === '23514' && str_contains($e->getMessage(), 'needs a photo')) {
+                throw ValidationException::withMessages(['photo' => ClockPhotoFiles::NEEDED]);
             }
             throw $e;
         }

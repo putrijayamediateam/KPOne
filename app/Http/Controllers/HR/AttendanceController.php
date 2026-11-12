@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
+use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use App\Domain\HR\Attendance\Services\AttendancePageService;
 use App\Domain\HR\Attendance\Services\AttendanceSettingsService;
 use App\Domain\HR\Attendance\Services\ClockService;
@@ -11,6 +13,7 @@ use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Domain\HR\Attendance\Services\OvertimeSettingsService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -51,6 +54,26 @@ class AttendanceController extends Controller
         return $response;
     }
 
+    /** HR-PHOTO: when the camera opens, a token good for one press of that kind for five minutes. */
+    public function capture(Request $request, ClockPhotoService $photos): JsonResponse
+    {
+        return response()->json($photos->issueToken($request->user(), (string) $request->input('kind')), 200, ['Cache-Control' => 'no-store, private']);
+    }
+
+    /** HR-PHOTO: your own photo, or (for a reviewer) someone else's, recorded before any byte is sent. */
+    public function photo(Request $request, ClockPhotoService $photos, string $photo, string $size): \Illuminate\Http\Response
+    {
+        $opened = $photos->open($request->user(), $photo, $size);
+
+        return response($opened['content'], 200, [
+            'Content-Type' => 'image/jpeg',
+            'Content-Disposition' => 'inline; filename="clock-photo.jpg"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'Cache-Control' => 'no-store, private',
+        ]);
+    }
+
     public function propose(Request $request, CorrectionService $corrections): RedirectResponse
     {
         $tab = $request->input('tab') === 'review' ? 'review' : 'my';
@@ -83,7 +106,10 @@ class AttendanceController extends Controller
     {
         $position = $request->input('clock_position');
 
+        // HR-PHOTO: the photo is checked and re-encoded when the press reaches it (after the branch and session checks);
+        // the token proves the camera was just opened.
         return ['idempotency_key' => $request->input('idempotency_key'), 'location_consent' => $request->boolean('location_consent'),
+            'photo_prepared' => fn (): array => ClockPhotoFiles::prepare($request->file('photo')), 'capture_token' => $request->input('capture_token'),
             'location_unavailable' => $request->input('location_unavailable'),
             'clock_position' => is_array($position) ? array_intersect_key($position, array_flip(['latitude', 'longitude', 'accuracy'])) : null];
     }

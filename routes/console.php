@@ -4,6 +4,7 @@ use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\AutoRejectJobApplications;
 use App\Console\Commands\CleanupPublicPatientIntakes;
 use App\Console\Commands\PurgeAttendanceRecords;
+use App\Console\Commands\PurgeClockPhotoLeftovers;
 use App\Console\Commands\PurgeCompliancePhotos;
 use App\Console\Commands\PurgeHrDocuments;
 use App\Console\Commands\PurgeJobApplications;
@@ -57,6 +58,12 @@ Schedule::command(PurgeLocationResults::class)
 // than 7 years are deleted.
 Schedule::command(PurgeAttendanceRecords::class)
     ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// HR-PHOTO: run-out capture tokens and photo files no record points at (photos themselves go with the purge above).
+Schedule::command(PurgeClockPhotoLeftovers::class)
+    ->dailyAt('01:30')
     ->withoutOverlapping()
     ->onOneServer();
 
