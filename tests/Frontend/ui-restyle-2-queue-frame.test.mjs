@@ -44,7 +44,8 @@ test('the board has 24 px above the header from 1024 px and 16 px inside the car
         template,
         /gap-2 px-4 py-2 text-xs text-muted-foreground sm:flex-row/,
     );
-    assert.match(template, /class="mx-4 mb-3 min-h-11"/);
+    // Frame review: the sound button sits with the counts and Call next from 640 px, on its own 44 px row below.
+    assert.match(template, /class="w-full max-lg:min-h-11 sm:w-auto"/);
     // The shown-count lines and the pager line up with the strip at 16 px.
     assert.equal(
         (
@@ -62,7 +63,7 @@ test('the live line is 13 px and the board sits in a hairline card frame', () =>
     assert.doesNotMatch(template, /text-\[11px\]/);
     assert.match(
         template,
-        /<section class="overflow-hidden rounded-xl border bg-card">/,
+        /<section\s+class="overflow-hidden rounded-xl border bg-card max-md:rounded-none max-md:border-0 max-md:bg-transparent"\s*>/,
     );
 });
 

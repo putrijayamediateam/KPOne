@@ -819,7 +819,9 @@ onBeforeUnmount(() => {
             <InputError class="md:col-span-2 xl:col-span-5" :message="error" />
         </form>
 
-        <section class="overflow-hidden rounded-xl border bg-card">
+        <section
+            class="overflow-hidden rounded-xl border bg-card max-md:rounded-none max-md:border-0 max-md:bg-transparent"
+        >
             <div
                 class="flex flex-col gap-2 px-4 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
             >
@@ -833,24 +835,28 @@ onBeforeUnmount(() => {
                             : 'Branch scope'
                     }}</span></span
                 >
-                <CallNextControl
-                    v-if="live.callNext"
-                    :block="live.callNext"
-                    :branch-id="live.branch.id"
-                    :busy="busyKey !== null"
-                    :refresh="refreshBoard"
-                    @processing="busyKey = $event ? 'call-next' : null"
-                />
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <CallNextControl
+                        v-if="live.callNext"
+                        :block="live.callNext"
+                        :branch-id="live.branch.id"
+                        :busy="busyKey !== null"
+                        :refresh="refreshBoard"
+                        @processing="busyKey = $event ? 'call-next' : null"
+                    />
+                    <Button
+                        type="button"
+                        variant="outline"
+                        class="w-full max-lg:min-h-11 sm:w-auto"
+                        :aria-pressed="readyAlerts.chimeEnabled.value"
+                        @click="readyAlerts.toggleChime"
+                        >Notification sound:
+                        {{
+                            readyAlerts.chimeEnabled.value ? 'On' : 'Off'
+                        }}</Button
+                    >
+                </div>
             </div>
-            <Button
-                type="button"
-                variant="outline"
-                class="mx-4 mb-3 min-h-11"
-                :aria-pressed="readyAlerts.chimeEnabled.value"
-                @click="readyAlerts.toggleChime"
-                >Notification sound:
-                {{ readyAlerts.chimeEnabled.value ? 'On' : 'Off' }}</Button
-            >
             <PatientBoard
                 :branch-id="live.branch.id"
                 from="queue"
