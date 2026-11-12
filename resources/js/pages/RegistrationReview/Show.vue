@@ -340,7 +340,7 @@ watch(
         <div
             v-if="actionError"
             role="alert"
-            class="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+            class="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
         >
             {{ actionError }}
         </div>
@@ -348,7 +348,7 @@ watch(
             class="grid gap-5 xl:grid-cols-2"
             @submit.prevent="saveCorrection"
         >
-            <Card
+            <Card class="rounded-xl"
                 ><CardHeader
                     ><CardTitle>Patient information</CardTitle
                     ><CardDescription
@@ -429,7 +429,7 @@ watch(
                         ><input
                             v-model="correction.identifier_value"
                             aria-label="Identifier value"
-                            class="h-10 min-w-0 rounded-md border bg-background px-3"
+                            class="h-9 min-w-0 rounded-[10px] border bg-background px-3 max-lg:h-11"
                         />
                     </div>
                     <template v-if="correction.submission_type === 'guardian'">
@@ -505,7 +505,7 @@ watch(
                             class="h-9 rounded-[10px] border bg-background px-3 max-lg:h-11"
                     /></label>
                     <div
-                        class="rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
+                        class="rounded-xl border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
                     >
                         <p class="font-semibold">
                             Patient-reported coverage — not verified
@@ -547,7 +547,7 @@ watch(
                         </select>
                         <InputError :message="correction.errors.panel_id" />
                     </label>
-                    <div class="grid gap-4 rounded-lg border p-4 md:col-span-2">
+                    <div class="grid gap-4 rounded-xl border p-4 md:col-span-2">
                         <div>
                             <h3 class="font-semibold">
                                 CA coverage verification
@@ -600,7 +600,7 @@ watch(
                                 "
                         /></label>
                         <label
-                            class="flex items-start gap-2 rounded-lg border p-3 text-sm"
+                            class="flex items-start gap-2 rounded-xl border p-3 text-sm"
                             ><input
                                 v-model="acceptance.coverage_verified"
                                 type="checkbox"
@@ -640,13 +640,14 @@ watch(
                     <Button
                         type="submit"
                         variant="outline"
+                        class="max-lg:h-11"
                         :disabled="!canMutate || correction.processing"
                         >Save corrections</Button
                     >
                 </CardContent></Card
             >
 
-            <Card
+            <Card class="rounded-xl"
                 ><CardHeader
                     ><CardTitle>Duplicate resolution</CardTitle
                     ><CardDescription
@@ -724,7 +725,7 @@ watch(
                     <div
                         v-for="candidate in intake.duplicateCandidates"
                         :key="candidate.patientNumber"
-                        class="rounded-lg border p-3 text-sm"
+                        class="rounded-xl border p-3 text-sm"
                     >
                         <div class="flex items-start justify-between gap-2">
                             <div>
@@ -751,6 +752,7 @@ watch(
                                 type="button"
                                 size="sm"
                                 variant="outline"
+                                class="max-lg:h-11"
                                 @click="
                                     selectCandidate(candidate.patientNumber)
                                 "
@@ -760,7 +762,7 @@ watch(
                     </div>
                     <p
                         v-if="intake.duplicateCandidates.length === 0"
-                        class="rounded-lg bg-muted p-3 text-sm text-muted-foreground"
+                        class="rounded-xl bg-muted p-3 text-sm text-muted-foreground"
                     >
                         No soft or exact duplicate candidate was found.
                     </p>
@@ -791,7 +793,7 @@ watch(
                     /></label>
                     <label
                         v-else
-                        class="flex items-start gap-2 rounded-lg border p-3 text-sm"
+                        class="flex items-start gap-2 rounded-xl border p-3 text-sm"
                         ><input
                             v-model="acceptance.duplicate_override"
                             type="checkbox"
@@ -848,7 +850,7 @@ watch(
                     </div>
                     <label
                         v-if="acceptance.errors.confirm_repeat"
-                        class="flex items-start gap-2 rounded-lg border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
+                        class="flex items-start gap-2 rounded-xl border border-warning/25 bg-warning/10 p-3 text-sm text-warning-strong md:col-span-2"
                         ><input
                             v-model="acceptance.confirm_repeat"
                             type="checkbox"
@@ -866,7 +868,7 @@ watch(
                         "
                     />
                     <Button
-                        class="min-h-11 md:col-span-2"
+                        class="max-lg:h-11 md:col-span-2"
                         :disabled="!canMutate || acceptance.processing"
                         ><LoaderCircle
                             v-if="acceptance.processing"
@@ -885,6 +887,7 @@ watch(
                 ><Button
                     type="button"
                     variant="outline"
+                    class="max-lg:h-11"
                     :disabled="actionProcessing"
                     @click="requireCorrection"
                     ><ShieldAlert class="size-4" />Correction required</Button
@@ -906,6 +909,7 @@ watch(
                 ><Button
                     type="button"
                     variant="destructive"
+                    class="max-lg:h-11"
                     :disabled="actionProcessing"
                     @click="reject"
                     >Reject intake</Button
@@ -913,7 +917,7 @@ watch(
             ></Card
         >
         <div
-            class="flex items-center gap-2 rounded-lg border border-success/25 bg-success/10 p-3 text-sm text-success"
+            class="flex items-center gap-2 rounded-xl border border-success/25 bg-success/10 p-3 text-sm text-success"
         >
             <CheckCircle2 class="size-5" />No Patient, Visit, or Queue record is
             created until acceptance commits.
