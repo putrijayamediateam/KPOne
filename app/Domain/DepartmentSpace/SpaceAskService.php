@@ -140,12 +140,13 @@ final class SpaceAskService
             return ['sentence' => 'No staff account is inactive.', 'columns' => [], 'rows' => []];
         }
         $rows = [];
+        $withDate = count(array_filter($staff, fn (array $r): bool => $r['since'] !== null)) > 0;
         foreach ($staff as $r) {
-            $rows[] = [$r['name'], $r['role'], $r['branch']];
+            $rows[] = $withDate ? [$r['name'], $r['role'], $r['branch'], $r['since'] ?? 'Date not recorded'] : [$r['name'], $r['role'], $r['branch']];
         }
         $n = count($rows);
 
-        return ['sentence' => ($n === 1 ? '1 staff account is' : $n.' staff accounts are').' inactive.'.($n >= 10 ? ' The first 10 are shown.' : ''), 'columns' => ['Staff', 'Role', 'Branch'], 'rows' => $rows];
+        return ['sentence' => ($n === 1 ? '1 staff account is' : $n.' staff accounts are').' inactive.'.($n >= 10 ? ' The first 10 are shown.' : ''), 'columns' => $withDate ? ['Staff', 'Role', 'Branch', 'Inactive since'] : ['Staff', 'Role', 'Branch'], 'rows' => $rows];
     }
 
     /** @return array{sentence: string, columns: list<string>, rows: list<list<string>>} */
