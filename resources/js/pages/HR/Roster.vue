@@ -1182,7 +1182,9 @@ const minimumError = (session: string, role: string) =>
                 </li>
             </ul>
             <div>
+                <!-- HR forms (Daniel, 2026-11-12): a Save is cobalt only when pressing it would do something. -->
                 <Button
+                    :variant="minimumForm.isDirty ? 'default' : 'outline'"
                     :disabled="minimumForm.processing"
                     @click="saveMinimums"
                 >
