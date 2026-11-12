@@ -14,6 +14,7 @@ type Row = {
     skuCode: string;
     itemName: string;
     location: string;
+    locationCode: string;
     stockUnit: string;
     onHand: string;
     usable: string;
@@ -167,7 +168,7 @@ const plural = (count: number, one: string, many: string) =>
                             {{ row.skuCode }} · {{ row.itemName }}
                         </p>
                         <p class="text-sm text-muted-foreground">
-                            {{ row.location }}
+                            {{ row.location }} · {{ row.locationCode }}
                         </p>
                     </div>
                     <div class="sm:text-right">
@@ -185,7 +186,7 @@ const plural = (count: number, one: string, many: string) =>
                             v-else-if="row.daysOnHand === null"
                             class="text-sm text-muted-foreground"
                         >
-                            None in stock
+                            No usable stock
                         </p>
                         <p v-else class="font-semibold tabular-nums">
                             {{ plural(row.daysOnHand, 'day', 'days') }}
@@ -215,7 +216,7 @@ const plural = (count: number, one: string, many: string) =>
                             {{ row.turnover }} times
                         </dd>
                         <dd v-else class="text-muted-foreground">
-                            No stock held
+                            Not enough stock history
                         </dd>
                     </div>
                     <div>

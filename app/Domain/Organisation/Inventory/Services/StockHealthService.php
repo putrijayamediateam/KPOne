@@ -54,10 +54,7 @@ final class StockHealthService
         $organisationId = (int) $actor->organisation_id;
         $since = CarbonImmutable::now($branch->timezone)->startOfDay()->subDays($days - 1)->utc()->format('Y-m-d H:i:sP');
 
-        $needle = filled($data['q'] ?? null) ? '%'.addcslashes((string) $data['q'], '%_\\').'%' : null;
-        $pairs = $this->pairs($organisationId, $branch)
-            ->when($needle, fn (Builder $query) => $query->where(fn (Builder $match) => $match->where('s.sku_code', 'ilike', $needle)->orWhere('i.generic_name', 'ilike', $needle)->orWhere('l.name', 'ilike', $needle)))
-            ->get()->all();
+        $pairs = $this->pairs($organisationId, $branch)->get()->all();
         $locationIds = array_values(array_unique(array_map(fn (\stdClass $row): int => (int) $row->location_id, $pairs)));
         $usable = $this->usable($organisationId, $branch, $locationIds);
         $used = $this->used($organisationId, $since, $locationIds);
@@ -89,6 +86,7 @@ final class StockHealthService
                 'skuCode' => $pair->sku_code,
                 'itemName' => $pair->item,
                 'location' => $pair->location,
+                'locationCode' => $pair->location_code,
                 'stockUnit' => $pair->stock_unit,
                 'onHand' => StockUnitQuantity::format($closing),
                 'usable' => StockUnitQuantity::format($usableNow),
@@ -102,6 +100,11 @@ final class StockHealthService
                 // One decimal place of a per cent, rounded down.
                 'expiryLossPercent' => $lossBase === 0 ? null : $this->ratio($expiredMilli * 100, $lossBase, 10),
             ];
+        }
+        // The summary is for the whole branch; a search only narrows the list below it.
+        $needle = mb_strtolower(trim((string) ($data['q'] ?? '')));
+        if ($needle !== '') {
+            $rows = array_values(array_filter($rows, fn (array $row): bool => str_contains(mb_strtolower($row['skuCode'].' '.$row['itemName'].' '.$row['location'].' '.$row['locationCode']), $needle)));
         }
         // Stock nobody used first, then the most days on hand, then by code and location.
         usort($rows, fn (array $a, array $b): int => [$b['noUse'], $b['daysOnHand'] ?? -1, $a['skuCode'], $a['location']] <=> [$a['noUse'], $a['daysOnHand'] ?? -1, $b['skuCode'], $b['location']]);
@@ -123,7 +126,7 @@ final class StockHealthService
         ];
     }
 
-    /** Every SKU and active, non-returns location of the branch with a balance row, and its quantity now. */
+    /** Every active SKU and active, non-returns location of the branch with a balance row, and its quantity now. */
     private function pairs(int $organisationId, Branch $branch): Builder
     {
         return DB::table('inventory_stock_balances as b')
@@ -131,9 +134,9 @@ final class StockHealthService
             ->join('inventory_skus as s', fn ($join) => $join->on('s.id', '=', 'b.inventory_sku_id')->on('s.organisation_id', '=', 'b.organisation_id'))
             ->join('inventory_items as i', fn ($join) => $join->on('i.id', '=', 's.inventory_item_id')->on('i.organisation_id', '=', 's.organisation_id'))
             ->where('b.organisation_id', $organisationId)->where('l.branch_id', $branch->id)->where('l.is_active', true)
-            ->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)
-            ->groupBy('l.id', 's.id', 's.sku_code', 'i.generic_name', 'l.name', 's.stock_unit')
-            ->selectRaw('l.id as location_id, s.id as sku_id, s.sku_code, i.generic_name as item, l.name as location, s.stock_unit, SUM(b.quantity)::text as quantity');
+            ->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('s.is_active', true)->where('i.is_active', true)
+            ->groupBy('l.id', 's.id', 's.sku_code', 'i.generic_name', 'l.name', 'l.code', 's.stock_unit')
+            ->selectRaw('l.id as location_id, s.id as sku_id, s.sku_code, i.generic_name as item, l.name as location, l.code as location_code, s.stock_unit, SUM(b.quantity)::text as quantity');
     }
 
     /** @param  list<int>  $locationIds

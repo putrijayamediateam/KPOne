@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Organisation\Inventory\Models\InventoryBatch;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Services\GovernedStockService;
+use App\Domain\Organisation\Inventory\Services\InventoryBatchHoldService;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\TreatmentUsageService;
 use App\Domain\Organisation\Models\Branch;
@@ -123,6 +124,54 @@ final class StockHealthTest extends VisitTestCase
         // A period outside the list is refused; search narrows the list.
         $this->actingAs($ca)->get(route('inventory.stock-health', ['days' => 45]))->assertSessionHasErrors('days');
         $this->assertSame(0, $this->page($ca, ['q' => 'NOTHING-MATCHES'])['total']);
+    }
+
+    public function test_reversals_transfers_held_stock_inactive_skus_and_search(): void
+    {
+        $now = now();
+        $this->travelTo($now->copy()->subDays(100));
+        $f = (new GovernedStockFixture($this->branch))->build('40.000');
+        DB::table('inventory_batches')->where('id', $f['batch']->id)->update(['expiry_date' => $now->copy()->setTimezone($this->branch->timezone)->addDays(365)->toDateString()]);
+        $hidden = (new GovernedStockFixture($this->branch))->build('5.000');
+        $this->travelTo($now);
+        $ca = $this->staff('ca');
+        $usage = app(TreatmentUsageService::class);
+        // 4 used and kept; 3 used and then reversed (left out of "used", back in stock).
+        $usage->record($ca, ['expected_branch_id' => $this->branch->id, 'retry_key' => (string) Str::uuid(), 'location_id' => $f['location']->id,
+            'batch_id' => $f['batch']->id, 'unit' => 'unit', 'quantity' => '4.000', 'kind' => 'usage', 'reason' => 'wound_care']);
+        $reversed = $usage->record($ca, ['expected_branch_id' => $this->branch->id, 'retry_key' => (string) Str::uuid(), 'location_id' => $f['location']->id,
+            'batch_id' => $f['batch']->id, 'unit' => 'unit', 'quantity' => '3.000', 'kind' => 'usage', 'reason' => 'wound_care']);
+        $usage->reverse($this->staff('ca_supervisor'), $reversed, ['expected_branch_id' => $this->branch->id, 'retry_key' => (string) Str::uuid(), 'reason' => 'recorded_in_error']);
+        // 6 moved to a store shelf at the branch: out of the dispensary's figures, into the shelf's.
+        $shelf = new InventoryLocation;
+        $shelf->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id, 'branch_id' => $this->branch->id,
+            'code' => 'SH-SHELF-'.Str::upper(Str::random(5)), 'name' => 'Synthetic shelf', 'type' => InventoryLocation::TYPE_BRANCH_STORE, 'is_active' => true])->save();
+        app(InventoryMovementService::class)->transfer($this->staff('ca_supervisor'), ['expected_branch_id' => $this->branch->id, 'sku_public_id' => $f['sku']->public_id,
+            'batch_public_id' => $f['batch']->public_id, 'source_location_public_id' => $f['location']->public_id,
+            'destination_location_public_id' => $shelf->public_id, 'quantity' => '6.000']);
+        // An inactive SKU never shows.
+        DB::table('inventory_skus')->where('id', $hidden['sku']->id)->update(['is_active' => false]);
+
+        $health = $this->page($ca);
+        $rows = collect($health['rows'])->keyBy('location');
+        $this->assertSame(2, $health['total']);
+        // Dispensary: opening 40, out 4 + 3 + 6, in 3 (the reversal): closing 30, average 35. Used 4.
+        $this->assertSame(['30.000', '4.000', '35.000', '0.11'], [$rows['Synthetic governed dispensary']['onHand'], $rows['Synthetic governed dispensary']['used'],
+            $rows['Synthetic governed dispensary']['averageOnHand'], $rows['Synthetic governed dispensary']['turnover']]);
+        // Shelf: opening 0, closing 6, nothing used.
+        $this->assertSame(['6.000', '3.000', true], [$rows['Synthetic shelf']['onHand'], $rows['Synthetic shelf']['averageOnHand'], $rows['Synthetic shelf']['noUse']]);
+
+        // Held stock with use: days on hand reads no usable stock.
+        app(InventoryBatchHoldService::class)->act($this->staff('ca_supervisor'), $f['batch']->public_id, 'place',
+            ['expected_branch_id' => $this->branch->id, 'lock_version' => 0, 'retry_key' => (string) Str::uuid(), 'reason' => 'damaged']);
+        $dispensary = collect($this->page($ca)['rows'])->firstWhere('location', 'Synthetic governed dispensary');
+        $this->assertSame(['0.000', 0, false], [$dispensary['usable'], $dispensary['daysOnHand'], $dispensary['noUse']]);
+
+        // A search narrows the list but never the summary; it matches item names and locations too.
+        $all = $this->page($ca)['summary'];
+        $searched = $this->page($ca, ['q' => 'synthetic SHELF']);
+        $this->assertSame([1, $all], [$searched['total'], $searched['summary']]);
+        $this->assertSame(2, $this->page($ca, ['q' => 'governed item'])['total']);
     }
 
     public function test_only_inventory_viewers_at_the_active_branch_open_it(): void
