@@ -128,11 +128,14 @@ Jika Panel menerima kurang daripada bahagiannya, “Panel shortfall: RM …” d
 
 Setiap resit pada tab “Documents”, senarai bayaran dan halaman “Payments” menunjukkan “Recorded by …” (nama staf, atau “Staff member”). Nama ini hanya pada skrin, tidak pada cetakan.
 
-## Senarai bayar kemudian untuk dikutip
+## Bil untuk dikutip (“Bills to collect”)
 
-1. Buka menu pengguna > “Clinic management” > “Patients” > “Pay later to collect”.
-2. Senarai menunjukkan pesakit dengan bayaran kemudian yang belum dibayar, yang paling awal dahulu. Tandakan “Show only bills past their due date” untuk melihat yang sudah lewat sahaja.
-3. Untuk merekod bayaran, pilih “Open billing” dan rekod bayaran pada halaman bil pesakit. Senarai ini sendiri tidak merekod apa-apa.
+1. Buka menu pengguna > “Clinic management” > “Patients” > “Bills to collect”.
+2. Senarai menunjukkan semua bil yang pesakit masih berhutang di cawangan ini, yang paling awal dahulu: bayaran kemudian yang diluluskan dan belum dibayar, serta wang yang masih perlu dibayar (“Due now”) pada lawatan yang sudah selesai, contohnya selepas resit dibetulkan. “Still owed” ialah jumlah yang masih berhutang bagi bil itu.
+3. Wang “Due now” sepatutnya dibayar pada hari lawatan, jadi tarikh akhirnya ditunjukkan sebagai “Now”, dan bil itu lewat mulai hari selepas lawatan (“N days since visit”). Tarikh bayaran kemudian yang dipersetujui masih ditunjukkan di sebelah amaun bayaran kemudian.
+4. Tandakan “Show only bills past their due date” untuk melihat yang sudah lewat sahaja.
+5. Untuk merekod bayaran, pilih “Open billing” dan rekod bayaran pada halaman bil pesakit. Bayaran melunaskan “Due now” dahulu, kemudian bayaran kemudian. Senarai ini sendiri tidak merekod apa-apa.
+6. Pada halaman bil pesakit, kotak “Outstanding bill” juga ada pautan ke senarai ini.
 
 ## Kiraan tunai harian
 
