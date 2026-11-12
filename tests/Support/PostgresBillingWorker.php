@@ -20,6 +20,7 @@ use App\Domain\Visit\Billing\Services\IssuedBillingDocumentService;
 use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
 use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Billing\Services\PricePublicationService;
+use App\Domain\Visit\Billing\Services\ReceiptCorrectionService;
 use App\Domain\Visit\Billing\Services\RefundService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Visit;
@@ -75,6 +76,7 @@ try {
         'bill-edit' => app(ClinicalEncounterService::class)->update($actor, $visit, $a),
         'bill-issue' => app(IssuedBillingDocumentService::class)->issue($actor, $visit, $invoice, null, $a),
         'bill-refund' => app(RefundService::class)->record($actor, $visit, $a['payment'], $a),
+        'bill-correct' => app(ReceiptCorrectionService::class)->correct($actor, $visit, $invoice, Payment::query()->where('public_id', $a['payment'])->firstOrFail(), $a),
         'bill-refund-decide' => app(RefundService::class)->decide($actor, $visit, $a['refund'], $a['decision'], $a),
         'bill-cash-decide' => app(CashClosingService::class)->decide($actor, $a['closing'], $a['decision'], $a),
         'bill-price' => app(PricePublicationService::class)->publish($actor, PriceBook::query()->findOrFail($a['book']), ChargeDefinition::query()->findOrFail($a['charge']), $a['amount_sen'], $a['price_version'], (int) $argv[3]),

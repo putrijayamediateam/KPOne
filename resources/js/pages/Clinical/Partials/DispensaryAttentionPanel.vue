@@ -36,10 +36,12 @@ const acknowledge = (item: DoctorDispensaryAttention) => {
     <section
         v-if="items.length"
         aria-labelledby="dispensary-attention-heading"
-        class="divide-y rounded-lg border border-amber-200 bg-amber-50/40"
+        class="divide-y rounded-lg border border-amber-200 bg-amber-50/40 dark:divide-amber-900/60 dark:border-amber-900 dark:bg-amber-950/30"
     >
         <header class="flex items-center gap-2 px-3 py-2">
-            <AlertTriangle class="size-4 shrink-0 text-amber-700" />
+            <AlertTriangle
+                class="size-4 shrink-0 text-amber-700 dark:text-amber-300"
+            />
             <h2 id="dispensary-attention-heading" class="text-sm font-semibold">
                 Dispensary attention required
             </h2>
@@ -62,11 +64,14 @@ const acknowledge = (item: DoctorDispensaryAttention) => {
                     </p>
                     <span
                         v-if="item.status === 'acknowledged'"
-                        class="inline-flex items-center gap-1 text-xs text-emerald-700"
+                        class="inline-flex items-center gap-1 text-xs text-emerald-700 dark:text-emerald-300"
                     >
                         <Check class="size-3.5" /> Acknowledged
                     </span>
-                    <span v-else class="text-xs font-medium text-amber-800">
+                    <span
+                        v-else
+                        class="text-xs font-medium text-amber-800 dark:text-amber-200"
+                    >
                         {{
                             item.reviewAgain
                                 ? 'Updated by Dispensary — review again'
@@ -96,7 +101,7 @@ const acknowledge = (item: DoctorDispensaryAttention) => {
         <p
             v-if="actionError"
             role="alert"
-            class="px-3 py-2 text-xs text-red-700"
+            class="px-3 py-2 text-xs text-red-700 dark:text-red-300"
         >
             {{ actionError }}
         </p>

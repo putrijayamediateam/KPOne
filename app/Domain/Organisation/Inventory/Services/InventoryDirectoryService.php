@@ -298,13 +298,19 @@ final class InventoryDirectoryService
         if ($locationId) {
             $query->where('balance.inventory_location_id', $locationId);
         }
+        // STK-12: returned stock is never usable (STK-11), so it is never "Available"; it can also be listed by itself.
+        $returns = InventoryLocation::TYPE_DISPENSARY_RETURNS;
         if ($filters['status'] === 'active') {
-            $query->where('balance.quantity', '>', 0)->where('l.is_active', true)->whereNull('batch.eligibility_reason');
+            $query->where('balance.quantity', '>', 0)->where('l.is_active', true)->whereNull('batch.eligibility_reason')
+                ->where('l.type', '<>', $returns);
         } elseif ($filters['status'] === 'inactive') {
             $query->where(fn (Builder $unavailable) => $unavailable
                 ->where('balance.quantity', '<=', 0)
                 ->orWhere('l.is_active', false)
-                ->orWhereNotNull('batch.eligibility_reason'));
+                ->orWhereNotNull('batch.eligibility_reason')
+                ->orWhere('l.type', $returns));
+        } elseif ($filters['status'] === 'returns') {
+            $query->where('l.type', $returns);
         }
     }
 

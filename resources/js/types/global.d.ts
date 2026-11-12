@@ -23,6 +23,15 @@ declare module '@inertiajs/core' {
             workspace: {
                 defaultUrl: string;
                 canEnterClinic: boolean;
+                accountMenu?: {
+                    links: Array<{ title: string; href: string }>;
+                    clock: boolean;
+                };
+                spaces: {
+                    offered: boolean;
+                    enabled: boolean;
+                    lockVersion: number;
+                };
                 navigation: {
                     clinicManagement: boolean;
                     businessDetails: boolean;

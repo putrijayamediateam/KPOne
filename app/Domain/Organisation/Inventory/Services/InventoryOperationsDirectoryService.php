@@ -27,8 +27,9 @@ final class InventoryOperationsDirectoryService
             ->where(fn (Builder $query) => $query->where('branch_id', $branch->id)->when($mayUseWarehouse, fn (Builder $locations) => $locations->orWhereNull('branch_id')))
             ->select('id');
         $purchaseOrders = DB::table('inventory_purchase_orders as po')->join('inventory_suppliers as supplier', 'supplier.id', '=', 'po.supplier_id')->join('inventory_locations as location', 'location.id', '=', 'po.destination_location_id')
+            ->leftJoin('inventory_purchase_requests as from_request', 'from_request.purchase_order_id', '=', 'po.id')
             ->where('po.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('location.branch_id', $branch->id)->when($mayUseWarehouse, fn (Builder $locations) => $locations->orWhereNull('location.branch_id')))->orderByDesc('po.created_at')->limit(50)
-            ->get(['po.id', 'po.public_id as publicId', 'po.order_number as number', 'po.status', 'po.lock_version as lockVersion', 'supplier.public_id as supplierPublicId', 'supplier.name as supplier', 'location.public_id as destinationPublicId', 'location.name as destination', 'po.created_at as createdAt']);
+            ->get(['po.id', 'po.public_id as publicId', 'po.order_number as number', 'po.status', 'po.lock_version as lockVersion', 'supplier.public_id as supplierPublicId', 'supplier.name as supplier', 'location.public_id as destinationPublicId', 'location.name as destination', 'po.created_at as createdAt', 'po.created_by_user_id', 'po.submitted_by_user_id', 'from_request.request_number as fromRequest']);
         $purchaseOrderLines = $this->purchaseOrderLines($organisationId, array_values($purchaseOrders->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()));
         $stockRequests = DB::table('inventory_stock_requests as request')->join('inventory_locations as source', 'source.id', '=', 'request.source_location_id')->join('inventory_locations as destination', 'destination.id', '=', 'request.destination_location_id')
             ->where('request.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('request.requesting_branch_id', $branch->id)->orWhere('source.branch_id', $branch->id)->orWhere('destination.branch_id', $branch->id))->orderByDesc('request.created_at')->limit(50)
@@ -60,7 +61,13 @@ final class InventoryOperationsDirectoryService
             'locations' => app(InventoryPickerService::class)->choices($actor, $branch, 'locations', 'operations'),
             'skus' => app(InventoryPickerService::class)->choices($actor, $branch, 'skus', 'operations'),
             'batches' => app(InventoryPickerService::class)->choices($actor, $branch, 'batches', 'operations'),
-            'purchaseOrders' => $purchaseOrders->map(fn ($row): array => $this->documentWithLines($row, $purchaseOrderLines))->all(),
+            // STK-19: whoever raised or submitted an order may not approve it, or cancel it once approved.
+            'purchaseOrders' => $purchaseOrders->map(function ($row) use ($purchaseOrderLines, $actor): array {
+                $raised = (int) $row->created_by_user_id === $actor->id || (int) $row->submitted_by_user_id === $actor->id;
+                unset($row->created_by_user_id, $row->submitted_by_user_id);
+
+                return [...$this->documentWithLines($row, $purchaseOrderLines), 'raisedByYou' => $raised];
+            })->all(),
             'stockRequests' => $stockRequests->map(fn ($row): array => [...$this->documentWithLines($row, $stockRequestLines), 'differences' => $transferDifferences[(int) $row->id] ?? []])->all(),
             'stocktakes' => $stocktakes->map(fn ($row): array => $this->documentWithLines($row, $stocktakeLines))->all(),
             'adjustments' => DB::table('inventory_adjustments as adjustment')->join('inventory_locations as location', 'location.id', '=', 'adjustment.inventory_location_id')->join('inventory_skus as sku', 'sku.id', '=', 'adjustment.inventory_sku_id')->join('inventory_batches as batch', 'batch.id', '=', 'adjustment.inventory_batch_id')

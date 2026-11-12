@@ -34,11 +34,11 @@ test('DSP-7b: the Returns to check list is read only and links each row to its c
     assert.match(section, /id="medicine-returns"/);
 });
 
-test('DSP-7b: a table from 768 px and cards with a 44 px Open case button below it', () => {
-    assert.match(page, /<div class="hidden md:block">/);
+test('DSP-7b: a table from 1024 px and cards with a 44 px Open case button below it', () => {
+    assert.match(page, /<div class="hidden lg:block">/);
     assert.match(
         page,
-        /class="space-y-3 md:hidden" aria-label="Returns to check"/,
+        /class="space-y-3 lg:hidden" aria-label="Returns to check"/,
     );
     assert.match(page, /class="min-h-11 w-full justify-center"/);
     assert.doesNotMatch(

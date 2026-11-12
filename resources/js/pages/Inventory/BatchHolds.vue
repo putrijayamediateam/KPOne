@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { Head, router, useForm, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
+import { ActionLink } from '@/components/ui/action-link';
 import {
     Dialog,
     DialogContent,
@@ -9,6 +11,7 @@ import {
     DialogHeader,
     DialogTitle,
 } from '@/components/ui/dialog';
+import { PageHeader } from '@/components/ui/page-header';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate } from '@/lib/presentation';
 type Row = {
@@ -98,14 +101,17 @@ watch(
 <template>
     <Head title="Batch safety holds" />
     <main class="mx-auto w-full max-w-6xl space-y-5 p-4 md:p-7">
-        <a href="/inventory" class="inline-flex min-h-11 items-center underline"
-            >Inventory</a
+        <ActionLink
+            href="/inventory"
+            variant="ghost"
+            class="-ml-3 min-h-11 self-start"
+            ><ArrowLeft class="size-4" aria-hidden="true" />
+            Inventory</ActionLink
         >
-        <h1 class="text-2xl font-semibold">Batch safety holds</h1>
-        <p>
-            {{ holds.branchName }} · A hold applies to this batch at this branch
-            only. Multi-branch recalls need one hold per branch.
-        </p>
+        <PageHeader
+            title="Batch safety holds"
+            :description="`${holds.branchName} · A hold applies to this batch at this branch only. Multi-branch recalls need one hold per branch.`"
+        />
         <p class="text-sm text-muted-foreground">
             Held stock cannot be allocated or dispensed. Placing or releasing a
             hold changes no quantity and creates no movement. A different

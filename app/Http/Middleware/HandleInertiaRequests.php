@@ -6,6 +6,8 @@ use App\Domain\Access\BillingWorkAccess;
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Access\WorkspaceLandingService;
+use App\Domain\DepartmentSpace\AccountMenuLinks;
+use App\Domain\DepartmentSpace\SpacePreferenceService;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use Closure;
 use Illuminate\Http\Request;
@@ -91,6 +93,8 @@ class HandleInertiaRequests extends Middleware
             $workspace = [
                 'defaultUrl' => route('workspace', absolute: false),
                 'canEnterClinic' => $canEnterClinic,
+                'spaces' => app(SpacePreferenceService::class)->state($user),
+                'accountMenu' => app(AccountMenuLinks::class)->for($user),
                 'navigation' => [
                     'clinicManagement' => app(ClinicManagementNavigation::class)->hasDestinations($user),
                     'businessDetails' => $activeBranch !== null && $user->can('catalogue.settings.manage.organisation'),
