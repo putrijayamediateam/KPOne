@@ -43,3 +43,18 @@ test('STK-33: the Inventory page links to Stock health', () => {
         /href="\/inventory\/stock-health"[\s\S]*?>Stock health<\/ActionLink/,
     );
 });
+
+test('STK-33 (Daniel): more than a year, labelled values, sort note and the period applies at once', () => {
+    assert.match(
+        page,
+        /v-else-if="row\.daysOnHand > 365"[\s\S]*?More than 1 year/,
+    );
+    assert.match(page, /:title="plural\(row\.daysOnHand, 'day', 'days'\)"/);
+    assert.match(page, /<dt class="text-muted-foreground">On hand<\/dt>/);
+    assert.match(page, /<dt class="text-muted-foreground">Usable<\/dt>/);
+    assert.doesNotMatch(page, /On hand \(usable\)/);
+    assert.match(page, /Longest on hand first;/);
+    assert.match(page, /@change="visit\(\)"/);
+    assert.doesNotMatch(page, />Show<\/Button/);
+    assert.match(page, /class="grid grid-cols-3 gap-2 sm:gap-3"/);
+});

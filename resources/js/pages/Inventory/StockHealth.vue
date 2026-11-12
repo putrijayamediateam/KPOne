@@ -80,7 +80,8 @@ const plural = (count: number, one: string, many: string) =>
                 the usable stock now ÷ the average use a day.
                 <strong>Turnover</strong> is used ÷ the average stock held.
                 <strong>Expiry loss</strong> is the stock written off as expired
-                ÷ (used + all write-offs).
+                ÷ (used + all write-offs). Longest on hand first; stock with no
+                use in the period comes first of all.
             </p>
             <p class="text-muted-foreground">
                 No money figures: stock value waits for the clinic's cost
@@ -89,31 +90,31 @@ const plural = (count: number, one: string, many: string) =>
         </div>
 
         <ul
-            class="grid gap-3 sm:grid-cols-3"
+            class="grid grid-cols-3 gap-2 sm:gap-3"
             aria-label="Stock health summary"
             data-testid="stock-health-summary"
         >
-            <li class="rounded-lg border bg-card p-3">
-                <p class="text-2xl font-semibold tabular-nums">
+            <li class="rounded-lg border bg-card p-2 sm:p-3">
+                <p class="text-xl font-semibold tabular-nums sm:text-2xl">
                     {{ health.summary.noUse }}
                 </p>
-                <p class="text-sm text-muted-foreground">
+                <p class="text-xs text-muted-foreground sm:text-sm">
                     With stock but no use in the period
                 </p>
             </li>
-            <li class="rounded-lg border bg-card p-3">
-                <p class="text-2xl font-semibold tabular-nums">
+            <li class="rounded-lg border bg-card p-2 sm:p-3">
+                <p class="text-xl font-semibold tabular-nums sm:text-2xl">
                     {{ health.summary.slow }}
                 </p>
-                <p class="text-sm text-muted-foreground">
+                <p class="text-xs text-muted-foreground sm:text-sm">
                     With more than {{ health.slowDays }} days on hand
                 </p>
             </li>
-            <li class="rounded-lg border bg-card p-3">
-                <p class="text-2xl font-semibold tabular-nums">
+            <li class="rounded-lg border bg-card p-2 sm:p-3">
+                <p class="text-xl font-semibold tabular-nums sm:text-2xl">
                     {{ health.summary.expiryLoss }}
                 </p>
-                <p class="text-sm text-muted-foreground">
+                <p class="text-xs text-muted-foreground sm:text-sm">
                     With stock lost to expiry
                 </p>
             </li>
@@ -124,8 +125,8 @@ const plural = (count: number, one: string, many: string) =>
             role="search"
             @submit.prevent="visit()"
         >
-            <label
-                class="grid min-w-0 basis-full gap-1 text-sm sm:flex-1 sm:basis-auto"
+            <!-- Daniel: the period applies at once; a search runs on Enter. -->
+            <label class="grid min-w-0 flex-1 gap-1 text-sm"
                 >Search SKU, item or location
                 <Input v-model="q" maxlength="100" class="h-11 lg:h-9" />
             </label>
@@ -133,6 +134,7 @@ const plural = (count: number, one: string, many: string) =>
                 >Period
                 <select
                     v-model.number="days"
+                    @change="visit()"
                     class="h-11 rounded-md border bg-background px-3 lg:h-9"
                     data-testid="stock-health-period"
                 >
@@ -145,9 +147,7 @@ const plural = (count: number, one: string, many: string) =>
                     </option>
                 </select>
             </label>
-            <Button type="submit" variant="outline" class="h-11 lg:h-9"
-                >Show</Button
-            >
+            <Button type="submit" class="sr-only">Search</Button>
         </form>
 
         <p
@@ -160,9 +160,9 @@ const plural = (count: number, one: string, many: string) =>
             <li
                 v-for="row in health.rows"
                 :key="row.key"
-                class="space-y-3 rounded-lg border bg-card p-4"
+                class="space-y-2 rounded-lg border bg-card p-3 sm:space-y-3 sm:p-4"
             >
-                <div class="flex flex-wrap items-start justify-between gap-2">
+                <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
                         <p class="font-medium break-words">
                             {{ row.skuCode }} · {{ row.itemName }}
@@ -171,7 +171,7 @@ const plural = (count: number, one: string, many: string) =>
                             {{ row.location }} · {{ row.locationCode }}
                         </p>
                     </div>
-                    <div class="sm:text-right">
+                    <div class="max-w-[45%] shrink-0 text-right">
                         <p class="text-xs text-muted-foreground">
                             Days on hand
                         </p>
@@ -180,7 +180,10 @@ const plural = (count: number, one: string, many: string) =>
                             class="rounded border px-2 py-0.5 text-sm"
                             data-testid="no-use"
                         >
-                            No use in this period
+                            <span class="sm:hidden">No use</span
+                            ><span class="hidden sm:inline"
+                                >No use in this period</span
+                            >
                         </p>
                         <p
                             v-else-if="row.daysOnHand === null"
@@ -188,20 +191,37 @@ const plural = (count: number, one: string, many: string) =>
                         >
                             No usable stock
                         </p>
+                        <p
+                            v-else-if="row.daysOnHand > 365"
+                            class="font-semibold"
+                            :title="plural(row.daysOnHand, 'day', 'days')"
+                            data-testid="over-a-year"
+                        >
+                            More than 1 year
+                            <span class="sr-only"
+                                >({{
+                                    plural(row.daysOnHand, 'day', 'days')
+                                }})</span
+                            >
+                        </p>
                         <p v-else class="font-semibold tabular-nums">
                             {{ plural(row.daysOnHand, 'day', 'days') }}
                         </p>
                     </div>
                 </div>
                 <dl
-                    class="grid gap-x-6 gap-y-1 text-sm min-[480px]:grid-cols-2 lg:grid-cols-4"
+                    class="grid grid-cols-2 gap-x-4 gap-y-0.5 text-sm sm:gap-y-1 lg:grid-cols-5"
                 >
                     <div>
-                        <dt class="text-muted-foreground">On hand (usable)</dt>
+                        <dt class="text-muted-foreground">On hand</dt>
                         <dd class="tabular-nums">
-                            {{ quantity(row.onHand, row.stockUnit) }} ({{
-                                quantity(row.usable, row.stockUnit)
-                            }})
+                            {{ quantity(row.onHand, row.stockUnit) }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt class="text-muted-foreground">Usable</dt>
+                        <dd class="tabular-nums">
+                            {{ quantity(row.usable, row.stockUnit) }}
                         </dd>
                     </div>
                     <div>
@@ -225,12 +245,11 @@ const plural = (count: number, one: string, many: string) =>
                             v-if="row.expiryLossPercent !== null"
                             class="tabular-nums"
                         >
-                            {{ row.expiryLossPercent }}% ({{
-                                quantity(row.expired, row.stockUnit)
-                            }})
+                            {{ row.expiryLossPercent }}% ·
+                            {{ quantity(row.expired, row.stockUnit) }} expired
                         </dd>
                         <dd v-else class="text-muted-foreground">
-                            Nothing used or written off
+                            No use or write-offs
                         </dd>
                     </div>
                 </dl>
