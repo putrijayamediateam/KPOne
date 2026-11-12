@@ -409,6 +409,15 @@ only authority (frontend visibility is a usability aid, as in `AGENTS.md`).
   below 1024 px. Daily actions must not sit two taps deep.
 - **Do** show the person's name beside the avatar from 1024 px, and the avatar alone below it.
 
+**Me home (page `/me`)** (decision 2026-11-12, owner: "A + B tiles", with B's gradient adjusted to suit A). Board: "Me and Clock-in Chosen" (design canvas), phone 390 px and desktop 1440 px, light and dark, both states.
+
+- **Do** build it in this order: greeting ("Good morning, Aina", or "Have a good shift, Aina" once clocked in) with date and branch; the live time (52 px phone, 58 px desktop); the **ring**: a round cobalt Clock in button (192 px phone, 224 px desktop, camera icon and the word) inside a track ring; a status chip in words ("Not clocked in" with "Your shift 9:00 AM to 6:00 PM", or "Clocked in 8:58 AM, on time"); the **This week** card (Mon to Fri dots, each with a tick, "!" or dash and the day name, plus "3 on time, 1 late"); then **four tiles**: My leave, My claims, My roster, My attendance; then the "About clock-in photos" link (44 px).
+- **Do** swap the button for the same-size ring showing "Worked 3h 12m" and "36% of your shift" once clocked in, with the ring filled in green, and put "Start break" and "Clock out" (pink outline) in one row below it. Clock out still asks to confirm. Break and the 60-second and branch rules follow My attendance.
+- **Do** put the soft gradient behind the top of the page only: light is peach `#ffdcc2` to sky `#cfe2ff`, dark is dusk plum `#5a3550` to navy `#1c2a4a`; both fade into the page colour before the tiles. Use `--g1` and `--g2` tokens and a 180deg fade on desktop, 165deg on a phone. The greeting, time and muted lines must keep 4.5:1 on the gradient, so the muted colour is `#4a5468` in light and `#b0b8cc` in dark, and the status chip and week card sit on solid surfaces.
+- **Do** colour the tiles with the soft tint tokens (`--t1` to `--t4`: blue, pink, green, amber), each with an icon tile and its name in words, 84 px tall or more; in dark mode they are deep tints, not pale fills.
+- **Don't** put the gradient behind tables, forms or cards. It belongs to Me only. Pink stays the logo mark and small accents; the cobalt button is the one main action.
+- On desktop the top-bar Clock in shortcut is not shown on this page, because the ring is the button.
+
 **Photo clock-in** (decision 2026-11-12, owner chose option 2, "Camera app")
 
 - **Do** open a full-screen camera on a phone and a large dialog on desktop. The camera screen is always dark, in light and dark mode, with a close button at the top left (44 px, named "Close") and a switch-camera button at the top right.
@@ -416,7 +425,7 @@ only authority (frontend visibility is a usability aid, as in `AGENTS.md`).
 - **Do** end the review screen with two pills at the bottom: "Retake" (quiet) and "Use photo" (cobalt, the main one). KPOne records the time when "Use photo" is pressed, and the screen says so.
 - **Do** confirm with a full-screen success screen: "Clocked in" or "Clocked out", the time and branch, a chip in words ("On time", "Late 12 min", "No shift set"), and a Done button.
 - **Do** show the same wording on every failure: "KPOne needs your camera to clock in. Allow the camera, or ask HR to add your time as a correction." There is no way to clock in without a photo.
-- **Do** show the privacy line under the Clock in button: a live photo is taken, HR can see it, photos are kept for 7 years.
+- **Do** show the full photo notice once, as a bottom sheet titled "About clock-in photos" before the first camera opens, with one button, "OK, open the camera". It says a live photo is taken, only HR can open it and each look is recorded, photos are kept 7 years, and the person can always see their own. Keep the same wording as a line at the bottom of My attendance and on the privacy page. **Don't** repeat "HR can see it" or "kept 7 years" on the Me home or under the Clock in button (owner decision 2026-11-12).
 - **Do** hide other people's photos, thumbnails included, behind an audited Show, as with bank details. A person's own photos show directly. An entry added by correction says "No photo (added by correction)".
 - **Don't** colour the chips only: each carries its word and a dot (section 10). Honour `prefers-reduced-motion` for any shutter or countdown animation.
 
