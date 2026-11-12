@@ -29,6 +29,7 @@ final class TransferEligibilityTest extends VisitTestCase
         'held' => 'the batch is held at this branch (damaged)',
         'recalled' => 'the batch is under a recall at every branch',
         'inactive_item' => 'the inventory item is inactive',
+        'quarantined' => 'the batch status is not available',
     ];
 
     protected function setUp(): void
@@ -65,6 +66,7 @@ final class TransferEligibilityTest extends VisitTestCase
             'recalled' => app(InventoryRecallService::class)->start($this->staff('director'), ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(),
                 'sku_public_id' => $f['sku']->public_id, 'batch_public_ids' => [$f['batch']->public_id], 'reason' => 'supplier_recall', 'reference' => 'SYN-RECALL-37']),
             'inactive_item' => DB::table('inventory_items')->where('id', $f['item']->id)->update(['is_active' => false]),
+            'quarantined' => DB::table('inventory_batches')->where('id', $f['batch']->id)->update(['status' => 'quarantined']),
         };
     }
 
@@ -101,11 +103,14 @@ final class TransferEligibilityTest extends VisitTestCase
 
     public function test_unusable_stock_is_refused_into_a_dispensary_but_may_go_to_a_store_shelf_at_the_same_branch(): void
     {
-        foreach (self::STATES as $state => $reason) {
+        $storeTypes = [InventoryLocation::TYPE_BRANCH_STORE, InventoryLocation::TYPE_MEDICAL_STOCK];
+        foreach (array_keys(self::STATES) as $i => $state) {
+            $reason = self::STATES[$state];
             $f = (new GovernedStockFixture($this->branch))->build('10.000');
             $mover = $this->staff('ca_supervisor');
             $shelf = $this->location($this->branch, InventoryLocation::TYPE_DISPENSARY);
-            $quarantine = $this->location($this->branch, InventoryLocation::TYPE_BRANCH_STORE);
+            // Any same-branch location that is neither a dispensary nor returns: a branch store or medical stock.
+            $quarantine = $this->location($this->branch, $storeTypes[$i % 2]);
             $this->makeUnusable($f, $state);
             $before = $this->counts();
 
@@ -143,7 +148,6 @@ final class TransferEligibilityTest extends VisitTestCase
         $this->refused(fn () => $this->transfer($mover, $f, $f['location'], $store), 'location',
             "This batch can't be moved there: the batch is held at this branch (damaged). Unusable stock can only go to a store at this branch, or be written off.");
 
-        // Expired stock already in the organisation store cannot come into a branch.
         DB::table('inventory_stock_balances')->insert(['organisation_id' => $this->branch->organisation_id, 'inventory_location_id' => $store->id, 'inventory_sku_id' => $f['sku']->id,
             'inventory_batch_id' => $f['batch']->id, 'quantity' => '3.000', 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
         $branchStore = $this->location($this->branch, InventoryLocation::TYPE_BRANCH_STORE);
@@ -151,6 +155,7 @@ final class TransferEligibilityTest extends VisitTestCase
         // the hold applies again there.
         $this->transfer($mover, $f, $store, $branchStore, '1.000');
         $this->assertSame('1.000', $this->balanceAt($branchStore, $f));
+        // Expired stock in the organisation store cannot come into a branch.
         $this->makeUnusable($f, 'expired');
         $this->refused(fn () => $this->transfer($mover, $f, $store, $branchStore, '1.000'), 'location',
             "This batch can't be moved there: the batch expiry must be after the branch-local current date. Unusable stock can only go to a store at this branch, or be written off.");
@@ -166,6 +171,44 @@ final class TransferEligibilityTest extends VisitTestCase
         $this->makeUnusable($f, 'expired');
         $this->transfer($this->staff('ca_supervisor'), $f, $first, $second);
         $this->assertSame(['2.000', '2.000'], [$this->balanceAt($first, $f), $this->balanceAt($second, $f)]);
+    }
+
+    public function test_unusable_stock_meets_the_returns_rule_not_the_store_advice(): void
+    {
+        $f = (new GovernedStockFixture($this->branch))->build('10.000');
+        $mover = $this->staff('ca_supervisor');
+        $returns = $this->location($this->branch, InventoryLocation::TYPE_DISPENSARY_RETURNS);
+        DB::table('inventory_stock_balances')->insert(['organisation_id' => $this->branch->organisation_id, 'inventory_location_id' => $returns->id, 'inventory_sku_id' => $f['sku']->id,
+            'inventory_batch_id' => $f['batch']->id, 'quantity' => '4.000', 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        $this->makeUnusable($f, 'expired');
+        $message = 'Returned medicine can only move to another returns location, or be written off.';
+        $this->refused(fn () => $this->transfer($mover, $f, $returns, $f['location']), 'location', $message);
+        $this->refused(fn () => $this->transfer($mover, $f, $f['location'], $returns), 'location', $message);
+    }
+
+    public function test_a_stock_request_from_an_organisation_store_needs_usable_stock_but_no_branch_hold_applies(): void
+    {
+        $f = (new GovernedStockFixture($this->branch))->build('10.000');
+        $warehouse = $this->location(null, InventoryLocation::TYPE_BRANCH_STORE);
+        DB::table('inventory_stock_balances')->insert(['organisation_id' => $this->branch->organisation_id, 'inventory_location_id' => $warehouse->id, 'inventory_sku_id' => $f['sku']->id,
+            'inventory_batch_id' => $f['batch']->id, 'quantity' => '6.000', 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+        $service = app(StockRequestService::class);
+        $supervisor = $this->staff('ca_supervisor');
+        $send = function () use ($service, $supervisor, $f, $warehouse): StockRequest {
+            $request = $service->create($supervisor, ['expected_branch_id' => $this->branch->id, 'source_location_public_id' => $warehouse->public_id,
+                'destination_location_public_id' => $f['location']->public_id, 'lines' => [['sku_public_id' => $f['sku']->public_id, 'quantity' => '1']]]);
+            $request = $service->approve($supervisor, $request, ['expected_branch_id' => $this->branch->id, 'lock_version' => $request->lock_version]);
+
+            return $service->dispatch($supervisor, $request, ['expected_branch_id' => $this->branch->id, 'lock_version' => $request->lock_version,
+                'dispatch_idempotency_key' => (string) Str::uuid(), 'lines' => [['line_public_id' => $request->lines()->sole()->public_id, 'batch_public_id' => $f['batch']->public_id, 'quantity' => '1']]]);
+        };
+
+        // A hold at this branch belongs to the branch's stock, not to the organisation store's.
+        $this->makeUnusable($f, 'held');
+        $this->assertSame(StockRequest::STATUS_DISPATCHED, $send()->status);
+        // Expiry uses the active branch's date.
+        $this->makeUnusable($f, 'expired');
+        $this->refused($send, 'lines', $f['sku']->sku_code.": this batch can't be sent: the batch expiry must be after the branch-local current date. Write it off, or move it to a store at this branch.");
     }
 
     public function test_a_stock_request_never_dispatches_unusable_stock(): void

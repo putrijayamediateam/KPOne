@@ -159,7 +159,7 @@ final class StockRequestService
                 $input = $plan['input'];
                 $sku = $skus->get($line->inventory_sku_id);
                 abort_unless($sku !== null, 404);
-                $batch = InventoryBatch::query()->where('public_id', $input['batch_public_id'])->where('organisation_id', $lockedActor->organisation_id)->where('inventory_sku_id', $sku->id)->where('status', InventoryBatch::STATUS_AVAILABLE)->lockForUpdate()->firstOrFail();
+                $batch = InventoryBatch::query()->where('public_id', $input['batch_public_id'])->where('organisation_id', $lockedActor->organisation_id)->where('inventory_sku_id', $sku->id)->lockForUpdate()->firstOrFail();
                 // STK-37: a stock request sends stock towards use, so it takes only usable stock, by the STK-2 rule
                 // dispensing uses, at the source's branch. Stock in an organisation store has no branch, so the
                 // active branch's date applies and no branch hold can.

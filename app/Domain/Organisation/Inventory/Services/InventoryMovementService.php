@@ -110,14 +110,17 @@ class InventoryMovementService
 
     /**
      * STK-37: a direct transfer moves only usable stock (the STK-2 rule dispensing uses), with two exceptions where
-     * unusable stock may still move: between two returns locations (STK-11), and within one branch into a location
+     * unusable stock may still move: to or from a returns location, which keeps its own STK-11 rules (only between
+     * two returns locations), and within one branch into a location
      * that is neither a dispensary nor a returns location (the quarantine shelf STK-25 relies on). The branch hold,
      * recall and expiry still apply there, so that stock can never be dispensed or sent onwards.
      */
     private function assertMovable(User $actor, Branch $branch, InventoryLocation $source, InventoryLocation $destination, InventoryBatch $batch): void
     {
         $returns = InventoryLocation::TYPE_DISPENSARY_RETURNS;
-        if ($source->type === $returns && $destination->type === $returns) {
+        // A returns location has its own STK-11 rules (assertReturnsRules): returned medicine only moves between
+        // returns locations, so the usable-stock advice below would be wrong there.
+        if ($source->type === $returns || $destination->type === $returns) {
             return;
         }
         $sameBranch = $source->branch_id !== null && $source->branch_id === $destination->branch_id;
