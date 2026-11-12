@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
+import { ChevronDown, Columns3 } from '@lucide/vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DateField } from '@/components/ui/date-field';
@@ -12,6 +14,7 @@ import {
     DropdownMenuLabel,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
@@ -563,77 +566,40 @@ const createSelectedClaims = () => {
 };
 const canMarkSubmitted = (status: string) =>
     status === 'Prepared' || status === 'Panel query';
+// Filter field look: the shared field styling, 44 px below lg.
+const labelClass =
+    'grid min-w-0 gap-1.5 text-[13px] font-medium text-foreground';
+const fieldClass =
+    'h-9 w-full min-w-0 rounded-lg border border-input bg-card px-3 text-base font-normal outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/40 max-lg:h-11 lg:text-sm dark:bg-field-fill/30';
+const filtersOpen = ref(false);
+
 const visitTypeLabel = (value: string) =>
     value === 'otc' ? 'OTC' : 'Consultation';
 </script>
 
 <template>
     <Head title="Panel Claims" />
-    <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
-        <header class="flex flex-wrap items-center justify-between gap-3">
-            <div>
-                <h1 class="text-2xl font-semibold text-foreground">
-                    Panel Claims
-                </h1>
-                <p class="mt-1 text-sm text-muted-foreground">
-                    {{ work.branch.name }} · Create claims for manual submission
-                    and track Panel decisions and remittances.
-                </p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <Button as-child variant="secondary" size="sm">
+    <main
+        class="mx-auto flex w-full max-w-[1600px] flex-col gap-5 px-4 py-6 md:px-6"
+    >
+        <PageHeader
+            title="Panel Claims"
+            :description="`${work.branch.name} · Create claims for manual submission and track Panel decisions and remittances.`"
+        >
+            <template #actions>
+                <Button as-child variant="outline" class="max-lg:min-h-11">
                     <Link href="/panel-claims/follow-up">Follow-up list</Link>
                 </Button>
                 <Button
                     v-if="work.can.recordRemittances"
                     as-child
-                    variant="secondary"
-                    size="sm"
+                    variant="outline"
+                    class="max-lg:min-h-11"
                 >
                     <Link href="/panel-remittances">Record Panel payment</Link>
                 </Button>
-                <template v-if="work.filters.range === 'custom'">
-                    <span class="flex items-center gap-1.5">
-                        <label
-                            class="w-9 text-xs font-medium text-muted-foreground"
-                            for="claims-from"
-                            >From</label
-                        >
-                        <DateField
-                            id="claims-from"
-                            v-model="draft.from"
-                            @change="go({ claims_page: null })"
-                            class="w-40"
-                            :echo="false"
-                        />
-                    </span>
-                    <span class="flex items-center gap-1.5">
-                        <label
-                            class="w-9 text-xs font-medium text-muted-foreground"
-                            for="claims-to"
-                            >To</label
-                        >
-                        <DateField
-                            id="claims-to"
-                            v-model="draft.to"
-                            @change="go({ claims_page: null })"
-                            class="w-40"
-                            :echo="false"
-                        />
-                    </span>
-                </template>
-                <OperationalSelect
-                    :model-value="work.filters.range"
-                    :options="rangeOptions"
-                    label="Date range"
-                    trigger-class="min-w-40"
-                    @update:model-value="
-                        (value) =>
-                            go({ range: String(value), claims_page: null })
-                    "
-                />
-            </div>
-        </header>
+            </template>
+        </PageHeader>
 
         <p
             v-if="error"
@@ -645,12 +611,14 @@ const visitTypeLabel = (value: string) =>
 
         <div class="grid gap-4 lg:grid-cols-2">
             <section
-                class="rounded-xl border bg-card p-5"
+                class="rounded-xl border bg-card p-4 md:p-5"
                 aria-label="Submissions"
             >
                 <h2 class="mb-3 text-base font-semibold">Submissions</h2>
-                <dl class="divide-y text-sm">
-                    <div class="flex items-center justify-between py-2">
+                <dl class="text-sm">
+                    <div
+                        class="flex items-center justify-between gap-3 border-b py-2.5 last:border-0"
+                    >
                         <dt>Pending</dt>
                         <dd class="font-medium tabular-nums">
                             {{
@@ -661,7 +629,9 @@ const visitTypeLabel = (value: string) =>
                             }}
                         </dd>
                     </div>
-                    <div class="flex items-center justify-between py-2">
+                    <div
+                        class="flex items-center justify-between gap-3 border-b py-2.5 last:border-0"
+                    >
                         <dt>Overdue</dt>
                         <dd class="font-medium text-destructive tabular-nums">
                             {{
@@ -674,7 +644,10 @@ const visitTypeLabel = (value: string) =>
                     </div>
                 </dl>
             </section>
-            <section class="rounded-xl border bg-card p-5" aria-label="Payouts">
+            <section
+                class="rounded-xl border bg-card p-4 md:p-5"
+                aria-label="Payouts"
+            >
                 <h2 class="mb-3 text-base font-semibold">Payouts</h2>
                 <dl class="grid gap-x-8 text-sm sm:grid-cols-2">
                     <div
@@ -685,7 +658,7 @@ const visitTypeLabel = (value: string) =>
                             ['outstanding', 'Outstanding'],
                         ] as const"
                         :key="key"
-                        class="flex items-center justify-between gap-3 border-b py-2"
+                        class="flex items-center justify-between gap-3 border-b py-2.5"
                     >
                         <dt>{{ label }}</dt>
                         <dd class="text-right tabular-nums">
@@ -701,7 +674,7 @@ const visitTypeLabel = (value: string) =>
             </section>
         </div>
 
-        <section class="space-y-4 rounded-xl border bg-card p-4">
+        <section class="space-y-4">
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <OperationalTabs
                     :model-value="work.filters.tab"
@@ -720,11 +693,12 @@ const visitTypeLabel = (value: string) =>
                     <DropdownMenuTrigger as-child>
                         <Button
                             type="button"
-                            variant="secondary"
+                            variant="outline"
                             size="sm"
                             class="hidden lg:inline-flex"
                             aria-label="Customize columns"
                         >
+                            <Columns3 class="size-4" aria-hidden="true" />
                             Columns
                         </Button>
                     </DropdownMenuTrigger>
@@ -747,7 +721,10 @@ const visitTypeLabel = (value: string) =>
                 </DropdownMenu>
             </div>
 
-            <p v-if="invoiceMode" class="text-sm text-muted-foreground">
+            <p
+                v-if="invoiceMode"
+                class="max-w-prose text-sm text-muted-foreground"
+            >
                 Approved Panel invoices without a claim yet. Create claim opens
                 the creation page for a submitted claim with invoice lines,
                 patient name, member reference, visit date, branch and invoice
@@ -757,152 +734,84 @@ const visitTypeLabel = (value: string) =>
                 the visit have passed.
             </p>
 
+            <!-- Phones and tablets show the filters behind one button; from lg they are always open. -->
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    class="max-lg:min-h-11 lg:hidden"
+                    :aria-expanded="filtersOpen"
+                    aria-controls="claims-filters"
+                    @click="filtersOpen = !filtersOpen"
+                >
+                    Filters
+                    <Badge v-if="filtersActive" variant="outline">
+                        Applied
+                    </Badge>
+                    <ChevronDown
+                        class="size-4 transition-transform"
+                        :class="filtersOpen ? 'rotate-180' : ''"
+                        aria-hidden="true"
+                    />
+                </Button>
+                <button
+                    v-if="filtersActive"
+                    type="button"
+                    class="ml-auto text-sm text-muted-foreground underline underline-offset-4 max-lg:min-h-11"
+                    @click="resetFilters"
+                >
+                    Reset filters
+                </button>
+            </div>
+
             <form
-                class="flex flex-wrap items-end gap-3"
+                id="claims-filters"
+                class="grid items-end gap-3 rounded-xl border bg-card p-4 sm:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6"
+                :class="filtersOpen ? '' : 'max-lg:hidden'"
                 @submit.prevent="
                     go({ claims_page: null, allocations_page: null })
                 "
             >
-                <template v-if="invoiceMode">
-                    <label class="text-xs font-medium text-muted-foreground">
-                        Invoice number
-                        <input
-                            v-model="draft.invoiceNo"
-                            class="mt-1 block h-9 w-32 rounded-md border bg-background px-2 text-sm"
-                        />
-                    </label>
-                    <label class="text-xs font-medium text-muted-foreground">
-                        Name
-                        <input
-                            v-model="draft.name"
-                            class="mt-1 block h-9 w-40 rounded-md border bg-background px-2 text-sm"
-                        />
-                    </label>
-                    <label class="text-xs font-medium text-muted-foreground">
-                        Doctor
-                        <input
-                            v-model="draft.doctor"
-                            class="mt-1 block h-9 w-36 rounded-md border bg-background px-2 text-sm"
-                        />
-                    </label>
-                    <div class="text-xs font-medium text-muted-foreground">
-                        <span class="block">Visit type</span>
-                        <OperationalSelect
-                            class="mt-1"
-                            :model-value="draft.visitType"
-                            :options="visitTypeOptions"
-                            label="Visit type"
-                            trigger-class="min-w-36"
-                            @update:model-value="
-                                (value) => {
-                                    draft.visitType = String(value);
-                                    go({
-                                        claims_page: null,
-                                        allocations_page: null,
-                                    });
-                                }
-                            "
-                        />
-                    </div>
-                    <label class="text-xs font-medium text-muted-foreground">
-                        Visit date
-                        <span class="mt-1 flex flex-wrap items-center gap-1">
-                            <DateField
-                                v-model="draft.visitFrom"
-                                aria-label="Visit date from"
-                                class="w-40"
-                                :echo="false"
-                            />
-                            <DateField
-                                v-model="draft.visitTo"
-                                aria-label="Visit date to"
-                                class="w-40"
-                                :echo="false"
-                            />
-                        </span>
-                    </label>
-                    <label class="text-xs font-medium text-muted-foreground">
-                        Due date
-                        <span class="mt-1 flex flex-wrap items-center gap-1">
-                            <DateField
-                                v-model="draft.dueFrom"
-                                aria-label="Due date from"
-                                class="w-40"
-                                :echo="false"
-                            />
-                            <DateField
-                                v-model="draft.dueTo"
-                                aria-label="Due date to"
-                                class="w-40"
-                                :echo="false"
-                            />
-                        </span>
-                    </label>
-                    <template v-if="work.can.clinicalFilters">
-                        <label
-                            class="text-xs font-medium text-muted-foreground"
-                        >
-                            Diagnosis
-                            <input
-                                v-model="draft.diagnosis"
-                                class="mt-1 block h-9 w-40 rounded-md border bg-background px-2 text-sm"
-                            />
-                        </label>
-                        <label
-                            class="text-xs font-medium text-muted-foreground"
-                        >
-                            Treatment
-                            <input
-                                v-model="draft.treatment"
-                                class="mt-1 block h-9 w-40 rounded-md border bg-background px-2 text-sm"
-                            />
-                        </label>
-                    </template>
-                </template>
-                <template v-else>
-                    <label class="text-xs font-medium text-muted-foreground">
-                        Amount (RM)
-                        <span class="mt-1 flex flex-wrap items-center gap-1">
-                            <input
-                                v-model="draft.amountMin"
-                                inputmode="decimal"
-                                placeholder="Min"
-                                aria-label="Minimum amount"
-                                class="h-9 w-24 rounded-md border bg-background px-2 text-sm"
-                            />
-                            <input
-                                v-model="draft.amountMax"
-                                inputmode="decimal"
-                                placeholder="Max"
-                                aria-label="Maximum amount"
-                                class="h-9 w-24 rounded-md border bg-background px-2 text-sm"
-                            />
-                        </span>
-                    </label>
-                    <label class="text-xs font-medium text-muted-foreground">
-                        Claim number
-                        <input
-                            v-model="draft.claimNo"
-                            inputmode="numeric"
-                            class="mt-1 block h-9 w-32 rounded-md border bg-background px-2 text-sm"
-                        />
-                    </label>
-                    <label class="text-xs font-medium text-muted-foreground">
-                        Name
-                        <input
-                            v-model="draft.name"
-                            class="mt-1 block h-9 w-40 rounded-md border bg-background px-2 text-sm"
-                        />
-                    </label>
-                </template>
-                <div class="text-xs font-medium text-muted-foreground">
-                    <span class="block">Panel</span>
+                <div :class="labelClass">
+                    <span>Date range</span>
                     <OperationalSelect
-                        class="mt-1"
+                        :model-value="work.filters.range"
+                        :options="rangeOptions"
+                        label="Date range"
+                        trigger-class="w-full"
+                        @update:model-value="
+                            (value) =>
+                                go({ range: String(value), claims_page: null })
+                        "
+                    />
+                </div>
+                <template v-if="work.filters.range === 'custom'">
+                    <label :class="labelClass" for="claims-from">
+                        From
+                        <DateField
+                            id="claims-from"
+                            v-model="draft.from"
+                            :echo="false"
+                            @change="go({ claims_page: null })"
+                        />
+                    </label>
+                    <label :class="labelClass" for="claims-to">
+                        To
+                        <DateField
+                            id="claims-to"
+                            v-model="draft.to"
+                            :echo="false"
+                            @change="go({ claims_page: null })"
+                        />
+                    </label>
+                </template>
+                <div :class="labelClass">
+                    <span>Panel</span>
+                    <OperationalSelect
                         :model-value="draft.panel"
                         :options="panelOptions"
                         label="Panel"
-                        trigger-class="min-w-40"
+                        trigger-class="w-full"
                         @update:model-value="
                             (value) => {
                                 draft.panel = String(value);
@@ -914,17 +823,126 @@ const visitTypeLabel = (value: string) =>
                         "
                     />
                 </div>
-                <Button type="submit" variant="secondary" size="sm">
-                    Apply
-                </Button>
-                <button
-                    v-if="filtersActive"
-                    type="button"
-                    class="ml-auto text-sm text-muted-foreground underline"
-                    @click="resetFilters"
-                >
-                    Reset filters
-                </button>
+                <template v-if="invoiceMode">
+                    <label :class="labelClass">
+                        Invoice number
+                        <input v-model="draft.invoiceNo" :class="fieldClass" />
+                    </label>
+                    <label :class="labelClass">
+                        Name
+                        <input v-model="draft.name" :class="fieldClass" />
+                    </label>
+                    <label :class="labelClass">
+                        Doctor
+                        <input v-model="draft.doctor" :class="fieldClass" />
+                    </label>
+                    <div :class="labelClass">
+                        <span>Visit type</span>
+                        <OperationalSelect
+                            :model-value="draft.visitType"
+                            :options="visitTypeOptions"
+                            label="Visit type"
+                            trigger-class="w-full"
+                            @update:model-value="
+                                (value) => {
+                                    draft.visitType = String(value);
+                                    go({
+                                        claims_page: null,
+                                        allocations_page: null,
+                                    });
+                                }
+                            "
+                        />
+                    </div>
+                    <label :class="labelClass" class="sm:col-span-2">
+                        Visit date
+                        <span class="mt-1 grid grid-cols-2 flex-wrap gap-2">
+                            <DateField
+                                v-model="draft.visitFrom"
+                                aria-label="Visit date from"
+                                :echo="false"
+                            />
+                            <DateField
+                                v-model="draft.visitTo"
+                                aria-label="Visit date to"
+                                :echo="false"
+                            />
+                        </span>
+                    </label>
+                    <label :class="labelClass" class="sm:col-span-2">
+                        Due date
+                        <span class="mt-1 grid grid-cols-2 flex-wrap gap-2">
+                            <DateField
+                                v-model="draft.dueFrom"
+                                aria-label="Due date from"
+                                :echo="false"
+                            />
+                            <DateField
+                                v-model="draft.dueTo"
+                                aria-label="Due date to"
+                                :echo="false"
+                            />
+                        </span>
+                    </label>
+                    <template v-if="work.can.clinicalFilters">
+                        <label :class="labelClass">
+                            Diagnosis
+                            <input
+                                v-model="draft.diagnosis"
+                                :class="fieldClass"
+                            />
+                        </label>
+                        <label :class="labelClass">
+                            Treatment
+                            <input
+                                v-model="draft.treatment"
+                                :class="fieldClass"
+                            />
+                        </label>
+                    </template>
+                </template>
+                <template v-else>
+                    <label :class="labelClass">
+                        Amount (RM)
+                        <span class="mt-1 grid grid-cols-2 flex-wrap gap-2">
+                            <input
+                                v-model="draft.amountMin"
+                                inputmode="decimal"
+                                placeholder="Min"
+                                aria-label="Minimum amount"
+                                :class="fieldClass"
+                            />
+                            <input
+                                v-model="draft.amountMax"
+                                inputmode="decimal"
+                                placeholder="Max"
+                                aria-label="Maximum amount"
+                                :class="fieldClass"
+                            />
+                        </span>
+                    </label>
+                    <label :class="labelClass">
+                        Claim number
+                        <input
+                            v-model="draft.claimNo"
+                            inputmode="numeric"
+                            :class="fieldClass"
+                        />
+                    </label>
+                    <label :class="labelClass">
+                        Name
+                        <input v-model="draft.name" :class="fieldClass" />
+                    </label>
+                </template>
+                <div class="flex sm:col-span-2 lg:col-span-1 lg:justify-end">
+                    <Button
+                        type="submit"
+                        variant="outline"
+                        class="max-lg:min-h-11 max-lg:w-full"
+                    >
+                        Apply
+                    </Button>
+                </div>
             </form>
 
             <template v-if="invoiceMode">
