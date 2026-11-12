@@ -1653,6 +1653,7 @@ const correctionStatusTone = (
                 <div>
                     <Button
                         type="submit"
+                        variant="outline"
                         class="min-h-11 sm:min-h-9"
                         :disabled="settingsForm.processing"
                     >

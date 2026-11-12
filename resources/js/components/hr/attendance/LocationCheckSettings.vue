@@ -236,6 +236,7 @@ const put = (enabled: boolean) => {
                 </Button>
                 <Button
                     type="submit"
+                    variant="outline"
                     class="max-lg:min-h-11"
                     :disabled="form.processing || !!blockedBy"
                     data-test="location-check-save"
