@@ -791,10 +791,20 @@ class ClinicInsightsReportService
             ->where('balances.quantity', '>', 0)
             ->distinct('batches.id')
             ->count('batches.id');
+        // STK-15c: a governed count loss whose reversal was later approved is left out, the same rule as write-offs
+        // (STK-15b), whenever the reversal happened. Legacy stocktake losses have no governed case and still count.
         $stocktakeLoss = DB::table('stock_movements')
             ->join('inventory_locations as source_locations', 'source_locations.id', '=', 'stock_movements.source_location_id')
             ->where('stock_movements.organisation_id', $actor->organisation_id)
             ->where('stock_movements.movement_type', 'stocktake_loss')
+            ->whereNotExists(fn (Builder $reversed) => $reversed->selectRaw('1')->from('inventory_governed_cases as counts')
+                ->join('inventory_governed_cases as reversals', 'reversals.reverses_case_id', '=', 'counts.id')
+                ->join('inventory_governed_actions as approvals', 'approvals.case_id', '=', 'reversals.id')
+                // Deliberately inside the subquery: a legacy loss (other reference type) never matches and still counts.
+                ->where('stock_movements.reference_type', 'inventory_governed_case')
+                ->whereColumn('counts.public_id', 'stock_movements.reference_public_id')
+                ->whereColumn('counts.organisation_id', 'stock_movements.organisation_id')
+                ->where('approvals.action', 'approved'))
             ->whereIn('source_locations.branch_id', $branchIds)
             ->tap(fn (Builder $query) => $this->scopePeriod($query, $periods, 'stock_movements.occurred_at', 'source_locations.branch_id'))
             ->sum('stock_movements.quantity');
@@ -810,7 +820,7 @@ class ClinicInsightsReportService
             ->sum('stock_movements.quantity');
         // STK-15b: approved STK-5 governed write-offs (expired and other). A write-off whose reversal was later approved
         // is left out, whenever the reversal happened, so the figure belongs to the period of the original write-off.
-        // Governed count losses already post stocktake_loss above, so nothing is counted twice.
+        // Governed count losses already post stocktake_loss above (reversed ones left out, STK-15c), so nothing is counted twice.
         $writeOffs = DB::table('stock_movements')
             ->join('inventory_locations as source_locations', 'source_locations.id', '=', 'stock_movements.source_location_id')
             ->join('inventory_governed_cases as cases', function ($join): void {
