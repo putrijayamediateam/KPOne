@@ -51,6 +51,18 @@ class CiShardingTest extends TestCase
         }
     }
 
+    public function test_each_shard_runs_its_unit_files_before_its_feature_files(): void
+    {
+        foreach (ci_shard_files(dirname(__DIR__, 2), 3) as $files) {
+            $seenFeature = false;
+            foreach ($files as $file) {
+                $isUnit = str_starts_with($file, 'tests/Unit/');
+                $this->assertFalse($isUnit && $seenFeature, "$file would run after a Feature file; see the ordering note in scripts/ci/shard-lib.php.");
+                $seenFeature = $seenFeature || ! $isUnit;
+            }
+        }
+    }
+
     public function test_shards_are_deterministic_and_reasonably_balanced(): void
     {
         $root = dirname(__DIR__, 2);

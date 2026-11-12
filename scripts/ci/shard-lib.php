@@ -2,7 +2,8 @@
 
 /**
  * The Unit and Feature test files that phpunit.xml runs in parallel (everything except the serial Contention files),
- * dealt into $total shards. Pure and deterministic: same repository content, same shards.
+ * dealt into $total shards. Pure and deterministic: same repository content, same shards. Within a shard the files
+ * run Unit first, then Feature (see the note on ordering below).
  *
  * @return list<list<string>> shard index (0-based) => repository-relative paths, in a stable order
  */
@@ -38,8 +39,12 @@ function ci_shard_files(string $root, int $total): array
         $shards[$lightest][] = $path;
         $weights[$lightest] += $size;
     }
+    // Unit files first, then Feature, each alphabetical: the order the unsharded run used. It matters. A test that
+    // uses no database trait stays on the shared kpone_test database (Laravel only gives a process its own database
+    // to tests that use RefreshDatabase and the like), and TestCase rebuilds that schema for such a test once its
+    // process has already run a database test. Run late, the Unit tests of two processes would rebuild it at once.
     foreach ($shards as &$list) {
-        sort($list);
+        usort($list, fn (string $a, string $b): int => [str_starts_with($a, 'tests/Unit/') ? 0 : 1, $a] <=> [str_starts_with($b, 'tests/Unit/') ? 0 : 1, $b]);
     }
 
     return $shards;
