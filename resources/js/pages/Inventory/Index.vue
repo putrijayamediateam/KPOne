@@ -349,7 +349,7 @@ const clearFilters = () => {
             <div class="w-full space-y-2 lg:hidden">
                 <details class="group rounded-lg border bg-card">
                     <summary
-                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium [&::-webkit-details-marker]:hidden"
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                     >
                         Count and adjust ·
                         {{ canViewControlledRegister ? 6 : 5 }}
@@ -400,7 +400,7 @@ const clearFilters = () => {
                 </details>
                 <details class="group rounded-lg border bg-card">
                     <summary
-                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium [&::-webkit-details-marker]:hidden"
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                     >
                         Orders and suppliers · 7
                         <ChevronDown
@@ -455,7 +455,7 @@ const clearFilters = () => {
                 </details>
                 <details class="group rounded-lg border bg-card">
                     <summary
-                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium [&::-webkit-details-marker]:hidden"
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
                     >
                         Reports and checks · 3
                         <ChevronDown
