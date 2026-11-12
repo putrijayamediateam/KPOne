@@ -9,6 +9,7 @@
 }
 .space-shell .space-side {
     background: var(--space-side);
+    border-right: 1px solid var(--border);
     padding: 16px 12px;
     display: grid;
     gap: 4px;
@@ -105,6 +106,8 @@
         gap: 4px;
         overflow-x: auto;
         padding: 8px 12px;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
     }
     .space-shell .space-item {
         white-space: nowrap;
