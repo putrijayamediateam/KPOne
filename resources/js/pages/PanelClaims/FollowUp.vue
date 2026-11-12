@@ -147,7 +147,7 @@ const go = (panel: string, page = 1) =>
                     </p>
                 </div>
                 <p
-                    class="font-medium text-destructive tabular-nums md:text-right"
+                    class="font-medium text-warning-strong tabular-nums md:text-right"
                 >
                     {{ claim.daysSinceAction }}
                     {{ claim.daysSinceAction === 1 ? 'day' : 'days' }}, no

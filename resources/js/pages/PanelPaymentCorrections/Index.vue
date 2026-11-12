@@ -178,7 +178,7 @@ const turnPage = (value: number) =>
         />
         <ul
             v-else
-            class="divide-y rounded-xl border bg-card"
+            class="max-w-2xl divide-y rounded-xl border bg-card"
             aria-label="Recorded Panel payments"
         >
             <li
@@ -269,7 +269,7 @@ const turnPage = (value: number) =>
                     </Button>
                     <form
                         v-else
-                        class="mt-2 grid max-w-xl gap-4 border-t pt-4"
+                        class="mt-2 grid gap-4 border-t pt-4"
                         @submit.prevent="reverse(payment)"
                     >
                         <label
@@ -402,6 +402,7 @@ const turnPage = (value: number) =>
         </ul>
         <CompactPagination
             v-if="payments.total > 0"
+            class="max-w-2xl"
             :current-page="payments.currentPage"
             :last-page="payments.lastPage"
             :total="payments.total"
