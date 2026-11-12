@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import {
@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import { useScrollStrip } from '@/composables/useScrollStrip';
 import SpacePassThroughLayout from '@/layouts/SpacePassThroughLayout.vue';
 import { waitingTone } from '@/lib/waiting-time';
 
@@ -363,20 +364,9 @@ const changeBranch = (event: Event) => {
     }
 };
 
-// 390 px: the nav is one scrolling row. Fade the right edge while more is hidden and bring the current item into view.
+// 390 px: the nav is one scrolling row. The current space is brought to the start and the hidden edge fades.
 const side = ref<HTMLElement | null>(null);
-const more = ref(false);
-const measure = () => {
-    const el = side.value;
-    more.value = !!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
-};
-onMounted(async () => {
-    await nextTick();
-    side.value
-        ?.querySelector<HTMLElement>('[aria-current="page"]')
-        ?.scrollIntoView({ block: 'nearest', inline: 'center' });
-    measure();
-});
+const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
 </script>
 
 <template>
@@ -385,7 +375,7 @@ onMounted(async () => {
         <div
             ref="side"
             class="space-side"
-            :class="{ 'has-more': more }"
+            :style="fadeStyle"
             @scroll.passive="measure"
         >
             <Link href="/" class="space-logo"
