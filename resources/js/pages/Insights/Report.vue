@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
+import { useScrollStrip } from '@/composables/useScrollStrip';
 import { formatDayMonth } from '@/lib/presentation';
 import type {
     InsightsRangeFilters,
@@ -97,6 +98,11 @@ const titles: Record<InsightsRangeFilters['section'], string> = {
     patients: 'Patients',
 };
 const title = computed(() => titles[section.value]);
+
+// 390 px: the report tabs are one scrolling row; the current report is brought into view and the hidden edge fades.
+const reportTabs = ref<HTMLElement | null>(null);
+const { measure: measureReportTabs, fadeStyle: reportTabsFade } =
+    useScrollStrip(reportTabs, '[aria-current="page"]');
 
 const money = (amountSen: number) =>
     new Intl.NumberFormat('en-MY', {
@@ -438,14 +444,18 @@ const occupancyMax = computed(() =>
         />
 
         <nav
+            ref="reportTabs"
             class="flex gap-1 overflow-x-auto border-b"
+            :style="reportTabsFade"
             aria-label="Insights reports"
+            @scroll.passive="measureReportTabs"
         >
             <a
                 v-for="item in sections"
                 :key="item.id"
                 :href="item.href"
-                class="border-b-2 px-3 py-2 text-sm whitespace-nowrap"
+                :aria-current="item.id === section ? 'page' : undefined"
+                class="inline-flex items-center border-b-2 px-3 py-2 text-sm whitespace-nowrap max-lg:min-h-11"
                 :class="
                     item.id === section
                         ? 'border-primary font-medium text-foreground'

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
-import { computed, nextTick, onMounted, ref } from 'vue';
+import { computed, onMounted, ref } from 'vue';
 import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
 import {
@@ -11,6 +11,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import { useClockShortcut } from '@/composables/useClockShortcut';
+import { useScrollStrip } from '@/composables/useScrollStrip';
 import SpacePassThroughLayout from '@/layouts/SpacePassThroughLayout.vue';
 import { waitingTone } from '@/lib/waiting-time';
 
@@ -340,7 +342,6 @@ const groups = computed(() => {
         ['Clinic', ['front_desk', 'pharmacy', 'consultation']],
         ['Money', ['billing', 'panel']],
         ['Operations', ['stock', 'hr', 'management']],
-        ['You', ['me']],
     ];
 
     return layout
@@ -350,6 +351,10 @@ const groups = computed(() => {
         }))
         .filter((g) => g.items.length > 0);
 });
+
+// A person with no department space and no Clinic management link gets no empty rail: the sidebar (or the phone strip)
+// is collapsed and the page stands alone, reached through the account menu.
+const bare = computed(() => groups.value.length === 0 && !hub.value);
 
 const changeBranch = (event: Event) => {
     const branchId = Number((event.target as HTMLSelectElement).value);
@@ -363,29 +368,35 @@ const changeBranch = (event: Event) => {
     }
 };
 
-// 390 px: the nav is one scrolling row. Fade the right edge while more is hidden and bring the current item into view.
+// 390 px: the nav is one scrolling row. The current space is brought to the start and the hidden edge fades.
 const side = ref<HTMLElement | null>(null);
-const more = ref(false);
-const measure = () => {
-    const el = side.value;
-    more.value = !!el && el.scrollLeft + el.clientWidth < el.scrollWidth - 2;
-};
-onMounted(async () => {
-    await nextTick();
-    side.value
-        ?.querySelector<HTMLElement>('[aria-current="page"]')
-        ?.scrollIntoView({ block: 'nearest', inline: 'center' });
-    measure();
+const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
+
+// DS-12: on a phone a light dim layer sits behind the open account menu, as dialogs have.
+const menuOpen = ref(false);
+
+// DS-12: Me lives in the account menu, so it is not a nav item. A person whose only space is Me gets no space items.
+const accountMenu = computed(() => page.props.workspace?.accountMenu);
+const {
+    load: loadClock,
+    press: pressClock,
+    label: clockLabel,
+    visible: clockVisible,
+} = useClockShortcut();
+onMounted(() => {
+    if (accountMenu.value?.clock) {
+        void loadClock();
+    }
 });
 </script>
 
 <template>
     <Head :title="space.title" />
-    <div class="space-shell">
+    <div class="space-shell" :class="{ 'is-bare': bare }">
         <div
             ref="side"
             class="space-side"
-            :class="{ 'has-more': more }"
+            :style="fadeStyle"
             @scroll.passive="measure"
         >
             <Link href="/" class="space-logo"
@@ -414,6 +425,11 @@ onMounted(async () => {
                 </div>
             </nav>
         </div>
+        <div
+            v-if="menuOpen"
+            class="fixed inset-0 z-40 bg-black/30 sm:hidden"
+            aria-hidden="true"
+        />
         <main id="main-content" class="space-main" tabindex="-1">
             <div class="space-top">
                 <label
@@ -437,7 +453,16 @@ onMounted(async () => {
                         </option>
                     </select>
                 </label>
-                <DropdownMenu>
+                <button
+                    v-if="accountMenu?.clock && clockVisible"
+                    type="button"
+                    class="space-clock"
+                    data-test="clock-shortcut"
+                    @click="pressClock()"
+                >
+                    {{ clockLabel }}
+                </button>
+                <DropdownMenu @update:open="menuOpen = $event">
                     <DropdownMenuTrigger :as-child="true">
                         <button
                             type="button"
@@ -829,7 +854,7 @@ onMounted(async () => {
                     aria-labelledby="bl-paylater"
                 >
                     <h2 id="bl-paylater">
-                        Pay later to collect ({{ billing.payLater.count }})
+                        Bills to collect ({{ billing.payLater.count }})
                     </h2>
                     <ul class="space-stats is-glance">
                         <li>

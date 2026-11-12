@@ -64,8 +64,8 @@ test('DS-1: the shell has a named nav, a branch switcher, an account menu, a way
     assert.match(page, /id="space-branch"/);
     assert.match(page, /UserMenuContent/);
     assert.match(page, /Open the existing \{\{ existing\.title \}\} screens/);
-    assert.match(page, /scrollIntoView/);
-    assert.match(css, /\.has-more/);
+    assert.match(page, /useScrollStrip\(side, '\[aria-current="page"\]'\)/);
+    assert.match(page, /:style="fadeStyle"/);
     assert.match(css, /\.space-select,[\s\S]*min-height: 44px/);
 });
 
@@ -228,7 +228,7 @@ test('DS-5: the Billing space shows pay later, cash closing and awaiting billing
     const page = read('resources/js/pages/Spaces/Show.vue');
     assert.match(page, /v-else-if="billing"/);
     assert.match(page, /only="billing"/);
-    assert.match(page, /Pay later to collect/);
+    assert.match(page, /Bills to collect/);
     assert.match(page, /Cash closing today/);
     assert.match(page, /Visits awaiting billing/);
     assert.match(page, /Changed after approval\./);
