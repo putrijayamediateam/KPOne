@@ -38,7 +38,7 @@ defineProps<{
         </div>
         <div
             v-if="$slots.actions"
-            class="kp-control-group max-sm:w-full max-sm:[&>*]:flex-1"
+            class="kp-control-group max-sm:w-full max-sm:[&>*]:flex-1 max-sm:[&>:is(:not([data-variant]),[data-variant=default],[data-variant=primary])]:order-first max-sm:[&>:is(:not([data-variant]),[data-variant=default],[data-variant=primary])]:basis-full"
         >
             <slot name="actions" />
         </div>

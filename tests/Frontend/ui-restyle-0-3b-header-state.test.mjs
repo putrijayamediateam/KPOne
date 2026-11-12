@@ -22,14 +22,16 @@ test('0.3b: the page title is one shared class with the GUIDE section 19 sizes',
     assert.equal((header.match(/kp-page-title/g) ?? []).length, 2);
 });
 
-test('0.3b: the header actions go full width under the title below 640 px', () => {
+test('0.3b: below 640 px only the primary action is full width, first; the rest share one row', () => {
     assert.match(header, /max-sm:w-full max-sm:\[&>\*\]:flex-1/);
+    assert.match(header, /\[data-variant=primary\]\)\]:order-first/);
+    assert.match(header, /\[data-variant=primary\]\)\]:basis-full/);
 });
 
 test('0.3b: EmptyState has a solid hairline at 14 px and an optional icon slot', () => {
     assert.match(empty, /rounded-\[14px\] border bg-card/);
     assert.doesNotMatch(empty, /border-dashed/);
-    assert.match(empty, /\$slots\.icon/);
+    assert.match(empty, /<slot name="icon">/);
 });
 
 test('0.3b: ErrorState uses the destructive soft token and stays an alert', () => {
