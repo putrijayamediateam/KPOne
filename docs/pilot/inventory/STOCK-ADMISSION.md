@@ -11,9 +11,16 @@ in KPOne is synthetic until go-live, and nothing here is production approval.
 Quoted screen text is in "double quotes" and matches KPOne `main` at the time of writing. Anything marked
 **(planned)** is not on `main` yet.
 
+**Words used here:**
+- **SKU:** one stock item as KPOne counts it, for example one medicine in one strength and pack type.
+- **Base stock unit:** the smallest unit KPOne counts that SKU in, for example one tablet. Quantities are always
+  entered in it, never in boxes.
+- **Governed stock count:** the "Stock count (governed)" screen, where a count is checked and approved by a second
+  person before stock changes.
+
 ## 1. What "admission" means here
 
-Stock is admitted when it becomes usable stock at a branch in KPOne. It can come in only three ways:
+Stock is admitted when it becomes usable stock at a branch in KPOne. **New stock** can come in only three ways:
 
 1. **A supplier delivery** against an approved purchase order (section 3).
 2. **Opening stock**, recorded once when the branch starts using KPOne (section 5).
@@ -21,11 +28,16 @@ Stock is admitted when it becomes usable stock at a branch in KPOne. It can come
 
 **Never admitted as usable stock:**
 
-- Medicine that patients bring back. It goes to a "Patient Returns (not for dispensing)" location. Stock there is
-  never dispensed, and it leaves only by a governed stock count, a write-off, or a move to another returns
+- Medicine that patients bring back. A CA Supervisor checks each return and either disposes of it, refuses it,
+  or keeps it in quarantine. **If it is kept**, it goes to a "Patient Returns (not for dispensing)" location.
+  Controlled medicines are never kept this way. Stock in that location is never dispensed, and it leaves only by a governed stock count, a write-off, or a move to another returns
   location.
 - Anything received outside these three routes. KPOne's legacy manual adjustment and demo stocktake are closed
   (STK-6A).
+
+Stock that is already in KPOne can become usable again in other, controlled ways. For example, a governed stock
+count finds more than recorded, a transfer difference is settled, a hold is released, or a recall is lifted. Each
+of those needs a second person. They are corrections, not admissions, and are not covered here.
 
 ## 2. Who does what
 
@@ -38,12 +50,15 @@ Stock is admitted when it becomes usable stock at a branch in KPOne. It can come
 | Approve a delivery exception | CA Supervisor, Finance Officer or Director | Not the receiver |
 | Place a batch safety hold | CA Supervisor, Finance Officer or Director | |
 | Release a batch safety hold | Finance Officer or Director | Not the person who placed it |
+| Start a recall (every branch) | Director | |
+| Lift a recall | Director or Finance Officer | Not the person who started it |
 | Record a supplier invoice | CA Supervisor or Finance Officer | |
 | Accept or reject an invoice difference | Finance Officer or Director | Not the person who recorded it |
 | Record opening stock | CA Supervisor | |
 | Sign off an opening | CA Supervisor, Finance Officer or Director | Not the person who recorded it |
 | Receive a transfer | CA or CA Supervisor at the receiving branch | |
 | Resolve a transfer difference | CA Supervisor, Finance Officer or Director | Not the receiver |
+| Check a controlled medicine's register | CA Supervisor, Finance Officer or Director | Not anyone who recorded a movement of it since the last check, and not whoever did the last check |
 
 **The one rule behind the table: the person who records stock never also approves it.** KPOne refuses it on the
 server, so the pilot branch needs at least two people who can approve on every shift where stock arrives. This
@@ -57,8 +72,8 @@ means two CA Supervisors, or a CA Supervisor with the Finance Officer or Directo
 
 ### 3.1 Before the delivery
 
-1. A CA or CA Supervisor raises a request on "Purchase requests" ("New request"). Someone else reviews it and
-   presses "Convert to draft order" or "Reject".
+1. A CA or CA Supervisor raises a request on "Purchase requests" ("New request"). A different CA Supervisor or
+   Finance Officer reviews it and presses "Convert to draft order" or "Reject".
 2. The order is created on the Inventory page, under "Purchase Orders & Receiving" ("Create PO draft", then
    "Submit").
 3. A Finance Officer or Director who did not raise or submit it presses "Approve". KPOne says: "Approval
@@ -71,7 +86,10 @@ means two CA Supervisors, or a CA Supervisor with the Finance Officer or Directo
 1. Check that the delivery is for this branch and matches an approved order. **No approved order: do not accept
    the delivery into stock.** Keep it apart and tell the responsible person.
 2. Count what physically arrived.
-3. Read the printed expiry date and the batch number on every pack.
+3. Read the printed expiry date and the batch number on every pack. **A pack with no printed expiry date, no batch
+   number, or an expiry date of today or earlier cannot be recorded in KPOne at all, not even as rejected.** Set it
+   aside, leave it out of the quantity you count in KPOne, and handle it with the supplier outside KPOne (see
+   section 8).
 4. Check the condition of every pack: seals, damage, and storage temperature where it matters (see question 1).
 5. Keep the supplier's delivery note or invoice. Its reference is required in KPOne.
 
@@ -82,7 +100,8 @@ On the Inventory page, open the approved order. Use the form under "Split lots a
 1. Enter the "Delivery note or supplier invoice reference". KPOne refuses the same reference twice for the same
    supplier and branch.
 2. For each order line, enter the "Physical quantity counted" in the SKU's base stock unit (for example tablets,
-   never boxes).
+   never boxes). Receiving less than the order is normal and leaves the rest of the order open. Tick "Declared
+   short delivery (requires approval)" only if the supplier says the rest will not come.
 3. Split it into lots, one per batch. For each lot enter the "Batch number", the "Real expiry date" and the "Lot
    quantity".
 4. Give each lot an "Outcome":
@@ -95,13 +114,15 @@ On the Inventory page, open the approved order. Use the form under "Split lots a
    documentation" or "Other approved reason".
 5. Accepted, quarantined and rejected quantities must add up to the physical quantity counted.
 6. Optional: enter the "Total paid for this lot (RM, optional)" from the supplier invoice.
-7. Press "Post receipt" if everything matches the order. If not, press "Request exception approval" (see 3.4).
+7. If every lot is accepted and nothing is over the order or declared short, press "Post receipt". **Any
+   quarantined or rejected lot, any over-delivery and any declared short delivery always needs approval:** press
+   "Request exception approval" (see 3.4).
 
 ### 3.4 When the delivery does not match the order
 
 A delivery exception covers:
 - more than ordered ("Over delivery");
-- less than ordered ("Short delivery");
+- less than ordered, when the receiver declares it short ("Short delivery");
 - damaged packs ("Damaged");
 - the wrong product ("Wrong item");
 - an expiry problem ("Expiry problem");
@@ -114,15 +135,17 @@ A delivery exception covers:
 
 ### 3.5 Hard rules (KPOne enforces these)
 
-- **No real expiry date, no admission.** "Enter the actual expiry date, not a sentinel date." An item without
-  expiry tracking cannot be received until its setup is fixed.
-- **No expired stock.** "Expired stock cannot be received as available inventory."
+- **No real expiry date, no admission.** Every lot, even a rejected one, needs a batch number and a real printed
+  expiry date. KPOne refuses a made-up date with "Enter the actual expiry date, not a sentinel date." An item
+  without expiry tracking cannot be received until its setup is fixed.
+- **No expired stock.** A lot that expires today or earlier is refused, whatever its outcome: "Expired stock cannot
+  be received as available inventory."
 - **A wrong item is rejected, never substituted.** "A wrong item must be rejected. Receive the correct product
   against an approved order; do not substitute it silently."
 - **No delivery into a patient returns location.**
 - **A mistake is never edited.** A posted receipt is corrected only by a whole reversing correction ("Request
-  reversing correction"), approved by another person. Once any of that stock has moved out, it needs owner
-  review instead.
+  reversing correction"). Only the person who received the delivery can request it, and another person approves
+  it. Once any of that stock has moved out, or the purchase order is closed, it needs owner review instead.
 
 ### 3.6 After recording
 
@@ -140,7 +163,9 @@ A delivery exception covers:
   approves its format."
 - KPOne has no "locked" location type. Where controlled medicines are physically kept: ________ (see question 4).
 - After each controlled delivery, a CA Supervisor, Finance Officer or Director counts what is on hand and uses
-  "Record check" on that medicine's register.
+  "Record check" on that medicine's register. **The checker cannot be anyone who recorded a movement of that
+  medicine since the last check, and cannot be whoever did the last check.** So the person who received the
+  delivery never checks it: plan for a third person on controlled delivery days.
 
 ## 4. Batch safety holds
 
@@ -148,11 +173,14 @@ A delivery exception covers:
   holds" ("Place safety hold"). Reasons: "Suspected quality issue", "Recall", "Damaged" or "Other safety concern".
 - A hold changes no quantity. Held stock cannot be allocated or dispensed.
 - Only a Finance Officer or Director who did not place it can release it ("Release hold").
-- A hold covers one branch only. A recall at several branches needs a hold at each branch.
+- A hold covers one branch only. To block batches at every branch at once, a Director uses "Recalls" ("Start a
+  recall"). KPOne says: "A recall blocks named batches at every branch. It moves no stock." A Director or Finance
+  Officer who did not start it lifts it ("Lift recall").
 
 ## 5. Opening stock (once, before go-live)
 
-1. **Units first.** On "Pilot readiness", a reference manager checks every SKU's base stock unit and presses
+1. **Units first.** On "Pilot readiness", a Director, CA Supervisor or Administrator checks every SKU's base stock
+   unit and presses
    "Verify base unit". The stock unit and the dispensing unit must match, or dispensing is refused.
 2. **Count physically:** each location, SKU and batch, with its real printed expiry date.
 3. **Record:** a CA Supervisor records each opening on the Inventory page, under "Stock Setup" → "Opening
@@ -180,8 +208,8 @@ A delivery exception covers:
    - "Written off (stays out of stock)";
    - "Returned to the sending location (no stock change here)";
    - "Kept and brought in by a governed stock count".
-4. When "Stock other branches need" suggests sending surplus to another branch, only that branch's own staff
-   receive it.
+4. "Stock other branches need" may suggest sending spare stock to another branch. The sending branch approves
+   and sends it; only the receiving branch's own staff receive it, as in step 2.
 
 ## 7. What stays outside KPOne
 
@@ -195,10 +223,10 @@ A delivery exception covers:
 | Problem | Do this |
 |---|---|
 | Delivery with no approved order | Keep it apart; tell the responsible person; do not record it |
-| No printed expiry date | Do not admit it; reject the lot or return the item to the supplier |
+| No printed expiry date or batch number, or already expired | Do not record it in KPOne, even as rejected; leave it out of the count and give it back to the supplier |
 | Wrong product | Reject the lot ("Wrong item"); never record it as the ordered product |
 | Damaged pack | Quarantine or reject the lot, with the reason "Damaged" |
-| A posted receipt was wrong | "Request reversing correction"; another person approves it |
+| A posted receipt was wrong | The receiver uses "Request reversing correction"; another person approves it |
 | Quality doubt after receipt | "Place safety hold" on the batch |
 | No second person available to approve | Leave the exception waiting; do not use stock that has not posted |
 
@@ -211,7 +239,7 @@ A delivery exception covers:
 4. **Controlled medicines:** where are they physically kept, who holds the key, and is a check after every
    controlled delivery enough?
 5. **Short expiry:** what is the shortest remaining shelf life the clinic accepts at delivery? KPOne refuses only
-   expired stock.
+   stock that expires today or earlier.
 6. **Rejected stock:** who arranges its return to the supplier, and how is that recorded? KPOne's "Supplier
    returns" is for stock already received.
 
