@@ -651,15 +651,21 @@ onBeforeUnmount(() => {
         class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
     >
         <h1 class="sr-only">Registration</h1>
-        <div class="flex items-center gap-2 border-b">
+        <div
+            class="flex flex-col gap-2 border-b max-lg:pb-2 lg:flex-row lg:items-center"
+        >
             <OperationalTabs
-                class="min-w-0 flex-1"
+                class="min-w-0 lg:flex-1"
                 :model-value="activeTab"
                 label="Patient board status"
                 :tabs="tabs"
                 @update:model-value="selectOperationalTab"
             />
-            <Button v-if="canCreate" as-child size="sm" class="shrink-0"
+            <Button
+                v-if="canCreate"
+                as-child
+                size="sm"
+                class="max-lg:h-11 max-lg:w-full lg:shrink-0"
                 ><Link href="/registration/create"
                     ><Plus class="size-4" /> Register Visit</Link
                 ></Button
