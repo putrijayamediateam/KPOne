@@ -47,15 +47,21 @@ const cardOf = (
 // A long answer reads as a semibold first sentence and a regular rest; a short one stays semibold as a whole.
 const sentenceParts = computed((): { lead: string; rest: string } => {
     const text = answer.value?.sentence ?? '';
-    const long = text.length > 140;
-    const match = long ? /(?<=.{30}[.!?])\s+(?=[A-Z0-9])/.exec(text) : null;
 
-    return match
-        ? {
-              lead: text.slice(0, match.index + 1),
-              rest: text.slice(match.index + match[0].length),
-          }
-        : { lead: text, rest: '' };
+    if (text.length > 140) {
+        // Plain string work (no lookbehind, which older Safari cannot parse): the first sentence end from index 30.
+        for (let i = 30; i < text.length - 2; i++) {
+            if (
+                '.!?'.includes(text[i]) &&
+                text[i + 1] === ' ' &&
+                /[A-Z0-9]/.test(text[i + 2])
+            ) {
+                return { lead: text.slice(0, i + 1), rest: text.slice(i + 2) };
+            }
+        }
+    }
+
+    return { lead: text, rest: '' };
 });
 
 const csrf = () =>
@@ -177,9 +183,12 @@ const ask = async (question: Question) => {
                                 v-for="(part, k) in cardOf(r).parts"
                                 :key="k"
                                 ><span v-if="k > 0" aria-hidden="true"> · </span
-                                ><span class="space-nowrap">{{
-                                    part
-                                }}</span></template
+                                ><span
+                                    :class="{
+                                        'space-nowrap': part.length <= 20,
+                                    }"
+                                    >{{ part }}</span
+                                ></template
                             ></span
                         >
                         <strong
