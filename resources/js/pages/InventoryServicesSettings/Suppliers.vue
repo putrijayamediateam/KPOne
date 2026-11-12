@@ -265,7 +265,7 @@ const generalError = computed(
                                         :aria-checked="supplier.active"
                                         :aria-label="`${supplier.active ? 'Archive' : 'Activate'} ${supplier.name}`"
                                         :disabled="busySupplier !== null"
-                                        class="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50"
+                                        class="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors before:absolute before:-inset-x-1 before:-inset-y-3 disabled:opacity-50"
                                         :class="
                                             supplier.active
                                                 ? 'bg-success'
@@ -353,7 +353,7 @@ const generalError = computed(
                             :aria-checked="supplier.active"
                             :aria-label="`${supplier.active ? 'Archive' : 'Activate'} ${supplier.name}`"
                             :disabled="busySupplier !== null"
-                            class="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors disabled:opacity-50"
+                            class="relative inline-flex h-7 w-12 shrink-0 items-center rounded-full ring-1 ring-border transition-colors before:absolute before:-inset-x-1 before:-inset-y-3 disabled:opacity-50"
                             :class="
                                 supplier.active
                                     ? 'bg-success'
