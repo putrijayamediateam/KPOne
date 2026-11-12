@@ -475,6 +475,43 @@ class AttendanceTest extends VisitTestCase
             ->where('attendance.review.pending.0.sentAt', '2027-03-08T10:00:00+00:00'));
     }
 
+    public function test_review_pairs_each_half_of_a_split_shift_across_two_branches_with_its_own_shift(): void
+    {
+        // HR-3a known limit: Review loaded shifts for one branch, so the other branch's half of a split shift showed as
+        // "Not on the roster". Each half is now matched with its own shift, and each branch's Review shows its own half.
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $puchong = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->firstOrFail();
+        StaffBranchAssignmentBootstrapper::create(StaffProfile::query()->where('user_id', $ca->id)->firstOrFail(), $puchong,
+            ['is_primary' => false, 'assignment_type' => 'temporary', 'valid_from' => '2027-03-07', 'valid_until' => null]);
+        $this->settings($hr, ['effective_from' => self::WEEK])->assertSessionHasNoErrors();
+        $this->roster($hr, $director, [[$ca, '08:00', '12:00', 0]]);
+        $this->roster($hr, $director, [[$ca, '17:00', '21:00', 0]], $puchong);
+
+        $this->at('2027-03-08 07:58');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $this->at('2027-03-08 12:01');
+        $this->clock($ca, 'out')->assertSessionHasNoErrors();
+        $this->at('2027-03-08 16:58');
+        $this->selectBranch($ca, $puchong);
+        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->at('2027-03-08 21:02');
+        $this->selectBranch($ca, $puchong);
+        $this->post(route('hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+
+        $this->at('2027-03-08 22:00');
+        $this->selectBranch($hr);
+        $review = fn (Branch $branch): array => $this->get(route('hr.attendance.index', ['tab' => 'review', 'branch' => $branch->id, 'date' => self::WEEK]))
+            ->viewData('page')['props']['attendance']['review']['rows'];
+        foreach ([[$this->branch, '8:00 AM to 12:00 PM', '7:58 AM'], [$puchong, '5:00 PM to 9:00 PM', '4:58 PM']] as [$branch, $shift, $in]) {
+            $rows = $review($branch);
+            $this->assertCount(1, $rows, $branch->name);
+            $this->assertSame(["Full day, {$shift}", $branch->id, $in, []], [$rows[0]['shift']['label'], $rows[0]['session']['branchId'],
+                $rows[0]['session']['in'], $rows[0]['flags']], $branch->name);
+        }
+    }
+
     public function test_review_corrections_name_a_person_and_only_the_proposer_withdraws_with_the_current_version(): void
     {
         $hr = $this->actor('hr_manager');
@@ -623,14 +660,15 @@ class AttendanceTest extends VisitTestCase
     }
 
     /** @param list<array{User, string, string, int}> $shifts */
-    private function roster(User $hr, User $director, array $shifts): void
+    private function roster(User $hr, User $director, array $shifts, ?Branch $branch = null): void
     {
+        $branch ??= $this->branch;
         $this->selectBranch($hr);
-        $this->post(route('hr.roster.drafts.store'), ['branch_id' => $this->branch->id, 'week' => self::WEEK, 'mode' => 'blank', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->post(route('hr.roster.drafts.store'), ['branch_id' => $branch->id, 'week' => self::WEEK, 'mode' => 'blank', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $version = RosterVersion::query()->latest('id')->firstOrFail();
         foreach ($shifts as [$person, $start, $end, $break]) {
             $this->post(route('hr.roster.shifts.store', $version->public_id), ['staff_user_id' => $person->id, 'date' => self::WEEK, 'start_time' => $start, 'end_time' => $end,
-                'break_minutes' => $break, 'session_type' => 'full_day', 'branch_room_id' => null, 'branch_id' => $this->branch->id, 'week' => self::WEEK,
+                'break_minutes' => $break, 'session_type' => 'full_day', 'branch_room_id' => null, 'branch_id' => $branch->id, 'week' => self::WEEK,
                 'expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         }
         $this->post(route('hr.roster.submit', $version->public_id), ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();

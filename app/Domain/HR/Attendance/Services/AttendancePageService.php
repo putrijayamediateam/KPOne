@@ -140,7 +140,13 @@ final class AttendancePageService
             ->where(fn ($q) => $q->where(fn ($q) => $q->where('branch_id', $branch->id)->whereDate('local_date', $date->toDateString()))
                 ->orWhere(fn ($q) => $q->whereIn('user_id', $shifts->pluck('staff_user_id')->unique()->values())->whereDate('local_date', $date->toDateString())))
             ->orderBy('clock_in_at')->get();
-        $rows = $this->days->rows($actor->organisation_id, $sessions, $shifts, $this->waiting($sessions));
+        // A split shift across two branches (HR-PLAN 9: two sessions): match against the same people's approved shifts at
+        // every branch, so the other half is paired with its own shift instead of showing "Not on the roster", then keep
+        // the rows that belong here (this branch's shift, or a session pressed at this branch).
+        $ids = array_values(array_unique(array_map('intval', [...$sessions->pluck('user_id')->all(), ...$shifts->pluck('staff_user_id')->all()])));
+        $allShifts = $ids === [] ? $shifts : $this->days->shifts($actor->organisation_id, $ids, $date, $date);
+        $rows = array_values(array_filter($this->days->rows($actor->organisation_id, $sessions, $allShifts, $this->waiting($sessions)),
+            fn (array $r): bool => ($r['shift']['branchId'] ?? null) === $branch->id || ($r['session']['branchId'] ?? null) === $branch->id));
         $people = User::query()->whereIn('id', collect($rows)->pluck('userId')->unique())->get()->keyBy('id');
         // HR-3b: a manager may ask for overtime on someone's behalf from a closed day on Review (never their own from here).
         $choices = [];
