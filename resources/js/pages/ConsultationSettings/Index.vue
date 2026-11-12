@@ -266,28 +266,27 @@ const presetEmptyDescription = computed(() =>
             >
                 {{ generalError }}
             </p>
-            <div class="mt-6 flex flex-wrap items-center justify-between gap-3">
-                <nav
-                    aria-label="Diagnosis status tabs"
-                    class="flex rounded-full bg-muted p-1"
-                >
+            <div
+                class="mt-6 flex flex-wrap items-center justify-between gap-3 border-b"
+            >
+                <nav aria-label="Diagnosis status tabs" class="flex">
                     <button
                         v-for="tab in ['all', 'active', 'archived']"
                         :key="tab"
                         type="button"
                         :aria-current="status === tab ? 'page' : undefined"
                         :class="[
-                            'min-h-11 rounded-full px-5 text-sm font-medium capitalize lg:min-h-9',
+                            'min-h-11 border-b-2 px-5 py-3 text-sm font-medium capitalize',
                             status === tab
-                                ? 'bg-card text-primary shadow-sm'
-                                : 'text-muted-foreground',
+                                ? 'border-foreground'
+                                : 'border-transparent text-muted-foreground',
                         ]"
                         @click="go(1, tab)"
                     >
                         {{ tab }}
                     </button>
                 </nav>
-                <div class="ml-auto flex max-w-full items-center gap-2">
+                <div class="mb-2 ml-auto flex max-w-full items-center gap-2">
                     <form
                         v-if="searching"
                         class="flex min-w-0 items-center gap-2"

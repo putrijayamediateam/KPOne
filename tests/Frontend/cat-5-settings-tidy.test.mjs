@@ -108,9 +108,9 @@ for (const [name, page, label] of [
         assert.match(page, /<th class="w-24 text-right">Actions<\/th>/);
         assert.match(
             page,
-            /class="mt-4 grid grid-cols-1 gap-3 md:hidden"\s+:?aria-label="/,
+            /class="mt-4 grid grid-cols-1 gap-3 (?:md|lg):hidden"\s+:?aria-label="/,
         );
-        assert.match(page, /<div class="mt-4 hidden min-w-0 md:block">/);
+        assert.match(page, /<div class="mt-4 hidden min-w-0 (?:md|lg):block">/);
         assert.match(page, /<EmptyState v-if="/);
     });
 
@@ -216,7 +216,7 @@ test('Daniel (CAT-5 review): empty states name the tab and the next step; wordin
     assert.equal(
         (
             presets.match(
-                /aria-label="Search diagnoses" class="min-h-11 min-w-11 md:min-h-8 md:min-w-8"/g,
+                /aria-label="Search diagnoses" class="min-h-11 min-w-11 lg:min-h-8 lg:min-w-8"/g,
             ) ?? []
         ).length,
         2,
