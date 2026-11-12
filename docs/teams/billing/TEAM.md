@@ -117,6 +117,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-17 | Billing page display fixes: a fully paid pay-later reads "Paid in full · nothing left to collect"; voided invoices stay visible (number, total, who and when, receipts; never the reason); the "Use amount due" shortcut also shows on a completed visit with money due; the pay-later list notes money due now (paid first). Display only. Design note: `BIL-17-DESIGN.md` | PR #431 |
 | BIL-18 | Pay-later list on phones and summary wording: below 1024 px the pay-later collection list is cards (amount and past-due chip first, the due-now note beside it, a 44 px Open billing); the Billing, Invoice and Visit history summary row "Approved pay later" reads "Pay later still owed" (prints unchanged). Layout and wording only. Design note: `BIL-18-DESIGN.md` | PR #471 |
 | BIL-19 | "Recorded by" on the completed-visit Invoice page: each receipt shows when it was received and who recorded it, by the BIL-2 name rule ("Staff member" when the viewer may not see the name); prints unchanged. Display only. Design note: `BIL-19-DESIGN.md` | PR #493 |
+| BIL-25 | Receipt status badges: on the Invoice page and the read-only Billing payments list a receipt's status is the coloured status badge (Posted green, Reversed neutral grey) on its own row under the receipt number and time, instead of plain grey text; the manage-list badges use the same local tone. Frontend only | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -249,6 +250,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
     The owner also approved changing the existing assertion so the past-due chip reads "1 day" / "N days" (2026-11-10).
 38. BIL-19 (2026-11-10, the owner in the Billing session, "start with 1"): show "Recorded by" on the completed-visit
     Invoice page, by the BIL-2 name rule.
+41. BIL-25 receipt status badges (2026-11-11, the owner in the Billing session, "start with 1"; Siti's design, Daniel OK 2026-11-12): Reversed stays neutral grey (a settled correction, nothing to do), set locally in Billing so the shared status map, which HR also uses for 'reversed', is unchanged.
 
 ## 7. Open items and known limits
 
