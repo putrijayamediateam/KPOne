@@ -706,7 +706,7 @@ onBeforeUnmount(() => {
 <template>
     <Head title="Consultation" />
     <main
-        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5"
+        class="mx-auto flex w-full max-w-[1600px] flex-1 flex-col gap-2 px-3 py-2 md:px-5 lg:pt-6"
     >
         <PageHeader title="Consultation queue" />
         <div
@@ -821,7 +821,7 @@ onBeforeUnmount(() => {
 
         <section class="overflow-hidden rounded-xl border bg-card">
             <div
-                class="flex flex-col gap-2 px-3 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
+                class="flex flex-col gap-2 px-4 py-2 text-xs text-muted-foreground sm:flex-row sm:items-center sm:justify-between"
             >
                 <span class="flex gap-3"
                     ><span>{{ boardRows.length }} visible entries</span
@@ -843,7 +843,7 @@ onBeforeUnmount(() => {
             <Button
                 type="button"
                 variant="outline"
-                class="mb-3 min-h-11"
+                class="mx-4 mb-3 min-h-11"
                 :aria-pressed="readyAlerts.chimeEnabled.value"
                 @click="readyAlerts.toggleChime"
                 >Notification sound:

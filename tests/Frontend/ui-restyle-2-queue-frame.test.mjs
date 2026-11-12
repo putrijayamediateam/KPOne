@@ -38,6 +38,15 @@ test('filters, pager and the treatment-room dialog are 44 px below 1024 px', () 
     );
 });
 
+test('the board has 24 px above the header from 1024 px and 16 px inside the card strip', () => {
+    assert.match(template, /md:px-5 lg:pt-6"/);
+    assert.match(
+        template,
+        /gap-2 px-4 py-2 text-xs text-muted-foreground sm:flex-row/,
+    );
+    assert.match(template, /class="mx-4 mb-3 min-h-11"/);
+});
+
 test('the live line is 13 px and the board sits in a hairline card frame', () => {
     assert.match(template, /text-\[13px\] text-muted-foreground max-sm:px-3/);
     assert.doesNotMatch(template, /text-\[11px\]/);
