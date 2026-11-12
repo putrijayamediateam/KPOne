@@ -4,16 +4,16 @@ import { cva } from "class-variance-authority"
 export { default as Button } from "./Button.vue"
 
 export const buttonVariants = cva(
-  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-[10px] text-sm font-medium transition-[background-color,border-color,color,box-shadow,opacity] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/40 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex cursor-pointer items-center justify-center gap-2 whitespace-nowrap rounded-[10px] text-sm font-medium transition-[background-color,border-color,color,box-shadow,opacity] disabled:cursor-not-allowed disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
   {
     variants: {
       variant: {
         default:
-          "border border-primary bg-primary text-primary-foreground hover:bg-primary/85 active:bg-primary/75 disabled:hover:bg-primary",
+          "border border-primary bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-pressed disabled:hover:bg-primary",
         primary:
-          "border border-primary bg-primary text-primary-foreground hover:bg-primary/85 active:bg-primary/75 disabled:hover:bg-primary",
+          "border border-primary bg-primary text-primary-foreground hover:bg-primary-hover active:bg-primary-pressed disabled:hover:bg-primary",
         destructive:
-          "border border-destructive bg-destructive text-destructive-foreground hover:bg-destructive/90 active:bg-destructive/80 disabled:hover:bg-destructive focus-visible:ring-destructive/30",
+          "border border-destructive bg-destructive text-destructive-foreground hover:bg-destructive-hover active:bg-destructive-pressed disabled:hover:bg-destructive",
         outline:
           "border border-input bg-card text-foreground hover:border-foreground/25 hover:bg-muted active:bg-muted/70 disabled:hover:border-input disabled:hover:bg-card",
         secondary:

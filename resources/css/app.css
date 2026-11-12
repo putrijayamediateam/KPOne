@@ -58,6 +58,10 @@
     --color-warning: var(--warning);
     --color-warning-foreground: var(--warning-foreground);
     --color-warning-strong: var(--warning-strong);
+    --color-primary-hover: var(--primary-hover);
+    --color-primary-pressed: var(--primary-pressed);
+    --color-destructive-hover: var(--destructive-hover);
+    --color-destructive-pressed: var(--destructive-pressed);
     --color-success-soft: var(--success-soft);
     --color-warning-soft: var(--warning-soft);
     --color-destructive-soft: var(--destructive-soft);
@@ -167,6 +171,10 @@
     --tint-4: #fcefd0;
     --grad-1: #ffdcc2;
     --grad-2: #cfe2ff;
+    --primary-hover: #0847b0;
+    --primary-pressed: #063a96;
+    --destructive-hover: #962019;
+    --destructive-pressed: #7d1a14;
 }
 
 .dark {
@@ -222,6 +230,10 @@
     --tint-4: #3a2a0a;
     --grad-1: #5a3550;
     --grad-2: #1c2a4a;
+    --primary-hover: #8fbbff;
+    --primary-pressed: #a8cbff;
+    --destructive-hover: #ffa59d;
+    --destructive-pressed: #ffb8b1;
 }
 
 @layer base {
