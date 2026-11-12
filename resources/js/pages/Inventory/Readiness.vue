@@ -56,6 +56,7 @@ const props = defineProps<{
             more: boolean;
         };
         canFixBarcodes: boolean;
+        canImportOpening?: boolean;
     };
 }>();
 const search = ref(props.readiness.q);
@@ -137,6 +138,14 @@ watch(
             title="Pilot readiness"
             :description="`${readiness.branchName} · Review only. No import, balance correction or pilot go-live approval.`"
         />
+        <div v-if="readiness.canImportOpening" class="flex flex-wrap gap-2">
+            <ActionLink
+                href="/inventory/opening-import"
+                variant="outline"
+                class="min-h-11 lg:min-h-9"
+                >Import opening stock</ActionLink
+            >
+        </div>
         <section class="space-y-2 rounded-lg border bg-card p-4 text-sm">
             <p>
                 One base stock unit per SKU. Quantities use exactly up to three

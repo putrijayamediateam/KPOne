@@ -71,6 +71,7 @@ use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\MedicalCertificateController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
+use App\Http\Controllers\OpeningImportController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
 use App\Http\Controllers\PanelPaymentCorrectionsController;
@@ -922,6 +923,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/stock-review/{kind}/{reviewItem}', [InventoryStockReviewController::class, 'store'])->whereIn('kind', ['low_stock', 'expiring', 'expired'])->whereNumber('reviewItem')->middleware(['permission:inventory.stock_reviews.manage.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.stock-review.store');
         Route::get('inventory/batch-holds', [InventoryBatchHoldController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.batch-holds');
         Route::post('inventory/batch-holds/{batch}/{action}', [InventoryBatchHoldController::class, 'store'])->whereUuid('batch')->whereIn('action', ['place', 'release'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.batch-holds.store');
+        Route::get('inventory/opening-import', [OpeningImportController::class, 'index'])->middleware(['permission:inventory.opening_balance.branch', 'sensitive.no-store'])->name('inventory.opening-import');
+        Route::get('inventory/opening-import/template', [OpeningImportController::class, 'template'])->middleware(['permission:inventory.opening_balance.branch', 'throttle:30,1'])->name('inventory.opening-import.template');
+        Route::post('inventory/opening-import/check', [OpeningImportController::class, 'check'])->middleware(['permission:inventory.opening_balance.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.opening-import.check');
+        Route::post('inventory/opening-import', [OpeningImportController::class, 'store'])->middleware(['permission:inventory.opening_balance.branch', 'throttle:10,1'])->name('inventory.opening-import.store');
         Route::get('inventory/readiness', [InventoryReadinessController::class, 'index'])->middleware('permission:inventory.view.branch')->name('inventory.readiness');
         Route::post('inventory/readiness/{kind}/{key}', [InventoryReadinessController::class, 'verify'])->whereIn('kind', ['unit', 'opening'])->whereUuid('key')->middleware('throttle:30,1')->name('inventory.readiness.verify');
         Route::post('inventory/readiness/barcode/{sku}', [InventoryReadinessController::class, 'barcode'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.readiness.barcode');
