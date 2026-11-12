@@ -142,7 +142,7 @@ const inputAttrs = computed(() => {
 
 <template>
     <div :class="cn('w-full', attrs.class as string)">
-        <div class="relative flex h-9 w-full items-center max-sm:h-11">
+        <div class="relative flex h-11 w-full items-center lg:h-9">
             <input
                 v-bind="inputAttrs"
                 :value="text"
@@ -152,7 +152,7 @@ const inputAttrs = computed(() => {
                 :placeholder="words.monthPlaceholder"
                 data-slot="input"
                 data-kpone-field="month"
-                class="h-full w-full min-w-0 rounded-md border border-input bg-card px-3 py-1 pr-11 text-base shadow-xs transition-[background-color,border-color,box-shadow] outline-none selection:bg-brand selection:text-brand-foreground placeholder:text-muted-foreground hover:border-foreground/25 read-only:bg-muted/70 read-only:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-destructive/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-sm dark:bg-field-fill/30 dark:aria-invalid:ring-destructive/40"
+                class="h-full w-full min-w-0 rounded-[10px] border border-input bg-card px-3 py-1 pr-11 text-base transition-[background-color,border-color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground hover:border-foreground/25 read-only:bg-muted/70 read-only:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-destructive/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] dark:aria-invalid:ring-destructive/40"
                 @input="onInput"
                 @blur="onBlur"
             />
@@ -162,7 +162,7 @@ const inputAttrs = computed(() => {
                         type="button"
                         :disabled="disabled"
                         :aria-label="words.chooseMonth"
-                        class="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                        class="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-[10px] text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                     >
                         <CalendarDays class="size-4" aria-hidden="true" />
                     </button>
@@ -173,7 +173,7 @@ const inputAttrs = computed(() => {
                         :side-offset="6"
                         role="dialog"
                     :aria-label="words.chooseMonth"
-                    class="z-50 rounded-lg border bg-popover p-3 text-popover-foreground shadow-lg"
+                    class="z-50 rounded-[14px] border bg-popover p-3 text-popover-foreground shadow-lg"
                     >
                         <div class="w-[19rem] max-w-full space-y-2 text-sm">
                             <div class="flex items-center justify-between gap-2">

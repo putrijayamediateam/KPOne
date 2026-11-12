@@ -171,7 +171,7 @@ const calendarValue = computed(() => normaliseIso(parseDisplayDate(text.value)) 
 
 <template>
     <div :class="cn('w-full', attrs.class as string)">
-        <div :class="cn('relative flex w-full items-center', props.look === 'patient' ? 'h-12' : 'h-9 max-sm:h-11')">
+        <div :class="cn('relative flex w-full items-center', props.look === 'patient' ? 'h-12' : 'h-11 lg:h-9')">
         <input
             ref="input"
             v-bind="inputAttrs"
@@ -184,10 +184,10 @@ const calendarValue = computed(() => normaliseIso(parseDisplayDate(text.value)) 
             data-kpone-field="date"
             :class="
                 cn(
-                    'h-full w-full min-w-0 border border-input bg-card px-3 py-1 pr-11 text-base shadow-xs transition-[background-color,border-color,box-shadow] outline-none selection:bg-brand selection:text-brand-foreground placeholder:text-muted-foreground hover:border-foreground/25 read-only:bg-muted/70 read-only:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-destructive/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-sm dark:bg-field-fill/30 dark:aria-invalid:ring-destructive/40',
+                    'h-full w-full min-w-0 border border-input bg-card px-3 py-1 pr-11 text-base transition-[background-color,border-color,box-shadow] outline-none selection:bg-primary selection:text-primary-foreground placeholder:text-muted-foreground hover:border-foreground/25 read-only:bg-muted/70 read-only:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-destructive/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] dark:aria-invalid:ring-destructive/40',
                     props.look === 'patient'
                         ? 'rounded-xl border-border shadow-none md:text-base'
-                        : 'rounded-md',
+                        : 'rounded-[10px]',
                 )
             "
             @input="onInput"
@@ -199,7 +199,7 @@ const calendarValue = computed(() => normaliseIso(parseDisplayDate(text.value)) 
                     type="button"
                     :disabled="disabled"
                     :aria-label="calendarLabel ?? words.choose"
-                    class="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-md text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
+                    class="absolute inset-y-0 right-0 grid w-11 place-items-center rounded-r-[10px] text-muted-foreground hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50"
                 >
                     <CalendarDays class="size-4" aria-hidden="true" />
                 </button>
@@ -208,7 +208,7 @@ const calendarValue = computed(() => normaliseIso(parseDisplayDate(text.value)) 
                 <PopoverContent
                     align="end"
                     :side-offset="6"
-                    class="z-50 rounded-lg border bg-popover p-3 text-popover-foreground shadow-lg"
+                    class="z-50 rounded-[14px] border bg-popover p-3 text-popover-foreground shadow-lg"
                     role="dialog"
                     :aria-label="calendarLabel ?? words.choose"
                     @open-auto-focus="onOpenFocus"

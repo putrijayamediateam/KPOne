@@ -39,7 +39,7 @@ test('id, name, required, disabled and aria attributes land on the text box, cla
 test('the box reads dd/mm/yyyy and the calendar is reachable by keyboard and 44 px on a phone', () => {
     assert.match(date, /placeholder \?\? words\.placeholder/);
     assert.match(date, /inputmode="numeric"/);
-    assert.match(date, /max-sm:h-11/);
+    assert.match(date, /h-11 lg:h-9/);
     assert.match(calendar, /role="grid"/);
     assert.match(calendar, /ArrowLeft/);
     assert.match(calendar, /PageDown/);
