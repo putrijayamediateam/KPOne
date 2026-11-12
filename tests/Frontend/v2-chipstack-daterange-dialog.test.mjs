@@ -120,3 +120,13 @@ test('V2Dialog: the filled Confirm text reaches 4.5:1 in the Version 2 look, lig
         }
     }
 });
+
+test('V2Dialog: Confirm stays at full opacity when aria-disabled; aria-describedby only while the error shows', () => {
+    const s = v2('V2Dialog');
+    assert.doesNotMatch(s, /aria-disabled:opacity/);
+    assert.match(
+        s,
+        /:aria-describedby="[^"]*'v2-dialog-reason-error'[^"]*undefined/,
+    );
+    assert.doesNotMatch(s, /\n\s*aria-describedby="v2-dialog-reason-error"/);
+});

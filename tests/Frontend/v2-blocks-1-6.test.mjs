@@ -170,7 +170,7 @@ test('V2DisclosureBar: a 44px button tied to its panel with aria-expanded and ar
     const s = v2('V2DisclosureBar');
     assert.match(s, /:aria-expanded="open"/);
     assert.match(s, /:aria-controls="id"/);
-    assert.match(s, /min-h-11/);
+    assert.match(s, /min-h-11[^"]*lg:min-h-9/);
     assert.match(s, /motion-reduce:transition-none/);
     assert.doesNotMatch(s, /from '@\/components\/ui\//);
 });
