@@ -71,7 +71,7 @@ test('Debt carried into V2: wrapping chips, balanced titles, reduced motion, "mi
     assert.match(css, /\.v2-page-title \{\s*text-wrap: balance;/);
     assert.match(v2('V2Tabs'), /motion-reduce:transition-none/);
     assert.match(v2('V2Toolbar'), /motion-reduce:transition-none/);
-    assert.match(v2('WaitRing'), />min(<template|\s*<\/span)/);
+    assert.match(v2('WaitRing'), /min(<template|\s*<\/span)/);
 });
 
 test('v2.css only matches V2 classes, so Classic is untouched', () => {

@@ -33,3 +33,10 @@ test('V2Pager: a count line, Previous and Next at 44px, disabled shown not hidde
     assert.doesNotMatch(s, /v-show/);
     assert.match(s, /order-first col-span-2/);
 });
+
+test('V2RowMenu: the word Actions can sit beside the dots in cards, with the name for screen readers', () => {
+    const s = v2('V2RowMenu');
+    assert.match(s, /showLabel\?: boolean/);
+    assert.match(s, /v-if="showLabel"/);
+    assert.match(s, />\s*Actions\s*<\/span/);
+});

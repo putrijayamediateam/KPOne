@@ -2,9 +2,9 @@
 import { computed } from 'vue';
 
 /**
- * Version 2 waiting-time ring: a ring that fills towards the danger time, with the minutes in the middle.
+ * Version 2 waiting-time ring: a ring that fills towards the danger time, read as one run beside it ("72 min · very long wait").
  * Neutral under `warnAt`, amber from `warnAt`, red from `dangerAt` (30 and 60 minutes, as the Classic chip).
- * "min" sits beside the ring for sighted users, with "long wait" or "very long wait" from the warning time (turn off with `words=false` where there is no room). The state is also spoken ("long wait"), never colour alone. Used by V2 views only.
+ * The minutes and "min" sit beside the ring for sighted users, with "long wait" or "very long wait" from the warning time (turn off with `words=false` where there is no room). The state is also spoken ("long wait"), never colour alone. Used by V2 views only.
  */
 const props = withDefaults(
     defineProps<{
@@ -83,15 +83,11 @@ const spoken = computed(
                     :stroke-dasharray="`${filled} ${CIRCUMFERENCE}`"
                 />
             </svg>
-            <span
-                class="relative text-[11px] leading-none font-semibold tabular-nums"
-                aria-hidden="true"
-            >
-                {{ minutes }}
-            </span>
         </span>
-        <span class="text-[13px] text-muted-foreground" aria-hidden="true"
-            >min<template v-if="words && level !== 'ok'">
+        <span
+            class="text-[13px] text-foreground tabular-nums"
+            aria-hidden="true"
+            >{{ minutes }} min<template v-if="words && level !== 'ok'">
                 ·
                 {{
                     level === 'long' ? 'long wait' : 'very long wait'

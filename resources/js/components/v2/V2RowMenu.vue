@@ -13,7 +13,8 @@ import {
  * Version 2 row menu: the "…" popover with grouped items (Open, Move, Call, Money, Danger). It holds NO permission
  * logic: the page passes each item's `allowed` state from the server, and a disabled item shows its `reason` in
  * words under the label. Order the groups as the page needs; the Danger group, with Cancel Visit last, goes last.
- * The trigger is a 44px target below 1024px; every item is 44px tall there.
+ * `showLabel` adds the word "Actions" beside the dots (for phone cards); `label` is the accessible name, for example
+ * "Actions for Suria Lim". The trigger is a 44px target below 1024px; every item is 44px tall there.
  */
 export type RowMenuItem = {
     id: string;
@@ -27,6 +28,7 @@ export type RowMenuGroup = { label: string; items: RowMenuItem[] };
 defineProps<{
     label: string;
     groups: RowMenuGroup[];
+    showLabel?: boolean;
 }>();
 
 const emit = defineEmits<{ select: [id: string] }>();
@@ -49,6 +51,12 @@ const emit = defineEmits<{ select: [id: string] }>();
                 <circle cx="12" cy="12" r="1.75" />
                 <circle cx="19" cy="12" r="1.75" />
             </svg>
+            <span
+                v-if="showLabel"
+                class="ml-2 text-sm font-medium"
+                aria-hidden="true"
+                >Actions</span
+            >
         </DropdownMenuTrigger>
         <DropdownMenuPortal>
             <DropdownMenuContent
