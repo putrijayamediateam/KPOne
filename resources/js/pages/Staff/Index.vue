@@ -14,6 +14,7 @@ import {
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
+import StatusBadge from '@/components/ui/status/StatusBadge.vue';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import type { PaginatedStaff, StaffOptions } from '@/types';
 
@@ -469,22 +470,18 @@ const clearFilters = () => {
                                     >
                                 </td>
                                 <td class="px-5 py-4 align-top">
-                                    <Badge
-                                        :variant="
+                                    <StatusBadge
+                                        :status="
                                             member.isActive
-                                                ? 'secondary'
-                                                : 'destructive'
+                                                ? 'active'
+                                                : 'inactive'
                                         "
-                                        :class="
-                                            member.isActive &&
-                                            'border-success/25 bg-success/10 text-success hover:bg-success/10'
-                                        "
-                                        >{{
+                                        :tone="
                                             member.isActive
-                                                ? 'Active'
-                                                : 'Inactive'
-                                        }}</Badge
-                                    >
+                                                ? 'success'
+                                                : 'neutral'
+                                        "
+                                    />
                                 </td>
                             </tr>
                             <tr v-if="staff.data.length === 0">

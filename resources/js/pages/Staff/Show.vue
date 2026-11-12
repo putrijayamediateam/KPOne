@@ -21,6 +21,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 import { PageHeader } from '@/components/ui/page-header';
+import StatusBadge from '@/components/ui/status/StatusBadge.vue';
 import { formatAuditEventLabel, formatRoleLabel } from '@/lib/displayLabels';
 import { formatDate, formatDateTime } from '@/lib/presentation';
 import type { StaffDetail, StaffOptions } from '@/types';
@@ -95,14 +96,10 @@ const setPrimary = (assignmentId: number) => {
     <main class="flex flex-1 flex-col gap-5 p-4 md:p-7">
         <PageHeader :title="staff.name">
             <template #title-extra>
-                <Badge
-                    :variant="staff.isActive ? 'secondary' : 'destructive'"
-                    :class="
-                        staff.isActive &&
-                        'border-success/25 bg-success/10 text-success hover:bg-success/10'
-                    "
-                    >{{ staff.isActive ? 'Active' : 'Inactive' }}</Badge
-                >
+                <StatusBadge
+                    :status="staff.isActive ? 'active' : 'inactive'"
+                    :tone="staff.isActive ? 'success' : 'neutral'"
+                />
             </template>
             <template #description>
                 <span class="[overflow-wrap:anywhere]"
