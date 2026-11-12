@@ -63,7 +63,7 @@ watch(
         <button
             v-if="!guardian"
             type="button"
-            class="min-h-11 rounded-md border px-3"
+            class="h-9 rounded-[10px] border px-3 max-lg:h-11"
             @click="guardian = blankGuardian()"
         >
             Add guardian contact
@@ -73,7 +73,7 @@ watch(
                 >Relationship
                 <select
                     v-model="guardian.relationship"
-                    class="min-h-11 w-full rounded-md border bg-background px-3"
+                    class="h-9 w-full rounded-[10px] border bg-background px-3 max-lg:h-11"
                 >
                     <option value="">Select relationship</option>
                     <option value="mother">Mother</option>
@@ -88,7 +88,7 @@ watch(
                 >Guardian full name<input
                     v-model="guardian.full_name"
                     maxlength="255"
-                    class="min-h-11 min-w-0 rounded-md border bg-background px-3" /><InputError
+                    class="h-9 min-w-0 rounded-[10px] border bg-background px-3 max-lg:h-11" /><InputError
                     :message="errors['guardian.full_name']"
             /></label>
             <div class="grid gap-4 md:grid-cols-2">
@@ -96,7 +96,7 @@ watch(
                     >Guardian phone country code<input
                         v-model="guardian.phone_country"
                         maxlength="2"
-                        class="min-h-11 min-w-0 rounded-md border bg-background px-3" /><InputError
+                        class="h-9 min-w-0 rounded-[10px] border bg-background px-3 max-lg:h-11" /><InputError
                         :message="errors['guardian.phone_country']"
                 /></label>
                 <label class="grid gap-2"
@@ -104,7 +104,7 @@ watch(
                         v-model="guardian.phone"
                         type="tel"
                         maxlength="64"
-                        class="min-h-11 min-w-0 rounded-md border bg-background px-3" /><InputError
+                        class="h-9 min-w-0 rounded-[10px] border bg-background px-3 max-lg:h-11" /><InputError
                         :message="errors['guardian.phone']"
                 /></label>
             </div>
@@ -113,7 +113,7 @@ watch(
                     v-model="guardian.email"
                     type="email"
                     maxlength="255"
-                    class="min-h-11 min-w-0 rounded-md border bg-background px-3" /><InputError
+                    class="h-9 min-w-0 rounded-[10px] border bg-background px-3 max-lg:h-11" /><InputError
                     :message="errors['guardian.email']"
             /></label>
         </template>
