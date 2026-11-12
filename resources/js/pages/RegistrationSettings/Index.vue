@@ -107,7 +107,7 @@ const submit = () => {
                                 type="checkbox"
                                 checked
                                 disabled
-                                class="size-5 accent-primary"
+                                class="size-5 accent-primary disabled:opacity-50"
                             /><span class="font-medium">Name</span
                             ><span class="ml-auto text-xs text-muted-foreground"
                                 >Required by system</span
@@ -119,7 +119,7 @@ const submit = () => {
                                 type="checkbox"
                                 checked
                                 disabled
-                                class="size-5 accent-primary"
+                                class="size-5 accent-primary disabled:opacity-50"
                             /><span class="font-medium">Phone number</span
                             ><span class="ml-auto text-xs text-muted-foreground"
                                 >Required by system</span
@@ -131,7 +131,7 @@ const submit = () => {
                                 type="checkbox"
                                 checked
                                 disabled
-                                class="size-5 accent-primary"
+                                class="size-5 accent-primary disabled:opacity-50"
                             /><span class="font-medium">NRIC/Passport</span
                             ><span class="ml-auto text-xs text-muted-foreground"
                                 >Required by system</span
@@ -220,7 +220,7 @@ const submit = () => {
                                 type="checkbox"
                                 checked
                                 disabled
-                                class="size-5 accent-primary"
+                                class="size-5 accent-primary disabled:opacity-50"
                             /><span class="font-medium">Gender</span
                             ><span class="ml-auto text-xs text-muted-foreground"
                                 >Required; Unknown allowed</span
@@ -261,6 +261,8 @@ const submit = () => {
             <Button
                 type="submit"
                 form="registration-settings-form"
+                :variant="form.isDirty ? 'default' : 'outline'"
+                class="max-sm:w-full"
                 :disabled="form.processing"
                 >{{ form.processing ? 'Saving…' : 'Save' }}</Button
             >
