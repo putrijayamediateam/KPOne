@@ -2584,6 +2584,7 @@ const exceptionStatusLabels: Record<string, string> = {
                         ><RotateCcw class="size-4" />Return to Doctor</Button
                     ><Button
                         v-if="dispensary.can.complete"
+                        :variant="confirming ? 'outline' : 'default'"
                         :disabled="
                             busy ||
                             unsaved.length > 0 ||

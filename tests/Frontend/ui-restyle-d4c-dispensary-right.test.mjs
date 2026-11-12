@@ -65,3 +65,11 @@ test('button wording is unchanged (the Malay guides quote it)', () => {
         assert.ok(right.includes(text), text);
     }
 });
+
+test('Complete Dispensary steps back to outline while the verify panel is open (Daniel)', () => {
+    assert.ok(
+        right.includes(
+            'v-if="dispensary.can.complete" :variant="confirming ? \'outline\' : \'default\'"',
+        ),
+    );
+});
