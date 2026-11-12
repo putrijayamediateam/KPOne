@@ -7,7 +7,7 @@ const page = read('resources/js/pages/InventoryServicesSettings/Suppliers.vue');
 
 test('Suppliers preserves the visible Yezza settings layout and multi-contact seller dialog', () => {
     // CAT-7 (owner decision 2026-11-06, in the Catalogue & settings session): 'Price tier' removed from this list; SET-01 is skipped and the menu no longer shows it.
-    for (const text of ['Inventory and services settings', 'Clinic management', 'Medicine details', 'Suppliers', 'NAME', 'PIC', 'PHONE', 'STATUS', 'ACTION', 'Add new seller', 'Sold by', 'Company name', 'PIC name', 'Phone number', '+ Add more', 'Cancel', 'Save']) {
+    for (const text of ['Inventory and services settings', 'Clinic management', 'Medicine details', 'Suppliers', 'Name', 'PIC', 'Phone', 'Status', 'Action', 'Add new seller', 'Sold by', 'Company name', 'PIC name', 'Phone number', '+ Add more', 'Cancel', 'Save']) {
         assert.ok(page.includes(text), `Missing ${text}`);
     }
 

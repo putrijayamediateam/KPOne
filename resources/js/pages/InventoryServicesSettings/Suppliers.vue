@@ -220,31 +220,11 @@ const generalError = computed(
                 >
                     <template #head>
                         <tr class="text-left">
-                            <th
-                                scope="col"
-                                class="lowercase first-letter:uppercase"
-                            >
-                                NAME
-                            </th>
+                            <th scope="col">Name</th>
                             <th scope="col">PIC</th>
-                            <th
-                                scope="col"
-                                class="lowercase first-letter:uppercase"
-                            >
-                                PHONE
-                            </th>
-                            <th
-                                scope="col"
-                                class="lowercase first-letter:uppercase"
-                            >
-                                STATUS
-                            </th>
-                            <th
-                                scope="col"
-                                class="text-right lowercase first-letter:uppercase"
-                            >
-                                ACTION
-                            </th>
+                            <th scope="col">Phone</th>
+                            <th scope="col">Status</th>
+                            <th scope="col" class="text-right">Action</th>
                         </tr>
                     </template>
                     <template #body>
