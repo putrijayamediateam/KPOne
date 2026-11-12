@@ -248,7 +248,7 @@ test('operational action links use Button-as-Link semantics', () => {
 });
 
 test('tabs and pagination provide active, focus and disabled states', () => {
-    assert.match(tabs, /after:bg-brand/);
+    assert.match(tabs, /bg-card text-primary/);
     assert.match(tabs, /focus-visible:ring-2/);
     assert.match(tabs, /disabled:cursor-not-allowed/);
     assert.match(pagination, /aria-current="page"/);

@@ -83,6 +83,30 @@ const revealFocused = (event: FocusEvent) => {
     }
 };
 
+/** The selected tab scrolls into view inside the strip (never the page), clear of the fade at the right edge. */
+const revealSelected = () => {
+    const element = nav.value;
+    const tab = tabElements.value[selectedIndex.value];
+
+    if (!element || !tab || typeof element.getBoundingClientRect !== 'function') {
+        return;
+    }
+
+    const box = element.getBoundingClientRect();
+    const tabBox = tab.getBoundingClientRect();
+
+    if (tabBox.left < box.left) {
+        element.scrollLeft += tabBox.left - box.left;
+    } else if (tabBox.right > box.right - FADE_CLEARANCE) {
+        element.scrollLeft += tabBox.right - (box.right - FADE_CLEARANCE);
+    }
+};
+watch(
+    () => props.modelValue,
+    () => void nextTick(revealSelected),
+);
+onMounted(() => void nextTick(revealSelected));
+
 const setTabElement = (element: unknown, index: number) => {
     tabElements.value[index] =
         element !== null &&
@@ -154,7 +178,7 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
 <template>
     <nav
         ref="nav"
-        class="flex min-w-0 gap-1 overflow-x-auto border-b"
+        class="flex min-w-0 gap-1 overflow-x-auto rounded-full bg-muted p-1"
         :class="
             moreTabsRight
                 ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
@@ -169,10 +193,10 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
             :ref="(element) => setTabElement(element, index)"
             type="button"
             role="tab"
-            class="relative flex h-10 shrink-0 max-lg:h-11 max-sm:px-2.5 cursor-pointer items-center gap-1.5 px-3 text-sm text-muted-foreground outline-none transition-colors hover:bg-muted/50 hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset disabled:cursor-not-allowed disabled:opacity-50"
+            class="relative flex h-11 shrink-0 cursor-pointer items-center gap-1.5 rounded-full px-3 text-[15px] text-foreground outline-none transition-colors hover:bg-card/60 focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 max-sm:px-2.5 lg:h-9"
             :class="
                 modelValue === tab.value
-                    ? 'font-medium text-foreground after:absolute after:inset-x-3 after:bottom-0 after:h-0.5 after:bg-brand'
+                    ? 'bg-card text-primary font-medium ring-1 ring-border hover:bg-card dark:bg-foreground/8 dark:hover:bg-foreground/8'
                     : ''
             "
             :aria-selected="modelValue === tab.value"
@@ -185,7 +209,7 @@ const handleKeydown = (event: KeyboardEvent, index: number) => {
             {{ tab.label }}
             <span
                 v-if="tab.count !== undefined"
-                class="rounded-full bg-muted px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground"
+                class="text-[13px] font-normal tabular-nums text-muted-foreground"
             >
                 {{ tab.count }}
             </span>

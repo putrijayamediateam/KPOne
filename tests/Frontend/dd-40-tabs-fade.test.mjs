@@ -29,6 +29,7 @@ test('DD-40: a focused tab is scrolled clear of the fade', () => {
     assert.match(tabs, /FADE_CLEARANCE/);
 });
 
-test('tabs are 44 px tall below 1024 px by default, so pages need no override', () => {
-    assert.match(tabs, /h-10 shrink-0 max-lg:h-11 max-sm:px-2\.5/);
+test('tabs are 44 px tall below 1024 px and 36 px from 1024 px by default, so pages need no override', () => {
+    assert.match(tabs, /h-11 shrink-0/);
+    assert.match(tabs, /max-sm:px-2\.5 lg:h-9/);
 });

@@ -55,6 +55,6 @@ test('the strip fades at its right edge only while more tabs are hidden to the r
 test('the shared tab component is not changed by DD-30', () => {
     const tabs = read('resources/js/components/ui/tabs/OperationalTabs.vue');
 
-    assert.match(tabs, /class="relative flex h-10 shrink-0/);
+    assert.match(tabs, /class="relative flex h-11 shrink-0/);
     assert.match(tabs, /:aria-selected="modelValue === tab\.value"/);
 });
