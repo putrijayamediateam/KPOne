@@ -51,7 +51,7 @@ const countries = getCountries()
                 :id="id + '-country'"
                 :value="country"
                 aria-label="Phone country"
-                class="h-10 w-full min-w-0 rounded-md border bg-background px-2 text-sm sm:w-36"
+                class="h-9 w-full min-w-0 rounded-[10px] border bg-background px-2 text-sm max-lg:h-11 sm:w-36"
                 @change="
                     emit(
                         'update:country',
@@ -76,7 +76,7 @@ const countries = getCountries()
                 :required="required"
                 :aria-invalid="!!message"
                 :aria-describedby="message ? id + '-error' : undefined"
-                class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm sm:flex-1"
+                class="h-9 w-full min-w-0 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11 sm:flex-1"
                 @input="
                     emit(
                         'update:modelValue',

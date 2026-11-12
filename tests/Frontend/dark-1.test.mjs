@@ -15,9 +15,9 @@ const green = 'dark:border-emerald-900 dark:bg-emerald-950/30';
 
 test('DARK-1 S1-001: selected patient has a dark surface without changing light or unselected styling', () => {
     const option = elements(template('Registration/Create.vue')).find((node) => node.tag === 'button' && attribute(node, 'role') === 'option');
-    includes(classes(option, { activeResultIndex: 0, index: 0 }), 'bg-emerald-50/80 dark:bg-emerald-950/30');
+    includes(classes(option, { activeResultIndex: 0, index: 0 }), 'bg-primary/10');
     includes(classes(option, { activeResultIndex: 0, index: 1 }), 'hover:bg-muted/35');
-    assert.ok(!classes(option, { activeResultIndex: 0, index: 1 }).includes('bg-emerald-50/80'));
+    assert.ok(!classes(option, { activeResultIndex: 0, index: 1 }).includes('bg-primary/10'));
 });
 
 test('DARK-1 S1-006: both selected sign-in cards adapt to dark mode and retain their light appearance', () => {

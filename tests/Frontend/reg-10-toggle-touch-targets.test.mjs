@@ -12,7 +12,7 @@ const source = readFileSync(
 );
 
 test('the four Coverage and Urgency toggle buttons grow to 44 px below 1024 px', () => {
-    const buttons = source.match(/class="h-9 [^"]*rounded-sm[^"]*"/g);
+    const buttons = source.match(/class="h-9 rounded-\[10px\] px-3[^"]*"/g);
 
     assert.equal(buttons?.length, 4);
 

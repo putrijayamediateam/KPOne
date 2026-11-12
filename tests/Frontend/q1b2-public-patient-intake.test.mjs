@@ -244,6 +244,6 @@ test('registration navigation and visit controls remain operationally compact', 
         assert.match(source, /OperationalSelect/);
     }
 
-    assert.match(registrationCreate, /class="h-9 rounded-sm px-3/);
+    assert.match(registrationCreate, /class="h-9 rounded-\[10px\] px-3/);
     assert.match(operationalSelect, /class="min-w-0 w-full"/);
 });

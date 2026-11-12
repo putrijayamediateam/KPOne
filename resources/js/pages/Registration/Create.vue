@@ -457,20 +457,16 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             </div>
             <div
                 v-if="selectedPatient"
-                class="mx-4 mb-4 flex items-center gap-3 rounded-md border border-emerald-200/70 bg-emerald-50/70 px-3 py-3 dark:border-brand/40 dark:bg-zinc-900/85"
+                class="mx-4 mb-4 flex items-center gap-3 rounded-xl border border-primary/30 bg-primary/10 px-3 py-3"
             >
-                <div
-                    class="rounded-full bg-emerald-100 p-2 text-emerald-800 dark:bg-brand/15 dark:text-brand"
-                >
+                <div class="rounded-full bg-primary/15 p-2 text-primary">
                     <Check class="size-4" />
                 </div>
                 <div class="min-w-0">
                     <div class="font-medium text-foreground">
                         {{ selectedPatient.fullName }}
                     </div>
-                    <div
-                        class="font-mono text-xs text-slate-600 dark:text-slate-300"
-                    >
+                    <div class="font-mono text-xs text-muted-foreground">
                         {{ selectedPatient.patientNumber }} ·
                         {{
                             selectedPatient.dateOfBirth
@@ -478,9 +474,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                 : 'DOB not recorded'
                         }}
                     </div>
-                    <div
-                        class="mt-0.5 text-xs text-slate-600 dark:text-slate-300"
-                    >
+                    <div class="mt-0.5 text-xs text-muted-foreground">
                         {{
                             selectedPatient.identifier?.maskedValue ??
                             selectedPatient.maskedPhone ??
@@ -554,7 +548,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             :aria-selected="activeResultIndex === index"
                             :class="
                                 activeResultIndex === index
-                                    ? 'bg-emerald-50/80 dark:bg-emerald-950/30'
+                                    ? 'bg-primary/10'
                                     : 'hover:bg-muted/35'
                             "
                             class="flex w-full items-center justify-between gap-4 border-b border-border/50 px-3 py-2.5 text-left last:border-0"
@@ -655,7 +649,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             v-model="quickIdentifierType"
                             label="Identification type"
                             :options="identityTypeOptions"
-                            trigger-class="h-10 w-full sm:w-40 sm:rounded-r-none"
+                            trigger-class="max-lg:data-[size=default]:h-11 w-full sm:w-40 sm:rounded-r-none"
                         /><input
                             v-model="quickIdentifierValue"
                             aria-label="IC or Passport number"
@@ -669,7 +663,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             "
                             aria-describedby="quick-identity-error"
                             autocomplete="off"
-                            class="h-10 w-full min-w-0 rounded-md border bg-background px-3 text-sm sm:flex-1 sm:rounded-l-none sm:border-l-0"
+                            class="h-9 w-full min-w-0 rounded-[10px] border bg-background px-3 text-sm max-lg:h-11 sm:flex-1 sm:rounded-l-none sm:border-l-0"
                         />
                     </div>
                     <InputError
@@ -811,7 +805,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             2. Visit type
                         </legend>
                         <div
-                            class="grid w-full grid-cols-2 gap-1 rounded-md bg-muted/70 p-1 sm:w-72"
+                            class="grid w-full grid-cols-2 gap-1 rounded-[14px] bg-muted/70 p-1 sm:w-72"
                         >
                             <button
                                 type="button"
@@ -823,7 +817,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                                class="min-h-10 rounded-[10px] px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none max-lg:min-h-11"
                                 @click="form.visit_type = 'consultation'"
                             >
                                 Consultation
@@ -836,7 +830,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="min-h-10 rounded-sm px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none"
+                                class="min-h-10 rounded-[10px] px-3 text-sm font-medium transition-colors focus-visible:ring-2 focus-visible:ring-emerald-600/30 focus-visible:outline-none max-lg:min-h-11"
                                 @click="form.visit_type = 'otc'"
                             >
                                 OTC
@@ -879,7 +873,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             5. Coverage
                         </legend>
                         <div
-                            class="grid grid-cols-2 gap-1 rounded-md bg-muted/70 p-1"
+                            class="grid grid-cols-2 gap-1 rounded-[14px] bg-muted/70 p-1"
                         >
                             <button
                                 type="button"
@@ -891,7 +885,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
+                                class="h-9 rounded-[10px] px-3 text-sm font-medium transition-colors max-lg:h-11"
                                 @click="form.coverage_type = 'self_pay'"
                             >
                                 Self-pay
@@ -904,7 +898,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
+                                class="h-9 rounded-[10px] px-3 text-sm font-medium transition-colors max-lg:h-11"
                                 @click="form.coverage_type = 'panel'"
                             >
                                 Panel
@@ -916,7 +910,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                             6. Urgency
                         </legend>
                         <div
-                            class="grid grid-cols-2 gap-1 rounded-md bg-muted/70 p-1"
+                            class="grid grid-cols-2 gap-1 rounded-[14px] bg-muted/70 p-1"
                         >
                             <button
                                 type="button"
@@ -926,7 +920,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-background text-foreground shadow-sm'
                                         : 'text-muted-foreground hover:text-foreground'
                                 "
-                                class="h-9 rounded-sm px-3 text-sm font-medium transition-colors max-lg:h-11"
+                                class="h-9 rounded-[10px] px-3 text-sm font-medium transition-colors max-lg:h-11"
                                 @click="form.priority = 'normal'"
                             >
                                 Normal
@@ -939,7 +933,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
                                         ? 'bg-warning/10 text-warning-strong ring-1 ring-warning/30'
                                         : 'text-muted-foreground hover:text-warning-strong'
                                 "
-                                class="h-9 rounded-sm px-3 text-sm font-semibold transition-colors max-lg:h-11"
+                                class="h-9 rounded-[10px] px-3 text-sm font-semibold transition-colors max-lg:h-11"
                                 @click="form.priority = 'urgent'"
                             >
                                 Urgent
