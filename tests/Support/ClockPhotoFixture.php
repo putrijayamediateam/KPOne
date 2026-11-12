@@ -2,6 +2,7 @@
 
 namespace Tests\Support;
 
+use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use Illuminate\Foundation\Testing\TestCase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Testing\TestResponse;
@@ -35,6 +36,8 @@ final class ClockPhotoFixture
     /** The token the camera takes when it opens; posts as the signed-in test user. */
     public static function token(TestCase $test, string $kind): string
     {
+        // The one-time notice first (seeing it again changes nothing), then the token.
+        $test->postJson(route('hr.attendance.photo-notice'), ['version' => ClockPhotoService::NOTICE_VERSION])->assertOk();
         /** @var TestResponse $response */
         $response = $test->postJson(route('hr.attendance.capture'), ['kind' => $kind]);
         $response->assertOk();

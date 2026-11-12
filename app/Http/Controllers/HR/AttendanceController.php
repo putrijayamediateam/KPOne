@@ -32,6 +32,24 @@ class AttendanceController extends Controller
             'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
     }
 
+    /** DS-12: the same state My attendance shows, for the top-bar shortcut and the Me ring. Read only; HR-PHOTO's camera dialog makes the press. */
+    public function clockState(Request $request, AttendancePageService $pages): JsonResponse
+    {
+        $my = (array) ($pages->page($request->user(), ['tab' => 'my'])['my'] ?? []);
+
+        return response()->json([
+            'state' => (string) ($my['state'] ?? 'out'),
+            'label' => $my['clockedInLabel'] ?? $my['doneLabel'] ?? null,
+            'canPress' => (bool) ($my['canPress'] ?? false),
+            'refusal' => $my['refusal'] ?? null,
+            // A branch that checks location needs the consent and position screens, which only the Attendance page has.
+            'needsAttendancePage' => ($my['location'] ?? null) !== null,
+            // HR-PHOTO: every press takes a live photo through the camera dialog, after the one-time notice.
+            'photoRequired' => true,
+            'photoNotice' => ['version' => ClockPhotoService::NOTICE_VERSION, 'seen' => app(ClockPhotoService::class)->noticeSeen($request->user())],
+        ]);
+    }
+
     public function clockIn(Request $request, ClockService $clock, ClockResult $result): RedirectResponse|JsonResponse
     {
         return $this->press($request, 'in', fn () => $clock->clockIn($request->user(), $this->pressInput($request)), $result);
@@ -62,6 +80,14 @@ class AttendanceController extends Controller
         Inertia::flash('toast', ['type' => 'success', 'message' => $confirmation['title'].' at '.$confirmation['time'].'.']);
 
         return $response;
+    }
+
+    /** HR-PHOTO: the person has read the current "About clock-in photos" notice. */
+    public function photoNotice(Request $request, ClockPhotoService $photos): JsonResponse
+    {
+        $photos->markNoticeSeen($request->user(), $request->input('version'));
+
+        return response()->json(['version' => ClockPhotoService::NOTICE_VERSION, 'seen' => true], 200, ['Cache-Control' => 'no-store, private']);
     }
 
     /** HR-PHOTO: when the camera opens, a token good for one press of that kind for five minutes. */

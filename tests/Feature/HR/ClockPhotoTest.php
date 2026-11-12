@@ -202,8 +202,12 @@ class ClockPhotoTest extends VisitTestCase
         $disk = Storage::disk(ClockPhotoService::DISK);
         $this->assertCount(6, $disk->allFiles('hr-clock-photos'));
 
+        DB::table('hr_clock_photo_notices')->insert(['organisation_id' => $this->organisation->id, 'user_id' => $ca->id, 'version' => 'old-wording',
+            'seen_at' => $real->subYears(8)]);
         $this->artisan('hr-attendance:purge')->assertSuccessful();
         $this->assertSame([$kept->id], ClockPhoto::query()->pluck('id')->all());
+        // Both notice records were over 7 years old (this CA first saw the notice then), so both went; the next press shows it again.
+        $this->assertSame(0, DB::table('hr_clock_photo_notices')->count());
         foreach ($old as $photo) {
             $this->assertFalse($disk->exists($photo->stored_path));
             $this->assertFalse($disk->exists($photo->thumb_path));
@@ -311,11 +315,38 @@ class ClockPhotoTest extends VisitTestCase
             ->assertJsonPath('chip', ['code' => 'no_shift', 'label' => 'No shift set']);
     }
 
+    public function test_the_about_clock_in_photos_notice_comes_before_the_first_camera_use(): void
+    {
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+        $this->getJson(route('hr.attendance.clock-state'))->assertOk()->assertJsonPath('photoRequired', true)
+            ->assertJsonPath('photoNotice', ['version' => ClockPhotoService::NOTICE_VERSION, 'seen' => false]);
+        $this->postJson(route('hr.attendance.capture'), ['kind' => 'in'])->assertUnprocessable()
+            ->assertJsonPath('errors.notice.0', ClockPhotoService::NOTICE_NEEDED);
+        $this->assertSame(0, DB::table('hr_clock_capture_tokens')->count());
+
+        $this->postJson(route('hr.attendance.photo-notice'), ['version' => '2020-01-01'])->assertUnprocessable();
+        $this->postJson(route('hr.attendance.photo-notice'), ['version' => ClockPhotoService::NOTICE_VERSION])->assertOk();
+        $this->postJson(route('hr.attendance.photo-notice'), ['version' => ClockPhotoService::NOTICE_VERSION])->assertOk(); // once is enough
+        $this->assertSame(1, DB::table('hr_clock_photo_notices')->where('user_id', $ca->id)->where('version', ClockPhotoService::NOTICE_VERSION)->count());
+        $this->assertSame([['version' => ClockPhotoService::NOTICE_VERSION]], DB::table('audit_logs')->where('event', 'hr.attendance.photo_notice_seen')
+            ->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
+        $this->getJson(route('hr.attendance.clock-state'))->assertJsonPath('photoNotice.seen', true);
+        $this->postJson(route('hr.attendance.capture'), ['kind' => 'in'])->assertOk();
+
+        // A changed wording version asks again: an older version's row does not count.
+        DB::table('hr_clock_photo_notices')->insert(['organisation_id' => $this->organisation->id, 'user_id' => $this->actor('ca')->id,
+            'version' => '2026-01-01', 'seen_at' => now()->utc()]);
+        $this->assertRefused('P0001', fn () => DB::table('hr_clock_photo_notices')->update(['version' => 'x']));
+        $this->assertRefused('P0001', fn () => DB::table('hr_clock_photo_notices')->delete());
+    }
+
     public function test_the_tv_account_cannot_take_a_capture_token(): void
     {
         $this->selectBranch($this->actor('queue_display'));
         $this->postJson(route('hr.attendance.capture'), ['kind' => 'in'])->assertForbidden();
         $this->selectBranch($this->actor('ca'));
+        $this->postJson(route('hr.attendance.photo-notice'), ['version' => ClockPhotoService::NOTICE_VERSION])->assertOk();
         $this->postJson(route('hr.attendance.capture'), ['kind' => 'sideways'])->assertUnprocessable();
         $response = $this->postJson(route('hr.attendance.capture'), ['kind' => 'in'])->assertOk()->assertJsonStructure(['token', 'expiresAt']);
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));

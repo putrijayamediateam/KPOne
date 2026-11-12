@@ -211,6 +211,7 @@ class PostgresAttendanceContentionTest extends TestCase
         $args['idempotency_key'] ??= (string) Str::uuid();
         if ($args['op'] === 'in') {
             // HR-PHOTO: the camera's token, taken before the race (the worker makes its own synthetic photo).
+            app(ClockPhotoService::class)->markNoticeSeen($actor, ClockPhotoService::NOTICE_VERSION);
             $args['capture_token'] ??= app(ClockPhotoService::class)->issueToken($actor, 'in')['token'];
         }
         $input = new InputStream;
@@ -331,7 +332,7 @@ class PostgresAttendanceContentionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic attendance evidence.
-            foreach (['hr_clock_photos', 'hr_clock_capture_tokens', 'hr_clock_events', 'hr_attendance_corrections', 'hr_clock_sessions', 'hr_attendance_retries', 'hr_attendance_settings'] as $table) {
+            foreach (['hr_clock_photos', 'hr_clock_capture_tokens', 'hr_clock_photo_notices', 'hr_clock_events', 'hr_attendance_corrections', 'hr_clock_sessions', 'hr_attendance_retries', 'hr_attendance_settings'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");

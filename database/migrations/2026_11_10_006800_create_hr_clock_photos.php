@@ -17,6 +17,19 @@ return new class extends Migration
 {
     public function up(): void
     {
+        // The one-time "About clock-in photos" notice: who saw which wording version, and when (owner, 2026-11-12). A
+        // person sees it again when the version changes. Append-only; deleted by the 7-year attendance purge.
+        Schema::create('hr_clock_photo_notices', function (Blueprint $t): void {
+            $t->id();
+            $t->unsignedBigInteger('organisation_id');
+            $t->unsignedBigInteger('user_id');
+            $t->string('version', 40);
+            $t->timestampTz('seen_at');
+            $t->unique(['user_id', 'version'], 'hr_clock_photo_notices_once');
+            $t->foreign(['user_id', 'organisation_id'], 'hr_clock_photo_notices_user_fk')->references(['id', 'organisation_id'])->on('users')->restrictOnDelete();
+        });
+        DB::statement("ALTER TABLE hr_clock_photo_notices ADD CONSTRAINT hr_clock_photo_notices_shape CHECK (version ~ '^[A-Za-z0-9._-]{1,40}$')");
+
         Schema::create('hr_clock_capture_tokens', function (Blueprint $t): void {
             $t->id();
             $t->unsignedBigInteger('organisation_id');
@@ -85,6 +98,10 @@ CREATE TRIGGER hr_clock_photos_append BEFORE UPDATE ON hr_clock_photos FOR EACH 
 CREATE TRIGGER hr_clock_photos_retention BEFORE DELETE ON hr_clock_photos FOR EACH ROW
  EXECUTE FUNCTION guard_hr_attendance_retention_delete('created_at', 'HR clock photos are never deleted');
 CREATE TRIGGER hr_clock_photos_no_truncate BEFORE TRUNCATE ON hr_clock_photos FOR EACH STATEMENT EXECUTE FUNCTION guard_hr_attendance_append_only();
+CREATE TRIGGER hr_clock_photo_notices_append BEFORE UPDATE ON hr_clock_photo_notices FOR EACH ROW EXECUTE FUNCTION guard_hr_attendance_append_only();
+CREATE TRIGGER hr_clock_photo_notices_retention BEFORE DELETE ON hr_clock_photo_notices FOR EACH ROW
+ EXECUTE FUNCTION guard_hr_attendance_retention_delete('seen_at', 'HR attendance evidence is append-only');
+CREATE TRIGGER hr_clock_photo_notices_no_truncate BEFORE TRUNCATE ON hr_clock_photo_notices FOR EACH STATEMENT EXECUTE FUNCTION guard_hr_attendance_append_only();
 
 -- A token is only ever marked used, once; it is deleted only a day after it ran out.
 CREATE OR REPLACE FUNCTION guard_hr_clock_capture_token() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -125,6 +142,7 @@ SQL);
 DROP FUNCTION IF EXISTS guard_hr_clock_event_photo();');
         Schema::dropIfExists('hr_clock_photos');
         Schema::dropIfExists('hr_clock_capture_tokens');
+        Schema::dropIfExists('hr_clock_photo_notices');
         DB::unprepared('DROP FUNCTION IF EXISTS guard_hr_clock_photo();
 DROP FUNCTION IF EXISTS guard_hr_clock_capture_token();');
     }

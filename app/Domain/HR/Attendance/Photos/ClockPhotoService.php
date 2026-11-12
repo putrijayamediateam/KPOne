@@ -35,6 +35,14 @@ final class ClockPhotoService
 
     public const OPEN_AGAIN = 'Open the camera again and take a new photo.';
 
+    /**
+     * The wording version of the one-time "About clock-in photos" notice (owner, 2026-11-12). Raise it whenever the
+     * wording changes, together with the sheet's text, and everyone sees the notice again before their next photo.
+     */
+    public const NOTICE_VERSION = '2026-11-12';
+
+    public const NOTICE_NEEDED = 'Read About clock-in photos first.';
+
     public function __construct(private AttendanceSupport $support) {}
 
     /** @return array{token:string, expiresAt:string} */
@@ -46,6 +54,10 @@ final class ClockPhotoService
 
         return DB::transaction(function () use ($actor, $kind): array {
             $actor = $this->support->lock($actor, ClockPermissions::CLOCK_OWN);
+            // The notice comes before the first camera use, and again after its wording changes.
+            if (! $this->noticeSeen($actor)) {
+                throw ValidationException::withMessages(['notice' => self::NOTICE_NEEDED]);
+            }
             $token = Str::random(48);
             $now = CarbonImmutable::now('UTC');
             $expires = $now->addMinutes(self::TOKEN_MINUTES);
@@ -53,6 +65,28 @@ final class ClockPhotoService
                 'token_hash' => hash('sha256', $token), 'issued_at' => $now, 'expires_at' => $expires]);
 
             return ['token' => $token, 'expiresAt' => $expires->toIso8601String()];
+        }, 3);
+    }
+
+    public function noticeSeen(User $actor): bool
+    {
+        return DB::table('hr_clock_photo_notices')->where('user_id', $actor->id)->where('version', self::NOTICE_VERSION)->exists();
+    }
+
+    /** Records that the person saw the current notice; seeing it again changes nothing. Audit holds the version only. */
+    public function markNoticeSeen(User $actor, mixed $version): void
+    {
+        if ($version !== self::NOTICE_VERSION) {
+            throw ValidationException::withMessages(['notice' => 'This notice has changed. Reload the page and read it again.']);
+        }
+        DB::transaction(function () use ($actor): void {
+            $actor = $this->support->lock($actor, ClockPermissions::CLOCK_OWN);
+            if ($this->noticeSeen($actor)) {
+                return;
+            }
+            DB::table('hr_clock_photo_notices')->insert(['organisation_id' => $actor->organisation_id, 'user_id' => $actor->id,
+                'version' => self::NOTICE_VERSION, 'seen_at' => CarbonImmutable::now('UTC')]);
+            $this->support->audit->record('hr.attendance.photo_notice_seen', $actor, ['version' => self::NOTICE_VERSION], $actor, null, $actor->organisation_id);
         }, 3);
     }
 

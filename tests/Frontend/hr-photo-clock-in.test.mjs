@@ -89,3 +89,28 @@ test('the dialog is mounted once in each layout', () => {
         );
     }
 });
+
+test('the notice version matches the server and comes before the camera', () => {
+    const notice = read(
+        'resources/js/components/hr/attendance/ClockPhotoNotice.vue',
+    );
+    const service = read(
+        'app/Domain/HR/Attendance/Photos/ClockPhotoService.php',
+    );
+    const version = notice.match(/CLOCK_PHOTO_NOTICE_VERSION = '([^']+)'/)?.[1];
+    assert.ok(version);
+    assert.match(service, new RegExp(`NOTICE_VERSION = '${version}'`));
+    assert.match(notice, /About clock-in photos/);
+    assert.match(dialog, /state\.step = 'notice'/);
+    assert.match(dialog, /markNoticeSeen\(CLOCK_PHOTO_NOTICE_VERSION\)/);
+});
+
+test('the clock shortcut opens the camera, or the Attendance page where location is checked', () => {
+    const shortcut = read('resources/js/composables/useClockShortcut.ts');
+    assert.match(shortcut, /useClockPhoto\(\)/);
+    assert.match(shortcut, /open\(clock\.state === 'in' \? 'out' : 'in'/);
+    assert.match(
+        shortcut,
+        /needsAttendancePage[\s\S]*router\.visit\(ATTENDANCE\)/,
+    );
+});

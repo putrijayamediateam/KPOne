@@ -19,7 +19,14 @@ export type ClockConfirmation = {
 };
 
 export type ClockPhotoStep =
-    'idle' | 'starting' | 'camera' | 'review' | 'sending' | 'done' | 'failed';
+    | 'idle'
+    | 'starting'
+    | 'notice'
+    | 'camera'
+    | 'review'
+    | 'sending'
+    | 'done'
+    | 'failed';
 
 type State = {
     step: ClockPhotoStep;
@@ -54,6 +61,9 @@ export const csrfToken = (): string =>
             ?.split('=')[1] ?? '',
     );
 
+/** Thrown when the person has not yet seen the current "About clock-in photos" notice. */
+export class NoticeNeeded extends Error {}
+
 /** The capture token is taken when the camera opens; it is good for one press of this kind for five minutes. */
 export const takeToken = async (kind: ClockKind): Promise<string> => {
     const response = await fetch('/hr/attendance/capture', {
@@ -68,11 +78,38 @@ export const takeToken = async (kind: ClockKind): Promise<string> => {
         body: JSON.stringify({ kind }),
     });
 
+    if (response.status === 422) {
+        const json = await response.json().catch(() => ({}));
+
+        if (json?.errors?.notice) {
+            throw new NoticeNeeded();
+        }
+    }
+
     if (!response.ok) {
         throw new Error('token');
     }
 
     return String((await response.json()).token ?? '');
+};
+
+/** The person has read the notice; the server keeps who, when and which version. */
+export const markNoticeSeen = async (version: string): Promise<void> => {
+    const response = await fetch('/hr/attendance/photo-notice', {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-XSRF-TOKEN': csrfToken(),
+        },
+        body: JSON.stringify({ version }),
+    });
+
+    if (!response.ok) {
+        throw new Error('notice');
+    }
 };
 
 /** Sends the press. Resolves with the confirmation, or rejects with the first message the server gave. */

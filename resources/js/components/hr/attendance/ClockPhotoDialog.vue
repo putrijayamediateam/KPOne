@@ -10,9 +10,14 @@ import {
     DialogTitle,
 } from 'reka-ui';
 import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import ClockPhotoNotice, {
+    CLOCK_PHOTO_NOTICE_VERSION,
+} from '@/components/hr/attendance/ClockPhotoNotice.vue';
 import {
     CAMERA_REFUSED,
     clockPhotoState as state,
+    markNoticeSeen,
+    NoticeNeeded,
     resetClockPhoto,
     sendPress,
     takeToken,
@@ -38,6 +43,7 @@ const title = computed(() => (state.kind === 'in' ? 'Clock in' : 'Clock out'));
 const dark = computed(() =>
     ['starting', 'camera', 'review', 'sending', 'failed'].includes(state.step),
 );
+const notice = computed(() => state.step === 'notice');
 
 const stopStream = () => {
     stream?.getTracks().forEach((track) => track.stop());
@@ -93,7 +99,14 @@ const startCamera = async () => {
 const begin = async () => {
     try {
         state.token = await takeToken(state.kind);
-    } catch {
+    } catch (e) {
+        if (e instanceof NoticeNeeded) {
+            // The one-time "About clock-in photos" notice comes before the first camera use.
+            state.step = 'notice';
+
+            return;
+        }
+
         state.step = 'failed';
         state.error = 'KPOne could not start the camera. Try again.';
 
@@ -112,6 +125,20 @@ watch(
         }
     },
 );
+
+const noticeRead = async () => {
+    try {
+        await markNoticeSeen(CLOCK_PHOTO_NOTICE_VERSION);
+    } catch {
+        state.step = 'failed';
+        state.error = 'This did not go through. Try again.';
+
+        return;
+    }
+
+    state.step = 'starting';
+    await begin();
+};
 
 const switchCamera = async () => {
     facing.value = facing.value === 'user' ? 'environment' : 'user';
@@ -226,17 +253,26 @@ onBeforeUnmount(() => {
                 data-test="clock-photo-dialog"
                 class="fixed inset-0 z-50 flex flex-col overflow-hidden outline-none sm:inset-auto sm:top-1/2 sm:left-1/2 sm:h-[min(44rem,calc(100dvh-4rem))] sm:w-[min(40rem,calc(100vw-4rem))] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-2xl sm:shadow-2xl"
                 :class="
-                    dark
-                        ? 'bg-[#08080a] text-white'
-                        : 'bg-[color-mix(in_oklab,var(--success)_12%,var(--background))] text-success dark:bg-[color-mix(in_oklab,var(--success)_22%,var(--background))]'
+                    notice
+                        ? 'bg-background text-foreground'
+                        : dark
+                          ? 'bg-[#08080a] text-white'
+                          : 'bg-[color-mix(in_oklab,var(--success)_12%,var(--background))] text-success dark:bg-[color-mix(in_oklab,var(--success)_22%,var(--background))]'
                 "
                 @escape-key-down="
                     (e: Event) => state.step === 'sending' && e.preventDefault()
                 "
                 @pointer-down-outside="(e: Event) => e.preventDefault()"
             >
+                <!-- The one-time "About clock-in photos" notice -->
+                <ClockPhotoNotice
+                    v-if="notice"
+                    @continue="noticeRead"
+                    @cancel="close"
+                />
+
                 <!-- Camera and review -->
-                <template v-if="dark">
+                <template v-else-if="dark">
                     <div
                         class="flex items-center justify-between gap-2 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-2"
                     >

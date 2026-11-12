@@ -33,6 +33,7 @@ final class AttendanceRetentionPurge
         $organisations = DB::table('hr_clock_sessions')->whereRaw("clock_in_at < {$cutoff}")->distinct()->pluck('organisation_id')
             ->merge(DB::table('hr_attendance_corrections')->whereNull('clock_session_id')->whereNull('created_session_id')->whereRaw("created_at < {$cutoff}")->distinct()->pluck('organisation_id'))
             ->merge(DB::table('hr_location_consents')->whereRaw("acknowledged_at < {$cutoff}")->distinct()->pluck('organisation_id'))
+            ->merge(DB::table('hr_clock_photo_notices')->whereRaw("seen_at < {$cutoff}")->distinct()->pluck('organisation_id'))
             ->map(fn ($id): int => (int) $id)->unique()->values();
         foreach ($organisations as $organisationId) {
             $paths = [];
@@ -69,6 +70,8 @@ final class AttendanceRetentionPurge
                     ->whereNull('c.created_session_id')->whereRaw("c.created_at < {$cutoff}")
                     ->whereNotExists(fn ($q) => $q->from('hr_clock_events as e')->whereColumn('e.correction_id', 'c.id'))->delete();
                 $consents = DB::table('hr_location_consents')->where('organisation_id', $organisationId)->whereRaw("acknowledged_at < {$cutoff}")->delete();
+                // HR-PHOTO: a "seen the photo notice" record older than 7 years goes too (counted nowhere; it holds a date only).
+                DB::table('hr_clock_photo_notices')->where('organisation_id', $organisationId)->whereRaw("seen_at < {$cutoff}")->delete();
                 // Switched off again, so even inside an outer transaction nothing after the purge can delete (Suresh).
                 DB::statement("SELECT set_config('kpone.hr_attendance_purge', '', true), set_config('kpone.hr_location_purge', '', true)");
                 $counts = ['sessions' => count($sessions), 'corrections' => $corrections, 'consents' => $consents];

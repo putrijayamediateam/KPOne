@@ -152,6 +152,43 @@
     gap: 8px;
     cursor: pointer;
 }
+/* DS-12: a small outline Clock in / Clock out beside the branch switcher, from 1024 px; phones use the account menu row. */
+.space-shell .space-clock {
+    display: none;
+    align-items: center;
+    min-height: 36px;
+    padding: 0 12px;
+    border-radius: var(--space-radius-control);
+    border: 1px solid var(--space-line);
+    background: transparent;
+    color: var(--space-fg);
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+.space-shell .space-clock:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+.space-shell .space-clock:focus-visible {
+    outline: 2px solid var(--space-accent);
+    outline-offset: 2px;
+}
+@media (min-width: 1024px) {
+    .space-shell .space-clock {
+        display: inline-flex;
+    }
+}
+/* DS-12: the name sits beside the avatar from 1024 px; below that the avatar stands alone. */
+@media (max-width: 1023px) {
+    .space-shell .space-account {
+        flex: none;
+        padding: 0 6px;
+    }
+    .space-shell .space-account > div {
+        display: none;
+    }
+}
 .space-shell .space-select:focus-visible,
 .space-shell .space-account:focus-visible,
 .space-shell .space-existing a:focus-visible {
@@ -577,4 +614,13 @@
     display: block;
     color: var(--space-muted);
     font-size: 13px;
+}
+
+/* DS-12: no department space and no Clinic management link means no rail at all. */
+.space-shell.is-bare {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto;
+}
+.space-shell.is-bare .space-side {
+    display: none;
 }
