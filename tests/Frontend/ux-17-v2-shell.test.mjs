@@ -102,11 +102,8 @@ test('UX-17: the crumb comes only from the server and every link comes from work
     const shell = read('resources/js/components/workspace/V2AppShell.vue');
     const nav = read('resources/js/components/workspace/V2ShellNav.vue');
 
-    assert.match(
-        shell,
-        /const crumb = computed\(\(\) => props\.shell\.current\);/,
-    );
-    assert.match(shell, /v-if="crumb && !focusMode"/);
+    assert.match(shell, /providePageCrumbs\(\(\) =>\s+props\.shell\.current/);
+    assert.match(shell, /v-if="!focusMode && crumbsInFrame === 0"/);
     assert.match(nav, /v-for="group in shell\.groups"/);
     assert.match(nav, /v-for="section in shell\.more"/);
     assert.doesNotMatch(nav, /href="\/(?!")/);
@@ -148,7 +145,10 @@ test('UX-17 review: one current link (longest href), unique keys, IME-safe Enter
     assert.match(jump, /if \(!event\.isComposing\)/);
     assert.match(jump, /scrollIntoView\(\{ block: 'nearest' \}\)/);
     assert.match(shell, /toast\.error\(/);
-    assert.match(shell, /aria-label="Breadcrumb"/);
+    assert.match(
+        read('resources/js/components/workspace/V2PageCrumbs.vue'),
+        /aria-label="Breadcrumb"/,
+    );
 });
 
 test('UX-17 DD-55: the sheet, the jump dialog and the sidebar chevron respect reduced motion', () => {
