@@ -441,8 +441,8 @@ test('V2 board page: uses the V2 blocks and the Classic props, tabs and filters;
     // A tab with no count from the server is not shown for Dispensary and Awaiting billing.
     assert.match(page, /countedTabs\.has\(tab\.value\)/);
 
-    // Reused unchanged: the shared dialogs, the QR list and the WhatsApp link.
-    for (const shared of ['QrIntakeTable', 'WhatsAppLink']) {
+    // Reused unchanged: the V2 QR list and the WhatsApp link.
+    for (const shared of ['QrIntakeList', 'WhatsAppLink']) {
         assert.ok(page.includes(shared), shared);
     }
 
@@ -522,4 +522,31 @@ test('V2 Mark not ready and Ready dialogs: same endpoint, payload keys and reaso
         ).targets['mark-not-ready'],
         undefined,
     );
+});
+
+test('V2 QR intake tab: same records, links, order and paging as the Classic table, which stays unchanged', () => {
+    const v2 = read('resources/js/pages/Registration/V2/QrIntakeList.vue');
+    const classicTable = read(
+        'resources/js/components/registration/QrIntakeTable.vue',
+    );
+
+    for (const shared of [
+        '/registration-review/${item.publicId}',
+        'item.canVerify',
+        'item.visitUrl',
+        "'See a doctor / illness'",
+        "'Medical check-up'",
+        'Redacted after retention period',
+        'No QR intake records are available for this branch.',
+        'history-page-change',
+        "item.displayStatus === 'pending'",
+        "item.displayStatus !== 'pending'",
+    ]) {
+        assert.ok(v2.includes(shared), `V2 ${shared}`);
+        assert.ok(classicTable.includes(shared), `Classic ${shared}`);
+    }
+
+    assert.match(page, /QrIntakeList/);
+    assert.match(page, /qr_history_page/);
+    assert.ok(!classicTable.includes('components/v2'));
 });

@@ -3,7 +3,6 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
-import QrIntakeTable from '@/components/registration/QrIntakeTable.vue';
 import { DateField } from '@/components/ui/date-field';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
@@ -32,6 +31,7 @@ import {
     waitingMinutes,
 } from '@/lib/registration-v2';
 import type { VisitOptions, VisitRow } from '@/types';
+import QrIntakeList from './QrIntakeList.vue';
 import RowDialogs from './RowDialogs.vue';
 
 /**
@@ -342,7 +342,7 @@ const filterBadge = computed(
                 @update:model-value="selectTab"
             />
 
-            <QrIntakeTable
+            <QrIntakeList
                 v-if="isQrIntake && qrIntakes"
                 :branch="qrIntakes.branch"
                 :items="qrIntakes.items"
