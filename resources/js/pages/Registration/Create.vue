@@ -1045,7 +1045,7 @@ const errorFor = (key: string) => (form.errors as Record<string, string>)[key];
             type="submit"
             form="register-visit-form"
             size="lg"
-            class="min-w-40"
+            class="max-sm:w-full sm:min-w-40"
             :disabled="form.processing"
         >
             <LoaderCircle v-if="form.processing" class="size-4 animate-spin" />
