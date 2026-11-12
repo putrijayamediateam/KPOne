@@ -574,6 +574,9 @@ pages inherit them and no page sets its own colour)
 - **Do** give every page the same frame: `PageHeader` (title, one line, actions at the right), then tabs, then the
   work, with the **Recent activity strip at the bottom** where the page has activity to show. Keep content width to
   1280 px centred from 1440 px so a title is never stranded at the far left of a wide screen.
+- **Exception (approved 2026-11-12):** the Consultation queue board keeps a 1600 px maximum width, because it is a
+  live 12-column board. Its header is a visible `PageHeader` titled "Consultation queue" with no description line.
+  Do not copy this width to other pages without asking the Lead UI/UX Designer.
 - **Do** use the gradient only on the Me home (section 18). Working pages stay on the plain page colour.
 
 **Motion and icons**
