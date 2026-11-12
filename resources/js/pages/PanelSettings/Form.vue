@@ -66,6 +66,11 @@ const form = useForm({
     lock_version: props.panel?.lockVersion ?? 1,
 });
 
+// On the Edit form Save is outline until a field changes (look only: it can still be pressed).
+const saveVariant = computed(() =>
+    editing && !form.isDirty ? 'outline' : 'default',
+);
+
 const scheduled = computed(() => form.claim_due_rule !== 'days_after_visit');
 const setScheduled = (on: boolean) => {
     form.claim_due_rule = on ? 'daily' : 'days_after_visit';
@@ -164,7 +169,10 @@ const submit = () => {
                         <Button variant="outline" as-child>
                             <Link href="/checkout-settings">Cancel</Link>
                         </Button>
-                        <Button type="submit" :disabled="form.processing"
+                        <Button
+                            type="submit"
+                            :variant="saveVariant"
+                            :disabled="form.processing"
                             >Save</Button
                         >
                     </div>
@@ -685,6 +693,7 @@ const submit = () => {
                 </Button>
                 <Button
                     type="submit"
+                    :variant="saveVariant"
                     class="h-11 flex-1"
                     :disabled="form.processing"
                     >Save</Button
