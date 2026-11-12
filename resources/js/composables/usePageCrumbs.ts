@@ -27,7 +27,10 @@ export type PageCrumb = { title: string; href?: string };
 type CrumbContext = {
     pageCrumbs: Ref<PageCrumb[] | null>;
     owner: Ref<symbol | null>;
-    placed: Ref<number>;
+    /** Crumbs placed inside a PageFrame, in mount order; only the first one draws. */
+    placed: Ref<symbol[]>;
+    /** Set by the shell: true in focus mode. */
+    hidden: Ref<boolean>;
     trail: Readonly<Ref<PageCrumb[]>>;
 };
 
@@ -39,7 +42,8 @@ export function providePageCrumbs(
 ): CrumbContext {
     const pageCrumbs = ref<PageCrumb[] | null>(null);
     const owner = ref<symbol | null>(null);
-    const placed = ref(0);
+    const placed = ref<symbol[]>([]);
+    const hidden = ref(false);
     const trail = computed<PageCrumb[]>(() => {
         if (pageCrumbs.value && pageCrumbs.value.length > 0) {
             return pageCrumbs.value;
@@ -49,7 +53,7 @@ export function providePageCrumbs(
 
         return current ? [current] : [];
     });
-    const context = { pageCrumbs, owner, placed, trail };
+    const context = { pageCrumbs, owner, placed, hidden, trail };
 
     provide(KEY, context);
 
@@ -81,18 +85,40 @@ export function usePageCrumbs(source: MaybeRefOrGetter<PageCrumb[]>): void {
     });
 }
 
-/** Used by the crumb component: the trail to draw, and whether a crumb sits inside the page's own frame. */
+/**
+ * Used by the crumb component: whether to draw, and the trail. A crumb inside a PageFrame registers itself, so the shell
+ * stops drawing its own copy; with two PageFrames on one page only the first draws. Hidden in focus mode.
+ */
 export function usePageCrumbTrail(placedInFrame: boolean) {
     const context = inject(KEY, null);
 
-    if (context && placedInFrame) {
-        onMounted(() => context.placed.value++);
-        onBeforeUnmount(() => context.placed.value--);
+    if (!context) {
+        return {
+            show: computed(() => false),
+            trail: computed<PageCrumb[]>(() => []),
+        };
     }
 
-    return {
-        active: context !== null,
-        trail: context?.trail ?? computed<PageCrumb[]>(() => []),
-        placedInFrame: context?.placed ?? ref(0),
-    };
+    const me = Symbol('crumb');
+
+    if (placedInFrame) {
+        onMounted(() => (context.placed.value = [...context.placed.value, me]));
+        onBeforeUnmount(
+            () =>
+                (context.placed.value = context.placed.value.filter(
+                    (token) => token !== me,
+                )),
+        );
+    }
+
+    const show = computed(
+        () =>
+            !context.hidden.value &&
+            context.trail.value.length > 0 &&
+            (placedInFrame
+                ? context.placed.value[0] === me
+                : context.placed.value.length === 0),
+    );
+
+    return { show, trail: context.trail };
 }

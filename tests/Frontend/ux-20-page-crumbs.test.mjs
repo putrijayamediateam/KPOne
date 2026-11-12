@@ -42,7 +42,7 @@ test('UX-20: Classic renders nothing: without the V2 shell every call is a no-op
         squash(api),
         /const context = inject\(KEY, null\); if \(!context\) \{ return; \}/,
     );
-    assert.match(crumbs, /v-if="active && trail\.length > 0"/);
+    assert.match(crumbs, /v-if="show"/);
     assert.doesNotMatch(
         crumbs + api,
         /dataset\.ui|data-ui|applyUiVersion|useUiVersion/,
@@ -53,10 +53,12 @@ test('UX-20: PageFrame draws the crumb at the content edge, 8 px above the title
     assert.match(frame, /<V2PageCrumbs in-frame class="-mb-4" \/>\s+<slot \/>/);
     assert.match(
         squash(shell),
-        /<V2PageCrumbs v-if="!focusMode && crumbsInFrame === 0" class="px-4 pt-4 lg:px-8" data-test="v2-shell-crumb" \/>/,
+        /<V2PageCrumbs v-if="!focusMode && crumbsInFrame === 0" class="px-4 pt-4 md:px-6" data-test="v2-shell-crumb" \/>/,
     );
-    // The fallback uses PageFrame's own side padding (GUIDE section 19).
-    assert.match(frame, /px-4 py-6 lg:px-8/);
+    assert.match(
+        shell,
+        /const crumbsInFrame = computed\(\(\) => placed\.value\.length\);/,
+    );
 });
 
 test('UX-20: links go back, the last item without href is the current page, separators are hidden', () => {
@@ -69,4 +71,23 @@ test('UX-20: links go back, the last item without href is the current page, sepa
         /<ChevronRight\s+v-if="index > 0"[\s\S]*?aria-hidden="true"/,
     );
     assert.match(crumbs, /max-sm:min-h-11/);
+});
+
+test('UX-20: Back to Classic shows a full-strength focus ring on keyboard focus', () => {
+    assert.match(
+        shell,
+        /const QUIET_BACK =\s+'[^']*focus-visible:ring-2 focus-visible:ring-ring';/,
+    );
+});
+
+test('UX-20 review: hidden in focus mode, only the first PageFrame crumb draws, long titles end in an ellipsis', () => {
+    assert.match(
+        shell,
+        /watchEffect\(\(\) => \(crumbHidden\.value = props\.focusMode === true\)\);/,
+    );
+    assert.match(
+        squash(api),
+        /!context\.hidden\.value && context\.trail\.value\.length > 0 && \(placedInFrame \? context\.placed\.value\[0\] === me : context\.placed\.value\.length === 0\)/,
+    );
+    assert.equal(crumbs.match(/<span class="truncate">/g)?.length, 2);
 });
