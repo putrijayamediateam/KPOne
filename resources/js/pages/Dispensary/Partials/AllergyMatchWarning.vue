@@ -36,22 +36,23 @@ const confirmed = defineModel<boolean>({ default: false });
         </p>
         <label
             :for="fieldId"
-            class="mt-2 flex min-h-11 cursor-pointer items-center gap-2 font-medium"
+            class="-mx-2 mt-2 flex min-h-11 w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-md px-2 text-sm font-medium hover:bg-destructive/10 lg:min-h-9 lg:gap-2 lg:text-xs"
+            data-testid="allergy-confirmation-row"
         >
             <input
                 :id="fieldId"
                 v-model="confirmed"
                 type="checkbox"
-                class="size-4 accent-destructive"
+                class="size-5 shrink-0 accent-destructive lg:size-4"
                 data-field="allergy-confirmation"
             />
             I have checked with the patient/doctor
         </label>
-        <p class="mt-1 text-destructive">
+        <p class="mt-1 text-muted-foreground">
             This check compares the allergy text with the medicine name, generic
             name, catalogue other names and catalogue drug groups only.
         </p>
-        <p class="mt-1 text-destructive">
+        <p class="mt-1 text-muted-foreground">
             It can miss an allergy (a drug group, brand name or spelling not
             listed in the catalogue), so always read the full allergy list.
         </p>

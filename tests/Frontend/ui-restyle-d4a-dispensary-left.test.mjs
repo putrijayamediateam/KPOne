@@ -54,7 +54,24 @@ test('both allergy panels use the success and warning tokens', () => {
 
 test('the allergy-match warning keeps its red tone, words and required tick', () => {
     assert.ok(warning.includes('border-destructive/40 bg-destructive/10'));
-    assert.ok(warning.includes('class="size-4 accent-destructive"'));
+    assert.ok(
+        warning.includes(
+            'class="size-5 shrink-0 accent-destructive lg:size-4"',
+        ),
+    );
+    // Daniel: the whole checkbox row is one 44 px target below 1024 px.
+    assert.ok(
+        warning.includes(
+            'flex min-h-11 w-[calc(100%+1rem)] cursor-pointer items-center',
+        ),
+    );
+    assert.ok(warning.includes('lg:min-h-9'));
+    // Daniel: only the icon and heading are red; the two notes are muted.
+    assert.equal(warning.includes('<p class="mt-1 text-destructive">'), false);
+    assert.equal(
+        (warning.match(/<p class="mt-1 text-muted-foreground">/g) ?? []).length,
+        2,
+    );
     assert.ok(warning.includes('I have checked with the patient/doctor'));
 });
 
