@@ -39,13 +39,10 @@ test('V2Dialog: 18px corners, a phone bottom sheet, a pinned footer, a required 
     assert.match(s, /size-11/);
     assert.match(s, /h-11[^'"]*lg:h-9/);
     assert.doesNotMatch(code('V2Dialog'), /fetch\(|axios|usePage/);
-    // The only router use is the leave guard: `router.on('before')` and the visit after "Discard changes".
-    assert.deepEqual(
-        [...code('V2Dialog').matchAll(/router\.(\w+)/g)]
-            .map((m) => m[1])
-            .sort(),
-        ['on', 'visit'],
-    );
+    // No routing of its own: the open-sheet leave guard is the one shared mechanism (`useLeaveGuard`).
+    assert.doesNotMatch(code('V2Dialog'), /router\./);
+    assert.doesNotMatch(s, /from '@inertiajs\/vue3'/);
+    assert.match(s, /useLeaveGuard\(/);
 });
 
 test('The new blocks import nothing from the Classic ui components', () => {
@@ -202,14 +199,24 @@ test('V2Dialog discard question keeps Tab and Shift+Tab inside its two buttons (
     assert.match(s, /!event\.shiftKey && document\.activeElement === last/);
 });
 
-test('V2Dialog: tall sheets pin the header (title and X); open and dirty guards reload, close and in-app links; Back is documented', () => {
+test('V2Dialog: tall sheets pin the header (title and X); the open-sheet guard is the shared one; the four points are written', () => {
     const s = v2('V2Dialog');
     assert.match(s, /data-slot="v2-dialog-header"/);
     assert.match(s, /sticky -top-5 z-10 -mx-5 -mt-5/);
     assert.match(s, /v-if="size !== 'tall'"/);
-    assert.match(s, /router\.on\('before'/);
-    assert.match(s, /!props\.open \|\| !props\.dirty/);
-    assert.match(s, /visit\.method !== 'get'/);
-    assert.match(s, /beforeunload/);
-    assert.match(s, /Browser Back is an accepted known limit/);
+    assert.match(s, /props\.open && props\.dirty/);
+    assert.match(s, /useLeaveGuard\(/);
+    assert.match(
+        s,
+        /\(1\) A same-path visit and a partial reload or a polling visit \(such as the Registration and Queue live/,
+    );
+    assert.match(s, /\(2\) a successful save never asks/);
+    assert.match(
+        s,
+        /\(3\) the listener is removed when the page or sheet unmounts/,
+    );
+    assert.match(
+        s,
+        /\(4\) browser Back stays a known limit, with `beforeunload` for reload and tab close\./,
+    );
 });

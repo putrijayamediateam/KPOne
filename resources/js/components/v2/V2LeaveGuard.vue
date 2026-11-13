@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
-import { onBeforeUnmount, ref } from 'vue';
+import { ref } from 'vue';
+import { useLeaveGuard } from '@/composables/useLeaveGuard';
 import V2Dialog from './V2Dialog.vue';
 
 /**
@@ -9,52 +9,24 @@ import V2Dialog from './V2Dialog.vue';
  * changes?" with "Keep editing" and "Discard changes" (the same words as V2Dialog's own guard), and only leaves on
  * "Discard changes". Closing the browser tab or reloading shows the browser's own warning while `dirty`.
  *
- * Only GET visits to a different path are held. The form's own save (a PATCH or POST), a visit to the same path, and
- * everything when `dirty` is false are never held. Put it once on the page: `<V2LeaveGuard :dirty="form.isDirty" />`.
+ * One mechanism: this and V2Dialog's open-sheet guard both use `useLeaveGuard` (rule in `lib/v2-leave-rule.ts`). Only GET
+ * visits to a different path are held. The form's own save (a PATCH or POST), a visit to the same path (a reload, a partial
+ * reload, a polling refresh) and everything when `dirty` is false are never held; the listeners go when the page unmounts.
+ * Browser Back stays a known limit (no history trap); `beforeunload` covers reload and closing the tab. Put it once on the page: `<V2LeaveGuard :dirty="form.isDirty" />`.
  * The page decides `dirty`; after a save the redirect to the next page is part of the save and is not asked about.
  */
 const props = defineProps<{ dirty: boolean }>();
 
 const open = ref(false);
 let pending: string | null = null;
-let bypass = false;
 
-const stop = router.on('before', (event) => {
-    if (bypass || !props.dirty) {
-        return;
-    }
-
-    const visit = event.detail.visit;
-
-    if (visit.method !== 'get') {
-        return;
-    }
-
-    const target = new URL(visit.url.toString(), window.location.origin);
-
-    if (target.pathname === window.location.pathname) {
-        return;
-    }
-
-    pending = `${target.pathname}${target.search}`;
-    open.value = true;
-
-    return false;
-});
-
-const warnOnUnload = (event: BeforeUnloadEvent) => {
-    if (props.dirty && !bypass) {
-        event.preventDefault();
-        event.returnValue = '';
-    }
-};
-
-window.addEventListener('beforeunload', warnOnUnload);
-
-onBeforeUnmount(() => {
-    stop();
-    window.removeEventListener('beforeunload', warnOnUnload);
-});
+const { leave } = useLeaveGuard(
+    () => props.dirty,
+    (target) => {
+        pending = target;
+        open.value = true;
+    },
+);
 
 const keepEditing = () => {
     pending = null;
@@ -68,8 +40,7 @@ const discard = () => {
     open.value = false;
 
     if (target) {
-        bypass = true;
-        router.visit(target, { onFinish: () => (bypass = false) });
+        leave(target);
     }
 };
 </script>

@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import { router } from '@inertiajs/vue3';
 import {
     DialogClose,
     DialogContent,
@@ -9,7 +8,8 @@ import {
     DialogRoot,
     DialogTitle,
 } from 'reka-ui';
-import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
+import { nextTick, ref, watch } from 'vue';
+import { useLeaveGuard } from '@/composables/useLeaveGuard';
 
 /**
  * Version 2 dialog: 18px corners, a bottom sheet below 640px, a pinned footer, and the focus trap and Esc that the
@@ -29,10 +29,15 @@ import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
  * `dirty` from its own form state, and closing the dialog from the page (after a save) is never guarded. Everything
  * behind the question is inert, so Tab cannot reach the form. Wording and buttons are the same on every V2 form.
  *
- * While the dialog is open and `dirty`, the guard also covers leaving the page: reload and closing the tab show the
- * browser's own warning, and an in-app link to another page (a GET visit to a different path, for example the menu) first
- * asks the same question and goes on only after "Discard changes". Browser Back is an accepted known limit: there is
- * no history trap, so Back leaves the page without the question. Pages need no guard of their own for an open sheet.
+ * While the dialog is open and `dirty`, the guard also covers leaving the page, through the SAME mechanism as
+ * V2LeaveGuard (`useLeaveGuard`): reload and closing the tab show the browser's own warning, and an in-app link to another
+ * page (a GET visit to a different path, for example the menu) first asks the same question and goes on only after
+ * "Discard changes".
+ * (1) A same-path visit and a partial reload or a polling visit (such as the Registration and Queue live refresh) is never held;
+ * (2) a successful save never asks;
+ * (3) the listener is removed when the page or sheet unmounts, so nothing keeps asking on the next page;
+ * (4) browser Back stays a known limit, with `beforeunload` for reload and tab close.
+ * Pages need no guard of their own for an open sheet.
  */
 const props = withDefaults(
     defineProps<{
@@ -76,47 +81,18 @@ const keepButton = ref<HTMLButtonElement | null>(null);
 const discardButton = ref<HTMLButtonElement | null>(null);
 let returnFocusTo: HTMLElement | null = null;
 let pendingUrl: string | null = null;
-let bypass = false;
 
-// An in-app link while an open sheet is dirty: ask first (the form's own save is not a GET, so it is never held).
-const stopBefore = router.on('before', (event) => {
-    if (bypass || !props.open || !props.dirty) {
-        return;
-    }
-
-    const visit = event.detail.visit;
-
-    if (visit.method !== 'get') {
-        return;
-    }
-
-    const target = new URL(visit.url.toString(), window.location.origin);
-
-    if (target.pathname === window.location.pathname) {
-        return;
-    }
-
-    pendingUrl = `${target.pathname}${target.search}`;
-    returnFocusTo = document.activeElement as HTMLElement | null;
-    asking.value = true;
-    nextTick(() => keepButton.value?.focus());
-
-    return false;
-});
-
-const warnOnUnload = (event: BeforeUnloadEvent) => {
-    if (props.open && props.dirty && !bypass) {
-        event.preventDefault();
-        event.returnValue = '';
-    }
-};
-
-window.addEventListener('beforeunload', warnOnUnload);
-
-onBeforeUnmount(() => {
-    stopBefore();
-    window.removeEventListener('beforeunload', warnOnUnload);
-});
+// An in-app link while an open sheet is dirty: ask first. The one shared mechanism (useLeaveGuard) holds only a GET to
+// another path; the sheet's own save, a same-path or polling visit, and a clean sheet are never held.
+const { leave } = useLeaveGuard(
+    () => props.open && props.dirty,
+    (target) => {
+        pendingUrl = target;
+        returnFocusTo = document.activeElement as HTMLElement | null;
+        asking.value = true;
+        nextTick(() => keepButton.value?.focus());
+    },
+);
 
 watch(
     () => props.open,
@@ -189,8 +165,7 @@ const discard = () => {
     emit('update:open', false);
 
     if (target) {
-        bypass = true;
-        router.visit(target, { onFinish: () => (bypass = false) });
+        leave(target);
     }
 };
 
