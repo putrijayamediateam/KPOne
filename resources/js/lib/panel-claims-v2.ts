@@ -31,7 +31,7 @@ export const invoiceChip = (
 
 export const invoiceMenuGroups = (invoiceUrl: string): RowMenuGroup[] => [
     {
-        label: 'Actions',
+        label: '',
         items: [
             {
                 id: 'view-invoice',
@@ -39,7 +39,6 @@ export const invoiceMenuGroups = (invoiceUrl: string): RowMenuGroup[] => [
                 allowed: true,
                 href: invoiceUrl,
             },
-            { id: 'create-claim', label: 'Create claim', allowed: true },
         ],
     },
 ];
@@ -49,7 +48,7 @@ export const claimMenuGroups = (
     canMarkSubmitted: boolean,
 ): RowMenuGroup[] => [
     {
-        label: 'Actions',
+        label: '',
         items: [
             {
                 id: 'view-claim',

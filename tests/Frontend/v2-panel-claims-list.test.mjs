@@ -18,6 +18,7 @@ const lib = read('resources/js/lib/panel-claims-v2.ts');
 const selection = read(
     'resources/js/components/panel-v2/PanelSelectionSummary.vue',
 );
+const bar = read('resources/js/components/panel-v2/PanelSelectionBar.vue');
 const filters = read(
     'resources/js/components/panel-v2/PanelClaimFilterFields.vue',
 );
@@ -138,7 +139,6 @@ test('the Classic wording the Version 2 page keeps', () => {
         'Filter by one Panel to select all claims on this page',
         'Select invoice ${row.invoiceNumber} for a bulk claim',
         'Select claim ${row.claimNo} for a claim pack',
-        'More actions for invoice ${row.invoiceNumber}',
         'Actions for claim ${row.claimNo}',
         'Only invoices of ${selectedPanel.value} can be added to this batch',
         'Only claims of ${packPanel.value} can be added to this pack',
@@ -203,10 +203,12 @@ test('claim status chips and the row menus', () => {
     });
 
     const invoice = api.invoiceMenuGroups('/i/1');
+    // Create claim is an outline button on the row, not a menu item; a one-group menu has no group heading.
     assert.deepEqual(plain(invoice[0].items.map((item) => item.label)), [
         'View invoice',
-        'Create claim',
     ]);
+    assert.equal(invoice[0].label, '');
+    assert.equal(api.claimMenuGroups('/c/1', true)[0].label, '');
     assert.equal(invoice[0].items[0].href, '/i/1');
 
     // "Submit claim (manual)" is left out, not disabled, as in Classic.
@@ -237,29 +239,45 @@ test('the page is registered and the layout rules hold', () => {
     // One filled button at most: only the selection summary has one, and only when something is ticked.
     assert.ok(!/bg-primary(?!\/)/.test(page), 'no filled button in the page');
     assert.match(selection, /bg-primary px-4/);
+    assert.match(bar, /bg-primary px-4/);
     assert.match(page, /v-if="selection"/);
     assert.match(page, /cards="xl"/);
     assert.match(page, /rail-from="2xl"/);
     // No native select.
     assert.ok(!/<select\b/.test(page + filters));
 
-    // The rail, the static summary and the phone bar share one component.
-    for (const variant of ['rail', 'static', 'bar']) {
-        assert.ok(page.includes(`variant="${variant}"`), variant);
-    }
+    // The rail summary (from 1536 px) and the bar (below it) carry the same props.
+    assert.ok(page.includes('<PanelSelectionSummary'));
+    assert.ok(page.includes('<PanelSelectionBar'));
+    assert.match(bar, /2xl:hidden/);
+    assert.ok(!page.includes('variant='));
 
-    // Ids and test ids live on the static copy only.
+    // Ids and test ids live on the bar only.
     assert.equal([...page.matchAll(/:rule-id=/g)].length, 1);
     assert.equal([...page.matchAll(/:test-id=/g)].length, 1);
+
+    // Create claim is an outline row button (36 px, 44 px below 1024), the menu keeps View invoice.
+    assert.match(page, /Create claim for invoice/);
+    assert.match(page, /Actions for invoice/);
+    assert.match(page, /Actions for claim/);
+    // Daniel: "Filters (n)" on the button, "n filters applied" beside Reset.
+    assert.match(page, /filters? applied|filter\{\{/);
 });
 
 test('the selection never hides an error or the Panel rule', () => {
-    assert.match(selection, /role="alert"/);
-    assert.match(selection, /role="status"/);
-    assert.match(selection, /\{\{ ruleLine \}\}/);
-    assert.match(selection, /aria-busy/);
-    assert.match(selection, /Loader2/);
-    // The details of a bulk claim sit in main, not in the summary.
-    assert.ok(!selection.includes('Each invoice gets its own'));
+    for (const part of [selection, bar]) {
+        assert.match(part, /role="alert"/);
+        assert.match(part, /role="status"/);
+        assert.match(part, /\{\{ ruleLine \}\}/);
+        assert.match(part, /aria-busy/);
+        assert.match(part, /Loader2/);
+        assert.ok(!part.includes('Each invoice gets its own'));
+    }
+
+    assert.match(bar, /aria-live="polite"/);
+    // "Create N claims" opens a dialog holding the date, remarks, rules and errors; Confirm runs the Classic logic.
+    assert.match(page, /bulkDialogOpen/);
+    assert.match(page, /@confirm="createSelectedClaims\(\)"/);
     assert.match(page, /Each invoice gets its own Submitted claim/);
+    assert.match(page, /\(across pages\)/);
 });

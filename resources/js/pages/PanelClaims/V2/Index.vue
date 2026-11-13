@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import PanelClaimFilterFields from '@/components/panel-v2/PanelClaimFilterFields.vue';
+import PanelSelectionBar from '@/components/panel-v2/PanelSelectionBar.vue';
 import PanelSelectionSummary from '@/components/panel-v2/PanelSelectionSummary.vue';
 import PanelSummaryBlock from '@/components/panel-v2/PanelSummaryBlock.vue';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -122,14 +123,30 @@ const current = computed(() =>
     invoiceMode.value ? props.work.eligible : props.work.claims,
 );
 
+const bulkDialogOpen = ref(false);
+watch(
+    () => selectedRows.value.length,
+    (count) => {
+        if (count === 0) {
+            bulkDialogOpen.value = false;
+        }
+    },
+);
+// Ticked claims that are not all on the page being shown (the pack selection is kept across pages).
+const packAcrossPages = computed(
+    () =>
+        packRows.value.length >
+        props.work.claims.data.filter((row) => packSelected.value[row.publicId])
+            .length,
+);
+
 const selection = computed(() => {
     if (invoiceMode.value && selectedRows.value.length > 0) {
         const count = selectedRows.value.length;
 
         return {
             title: `${count} invoice${count === 1 ? '' : 's'} selected`,
-            panel: selectedPanel.value,
-            totalText: myr(selectedTotalSen.value),
+            detail: `${selectedPanel.value} · ${myr(selectedTotalSen.value)}`,
             primaryLabel: `Create ${count} claim${count === 1 ? '' : 's'}`,
             clearLabel: 'Clear selection',
             busy: bulk.busy,
@@ -139,12 +156,14 @@ const selection = computed(() => {
                       `${bulkMax} invoices selected, the most for one batch. Create these claims first, then select more.`,
                   ]
                 : [],
-            errors: bulkErrorMessages.value,
+            errors: bulkDialogOpen.value ? [] : bulkErrorMessages.value,
             ruleId: undefined as string | undefined,
             testId: 'bulk-claim-bar',
             primaryTestId: undefined as string | undefined,
             ariaLabel: 'Create claims for the selected invoices',
-            primary: createSelectedClaims,
+            primary: () => {
+                bulkDialogOpen.value = true;
+            },
             clear: clearSelection,
         };
     }
@@ -153,9 +172,8 @@ const selection = computed(() => {
         const count = packRows.value.length;
 
         return {
-            title: `${count} claim${count === 1 ? '' : 's'} selected`,
-            panel: packPanel.value,
-            totalText: myr(packTotalSen.value),
+            title: `${count} claim${count === 1 ? '' : 's'} selected${packAcrossPages.value ? ' (across pages)' : ''}`,
+            detail: `${packPanel.value} · ${myr(packTotalSen.value)}`,
             primaryLabel: 'Print pack',
             clearLabel: 'Clear',
             busy: false,
@@ -177,12 +195,6 @@ const selection = computed(() => {
 
     return null;
 });
-
-const selectInvoiceMenu = (allocationId: string, id: string) => {
-    if (id === 'create-claim') {
-        createClaim(allocationId);
-    }
-};
 </script>
 
 <template>
@@ -328,7 +340,9 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                                         filtersPanelOpen = !filtersPanelOpen
                                     "
                                 >
-                                    More filters
+                                    Filters{{
+                                        filterBadge ? ` (${filterBadge})` : ''
+                                    }}
                                 </button>
                                 <button
                                     type="submit"
@@ -363,23 +377,24 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                         </button>
                     </div>
                 </form>
-                <p
-                    v-if="extraCount > 0 && !filtersPanelOpen"
-                    class="text-[13px] text-muted-foreground max-sm:hidden"
+                <div
+                    v-if="filtersActive && !filtersPanelOpen"
+                    class="flex flex-wrap items-center gap-x-3 text-[13px] text-muted-foreground"
                 >
-                    {{ extraCount }} extra filter{{
-                        extraCount === 1 ? '' : 's'
-                    }}
-                    applied
-                </p>
-                <button
-                    v-if="filtersActive"
-                    type="button"
-                    class="self-start text-sm font-medium text-primary underline-offset-4 hover:underline max-sm:min-h-11 sm:hidden"
-                    @click="resetFilters"
-                >
-                    Reset filters
-                </button>
+                    <span
+                        >{{ filterBadge }} filter{{
+                            filterBadge === 1 ? '' : 's'
+                        }}
+                        applied</span
+                    >
+                    <button
+                        type="button"
+                        class="min-h-11 text-sm font-medium text-primary underline-offset-4 hover:underline lg:min-h-9"
+                        @click="resetFilters"
+                    >
+                        Reset
+                    </button>
+                </div>
 
                 <p
                     v-if="!invoiceMode && packError"
@@ -600,17 +615,24 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                                 {{ row.remarkNote }}
                             </td>
                             <td data-actions class="text-right">
-                                <V2RowMenu
-                                    :label="`More actions for invoice ${row.invoiceNumber}`"
-                                    :groups="invoiceMenuGroups(row.invoiceUrl)"
-                                    show-label
-                                    @select="
-                                        selectInvoiceMenu(
-                                            row.allocationId,
-                                            $event,
-                                        )
-                                    "
-                                />
+                                <div
+                                    class="flex items-center justify-end gap-2 max-xl:justify-between"
+                                >
+                                    <button
+                                        type="button"
+                                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-3 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-xl:flex-1 lg:h-9"
+                                        :aria-label="`Create claim for invoice ${row.invoiceNumber}`"
+                                        @click="createClaim(row.allocationId)"
+                                    >
+                                        Create claim
+                                    </button>
+                                    <V2RowMenu
+                                        :label="`Actions for invoice ${row.invoiceNumber}`"
+                                        :groups="
+                                            invoiceMenuGroups(row.invoiceUrl)
+                                        "
+                                    />
+                                </div>
                             </td>
                         </tr>
                     </template>
@@ -795,41 +817,6 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                     "
                 />
 
-                <!-- What a bulk claim or a claim pack does: kept out of the summary so it stays short. -->
-                <section
-                    v-if="invoiceMode && selectedRows.length > 0"
-                    class="grid gap-3 rounded-[14px] border bg-card p-4"
-                    aria-label="Details of the bulk claim"
-                >
-                    <p class="text-[13px] text-muted-foreground">
-                        Each invoice gets its own Submitted claim at its
-                        approved amount, all with the same submitted date.
-                        Submit them on the Panel's portal yourself; KPOne sends
-                        nothing. Add photos on each claim page afterwards. If
-                        any invoice cannot be claimed, no claim is created. At
-                        most {{ bulkMax }} invoices at a time.
-                    </p>
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <label class="grid min-w-0 gap-1 text-sm font-medium"
-                            >Submitted date
-                            <DateField
-                                v-model="bulk.submittedDate"
-                                :min="minSubmittedDate || undefined"
-                                :max="work.branch.today"
-                                :echo="false"
-                            />
-                        </label>
-                        <label class="grid min-w-0 gap-1 text-sm font-medium"
-                            >Remarks (optional)
-                            <input
-                                v-model="bulk.remarks"
-                                maxlength="500"
-                                placeholder="The same remark goes on every claim"
-                                class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9"
-                            />
-                        </label>
-                    </div>
-                </section>
                 <p
                     v-if="!invoiceMode && packRows.length > 0"
                     class="text-[13px] text-muted-foreground"
@@ -839,12 +826,10 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                     selection is kept when you change page.
                 </p>
 
-                <PanelSelectionSummary
+                <PanelSelectionBar
                     v-if="selection"
-                    variant="static"
                     :title="selection.title"
-                    :panel="selection.panel"
-                    :total-text="selection.totalText"
+                    :detail="selection.detail"
                     :primary-label="selection.primaryLabel"
                     :clear-label="selection.clearLabel"
                     :busy="selection.busy"
@@ -858,32 +843,14 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                     @primary="selection.primary"
                     @clear="selection.clear"
                 />
-                <PanelSelectionSummary
-                    v-if="selection"
-                    variant="bar"
-                    :title="selection.title"
-                    :panel="selection.panel"
-                    :total-text="selection.totalText"
-                    :primary-label="selection.primaryLabel"
-                    :clear-label="selection.clearLabel"
-                    :busy="selection.busy"
-                    :rule-line="selection.ruleLine"
-                    :notices="selection.notices"
-                    :errors="selection.errors"
-                    :label="selection.ariaLabel"
-                    @primary="selection.primary"
-                    @clear="selection.clear"
-                />
             </template>
 
             <template #rail>
                 <PanelSummaryBlock :summary="work.summary" />
                 <PanelSelectionSummary
                     v-if="selection"
-                    variant="rail"
                     :title="selection.title"
-                    :panel="selection.panel"
-                    :total-text="selection.totalText"
+                    :detail="selection.detail"
                     :primary-label="selection.primaryLabel"
                     :clear-label="selection.clearLabel"
                     :busy="selection.busy"
@@ -896,6 +863,51 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                 />
             </template>
         </V2WorkLayout>
+
+        <V2Dialog
+            v-model:open="bulkDialogOpen"
+            :title="`Create ${selectedRows.length} claim${selectedRows.length === 1 ? '' : 's'}`"
+            :confirm-label="`Create ${selectedRows.length} claim${selectedRows.length === 1 ? '' : 's'}`"
+            :busy="bulk.busy"
+            @confirm="createSelectedClaims()"
+        >
+            <div class="grid gap-3">
+                <p class="text-[13px] text-muted-foreground">
+                    Each invoice gets its own Submitted claim at its approved
+                    amount, all with the same submitted date. Submit them on the
+                    Panel's portal yourself; KPOne sends nothing. Add photos on
+                    each claim page afterwards. If any invoice cannot be
+                    claimed, no claim is created. At most {{ bulkMax }} invoices
+                    at a time.
+                </p>
+                <label class="grid min-w-0 gap-1 text-sm font-medium"
+                    >Submitted date
+                    <DateField
+                        v-model="bulk.submittedDate"
+                        :min="minSubmittedDate || undefined"
+                        :max="work.branch.today"
+                        :echo="false"
+                    />
+                </label>
+                <label class="grid min-w-0 gap-1 text-sm font-medium"
+                    >Remarks (optional)
+                    <input
+                        v-model="bulk.remarks"
+                        maxlength="500"
+                        placeholder="The same remark goes on every claim"
+                        class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9"
+                    />
+                </label>
+                <p
+                    v-for="message in bulkErrorMessages"
+                    :key="message"
+                    role="alert"
+                    class="text-sm wrap-anywhere text-destructive"
+                >
+                    {{ message }}
+                </p>
+            </div>
+        </V2Dialog>
 
         <V2Dialog
             v-model:open="sheetOpen"
@@ -925,7 +937,7 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                     class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                     @click="resetFilters"
                 >
-                    Reset filters
+                    Reset
                 </button>
             </div>
         </V2Dialog>
