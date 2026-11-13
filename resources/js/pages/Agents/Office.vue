@@ -215,6 +215,29 @@ watch(selected, async (code) => {
 // Classic (the default look) keeps its sheet, which needs the desktop test and the open flag; Version 2 uses its
 // own side panel (closePanel above).
 const { isV2 } = useUiVersion();
+
+// Version 2 only: say a step in plain words ("Read stock counts for Sungai Besi"), never a tool code or branch code.
+const plainStep = (summary: string): string => {
+    const readMatch = /^Read ([a-z_]+)\.([a-z_]+)(?: for ([A-Z_]+))?$/.exec(
+        summary,
+    );
+
+    if (readMatch === null) {
+        return summary.replace(/\b[A-Z]{2,}(?:_[A-Z]+)+\b/g, (code) =>
+            titleCase(code),
+        );
+    }
+
+    const what = readMatch[2].replace(/_/g, ' ');
+
+    return `Read ${what}${readMatch[3] ? ` for ${titleCase(readMatch[3])}` : ''}`;
+};
+const titleCase = (code: string): string =>
+    code
+        .toLowerCase()
+        .split('_')
+        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+        .join(' ');
 const panelOpen = computed({
     get: () => selected.value !== null,
     set: (value: boolean) => {
@@ -245,7 +268,10 @@ onMounted(() => {
                 title="Agent office"
                 description="Where the AI agents work. Click an agent to see what it is doing."
             />
-            <p class="text-sm text-muted-foreground" data-test="office-notice">
+            <p
+                class="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-foreground"
+                data-test="office-notice"
+            >
                 Everyone in this office is an AI agent, not a member of staff.
                 Agents only suggest; people decide in the approval inbox.
             </p>
@@ -367,7 +393,7 @@ onMounted(() => {
                                     {{ statusFor(agent) }}
                                 </span>
                                 <span
-                                    class="line-clamp-2 text-sm"
+                                    class="line-clamp-3 text-sm"
                                     :title="
                                         agent.currentTask ??
                                         agent.lastStep ??
@@ -567,8 +593,11 @@ onMounted(() => {
                                         :key="index"
                                         class="rounded-[14px] border p-2.5"
                                     >
-                                        <p class="break-words">
-                                            {{ step.summary }}
+                                        <p
+                                            class="break-words"
+                                            :title="step.summary"
+                                        >
+                                            {{ plainStep(step.summary) }}
                                         </p>
                                         <p
                                             class="text-xs text-muted-foreground"

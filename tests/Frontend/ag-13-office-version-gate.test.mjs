@@ -43,3 +43,20 @@ test('the figure draws the original name tag and bubble unless it is told it is 
     // The original tag drawing is still there for Classic.
     assert.match(figure, /Name tag: always says "AI agent"/);
 });
+
+test('Version 2 panel says steps in plain words and wraps long card text', () => {
+    const page = readFileSync('resources/js/pages/Agents/Office.vue', 'utf8');
+    const v2 = page.slice(
+        page.indexOf('<template v-if="isV2">'),
+        page.indexOf('<template v-else>'),
+    );
+    assert.match(page, /const plainStep = /);
+    assert.match(v2, /plainStep\(step\.summary\)/);
+    assert.match(v2, /line-clamp-3/);
+    assert.match(v2, /rounded-lg border border-border bg-muted\/40/);
+    // Classic keeps the raw summary.
+    assert.match(
+        page.slice(page.indexOf('<template v-else>')),
+        /\{\{ step\.summary \}\}/,
+    );
+});
