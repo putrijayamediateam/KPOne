@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
@@ -73,9 +73,11 @@ const deciding = ref<{
 const processing = ref(false);
 const error = ref('');
 const refused = ref(false);
+const message = ref<HTMLElement | null>(null);
 const open = (proposal: ProposalRow, action: 'approve' | 'reject') => {
     deciding.value = { proposal, action };
     error.value = '';
+    refused.value = false;
 };
 const dialogOpen = computed({
     get: () => deciding.value !== null,
@@ -106,6 +108,13 @@ const submit = (reason: string | null) => {
         return;
     }
 
+    // After a refusal the only action left is Close; the list reloads then.
+    if (refused.value) {
+        dialogOpen.value = false;
+
+        return;
+    }
+
     processing.value = true;
     router.post(
         `/agents/inbox/${current.proposal.id}/${current.action}?tab=${props.tab}&page=${props.pagination.page}`,
@@ -125,6 +134,7 @@ const submit = (reason: string | null) => {
                 }
 
                 refused.value = Boolean(errors.lock_version ?? errors.status);
+                nextTick(() => message.value?.focus());
                 error.value = refused.value
                     ? 'Someone has already decided this, or it changed meanwhile. The list was updated.'
                     : (errors.reason ?? 'This decision was not saved.');
@@ -143,8 +153,10 @@ const selectTab = (value: string) =>
     );
 const changePage = (page: number) =>
     router.get(`/agents/inbox?tab=${props.tab}&page=${page}`);
+const decider = (name: string | null) =>
+    name === null || /^Staff #\d+$/.test(name) ? 'another staff member' : name;
 const decidedLine = (proposal: ProposalRow) =>
-    `${proposal.status === 'approved' ? 'Approved' : proposal.status === 'rejected' ? 'Rejected' : 'Closed'} by ${proposal.decidedBy ?? 'a staff member'} · ${formatDateTime(proposal.decidedAt)}`;
+    `${proposal.status === 'approved' ? 'Approved' : proposal.status === 'rejected' ? 'Rejected' : 'Closed'} by ${decider(proposal.decidedBy)} · ${formatDateTime(proposal.decidedAt)}`;
 const lineValue = (proposal: ProposalRow, label: string) =>
     proposal.lines.find((line) => line.label === label)?.value ?? null;
 // "Paracetamol (DEMO-PARA500)": the name is the heading, the code a muted line under it.
@@ -361,15 +373,32 @@ const outline =
                 ? 'Say briefly why. Do not enter patient details.'
                 : 'This records your decision. It does not change stock.'
         "
-        :confirm-label="deciding?.action === 'reject' ? 'Reject' : 'Approve'"
-        :tone="deciding?.action === 'reject' ? 'danger' : 'default'"
+        :confirm-label="
+            refused
+                ? 'Close'
+                : deciding?.action === 'reject'
+                  ? 'Reject'
+                  : 'Approve'
+        "
+        :tone="
+            !refused && deciding?.action === 'reject' ? 'danger' : 'default'
+        "
+        :single-action="refused"
         :reason-label="
-            deciding?.action === 'reject' ? 'Reason for rejecting' : undefined
+            !refused && deciding?.action === 'reject'
+                ? 'Reason for rejecting'
+                : undefined
         "
         :busy="processing"
         @confirm="submit"
     >
-        <p v-if="error" role="alert" class="text-sm text-destructive">
+        <p
+            v-if="error"
+            ref="message"
+            role="alert"
+            tabindex="-1"
+            class="text-sm text-destructive outline-none"
+        >
             {{ error }}
         </p>
     </V2Dialog>

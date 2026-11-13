@@ -34,3 +34,11 @@ test('plainValue turns an upper-case code into a name and leaves other text alon
     assert.match(lib, /titleCaseCode/);
     assert.match(lib, /\^\[A-Z\]\{3,\}\(\?:_\[A-Z\]\+\)\*\$/);
 });
+
+test('V2 inbox: after a refusal the dialog has one Close, focus moves to the message, and a decider id is not shown', () => {
+    const v2 = read('resources/js/pages/Agents/V2/Inbox.vue');
+    assert.match(v2, /:single-action="refused"/);
+    assert.match(v2, /message\.value\?\.focus\(\)/);
+    assert.match(v2, /another staff member/);
+    assert.match(read('resources/js/components/v2/V2Dialog.vue'), /v-if="!singleAction"/);
+});
