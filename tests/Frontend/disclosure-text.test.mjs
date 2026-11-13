@@ -42,3 +42,11 @@ test('the clamp variant switches between single-line truncate and two-line clamp
         /variant === 'clamp-2' \? 'line-clamp-2' : 'truncate'/,
     );
 });
+
+test('the desktop clamp keeps its own display: md:block never sits beside line-clamp-2', () => {
+    assert.match(
+        source,
+        /variant === 'clamp-2'\s*\? 'md:line-clamp-2'\s*: 'md:block truncate'/,
+    );
+    assert.doesNotMatch(source, /focus-visible:outline-none md:block/);
+});
