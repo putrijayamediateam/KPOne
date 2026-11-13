@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import PatientFormV2 from '@/components/patient-v2/PatientFormV2.vue';
 import { PageFrame } from '@/components/ui/page-frame';
+import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2StickySummary from '@/components/v2/V2StickySummary.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
@@ -150,6 +151,20 @@ const saveClass = computed(() => [
         : 'border border-border bg-card text-foreground hover:bg-muted',
 ]);
 const hasAddress = !!props.patient.address.line1;
+const patientUrl =
+    '/patients/' + encodeURIComponent(props.patient.patientNumber);
+// Leaving with unsaved changes asks first (Keep editing / Discard changes). The text typed is never logged or flashed.
+const discardOpen = ref(false);
+const leave = (event: MouseEvent) => {
+    if (dirty.value && !form.processing) {
+        event.preventDefault();
+        discardOpen.value = true;
+    }
+};
+const discard = () => {
+    discardOpen.value = false;
+    router.visit(patientUrl);
+};
 </script>
 
 <template>
@@ -158,13 +173,13 @@ const hasAddress = !!props.patient.address.line1;
         <V2WorkLayout
             title="Edit patient"
             :description="`${patient.identity.fullName} · identifiers are managed separately`"
+            rail-from="xl"
             rail-width="narrow"
         >
             <template #actions>
                 <Link
-                    :href="
-                        '/patients/' + encodeURIComponent(patient.patientNumber)
-                    "
+                    :href="patientUrl"
+                    @click="leave"
                     class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:justify-start max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:text-primary lg:h-9"
                     ><span class="max-sm:hidden">Back to patient</span
                     ><span class="sm:hidden">← Patient</span></Link
@@ -185,6 +200,7 @@ const hasAddress = !!props.patient.address.line1;
                         :original-phone="patient.contact.mobilePhone ?? ''"
                         :original-dob="patient.identity.dateOfBirth ?? ''"
                         :has-address="hasAddress"
+                        @clear="(key: string) => form.clearErrors(key as never)"
                     />
                     <p
                         v-if="formError"
@@ -218,5 +234,15 @@ const hasAddress = !!props.patient.address.line1;
                 </V2StickySummary>
             </template>
         </V2WorkLayout>
+        <V2Dialog
+            :open="discardOpen"
+            title="Discard your changes?"
+            description="What you changed on this page has not been saved."
+            confirm-label="Discard changes"
+            cancel-label="Keep editing"
+            tone="danger"
+            @update:open="(open: boolean) => (discardOpen = open)"
+            @confirm="discard"
+        />
     </PageFrame>
 </template>

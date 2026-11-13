@@ -79,9 +79,7 @@ test('the guardian and adult-confirmation rules are the Classic rules', () => {
         assert.ok(fields.includes(piece), `V2 lacks ${piece}`);
     }
 
-    assert.ok(
-        fields.includes('Date of birth unknown. I confirm the patient is an'),
-    );
+    assert.ok(fields.includes('I confirm this patient is an adult'));
 
     for (const relationship of [
         'mother',
@@ -125,4 +123,27 @@ test('registered, and Classic files are untouched', () => {
     );
     assert.notEqual(diff.status, 1, 'a Classic patient file changed');
     assert.ok(!/console\./.test(page + fields));
+});
+
+test('date of birth is shown in words, the nationality label is plain, errors are plain and clear per field', () => {
+    assert.ok(
+        fields.includes(
+            'Born ${formatDate(fields.date_of_birth)} · age ${age}',
+        ),
+    );
+    assert.ok(fields.includes('a guardian contact is required'));
+    assert.ok(fields.includes(':hint="dobWords"'));
+    assert.ok(fields.includes('Nationality (2-letter country code)'));
+    assert.ok(fields.includes("full_name: 'Enter the full name.'"));
+    assert.ok(fields.includes("sex: 'Choose a gender.'"));
+    assert.ok(fields.includes("emit('clear', key)"));
+    assert.ok(page.includes('form.clearErrors(key as never)'));
+});
+
+test('leaving with unsaved changes asks first, and the rail starts at 1280 px', () => {
+    assert.ok(page.includes('Discard your changes?'));
+    assert.ok(page.includes('Keep editing'));
+    assert.ok(page.includes('Discard changes'));
+    assert.ok(/if \(dirty\.value && !form\.processing\)/.test(page));
+    assert.ok(page.includes('rail-from="xl"'));
 });

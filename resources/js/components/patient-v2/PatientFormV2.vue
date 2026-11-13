@@ -8,6 +8,8 @@ import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import { blankGuardian, knownMinor } from '@/lib/guardian-contact';
+import { ageOn } from '@/lib/patient-v2';
+import { formatDate } from '@/lib/presentation';
 import type { PatientFormValues } from '@/types';
 import type { RegistrationRequirements } from '@/types/registration-settings';
 
@@ -28,8 +30,65 @@ const props = defineProps<{
     errors: Record<string, string | undefined>;
 }>();
 
+const emit = defineEmits<{ clear: [key: string] }>();
 const fields = reactive(props.model);
-const err = (key: string) => props.errors[key];
+
+// A plain sentence for the "required" refusals; the server's own words for anything else (a duplicate, a stale
+// record). `Enter ...` for typed fields, `Choose ...` for a choice.
+const PLAIN_REQUIRED: Record<string, string> = {
+    full_name: 'Enter the full name.',
+    date_of_birth: 'Enter the date of birth.',
+    sex: 'Choose a gender.',
+    nationality_code: 'Enter the 2-letter country code.',
+    mobile_phone: 'Enter a phone number.',
+    email: 'Enter an email address.',
+    address_line_1: 'Enter address line 1.',
+    postcode: 'Enter the postcode.',
+    city: 'Enter the city.',
+    state: 'Enter the state.',
+    country_code: 'Enter the 2-letter country code.',
+    'guardian.relationship': 'Choose the guardian relationship.',
+    'guardian.full_name': 'Enter the guardian full name.',
+    'guardian.phone': 'Enter the guardian phone number.',
+};
+const err = (key: string) => {
+    const message = props.errors[key];
+
+    return message && /\b(is|are) required\b|field is required/i.test(message)
+        ? (PLAIN_REQUIRED[key] ?? message)
+        : message;
+};
+
+// An error goes away as soon as its field is edited.
+for (const key of [
+    'full_name',
+    'date_of_birth',
+    'sex',
+    'nationality_code',
+    'mobile_phone',
+    'phone_country',
+    'email',
+    'address_line_1',
+    'address_line_2',
+    'postcode',
+    'city',
+    'state',
+    'country_code',
+    'adult_confirmed',
+] as const) {
+    watch(
+        () => fields[key],
+        () => emit('clear', key),
+    );
+}
+
+watch(
+    () =>
+        JSON.stringify(
+            fields.guardian ? { ...fields.guardian, retry_key: '' } : null,
+        ),
+    () => emit('clear', 'guardian'),
+);
 
 const genderOptions = [
     { value: 'female', label: 'Female' },
@@ -84,6 +143,20 @@ watch(
     },
 );
 
+// The date of birth decides minor or adult, so it is shown in words under the box and follows the Guardian card.
+const dobWords = computed(() => {
+    const age = ageOn(fields.date_of_birth, props.guardianToday);
+
+    if (age === null) {
+        return 'Date of birth not entered.';
+    }
+
+    return `Born ${formatDate(fields.date_of_birth)} · age ${age}${
+        minor.value
+            ? ' · a guardian contact is required'
+            : ' · no guardian contact is needed'
+    }`;
+});
 const showAdultConfirmation = computed(
     () =>
         !fields.date_of_birth &&
@@ -129,11 +202,13 @@ const inputClass =
                             ? 'Date of birth *'
                             : 'Date of birth'
                     "
+                    :hint="dobWords"
                     :error="err('date_of_birth')"
                 >
                     <template #default="{ id }">
                         <DateField
                             :id="id"
+                            :echo="false"
                             v-model="fields.date_of_birth"
                             :required="
                                 newPatient && requirements?.requireDateOfBirth
@@ -145,8 +220,8 @@ const inputClass =
                 <V2Field
                     :label="
                         newPatient && requirements?.requireNationality
-                            ? 'Nationality (2-letter code) *'
-                            : 'Nationality (2-letter code)'
+                            ? 'Nationality (2-letter country code) *'
+                            : 'Nationality (2-letter country code)'
                     "
                     hint="For example MY"
                     :error="err('nationality_code')"
@@ -188,13 +263,15 @@ const inputClass =
                             />
                         </span>
                         <span class="py-3"
-                            >Date of birth unknown. I confirm the patient is an
-                            adult (18 or older).</span
+                            >I confirm this patient is an adult. This is
+                            recorded.</span
                         >
                     </label>
                     <p class="text-sm text-muted-foreground">
-                        If you are unsure or the patient is a minor, enter a
-                        date of birth. The guardian rule will then apply.
+                        The date of birth is not entered. If you are not sure,
+                        or the patient may be a minor, enter a date of birth
+                        instead; a guardian contact is then required for a
+                        minor.
                     </p>
                     <p
                         v-if="
