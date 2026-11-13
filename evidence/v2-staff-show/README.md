@@ -1,0 +1,1 @@
+Staff detail (V2) in the real app as the demo Director (task-owned DB kpone_ux1_testing, effective DB verified before the first request): 390 dark, 1100 light, 1440 light, plus roles, add assignment, edit assignment and deactivate dialogs at 390 dark and 1440 light. No sideways scroll (scrollWidth equals width at 390, 1100, 1440).
