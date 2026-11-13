@@ -170,3 +170,7 @@ test('only the Classic identifier messages are shown, so a server message cannot
     assert.ok(fn.includes('.value') && fn.includes('.identifiers'));
     assert.ok(!fn.includes('Object.values'));
 });
+
+test('the pending request line keeps a space between the verb and the KP number', () => {
+    assert.ok(/\{\{ ' '\s*\}\}<span class="font-mono">/.test(merge));
+});

@@ -359,9 +359,10 @@ const rows = (summary: Summary) => [
                     <span class="font-medium">{{
                         request.kind === 'merge' ? 'Merge' : 'Unmerge'
                     }}</span>
-                    <span class="font-mono">
-                        {{ request.mergedPatientNumber }}</span
-                    >
+                    {{ ' '
+                    }}<span class="font-mono">{{
+                        request.mergedPatientNumber
+                    }}</span>
                     {{ request.kind === 'merge' ? 'into' : 'from' }}
                     <span class="font-mono">{{
                         request.keptPatientNumber
