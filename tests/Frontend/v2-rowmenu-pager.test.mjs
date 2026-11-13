@@ -58,3 +58,9 @@ test('V2RowMenu: an item with an href is a real link, and busy names the trigger
     assert.match(s, /:open="busy \? false : undefined"/);
     assert.match(s, /animate-spin motion-reduce:animate-none/);
 });
+
+test('V2RowMenu: a group with an empty label renders no heading', () => {
+    const s = read('resources/js/components/v2/V2RowMenu.vue');
+    assert.match(s, /<DropdownMenuLabel\s+v-if="group\.label"/);
+    assert.match(s, /:key="`\$\{index\}-\$\{group\.label\}`"/);
+});
