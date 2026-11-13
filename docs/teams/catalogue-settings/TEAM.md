@@ -256,3 +256,7 @@ Server checks stay the authority; hiding a control is a usability aid only.
    published which amount and when, from the existing versioned price entries.
 5. **CAT-4 Document readiness (authorised, decision 10).** On Business details, show per branch whether the
    name, address, phone or email, logo and footer are complete, because prints and referral letters depend on them.
+- **V2 limit (2026-11-13, PR #727):** `DiscardPrompt.vue` is gone; Medicine, Clinical Service and the Business details tabs
+  use `V2LeaveGuard.ask()`. Browser Back drops unsaved edits: Inertia's popstate remounts the page, so a dirty form is
+  lost with no question. Daniel accepted this as a documented limit; he logs a DD entry and Kavitha builds a stash or
+  prompt inside `V2LeaveGuard`.
