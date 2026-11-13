@@ -409,3 +409,20 @@ test('a refusal shows in words next to the filled button (bar or rail), and that
         2,
     );
 });
+
+test('both scan boxes use the ScanInput options: one short help line, no dead camera button, a visible card border in dark (Daniel)', () => {
+    assert.equal(
+        (template(v2).match(/\bhide-unavailable-camera\b/g) ?? []).length,
+        2,
+    );
+    assert.match(
+        template(v2),
+        /help="Scanning only checks\. It doesn't save anything or check the quantity or batch\."/,
+    );
+    assert.match(template(v2), /help="Scanning only finds the medicine\./);
+    assert.equal(
+        (template(v2).match(/class="dark:border-foreground\/20"/g) ?? [])
+            .length,
+        2,
+    );
+});

@@ -17,19 +17,37 @@ import type { RailFrom } from './railKey';
  * with the buttons at their natural width, so on a wide screen the filled button is not a stretched strip. Below 640px the
  * buttons stack at full width. The bar is sticky in the flow, so the last row of the page is never behind it.
  *
+ * The rule for every page: at any width a page's one filled action appears exactly once, in the header or in the bar,
+ * never both. If the header carries the action from 640px, the page passes `hideFrom="sm"` so the bar disappears at the
+ * same width (`hideFrom` also takes `lg`, `xl` or `2xl`). The page passes it explicitly; without it nothing changes.
+ *
  * Its gutter is `-mx-4` (16px), which must match the 16px page gutter the shell gives V2WorkLayout: change one and you
  * must change the other. For a bar that also shows a selection summary and a reason, use V2SelectionBar.
  */
 const props = withDefaults(
-    defineProps<{ railFrom?: RailFrom; always?: boolean }>(),
-    { railFrom: undefined, always: false },
+    defineProps<{
+        railFrom?: RailFrom;
+        always?: boolean;
+        hideFrom?: 'sm' | RailFrom;
+    }>(),
+    { railFrom: undefined, always: false, hideFrom: undefined },
 );
 
 const layoutRailFrom = inject(V2_RAIL_FROM, null);
 
-const hideFrom = computed(() => {
+const hideClass = computed(() => {
     if (props.always) {
         return '';
+    }
+
+    // An explicit `hideFrom` wins over everything inferred from the layout.
+    if (props.hideFrom) {
+        return {
+            sm: 'sm:hidden',
+            lg: 'lg:hidden',
+            xl: 'xl:hidden',
+            '2xl': '2xl:hidden',
+        }[props.hideFrom];
     }
 
     const from = props.railFrom ?? layoutRailFrom?.value ?? null;
@@ -44,7 +62,7 @@ const hideFrom = computed(() => {
     <div
         data-slot="v2-sticky-bar"
         class="sticky bottom-0 z-10 -mx-4 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
-        :class="hideFrom"
+        :class="hideClass"
     >
         <div
             data-slot="v2-sticky-bar-row"
