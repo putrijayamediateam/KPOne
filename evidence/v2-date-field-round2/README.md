@@ -1,0 +1,1 @@
+V2DateField round 2: weekday prop (off by default; on: '= Fri 11 Dec 2026', off: '= 11 Dec 2026' for 11/12/2026); month-first impossible '12/13/2026' → 'Type the date day first, such as 13 Dec 2026.'; two-digit year → 'Type the full year, such as 2026.'; subject prop: 'Expiry must be on or after 14 Nov 2026.'; calendar button name 'Choose a date for <label>'.
