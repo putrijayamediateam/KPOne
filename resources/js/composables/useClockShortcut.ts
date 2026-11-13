@@ -13,6 +13,15 @@ type ClockState = {
 
 const ATTENDANCE = '/hr/attendance';
 
+// UX-24 (Daniel, 2026-11-13): pages that already carry their own Clock in as the page's button, so the V2 top bar
+// leaves its shortcut out there and a page never shows it twice.
+const OWN_CLOCK = ['/spaces/me', '/hr/roster', ATTENDANCE];
+export const pageHasOwnClock = (url: string): boolean => {
+    const path = url.split('?')[0];
+
+    return OWN_CLOCK.some((own) => path === own || path.startsWith(`${own}/`));
+};
+
 // One shared state for the top-bar button and the phone menu row (DS-12).
 const clock = reactive({
     loaded: false,

@@ -17,7 +17,10 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
-import { useClockShortcut } from '@/composables/useClockShortcut';
+import {
+    pageHasOwnClock,
+    useClockShortcut,
+} from '@/composables/useClockShortcut';
 import { retireAuthenticationHistoryForLogout } from '@/lib/inertia-auth-history-boundary';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
@@ -39,6 +42,10 @@ const accountMenu = computed(() => page.props.workspace?.accountMenu);
 // The top-bar button exists only in the space shell, from 1024 px. This row is its twin: it hides exactly where the
 // button shows (the shell, from 1024 px) and shows everywhere else, so the two are never visible together.
 const inSpaceShell = computed(() => page.url.startsWith('/spaces'));
+// UX-24: the V2 top bar has the same button from 1024 px on every V2 page except the pages with their own Clock in.
+const topBarClock = computed(
+    () => page.props.workspace?.shell != null && !pageHasOwnClock(page.url),
+);
 const {
     load: loadClock,
     press: pressClock,
@@ -74,7 +81,7 @@ const switchSpaces = (enabled: boolean) =>
         <DropdownMenuItem
             v-if="accountMenu?.clock && clockVisible"
             class="cursor-pointer max-lg:min-h-11"
-            :class="{ 'lg:hidden': inSpaceShell }"
+            :class="{ 'lg:hidden': inSpaceShell || topBarClock }"
             data-test="clock-shortcut-row"
             @select="pressClock()"
         >
