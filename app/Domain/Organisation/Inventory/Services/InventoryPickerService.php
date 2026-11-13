@@ -97,10 +97,15 @@ final class InventoryPickerService
         };
         if (trim($search) !== '') {
             $like = '%'.str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], trim($search)).'%';
-            $query->where(function (Builder $q) use ($order, $kind, $like): void {
+            $query->where(function (Builder $q) use ($order, $kind, $context, $like): void {
                 $q->whereRaw($order." ILIKE ? ESCAPE '\\'", [$like]);
                 if (in_array($kind, ['items', 'medicines', 'suppliers'], true)) {
                     $q->orWhereRaw("choice.code ILIKE ? ESCAPE '\\'", [$like]);
+                }
+                // Owner, 2026-11-13 ("fix stock search"): an operations SKU search also matches the item's name, so
+                // typing "Paracetamol" finds its SKUs. The item is already joined for this context; same escaping.
+                if ($kind === 'skus' && $context === 'operations') {
+                    $q->orWhereRaw("item.generic_name ILIKE ? ESCAPE '\\'", [$like]);
                 }
             });
         }
