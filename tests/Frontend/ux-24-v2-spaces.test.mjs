@@ -78,3 +78,18 @@ test('UX-24: the shell defines --v2-topbar-h (the h-16 top bar; 0 in focus mode)
     );
     assert.match(shell, /sticky top-0 z-40 flex h-16/);
 });
+
+test('UX-24 Daniel: the sidebar mark is a small file at first paint; the header actions stack below 360 px, filled first', () => {
+    assert.match(
+        shell,
+        /src="\/kp-mark-56\.png"[\s\S]*?width="28"\s+height="28"/,
+    );
+    assert.match(page, /max-\[359px\]:flex-col max-\[359px\]:items-stretch/);
+    assert.ok(
+        page.indexOf(
+            ':href="primaryAction.href"',
+            page.indexOf('v2-space-head'),
+        ) < page.indexOf('data-test="v2-space-clock"'),
+        'the filled space action comes before Clock in',
+    );
+});

@@ -121,7 +121,14 @@ const crumbsInFrame = computed(() => placed.value.length);
                 href="/"
                 class="flex items-center gap-2 px-3 text-sm font-semibold tracking-tight text-sidebar-foreground"
             >
-                <img src="/kp-mark.png" alt="" class="size-7 object-contain" />
+                <!-- A 56 px copy of the mark (4 KB instead of 758 KB), so it is there at first paint (Daniel). -->
+                <img
+                    src="/kp-mark-56.png"
+                    alt=""
+                    width="28"
+                    height="28"
+                    class="size-7 object-contain"
+                />
                 KPOne
             </Link>
             <V2ShellNav :shell="shell" />

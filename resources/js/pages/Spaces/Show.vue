@@ -548,8 +548,14 @@ const v2Shell = computed(() =>
                             clockVisible &&
                             space.key !== 'me')
                     "
-                    class="flex flex-wrap items-center gap-2 max-sm:w-full [&>*]:max-sm:flex-1"
+                    class="flex flex-wrap items-center gap-2 max-[359px]:flex-col max-[359px]:items-stretch max-sm:w-full [&>*]:max-sm:grow"
                 >
+                    <Link
+                        v-if="primaryAction"
+                        :href="primaryAction.href"
+                        class="inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none lg:h-9"
+                        >{{ primaryAction.title }}</Link
+                    >
                     <!-- Phones and tablets: the clock shortcut sits here, not in the top bar (Daniel). -->
                     <button
                         v-if="
@@ -564,12 +570,6 @@ const v2Shell = computed(() =>
                     >
                         {{ clockLabel }}
                     </button>
-                    <Link
-                        v-if="primaryAction"
-                        :href="primaryAction.href"
-                        class="inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none lg:h-9"
-                        >{{ primaryAction.title }}</Link
-                    >
                 </div>
             </header>
             <div v-else class="space-head">
