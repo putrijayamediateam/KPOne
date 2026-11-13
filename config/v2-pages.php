@@ -23,5 +23,6 @@ return [
         'Patient/Index',
         'Staff/Index',
         'Staff/Show',
+        'Staff/Create',
     ],
 ];
