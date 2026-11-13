@@ -104,6 +104,9 @@ final class HiringMessenger
         return array_values(array_map(fn (\stdClass $row): array => self::shown($row, (string) $application->public_id, $title), $query->get()->all()));
     }
 
+    /** PDPA 15: shown for an interview email once its booking was deleted (6 months after an unsuccessful close). */
+    public const INTERVIEW_PURGED = "The interview details were deleted after the retention period.\nButiran temu duga telah dipadam selepas tempoh simpanan.";
+
     /**
      * One message row as shown, its text rebuilt from the fixed template.
      *
@@ -125,7 +128,14 @@ final class HiringMessenger
         if ($template === 'pick_reminder') {
             $params += ['reference' => self::reference($publicId)];
         }
-        $params += self::interviewParams($template, (int) $row->application_id, (int) ($row->round ?? 0));
+        $interview = self::interviewParams($template, (int) $row->application_id, (int) ($row->round ?? 0));
+        if ($interview === [] && in_array($template, ['interview_confirmed', 'interview_cancelled'], true)) {
+            // PDPA 15: the booking was deleted 6 months after the application closed (Suresh: say so, not an empty body).
+            return ['template' => $template, 'label' => HiringTemplates::label($template), 'recipient' => (string) $row->recipient,
+                'status' => (string) $row->status, 'subject' => HiringTemplates::label($template), 'body' => self::INTERVIEW_PURGED,
+                'at' => CarbonImmutable::parse($row->created_at)->toIso8601String()];
+        }
+        $params += $interview;
         if (in_array($template, self::PICK_TIMES, true) && ($row->choose_by ?? null) !== null) {
             $params += HiringDeadlines::chooseByLabels((string) $row->choose_by);
         }

@@ -233,7 +233,7 @@ class FrontDeskExplainersTest extends QueueTestCase
         $this->assertSame(['question'], array_keys((array) $rows->first()->metadata));
     }
 
-    public function test_a_busy_branch_is_answered_quickly_from_one_bounded_read(): void
+    public function test_a_busy_branch_is_answered_from_one_bounded_read(): void
     {
         $base = $this->entry('2026-11-10 09:00', '2026-11-10 09:10');
         $visit = Visit::query()->findOrFail($base->visit_id)->getAttributes();
@@ -267,11 +267,25 @@ class FrontDeskExplainersTest extends QueueTestCase
         $this->selectBranch($ca);
         $json = $this->ask('front_desk.busiest_hours');
         $this->assertStringStartsWith('Busiest hours, busiest first:', $json['sentence']);
-        // The explainer itself, measured apart from the request (a cold first request pays for booting the app).
-        $started = microtime(true);
-        foreach (['waitsWeek', 'waitsToday', 'busiestHours', 'leftWaiting'] as $method) {
+        // Deterministic bounds on a big branch, with no clock: each explainer reads the queue once, only inside a
+        // window of at most 30 days, and takes a pinned number of queries in all, so a read per entry would fail.
+        $queries = ['waitsWeek' => 0, 'waitsToday' => 0, 'busiestHours' => 0, 'leftWaiting' => 0];
+        foreach ($queries as $method => $_) {
+            DB::enableQueryLog();
+            DB::flushQueryLog();
             app(FrontDeskExplainers::class)->{$method}($ca);
+            $log = DB::getQueryLog();
+            DB::disableQueryLog();
+
+            $reads = array_values(array_filter($log, fn (array $q): bool => str_contains($q['query'], '"queue_entries"') && str_starts_with($q['query'], 'select')));
+            $this->assertCount(1, $reads, $method.' reads the queue once');
+
+            $dates = array_values(array_filter($reads[0]['bindings'], fn ($b): bool => is_string($b) && preg_match('/^\d{4}-\d{2}-\d{2}$/', $b) === 1));
+            $this->assertCount(2, $dates, $method.' reads inside a date window');
+            $days = CarbonImmutable::parse($dates[0])->diffInDays(CarbonImmutable::parse($dates[1]), true);
+            $this->assertLessThanOrEqual(30, $days, $method.' window is at most 30 days');
+
+            $this->assertCount(1, $log, $method.' takes one query in all: '.implode(' | ', array_map(fn (array $q): string => substr($q['query'], 0, 70), $log)));
         }
-        $this->assertLessThan(4.0, microtime(true) - $started);
     }
 }
