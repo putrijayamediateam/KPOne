@@ -552,11 +552,12 @@ const selection = computed(() => {
                                 >
                             </td>
                             <td data-label="Invoice no" class="text-sm">
-                                <span class="block font-mono text-xs">{{
-                                    row.invoiceNumber
-                                }}</span>
                                 <span
-                                    class="block text-xs text-muted-foreground"
+                                    class="block font-mono text-xs max-xl:text-right"
+                                    >{{ row.invoiceNumber }}</span
+                                >
+                                <span
+                                    class="block text-xs text-muted-foreground max-xl:text-right"
                                     >{{ row.panelName }}</span
                                 >
                             </td>
@@ -729,11 +730,12 @@ const selection = computed(() => {
                                 >
                             </td>
                             <td data-label="Claim no" class="text-sm">
-                                <span class="block font-mono text-xs">{{
-                                    row.claimNo
-                                }}</span>
                                 <span
-                                    class="block text-xs text-muted-foreground"
+                                    class="block font-mono text-xs max-xl:text-right"
+                                    >{{ row.claimNo }}</span
+                                >
+                                <span
+                                    class="block text-xs text-muted-foreground max-xl:text-right"
                                     >{{ row.panelName }}</span
                                 >
                             </td>
@@ -788,7 +790,6 @@ const selection = computed(() => {
                                             canMarkSubmitted(row.status),
                                         )
                                     "
-                                    show-label
                                 />
                             </td>
                         </tr>
