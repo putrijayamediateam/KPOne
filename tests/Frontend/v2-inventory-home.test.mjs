@@ -218,3 +218,9 @@ test('V2 Inventory home round 2: no repeated panel heading, inert when closed, V
     // Classic keeps its own unit words.
     assert.match(classic, /\{\{ row\.quantity \}\} \{\{ row\.stockUnit \}\}/);
 });
+
+test('V2 Inventory home: the chosen dates are echoed day first under both date ranges', () => {
+    assert.equal((page.match(/\{\{ dateEcho \}\}/g) ?? []).length, 2);
+    assert.match(page, /formatDate\(dateFrom\.value\)/);
+    assert.match(page, /`\$\{from\} to \$\{to\}`/);
+});

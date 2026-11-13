@@ -27,6 +27,7 @@ import {
 } from '@/composables/useInventoryHome';
 import type { InventoryDirectory } from '@/composables/useInventoryHome';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
+import { formatDate } from '@/lib/presentation';
 import type {
     InventoryOperations,
     InventoryReceiptMemoryContext,
@@ -129,6 +130,18 @@ const units = (quantity: unknown, unit: unknown) => {
 
     return /(s|x|z|ch|sh)$/i.test(name) ? `${name}es` : `${name}s`;
 };
+// The date boxes follow the browser's own format (often month first), so the chosen range is echoed day first:
+// "1 Nov 2026 to 13 Nov 2026".
+const dateEcho = computed(() => {
+    const from = dateFrom.value ? formatDate(dateFrom.value) : '';
+    const to = dateTo.value ? formatDate(dateTo.value) : '';
+
+    if (from && to) {
+        return `${from} to ${to}`;
+    }
+
+    return from ? `From ${from}` : to ? `Up to ${to}` : '';
+});
 // A real minus sign (−40 unit), not a hyphen.
 const minus = (value: unknown) => String(value ?? '').replace(/^-/, '\u2212');
 const sentence = (value: unknown) => {
@@ -354,12 +367,23 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                                 "
                             />
                         </div>
-                        <V2DateRange
+                        <div
                             v-if="inventory.tab === 'movements'"
-                            v-model:from="dateFrom"
-                            v-model:to="dateTo"
-                            label="Movement dates"
-                        />
+                            class="grid gap-1"
+                        >
+                            <V2DateRange
+                                v-model:from="dateFrom"
+                                v-model:to="dateTo"
+                                label="Movement dates"
+                            />
+                            <p
+                                v-if="dateEcho"
+                                class="text-[13px] text-muted-foreground"
+                                aria-live="polite"
+                            >
+                                {{ dateEcho }}
+                            </p>
+                        </div>
                         <label
                             v-if="inventory.tab !== 'stock'"
                             class="grid min-w-48 gap-1 text-xs"
@@ -726,12 +750,20 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                     :expected-branch-id="operations.expectedBranchId"
                 />
             </div>
-            <V2DateRange
-                v-if="inventory.tab === 'movements'"
-                v-model:from="dateFrom"
-                v-model:to="dateTo"
-                label="Movement dates"
-            />
+            <div v-if="inventory.tab === 'movements'" class="grid gap-1">
+                <V2DateRange
+                    v-model:from="dateFrom"
+                    v-model:to="dateTo"
+                    label="Movement dates"
+                />
+                <p
+                    v-if="dateEcho"
+                    class="text-[13px] text-muted-foreground"
+                    aria-live="polite"
+                >
+                    {{ dateEcho }}
+                </p>
+            </div>
             <label
                 v-if="inventory.tab !== 'stock'"
                 class="grid gap-1 text-sm font-medium"
