@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
-import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2MoneyInput from '@/components/v2/V2MoneyInput.vue';
+import V2Picker from '@/components/v2/V2Picker.vue';
 import { rmToSen } from '@/lib/money';
 
 /**
@@ -100,6 +100,19 @@ watch(
         ) as Record<string, number>;
     },
     { deep: true },
+);
+
+const panelOptions = computed(() =>
+    addablePanels.value.map((panel) => ({
+        id: String(panel.id),
+        label: panel.name,
+    })),
+);
+const branchOptions = computed(() =>
+    props.branches.map((branch) => ({
+        id: String(branch.id),
+        label: branch.name,
+    })),
 );
 
 const addPanelOverride = () => {
@@ -263,16 +276,15 @@ const outlineButton =
                         class="flex flex-wrap items-center gap-2"
                     >
                         <div class="min-w-0 flex-1 basis-56">
-                            <OperationalSelect
-                                v-model="selectedNewPanel"
-                                label="Choose Panel to add"
-                                :options="[
-                                    { value: '', label: 'Select a Panel' },
-                                    ...addablePanels.map((panel) => ({
-                                        value: String(panel.id),
-                                        label: panel.name,
-                                    })),
-                                ]"
+                            <V2Picker
+                                :model-value="selectedNewPanel || null"
+                                label="Choose a Panel to add"
+                                placeholder="Select a Panel"
+                                :options="panelOptions"
+                                required
+                                @update:model-value="
+                                    selectedNewPanel = $event ?? ''
+                                "
                             />
                         </div>
                         <button
@@ -323,24 +335,24 @@ const outlineButton =
                 </div>
 
                 <div class="sm:max-w-sm">
-                    <V2Field
-                        v-slot="{ id }"
+                    <V2Picker
+                        :model-value="form.expected_branch_id || null"
                         label="Branch for this price publication"
+                        :selected-label="
+                            branches.find(
+                                (branch) =>
+                                    String(branch.id) ===
+                                    form.expected_branch_id,
+                            )?.name
+                        "
+                        :options="branchOptions"
+                        :disabled="!canPublishPrices"
                         :error="form.errors.expected_branch_id"
-                    >
-                        <OperationalSelect
-                            :id="id"
-                            v-model="form.expected_branch_id"
-                            label="Branch for price publication"
-                            :options="
-                                branches.map((branch) => ({
-                                    value: String(branch.id),
-                                    label: branch.name,
-                                }))
-                            "
-                            :disabled="!canPublishPrices"
-                        />
-                    </V2Field>
+                        required
+                        @update:model-value="
+                            form.expected_branch_id = $event ?? ''
+                        "
+                    />
                 </div>
 
                 <div

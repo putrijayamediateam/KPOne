@@ -2,9 +2,9 @@
 import { computed } from 'vue';
 import CatalogueOptionPicker from '@/components/catalogue/CatalogueOptionPicker.vue';
 import PanelTariffEditor from '@/components/catalogue/PanelTariffEditor.vue';
-import { OperationalSelect } from '@/components/ui/select';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
+import V2Picker from '@/components/v2/V2Picker.vue';
 import type {
     SetupOptions,
     useServiceForm,
@@ -115,21 +115,23 @@ const branchOptions = computed(() =>
                         :class="field(invalid)"
                     />
                 </V2Field>
-                <V2Field
-                    v-slot="{ id }"
+                <V2Picker
+                    :model-value="form.category || null"
                     label="Category (optional)"
                     hint="Use the clinic's invoice category for this service."
+                    placeholder="No category"
+                    :selected-label="form.category || undefined"
+                    :options="
+                        c.categoryOptions.value
+                            .filter((o) => o.value !== '')
+                            .map((o) => ({
+                                id: String(o.value),
+                                label: o.label,
+                            }))
+                    "
                     :error="form.errors.category"
-                >
-                    <OperationalSelect
-                        :id="id"
-                        v-model="form.category"
-                        label="Category (optional)"
-                        placeholder="No category"
-                        :invalid="!!form.errors.category"
-                        :options="c.categoryOptions.value"
-                    />
-                </V2Field>
+                    @update:model-value="form.category = $event ?? ''"
+                />
                 <!-- The shared picker draws its own small label; match the V2 label and mark it required until V2Picker lands. -->
                 <div
                     class="min-w-0 [&_label]:text-sm [&_label]:font-medium [&_label]:text-foreground [&_label]:after:text-destructive [&_label]:after:content-['_*']"
@@ -216,19 +218,26 @@ const branchOptions = computed(() =>
                         Panel price off.
                     </p>
                 </div>
-                <V2Field
-                    v-slot="{ id }"
+                <V2Picker
+                    :model-value="form.expected_branch_id || null"
                     label="Branch used for price publication"
+                    :selected-label="
+                        branchOptions.find(
+                            (o) =>
+                                String(o.value) ===
+                                String(form.expected_branch_id),
+                        )?.label
+                    "
+                    :options="
+                        branchOptions.map((o) => ({
+                            id: String(o.value),
+                            label: o.label,
+                        }))
+                    "
                     :error="form.errors.expected_branch_id"
-                >
-                    <OperationalSelect
-                        :id="id"
-                        v-model="form.expected_branch_id"
-                        label="Branch used for price publication"
-                        :invalid="!!form.errors.expected_branch_id"
-                        :options="branchOptions"
-                    />
-                </V2Field>
+                    required
+                    @update:model-value="form.expected_branch_id = $event ?? ''"
+                />
             </template>
             <p v-else class="text-sm text-muted-foreground">
                 Your account can manage catalogue references but cannot publish
