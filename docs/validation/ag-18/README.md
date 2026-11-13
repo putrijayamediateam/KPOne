@@ -1,6 +1,6 @@
 # AG-18: Version 2 Quick answers, review shots
 
-Code under review: branch `feature/ag-18-v2-quick-answers`, head `1df81f56` (cut from `main` e48ac62d). Classic page
+Code under review: branch `feature/ag-18-v2-quick-answers`, head `313530f4` (merged with `main` 5309b29b). Classic page
 `Agents/Assistant.vue` is unchanged.
 
 - Real Version 2 shell, switched on through `SpacePreferenceService` for the demo Director.
@@ -18,6 +18,9 @@ Code under review: branch `feature/ag-18-v2-quick-answers`, head `1df81f56` (cut
 - `answer-doctors`: "Patients seen, per doctor" (a sentence only: no doctor rows in this data).
 - `answer-stock`: "Items at or below reorder level" (a sentence only: nothing to show).
 
+`qa-selected-{1440,390}-{light,dark}.jpg`: one viewport shot (not stitched) with the selected question in view, as Daniel asked. The
+chosen row has a cobalt border and tint and a filled radio, and the radio's own state is `checked` (verified in the browser).
+
 ## Measured
 
 200 OK, no sideways overflow, no console errors and no control under the touch-target size (44 px below 1024, 36 px from 1024, including
@@ -29,7 +32,8 @@ the Branch select) at every width tried. After pressing Answer, focus moves to t
 - The "AI agent" chip sits in the notice line beside "Answered by Dato' Arif".
 - The table is a V2Table with cards below 1280 px; a negative amount uses a real minus sign ("−RM 20.00").
 - The scope line starts with a capital ("All branches · 12 Nov 2026"); the server sends it in lower case.
+- At 1440 px the Branch and Date labels sit on one line and the Answer button lines up with the inputs (fixed after the first review).
 - The sticky top bar shows mid-page in the full-page shots because the page scrolled to the answer before the capture; it is a capture
   artefact, not a layout fault. The shell's "Clock in" button is the HR feature.
-- Opened by the author: 1440 light answer-table, 390 dark answer-stock, 390 light answer-doctors, 1024 dark answer-doctors, 390 dark
+- Opened by the author: qa-selected 1440 light and dark, qa-selected 390 light, 1440 light answer-table, 390 dark answer-stock, 390 light answer-doctors, 1024 dark answer-doctors, 390 dark
   answer-table. The other files were produced by the same script and not opened.
