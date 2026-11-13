@@ -3,6 +3,7 @@ import { usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref, watch } from 'vue';
 import InventoryPickerField from '@/components/inventory-v2/InventoryPickerField.vue';
 import ReceiveSheet from '@/components/inventory-v2/ReceiveSheet.vue';
+import ReceivingReviewsSection from '@/components/inventory-v2/ReceivingReviewsSection.vue';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
@@ -601,6 +602,11 @@ const shortCloseRow = computed(() => shortClose.row);
                 </template>
             </V2Table>
         </section>
+
+        <ReceivingReviewsSection
+            :branch-id="operations.expectedBranchId"
+            :nonce="receiptMemoryContext.sessionNonce"
+        />
     </div>
 
     <!-- Add supplier (short form). -->
