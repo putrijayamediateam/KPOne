@@ -18,6 +18,7 @@ return [
         'Registration/Create',
         'Registration/Show',
         'Registration/Edit',
+        'ClinicManagement/Index',
         'Inventory/Index',
     ],
 ];
