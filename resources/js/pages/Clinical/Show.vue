@@ -542,7 +542,7 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 </p>
             </div>
             <div
-                class="flex flex-wrap items-center justify-end gap-2 text-right text-xs text-muted-foreground"
+                class="flex flex-wrap items-center justify-end gap-2 text-right text-xs text-muted-foreground max-sm:justify-start max-sm:text-left"
             >
                 <Button
                     v-if="
