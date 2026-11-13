@@ -986,7 +986,7 @@ const filledButton =
         <V2Dialog
             :open="pendingTab !== null"
             title="Discard your changes?"
-            description="You have unsaved changes on this tab. Switching tabs will discard them."
+            description="You have unsaved changes on this tab. If you close now, what you entered here is lost."
             confirm-label="Discard changes"
             cancel-label="Keep editing"
             tone="danger"
