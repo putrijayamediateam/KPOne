@@ -1,0 +1,173 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+
+const read = (p) =>
+    readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
+const classic = read('resources/js/pages/Inventory/Index.vue');
+const home = read('resources/js/composables/useInventoryHome.ts');
+const page = read('resources/js/pages/Inventory/V2/Index.vue');
+const registry = read('config/v2-pages.php');
+
+const pairs = (source) =>
+    [
+        ...source.matchAll(
+            /\{\s*value:\s*'([^']*)',\s*label:\s*'([^']*)'\s*\}/g,
+        ),
+    ].map((m) => `${m[1]}=${m[2]}`);
+const block = (source, name) => {
+    const start = source.indexOf(name);
+    assert.ok(start >= 0, name);
+
+    return source.slice(start, source.indexOf('];', start));
+};
+
+test('V2 Inventory home: the same 16 task links, in the same order, as the Classic desktop groups', () => {
+    const desktop = classic.slice(
+        classic.indexOf('lg:grid lg:grid-cols-3'),
+        classic.indexOf('lg:hidden'),
+    );
+    const classicLinks = [
+        ...desktop.matchAll(
+            /href="([^"]+)"[\s\S]*?>\s*([^<]+?)\s*<\/ActionLink/g,
+        ),
+    ].map((m) => `${m[1]}=${m[2]}`);
+    const v2Links = [
+        ...block(home, 'inventoryTaskGroups = ').matchAll(
+            /href:\s*'([^']+)',\s*label:\s*'([^']+)'/g,
+        ),
+    ].map((m) => `${m[1]}=${m[2]}`);
+
+    assert.equal(classicLinks.length, 16);
+    assert.deepEqual(v2Links, classicLinks);
+
+    // The controlled register link needs the same permission in both.
+    for (const source of [classic, home]) {
+        assert.ok(
+            source.includes("'inventory.controlled_register.view.branch'"),
+        );
+    }
+
+    assert.match(
+        home,
+        /canViewControlledRegister\s*\?\s*\[\s*\{\s*href: '\/inventory\/controlled-register'/,
+    );
+});
+
+test('V2 Inventory home: same route, query keys and tab rules as Classic', () => {
+    const classicVisit = classic.slice(
+        classic.indexOf('const visit ='),
+        classic.indexOf('const changeTab'),
+    );
+    const v2Visit = home.slice(
+        home.indexOf('const visit ='),
+        home.indexOf('const changeTab'),
+    );
+
+    for (const source of [classicVisit, v2Visit]) {
+        assert.match(source, /router\.get\(\s*'\/inventory'/);
+        assert.match(source, /preserveState: true/);
+        assert.match(source, /replace: true/);
+    }
+
+    const keys = (source) =>
+        [
+            ...source.matchAll(
+                /^\s*(tab|search|location|status|movement_type|date_from|date_to|batch)[,:]/gm,
+            ),
+        ].map((m) => m[1]);
+    assert.deepEqual(keys(v2Visit), keys(classicVisit));
+    assert.deepEqual(keys(v2Visit), [
+        'tab',
+        'search',
+        'location',
+        'status',
+        'movement_type',
+        'date_from',
+        'date_to',
+        'batch',
+    ]);
+
+    // Status off on Movements, movement type and dates only on Movements, batch off on Stock.
+    assert.match(v2Visit, /status:\s*tab === 'movements' \? undefined/);
+    assert.match(v2Visit, /movement_type:\s*tab === 'movements'/);
+    assert.match(v2Visit, /date_from:\s*tab === 'movements'/);
+    assert.match(v2Visit, /date_to:\s*tab === 'movements'/);
+    assert.match(v2Visit, /batch:\s*tab === 'stock' \? undefined/);
+
+    for (const source of [classic, home]) {
+        assert.match(source, /visit\(\{ tab, page: 1 \}\)/);
+        assert.match(source, /applyFilters = \(\) => visit\(\{ page: 1 \}\)/);
+    }
+});
+
+test('V2 Inventory home: same status and movement filter values as Classic, and the same tab values', () => {
+    assert.deepEqual(
+        pairs(block(home, 'inventoryStatusOptions = ')),
+        pairs(block(classic, 'const statusOptions = ')),
+    );
+    assert.deepEqual(
+        pairs(block(home, 'inventoryMovementOptions = ')),
+        pairs(block(classic, 'const movementOptions = ')),
+    );
+
+    const tabValues = (source, name) =>
+        [...block(source, name).matchAll(/value: '(\w+)'/g)].map((m) => m[1]);
+    assert.deepEqual(
+        tabValues(home, 'inventoryTabs = '),
+        tabValues(classic, 'const tabs = '),
+    );
+});
+
+test('V2 Inventory home: same props, the Classic hold label rule, and the Classic panels unchanged', () => {
+    for (const prop of [
+        'inventory:',
+        'operations:',
+        'receiptMemoryContext:',
+        'referenceData:',
+        'errors?:',
+    ]) {
+        assert.ok(page.includes(prop), `V2 prop ${prop}`);
+        assert.ok(classic.includes(prop), `Classic prop ${prop}`);
+    }
+
+    assert.match(
+        home,
+        /formatInventoryHoldLabel\(formatInventoryReason\(row\.holdReason\)\)/,
+    );
+    assert.match(
+        page,
+        /<InventoryOperationsPanel\s+:operations="operations"\s+:receipt-memory-context="receiptMemoryContext"/,
+    );
+    assert.match(
+        page,
+        /<InventoryReferenceDataPanel\s+:reference-data="referenceData"/,
+    );
+    assert.match(
+        page,
+        /:expected-branch-id="\s*operations\.expectedBranchId\s*"/,
+    );
+    assert.match(page, /:per-page="25"/);
+});
+
+test('V2 Inventory home: uses the V2 blocks, is registered, and Classic does not import V2', () => {
+    for (const blockName of [
+        'V2WorkLayout',
+        'V2Tabs',
+        'V2Toolbar',
+        'V2Table',
+        'V2Chip',
+        'V2Pager',
+        'V2DisclosureBar',
+    ]) {
+        assert.ok(page.includes(`components/v2/${blockName}.vue`), blockName);
+    }
+
+    assert.match(page, /PageFrame/);
+    assert.match(page, /usePageCrumbs\(\(\) => \[\{ title: 'Inventory' \}\]\)/);
+    assert.match(registry, /'Inventory\/Index',/);
+    assert.ok(
+        !classic.includes('components/v2') &&
+            !classic.includes('useInventoryHome'),
+    );
+});
