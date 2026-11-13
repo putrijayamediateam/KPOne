@@ -1,0 +1,1 @@
+Staff create V2: weak password refused with the server's words ('The password field must be at least 12 characters.'), boxes emptied; confirmation mismatch ('The password field confirmation does not match.'). Rule beside the field from StoreStaffRequest: min 12, mixed case, letters, numbers, symbols.
