@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
+import OlderRecordsSection from '@/components/inventory-v2/OlderRecordsSection.vue';
 import OrdersSection from '@/components/inventory-v2/OrdersSection.vue';
+import ReorderSection from '@/components/inventory-v2/ReorderSection.vue';
 import RequestsSection from '@/components/inventory-v2/RequestsSection.vue';
 import StockPanelBar from '@/components/inventory-v2/StockPanelBar.vue';
 import { Input } from '@/components/ui/input';
@@ -709,14 +710,13 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                 >
                     <RequestsSection :operations="operations" />
                 </V2DisclosureBar>
-                <StockPanelBar title="Reorder levels and older records">
-                    <InventoryOperationsPanel
-                        :operations="operations"
-                        :receipt-memory-context="receiptMemoryContext"
-                        hide-orders
-                        hide-requests
-                    />
-                </StockPanelBar>
+                <!-- Page 2c: reorder levels, alerts and the read-only older records; the Classic panel is no longer shown here. -->
+                <V2DisclosureBar title="Reorder levels and alerts" keep-mounted>
+                    <ReorderSection :operations="operations" />
+                </V2DisclosureBar>
+                <V2DisclosureBar title="Older records (read only)">
+                    <OlderRecordsSection :operations="operations" />
+                </V2DisclosureBar>
                 <StockPanelBar
                     v-if="referenceData.canManage"
                     title="Stock setup"
