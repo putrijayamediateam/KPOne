@@ -28,3 +28,14 @@ Clock shortcut:
 - **The header below 360 px:** the filled space action is full width on top, with Clock in under it, both 44 px. From
   360 px they share one row.
 - The 320 px shot also shows the top bar with the menu, search, branch switcher and avatar all present.
+
+**clock/ (item 4, on the merged tree, after #666):** Management, Director, clocked out, at 390 and 1440 px in light and
+dark.
+- `1440-*-1-dialog`: the top-bar "Clock in" opens "About clock-in photos". `-2-after-not-now`: "Not now" (pressed
+  from the keyboard) closes it, nothing is recorded (the clock state stays "out"), and focus is back on the top-bar
+  control.
+- `390-*-1-dialog`: the account menu row opens it. `-2-after-not-now`: focus goes back to the account menu button,
+  because the row closed with the menu.
+- `390-*-3-header-dialog`: the phone header "Clock in". `-4-header-after`: focus is back on that button.
+
+Before this fix, focus fell to the page after "Not now" from the menu row; the shared clock press now returns it.
