@@ -16,6 +16,7 @@ const squash = (t) => t.replace(/\s+/g, '').replace(/,([)\]}])/g, '$1');
 
 test('InventoryServicesSettings/Suppliers is registered and the V2 page uses the V2 blocks', () => {
     assert.match(registry, /'InventoryServicesSettings\/Suppliers'/);
+
     for (const block of [
         '<V2WorkLayout',
         '<PageFrame',
