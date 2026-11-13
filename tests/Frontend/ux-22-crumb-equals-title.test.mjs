@@ -54,10 +54,12 @@ test('UX-22: a one-item crumb that repeats the page title is dropped; longer tra
 test('UX-22: the shell reads the page h1 after each page change, and the rule gates drawing', () => {
     assert.match(api, /watch\(\(\) => page\.url, readTitle\);/);
     assert.match(api, /onMounted\(readTitle\);/);
+    // A visually hidden h1 (Registration, Queue) never hides the only visible label (Sofia).
     assert.match(
         api,
-        /document\s+\.querySelector\('\[data-test="v2-shell"\] h1'\)/,
+        /document\s+\.querySelector\('\[data-test="v2-shell"\] h1:not\(\.sr-only\)'\)/,
     );
+    assert.match(api, /watch\(\(\) => page\.props, readTitle\);/);
     assert.match(
         squash(api),
         /!repeatsTitle\(context\.trail\.value, context\.pageTitle\.value\) && !context\.hidden\.value/,

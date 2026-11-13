@@ -71,12 +71,14 @@ export function providePageCrumbs(
         void nextTick(() => {
             pageTitle.value =
                 document
-                    .querySelector('[data-test="v2-shell"] h1')
+                    .querySelector('[data-test="v2-shell"] h1:not(.sr-only)')
                     ?.textContent?.trim() ?? '';
         });
 
     onMounted(readTitle);
+    // Re-read on every page change, and when the same page gets new props (a reload that can change its h1).
     watch(() => page.url, readTitle);
+    watch(() => page.props, readTitle);
     const trail = computed<PageCrumb[]>(() => {
         if (pageCrumbs.value && pageCrumbs.value.length > 0) {
             return pageCrumbs.value;
