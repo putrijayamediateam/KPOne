@@ -183,7 +183,20 @@ test('Due now wording: amount, pay later still owed, nothing due', () => {
     );
     assert.equal(d(state({ deferred: 5000 })), 'Pay later owed RM 50.00');
     assert.equal(d(state()), 'Nothing due');
-    assert.match(page, /text-\[32px\][^"]*tabular-nums/);
+    const parts = (x) => JSON.parse(JSON.stringify(helper.billingDueParts(x)));
+    assert.equal(parts(null), null);
+    assert.deepEqual(parts(state({ due_now: 4000 })), {
+        label: 'Due now',
+        figure: 'RM 40.00',
+    });
+    assert.deepEqual(parts(state({ deferred: 5000 })), {
+        label: 'Pay later owed',
+        figure: 'RM 50.00',
+    });
+    assert.deepEqual(parts(state()), { label: null, figure: 'Nothing due' });
+    // The label line and the figure share one element; the figure never wraps in the 1280 px rail.
+    assert.match(page, /text-3xl[^"]*whitespace-nowrap tabular-nums/);
+    assert.doesNotMatch(page, /text-\[32px\]/);
 });
 
 test('the right column starts at 1280 px; the main action is never missing at any width', () => {

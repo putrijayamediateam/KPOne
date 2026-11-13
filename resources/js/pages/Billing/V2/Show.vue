@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Check } from '@lucide/vue';
+import { Check, ChevronDown } from '@lucide/vue';
 import { createReusableTemplate, useMediaQuery } from '@vueuse/core';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
@@ -43,6 +43,7 @@ import { useBillingWorkspaceV2 } from '@/composables/billing/useBillingWorkspace
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import {
     billingDueLine,
+    billingDueParts,
     billingPrimary,
     billingPrimaryLabel,
 } from '@/lib/billing-v2';
@@ -146,6 +147,9 @@ const chip = (status: string, tone?: 'neutral') => {
     };
 };
 
+const dueParts = computed(() =>
+    billingDueParts(props.billing.invoice?.state ?? null),
+);
 const dueLine = computed(() =>
     billingDueLine(props.billing.invoice?.state ?? null),
 );
@@ -273,11 +277,21 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         <V2Chip v-bind="chip(billing.invoice.status)" />
                     </div>
                     <!-- Due now first: whose bill is in the page heading above. -->
+                    <!-- One element, so a screen reader reads the label with the figure ("Due now RM 40.00"). -->
                     <p
-                        class="mt-3 text-[32px] leading-[1.1] font-bold tracking-tight tabular-nums"
+                        v-if="dueParts"
+                        class="mt-3"
                         data-testid="billing-due-now"
                     >
-                        {{ dueLine }}
+                        <span
+                            v-if="dueParts.label"
+                            class="block text-[13px] font-medium text-muted-foreground"
+                            >{{ dueParts.label }}
+                        </span>
+                        <span
+                            class="block text-3xl leading-[1.15] font-bold tracking-tight whitespace-nowrap tabular-nums"
+                            >{{ dueParts.figure }}</span
+                        >
                     </p>
                     <dl
                         class="mt-3 text-[15px]"
@@ -380,9 +394,14 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         class="mt-3 text-[13px]"
                     >
                         <summary
-                            class="flex min-h-11 cursor-pointer items-center font-medium lg:min-h-0"
+                            class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-[10px] border border-border px-3 font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9 [&::-webkit-details-marker]:hidden"
                         >
-                            Billing help
+                            How to settle this invoice
+                            <ChevronDown
+                                class="size-4 transition-transform [details[open]_&]:rotate-180"
+                                aria-hidden="true"
+                            />
+                            <span class="sr-only">(opens below)</span>
                         </summary>
                         <p
                             class="mt-2 rounded-[10px] bg-muted p-3 text-muted-foreground"

@@ -67,3 +67,20 @@ export const billingDueLine = (state: BillingState | null): string | null => {
         ? `Pay later owed ${myr(state.deferred)}`
         : 'Nothing due';
 };
+
+/** The same figure split for the summary: a small label line above a large amount (Daniel: nothing wraps in the rail). */
+export const billingDueParts = (
+    state: BillingState | null,
+): { label: string | null; figure: string } | null => {
+    if (!state) {
+        return null;
+    }
+
+    if (state.due_now > 0) {
+        return { label: 'Due now', figure: myr(state.due_now) };
+    }
+
+    return state.deferred > 0
+        ? { label: 'Pay later owed', figure: myr(state.deferred) }
+        : { label: null, figure: 'Nothing due' };
+};
