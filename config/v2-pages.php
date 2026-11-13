@@ -24,6 +24,7 @@ return [
         'PaymentMethods/Index',
         'Pricing/Index',
         'Agents/Inbox',
+        'Agents/Index',
         'Patient/Show',
         'HR/Roster',
         'ClinicManagement/Index',
