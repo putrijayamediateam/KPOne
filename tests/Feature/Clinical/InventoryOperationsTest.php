@@ -553,6 +553,25 @@ class InventoryOperationsTest extends ClinicalTestCase
         $this->assertSame(['publicId', 'code', 'stockUnit', 'name'], array_keys($row));
     }
 
+    public function test_references_sku_rows_name_the_item_and_unit_and_keep_skus_of_inactive_items(): void
+    {
+        // V2 page 2d (Daniel): Stock setup names the item and its stock unit beside each SKU, and finds it by the item name.
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $fixture = $this->inventoryFixture($supervisor, 'REFNAME');
+        $picker = app(InventoryPickerService::class);
+        $row = fn (string $search) => collect($picker->choices($supervisor, $this->branch, 'skus', 'references', $search))->firstWhere('publicId', $fixture['sku']->public_id);
+
+        $this->assertSame(['publicId', 'skuCode', 'inventoryItemId', 'stockUnit', 'itemName'], array_keys($row('REFNAME-SKU')));
+        $this->assertSame($fixture['sku']->stock_unit, $row('REFNAME-SKU')['stockUnit']);
+        $this->assertSame($fixture['sku']->item->generic_name, $row('REFNAME-SKU')['itemName']);
+        $this->assertNotNull($row('synthetic refname item'));
+        $this->assertNull($row('Synthetic%Item'));
+        // A left join: the SKU of an inactive item is still offered, as before.
+        DB::table('inventory_items')->where('id', $fixture['sku']->inventory_item_id)->update(['is_active' => false]);
+        $this->assertNotNull($row('REFNAME-SKU'));
+    }
+
     public function test_stock_request_branch_source_cannot_be_overridden_by_warehouse_authority(): void
     {
         $supervisor = $this->actor('ca_supervisor');
