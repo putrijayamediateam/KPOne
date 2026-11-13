@@ -51,6 +51,7 @@ type HistoryRow = {
     credit_amount_sen: number | null;
     lock_version: number;
     created_at: string;
+    at_local?: string;
 };
 type ReturnRow = {
     id: number;
@@ -739,7 +740,7 @@ watch(
                             step.action
                         }}
                         by {{ step.actor_name ?? 'Staff member' }} ·
-                        {{ step.created_at }}
+                        {{ step.at_local ?? step.created_at }}
                         <span v-if="step.reason_code">
                             ·
                             {{
