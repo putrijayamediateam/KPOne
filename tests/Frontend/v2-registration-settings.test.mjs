@@ -58,6 +58,12 @@ test('V2 has one save, filled only when something changed, and no native checkbo
     assert.ok(v2.includes("title: 'Clinic management'"));
 });
 
+test('V2 says next to Save when the change takes effect', () => {
+    assert.ok(
+        v2.includes('Applies to new registrations from the moment you save.'),
+    );
+});
+
 test('Classic imports nothing from V2', () => {
     assert.ok(!/\/V2\//.test(classic));
 });

@@ -178,6 +178,13 @@ const filledButton =
                         Registration settings saved.
                     </p>
 
+                    <p
+                        class="text-sm text-muted-foreground"
+                        data-test="applies-note"
+                    >
+                        Applies to new registrations from the moment you save.
+                    </p>
+
                     <V2StickyBar always>
                         <button
                             type="submit"
