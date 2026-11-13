@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { LoaderCircle, TriangleAlert } from '@lucide/vue';
-import { computed, onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import {
@@ -28,9 +28,14 @@ const props = defineProps<{
     /** Q-4b: the held consultation this control sits on; a refusal returns there instead of the queue board. */
     fromVisit?: string;
 }>();
-const emit = defineEmits<{ processing: [busy: boolean] }>();
+const emit = defineEmits<{
+    processing: [busy: boolean];
+    dialog: [open: boolean];
+}>();
 
 const open = ref(false);
+// V2: the page pauses its 3 s poll while this dialog is open.
+watch(open, (value) => emit('dialog', value));
 const confirmed = ref<CallNextCandidate | null>(null);
 const confirmedDoctorId = ref<number | null>(null);
 const gone = ref(false);

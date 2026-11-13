@@ -4,7 +4,6 @@ import { Volume2, VolumeX } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
-import QueueCallDialog from '@/components/queue/QueueCallDialog.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
 import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
 import CallNextV2 from '@/components/queue-v2/CallNextV2.vue';
@@ -27,6 +26,7 @@ import type {
     QueueBoardProps,
     QueueTab,
 } from '@/composables/queue/useQueueBoardV2';
+import { formatDate } from '@/lib/presentation';
 import { needsAttention, rowMenu, rowStatus } from '@/lib/queue-v2';
 import type { PatientBoardRow, QueueRow } from '@/types';
 
@@ -36,7 +36,23 @@ import type { PatientBoardRow, QueueRow } from '@/types';
  * (`composables/queue/useQueueBoardV2.ts`), kept equal by `ui-v2-queue-parity.test.mjs`.
  */
 const props = defineProps<QueueBoardProps>();
-const board = useQueueBoardV2(props);
+const dialogKind = ref<
+    'call' | 'notReady' | 'ready' | 'cancel' | 'treatmentCall' | null
+>(null);
+const dialogRow = ref<PatientBoardRow | null>(null);
+const treatmentDialogKey = ref<string | null>(null);
+const sheetOpen = ref(false);
+const callNextOpen = ref(false);
+// The 3 s poll waits while a menu, dialog or sheet is open, so nothing moves under a hand.
+const overlayOpen = () =>
+    dialogKind.value !== null ||
+    sheetOpen.value ||
+    callNextOpen.value ||
+    treatmentDialogKey.value !== null ||
+    document.querySelector(
+        '[data-slot="v2-row-menu"][aria-expanded="true"]',
+    ) !== null;
+const board = useQueueBoardV2(props, { paused: overlayOpen });
 const {
     roomSaving,
     roomError,
@@ -52,8 +68,6 @@ const {
     isApplyingFilters,
     error,
     busyKey,
-    callRow,
-    callOpen,
     draftFilters,
     doctorOptions,
     urgencyOptions,
@@ -62,18 +76,14 @@ const {
     applyFilters,
     selectTab,
     clearFilters,
-    requestCall,
     recall,
     refreshBoard,
     finishCall,
+    refreshFailedAt,
+    receivedAt,
     openConsultation,
 } = board;
 
-const dialogKind = ref<
-    'notReady' | 'ready' | 'cancel' | 'treatmentCall' | null
->(null);
-const dialogRow = ref<PatientBoardRow | null>(null);
-const treatmentDialogKey = ref<string | null>(null);
 const rowsWithMenu = computed(() =>
     boardRows.value.map((row) => ({
         row,
@@ -96,11 +106,27 @@ const roomName = computed(
         )?.name ?? null,
 );
 const changingRoom = ref(false);
-const sheetOpen = ref(false);
+const updatedAt = computed(() =>
+    new Date(receivedAt.value).toLocaleTimeString('en-MY', {
+        hour: 'numeric',
+        minute: '2-digit',
+        timeZone: live.value.branch.timezone,
+    }),
+);
 const filterBadge = computed(
     () =>
         [draftFilters.doctor_id, draftFilters.priority].filter(Boolean).length,
 );
+const carryOverLabel = (operationalDate: string) => {
+    const [y, m, d] = live.value.operationalDate.split('-').map(Number);
+    const yesterday = new Date(Date.UTC(y, m - 1, d - 1))
+        .toISOString()
+        .slice(0, 10);
+
+    return operationalDate === yesterday
+        ? 'From yesterday'
+        : `From ${formatDate(operationalDate)}`;
+};
 const onTabChange = (value: string) => selectTab(value as QueueTab);
 const viewRow = (visitNumber: string) => {
     const row = document.querySelector<HTMLElement>(
@@ -111,7 +137,7 @@ const viewRow = (visitNumber: string) => {
     row?.focus({ preventScroll: true });
 };
 const openDialog = (
-    kind: 'notReady' | 'ready' | 'cancel' | 'treatmentCall',
+    kind: 'call' | 'notReady' | 'ready' | 'cancel' | 'treatmentCall',
     row: PatientBoardRow,
 ) => {
     dialogRow.value = row;
@@ -132,7 +158,7 @@ const selectItem = (item: { row: PatientBoardRow }, id: string) => {
 
     switch (target.action) {
         case 'call':
-            requestCall(item.row);
+            openDialog('call', item.row);
             break;
         case 'recall':
             recall(item.row);
@@ -188,6 +214,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                     :branch-id="live.branch.id"
                     :busy="busyKey !== null"
                     :refresh="refreshBoard"
+                    @dialog="callNextOpen = $event"
                     @processing="busyKey = $event ? 'call-next' : null"
                 />
             </template>
@@ -271,10 +298,6 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                         class="text-xs text-muted-foreground"
                         >Call In stays blocked until you do, so the TV can tell
                         patients where to go.</span
-                    >
-                    <span v-else class="text-xs text-muted-foreground"
-                        >The TV shows this room when you call a patient
-                        in.</span
                     >
                     <InputError :message="roomError" />
                 </div>
@@ -376,7 +399,17 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                 : 'Branch scope'
                         }}
                     </p>
-                    <p role="status">Live · every 3 seconds</p>
+                    <p
+                        role="status"
+                        :class="refreshFailedAt ? 'text-warning-strong' : ''"
+                        data-testid="live-line"
+                    >
+                        <template v-if="refreshFailedAt"
+                            >Live refresh paused. Showing last successful
+                            results ({{ updatedAt }}).</template
+                        >
+                        <template v-else>Live · every 3 seconds</template>
+                    </p>
                 </div>
 
                 <V2Table
@@ -505,6 +538,18 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                         />
                                         <V2Chip
                                             v-if="
+                                                item.entry.operationalDate !==
+                                                live.operationalDate
+                                            "
+                                            tone="neutral"
+                                            :label="
+                                                carryOverLabel(
+                                                    item.entry.operationalDate,
+                                                )
+                                            "
+                                        />
+                                        <V2Chip
+                                            v-if="
                                                 item.row.priority === 'urgent'
                                             "
                                             tone="danger"
@@ -617,7 +662,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                         :aria-label="`Call in ${item.row.queueNumber ?? ''} ${item.row.patientName}`"
                                         @click="
                                             !item.row.callHold?.active &&
-                                            requestCall(item.row)
+                                            openDialog('call', item.row)
                                         "
                                     >
                                         Call in
@@ -755,13 +800,6 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
             </button>
         </div>
     </V2Dialog>
-    <QueueCallDialog
-        v-model:open="callOpen"
-        :row="callRow"
-        :branch-id="live.branch.id"
-        @processing="busyKey = $event"
-        @finished="finishCall"
-    />
     <QueueRowDialogs
         :kind="dialogKind"
         :row="dialogRow"
@@ -769,6 +807,6 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
         :treatment-rooms="treatmentRooms"
         @busy="busyKey = $event ? (dialogRow?.key ?? null) : null"
         @close="dialogKind = null"
-        @changed="refresh(1, 1, false)"
+        @changed="finishCall"
     />
 </template>

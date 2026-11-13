@@ -50,7 +50,15 @@ export type QueueBoardProps = {
     } | null;
 };
 
-export function useQueueBoardV2(props: QueueBoardProps) {
+export type QueueBoardOptions = {
+    /** True while a menu, dialog or sheet is open: the 3 s poll then waits, so nothing jumps under a hand. */
+    paused?: () => boolean;
+};
+
+export function useQueueBoardV2(
+    props: QueueBoardProps,
+    options: QueueBoardOptions = {},
+) {
     const roomSaving = ref(false);
     const roomError = ref('');
     const roomOptions = computed(() => [
@@ -153,6 +161,8 @@ export function useQueueBoardV2(props: QueueBoardProps) {
     const pollingLifecycle = createQueuePollingLifecycle();
     const receivedAt = ref(Date.now());
     const clockNow = ref(Date.now());
+    /** V2 only: when the last automatic refresh failed (null while refreshes work), for the visible notice. */
+    const refreshFailedAt = ref<Date | null>(null);
 
     watch(
         () => props.snapshot,
@@ -317,6 +327,13 @@ export function useQueueBoardV2(props: QueueBoardProps) {
                     return;
                 }
 
+                // V2 only: wait while something is open, then ask again on the next tick.
+                if (options.paused?.()) {
+                    schedule();
+
+                    return;
+                }
+
                 refresh(
                     live.value.waiting.currentPage,
                     live.value.carryOver.currentPage,
@@ -383,6 +400,7 @@ export function useQueueBoardV2(props: QueueBoardProps) {
                 );
                 receivedAt.value = Date.now();
                 failures = 0;
+                refreshFailedAt.value = null;
                 await readyAlerts
                     .poll(live.value.branch.id, request.signal)
                     .catch(() => undefined);
@@ -401,6 +419,7 @@ export function useQueueBoardV2(props: QueueBoardProps) {
                     )
                 ) {
                     failures += 1;
+                    refreshFailedAt.value = new Date();
                     operationalError.value ||=
                         'Live Queue could not be refreshed. Retrying…';
                 }
@@ -657,6 +676,7 @@ export function useQueueBoardV2(props: QueueBoardProps) {
     });
 
     return {
+        refreshFailedAt,
         roomSaving,
         roomError,
         roomOptions,

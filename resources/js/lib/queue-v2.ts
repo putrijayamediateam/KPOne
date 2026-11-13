@@ -16,7 +16,8 @@ export type RowStatus = { label: string; tone: ChipTone };
 export const rowStatus = (row: PatientBoardRow): RowStatus => {
     const label = row.statusLabel
         .replace('Serving Now', 'Serving now')
-        .replace('On Hold', 'On hold');
+        .replace('On Hold', 'On hold')
+        .replace(' · carry-over', '');
 
     switch (row.statusTone) {
         case 'serving':
@@ -205,17 +206,22 @@ export const rowMenu = (
 export const waitRingMinutes = (row: PatientBoardRow): number | null =>
     row.waitingMinutes ?? null;
 
+export type AttentionChip = { tone: ChipTone; label: string };
+
 export type AttentionItem = {
     id: string;
     visitNumber: string;
+    /** Queue number, or the visit number when there is none. */
     label: string;
     patientName: string;
-    /** Why the row needs attention, in words. */
-    reasons: string[];
+    /** "97 min · very long wait" when the wait is 60 minutes or more, otherwise ''. */
+    waitText: string;
+    /** Flags in words: not ready, treatment done, held over 30 minutes. */
+    chips: AttentionChip[];
 };
 
 /**
- * "Needs attention" from the rows on screen only (the panel says so), one item per patient: a very long wait (60
+ * "Needs attention" from the entries on screen only (the panel says so), one item per patient: a very long wait (60
  * minutes, as the waiting ring), a "not ready to call" flag, a treatment step done and ready to resume, and a held
  * consultation over 30 minutes.
  */
@@ -223,38 +229,29 @@ export const needsAttention = (rows: PatientBoardRow[]): AttentionItem[] => {
     const items: AttentionItem[] = [];
 
     for (const row of rows) {
-        const reasons: string[] = [];
+        const chips: AttentionChip[] = [];
         const minutes = waitRingMinutes(row);
-
-        if (minutes !== null && minutes >= 60) {
-            reasons.push(`${minutes} min · very long wait`);
-        }
+        const veryLong = minutes !== null && minutes >= 60;
 
         if (row.callHold?.active) {
-            reasons.push(
-                `Not ready to call: ${row.callHold.reason ?? 'no reason recorded'}`,
-            );
+            chips.push({
+                tone: 'warning',
+                label: `Not ready — ${row.callHold.reason ?? 'no reason recorded'}`,
+            });
         }
 
         if (row.treatmentProgress?.state === 'done') {
-            reasons.push(
-                `${row.treatmentProgress.label ?? 'Treatment'} done · ready to resume`,
-            );
+            chips.push({
+                tone: 'info',
+                label: `${row.treatmentProgress.label ?? 'Treatment'} done · ready to resume`,
+            });
         }
 
-        if (
-            row.statusTone === 'held' &&
-            row.durationLabel &&
-            /^On hold/i.test(row.durationLabel)
-        ) {
-            const held = /(\d+)\s*min/.exec(row.durationLabel);
-
-            if (held && Number(held[1]) > 30) {
-                reasons.push(`${row.durationLabel} · held over 30 minutes`);
-            }
+        if (row.statusTone === 'held' && /30\+/.test(row.statusLabel)) {
+            chips.push({ tone: 'warning', label: 'On hold over 30 minutes' });
         }
 
-        if (reasons.length === 0) {
+        if (!veryLong && chips.length === 0) {
             continue;
         }
 
@@ -263,7 +260,8 @@ export const needsAttention = (rows: PatientBoardRow[]): AttentionItem[] => {
             visitNumber: row.visitNumber,
             label: row.queueNumber ?? row.visitNumber,
             patientName: row.patientName,
-            reasons,
+            waitText: veryLong ? `${minutes} min · very long wait` : '',
+            chips,
         });
     }
 

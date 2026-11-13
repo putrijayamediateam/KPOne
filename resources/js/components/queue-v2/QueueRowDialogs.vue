@@ -7,14 +7,14 @@ import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import type { PatientBoardRow, QueueRow } from '@/types';
 
 /**
- * Version 2 dialogs for a Queue board row: "Mark not ready", "Ready to be called", "Cancel visit" and "Call to a
+ * Version 2 dialogs for a Queue board row: "Call this patient" (with the override reason for a not-ready flag), "Mark not ready", "Ready to be called", "Cancel visit" and "Call to a
  * treatment room", on `V2Dialog`. Same endpoints, payload keys, lock versions and idempotency key as the Classic ones
- * (`components/queue/CallReadinessActions.vue`, `components/patient-board/VisitCancellationDialog.vue` and the
+ * (`components/queue/QueueCallDialog.vue`, `components/queue/CallReadinessActions.vue`, `components/patient-board/VisitCancellationDialog.vue` and the
  * treatment-room box in `pages/Queue/Index.vue`), which stay untouched. Only the filled Confirm of "Cancel visit" is
  * destructive.
  */
 const props = defineProps<{
-    kind: 'notReady' | 'ready' | 'cancel' | 'treatmentCall' | null;
+    kind: 'call' | 'notReady' | 'ready' | 'cancel' | 'treatmentCall' | null;
     row: PatientBoardRow | null;
     branchId: number;
     treatmentRooms?: Array<{ id: number; name: string }>;
@@ -28,6 +28,7 @@ const NOT_READY_REASONS: Array<[string, string]> = [
     ['other_administrative', 'Other administrative'],
 ];
 const reason = ref('');
+const overrideReason = ref('');
 const roomId = ref<string | number>('');
 const error = ref('');
 const busy = ref(false);
@@ -39,6 +40,7 @@ watch(
     () => [props.kind, props.row?.key],
     () => {
         reason.value = '';
+        overrideReason.value = '';
         error.value = '';
         key = '';
         roomId.value =
@@ -47,7 +49,7 @@ watch(
                 : '';
     },
 );
-watch(reason, () => {
+watch([reason, overrideReason], () => {
     key = '';
 });
 
@@ -175,12 +177,57 @@ const callToRoom = () => {
     );
 };
 
+const callIn = () => {
+    const row = props.row!;
+    const entry = row.source as QueueRow;
+
+    if (row.callHold?.active && !overrideReason.value) {
+        error.value = 'Select a reason to override the flag.';
+
+        return;
+    }
+
+    key ||= crypto.randomUUID();
+    busy.value = true;
+    emit('busy', true);
+    error.value = '';
+    let succeeded = false;
+    router.patch(
+        `/visits/${encodeURIComponent(row.visitNumber)}/queue/call`,
+        {
+            expected_branch_id: props.branchId,
+            visit_lock_version: entry.visitLockVersion,
+            queue_lock_version: entry.queueLockVersion,
+            ...(row.callHold?.active
+                ? {
+                      override_reason: overrideReason.value,
+                      call_hold_id: row.callHold.id,
+                      call_hold_lock_version: row.callHold.lockVersion,
+                      idempotency_key: key,
+                  }
+                : {}),
+        },
+        {
+            preserveScroll: true,
+            onError: (errors) => {
+                error.value = Object.values(errors)[0] ?? 'Call In failed.';
+            },
+            onSuccess: () => {
+                succeeded = true;
+            },
+            onFinish: () => finish(succeeded),
+        },
+    );
+};
+
 const confirm = (cancellationReason: string | null) => {
     if (busy.value) {
         return;
     }
 
-    if (props.kind === 'cancel') {
+    if (props.kind === 'call') {
+        callIn();
+    } else if (props.kind === 'cancel') {
         cancel(cancellationReason);
     } else if (props.kind === 'treatmentCall') {
         callToRoom();
@@ -190,6 +237,8 @@ const confirm = (cancellationReason: string | null) => {
 };
 const title = computed(() => {
     switch (props.kind) {
+        case 'call':
+            return 'Call this patient?';
         case 'cancel':
             return 'Cancel visit';
         case 'ready':
@@ -205,6 +254,8 @@ const title = computed(() => {
 });
 const description = computed(() => {
     switch (props.kind) {
+        case 'call':
+            return 'Confirm that you want to call this patient for consultation.';
         case 'cancel':
             return `${props.row?.patientName}${props.row?.queueNumber ? `, ${props.row.queueNumber}` : ''}. The visit is removed from the queue and cannot be undone.`;
         case 'ready':
@@ -220,7 +271,9 @@ const confirmLabel = computed(() =>
         ? 'Cancel visit'
         : props.kind === 'treatmentCall'
           ? 'Call to room'
-          : 'Confirm',
+          : props.kind === 'call'
+            ? 'Call patient'
+            : 'Confirm',
 );
 </script>
 
@@ -237,7 +290,41 @@ const confirmLabel = computed(() =>
         @update:open="(value) => !value && emit('close')"
         @confirm="confirm"
     >
-        <p v-if="kind === 'ready'" class="text-sm break-words">
+        <template v-if="kind === 'call'">
+            <div v-if="row" class="rounded-[14px] border bg-muted/40 px-4 py-3">
+                <p class="font-medium text-foreground">{{ row.patientName }}</p>
+                <p class="mt-1 text-xs text-muted-foreground">
+                    <span class="whitespace-nowrap">{{ row.queueNumber }}</span>
+                    · {{ row.patientNumber }}
+                </p>
+            </div>
+            <div v-if="row?.callHold?.active" class="grid gap-2 text-sm">
+                <p class="break-words">
+                    Not ready to call: {{ row.callHold.reason }}. Choose a
+                    reason to call anyway.
+                </p>
+                <OperationalSelect
+                    v-model="overrideReason"
+                    label="Reason to call anyway"
+                    placeholder="Select a reason"
+                    :options="[
+                        {
+                            value: 'patient_is_urgent',
+                            label: 'Patient is urgent',
+                        },
+                        {
+                            value: 'issue_resolved_verbally',
+                            label: 'Issue resolved verbally',
+                        },
+                        {
+                            value: 'patient_at_door',
+                            label: 'Patient is at the door',
+                        },
+                    ]"
+                />
+            </div>
+        </template>
+        <p v-else-if="kind === 'ready'" class="text-sm break-words">
             {{ row?.callHold?.reason }}
         </p>
         <V2OptionGroup

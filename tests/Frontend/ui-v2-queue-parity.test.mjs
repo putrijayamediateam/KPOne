@@ -67,13 +67,32 @@ const SHARED = [
     'handleVisibility',
 ];
 
+// The only V2 additions inside shared handlers: the poll waits while an overlay is open, and a failed refresh is
+// remembered for the visible notice. Everything else must equal Classic.
+const V2_ONLY = [
+    squash(`// V2 only: wait while something is open, then ask again on the next tick.
+        if (options.paused?.()) { schedule(); return; }`),
+    squash('refreshFailedAt.value = null;'),
+    squash('refreshFailedAt.value = new Date();'),
+];
+const withoutV2Additions = (text) =>
+    V2_ONLY.reduce((out, piece) => out.replace(piece, ''), text);
+
 test('every shared handler of the V2 queue logic equals the Classic one, statement for statement', () => {
     for (const name of SHARED) {
         assert.equal(
-            block(v2, name, '    '),
+            withoutV2Additions(block(v2, name, '    ')),
             block(classic, name, ''),
             `${name} is the same in Classic and V2`,
         );
+    }
+});
+
+test('the V2 additions are exactly the pause while an overlay is open and the failed-refresh time', () => {
+    const body = squash(v2);
+
+    for (const piece of V2_ONLY) {
+        assert.equal(body.split(piece).length - 1, 1, piece);
     }
 });
 
@@ -147,5 +166,6 @@ test('Call next in V2 keeps the Classic payload keys and refusal handling', () =
 
 test('the V2 queue page uses only the existing queue endpoints, never a new route', () => {
     assert.doesNotMatch(page, /router\.(post|put|patch|delete)\(/);
-    assert.match(page, /useQueueBoardV2\(props\)/);
+    assert.match(page, /useQueueBoardV2\(props, \{ paused: overlayOpen \}\)/);
+    assert.doesNotMatch(page, /QueueCallDialog|VisitCancellationDialog/);
 });
