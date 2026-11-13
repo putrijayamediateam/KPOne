@@ -321,8 +321,10 @@ const fieldAnnouncedErrors = new Set(['submitted_date', 'remarks', 'photos']);
                             "
                         >
                             <p class="mb-3 text-sm text-muted-foreground">
-                                Drop photos here or choose files. JPG and PNG,
-                                max 5 MB each; up to 10 photos.
+                                <span class="max-lg:hidden"
+                                    >Drop photos here or choose files.
+                                </span>
+                                JPG and PNG, max 5 MB each; up to 10 photos.
                             </p>
                             <FileChooseButton
                                 id="photos"
