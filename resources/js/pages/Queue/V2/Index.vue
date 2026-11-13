@@ -13,6 +13,7 @@ import QueueRowDialogs from '@/components/queue-v2/QueueRowDialogs.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
 import V2RowMenu from '@/components/v2/V2RowMenu.vue';
@@ -95,6 +96,11 @@ const roomName = computed(
         )?.name ?? null,
 );
 const changingRoom = ref(false);
+const sheetOpen = ref(false);
+const filterBadge = computed(
+    () =>
+        [draftFilters.doctor_id, draftFilters.priority].filter(Boolean).length,
+);
 const onTabChange = (value: string) => selectTab(value as QueueTab);
 const viewRow = (visitNumber: string) => {
     const row = document.querySelector<HTMLElement>(
@@ -286,7 +292,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                         <template #filters>
                             <div
                                 v-if="live.scope === 'branch'"
-                                class="w-44 max-sm:w-full"
+                                class="hidden w-44 sm:block"
                             >
                                 <OperationalSelect
                                     v-model="draftFilters.doctor_id"
@@ -294,7 +300,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                     :options="doctorOptions"
                                 />
                             </div>
-                            <div class="w-44 max-sm:w-full">
+                            <div class="hidden w-44 sm:block">
                                 <OperationalSelect
                                     v-model="draftFilters.priority"
                                     label="Urgency"
@@ -304,6 +310,15 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                         </template>
                         <template #primary>
                             <div class="flex gap-2 max-sm:w-full">
+                                <button
+                                    type="button"
+                                    class="inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
+                                    @click="sheetOpen = true"
+                                >
+                                    Filters{{
+                                        filterBadge ? ` (${filterBadge})` : ''
+                                    }}
+                                </button>
                                 <button
                                     type="submit"
                                     class="inline-flex h-11 flex-1 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:flex-none lg:h-9"
@@ -699,6 +714,47 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
         </V2WorkLayout>
     </PageFrame>
 
+    <V2Dialog
+        v-model:open="sheetOpen"
+        title="Filters"
+        confirm-label="Apply"
+        cancel-label="Close"
+        @confirm="
+            sheetOpen = false;
+            applyFilters();
+        "
+    >
+        <div class="grid gap-3">
+            <label
+                v-if="live.scope === 'branch'"
+                class="grid gap-1 text-sm font-medium"
+                >Doctor
+                <OperationalSelect
+                    v-model="draftFilters.doctor_id"
+                    label="Doctor"
+                    :options="doctorOptions"
+                />
+            </label>
+            <label class="grid gap-1 text-sm font-medium"
+                >Urgency
+                <OperationalSelect
+                    v-model="draftFilters.priority"
+                    label="Urgency"
+                    :options="urgencyOptions"
+                />
+            </label>
+            <button
+                type="button"
+                class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                @click="
+                    sheetOpen = false;
+                    clearFilters();
+                "
+            >
+                Reset filters
+            </button>
+        </div>
+    </V2Dialog>
     <QueueCallDialog
         v-model:open="callOpen"
         :row="callRow"
