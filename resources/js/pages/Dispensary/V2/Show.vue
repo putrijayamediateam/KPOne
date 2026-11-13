@@ -2482,14 +2482,14 @@ const filledButton =
                             size="sm"
                             variant="outline"
                             :disabled="searching || busy"
-                            class="flex-1 sm:flex-none"
+                            class="flex-1 max-lg:min-h-11 sm:flex-none"
                             @click="searchMedicines"
                             ><Plus class="size-4" />Search</Button
                         >
                         <Button
                             size="sm"
                             variant="outline"
-                            class="flex-1 sm:flex-none"
+                            class="flex-1 max-lg:min-h-11 sm:flex-none"
                             :disabled="busy"
                             :aria-expanded="scanAddOpen"
                             :aria-controls="
@@ -2517,7 +2517,7 @@ const filledButton =
                         <Button
                             size="sm"
                             variant="outline"
-                            class="justify-self-start"
+                            class="justify-self-start max-lg:min-h-11"
                             data-action="close-scan-add"
                             @click="closeScanAdd"
                             >Close scan</Button
@@ -2534,14 +2534,20 @@ const filledButton =
                             aria-hidden="true"
                         /><span>{{ scanAddMessage }}</span>
                     </p>
+                    <!-- Daniel: the scan result is announced in words. The polite region stays in the page so a
+                         screen reader hears each new message; it is empty while the allergy alert speaks. -->
                     <p
-                        v-else-if="scanAddMessage"
                         role="status"
                         aria-live="polite"
-                        class="mt-2 text-xs text-muted-foreground"
+                        class="text-sm text-foreground"
+                        :class="
+                            scanAddMessage && !scanAddAllergy
+                                ? 'mt-2'
+                                : 'sr-only'
+                        "
                         data-testid="scan-add-status"
                     >
-                        {{ scanAddMessage }}
+                        {{ scanAddAllergy ? '' : scanAddMessage }}
                     </p>
                     <ul
                         v-if="!chosen && results.length"
@@ -2960,9 +2966,7 @@ const filledButton =
                                     precaution
                                     {{ dispensary.labelLimits?.precaution }},
                                     quantity
-                                    {{
-                                        dispensary.labelLimits?.quantity
-                                    }}
+                                    {{ dispensary.labelLimits?.quantity }}
                                     characters. Dosage, frequency and
                                     instruction share 3 printed rows. Route is
                                     not printed. Printing does not truncate

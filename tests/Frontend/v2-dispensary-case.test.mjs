@@ -291,3 +291,21 @@ test('the V2 allergy warning: icon and "Allergy match:" words, 44 px row with a 
     );
     assert.match(warning, /so always read the full allergy list\./);
 });
+
+test('scan to add (Classic DSP-12, kept for parity): outline 44 px controls below 1024, a polite region that stays in the page, refusals in words beside the box (Daniel)', () => {
+    const add = template(v2).slice(
+        template(v2).indexOf('data-action="scan-to-add"') - 900,
+        template(v2).indexOf('data-testid="scan-add-status"') + 200,
+    );
+    assert.equal((add.match(/max-lg:min-h-11/g) ?? []).length, 3);
+    assert.match(add, /role="status"\s+aria-live="polite"/);
+    assert.ok(!/v-else-if="scanAddMessage"/.test(add));
+    // The scan only fills the Add form's pick: scanToAdd is Classic's (checked by the const test) and never saves.
+    const scanToAdd = consts(v2).get('scanToAdd');
+    assert.ok(!/router\.|saveItem|addItem\(/.test(scanToAdd));
+    // An unknown or inactive code is refused in ScanInput's own status line beside the box, in words.
+    assert.match(
+        read('resources/js/components/inventory/ScanInput.vue'),
+        /result\.status !== 'found' \|\| !result\.sku\.active\) \{\s+show\(scanMessage\(result, props\.context\), true\);/,
+    );
+});
