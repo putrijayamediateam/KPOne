@@ -265,3 +265,15 @@ test('the attention list never uses a multi-column row (it lives only in the nar
     assert.match(list, /in the list`/);
     assert.doesNotMatch(list, />\s*View\s*</);
 });
+
+test('a long flag reason is plain text beside a short chip, never inside a wrapping pill', () => {
+    const lib = readFileSync('resources/js/lib/queue-v2.ts', 'utf8');
+    const list = readFileSync(
+        'resources/js/components/queue-v2/QueueAttentionList.vue',
+        'utf8',
+    );
+
+    assert.match(lib, /label: 'Not ready',\s*detail: row\.callHold\.reason/);
+    assert.doesNotMatch(lib, /Not ready —/);
+    assert.match(list, /chip\.detail/);
+});

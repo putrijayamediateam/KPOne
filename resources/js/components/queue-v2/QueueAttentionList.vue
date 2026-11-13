@@ -58,13 +58,22 @@ const shown = computed(() =>
                         Show in list
                     </button>
                 </div>
-                <span v-if="item.chips.length" class="flex flex-wrap gap-1.5">
-                    <V2Chip
+                <span
+                    v-if="item.chips.length"
+                    class="flex flex-col items-start gap-1.5"
+                >
+                    <span
                         v-for="chip in item.chips"
                         :key="chip.label"
-                        :tone="chip.tone"
-                        :label="chip.label"
-                    />
+                        class="flex flex-wrap items-center gap-x-2 gap-y-0.5"
+                    >
+                        <V2Chip :tone="chip.tone" :label="chip.label" />
+                        <span
+                            v-if="chip.detail"
+                            class="text-[13px] break-words text-muted-foreground"
+                            >{{ chip.detail }}</span
+                        >
+                    </span>
                 </span>
             </li>
         </ul>
