@@ -2,6 +2,7 @@
 import { usePage } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import AppShell from '@/components/AppShell.vue';
+import ClockPhotoDialog from '@/components/hr/attendance/ClockPhotoDialog.vue';
 import { Toaster } from '@/components/ui/sonner';
 import V2AppShell from '@/components/workspace/V2AppShell.vue';
 import { useMainLandmark } from '@/composables/useMainLandmark';
@@ -39,5 +40,7 @@ const shell = computed(() => page.props.workspace?.shell ?? null);
             <slot />
         </div>
         <Toaster v-bind="STAFF_TOAST_PLACEMENT" />
+        <!-- HR-PHOTO: the camera flow is mounted once per layout; V2 pages need it as much as Classic ones. -->
+        <ClockPhotoDialog />
     </AppShell>
 </template>

@@ -117,7 +117,7 @@ test('UX-2 S1-005: the visit history page offers Medical certificates only when 
 test('UX-2 keeps the consultation page entry unchanged (an encounter always exists there)', () => {
     const encounter = read('resources/js/pages/Clinical/Show.vue');
     const anchor = encounter.match(
-        /<a\b[^>]*medical_certificates\.view\.own[\s\S]*?<\/a\s*>/,
+        /<Button\b[^>]*medical_certificates\.view\.own[\s\S]*?<\/Button\s*>/,
     )?.[0];
 
     assert.ok(anchor);
