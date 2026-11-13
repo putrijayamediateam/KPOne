@@ -18,5 +18,6 @@ return [
         'Registration/Create',
         'Registration/Show',
         'Registration/Edit',
+        'Agents/Inbox',
     ],
 ];
