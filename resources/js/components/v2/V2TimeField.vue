@@ -2,9 +2,11 @@
 import { computed, nextTick, ref, watch } from 'vue';
 import {
     TIME_ERROR,
+    TIME_ERROR_AMPM,
     displayFromCanonical,
     parseTime,
     toCanonical,
+    timeProblem,
     toDisplay,
 } from '@/lib/v2-time';
 import V2Field from './V2Field.vue';
@@ -13,11 +15,18 @@ import V2Field from './V2Field.vue';
  * Version 2 time field: a text box that replaces the browser's own time input (whose wheels and 24-hour or 12-hour
  * choice differ on every device). Type "8am", "8:30 pm", "0830" or "14:30"; when the person leaves the box it becomes
  * "8:00 AM", and while they type a plain echo shows what will be saved ("= 8:00 AM"), so nobody has to guess whether
- * "8" meant morning or evening. A number with no AM or PM is read as a 24-hour time ("14" is 2:00 PM, "8" is 8:00 AM).
+ * "8" meant morning or evening.
+ *
+ * Nothing is guessed, because a wrong time is a real error. WITHOUT AM or PM only a clear 24-hour form is accepted: an
+ * hour of 13 to 23 ("14:30", "17"), a leading zero ("0830", "08:30") or midnight ("00:00"). A text that could be read
+ * either way ("5", "5:30", "830", "12") is refused with "Add AM or PM, such as 5 PM." and the model stays empty.
+ * "8am", "8:30 pm", "12am" and "12pm" work.
  *
  * `modelValue` is the CANONICAL 24-hour time "HH:MM" ("08:00"), or '' when empty. It is updated when the person leaves
  * the box or presses Enter. If the text is not a time, the model becomes '' (never a stale time), the box keeps what was
- * typed and says "Enter a time such as 8:00 AM." The page's own `error` wins. The block knows nothing about dates, time
+ * typed and says "Enter a time such as 8:00 AM." (or "Add AM or PM, such as 5 PM."). An empty model after bad text
+ * means the PAGE must block Save and show the field's error: do not fall back to the old time. The page's own `error`
+ * wins. The block knows nothing about dates, time
  * zones, shifts or ranges: whether a time is allowed, and whether an end is after a start, is the page's job.
  *
  * The echo is visual only and is not read on every key press; a polite announcement says the saved time once the person
@@ -38,7 +47,7 @@ const props = withDefaults(
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
 const text = ref(displayFromCanonical(props.modelValue));
-const typedInvalid = ref(false);
+const typedProblem = ref<'ambiguous' | 'invalid' | null>(null);
 const announce = ref('');
 let lastEmitted: string | null = null;
 
@@ -59,7 +68,7 @@ watch(
         }
 
         text.value = displayFromCanonical(value);
-        typedInvalid.value = false;
+        typedProblem.value = null;
     },
 );
 
@@ -76,14 +85,20 @@ const echo = computed(() => {
 });
 
 const shownError = computed(
-    () => props.error ?? (typedInvalid.value ? TIME_ERROR : undefined),
+    () =>
+        props.error ??
+        (typedProblem.value === 'ambiguous'
+            ? TIME_ERROR_AMPM
+            : typedProblem.value
+              ? TIME_ERROR
+              : undefined),
 );
 
 const commit = () => {
     announce.value = '';
 
     if (text.value.trim() === '') {
-        typedInvalid.value = false;
+        typedProblem.value = null;
         send('');
 
         return;
@@ -92,13 +107,13 @@ const commit = () => {
     const parsed = parseTime(text.value);
 
     if (!parsed) {
-        typedInvalid.value = true;
+        typedProblem.value = timeProblem(text.value);
         send('');
 
         return;
     }
 
-    typedInvalid.value = false;
+    typedProblem.value = null;
     text.value = toDisplay(parsed);
     send(toCanonical(parsed));
     // A separate tick, so the announcement is a change even if the same time is committed twice.
@@ -133,7 +148,7 @@ const commit = () => {
                         ? 'border-destructive'
                         : 'border-input hover:border-foreground/60'
                 "
-                @input="typedInvalid = false"
+                @input="typedProblem = null"
                 @blur="commit"
                 @keydown.enter="commit"
             />
