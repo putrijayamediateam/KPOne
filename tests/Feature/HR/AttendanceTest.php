@@ -13,6 +13,7 @@ use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -457,6 +458,60 @@ class AttendanceTest extends VisitTestCase
         DB::table('hr_clock_sessions')->where('user_id', $away->id)->update(['status' => 'missing_out']);
         $this->propose($away, ['kind' => 'add_day', 'branch_id' => $this->branch->id, 'in_time' => '2027-03-09T08:05', 'out_time' => '2027-03-09T10:30', 'reason_code' => 'forgot'])
             ->assertSessionHasErrors(['in_time' => 'There is a clock-in on 9 Mar 2027 with no clock-out. Add its clock-out time instead.']);
+    }
+
+    public function test_attendance_older_than_seven_years_is_purged_with_what_hangs_on_it_and_only_by_the_purge(): void
+    {
+        // Retention (owner, 2026-11-11; the accountant confirms the 7 years before real use). PostgreSQL checks the 7 years
+        // against its own clock, so this test works in real time.
+        $real = CarbonImmutable::createFromTimestamp(time(), 'UTC');
+        $this->travelTo($real->subYears(7)->subDays(30));
+        $ca = $this->actor('ca');
+        $director = $this->actor('director');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $this->travelTo($real->subYears(7)->subDays(30)->addHours(6));
+        $this->clock($ca, 'out')->assertSessionHasNoErrors();
+        $this->travelTo($real->subYears(7)->subDays(20));
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $this->travelTo($real->subYears(7)->subDays(20)->addHours(6));
+        $this->clock($ca, 'out')->assertSessionHasNoErrors();
+        [$old, $held] = ClockSession::query()->orderBy('id')->get()->all();
+        // A recent event on the second session keeps it until that event is 7 years old too.
+        DB::table('hr_clock_events')->insert(['organisation_id' => $this->organisation->id, 'clock_session_id' => $held->id, 'kind' => 'out',
+            'occurred_at' => $held->clock_out_at, 'method' => 'button', 'recorded_by_user_id' => $ca->id, 'created_at' => $real->subYears(6)]);
+        // An old consent goes on its own time.
+        $setting = DB::table('hr_location_check_settings')->insertGetId(['organisation_id' => $this->organisation->id, 'branch_id' => $this->branch->id,
+            'enabled' => true, 'geofence_centre_lat' => 3.1, 'geofence_centre_lng' => 101.7, 'radius_metres' => 150, 'consent_en' => 'x', 'consent_bm' => 'x',
+            'created_by_user_id' => $director->id, 'created_at' => $real->subYears(8)]);
+        DB::table('hr_location_consents')->insert(['organisation_id' => $this->organisation->id, 'user_id' => $ca->id, 'setting_id' => $setting,
+            'acknowledged_at' => $real->subYears(7)->subDays(30)]);
+        $this->travelBack();
+        $this->clock($ca, 'in')->assertSessionHasNoErrors(); // today's session
+        $recent = ClockSession::query()->where('status', 'open')->sole();
+
+        $this->artisan('hr-attendance:purge')->expectsOutputToContain('Deleted 1 clock sessions, 0 corrections and 1 location consents.')->assertSuccessful();
+        $this->assertSame([$held->id, $recent->id], ClockSession::query()->orderBy('id')->pluck('id')->all());
+        $this->assertSame(0, DB::table('hr_clock_events')->where('clock_session_id', $old->id)->count());
+        $this->assertSame(0, DB::table('hr_location_consents')->count());
+        $this->assertSame(1, DB::table('hr_location_check_settings')->count()); // settings versions are kept
+        $this->assertSame([['sessions' => 1, 'corrections' => 0, 'consents' => 1, 'retention_years' => 7]], DB::table('audit_logs')
+            ->where('event', 'hr.attendance.retention_purged')->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
+        $this->artisan('hr-attendance:purge')->expectsOutputToContain('Deleted 0 clock sessions, 0 corrections and 0 location consents.')->assertSuccessful();
+        $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
+            ->filter(fn ($e): bool => str_contains((string) $e->command, 'hr-attendance:purge'))->pluck('expression')->values()->all());
+
+        // Only the purge deletes, and only rows past 7 years by their own time; TRUNCATE stays refused.
+        $this->assertRefused('P0001', fn () => DB::table('hr_clock_sessions')->where('id', $held->id)->delete());
+        $this->assertRefused('P0001', function () use ($held): void {
+            DB::statement("SELECT set_config('kpone.hr_attendance_purge', 'on', true)");
+            DB::table('hr_clock_events')->where('clock_session_id', $held->id)->where('created_at', '>', now()->subYears(7))->delete(); // 6 years old
+        });
+        $this->assertRefused('P0001', function () use ($recent): void {
+            DB::statement("SELECT set_config('kpone.hr_attendance_purge', 'on', true)");
+            DB::table('hr_clock_events')->where('clock_session_id', $recent->id)->delete();
+        });
+        $this->assertRefused('P0001', fn () => DB::statement('TRUNCATE hr_clock_sessions CASCADE'));
+        $this->assertSame(2, ClockSession::query()->count());
     }
 
     public function test_a_waiting_correction_says_when_it_was_sent(): void
