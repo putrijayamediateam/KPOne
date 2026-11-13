@@ -9,7 +9,8 @@ import { computed } from 'vue';
  * `2xl`), and from that width up the bar is hidden. `visible` is the page's own condition (usually "something is
  * ticked"); when it turns false the bar is gone. A polite live region announces `announce` (default: the summary) when
  * the bar appears or the text changes. No selection or action logic lives here: the page handles `action` and
- * `secondary`. 44px targets below 1024px (36px from 1024px), safe-area padding, state in words.
+ * `secondary`. The wrapper is `display: contents` on purpose: the bar is `sticky`, and it can only stick inside the page's
+ * column, not inside a wrapper as tall as itself. Place the block as the last child of that column. 44px targets below 1024px (36px from 1024px), safe-area padding, state in words.
  */
 const props = withDefaults(
     defineProps<{
@@ -45,7 +46,7 @@ const spoken = computed(() =>
 </script>
 
 <template>
-    <div data-slot="v2-selection-bar-region">
+    <div data-slot="v2-selection-bar-region" class="contents">
         <div class="sr-only" role="status" aria-live="polite">
             {{ spoken }}
         </div>

@@ -55,3 +55,7 @@ test('V2SelectionBar: a polite live region that stays mounted and is empty when 
 test('V2SelectionBar: imports nothing from Classic ui', () => {
     assert.doesNotMatch(s, /@\/components\/ui\//);
 });
+
+test('V2SelectionBar: the wrapper is display: contents so the sticky bar sticks inside the page column', () => {
+    assert.match(s, /data-slot="v2-selection-bar-region" class="contents"/);
+});
