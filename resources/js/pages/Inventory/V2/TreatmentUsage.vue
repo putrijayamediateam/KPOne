@@ -278,8 +278,7 @@ const stockRows = computed<KeyValueItem[]>(() => {
 
     return row
         ? [
-              { label: 'Item', value: row.item_name },
-              { label: 'SKU', value: row.sku_code },
+              { label: 'Item', value: `${row.item_name} · ${row.sku_code}` },
               {
                   label: 'Batch',
                   value: `${row.batch_number} (expires ${formatDate(row.expiry_date)})`,
@@ -453,7 +452,7 @@ const wide =
                                         )
                                     }}
                                 </td>
-                                <td data-label="Action">
+                                <td data-actions>
                                     <button
                                         v-if="row.usable"
                                         type="button"
@@ -654,7 +653,7 @@ const wide =
                                             >
                                         </div>
                                     </td>
-                                    <td data-label="Action">
+                                    <td data-actions>
                                         <button
                                             v-if="
                                                 row.canReverse &&
@@ -715,7 +714,7 @@ const wide =
                 </p>
             </div>
 
-            <!-- Record: what, then why, then how much, then the sentence. -->
+            <!-- Record: what, why and how much; the sentence stays pinned just above the buttons while the sheet scrolls (Daniel). -->
             <template v-if="operation === 'record'">
                 <V2KeyValueList :items="stockRows" />
                 <V2OptionGroup
@@ -763,7 +762,7 @@ const wide =
                     >
                 </label>
                 <p
-                    class="rounded-[14px] border bg-muted/40 px-4 py-3 text-sm"
+                    class="sticky bottom-0 z-10 rounded-[14px] border bg-card px-4 py-3 text-sm shadow-sm"
                     role="status"
                 >
                     {{ recordSentence }}

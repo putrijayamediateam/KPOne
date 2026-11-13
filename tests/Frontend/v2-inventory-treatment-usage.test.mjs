@@ -126,3 +126,21 @@ test("page 4: Daniel's plan additions (reverse-only view, privacy, blocked rever
         /<p class="rounded-\[14px\] border bg-muted\/40 px-4 py-3 text-sm">\s+Puts/,
     );
 });
+
+test('page 4 review: the sentence shows with the Record button, and cards drop the Action label', () => {
+    const record = template.slice(
+        template.indexOf('<!-- Record: what, why and how much'),
+        template.indexOf('<!-- Reverse: names the entry'),
+    );
+    // The sentence is pinned just above the buttons, so it stays in view while the sheet scrolls.
+    assert.match(
+        record,
+        /class="sticky bottom-0 z-10[^"]*"\s+role="status"\s*>\s*\{\{ recordSentence \}\}/,
+    );
+    assert.match(
+        block(page, 'stockRows'),
+        /label:'Item',value:`\$\{row\.item_name\}·\$\{row\.sku_code\}`/,
+    );
+    assert.equal((template.match(/<td data-actions>/g) ?? []).length, 2);
+    assert.ok(!template.includes('data-label="Action"'));
+});
