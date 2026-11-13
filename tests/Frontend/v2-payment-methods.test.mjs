@@ -91,8 +91,8 @@ test('V2 wording agreed with Daniel: classification effect, Transaction referenc
     assert.match(v2, /Transaction reference/);
     assert.ok(v2.includes("'Not required'"));
     assert.match(v2, /Code: \{\{ method\.code \}\}/);
-    assert.match(v2, /data-label="Order"\s+class="text-right max-xl:hidden"/);
-    assert.match(v2, /data-label="Status"\s+class="max-xl:hidden"/);
+    assert.match(v2, /data-label="Order"\s+class="text-right max-xl:hidden!"/);
+    assert.match(v2, /data-label="Status"\s+class="max-xl:hidden!"/);
 });
 
 test('V2 warns in words before the last active method of a kind is deactivated, and changes no server rule', () => {

@@ -326,11 +326,11 @@ const onMenu = (method: PaymentMethodRow, id: string) => {
                             </td>
                             <td
                                 data-label="Order"
-                                class="text-right max-xl:hidden"
+                                class="text-right max-xl:hidden!"
                             >
                                 {{ method.sortOrder }}
                             </td>
-                            <td data-label="Status" class="max-xl:hidden">
+                            <td data-label="Status" class="max-xl:hidden!">
                                 <V2Chip
                                     :tone="
                                         method.isActive ? 'success' : 'neutral'
