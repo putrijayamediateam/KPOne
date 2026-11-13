@@ -20,40 +20,14 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  ci:
-    name: ${{ github.event_name == 'repository_dispatch' && 'exact-SHA candidate validation' || 'ci' }}
+  # CI-SPLIT: validates and attests the candidate once, then hands its SHA to the other jobs, so a stale or moved
+  # pull request fails here, in about a minute, before any test runner starts.
+  attest:
+    name: attest
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-
-    services:
-      postgres:
-        image: postgres:18
-        env:
-          POSTGRES_DB: kpone_test
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd="pg_isready -U postgres -d kpone_test"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-
-    env:
-      APP_ENV: testing
-      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
-      DB_CONNECTION: pgsql
-      DB_HOST: 127.0.0.1
-      DB_PORT: 5432
-      DB_DATABASE: kpone_test
-      DB_USERNAME: postgres
-      DB_PASSWORD: postgres
-      DB_SSLMODE: prefer
-      SESSION_DRIVER: array
-      CACHE_STORE: array
-      QUEUE_CONNECTION: sync
-      MAIL_MAILER: array
+    timeout-minutes: 10
+    outputs:
+      candidate_sha: ${{ steps.candidate.outputs.candidate_sha }}
 
     steps:
       - name: Validate pull-request candidate
@@ -558,18 +532,69 @@ jobs:
             exit 1
           fi
 
+      # The one commit every other job checks out and verifies: the pull request head, the exact-SHA request's
+      # commit, or the pushed commit.
+      - name: Publish the attested candidate SHA
+        id: candidate
+        shell: bash
+        env:
+          PR_CANDIDATE_SHA: ${{ steps.validate_pr_candidate.outputs.candidate_sha }}
+          DISPATCH_CANDIDATE_SHA: ${{ steps.validate_candidate.outputs.candidate_sha }}
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          candidate_sha="${PR_CANDIDATE_SHA:-${DISPATCH_CANDIDATE_SHA:-$PUSH_SHA}}"
+          if [[ ! "$candidate_sha" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'The candidate SHA is not a full lowercase 40-character hexadecimal string.' >&2
+            exit 1
+          fi
+          if [[ "$(git rev-parse HEAD)" != "$candidate_sha" ]]; then
+            echo 'The attest job checkout is not the candidate SHA.' >&2
+            exit 1
+          fi
+          echo "candidate_sha=$candidate_sha" >>"$GITHUB_OUTPUT"
+
+  # CI-SPLIT: everything that needs no database: lint, format, types, static analysis, frontend tests and the build.
+  static:
+    name: static
+    needs: attest
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.attest.outputs.candidate_sha }}
+          persist-credentials: false
+
+      - name: Verify HEAD is the attested candidate
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ needs.attest.outputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'The attest job did not output a valid candidate SHA.' >&2
+            exit 1
+          fi
+          actual_sha="$(git rev-parse HEAD)"
+          printf 'Attested candidate: %s\nChecked out HEAD:   %s\n' "$CANDIDATE_SHA" "$actual_sha"
+          if [[ "$actual_sha" != "$CANDIDATE_SHA" ]]; then
+            echo 'This job checked out a commit other than the attested candidate.' >&2
+            exit 1
+          fi
+
       - name: Setup PHP
         uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
         with:
           php-version: '8.4'
           tools: composer:v2
           coverage: none
-
-      - name: Setup Node
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
-        with:
-          node-version: '22'
-          cache: npm
 
       - name: Prepare ephemeral CI environment
         run: cp .env.example .env
@@ -589,14 +614,18 @@ jobs:
       - name: Install PHP dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
-      - name: Install frontend dependencies
-        run: npm ci
-
       - name: Generate Wayfinder routes
         run: php artisan wayfinder:generate --with-form --no-interaction
 
-      # CI-PAR-1: the quick static checks run first, so a lint, format or type error shows within minutes.
-      # Together with the test steps below they run everything `composer ci:check` runs.
+      - name: Setup Node
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install frontend dependencies
+        run: npm ci
+
       - name: Frontend lint, format and types
         run: |
           npm run lint:check
@@ -622,9 +651,130 @@ jobs:
           shopt -s failglob
           node --test tests/Frontend/*.test.mjs
 
-      # CI-PAR-1: four test processes each rebuild the full schema of their own database, sometimes at the same
-      # moment, which overflows PostgreSQL's default lock table ("out of shared memory"). Raise it on this
-      # throwaway service container only.
+      - name: Build frontend assets
+        run: npm run build
+
+      # CI-SPLIT (b): the three shards' lists of tests must add up to the unsharded Unit, Feature and Contention
+      # suites. Each backend shard then proves that it ran exactly the tests it was given.
+      - name: Prove the shards hold every test exactly once
+        shell: bash
+        run: |
+          set -euo pipefail
+          count() { php vendor/bin/phpunit "$@" --list-tests | grep -c '^ - ' || true; }
+          unsharded="$(count --testsuite=Unit,Feature,Contention)"
+          sharded=0
+          for shard in 1 2 3; do
+            php scripts/ci/make-shard-config.php "$shard" 3 >/dev/null
+            unit_feature="$(count --configuration=phpunit.shard.xml --testsuite=Shard)"
+            contention="$(count --testsuite="Contention$shard")"
+            echo "Shard $shard lists $unit_feature Unit/Feature tests and $contention Contention tests."
+            sharded=$((sharded + unit_feature + contention))
+          done
+          echo "Unsharded: $unsharded. Sum of the shards: $sharded."
+          test "$unsharded" -gt 0
+          if [[ "$unsharded" -ne "$sharded" ]]; then
+            echo 'The shards do not add up to the unsharded test count.' >&2
+            exit 1
+          fi
+
+  # CI-SPLIT: the backend suite in three shards, each with its own PostgreSQL service. A shard runs its share of the
+  # Unit and Feature files with four parallel processes, then its fixed share of the Contention files, serially.
+  backend:
+    name: backend (shard ${{ matrix.shard }})
+    needs: attest
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    strategy:
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3]
+
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: kpone_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres -d kpone_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+
+    env:
+      APP_ENV: testing
+      APP_KEY: base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_DATABASE: kpone_test
+      DB_USERNAME: postgres
+      DB_PASSWORD: postgres
+      DB_SSLMODE: prefer
+      SESSION_DRIVER: array
+      CACHE_STORE: array
+      QUEUE_CONNECTION: sync
+      MAIL_MAILER: array
+
+    steps:
+      - name: Checkout exact candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.attest.outputs.candidate_sha }}
+          persist-credentials: false
+
+      - name: Verify HEAD is the attested candidate
+        shell: bash
+        env:
+          CANDIDATE_SHA: ${{ needs.attest.outputs.candidate_sha }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$CANDIDATE_SHA" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'The attest job did not output a valid candidate SHA.' >&2
+            exit 1
+          fi
+          actual_sha="$(git rev-parse HEAD)"
+          printf 'Attested candidate: %s\nChecked out HEAD:   %s\n' "$CANDIDATE_SHA" "$actual_sha"
+          if [[ "$actual_sha" != "$CANDIDATE_SHA" ]]; then
+            echo 'This job checked out a commit other than the attested candidate.' >&2
+            exit 1
+          fi
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@f3e473d116dcccaddc5834248c87452386958240 # v2
+        with:
+          php-version: '8.4'
+          tools: composer:v2
+          coverage: none
+
+      - name: Prepare ephemeral CI environment
+        run: cp .env.example .env
+
+      - name: Locate Composer cache
+        id: composer_cache
+        shell: bash
+        run: echo "dir=$(composer config cache-files-dir)" >>"$GITHUB_OUTPUT"
+
+      - name: Cache Composer downloads
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.composer_cache.outputs.dir }}
+          key: composer-${{ runner.os }}-${{ hashFiles('composer.lock') }}
+          restore-keys: composer-${{ runner.os }}-
+
+      - name: Install PHP dependencies
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      # Kept in every job that runs PHP tests: NoAiServiceGuardTest scans resources/js, including generated routes.
+      - name: Generate Wayfinder routes
+        run: php artisan wayfinder:generate --with-form --no-interaction
+
+      # Four test processes each rebuild the full schema of their own database, sometimes at the same moment, which
+      # overflows PostgreSQL's default lock table ("out of shared memory"). Raise it on this throwaway service
+      # container only.
       - name: Raise the test database lock table for parallel tests
         shell: bash
         env:
@@ -642,14 +792,52 @@ jobs:
       - name: Migrate isolated test database
         run: php artisan migrate --force
 
-      - name: Build frontend assets
-        run: npm run build
+      - name: Choose this shard's Unit and Feature files
+        run: |
+          mkdir -p reports
+          php scripts/ci/make-shard-config.php ${{ matrix.shard }} 3
 
-      # Unit and Feature run in parallel: four processes, each on its own database (kpone_test_test_1..4,
-      # created and migrated by Laravel's parallel testing).
-      - name: Backend tests (parallel)
-        run: php artisan test --parallel --processes=4 --testsuite=Unit,Feature
+      # Four processes, each on its own database (kpone_test_test_1..4, created and migrated by Laravel).
+      - name: Backend tests (Unit and Feature, parallel)
+        run: >-
+          php artisan test --parallel --processes=4 --configuration=phpunit.shard.xml --testsuite=Shard
+          --log-junit=reports/unit-feature-${{ matrix.shard }}.xml
 
       # Tests whose worker subprocesses connect to kpone_test itself run here, serially and never skipped.
       - name: PostgreSQL contention tests (serial)
-        run: php artisan test --testsuite=Contention
+        run: >-
+          php artisan test --testsuite=Contention${{ matrix.shard }}
+          --log-junit=reports/contention-${{ matrix.shard }}.xml
+
+      # CI-SPLIT (b, c): what this shard executed must equal what it was given, with nothing skipped except the
+      # known Fortify registration tests (never in Contention).
+      - name: Prove this shard ran every test it was given
+        shell: bash
+        run: |
+          set -euo pipefail
+          count() { php vendor/bin/phpunit "$@" --list-tests | grep -c '^ - ' || true; }
+          php scripts/ci/verify-shards.php "$(count --configuration=phpunit.shard.xml --testsuite=Shard)" reports/unit-feature-${{ matrix.shard }}.xml
+          php scripts/ci/verify-shards.php "$(count --testsuite=Contention${{ matrix.shard }})" reports/contention-${{ matrix.shard }}.xml
+
+  # CI-SPLIT: the one required check. Keeps the name "ci" (or the exact-SHA name), so branch protection is unchanged.
+  # It passes only when attest, static and every backend shard passed; the proofs that every test ran exactly once
+  # live in static (the shard lists add up) and in each backend shard (it ran what it was given).
+  ci:
+    name: ${{ github.event_name == 'repository_dispatch' && 'exact-SHA candidate validation' || 'ci' }}
+    needs: [attest, static, backend]
+    if: ${{ always() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Every job must have succeeded
+        shell: bash
+        env:
+          RESULTS_JSON: ${{ toJSON(needs) }}
+        run: |
+          set -euo pipefail
+          echo "$RESULTS_JSON" | jq -r 'to_entries[] | "\(.key): \(.value.result)"'
+          if ! echo "$RESULTS_JSON" | jq -e 'all(.[]; .result == "success")' >/dev/null; then
+            echo 'A required job did not succeed.' >&2
+            exit 1
+          fi
