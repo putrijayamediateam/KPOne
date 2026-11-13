@@ -1,0 +1,1 @@
+V2Picker specimen: local list (Category, add + clear), Order unit (optional, clear), Supplier (mock search endpoint, saved label shown, 25 cap). Shots at 390 light/dark and 1440 light. Polite status read in browser: '25 results', '11 results', 'Adding…', 'No match'.
