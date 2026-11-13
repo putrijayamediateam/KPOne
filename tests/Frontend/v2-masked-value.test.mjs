@@ -24,3 +24,14 @@ test('V2MaskedValue: failure shows an error and nothing; hides after 60 s, on na
     assert.match(s, /status\.value = 'Shown'/);
     assert.match(s, /status\.value = 'Hidden'/);
 });
+
+test('V2MaskedValue round 2: spoken mask, pending ignores a second press, hide line, hides before print', () => {
+    assert.match(s, /maskedSpoken\?: string/);
+    assert.match(s, /aria-hidden="true">\{\{ masked \}\}/);
+    assert.match(s, /if \(busy\.value\) \{\s+return;/);
+    assert.match(s, /Hides in/);
+    assert.match(s, /addEventListener\('beforeprint', onBeforePrint\)/);
+    assert.match(s, /removeEventListener\('beforeprint', onBeforePrint\)/);
+    assert.match(s, /print:hidden/);
+    assert.match(s, /print:inline/);
+});

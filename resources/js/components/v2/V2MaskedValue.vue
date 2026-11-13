@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref } from 'vue';
+import { computed, onBeforeUnmount, ref } from 'vue';
 
 /**
  * Version 2 masked value: a sensitive value (a bank account number, an identity number) that stays masked until
@@ -14,16 +14,28 @@ import { onBeforeUnmount, ref } from 'vue';
  * The outline button is named for what it shows ("Show bank account number", then "Hide bank account number"). The
  * value hides again after 60 seconds (`hideAfterMs`), on Hide, and when the page starts to navigate or is left. A
  * polite status says "Shown" or "Hidden". A request still running when it is hidden or left is thrown away.
+ *
+ * While `reveal` runs the button reads "Showing…" and a second press is ignored until the first settles (each Show
+ * writes an audit row, so there is never a second request). The dots are visual only: `maskedSpoken` is what a screen
+ * reader says ("Hidden, ends in 4821"; default "Hidden"). While shown, a muted line says "Hides in 1 minute". When the
+ * value hides itself, focus stays where it was. A shown value never reaches paper: it hides on `beforeprint`, and the
+ * printed page shows the masked form.
+ *
+ * The page owns the audit and the permission: if the audit write fails, `reveal` rejects and the block shows nothing.
+ * There is no copy button in V1. "Show" must never be rendered for a role that may not see the value: the page decides
+ * that, not the block.
  */
 const props = withDefaults(
     defineProps<{
         label: string;
         masked: string;
+        maskedSpoken?: string;
         reveal: () => Promise<string>;
         hideAfterMs?: number;
         errorText?: string;
     }>(),
     {
+        maskedSpoken: 'Hidden',
         hideAfterMs: 60000,
         errorText: "Couldn't show this. Nothing was shown.",
     },
@@ -89,10 +101,23 @@ const show = async () => {
 
 const onNavigate = () => hide(false);
 
+// A shown value never reaches paper or Save as PDF: hide it as printing starts (the CSS below is the second guard).
+const onBeforePrint = () => hide(false);
+
+const hideLine = computed(() => {
+    const seconds = Math.round(props.hideAfterMs / 1000);
+
+    return seconds % 60 === 0
+        ? `Hides in ${seconds / 60} minute${seconds === 60 ? '' : 's'}`
+        : `Hides in ${seconds} seconds`;
+});
+
 document.addEventListener('inertia:start', onNavigate);
+window.addEventListener('beforeprint', onBeforePrint);
 
 onBeforeUnmount(() => {
     document.removeEventListener('inertia:start', onNavigate);
+    window.removeEventListener('beforeprint', onBeforePrint);
     hide(false);
 });
 </script>
@@ -101,10 +126,25 @@ onBeforeUnmount(() => {
     <div data-slot="v2-masked-value" class="flex min-w-0 flex-col gap-1.5">
         <div class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
             <span
+                v-if="value === null"
                 data-private
                 class="min-w-0 font-mono text-[15px] break-all text-foreground"
-                >{{ value ?? masked }}</span
             >
+                <span aria-hidden="true">{{ masked }}</span>
+                <span class="sr-only">{{ maskedSpoken }}</span>
+            </span>
+            <template v-else>
+                <span
+                    data-private
+                    class="min-w-0 font-mono text-[15px] break-all text-foreground print:hidden"
+                    >{{ value }}</span
+                >
+                <span
+                    aria-hidden="true"
+                    class="hidden min-w-0 font-mono text-[15px] break-all print:inline"
+                    >{{ masked }}</span
+                >
+            </template>
             <button
                 type="button"
                 :aria-label="`${value !== null ? 'Hide' : 'Show'} ${label}`"
@@ -116,6 +156,12 @@ onBeforeUnmount(() => {
                 {{ busy ? 'Showing…' : value !== null ? 'Hide' : 'Show' }}
             </button>
         </div>
+        <p
+            v-if="value !== null"
+            class="text-[13px] text-muted-foreground print:hidden"
+        >
+            {{ hideLine }}
+        </p>
         <p v-if="failed" role="alert" class="text-sm text-destructive">
             {{ errorText }}
         </p>
