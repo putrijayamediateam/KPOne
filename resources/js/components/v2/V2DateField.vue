@@ -31,6 +31,8 @@ import V2Field from './V2Field.vue';
  * "Choose date" button opens the browser's own calendar (a hidden date input and `showPicker()`); the calendar only picks,
  * the box is never the US one. Where the browser cannot open it the button is not shown.
  *
+ * `@update:invalid` is true while the box holds text it could not use, so a page can block Save (an empty end date would otherwise read as "no end date").
+ *
  * The echo is visual only; one polite announcement says the saved date once the person leaves the box. V2 views only.
  */
 const props = withDefaults(
@@ -64,10 +66,15 @@ const props = withDefaults(
     },
 );
 
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
+const emit = defineEmits<{
+    'update:modelValue': [value: string];
+    // true while the box holds text it could not use (the model is '' then); a page uses it to block Save.
+    'update:invalid': [value: boolean];
+}>();
 
 const text = ref(displayFromIso(props.modelValue));
 const typedProblem = ref<string | null>(null);
+watch(typedProblem, (problem) => emit('update:invalid', problem !== null));
 const announce = ref('');
 const input = ref<HTMLInputElement | null>(null);
 const picker = ref<HTMLInputElement | null>(null);
