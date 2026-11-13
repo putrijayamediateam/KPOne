@@ -194,3 +194,10 @@ test('merge dialogs say what will happen, with unbreakable KP numbers', () => {
     assert.ok(!merge.includes('This takes effect straight away'));
     assert.ok(!/border-warning\/40 bg-warning\/10/.test(merge));
 });
+
+test('the rail starts at 1280 px and its content is also the last card below it', () => {
+    assert.ok(page.includes('rail-from="xl"'));
+    assert.ok(page.includes('<template #rail>'));
+    assert.ok(/xl:hidden/.test(page));
+    assert.equal((page.match(/Record details/g) ?? []).length >= 2, true);
+});

@@ -208,6 +208,8 @@ const fieldClass =
     <PageFrame width="wide">
         <V2WorkLayout
             :title="patient.identity.fullName"
+            rail-from="xl"
+            rail-label="Record details"
             description="Patient record, shared by every branch."
         >
             <template #actions>
@@ -455,7 +457,10 @@ const fieldClass =
                     </p>
                 </section>
 
-                <section :class="card" aria-labelledby="pd-record">
+                <section
+                    :class="[card, 'xl:hidden']"
+                    aria-labelledby="pd-record"
+                >
                     <h2 id="pd-record" class="text-base font-semibold">
                         Record details
                     </h2>
@@ -492,6 +497,36 @@ const fieldClass =
                     :patient-number="patient.patientNumber"
                     :merge="merge"
                 />
+            </template>
+
+            <template #rail>
+                <section :class="card" aria-labelledby="pd-record-rail">
+                    <h2 id="pd-record-rail" class="text-base font-semibold">
+                        Record details
+                    </h2>
+                    <dl class="grid gap-3 text-sm">
+                        <div class="flex justify-between gap-4 sm:block">
+                            <dt class="text-muted-foreground">Created</dt>
+                            <dd class="font-medium">
+                                {{
+                                    formatDateTime(
+                                        patient.administrative.createdAt,
+                                    )
+                                }}
+                            </dd>
+                        </div>
+                        <div class="flex justify-between gap-4 sm:block">
+                            <dt class="text-muted-foreground">Last updated</dt>
+                            <dd class="font-medium">
+                                {{
+                                    formatDateTime(
+                                        patient.administrative.updatedAt,
+                                    )
+                                }}
+                            </dd>
+                        </div>
+                    </dl>
+                </section>
             </template>
         </V2WorkLayout>
 
