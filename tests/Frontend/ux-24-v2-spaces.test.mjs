@@ -58,10 +58,14 @@ test('UX-24 Daniel: the clock shortcut is an outline control from 1024 px, never
         squash(page),
         /accountMenu\?\.clock && clockVisible && space\.key !== 'me'/,
     );
-    // The menu row hides only where a top-bar button shows, so the two are never visible together.
+    // The menu row hides only where a top-bar button is drawn (Sofia: not in focus mode), so exactly one shows.
+    assert.match(
+        squash(shell),
+        /provide\( TOP_BAR_CLOCK, computed\(\(\) => showClock\.value && !props\.focusMode\), \);/,
+    );
     assert.match(
         squash(menu),
-        /const topBarClock = computed\( \(\) => page\.props\.workspace\?\.shell != null && !pageHasOwnClock\(page\.url\), \);/,
+        /const topBarClock = inject\( TOP_BAR_CLOCK, computed\(\(\) => false\), \);/,
     );
     // A press opens the photo dialog (the confirm step) or the Attendance page; it never posts a time itself.
     assert.doesNotMatch(clock, /router\.post|clock-in'|crypto\.randomUUID/);

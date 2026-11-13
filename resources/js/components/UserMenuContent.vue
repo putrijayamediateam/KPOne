@@ -9,7 +9,7 @@ import {
     Settings,
     ShieldCheck,
 } from '@lucide/vue';
-import { computed, onMounted } from 'vue';
+import { computed, inject, onMounted } from 'vue';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
 import {
-    pageHasOwnClock,
+    TOP_BAR_CLOCK,
     useClockShortcut,
 } from '@/composables/useClockShortcut';
 import { retireAuthenticationHistoryForLogout } from '@/lib/inertia-auth-history-boundary';
@@ -43,8 +43,10 @@ const accountMenu = computed(() => page.props.workspace?.accountMenu);
 // button shows (the shell, from 1024 px) and shows everywhere else, so the two are never visible together.
 const inSpaceShell = computed(() => page.url.startsWith('/spaces'));
 // UX-24: the V2 top bar has the same button from 1024 px on every V2 page except the pages with their own Clock in.
-const topBarClock = computed(
-    () => page.props.workspace?.shell != null && !pageHasOwnClock(page.url),
+// Read from the V2 shell, so it is true only where the top-bar button is actually drawn (false in Classic and in focus mode).
+const topBarClock = inject(
+    TOP_BAR_CLOCK,
+    computed(() => false),
 );
 const {
     load: loadClock,

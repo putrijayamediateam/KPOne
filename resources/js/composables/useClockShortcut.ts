@@ -1,4 +1,5 @@
 import { router } from '@inertiajs/vue3';
+import type { ComputedRef, InjectionKey } from 'vue';
 import { computed, reactive } from 'vue';
 import { useClockPhoto } from '@/composables/useClockPhoto';
 import { requestJson } from '@/lib/json-client';
@@ -16,6 +17,13 @@ const ATTENDANCE = '/hr/attendance';
 // UX-24 (Daniel, 2026-11-13): pages that already carry their own Clock in as the page's button, so the V2 top bar
 // leaves its shortcut out there and a page never shows it twice.
 const OWN_CLOCK = ['/spaces/me', '/hr/roster', ATTENDANCE];
+/**
+ * UX-24: the V2 shell tells the account menu whether its top-bar clock button is drawn right now (from 1024 px, not on
+ * pages with their own Clock in, not in focus mode). The menu row hides only then, so exactly one of them shows.
+ */
+export const TOP_BAR_CLOCK: InjectionKey<ComputedRef<boolean>> =
+    Symbol('v2-top-bar-clock');
+
 export const pageHasOwnClock = (url: string): boolean => {
     const path = url.split('?')[0];
 

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { Menu, Search, Undo2 } from '@lucide/vue';
-import { computed, onMounted, ref, watchEffect } from 'vue';
+import { computed, onMounted, provide, ref, watchEffect } from 'vue';
 import { toast } from 'vue-sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -24,6 +24,7 @@ import V2ShellNav from '@/components/workspace/V2ShellNav.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
 import {
     pageHasOwnClock,
+    TOP_BAR_CLOCK,
     useClockShortcut,
 } from '@/composables/useClockShortcut';
 import { getInitials } from '@/composables/useInitials';
@@ -62,6 +63,11 @@ const showClock = computed(
         accountMenu.value?.clock === true &&
         clockVisible.value &&
         !pageHasOwnClock(page.url),
+);
+// The top bar is hidden in focus mode, so the button is drawn only outside it.
+provide(
+    TOP_BAR_CLOCK,
+    computed(() => showClock.value && !props.focusMode),
 );
 const jumpOpen = ref(false);
 
