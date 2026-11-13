@@ -450,6 +450,11 @@ order, each its own PR:
 21. **DSP-20 Scan to check compares the batch — merged in #542.** Decision 42.
 22. **D1-CLASSIC Returns to check back to Classic, D1 under V2 — merged in #610.** Decision 43.
 23. **DSP-21 Drug label short address — waiting for #564.** Decision 44.
+24. **V2 Dispensary case page (Version 2 look) — building on `feature/v2-dispensary-case`.** Daniel's two review
+    rounds (2026-11-13); look only, Classic logic copied and kept in step by `tests/Frontend/v2-dispensary-case.test.mjs`.
+25. **DSP-22 "No known allergies" with its recorded date — not built (Daniel, 2026-11-13).** The V2 patient card says
+    "No known allergies" in words; showing when that was recorded needs a new server prop on the Dispensary case, so it
+    was left out of the look-only V2 PR. Small, separate item.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
