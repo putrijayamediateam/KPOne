@@ -9,10 +9,9 @@ import { Loader2 } from '@lucide/vue';
  * visible. A polite live region announces the selection.
  */
 defineProps<{
-    title: string;
-    detail: string;
-    primaryLabel: string;
-    clearLabel: string;
+    summary: string;
+    actionLabel: string;
+    secondaryLabel: string;
     busy?: boolean;
     ruleLine: string;
     ruleId?: string;
@@ -23,7 +22,7 @@ defineProps<{
     label: string;
 }>();
 
-defineEmits<{ primary: []; clear: [] }>();
+defineEmits<{ action: []; secondary: [] }>();
 
 const filled =
     'inline-flex h-11 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50';
@@ -41,7 +40,7 @@ const outline =
     >
         <div class="grid gap-2 text-sm">
             <p class="font-medium wrap-anywhere" aria-live="polite">
-                {{ title }} · {{ detail }}
+                {{ summary }}
             </p>
             <p :id="ruleId" class="text-[13px] text-muted-foreground">
                 {{ ruleLine }}
@@ -69,22 +68,22 @@ const outline =
                     :disabled="busy"
                     :aria-busy="busy ? 'true' : undefined"
                     :data-testid="primaryTestId"
-                    @click="$emit('primary')"
+                    @click="$emit('action')"
                 >
                     <Loader2
                         v-if="busy"
                         class="size-4 animate-spin motion-reduce:animate-none"
                         aria-hidden="true"
                     />
-                    {{ primaryLabel }}
+                    {{ actionLabel }}
                 </button>
                 <button
                     type="button"
                     :class="outline"
                     :disabled="busy"
-                    @click="$emit('clear')"
+                    @click="$emit('secondary')"
                 >
-                    {{ clearLabel }}
+                    {{ secondaryLabel }}
                 </button>
             </div>
         </div>

@@ -828,10 +828,9 @@ const selection = computed(() => {
 
                 <PanelSelectionBar
                     v-if="selection"
-                    :title="selection.title"
-                    :detail="selection.detail"
-                    :primary-label="selection.primaryLabel"
-                    :clear-label="selection.clearLabel"
+                    :summary="`${selection.title} · ${selection.detail}`"
+                    :action-label="selection.primaryLabel"
+                    :secondary-label="selection.clearLabel"
                     :busy="selection.busy"
                     :rule-line="selection.ruleLine"
                     :rule-id="selection.ruleId"
@@ -840,8 +839,8 @@ const selection = computed(() => {
                     :test-id="selection.testId"
                     :primary-test-id="selection.primaryTestId"
                     :label="selection.ariaLabel"
-                    @primary="selection.primary"
-                    @clear="selection.clear"
+                    @action="selection.primary"
+                    @secondary="selection.clear"
                 />
             </template>
 
