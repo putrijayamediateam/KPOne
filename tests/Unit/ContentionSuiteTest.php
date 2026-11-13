@@ -61,6 +61,36 @@ class ContentionSuiteTest extends TestCase
         $this->assertSame($starting, $listed, 'A test that starts a worker process must be listed in the Contention suite.');
     }
 
+    /**
+     * CI-SPLIT: CI runs the Contention files as three shards (Contention1 to Contention3), one per backend job.
+     * Together the shards must be exactly the Contention suite: every process-starting file in exactly one shard.
+     */
+    public function test_contention_shards_partition_the_contention_suite_exactly(): void
+    {
+        $config = simplexml_load_file(dirname(__DIR__, 2).'/phpunit.xml');
+        $this->assertNotFalse($config);
+
+        $suites = [];
+        foreach ($config->testsuites->testsuite as $suite) {
+            $suites[(string) $suite['name']] = array_map('strval', iterator_to_array($suite->file, false));
+        }
+
+        $shardNames = ['Contention1', 'Contention2', 'Contention3'];
+        $dealt = [];
+        foreach ($shardNames as $name) {
+            $this->assertArrayHasKey($name, $suites);
+            $this->assertNotEmpty($suites[$name], $name.' must not be empty.');
+            $dealt = array_merge($dealt, $suites[$name]);
+        }
+
+        $this->assertSame([], array_keys(array_filter(array_count_values($dealt), fn (int $n): bool => $n > 1)), 'A Contention file is in more than one shard.');
+
+        $full = $suites['Contention'];
+        sort($full);
+        sort($dealt);
+        $this->assertSame($full, $dealt, 'The three Contention shards must hold exactly the files of the Contention suite.');
+    }
+
     /** @return list<string> */
     private function phpFiles(string $directory): array
     {
