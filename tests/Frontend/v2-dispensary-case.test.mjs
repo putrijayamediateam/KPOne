@@ -172,3 +172,14 @@ test('no second filled button: every Button is outline or ghost, and both scan b
         2,
     );
 });
+
+test('the reason Complete is blocked shows in the summary and, on phones, above the bar', () => {
+    assert.match(
+        template(v2),
+        /data-testid="dispensary-complete-blocked-reason"/,
+    );
+    assert.match(
+        template(v2),
+        /v-if="primaryAction === 'complete' && completeBlockedReason"\s+class="text-\[13px\] text-muted-foreground sm:hidden"/,
+    );
+});

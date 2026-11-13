@@ -2715,6 +2715,13 @@ const filledButton =
                     </div>
                 </section>
 
+                <p
+                    v-if="primaryAction === 'complete' && completeBlockedReason"
+                    class="text-[13px] text-muted-foreground sm:hidden"
+                    data-testid="dispensary-complete-blocked-reason-phone"
+                >
+                    {{ completeBlockedReason }}
+                </p>
                 <V2StickyBar v-if="primaryAction">
                     <button
                         type="button"
