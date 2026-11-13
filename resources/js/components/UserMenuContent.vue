@@ -54,8 +54,8 @@ const {
     label: clockLabel,
     visible: clockVisible,
 } = useClockShortcut();
-// UX-24 (Daniel): open the photo dialog only after this menu has closed and given focus back to its button, so
-// "Not now" returns focus there instead of to the page.
+// UX-24 (Daniel): the menu row is gone once the menu closes, so pass the menu's own button (still open while the row is
+// selected); focus goes back to it after the photo dialog closes, instead of to the page.
 const pressClockAfterMenu = () =>
     pressClock(
         document.querySelector<HTMLElement>(

@@ -102,6 +102,11 @@ test('UX-24 Daniel: after the photo dialog closes, focus returns to the control 
     assert.match(clock, /watch\(\s*\(\) => clockPhotoState\.step,/);
     assert.match(clock, /'\[data-test="clock-photo-dialog"\]'/);
     assert.match(clock, /returnFocusTo\.focus\(\);/);
+    // Never a removed control, and never while a new flow has opened (Sofia, page-driven closes).
+    assert.match(
+        clock,
+        /clockPhotoState\.step === 'idle' &&\s+returnFocusTo\.isConnected/,
+    );
     assert.match(menu, /@select="pressClockAfterMenu"/);
     assert.match(
         squash(menu),

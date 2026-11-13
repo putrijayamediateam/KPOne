@@ -101,7 +101,15 @@ export function useClockShortcut() {
                             return;
                         }
 
-                        returnFocusTo.focus();
+                        // A new flow has opened meanwhile: leave focus to that dialog. A control the page has
+                        // removed (a page change while the dialog was open) is never focused; focus stays where the
+                        // browser put it.
+                        if (
+                            clockPhotoState.step === 'idle' &&
+                            returnFocusTo.isConnected
+                        ) {
+                            returnFocusTo.focus();
+                        }
                     };
 
                     requestAnimationFrame(refocus);
