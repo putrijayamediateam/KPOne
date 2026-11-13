@@ -68,3 +68,7 @@ Classic is untouched. A page that adds a new block, a new rail, a new table patt
 ## Settings switches
 
 A switch row only changes the form value. The page decides whether it saves at once or with its own Save. A page that saves at once must show a visible result ("Saved"). A switch with a privacy or money effect (for example showing full patient names on the waiting-room TV) needs the page's own confirm dialog that says who sees what or what changes.
+
+## Money, times and dates
+
+A money box states the amount with an RM prefix and shows two decimals after blur; paste rules never guess ("1,25" is refused, not read as 125.00). A read-only price elsewhere on the page groups thousands ("RM 1,250.00"). A disabled price box shows the reason as text. A time field never guesses AM or PM: a bare hour such as "5" is refused with "Add AM or PM" unless the text is clearly 24-hour. Any date that decides access or money shows the chosen date in words under the field ("From 13 Nov 2026"); native "mm/dd/yyyy" boxes are not enough alone.

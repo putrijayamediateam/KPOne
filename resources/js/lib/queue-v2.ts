@@ -199,7 +199,12 @@ export const rowMenu = (
 export const waitRingMinutes = (row: PatientBoardRow): number | null =>
     row.waitingMinutes ?? null;
 
-export type AttentionChip = { tone: ChipTone; label: string };
+export type AttentionChip = {
+    tone: ChipTone;
+    label: string;
+    /** The reason, shown as plain text beside the chip, so a long reason never wraps inside a pill. */
+    detail?: string;
+};
 
 export type AttentionItem = {
     id: string;
@@ -229,14 +234,16 @@ export const needsAttention = (rows: PatientBoardRow[]): AttentionItem[] => {
         if (row.callHold?.active) {
             chips.push({
                 tone: 'warning',
-                label: `Not ready — ${row.callHold.reason ?? 'no reason recorded'}`,
+                label: 'Not ready',
+                detail: row.callHold.reason ?? 'No reason recorded',
             });
         }
 
         if (row.treatmentProgress?.state === 'done') {
             chips.push({
                 tone: 'info',
-                label: `${row.treatmentProgress.label ?? 'Treatment'} done · ready to resume`,
+                label: `${row.treatmentProgress.label ?? 'Treatment'} done`,
+                detail: 'Ready to resume',
             });
         }
 
