@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { router } from '@inertiajs/vue3';
 import {
     DialogClose,
     DialogContent,
@@ -8,7 +9,7 @@ import {
     DialogRoot,
     DialogTitle,
 } from 'reka-ui';
-import { nextTick, ref, watch } from 'vue';
+import { nextTick, onBeforeUnmount, ref, watch } from 'vue';
 
 /**
  * Version 2 dialog: 18px corners, a bottom sheet below 640px, a pinned footer, and the focus trap and Esc that the
@@ -19,11 +20,19 @@ import { nextTick, ref, watch } from 'vue';
  * `size="tall"` is for long forms (a purchase order, receiving): full height on a phone, 42rem from 640px and 56rem from
  * 1024px, up to 90dvh tall, with the body scrolling and the footer staying put. Body children never shrink (`shrink-0`), so a long form scrolls instead of squashing its fields.
  *
+ * Tall sheets keep the header (title and X) pinned at the top of the scrolling body, so once the body has scrolled the X
+ * never sits on a field.
+ *
  * `dirty` is a discard guard: while it is true, every way of closing (Esc, the X, a tap on the backdrop, Cancel) first
  * asks "Discard your changes?" inside the same dialog, with "Keep editing" focused, and only closes on "Discard changes"
  * (which emits `discard`, then `update:open(false)`). Esc while the question shows means Keep editing. The page sets
  * `dirty` from its own form state, and closing the dialog from the page (after a save) is never guarded. Everything
  * behind the question is inert, so Tab cannot reach the form. Wording and buttons are the same on every V2 form.
+ *
+ * While the dialog is open and `dirty`, the guard also covers leaving the page: reload and closing the tab show the
+ * browser's own warning, and an in-app link to another page (a GET visit to a different path, for example the menu) first
+ * asks the same question and goes on only after "Discard changes". Browser Back is an accepted known limit: there is
+ * no history trap, so Back leaves the page without the question. Pages need no guard of their own for an open sheet.
  */
 const props = withDefaults(
     defineProps<{
@@ -66,6 +75,48 @@ const asking = ref(false);
 const keepButton = ref<HTMLButtonElement | null>(null);
 const discardButton = ref<HTMLButtonElement | null>(null);
 let returnFocusTo: HTMLElement | null = null;
+let pendingUrl: string | null = null;
+let bypass = false;
+
+// An in-app link while an open sheet is dirty: ask first (the form's own save is not a GET, so it is never held).
+const stopBefore = router.on('before', (event) => {
+    if (bypass || !props.open || !props.dirty) {
+        return;
+    }
+
+    const visit = event.detail.visit;
+
+    if (visit.method !== 'get') {
+        return;
+    }
+
+    const target = new URL(visit.url.toString(), window.location.origin);
+
+    if (target.pathname === window.location.pathname) {
+        return;
+    }
+
+    pendingUrl = `${target.pathname}${target.search}`;
+    returnFocusTo = document.activeElement as HTMLElement | null;
+    asking.value = true;
+    nextTick(() => keepButton.value?.focus());
+
+    return false;
+});
+
+const warnOnUnload = (event: BeforeUnloadEvent) => {
+    if (props.open && props.dirty && !bypass) {
+        event.preventDefault();
+        event.returnValue = '';
+    }
+};
+
+window.addEventListener('beforeunload', warnOnUnload);
+
+onBeforeUnmount(() => {
+    stopBefore();
+    window.removeEventListener('beforeunload', warnOnUnload);
+});
 
 watch(
     () => props.open,
@@ -124,14 +175,23 @@ const trapTab = (event: KeyboardEvent) => {
 };
 
 const keepEditing = () => {
+    pendingUrl = null;
     asking.value = false;
     nextTick(() => returnFocusTo?.focus());
 };
 
 const discard = () => {
+    const target = pendingUrl;
+
+    pendingUrl = null;
     asking.value = false;
     emit('discard');
     emit('update:open', false);
+
+    if (target) {
+        bypass = true;
+        router.visit(target, { onFinish: () => (bypass = false) });
+    }
 };
 
 const submit = () => {
@@ -163,7 +223,34 @@ const submit = () => {
                     class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5 [&>*]:shrink-0"
                     :inert="asking"
                 >
+                    <div
+                        v-if="size === 'tall'"
+                        data-slot="v2-dialog-header"
+                        class="sticky -top-5 z-10 -mx-5 -mt-5 flex items-start justify-between gap-2 border-b bg-card px-5 pt-5 pb-3"
+                    >
+                        <DialogTitle
+                            class="min-w-0 pt-0.5 text-lg leading-7 font-semibold"
+                            >{{ title }}</DialogTitle
+                        >
+                        <DialogClose
+                            class="-mt-2 -mr-3 inline-flex size-11 shrink-0 items-center justify-center rounded-full outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                            aria-label="Close"
+                        >
+                            <svg
+                                class="size-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2.25"
+                                stroke-linecap="round"
+                                aria-hidden="true"
+                            >
+                                <path d="M6 6l12 12M18 6 6 18" />
+                            </svg>
+                        </DialogClose>
+                    </div>
                     <DialogTitle
+                        v-else
                         class="pr-10 text-lg leading-7 font-semibold"
                         >{{ title }}</DialogTitle
                     >
@@ -286,6 +373,7 @@ const submit = () => {
                     </div>
                 </div>
                 <DialogClose
+                    v-if="size !== 'tall'"
                     :inert="asking"
                     class="absolute top-2.5 right-2.5 inline-flex size-11 items-center justify-center rounded-full outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="Close"

@@ -38,7 +38,14 @@ test('V2Dialog: 18px corners, a phone bottom sheet, a pinned footer, a required 
     assert.match(s, /aria-label="Close"/);
     assert.match(s, /size-11/);
     assert.match(s, /h-11[^'"]*lg:h-9/);
-    assert.doesNotMatch(code('V2Dialog'), /fetch\(|axios|router|usePage/);
+    assert.doesNotMatch(code('V2Dialog'), /fetch\(|axios|usePage/);
+    // The only router use is the leave guard: `router.on('before')` and the visit after "Discard changes".
+    assert.deepEqual(
+        [...code('V2Dialog').matchAll(/router\.(\w+)/g)]
+            .map((m) => m[1])
+            .sort(),
+        ['on', 'visit'],
+    );
 });
 
 test('The new blocks import nothing from the Classic ui components', () => {
@@ -193,4 +200,16 @@ test('V2Dialog discard question keeps Tab and Shift+Tab inside its two buttons (
     assert.match(s, /ref="discardButton"/);
     assert.match(s, /event\.shiftKey && document\.activeElement === first/);
     assert.match(s, /!event\.shiftKey && document\.activeElement === last/);
+});
+
+test('V2Dialog: tall sheets pin the header (title and X); open and dirty guards reload, close and in-app links; Back is documented', () => {
+    const s = v2('V2Dialog');
+    assert.match(s, /data-slot="v2-dialog-header"/);
+    assert.match(s, /sticky -top-5 z-10 -mx-5 -mt-5/);
+    assert.match(s, /v-if="size !== 'tall'"/);
+    assert.match(s, /router\.on\('before'/);
+    assert.match(s, /!props\.open \|\| !props\.dirty/);
+    assert.match(s, /visit\.method !== 'get'/);
+    assert.match(s, /beforeunload/);
+    assert.match(s, /Browser Back is an accepted known limit/);
 });
