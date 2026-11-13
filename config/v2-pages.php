@@ -19,5 +19,6 @@ return [
         'Registration/Show',
         'Registration/Edit',
         'Queue/Index',
+        'QueueDisplay/Settings',
     ],
 ];
