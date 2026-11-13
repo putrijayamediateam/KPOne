@@ -1174,10 +1174,10 @@ const confirmReject = () => {
                                     role="alert"
                                     class="text-sm text-destructive"
                                 >
-                                    A possible duplicate was found since this
-                                    page opened. Review it above, tick the box
-                                    if this is a different person, then accept
-                                    again.
+                                    A possible duplicate was found when you
+                                    pressed accept. Check the Patient directory,
+                                    tick the box if this is a different person,
+                                    then accept again.
                                 </p>
                             </template>
                         </div>
