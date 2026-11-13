@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { watch } from 'vue';
+import { ref, watch } from 'vue';
+import V2DateField from '@/components/v2/V2DateField.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
-import V2Field from '@/components/v2/V2Field.vue';
-import { echoDate as echo } from '@/lib/v2-date-echo';
+import V2Picker from '@/components/v2/V2Picker.vue';
 import type { StaffAssignment, StaffBranch } from '@/types';
 
 /**
@@ -28,6 +28,10 @@ const form = useForm({
     valid_until: props.assignment?.validUntil ?? '',
 });
 const endForm = useForm({ valid_until: props.today });
+// Text a date box could not read: Save is blocked, so an unreadable end date is never saved as "no end date".
+const badFrom = ref(false);
+const badUntil = ref(false);
+const badEnd = ref(false);
 
 watch(
     () => props.open,
@@ -50,6 +54,10 @@ const endError = (key: string) =>
 const close = () => emit('update:open', false);
 
 const save = () => {
+    if (badFrom.value || badUntil.value) {
+        return;
+    }
+
     const options = { preserveScroll: true, onSuccess: close };
 
     if (props.assignment) {
@@ -63,13 +71,11 @@ const save = () => {
 };
 
 const endAssignment = () =>
+    !badEnd.value &&
     endForm.patch(
         `/staff/${props.staffId}/branch-assignments/${props.assignment?.id}/end`,
         { preserveScroll: true, onSuccess: close },
     );
-
-const input =
-    'h-11 w-full rounded-[10px] border bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 md:text-[15px] lg:h-9';
 </script>
 
 <template>
@@ -85,48 +91,39 @@ const input =
         @update:open="emit('update:open', $event)"
         @confirm="save"
     >
-        <V2Field
-            v-slot="{ id, describedBy }"
+        <V2Picker
+            :model-value="form.branch_id === '' ? null : String(form.branch_id)"
             label="Branch"
+            placeholder="Choose a branch"
+            :selected-label="
+                branches.find((b) => String(b.id) === String(form.branch_id))
+                    ?.name
+            "
+            :options="
+                branches.map((b) => ({ id: String(b.id), label: b.name }))
+            "
+            :disabled="!!assignment"
+            required
             :error="form.errors.branch_id"
-        >
-            <select
-                :id="id"
-                v-model="form.branch_id"
-                :disabled="!!assignment"
-                :aria-describedby="describedBy"
-                :class="[
-                    input,
-                    form.errors.branch_id
-                        ? 'border-destructive'
-                        : 'border-input',
-                ]"
-            >
-                <option value="" disabled>Select branch</option>
-                <option
-                    v-for="branch in branches"
-                    :key="branch.id"
-                    :value="branch.id"
-                >
-                    {{ branch.name }}
-                </option>
-            </select>
-        </V2Field>
-        <V2Field
-            v-slot="{ id, describedBy }"
+            @update:model-value="
+                form.branch_id =
+                    branches.find((b) => String(b.id) === $event)?.id ?? ''
+            "
+        />
+        <V2Picker
+            :model-value="form.assignment_type"
             label="Assignment type"
+            :selected-label="
+                form.assignment_type === 'temporary' ? 'Temporary' : 'Permanent'
+            "
+            :options="[
+                { id: 'permanent', label: 'Permanent' },
+                { id: 'temporary', label: 'Temporary' },
+            ]"
+            required
             :error="form.errors.assignment_type"
-        >
-            <select
-                :id="id"
-                v-model="form.assignment_type"
-                :aria-describedby="describedBy"
-                :class="[input, 'border-input']"
-            >
-                <option value="permanent">Permanent</option>
-                <option value="temporary">Temporary</option>
-            </select>
-        </V2Field>
+            @update:model-value="form.assignment_type = $event ?? 'permanent'"
+        />
         <label
             v-if="!assignment"
             class="flex min-h-11 cursor-pointer items-center gap-3 rounded-[10px] border border-border px-3 text-sm font-medium hover:bg-muted lg:min-h-9"
@@ -138,47 +135,26 @@ const input =
             />
             Set as primary branch
         </label>
-        <V2Field
-            v-slot="{ id, describedBy }"
+        <V2DateField
+            v-model="form.valid_from"
             label="Valid from"
-            :hint="echo(form.valid_from, 'From')"
+            weekday
+            required
             :error="form.errors.valid_from"
-        >
-            <input
-                :id="id"
-                v-model="form.valid_from"
-                type="date"
-                :aria-describedby="describedBy"
-                :class="[
-                    input,
-                    form.errors.valid_from
-                        ? 'border-destructive'
-                        : 'border-input',
-                ]"
-            />
-        </V2Field>
-        <V2Field
-            v-slot="{ id, describedBy }"
+            @update:invalid="badFrom = $event"
+        />
+        <V2DateField
+            v-model="form.valid_until"
             label="Valid through (inclusive)"
+            weekday
             :hint="
-                echo(form.valid_until, 'Through', ', inclusive') ??
-                'No end date'
+                form.valid_until
+                    ? 'The last day counts (inclusive).'
+                    : 'No end date.'
             "
             :error="form.errors.valid_until"
-        >
-            <input
-                :id="id"
-                v-model="form.valid_until"
-                type="date"
-                :aria-describedby="describedBy"
-                :class="[
-                    input,
-                    form.errors.valid_until
-                        ? 'border-destructive'
-                        : 'border-input',
-                ]"
-            />
-        </V2Field>
+            @update:invalid="badUntil = $event"
+        />
         <p
             v-if="errorOf('assignment')"
             role="alert"
@@ -203,25 +179,14 @@ const input =
                     changed first.
                 </p>
             </div>
-            <V2Field
-                v-slot="{ id, describedBy }"
+            <V2DateField
+                v-model="endForm.valid_until"
                 label="Access valid through (inclusive)"
-                :hint="echo(endForm.valid_until, 'Through', ', inclusive')"
+                weekday
+                required
                 :error="endForm.errors.valid_until"
-            >
-                <input
-                    :id="id"
-                    v-model="endForm.valid_until"
-                    type="date"
-                    :aria-describedby="describedBy"
-                    :class="[
-                        input,
-                        endForm.errors.valid_until
-                            ? 'border-destructive'
-                            : 'border-input',
-                    ]"
-                />
-            </V2Field>
+                @update:invalid="badEnd = $event"
+            />
             <p
                 v-if="endError('assignment')"
                 role="alert"
