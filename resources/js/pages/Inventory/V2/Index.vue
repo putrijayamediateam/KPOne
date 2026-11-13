@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
+import StockPanelBar from '@/components/inventory-v2/StockPanelBar.vue';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -100,8 +101,8 @@ const extraFilters = computed(
 );
 const filtersOpen = ref(false);
 const sheetOpen = ref(false);
-// On a phone every filter is in the sheet, so its button counts them all.
-const phoneFilterCount = computed(
+// Every filter except the search: "Filters (n)" on a phone and "n filters applied" beside Clear.
+const appliedFilters = computed(
     () =>
         extraFilters.value +
         ((
@@ -117,6 +118,8 @@ const timezoneLabel = computed(
     () =>
         `${(props.inventory.branchTimezone.split('/').pop() ?? '').replaceAll('_', ' ')} time`,
 );
+// A real minus sign (−40 unit), not a hyphen.
+const minus = (value: unknown) => String(value ?? '').replace(/^-/, '\u2212');
 const sentence = (value: unknown) => {
     const text = String(value ?? '');
 
@@ -131,10 +134,23 @@ const taskLink =
     'inline-flex min-h-11 items-center rounded-[10px] border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
 const button =
     'inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9';
+// A held batch reads as a warning; available as success; anything else neutral.
+const isHeld = (row: InventoryDirectory['data'][number], status: unknown) =>
+    !!row.holdReason ||
+    row.held === true ||
+    String(status).toLowerCase() === 'held';
 const availabilityTone = (row: InventoryDirectory['data'][number]) =>
-    row.available ? 'success' : 'neutral';
-const batchTone = (status: unknown) =>
-    String(status).toLowerCase() === 'available' ? 'success' : 'neutral';
+    isHeld(row, row.availabilityStatus)
+        ? 'warning'
+        : row.available
+          ? 'success'
+          : 'neutral';
+const batchTone = (row: InventoryDirectory['data'][number]) =>
+    isHeld(row, row.batchStatus)
+        ? 'warning'
+        : String(row.batchStatus).toLowerCase() === 'available'
+          ? 'success'
+          : 'neutral';
 </script>
 
 <template>
@@ -266,8 +282,8 @@ const batchTone = (status: unknown) =>
                                     @click="sheetOpen = true"
                                 >
                                     Filters{{
-                                        phoneFilterCount
-                                            ? ` (${phoneFilterCount})`
+                                        appliedFilters
+                                            ? ` (${appliedFilters})`
                                             : ''
                                     }}
                                 </button>
@@ -295,6 +311,17 @@ const batchTone = (status: unknown) =>
                                 >
                                     Clear
                                 </button>
+                                <span
+                                    v-if="appliedFilters"
+                                    class="self-center text-xs whitespace-nowrap text-muted-foreground max-sm:hidden"
+                                    >{{ appliedFilters }}
+                                    {{
+                                        appliedFilters === 1
+                                            ? 'filter'
+                                            : 'filters'
+                                    }}
+                                    applied</span
+                                >
                             </div>
                         </template>
                     </V2Toolbar>
@@ -345,13 +372,6 @@ const batchTone = (status: unknown) =>
                             />
                         </label>
                     </div>
-                    <p
-                        v-if="extraFilters"
-                        class="text-xs text-muted-foreground max-sm:hidden"
-                    >
-                        {{ extraFilters }} extra
-                        {{ extraFilters === 1 ? 'filter' : 'filters' }} applied
-                    </p>
                 </form>
 
                 <ErrorState
@@ -540,7 +560,7 @@ const batchTone = (status: unknown) =>
                                     /></span>
                                     <span class="whitespace-nowrap"
                                         ><V2Chip
-                                            :tone="batchTone(row.batchStatus)"
+                                            :tone="batchTone(row)"
                                             :label="
                                                 inventoryStatusLabel(
                                                     row,
@@ -611,7 +631,7 @@ const batchTone = (status: unknown) =>
                                 <div class="min-w-0">
                                     <span
                                         class="font-semibold whitespace-nowrap"
-                                        >{{ row.quantityDisplay }}
+                                        >{{ minus(row.quantityDisplay) }}
                                         {{ row.stockUnit }}</span
                                     >
                                     <span
@@ -640,22 +660,20 @@ const batchTone = (status: unknown) =>
                     Movement records are read-only.
                 </p>
 
-                <V2DisclosureBar
-                    title="Receiving, transfers and stock requests"
-                >
+                <StockPanelBar title="Receiving, transfers and stock requests">
                     <InventoryOperationsPanel
                         :operations="operations"
                         :receipt-memory-context="receiptMemoryContext"
                     />
-                </V2DisclosureBar>
-                <V2DisclosureBar
+                </StockPanelBar>
+                <StockPanelBar
                     v-if="referenceData.canManage"
                     title="Stock setup"
                 >
                     <InventoryReferenceDataPanel
                         :reference-data="referenceData"
                     />
-                </V2DisclosureBar>
+                </StockPanelBar>
             </template>
         </V2WorkLayout>
     </PageFrame>

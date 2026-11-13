@@ -186,3 +186,19 @@ test('V2 Inventory home: Daniel V2 checklist points (phone filter sheet, cards b
     assert.ok(!page.includes('times in ${inventory.branchTimezone}'));
     assert.match(page, /replaceAll\('_', ' '\)/);
 });
+
+test("V2 Inventory home: Daniel's verdict (kept-mounted stock panels, filter wording, minus sign)", () => {
+    const bar = read('resources/js/components/inventory-v2/StockPanelBar.vue');
+    // A closed bar keeps its form (v-show, never v-if), and the Classic forms get 44 px controls below 1024 px.
+    assert.match(bar, /<div v-show="open"/);
+    assert.ok(!/v-if="open"/.test(bar));
+    assert.match(bar, /max-width: 1023\.98px/);
+    assert.match(bar, /min-height: 2\.75rem/);
+    assert.equal((page.match(/<StockPanelBar/g) ?? []).length, 2);
+    // "2 filters applied" beside Clear, "Filters (2)" on the phone button; no "extra filters".
+    assert.match(page, /appliedFilters === 1\s*\?\s*'filter'\s*:\s*'filters'/);
+    assert.ok(!page.includes('extra\n'));
+    assert.ok(!/\}\} extra/.test(page));
+    assert.match(page, /minus\(row\.quantityDisplay\)/);
+    assert.match(page, /\\u2212/);
+});
