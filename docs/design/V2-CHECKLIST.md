@@ -25,6 +25,7 @@ Edit visit pages.
 - [ ] Title 24 px on phones and 30 px from 1024 (`V2WorkLayout`). One description line. The crumb sits above the title through
       `PageFrame` / `usePageCrumbs`, never a link row.
 - [ ] A rail only from 1536 px. Below that, the rail content becomes one disclosure bar above the table (Registration: needs attention).
+- [ ] Forms and detail pages with a side column: the rail starts at 1280 px at the earliest (never at 1024: the sidebar leaves the main column too narrow); below it the rail content is the last card of the main column, and the action is the sticky bar at every width below the rail.
 - [ ] Tables become cards below 1280 px when a sidebar is showing. No Actions column pushed out of view at 1024 or 1280.
 - [ ] A phone card is 250 px or less for a normal row. Label and value in two columns, values right-aligned, nothing empty.
       Show a field only when it has something to say (Payment only for Panel).
@@ -63,3 +64,7 @@ Edit visit pages.
 
 The title and gutter, the one filled button, the 1024 and 390 layouts, the menu and dialog states, the words, dark mode, and that
 Classic is untouched. A page that adds a new block, a new rail, a new table pattern, or touches the shared shell is a full review.
+
+## Settings switches
+
+A switch row only changes the form value. The page decides whether it saves at once or with its own Save. A page that saves at once must show a visible result ("Saved"). A switch with a privacy or money effect (for example showing full patient names on the waiting-room TV) needs the page's own confirm dialog that says who sees what or what changes.
