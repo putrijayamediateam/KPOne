@@ -166,8 +166,16 @@ test("Daniel's changes: URL state, neutral Controlled chip, always-visible save 
     assert.match(v2, /takeStash\(\)/);
     assert.match(v2, /c\.stashUnsaved\(\)/);
     assert.match(formLogic, /export const takeStash/);
-    assert.match(v2, /beforeunload/);
-    assert.match(v2, /router\.on\('before'/);
+    // A menu link or crumb while dirty is held by the shared V2LeaveGuard (different path); this page keeps its own
+    // prompt for the same-path form address, browser Back and Forward (stashed on popstate only).
+    assert.ok(v2.includes('<V2LeaveGuard :dirty="c.isDirty.value" />'));
+    assert.match(
+        v2,
+        /import V2LeaveGuard from '@\/components\/v2\/V2LeaveGuard\.vue'/,
+    );
+    assert.match(v2, /addEventListener\('popstate'/);
+    assert.ok(!/beforeunload/.test(v2));
+    assert.ok(!/router\.on\('before'/.test(v2));
     assert.ok(v2.includes('<DiscardPrompt'));
     assert.match(formLogic, /const isDirty = computed/);
     // b. neutral Controlled chip (the owner's CAT-1 decision), no amber
