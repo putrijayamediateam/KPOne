@@ -25,6 +25,12 @@ import V2Field from './V2Field.vue';
  * States are announced politely: "Searching…", "3 results", "No match", "Couldn't load results". Esc closes and
  * returns focus to the field. Arrow keys move, Enter picks, Home/End jump.
  *
+ * A visible muted line under the search box says what the list holds ("3 results", "No match", "Searching…"); when the list stops at 25 it says "Showing the first 25. Type to narrow." Below 640px the sheet has a visible Close button. From 640px the popover opens ABOVE the field when there is no room below, and is never taller than the room it has.
+ *
+ * Known limit: the phone system Back gesture leaves the page (the sheet does not take over history, which would clash with Inertia's own history); Close and tapping the scrim are the ways out.
+ *
+ * `placeholder` is "Choose…" for every picker: a page should pass a specific word where it helps ("Choose a category").
+ *
  * Wording of the label, hint and error is the page's job.
  */
 export type PickerOption = { id: string; label: string; detail?: string };
@@ -79,6 +85,11 @@ const remote = ref<PickerOption[]>([]);
 const loading = ref(false);
 const failed = ref(false);
 const picked = ref<PickerOption | null>(null);
+const flip = ref(false);
+const panelMax = ref<number | null>(null);
+const wide = () =>
+    typeof window !== 'undefined' &&
+    window.matchMedia('(min-width: 640px)').matches;
 let timer: ReturnType<typeof setTimeout> | null = null;
 let controller: AbortController | null = null;
 
@@ -125,6 +136,19 @@ const showAdd = computed(() => {
 // Rows are the results, then the Add row (index === results.length).
 const rowCount = computed(() => results.value.length + (showAdd.value ? 1 : 0));
 
+// The endpoint (or the local filter) stops at 25: exactly 25 rows may mean there are more.
+const capped = computed(() =>
+    props.searchUrl
+        ? remote.value.length >= MAX
+        : props.options.filter(
+              (o) =>
+                  query.value.trim() === '' ||
+                  o.label
+                      .toLowerCase()
+                      .includes(query.value.trim().toLowerCase()),
+          ).length > MAX,
+);
+
 const status = computed(() => {
     if (props.adding) {
         return 'Adding…';
@@ -143,6 +167,10 @@ const status = computed(() => {
     }
 
     const n = results.value.length;
+
+    if (capped.value) {
+        return `Showing the first ${MAX}. Type to narrow.`;
+    }
 
     return n === 0 ? 'No match' : n === 1 ? '1 result' : `${n} results`;
 });
@@ -238,6 +266,24 @@ const openList = () => {
     }
 
     query.value = '';
+
+    // From 640px the list is a popover: open it above the field when there is no room below, and never taller than
+    // the room it has, so it cannot run off the screen.
+    flip.value = false;
+    panelMax.value = null;
+
+    if (wide() && trigger.value) {
+        const r = trigger.value.getBoundingClientRect();
+        const below = window.innerHeight - r.bottom - 12;
+        const above = r.top - 12;
+
+        flip.value = below < 260 && above > below;
+        panelMax.value = Math.max(
+            160,
+            Math.min(320, flip.value ? above : below),
+        );
+    }
+
     open.value = true;
     active.value = -1;
     load();
@@ -402,9 +448,31 @@ onBeforeUnmount(() => {
                 data-slot="v2-picker-panel"
                 role="dialog"
                 :aria-label="label"
-                class="v2-menu fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col rounded-t-[18px] border border-border bg-popover p-3 sm:absolute sm:inset-x-auto sm:top-full sm:bottom-auto sm:left-0 sm:mt-1.5 sm:max-h-80 sm:w-full sm:rounded-[14px] sm:p-1.5"
+                class="v2-menu fixed inset-x-0 bottom-0 z-50 flex max-h-[80dvh] flex-col rounded-t-[18px] border border-border bg-popover p-3 sm:absolute sm:inset-x-auto sm:left-0 sm:max-h-[var(--v2-picker-max,20rem)] sm:w-full sm:rounded-[14px] sm:p-1.5"
+                :class="
+                    flip
+                        ? 'sm:top-auto sm:bottom-full sm:mb-1.5'
+                        : 'sm:top-full sm:bottom-auto sm:mt-1.5'
+                "
+                :style="
+                    panelMax !== null
+                        ? { '--v2-picker-max': `${panelMax}px` }
+                        : undefined
+                "
                 @keydown="onKey"
             >
+                <div class="mb-1.5 flex items-center justify-between sm:hidden">
+                    <span class="px-1 text-base font-semibold">{{
+                        label
+                    }}</span>
+                    <button
+                        type="button"
+                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                        @click="close(true)"
+                    >
+                        Close
+                    </button>
+                </div>
                 <input
                     ref="search"
                     v-model="query"
@@ -421,6 +489,13 @@ onBeforeUnmount(() => {
                     placeholder="Search…"
                     class="mb-1.5 h-11 w-full shrink-0 rounded-[10px] border border-input bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9"
                 />
+                <p
+                    class="px-1 pb-1.5 text-[13px] text-muted-foreground"
+                    aria-hidden="true"
+                    data-slot="v2-picker-count"
+                >
+                    {{ status }}
+                </p>
                 <ul
                     :id="`${base}-list`"
                     role="listbox"

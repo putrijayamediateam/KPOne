@@ -38,3 +38,16 @@ test('V2Picker: searchUrl is debounced, cancels the older call, imports nothing 
     assert.match(s, /controller\?\.abort\(\)/);
     assert.doesNotMatch(s, /components\/ui/);
 });
+
+test('V2Picker round 2: phone Close, visible count with cap line, flips above, Clear returns focus', () => {
+    assert.match(s, /items-center justify-between sm:hidden/);
+    assert.match(s, /close\(true\)"[\s\S]{0,200}Close/);
+    assert.match(s, /data-slot="v2-picker-count"/);
+    assert.match(s, /Showing the first \$\{MAX\}\. Type to narrow\./);
+    assert.match(s, /flip\.value = below < 260 && above > below/);
+    assert.match(s, /sm:bottom-full/);
+    assert.match(s, /--v2-picker-max/);
+    assert.match(s, /Known limit: the phone system Back gesture/);
+    assert.match(s, /function clear|const clear = /);
+    assert.match(s, /nextTick\(\(\) => trigger\.value\?\.focus\(\)\)/);
+});
