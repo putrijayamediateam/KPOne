@@ -1,3 +1,7 @@
+<script lang="ts">
+let lastLabel: string | null = null;
+</script>
+
 <script setup lang="ts">
 import {
     DialogContent,
@@ -7,7 +11,7 @@ import {
     DialogRoot,
     DialogTitle,
 } from 'reka-ui';
-import { nextTick, ref } from 'vue';
+import { nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 
 /**
  * Page-level "Discard your changes?" question (Version 2 catalogue pages). Same look and order as the shared guard in
@@ -15,8 +19,42 @@ import { nextTick, ref } from 'vue';
  * Closing it any other way (Esc, the backdrop) means Keep editing. Swap for the shared block when the page can use it.
  */
 defineProps<{ open: boolean; description: string }>();
+
 const emit = defineEmits<{ keep: []; discard: [] }>();
 const keepButton = ref<HTMLButtonElement | null>(null);
+
+// The field that had focus is remembered by its label, because a browser Back swaps the page (and its fields) before
+// this question opens. After "Keep editing" (or Esc) focus goes back to that field, not to the page body.
+const clean = (text: string | null | undefined) =>
+    (text ?? '').replace(/\s*\*\s*$/, '').trim();
+const remember = (event: FocusEvent) => {
+    const target = event.target;
+
+    if (
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement
+    ) {
+        const text = clean(target.labels?.[0]?.textContent);
+
+        if (text) {
+            lastLabel = text;
+        }
+    }
+};
+onMounted(() => document.addEventListener('focusin', remember));
+onBeforeUnmount(() => document.removeEventListener('focusin', remember));
+const keep = () => {
+    emit('keep');
+    setTimeout(() => {
+        for (const label of document.querySelectorAll('label')) {
+            if (clean(label.textContent) === lastLabel) {
+                (label as HTMLLabelElement).control?.focus();
+
+                return;
+            }
+        }
+    }, 150);
+};
 const focusKeep = (event: Event) => {
     event.preventDefault();
     nextTick(() => keepButton.value?.focus());
@@ -24,7 +62,7 @@ const focusKeep = (event: Event) => {
 </script>
 
 <template>
-    <DialogRoot :open="open" @update:open="(o: boolean) => !o && emit('keep')">
+    <DialogRoot :open="open" @update:open="(o: boolean) => !o && keep()">
         <DialogPortal>
             <DialogOverlay class="fixed inset-0 z-50 bg-black/50" />
             <DialogContent
@@ -55,7 +93,7 @@ const focusKeep = (event: Event) => {
                         ref="keepButton"
                         type="button"
                         class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:h-9"
-                        @click="emit('keep')"
+                        @click="keep()"
                     >
                         Keep editing
                     </button>
