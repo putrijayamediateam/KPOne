@@ -245,3 +245,47 @@ test('the checks panel says "Other notes", not "Other checks", when nothing wait
         2,
     );
 });
+
+test('rest lines become per-day warnings on the grid, for one day and for a run of days', async () => {
+    const { restWarningsByDay } = await loadLib();
+    const days = [
+        { date: '2026-11-09', label: 'Mon 9', long: 'Mon 9 Nov' },
+        { date: '2026-11-10', label: 'Tue 10', long: 'Tue 10 Nov' },
+        { date: '2026-11-11', label: 'Wed 11', long: 'Wed 11 Nov' },
+        { date: '2026-11-12', label: 'Thu 12', long: 'Thu 12 Nov' },
+    ];
+    const out = restWarningsByDay(
+        [
+            {
+                kind: 'rest',
+                count: 1,
+                message: 'Aisyah: 10 h rest before Thu 12 Nov (11 h set)',
+            },
+            {
+                kind: 'rest',
+                count: 3,
+                message:
+                    'Demo Director: 9 to 10 h rest before Mon 9 to Wed 11 Nov, 3 times (12 h set)',
+            },
+            {
+                kind: 'hours',
+                count: 1,
+                message: 'Aisyah: planned 43 h this week (limit 40 h)',
+            },
+            {
+                kind: 'rest',
+                count: 1,
+                message: 'Something the grid cannot read',
+            },
+        ],
+        days,
+    );
+    assert.deepEqual(out, {
+        Aisyah: { '2026-11-12': 'Rest under 11 h' },
+        'Demo Director': {
+            '2026-11-09': 'Rest under 12 h',
+            '2026-11-10': 'Rest under 12 h',
+            '2026-11-11': 'Rest under 12 h',
+        },
+    });
+});

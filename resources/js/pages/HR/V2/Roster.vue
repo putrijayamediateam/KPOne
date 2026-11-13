@@ -24,11 +24,16 @@ import V2RowMenu from '@/components/v2/V2RowMenu.vue';
 import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
+import V2WeekGrid from '@/components/v2/V2WeekGrid.vue';
+import type {
+    WeekGridRow,
+    WeekGridTotal,
+} from '@/components/v2/V2WeekGrid.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { useRosterPage } from '@/composables/hr/useRosterPage';
 import type { RosterProps, Version } from '@/composables/hr/useRosterPage';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
-import { groupChecks } from '@/lib/hr-roster-v2';
+import { groupChecks, restWarningsByDay } from '@/lib/hr-roster-v2';
 
 /**
  * Version 2 Roster (shown only in V2; Classic is `pages/HR/Roster.vue`, untouched). Same props, routes, permissions,
@@ -65,13 +70,11 @@ const {
     staffOptions,
     roomOptions,
     sessionOptions,
-    dayShifts,
     isShort,
     timeText,
     minimumForm,
     saveMinimums,
     minimumsEmpty,
-    onLeave,
     minimumError,
 } = useRosterPage(props);
 
@@ -227,6 +230,69 @@ onBeforeUnmount(() => {
     window.removeEventListener('resize', updateRail);
     railObserver?.disconnect();
 });
+
+const gridDays = computed(() =>
+    (planner.value?.days ?? []).map((d) => ({
+        key: d.date,
+        label: d.label,
+        long: d.long,
+    })),
+);
+const restByDay = computed(() =>
+    restWarningsByDay(
+        planner.value?.compliance?.warnings ?? [],
+        planner.value?.days ?? [],
+    ),
+);
+const gridRows = computed<WeekGridRow[]>(() =>
+    (planner.value?.rows ?? []).map((row) => ({
+        key: row.staffUserId,
+        title: row.name,
+        subtitle: row.role,
+        entries: Object.fromEntries(
+            (planner.value?.days ?? []).map((d) => [
+                d.date,
+                row.shifts
+                    .filter((s) => s.date === d.date)
+                    .map((s) => ({
+                        key: s.id,
+                        label: timeText(s),
+                        detail: [s.sessionLabel, s.roomName]
+                            .filter(Boolean)
+                            .join(' · '),
+                        actionLabel: `Edit shift: ${row.name}, ${d.long}, ${s.startLabel} to ${s.endLabel}`,
+                    })),
+            ]),
+        ),
+        notes: Object.fromEntries(
+            Object.entries(row.leaveDays).map(([date, kind]) => [
+                date,
+                kind === 'half' ? 'On leave (half day)' : 'On leave',
+            ]),
+        ),
+        warnings: restByDay.value[row.name] ?? {},
+    })),
+);
+const gridTotals = computed<Record<string, WeekGridTotal>>(() =>
+    Object.fromEntries(
+        (planner.value?.days ?? []).map((d, i) => [
+            d.date,
+            {
+                text: `${planner.value?.totals[i] ?? 0} on shift`,
+                warning: isShort(d.date) ? 'Below minimum' : undefined,
+            },
+        ]),
+    ),
+);
+const openShift = (entryKey: string) => {
+    const shift = (planner.value?.rows ?? [])
+        .flatMap((r) => r.shifts)
+        .find((s) => s.id === entryKey);
+
+    if (shift) {
+        openEdit(shift);
+    }
+};
 
 const minimumStep = (session: string, role: string, by: number) => {
     const current = Number(minimumForm.values[session][role]) || 0;
@@ -631,108 +697,28 @@ const inputClass =
                             }}
                         </p>
 
-                        <ul
+                        <V2WeekGrid
                             v-else
-                            class="grid gap-3 md:grid-cols-2"
+                            :label="`Roster for ${planner.branch.name}, ${roster.week.label}`"
+                            :days="gridDays"
+                            :rows="gridRows"
+                            :totals="gridTotals"
+                            totals-label="On shift"
+                            :editable="planner.can.edit"
+                            add-label="Add shift"
+                            empty-message="No shifts."
                             data-test="planner-days"
-                        >
-                            <li
-                                v-for="(day, index) in planner.days"
-                                :key="day.date"
-                                class="flex min-w-0 flex-col gap-2 rounded-[14px] border bg-card p-4"
-                            >
-                                <div
-                                    class="flex items-center justify-between gap-2"
-                                >
-                                    <h3 class="text-sm font-semibold">
-                                        {{ day.long }}
-                                    </h3>
-                                    <span
-                                        class="flex items-center gap-2 text-[13px] text-muted-foreground"
-                                        data-test="day-total"
-                                    >
-                                        {{ planner.totals[index] }} on shift
-                                        <V2Chip
-                                            v-if="isShort(day.date)"
-                                            tone="warning"
-                                            label="Below minimum"
-                                        />
-                                    </span>
-                                </div>
-                                <p
-                                    v-if="onLeave(day.date).length > 0"
-                                    class="text-[13px] text-muted-foreground"
-                                    data-test="on-leave-day"
-                                >
-                                    On leave: {{ onLeave(day.date).join(', ') }}
-                                </p>
-                                <p
-                                    v-if="dayShifts(day.date).length === 0"
-                                    class="text-[13px] text-muted-foreground"
-                                >
-                                    No shifts.
-                                </p>
-                                <ul v-else class="flex flex-col divide-y">
-                                    <li
-                                        v-for="item in dayShifts(day.date)"
-                                        :key="item.shift.id"
-                                        class="flex items-center justify-between gap-3 py-2"
-                                        :class="
-                                            planner.can.edit
-                                                ? 'cursor-pointer'
-                                                : ''
-                                        "
-                                        @click="
-                                            planner.can.edit &&
-                                            openEdit(item.shift)
-                                        "
-                                    >
-                                        <div class="min-w-0 text-sm">
-                                            <p class="font-medium break-words">
-                                                {{ item.row.name }}
-                                            </p>
-                                            <p
-                                                class="text-[13px] text-muted-foreground"
-                                            >
-                                                {{ item.row.role }} ·
-                                                <span class="tabular-nums">{{
-                                                    timeText(item.shift)
-                                                }}</span>
-                                                ·
-                                                {{ item.shift.sessionLabel
-                                                }}<template
-                                                    v-if="item.shift.roomName"
-                                                >
-                                                    ·
-                                                    {{
-                                                        item.shift.roomName
-                                                    }}</template
-                                                >
-                                            </p>
-                                        </div>
-                                        <button
-                                            v-if="planner.can.edit"
-                                            type="button"
-                                            :class="button"
-                                            :aria-label="`Edit shift: ${item.row.name}, ${day.long}, ${item.shift.startLabel} to ${item.shift.endLabel}`"
-                                            @click.stop="openEdit(item.shift)"
-                                        >
-                                            Edit
-                                        </button>
-                                    </li>
-                                </ul>
-                                <button
-                                    v-if="planner.can.edit"
-                                    type="button"
-                                    :class="[textLink, 'self-start']"
-                                    @click="openAdd(day.date)"
-                                >
-                                    Add shift<span class="sr-only">
-                                        on {{ day.long }}</span
-                                    >
-                                </button>
-                            </li>
-                        </ul>
+                            @open="openShift"
+                            @add="
+                                (day, row) =>
+                                    openAdd(
+                                        day,
+                                        typeof row === 'number'
+                                            ? row
+                                            : undefined,
+                                    )
+                            "
+                        />
 
                         <V2StickyBar v-if="primary">
                             <button

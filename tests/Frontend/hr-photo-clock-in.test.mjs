@@ -183,3 +183,11 @@ test('changing the day, branch or tab is a fresh visit, so a shown photo hides a
     assert.match(visit, /router\.get\(/);
     assert.doesNotMatch(visit, /preserveState/);
 });
+
+test('unmounting the dialog also resets the shared clock photo flow', () => {
+    const unmount = dialog.slice(dialog.indexOf('onBeforeUnmount(() => {'));
+    assert.match(
+        unmount.slice(0, unmount.indexOf('});')),
+        /resetClockPhoto\(\);/,
+    );
+});
