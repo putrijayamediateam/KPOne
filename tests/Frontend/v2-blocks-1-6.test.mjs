@@ -218,3 +218,40 @@ test('V2DisclosureBar: keepMounted keeps the panel in the DOM, hidden, while clo
     assert.match(s, /:hidden="!open"/);
     assert.doesNotMatch(s, /v-show/);
 });
+
+test('V2Table: the empty state cell has no padding and the empty block is never wider than its cell', () => {
+    const s = v2('V2Table');
+    assert.match(s, /<td :colspan="columns" class="!p-0">/);
+    assert.match(s, /sticky left-0 flex min-h-28 max-w-full flex-col/);
+});
+
+test('V2 table cards: the card grid column can shrink (minmax(0, 1fr)), so an empty state cannot widen the page', () => {
+    const css = read('resources/css/v2.css');
+    assert.equal(
+        (css.match(/grid-template-columns: minmax\(0, 1fr\);/g) ?? []).length >=
+            2,
+        true,
+    );
+    assert.match(
+        css,
+        /\.v2-cards-lg tbody \{\s*display: grid;\s*grid-template-columns: minmax\(0, 1fr\);/,
+    );
+    assert.match(
+        css,
+        /\.v2-cards-xl tbody \{\s*display: grid;\s*grid-template-columns: minmax\(0, 1fr\);/,
+    );
+});
+
+test('V2 table cards: only a cell marked data-wrap breaks a long unbreakable value (overflow-wrap: anywhere); ordinary cells never split words or numbers', () => {
+    const css = read('resources/css/v2.css');
+    assert.match(
+        css,
+        /\.v2-cards-lg td\[data-wrap\] \{\s*overflow-wrap: anywhere;/,
+    );
+    assert.match(
+        css,
+        /\.v2-cards-xl td\[data-wrap\] \{\s*overflow-wrap: anywhere;/,
+    );
+    assert.doesNotMatch(css, /\.v2-cards-(lg|xl) td \{\s*overflow-wrap/);
+    assert.match(read('resources/js/components/v2/V2Table.vue'), /data-wrap/);
+});
