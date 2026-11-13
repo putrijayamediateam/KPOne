@@ -238,11 +238,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     Supervisor, Finance Officer or Director, with a second-person check (STK-24); purchase requests by a CA or CA
     Supervisor ("agree purchase requests", 2026-11-12, STK-18); a Director starts a recall and a Director or Finance
     Officer who did not start it lifts it ("recall A", 2026-11-12, STK-25).
-34. **B.E.R.N.I.S.S now acts for the owner** (owner's words: "answer to all team for me", "be me"; relayed
-    2026-11-12). Her "ship it", approval or decision counts as the owner's, including approval of existing test
-    assertion changes (with before and after lines sent first). She still escalates to the owner: go-live, real
-    data, legal, PDPA, tax, new permissions or modules, money or stock policy, deleting data, and anything that
-    costs money. The owner's own words in a team session always win. This extends item 16.
+34. Always brought to the owner: go-live, real data, legal, PDPA, tax, new permissions or modules, money or
+    stock policy, deleting data, and anything that costs money. The owner's own words in a team session always
+    win. (The delegation note recorded here on 2026-11-12 was removed on the owner's decision of 2026-11-13, "1b".)
 35. Merging (B.E.R.N.I.S.S, 2026-11-12): she merges team PRs in batch PRs and may refresh a PR's head herself. The
     team does not push to a PR while it is in a batch, except for a tweak she asked for.
 36. STK-31 (B.E.R.N.I.S.S for the owner, 2026-11-12): option (A), push from the branch that holds the stock. A stock
