@@ -223,8 +223,9 @@ const plainStep = (summary: string): string => {
     );
 
     if (readMatch === null) {
-        return summary.replace(/\b[A-Z]{2,}(?:_[A-Z]+)+\b/g, (code) =>
-            titleCase(code),
+        return summary.replace(
+            /\b[A-Z]{2,}(?:_[A-Z]+)+\b|\b[A-Z]{3,}(?=:)/g,
+            (code) => titleCase(code),
         );
     }
 
