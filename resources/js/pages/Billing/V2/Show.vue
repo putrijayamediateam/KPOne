@@ -3,9 +3,7 @@ import { Head, router } from '@inertiajs/vue3';
 import { Check, ChevronDown } from '@lucide/vue';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
-import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
 import InvoiceActivityDrawer from '@/components/billing/InvoiceActivityDrawer.vue';
-import InvoiceAdjustmentDialog from '@/components/billing/InvoiceAdjustmentDialog.vue';
 import InvoiceBillTo from '@/components/billing/InvoiceBillTo.vue';
 import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import IssuedCopies from '@/components/billing/IssuedCopies.vue';
@@ -13,6 +11,8 @@ import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import ReceiptCorrections from '@/components/billing/ReceiptCorrections.vue';
 import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
+import BillingCompletionDialogV2 from '@/components/billing/v2/BillingCompletionDialogV2.vue';
+import InvoiceAdjustmentDialogV2 from '@/components/billing/v2/InvoiceAdjustmentDialogV2.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
@@ -50,7 +50,8 @@ import { myr, outstandingSen } from '@/types/billing';
  * the state and actions come from the BV2-0 copy of the Classic logic. Daniel's Billing department look (2026-11-13):
  * the patient's name and visit number head the page, the right column starts at 1280 px with Due now first below it,
  * one cobalt action per state (the bottom bar carries it below 1280 px), StatusBadge words through the V2 chip look.
- * The three entry dialogs keep their fields under a Version 2 wrapper until BV2-2 rebuilds them as V2Dialog.
+ * Every dialog is a V2Dialog: the three entry dialogs here, and the adjustment and completion dialogs (BV2-2,
+ * components/billing/v2). The refunds, corrections, Bill to and notes blocks stay Classic under the page wrapper.
  */
 const props = withDefaults(
     defineProps<{ billing: BillingPage; manage?: boolean }>(),
@@ -811,7 +812,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         later are not cash receipts.
                     </p>
 
-                    <BillingCompletionDialog
+                    <BillingCompletionDialogV2
                         v-if="billing.invoice"
                         v-model:open="completionOpen"
                         :visit-number="billing.visit.visitNumber"
@@ -984,7 +985,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                                 </div>
                             </dl>
                             <div class="mt-3">
-                                <InvoiceAdjustmentDialog :billing="billing" />
+                                <InvoiceAdjustmentDialogV2 :billing="billing" />
                             </div>
                             <p
                                 v-if="billing.invoice.correctionHold"
