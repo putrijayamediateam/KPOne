@@ -513,6 +513,25 @@ class InventoryOperationsTest extends ClinicalTestCase
         $this->assertSame(StockRequest::STATUS_REJECTED, $other->status);
     }
 
+    public function test_a_stock_request_from_a_location_to_itself_is_refused_with_a_message(): void
+    {
+        // Found on the V2 Inventory page (2b): the same location twice gave a bare "not found" page instead of a reason.
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $fixture = $this->inventoryFixture($supervisor, 'SAME-LOC');
+        $attributes = ['expected_branch_id' => $this->branch->id, 'source_location_public_id' => $fixture['location']->public_id, 'destination_location_public_id' => $fixture['location']->public_id, 'lines' => [['sku_public_id' => $fixture['sku']->public_id, 'quantity' => '1.000']]];
+        $requestCount = StockRequest::query()->count();
+        $auditCount = DB::table('audit_logs')->count();
+
+        $this->expectValidation(fn () => app(StockRequestService::class)->create($supervisor, $attributes), 'destination_location_public_id');
+        $this->post(route('inventory.stock-requests.store'), $attributes)
+            ->assertRedirect(route('inventory.index'))
+            ->assertSessionHasErrors(['destination_location_public_id' => 'Choose a different location from the one you take from.']);
+
+        $this->assertSame($requestCount, StockRequest::query()->count());
+        $this->assertSame($auditCount, DB::table('audit_logs')->count());
+    }
+
     public function test_stock_request_branch_source_cannot_be_overridden_by_warehouse_authority(): void
     {
         $supervisor = $this->actor('ca_supervisor');
