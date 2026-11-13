@@ -7,6 +7,8 @@
  * the newest history entry and asks; "Keep editing" leaves everything as it was, "Discard changes" visits the page Back
  * was heading to.
  *
+ * When a sheet and its page are both dirty, the newest guard (the sheet) takes the event, so Back asks once, never twice.
+ *
  * Guards register through `registerPopStateGuard` (useLeaveGuard does it; nothing else should).
  */
 type Guard = { dirty: () => boolean; held: (target: string) => void };
@@ -21,9 +23,11 @@ const remember = () => {
 if (typeof window !== 'undefined') {
     remember();
     // Inertia writes the new page into history just after it navigates, so read it a moment later.
-    document.addEventListener('inertia:navigate', () => setTimeout(remember, 0));
+    document.addEventListener('inertia:navigate', () =>
+        setTimeout(remember, 0),
+    );
     window.addEventListener('popstate', (event) => {
-        const guard = [...guards].find((g) => g.dirty());
+        const guard = [...guards].reverse().find((g) => g.dirty());
 
         if (!guard || window.location.href === shown.url) {
             return;

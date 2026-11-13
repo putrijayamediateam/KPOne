@@ -187,7 +187,7 @@ test('Browser Back and Forward are held while dirty (one popstate listener, befo
     );
     assert.match(pop, /document\.addEventListener\('inertia:navigate'/);
     // clean forms are never held
-    assert.match(pop, /find\(\(g\) => g\.dirty\(\)\)/);
+    assert.match(pop, /\.reverse\(\)\.find\(\(g\) => g\.dirty\(\)\)/);
     assert.match(composable, /registerPopStateGuard/);
     assert.match(composable, /stopPop\(\)/);
     // Discard goes through the same bypassing visit as a held link
