@@ -296,6 +296,20 @@ test('the three entry dialogs are V2Dialogs with the Classic calls and disabled 
 
     assert.equal(page.match(/<V2MoneyInput\b/g).length, 2);
     assert.match(page, /label="Amount received"/);
+    // One sentence-case name for the action, and the hint says what is missing (Daniel, round 3).
+    assert.match(
+        page,
+        /isCompleted\s*\? 'Settle Outstanding Balance'\s*: 'Record payment'/,
+    );
+    assert.doesNotMatch(page, /Add Payment/);
+    assert.match(
+        page,
+        /Choose an amount and a payment method to record the payment\./,
+    );
+    assert.match(
+        page,
+        /Enter a reason and tick the box to reverse this receipt\./,
+    );
     // Pickers keep the Classic form values, so payloads are unchanged.
     assert.match(page, /@update:model-value="form\.method = \$event \?\? ''"/);
     assert.match(

@@ -1165,7 +1165,9 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                 title="Record new payment"
                 description="Patient receipts are separate from approved Panel responsibility and pay later."
                 :confirm-label="
-                    isCompleted ? 'Settle Outstanding Balance' : 'Add Payment'
+                    isCompleted
+                        ? 'Settle Outstanding Balance'
+                        : 'Record payment'
                 "
                 :busy="busy || !form.method || !billing.can.pay"
                 :dirty="!!(form.amount || form.reference)"
@@ -1240,13 +1242,13 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                             autocomplete="off"
                     /></label>
                     <p
-                        v-if="!form.method"
+                        v-if="!form.method || !form.amount"
                         class="text-[13px] text-muted-foreground"
                     >
                         {{
                             isCompleted
-                                ? 'Choose a payment method to enable Settle Outstanding Balance.'
-                                : 'Choose a payment method to enable Add Payment.'
+                                ? 'Choose an amount and a payment method to settle the balance.'
+                                : 'Choose an amount and a payment method to record the payment.'
                         }}
                     </p>
                 </template>
@@ -1425,6 +1427,12 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         class="size-4"
                     />No real refund: recording error only</label
                 >
+                <p
+                    v-if="!form.reason || !form.recording_error_only"
+                    class="text-[13px] text-muted-foreground"
+                >
+                    Enter a reason and tick the box to reverse this receipt.
+                </p>
             </V2Dialog>
         </div>
     </template>
