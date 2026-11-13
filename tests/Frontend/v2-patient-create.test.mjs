@@ -46,3 +46,11 @@ test('V2 leaves through the shared V2LeaveGuard and logs nothing', () => {
     );
     assert.ok(!/console\./.test(page));
 });
+
+test('Create blocks Save on an unreadable date of birth', () => {
+    assert.ok(page.includes('@dob-invalid'));
+    assert.match(
+        page,
+        /if \(dobInvalid\.value\)\s*\{\s*return focusInvalidField\(\);/,
+    );
+});
