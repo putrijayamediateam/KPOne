@@ -592,7 +592,7 @@ const filterBadge = computed(
                                 </td>
                                 <td
                                     data-label="Payment"
-                                    class="text-sm whitespace-nowrap"
+                                    class="text-sm xl:whitespace-nowrap"
                                     :class="
                                         !/panel/i.test(
                                             item.visit.coverageLabel,
@@ -601,13 +601,15 @@ const filterBadge = computed(
                                             : ''
                                     "
                                 >
-                                    <span class="max-xl:text-right xl:contents">
+                                    <span
+                                        class="max-xl:min-w-0 max-xl:text-right max-xl:break-words xl:contents"
+                                    >
                                         <span class="block">{{
                                             item.visit.coverageLabel
                                         }}</span>
                                         <span
                                             v-if="item.visit.panelNote"
-                                            class="block max-w-56 truncate text-xs text-muted-foreground"
+                                            class="block max-w-56 truncate text-xs text-muted-foreground max-xl:line-clamp-2 max-xl:max-w-none max-xl:break-words max-xl:whitespace-normal"
                                             :title="item.visit.panelNote"
                                             >{{ item.visit.panelNote }}</span
                                         >
