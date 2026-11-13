@@ -274,7 +274,9 @@ const outline =
                                 <V2Chip tone="info" label="AI agent" />
                                 <span
                                     >{{ proposal.agent ?? 'An AI agent' }} ·
-                                    {{ formatDateTime(proposal.createdAt) }}</span
+                                    {{
+                                        formatDateTime(proposal.createdAt)
+                                    }}</span
                                 >
                             </p>
                             <p
@@ -286,11 +288,15 @@ const outline =
                                 }}</span>
                                 <span
                                     v-if="
-                                        itemParts(proposal).code || place(proposal)
+                                        itemParts(proposal).code ||
+                                        place(proposal)
                                     "
                                     class="block text-muted-foreground"
                                     >{{
-                                        [itemParts(proposal).code, place(proposal)]
+                                        [
+                                            itemParts(proposal).code,
+                                            place(proposal),
+                                        ]
                                             .filter(Boolean)
                                             .join(' · ')
                                     }}</span
@@ -321,17 +327,19 @@ const outline =
                                 </template>
                             </p>
                             <p
-                                v-if="proposal.status === 'pending' && !proposal.canDecide"
+                                v-if="
+                                    proposal.status === 'pending' &&
+                                    !proposal.canDecide
+                                "
                                 :id="`why-${proposal.id}`"
                                 class="text-[13px] leading-[18px] text-muted-foreground"
                                 data-test="cannot-decide"
                             >
-                                You cannot decide this one: you may only see it, or you started the run that made it. Someone else must decide.
+                                You cannot decide this one: you may only see it,
+                                or you started the run that made it. Someone
+                                else must decide.
                             </p>
-                            <div
-                                v-if="proposal.canDecide"
-                                class="flex gap-2"
-                            >
+                            <div v-if="proposal.canDecide" class="flex gap-2">
                                 <button
                                     type="button"
                                     :class="outline"
@@ -380,9 +388,7 @@ const outline =
                   ? 'Reject'
                   : 'Approve'
         "
-        :tone="
-            !refused && deciding?.action === 'reject' ? 'danger' : 'default'
-        "
+        :tone="!refused && deciding?.action === 'reject' ? 'danger' : 'default'"
         :single-action="refused"
         :reason-label="
             !refused && deciding?.action === 'reject'
