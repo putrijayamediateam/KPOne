@@ -261,20 +261,16 @@ const requestClose = (open: boolean) => {
                 {{ errors[index] }}
             </p>
         </fieldset>
+        <!-- While a line does not add up, the reason line by Confirm receipt says so once (Daniel); this box speaks only after. -->
         <div
+            v-if="valid"
             class="rounded-[14px] border bg-muted/40 px-4 py-3 text-sm"
-            :role="!valid && tried ? 'alert' : 'status'"
-            :class="{
-                'border-warning/60 font-medium text-warning-strong':
-                    !valid && tried,
-            }"
+            role="status"
         >
             {{
-                !valid
-                    ? 'Confirm receipt sends nothing until every line adds up to what was dispatched. Finish the counts above.'
-                    : differences === 0
-                      ? `Everything arrived as dispatched. Confirming adds it to ${row.destination}.`
-                      : `Confirming adds only the accepted quantities to ${row.destination}. ${differences} difference${differences === 1 ? '' : 's'} will stay open until someone who did not receive this transfer resolves ${differences === 1 ? 'it' : 'them'}.`
+                differences === 0
+                    ? `Everything arrived as dispatched. Confirming adds it to ${row.destination}.`
+                    : `Confirming adds only the accepted quantities to ${row.destination}. ${differences} difference${differences === 1 ? '' : 's'} will stay open until someone who did not receive this transfer resolves ${differences === 1 ? 'it' : 'them'}.`
             }}
         </div>
     </V2Dialog>
