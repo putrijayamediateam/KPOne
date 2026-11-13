@@ -734,7 +734,7 @@ test('the attention list always stacks, wraps names by word, and names its butto
 });
 
 test('a long Panel name is cut at table width so it cannot squeeze the Status column', () => {
-    assert.ok(page.includes('xl:max-w-56 xl:truncate'));
+    assert.ok(page.includes('xl:max-w-36 xl:truncate'));
     assert.ok(page.includes(':title="item.visit.coverageLabel"'));
 });
 
@@ -743,4 +743,14 @@ test('the attention list shows Not ready as a plain chip with the reason as text
     assert.ok(/\{\{\s*item\.notReadyReason\s*\}\}/.test(attention));
     assert.ok(!/·\s*\{\{\s*item\.notReadyReason/.test(attention));
     assert.ok(!attention.includes('`Not ready — ${item.notReadyReason}`'));
+});
+
+test('the table gives Patient room, hides Payment unless a Panel row is on screen, and never cuts Actions', () => {
+    assert.ok(page.includes('const hasPanelRow = computed'));
+    assert.ok(/<th v-if="hasPanelRow" scope="col">Payment<\/th>/.test(page));
+    assert.ok(/v-if="hasPanelRow"\s+data-label="Payment"/.test(page));
+    assert.ok(page.includes('xl:min-w-48'));
+    assert.ok(page.includes('xl:max-w-32'));
+    assert.ok(/class="w-px text-right whitespace-nowrap"/.test(page));
+    assert.ok(page.includes('xl:w-px xl:whitespace-nowrap'));
 });
