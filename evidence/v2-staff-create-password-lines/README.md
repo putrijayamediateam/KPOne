@@ -1,0 +1,1 @@
+Staff create V2 (follow-up on #695): 'The password must be at least 12 characters.' and 'The two passwords do not match.' (V2 only), plus 'That email is already used by another staff member.' Real app, task-owned DB.
