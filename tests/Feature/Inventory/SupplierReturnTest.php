@@ -12,6 +12,7 @@ use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
 use App\Domain\Organisation\Inventory\Services\SupplierReturnService as Service;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\Organisation;
+use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -422,6 +423,20 @@ class SupplierReturnTest extends VisitTestCase
         $this->actingAs($finance)->get(route('inventory.index', ['tab' => 'movements', 'movement_type' => 'supplier_return']))
             ->assertInertia(fn ($page) => $page->where('inventory.total', 1)->where('inventory.data.0.typeLabel', 'Supplier Return')
                 ->where('inventory.data.0.quantityDisplay', '-2')->where('inventory.data.0.reference', 'Supplier return'));
+    }
+
+    /** Follow-up to TIDY-4: the history shows its time in the branch's own time, never the stored UTC value. */
+    public function test_history_times_are_shown_in_branch_time(): void
+    {
+        $f = $this->fx()->received('10.000');
+        $this->dispatched($f, '2.000');
+        $finance = $this->fx()->actor('finance_officer');
+        $step = DB::table('inventory_supplier_return_actions')->orderBy('id')->first();
+        $expected = CarbonImmutable::parse($step->created_at)->setTimezone($this->branch->timezone)->format('j M Y, g:i A');
+
+        $this->actingAs($finance)->get(route('inventory.supplier-returns'))->assertInertia(fn ($page) => $page
+            ->where('returns.returns.rows.0.history.0.at_local', $expected)
+            ->where('returns.returns.rows.0.history.0.at_local', fn (string $value): bool => (bool) preg_match('/^\d{1,2} [A-Z][a-z]{2} \d{4}, \d{1,2}:\d{2} (AM|PM)$/', $value)));
     }
 
     public function test_unrelated_tables_are_untouched(): void
