@@ -31,6 +31,7 @@ return [
         'BusinessDetails/Index',
         'QueueDisplay/Settings',
         'Inventory/Index',
+        'InventoryServicesSettings/Suppliers',
         'Staff/Index',
         'Staff/Show',
     ],
