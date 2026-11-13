@@ -148,3 +148,9 @@ test('Classic keeps its own page and does not import V2 pieces', () => {
         /components\/v2|medicine-v2|composables\/medicine/,
     );
 });
+
+test('prices wrap in cards (no sideways scroll at 320) and a missing price reads "No price"', () => {
+    assert.ok(v2.includes("'No price'"));
+    assert.doesNotMatch(v2, /class="block whitespace-nowrap"/);
+    assert.match(v2, /xl:whitespace-nowrap/);
+});

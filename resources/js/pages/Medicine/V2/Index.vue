@@ -129,7 +129,7 @@ const onMenu = (row: MedicineRow, id: string) => {
     }
 };
 
-const money = (value: string | null) => (value ? `RM ${value}` : '—');
+const money = (value: string | null) => (value ? `RM ${value}` : 'No price');
 const strengthLine = (row: MedicineRow) =>
     [row.strengthText, row.dosageForm, row.orderUnit]
         .filter(Boolean)
@@ -314,15 +314,19 @@ const groupsLine = (items: string[]) =>
                                 data-label="Prices"
                                 class="text-right"
                             >
-                                <span class="block whitespace-nowrap"
-                                    >Self-pay
-                                    {{ money(row.selfPayAmountRm) }}</span
-                                >
-                                <span
-                                    class="block text-xs whitespace-nowrap text-muted-foreground"
-                                    >Default Panel
-                                    {{ money(row.panelDefaultAmountRm) }}</span
-                                >
+                                <div class="text-right">
+                                    <span class="block xl:whitespace-nowrap"
+                                        >Self-pay
+                                        {{ money(row.selfPayAmountRm) }}</span
+                                    >
+                                    <span
+                                        class="block text-xs text-muted-foreground xl:whitespace-nowrap"
+                                        >Default Panel
+                                        {{
+                                            money(row.panelDefaultAmountRm)
+                                        }}</span
+                                    >
+                                </div>
                             </td>
                             <td
                                 data-label="Status"
