@@ -388,7 +388,7 @@ const addContact = () =>
         <V2Dialog
             :open="archiving !== null"
             :title="`Archive ${archiving?.name ?? 'supplier'}?`"
-            description="An archived supplier cannot be chosen on new orders. Orders already placed are not changed. You can activate it again."
+            description="An archived supplier cannot be chosen on new purchase orders or purchase requests, and a draft purchase order for it cannot be submitted. Orders already submitted are not changed, and nothing is deleted. You can activate it again."
             confirm-label="Archive supplier"
             tone="danger"
             :busy="busySupplier !== null"
