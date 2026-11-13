@@ -74,8 +74,8 @@ test('parseTime: nothing is guessed', async () => {
 
 test('V2TimeField: canonical model, error words, echo is visual, polite announcement, V2 only', () => {
     assert.match(block, /TIME_ERROR/);
-    assert.match(block, /emit\('update:modelValue', ''\)/);
-    assert.match(block, /emit\('update:modelValue', toCanonical\(parsed\)\)/);
+    assert.match(block, /send\(''\)/);
+    assert.match(block, /send\(toCanonical\(parsed\)\)/);
     assert.match(block, /aria-hidden="true"\s+data-slot="v2-time-echo"/);
     assert.match(block, /role="status" aria-live="polite"/);
     assert.match(block, /type="text"/);
