@@ -154,7 +154,13 @@ test('V2 list: one filled page button, row menu, Back-safe address state, no nat
     assert.match(v2, /edit: row\.publicId/);
     assert.match(v2, /takeStash\(\)/);
     assert.match(v2, /c\.stashUnsaved\(\)/);
-    assert.match(v2, /beforeunload/);
+    assert.ok(v2.includes('<V2LeaveGuard :dirty="c.isDirty.value" />'));
+    assert.match(
+        v2,
+        /import V2LeaveGuard from '@\/components\/v2\/V2LeaveGuard\.vue'/,
+    );
+    assert.match(v2, /addEventListener\('popstate'/);
+    assert.ok(!/beforeunload/.test(v2));
     assert.match(v2, /← Clinical services/);
     assert.ok(v2.includes('<DiscardPrompt'));
     assert.ok(
