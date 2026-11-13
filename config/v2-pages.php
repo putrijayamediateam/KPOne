@@ -34,5 +34,6 @@ return [
         'InventoryServicesSettings/Suppliers',
         'Staff/Index',
         'Staff/Show',
+        'Agents/DailySummary',
     ],
 ];
