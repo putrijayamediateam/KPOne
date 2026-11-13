@@ -122,6 +122,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-23 | "Bills to collect": the pay-later collection list now shows every completed visit that still owes money, not only approved pay later: rows show Approved, Pay later, Due now and Still owed (the Billing page's Outstanding bill amount); money due now counts from the visit day and is past due from the next day ("N days since visit"); the page and its menu card are renamed (same link). Read-only. Design note: `BIL-23-DESIGN.md` | PR #538 |
 | BIL-24 | Bills to collect at scale: the list now works out only bills that can still owe money (approved pay later still to collect, or a completed visit whose invoice has a payment reversal, since a visit completes only with nothing due now and afterwards only a receipt correction can make it owe). Same output, measured on 20,000-bill fixtures. No migration. Design note: `BIL-24-DESIGN.md` | PR #556 |
 | BIL-25 | Receipt status badges: on the Invoice page and the read-only Billing payments list a receipt's status is the coloured status badge (Posted green, Reversed neutral grey) on its own row under the receipt number and time, instead of plain grey text; the manage-list badges use the same local tone. Version 2 only (owner decision 2026-11-13): Classic keeps the plain status text. Frontend only | PR #636 |
+| BIL-26 | "Review required" on Bills to collect: a bill whose invoice is on hold for a correction or has out-of-date source (the Outstanding bills "Review required before settlement" rule) shows a neutral "Review required" tag beside Still owed on the phone card and in the table, with a help sentence when one is on the page; amounts and Open billing unchanged. Sent as a side list of visit numbers, so the pinned row fields stay. Read-only | PR #639 |
 | BIL-28 | The Outstanding bill box's link on the Billing page reads "View all bills to collect at this branch", naming the page it opens (BIL-23). Wording only. | PR #553 |
 
 ## 6. Owner decisions already made (never ask again)
@@ -262,6 +263,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 40. BIL-24 (2026-11-11, the owner in the Billing session, "start with 1"): make Bills to collect cheaper on a long history
     without changing what it shows; no index migration in this slice (recorded as the next step if needed).
 41. BIL-25 receipt status badges (2026-11-11, the owner in the Billing session, "start with 1"; Siti's design, Daniel OK 2026-11-12): Reversed stays neutral grey (a settled correction, nothing to do), set locally in Billing so the shared status map, which HR also uses for 'reversed', is unchanged. On 2026-11-13 the owner chose "Version 2 only" for it: the badges show only with "Try the new layout"; Classic keeps the plain text.
+42. BIL-26 (2026-11-12, the owner in the Billing session, "start with 1" on a "Check bill" tag): Siti chose the wording "Review required" (the Billing page and Outstanding bills already use it for the same state; "Check bill" could read as "check the amount with the patient") and a neutral tone so amber stays for past due.
 43. BIL-28 (2026-11-12, the owner in the Billing session): the link reads "View all bills to collect at this branch"; the owner approved changing the one existing assertion that pinned the old words (bil-3 test).
 
 ## 7. Open items and known limits
@@ -305,9 +307,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   bill reads RM 0.00 there until the space adds the `dueNow` map. Told the DS session; their file, their change.
 - Bills to collect (BIL-23) lists completed visits that owe money and approved pay later (also on open visits); an
   open visit's own due-now money is not listed (it is being paid at the counter). Since BIL-28 the Billing page's
-  link reads "View all bills to collect at this branch". No "Check bill" badge for invoices
-  under review on this list (it would add a row field), so a bill on hold for correction or with stale source shows
-  unflagged. An open visit with pay later and unpaid money due no longer shows the "also due now" note (that money
+  link reads "View all bills to collect at this branch". Since BIL-26 a bill on hold for correction or with stale
+  source shows a neutral "Review required" tag (a side list, so the pinned row fields stay). The Billing department
+  space (DS team) builds its pay-later card and overdue answers from the rows only, so it does not show the tag yet;
+  the side list `reviewRequired` is there for it to use (their file, their change). An open visit with pay later and
+  unpaid money due no longer shows the "also due now" note (that money
   is being paid at the counter). If an invoice's evidence did not reconcile, the list floors its due-now money at
   zero instead of refusing, as the Billing page would. Performance (BIL-24): only bills that can still owe money are
   worked out (approved pay later still to collect, or a completed visit whose invoice has a payment reversal). On a

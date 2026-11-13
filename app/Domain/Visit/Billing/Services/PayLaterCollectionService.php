@@ -55,6 +55,9 @@ final class PayLaterCollectionService
                 // date travels beside the rows (visit number => date) to stay visible.
                 'payLaterDue' => $rows->filter(fn (object $row): bool => (int) $row->due_now_sen > 0 && $row->pay_later_due !== null)
                     ->mapWithKeys(fn (object $row): array => [(string) $row->visit_number => CarbonImmutable::parse($row->pay_later_due, $branch->timezone)->format('j M Y')])->all(),
+                // BIL-26: visit numbers on this page whose invoice must be reviewed before settlement (Outstanding bills rule).
+                'reviewRequired' => $rows->filter(fn (object $row): bool => (bool) $row->review_required)
+                    ->map(fn (object $row): string => (string) $row->visit_number)->values()->all(),
                 'data' => $rows->map(function (object $row) use ($branch, $today): array {
                     // BIL-23: a bill with only money due now is due from its visit day (past due from the next day).
                     $due = CarbonImmutable::parse($row->effective_due, $branch->timezone)->startOfDay();
@@ -112,6 +115,8 @@ final class PayLaterCollectionService
             ->selectRaw("case when v.status = 'completed' then greatest(kpone_invoice_payable(i.id) - coalesce(paid.amount, 0)
                 + coalesce(reversed.amount, 0) - coalesce(covered.amount, 0) - coalesce(r.remaining_sen, 0), 0) else 0 end as due_now_sen")
             ->selectRaw('r.due_date as pay_later_due')
+            // BIL-26: an invoice on hold for a correction or with out-of-date source must be reviewed before settlement.
+            ->selectRaw('(i.correction_hold or i.source_stale) as review_required')
             // registered_at is stored as UTC without a zone: read it as UTC, then take the branch's calendar day.
             ->selectRaw("((v.registered_at at time zone 'UTC') at time zone ?)::date as visit_day", [$timezone]);
 
