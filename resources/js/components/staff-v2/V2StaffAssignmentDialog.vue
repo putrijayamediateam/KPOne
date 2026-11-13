@@ -148,9 +148,11 @@ const endAssignment = () =>
             label="Valid through (inclusive)"
             weekday
             :hint="
-                form.valid_until
-                    ? 'The last day counts (inclusive).'
-                    : 'No end date.'
+                form.errors.valid_until
+                    ? undefined
+                    : form.valid_until
+                      ? 'The last day counts (inclusive).'
+                      : 'No end date.'
             "
             :error="form.errors.valid_until"
             @update:invalid="badUntil = $event"
