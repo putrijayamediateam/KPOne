@@ -54,3 +54,12 @@ test('V2Stat warns in development for an empty value and documents Not available
     assert.match(s, /real minus sign/);
     assert.match(s, /"Short", not\s+\* "Negative"/);
 });
+
+test('V2Stat: the status word is left out of the group name when the detail already says it', () => {
+    assert.match(s, /detailSaysStatus/);
+    assert.match(
+        s,
+        /props\.detail\.toLowerCase\(\)\.includes\(props\.status\.toLowerCase\(\)\)/,
+    );
+    assert.match(s, /adds information; it does not repeat the status/);
+});

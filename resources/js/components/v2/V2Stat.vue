@@ -14,8 +14,10 @@ import V2Chip from './V2Chip.vue';
  * An unavailable value is passed in words, "Not available" (or "To confirm"), never an empty string or a bare dash; an
  * empty `value` warns in development.
  *
- * Reading: the card is one group named "<label>, <value>, <status>, <detail>" (for example "Cash counted, RM 1,240.00,
- * Matches, Matches expected"). Numbers use tabular figures and never wrap. V2 views only.
+ * The muted line adds information; it does not repeat the status ("Matches" beside "Matches expected" is one too many).
+ * Reading: the card is one group named "<label>, <value>, <status>, <detail>" (for example "Overtime, 44 h, Near limit,
+ * Limit is 45 h"); the status is skipped when the detail already says it ("Cash counted, RM 1,240.00, Matches
+ * expected"). Numbers use tabular figures and never wrap. V2 views only.
  */
 const props = withDefaults(
     defineProps<{
@@ -28,11 +30,23 @@ const props = withDefaults(
     { detail: undefined, tone: 'neutral', status: undefined },
 );
 
-const reading = computed(() =>
-    [props.label, props.value, props.status, props.detail]
+// The status word is left out of the spoken group name when the muted line already says it ("Matches" and "Matches
+// expected"), so it is not read twice.
+const reading = computed(() => {
+    const detailSaysStatus =
+        !!props.status &&
+        !!props.detail &&
+        props.detail.toLowerCase().includes(props.status.toLowerCase());
+
+    return [
+        props.label,
+        props.value,
+        detailSaysStatus ? undefined : props.status,
+        props.detail,
+    ]
         .filter((part) => part && part.trim() !== '')
-        .join(', '),
-);
+        .join(', ');
+});
 
 if (import.meta.env?.DEV) {
     watch(
