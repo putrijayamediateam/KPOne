@@ -232,3 +232,47 @@ test('2b: Classic stays untouched by V2 and leaves out requests only when the V2
     );
     assert.match(home, /hide-orders\s*hide-requests/);
 });
+
+test("2b round 2: Daniel's changes (units, live sum, item names, batch quantities, SKU hint)", () => {
+    const words = read('resources/js/lib/inventory-v2-words.ts');
+    // "5 units", decimals only when there is a fraction.
+    assert.match(words, /trimQuantity\(String\(value \?\? '0'\)\)/);
+    assert.match(
+        section,
+        /quantityWithUnit\(line\.requestedQuantity, line\.stockUnit\)/,
+    );
+    assert.match(
+        receive,
+        /quantityWithUnit\(receipt\.dispatched, unitFor\(index\)\)/,
+    );
+    assert.match(
+        differences,
+        /quantityWithUnit\(difference\.quantity, difference\.unit\)/,
+    );
+    // The live sum under the four boxes, and what is missing or over, in words.
+    assert.match(
+        receive,
+        /accepted \+ \$\{f\(s\)\} short \+ \$\{f\(g\)\} damaged = /,
+    );
+    assert.match(receive, /not counted yet\./);
+    // The summary never says "everything arrived" while a line does not add up.
+    assert.match(receive, /!valid\s*\?\s*'Finish the counts above/);
+    assert.match(
+        receive,
+        /more than dispatched: count anything extra under Extra\./,
+    );
+    // The item's name first, its SKU code under it.
+    assert.match(section, /\{\{ line\.item \?\? line\.sku \}\}/);
+    assert.match(receive, /row\.lines\[index\]\?\.item \?\? skuFor\(index\)/);
+    // Each batch says how much is at the sending location, and the chosen one stays pressed.
+    assert.match(section, /:location="sheetRow\.sourcePublicId"/);
+    assert.match(picker, /here`/);
+    assert.match(picker, /:model-value="modelValue"/);
+    assert.match(picker, /v-if="modelValue && chosen && kind !== 'batches'"/);
+    assert.match(
+        read('resources/js/lib/inventory-picker.ts'),
+        /params\.set\('location', input\.location\);/,
+    );
+    // Item search matches the SKU code only, so the box says so.
+    assert.match(picker, /Search by SKU code\. Up to 25 matches\./);
+});

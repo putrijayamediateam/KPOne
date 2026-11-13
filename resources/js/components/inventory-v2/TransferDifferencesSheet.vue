@@ -3,7 +3,7 @@ import { reactive, watch } from 'vue';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
-import { trimQuantity } from '@/lib/supplier-terms';
+import { quantityWithUnit } from '@/lib/inventory-v2-words';
 import {
     transferDifferenceKindLabels,
     transferOutcomeLabels,
@@ -118,8 +118,7 @@ const requestClose = (open: boolean) => {
             <div class="flex flex-wrap items-start justify-between gap-2">
                 <p class="min-w-0 text-sm font-medium wrap-anywhere">
                     {{ kindLabel(difference.kind) }} ·
-                    {{ trimQuantity(difference.quantity) }}
-                    {{ difference.unit }}
+                    {{ quantityWithUnit(difference.quantity, difference.unit) }}
                     <span
                         class="block text-xs font-normal text-muted-foreground"
                         >{{ difference.sku }} · batch

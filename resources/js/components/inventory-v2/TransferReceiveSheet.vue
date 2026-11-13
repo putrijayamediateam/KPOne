@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
+import { quantityWithUnit } from '@/lib/inventory-v2-words';
 import { trimQuantity } from '@/lib/supplier-terms';
 import {
     defaultTransferReceiptRow,
+    formatTransferThousandths,
+    transferQuantityThousandths,
     transferReceiptDifferenceCount,
     transferReceiptPayload,
     transferReceiptRowError,
@@ -76,11 +79,44 @@ const submit = () => {
 };
 
 // ---- V2 only -------------------------------------------------------------------------------------------------------
-/** "Paracetamol 500 mg tablet (PV20-01)": the item first, its code after. */
-const lineName = (index: number) => {
-    const line = props.row.lines[index];
+const unitFor = (index: number) => props.row.lines[index]?.stockUnit ?? '';
+/**
+ * The live sum under the four boxes (Daniel, page 2b): "4 accepted + 1 short + 0 damaged = 5 of 5 units dispatched",
+ * and in words what is missing or over, so a mistake shows before the press. Exact thousandths, as the receipt rule.
+ */
+const checkLine = (index: number) => {
+    const receipt = rows[index];
+    const [dispatched, accepted, short, damaged] = [
+        receipt.dispatched,
+        receipt.accepted,
+        receipt.short,
+        receipt.damaged,
+    ].map(transferQuantityThousandths);
 
-    return line?.item ? `${line.item} (${line.sku})` : skuFor(index);
+    if (
+        [dispatched, accepted, short, damaged].some((value) => value === null)
+    ) {
+        return null;
+    }
+
+    const [d, a, s, g] = [dispatched, accepted, short, damaged] as bigint[];
+    const sum = a + s + g;
+    // "5", not "5.000": decimals only when there is a fraction.
+    const f = (value: bigint) => trimQuantity(formatTransferThousandths(value));
+    const total = `${f(a)} accepted + ${f(s)} short + ${f(g)} damaged = ${f(sum)} of ${quantityWithUnit(f(d), unitFor(index))} dispatched`;
+
+    if (sum < d) {
+        return { text: `${total}. ${f(d - sum)} not counted yet.`, ok: false };
+    }
+
+    if (sum > d) {
+        return {
+            text: `${total}. That is ${f(sum - d)} more than dispatched: count anything extra under Extra.`,
+            ok: false,
+        };
+    }
+
+    return { text: `${total}.`, ok: true };
 };
 /** A changed count asks "Discard your changes?" before the sheet closes. */
 const dirty = computed(() =>
@@ -133,10 +169,17 @@ const requestClose = (open: boolean) => {
             class="grid min-w-0 gap-3 rounded-[14px] border p-3"
         >
             <legend class="max-w-full px-1 text-sm font-medium wrap-anywhere">
-                {{ lineName(index) }}
+                {{ row.lines[index]?.item ?? skuFor(index) }}
             </legend>
+            <p
+                v-if="row.lines[index]?.item"
+                class="-mt-2 text-xs text-muted-foreground"
+            >
+                {{ skuFor(index) }}
+            </p>
             <p class="text-sm text-muted-foreground">
-                Dispatched {{ trimQuantity(receipt.dispatched)
+                Dispatched
+                {{ quantityWithUnit(receipt.dispatched, unitFor(index))
                 }}<template v-if="batchFor(index)">
                     · batch {{ batchFor(index) }}</template
                 >
@@ -158,7 +201,19 @@ const requestClose = (open: boolean) => {
                 </label>
             </div>
             <p
-                v-if="errors[index]"
+                v-if="checkLine(index)"
+                class="text-sm"
+                :class="
+                    checkLine(index)?.ok
+                        ? 'text-muted-foreground'
+                        : 'font-medium text-warning-strong'
+                "
+                aria-live="polite"
+            >
+                {{ checkLine(index)?.text }}
+            </p>
+            <p
+                v-else-if="errors[index]"
                 class="text-sm text-destructive"
                 aria-live="polite"
             >
@@ -170,9 +225,11 @@ const requestClose = (open: boolean) => {
             role="status"
         >
             {{
-                differences === 0
-                    ? `Everything arrived as dispatched. Confirming adds it to ${row.destination}.`
-                    : `Confirming adds only the accepted quantities to ${row.destination}. ${differences} difference${differences === 1 ? '' : 's'} will stay open until someone who did not receive this transfer resolves ${differences === 1 ? 'it' : 'them'}.`
+                !valid
+                    ? 'Finish the counts above: each line must add up to what was dispatched before you confirm.'
+                    : differences === 0
+                      ? `Everything arrived as dispatched. Confirming adds it to ${row.destination}.`
+                      : `Confirming adds only the accepted quantities to ${row.destination}. ${differences} difference${differences === 1 ? '' : 's'} will stay open until someone who did not receive this transfer resolves ${differences === 1 ? 'it' : 'them'}.`
             }}
         </div>
     </V2Dialog>

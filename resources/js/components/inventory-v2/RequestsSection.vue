@@ -11,7 +11,7 @@ import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import { useRequestsAndTransfers } from '@/composables/inventory-v2/useRequestsAndTransfers';
 import { stockRequestActionAllowed } from '@/lib/inventory-operation-transitions';
-import { trimQuantity } from '@/lib/supplier-terms';
+import { quantityWithUnit } from '@/lib/inventory-v2-words';
 import type { TransferReceiptLinePayload } from '@/lib/transfer-receipt';
 import type {
     InventoryDocument as DocumentRow,
@@ -337,8 +337,6 @@ const onRequestMenu = (row: DocumentRow, id: string) => {
 };
 
 // ---- Sentences said before the press --------------------------------------------------------------------------------
-const lineName = (line: DocumentRow['lines'][number]) =>
-    line.item ? `${line.item} (${line.sku})` : line.sku;
 const dispatchReady = computed(
     () =>
         !!sheetRow.value &&
@@ -548,13 +546,25 @@ const confirmOpen = computed({
                 :key="line.publicId"
                 class="rounded-[14px] border p-3 text-sm"
             >
-                <p class="font-medium break-words">{{ lineName(line) }}</p>
+                <p class="font-medium break-words">
+                    {{ line.item ?? line.sku }}
+                </p>
+                <p v-if="line.item" class="text-xs text-muted-foreground">
+                    {{ line.sku }}
+                </p>
                 <p class="text-muted-foreground">
-                    Requested {{ trimQuantity(line.requestedQuantity ?? '0') }}
-                    {{ line.stockUnit }}
+                    Requested
+                    {{
+                        quantityWithUnit(line.requestedQuantity, line.stockUnit)
+                    }}
                     <template v-if="line.dispatchedQuantity">
                         · dispatched
-                        {{ trimQuantity(line.dispatchedQuantity) }}</template
+                        {{
+                            quantityWithUnit(
+                                line.dispatchedQuantity,
+                                line.stockUnit,
+                            )
+                        }}</template
                     >
                     <template v-if="line.batch">
                         · batch {{ line.batch }}</template
@@ -596,11 +606,16 @@ const confirmOpen = computed({
                 <legend
                     class="max-w-full px-1 text-sm font-medium wrap-anywhere"
                 >
-                    {{ lineName(line) }}
+                    {{ line.item ?? line.sku }}
                 </legend>
+                <p v-if="line.item" class="-mt-2 text-xs text-muted-foreground">
+                    {{ line.sku }}
+                </p>
                 <p class="text-sm text-muted-foreground">
-                    Send {{ trimQuantity(line.requestedQuantity ?? '0') }}
-                    {{ line.stockUnit }}
+                    Send
+                    {{
+                        quantityWithUnit(line.requestedQuantity, line.stockUnit)
+                    }}
                 </p>
                 <InventoryPickerField
                     v-model="dispatchBatch[line.publicId]"
@@ -608,6 +623,8 @@ const confirmOpen = computed({
                     label="Batch to send"
                     required
                     :sku="line.skuPublicId"
+                    :location="sheetRow.sourcePublicId"
+                    :unit="line.stockUnit"
                     :expected-branch-id="operations.expectedBranchId"
                 />
             </fieldset>

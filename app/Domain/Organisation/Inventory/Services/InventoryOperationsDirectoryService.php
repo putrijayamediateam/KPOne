@@ -37,7 +37,7 @@ final class InventoryOperationsDirectoryService
         $purchaseOrderLines = $this->purchaseOrderLines($organisationId, array_values($purchaseOrders->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()));
         $stockRequests = DB::table('inventory_stock_requests as request')->join('inventory_locations as source', 'source.id', '=', 'request.source_location_id')->join('inventory_locations as destination', 'destination.id', '=', 'request.destination_location_id')
             ->where('request.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('request.requesting_branch_id', $branch->id)->orWhere('source.branch_id', $branch->id)->orWhere('destination.branch_id', $branch->id))->orderByDesc('request.created_at')->limit(50)
-            ->get(['request.id', 'request.public_id as publicId', 'request.request_number as number', 'request.status', 'request.lock_version as lockVersion', 'source.name as source', 'destination.name as destination', 'request.created_at as createdAt',
+            ->get(['request.id', 'request.public_id as publicId', 'request.request_number as number', 'request.status', 'request.lock_version as lockVersion', 'source.name as source', 'source.public_id as sourcePublicId', 'destination.name as destination', 'request.created_at as createdAt',
                 'request.requesting_branch_id', 'source.branch_id as source_branch_id', 'destination.branch_id as destination_branch_id'])
             // STK-31: a request can go to another branch; say which end this branch is (mirrors StockRequestService; the server decides).
             ->map(function (object $row) use ($branch, $mayUseWarehouse): object {
@@ -120,9 +120,11 @@ final class InventoryOperationsDirectoryService
      */
     private function requestLines(int $organisationId, array $stockRequestIds): array
     {
-        return $this->groupLines(DB::table('inventory_stock_request_lines as line')->join('inventory_skus as sku', 'sku.id', '=', 'line.inventory_sku_id')->leftJoin('inventory_batches as batch', 'batch.id', '=', 'line.inventory_batch_id')
+        // V2 page 2b (Daniel): the item's name and stock unit, read only, so the person dispatching or counting a transfer
+        // sees "Paracetamol 500 mg tablet" and "5 units", not only the SKU code. Purchase order lines already carry both.
+        return $this->groupLines(DB::table('inventory_stock_request_lines as line')->join('inventory_skus as sku', 'sku.id', '=', 'line.inventory_sku_id')->join('inventory_items as item', 'item.id', '=', 'sku.inventory_item_id')->leftJoin('inventory_batches as batch', 'batch.id', '=', 'line.inventory_batch_id')
             ->where('line.organisation_id', $organisationId)->whereIn('line.stock_request_id', $stockRequestIds)->orderBy('line.stock_request_id')->orderBy('line.id')
-            ->get(['line.stock_request_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'line.requested_quantity as requestedQuantity', 'line.dispatched_quantity as dispatchedQuantity', 'line.received_quantity as receivedQuantity', 'batch.batch_number as batch']));
+            ->get(['line.stock_request_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'line.requested_quantity as requestedQuantity', 'line.dispatched_quantity as dispatchedQuantity', 'line.received_quantity as receivedQuantity', 'batch.batch_number as batch', 'sku.stock_unit as stockUnit', 'item.generic_name as item']));
     }
 
     /**

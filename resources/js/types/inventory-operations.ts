@@ -56,6 +56,8 @@ export type InventoryDocument = {
     supplierPublicId?: string;
     supplier?: string;
     source?: string;
+    /** V2 page 2b: the stock request's source location, to show each batch's quantity there. */
+    sourcePublicId?: string;
     destinationPublicId?: string;
     destination?: string;
     location?: string;
