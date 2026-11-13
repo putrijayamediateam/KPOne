@@ -179,5 +179,7 @@ test("Daniel's changes: URL state, neutral Controlled chip, always-visible save 
     // f. the Controlled confirm says what changes for the label and the Dispensary
     assert.ok(rowLogic.includes('At Dispensary, a returned'));
     assert.ok(rowLogic.includes('controlled register'));
+    assert.ok(rowLogic.includes('below the label border'));
+    assert.ok(rowLogic.includes('reprints of earlier labels'));
     assert.ok(rowLogic.includes('Ubat Terkawal/Controlled Medicine'));
 });
