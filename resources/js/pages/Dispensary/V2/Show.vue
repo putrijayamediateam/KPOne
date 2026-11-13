@@ -1207,6 +1207,11 @@ const batchOptions = (
         label: `${matchesBox(target, index) ? 'Matches the box · ' : ''}${batchOptionText(stock, unit)}`,
         disabled: stock.held,
     }));
+// Hakim: clicking the visible word opens its field, as a <label> did for the native select.
+const openSelect = (labelId: string) =>
+    document
+        .querySelector<HTMLButtonElement>(`[aria-labelledby="${labelId}"]`)
+        ?.click();
 const selectTriggerClass =
     'mt-1 h-auto min-h-11 w-full py-2 text-left whitespace-normal data-[size=default]:h-auto lg:min-h-9 *:data-[slot=select-value]:line-clamp-none';
 
@@ -2329,7 +2334,14 @@ const filledButton =
                                 ></label
                             >
                             <div class="sm:col-span-2">
-                                <span :id="`batch-label-${item.publicId}`"
+                                <span
+                                    :id="`batch-label-${item.publicId}`"
+                                    class="cursor-pointer"
+                                    @click="
+                                        openSelect(
+                                            `batch-label-${item.publicId}`,
+                                        )
+                                    "
                                     >Batch</span
                                 >
                                 <div :data-batch-select="item.publicId">
@@ -2399,7 +2411,14 @@ const filledButton =
                                 }}
                             </p>
                             <div class="sm:col-span-2">
-                                <span :id="`fefo-label-${item.publicId}`"
+                                <span
+                                    :id="`fefo-label-${item.publicId}`"
+                                    class="cursor-pointer"
+                                    @click="
+                                        openSelect(
+                                            `fefo-label-${item.publicId}`,
+                                        )
+                                    "
                                     >FEFO exception reason (later batch
                                     only)</span
                                 >
@@ -2989,7 +3008,12 @@ const filledButton =
                             ></label
                         >
                         <div class="sm:col-span-2">
-                            <span id="batch-label-add">Batch</span>
+                            <span
+                                id="batch-label-add"
+                                class="cursor-pointer"
+                                @click="openSelect('batch-label-add')"
+                                >Batch</span
+                            >
                             <div data-batch-select="add">
                                 <OperationalSelect
                                     v-model="addForm.availabilityIndex"
@@ -3049,7 +3073,10 @@ const filledButton =
                             }}
                         </p>
                         <div class="sm:col-span-full">
-                            <span id="fefo-label-add"
+                            <span
+                                id="fefo-label-add"
+                                class="cursor-pointer"
+                                @click="openSelect('fefo-label-add')"
                                 >FEFO exception reason (later batch only)</span
                             >
                             <OperationalSelect
@@ -3495,7 +3522,7 @@ const filledButton =
                         ref="actionErrorBarRef"
                         role="alert"
                         tabindex="-1"
-                        class="mt-2 rounded-[10px] border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        class="mt-2 !h-auto rounded-[10px] border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         data-testid="dispensary-action-error-bar"
                     >
                         {{ actionError }}
@@ -3531,7 +3558,7 @@ const filledButton =
                         ref="actionErrorRailRef"
                         role="alert"
                         tabindex="-1"
-                        class="mt-2 rounded-[10px] border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        class="mt-2 !h-auto rounded-[10px] border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring"
                         data-testid="dispensary-action-error-rail"
                     >
                         {{ actionError }}

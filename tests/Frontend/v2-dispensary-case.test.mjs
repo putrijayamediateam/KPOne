@@ -348,6 +348,11 @@ test('no native selects: Batch and FEFO use OperationalSelect, the batch wraps i
     assert.match(template(v2), /:data-batch-select="item\.publicId"/);
     assert.match(template(v2), /data-batch-select="add"/);
     assert.match(v2, /disabled: stock\.held/);
+    // Clicking the visible word opens its field (Hakim).
+    assert.equal(
+        (template(v2).match(/@click="\s*openSelect\(/g) ?? []).length,
+        4,
+    );
 });
 
 test('scan to check sits behind a closed "Check by scan" bar that stays mounted (Daniel)', () => {
@@ -389,4 +394,13 @@ test('a refusal shows in words next to the filled button (bar or rail), and that
     );
     assert.match(v2, /node\.offsetParent !== null/);
     assert.match(v2, /shownActionError\(\)\?\.focus\(/);
+    // Hakim: the sticky components force their children to button height; a long refusal must not spill.
+    assert.equal(
+        (
+            template(v2).match(
+                /class="mt-2 !h-auto rounded-\[10px\] border border-destructive/g,
+            ) ?? []
+        ).length,
+        2,
+    );
 });
