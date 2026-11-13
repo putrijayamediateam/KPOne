@@ -37,3 +37,20 @@ test('V2Stat: colour is never the only signal (a tone shows its status word as a
 test('V2Stat: imports nothing from Classic ui', () => {
     assert.doesNotMatch(s, /@\/components\/ui\//);
 });
+
+test('V2Stat reads as one group: label, value, status, detail, in that order', () => {
+    assert.match(s, /role="group"/);
+    assert.match(s, /:aria-label="reading"/);
+    assert.match(
+        s,
+        /\[props\.label, props\.value, props\.status, props\.detail\]/,
+    );
+    assert.match(s, /\.join\(', '\)/);
+});
+
+test('V2Stat warns in development for an empty value and documents Not available, the real minus and the clinic wording', () => {
+    assert.match(s, /`value` is empty; pass "Not available" in words/);
+    assert.match(s, /Not available/);
+    assert.match(s, /real minus sign/);
+    assert.match(s, /"Short", not\s+\* "Negative"/);
+});
