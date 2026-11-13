@@ -1903,6 +1903,9 @@ const filledButton =
                             context="dispensary"
                             refocus-key="dispensary-check"
                             lookup-variant="outline"
+                            help="Scanning only checks. It doesn't save anything or check the quantity or batch."
+                            hide-unavailable-camera
+                            class="dark:border-foreground/20"
                             :accept="acceptScan"
                             :describe="describeScan"
                             data-testid="dispensary-scan"
@@ -2669,6 +2672,9 @@ const filledButton =
                             context="dispensary-add"
                             refocus-key="dispensary-add"
                             lookup-variant="outline"
+                            help="Scanning only finds the medicine. You still set the quantity, directions and batch, then press Add."
+                            hide-unavailable-camera
+                            class="dark:border-foreground/20"
                             :describe="() => ''"
                             data-testid="dispensary-scan-add"
                             @found="scanToAdd"
