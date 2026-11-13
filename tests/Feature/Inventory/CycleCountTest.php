@@ -81,6 +81,25 @@ final class CycleCountTest extends VisitTestCase
         $this->assertArrayHasKey('quantity', (array) $writeoff['targets']['rows'][0]);
     }
 
+    public function test_targets_and_cases_name_the_item_without_lifting_the_blind_count(): void
+    {
+        // V2 page 3 (Daniel): the sheets say "40 tablets of Paracetamol", so each row carries the item's name (read only).
+        $f = (new GovernedStockFixture($this->branch))->build('10.000');
+        $id = app(GovernedStockService::class)->propose($f['proposer'], 'count', ['expected_branch_id' => $this->branch->id, 'lock_version' => 0, 'retry_key' => (string) Str::uuid(),
+            'balance_id' => $f['balance']->id, 'balance_version' => $f['balance']->lock_version, 'unit' => 'unit']);
+        $stock = $this->page($this->actorAt('ca_supervisor'));
+        $row = collect($stock['cases']['rows'])->firstWhere('id', $id);
+
+        $this->assertSame($f['item']->generic_name, $row['item']);
+        $this->assertSame($f['item']->generic_name, ((array) collect($stock['targets']['rows'])->firstWhere('id', $f['balance']->id))['item']);
+        // Still blind: the name adds no quantity.
+        $this->assertTrue($row['blind']);
+        foreach (['expected_quantity', 'last_quantity', 'quantity'] as $key) {
+            $this->assertArrayNotHasKey($key, $row);
+        }
+        $this->assertArrayNotHasKey('quantity', (array) $stock['targets']['rows'][0]);
+    }
+
     public function test_abc_ranking_by_dispensing_movements(): void
     {
         // 100 movements: SKU 1 (70) and SKU 2 (15) make up the first 80% (SKU 2 crosses it), SKU 3 (10) the next 15%.

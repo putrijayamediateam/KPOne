@@ -33,6 +33,7 @@ const props = defineProps<{
     selected: string | null;
     clock: Date;
     canOpenInbox: boolean;
+    motionOff?: boolean;
 }>();
 
 const emit = defineEmits<{ select: [code: string]; openInbox: [] }>();
@@ -462,6 +463,7 @@ const tagLayout = computed(() => {
         ref="svgEl"
         class="office-scene h-auto w-full select-none"
         :class="{ 'control-room max-md:min-w-[560px]': isV2 }"
+        :data-motion="motionOff ? 'off' : 'on'"
         :viewBox="`0 ${-tagLayout.topPad} ${VIEW_W} ${VIEW_H + tagLayout.topPad}`"
         role="group"
         :aria-label="
@@ -1372,6 +1374,13 @@ const tagLayout = computed(() => {
 </style>
 
 <style>
+/* "Pause motion": the same stillness the reduced-motion preference gives, switched by a button. */
+.office-scene[data-motion='off'],
+.office-scene[data-motion='off'] * {
+    animation: none !important;
+    transition: none !important;
+}
+
 /* Dark mode, limited to the office drawing by its class so no rule reaches the rest of the page. */
 .dark .office-scene.office-scene {
     --office-sky-a: #1e3a8a;
