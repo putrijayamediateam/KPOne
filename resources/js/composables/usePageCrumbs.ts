@@ -1,12 +1,15 @@
+import { usePage } from '@inertiajs/vue3';
 import type { InjectionKey, MaybeRefOrGetter, Ref } from 'vue';
 import {
     computed,
     inject,
+    nextTick,
     onBeforeUnmount,
     onMounted,
     provide,
     ref,
     toValue,
+    watch,
     watchEffect,
 } from 'vue';
 
@@ -31,8 +34,26 @@ type CrumbContext = {
     placed: Ref<symbol[]>;
     /** Set by the shell: true in focus mode. */
     hidden: Ref<boolean>;
+    /** The page's own h1 text, read after each page change (UX-22). */
+    pageTitle: Ref<string>;
     trail: Readonly<Ref<PageCrumb[]>>;
 };
+
+const normalise = (text: string) =>
+    text.replace(/\s+/g, ' ').trim().toLowerCase();
+
+/**
+ * UX-22 (Daniel, 2026-11-13): a crumb that only repeats the page title adds nothing, so a one-item trail whose title
+ * equals the page's h1 is not drawn (for example "Stock" above "Stock" on the Stock space home). A longer trail, such
+ * as "Registration › KPV-00000008", is always drawn.
+ */
+export function repeatsTitle(trail: PageCrumb[], pageTitle: string): boolean {
+    return (
+        trail.length === 1 &&
+        pageTitle !== '' &&
+        normalise(trail[0].title) === normalise(pageTitle)
+    );
+}
 
 const KEY: InjectionKey<CrumbContext> = Symbol('v2-page-crumbs');
 
@@ -44,6 +65,20 @@ export function providePageCrumbs(
     const owner = ref<symbol | null>(null);
     const placed = ref<symbol[]>([]);
     const hidden = ref(false);
+    const pageTitle = ref('');
+    const page = usePage();
+    const readTitle = () =>
+        void nextTick(() => {
+            pageTitle.value =
+                document
+                    .querySelector('[data-test="v2-shell"] h1:not(.sr-only)')
+                    ?.textContent?.trim() ?? '';
+        });
+
+    onMounted(readTitle);
+    // Re-read on every page change, and when the same page gets new props (a reload that can change its h1).
+    watch(() => page.url, readTitle);
+    watch(() => page.props, readTitle);
     const trail = computed<PageCrumb[]>(() => {
         if (pageCrumbs.value && pageCrumbs.value.length > 0) {
             return pageCrumbs.value;
@@ -53,7 +88,7 @@ export function providePageCrumbs(
 
         return current ? [current] : [];
     });
-    const context = { pageCrumbs, owner, placed, hidden, trail };
+    const context = { pageCrumbs, owner, placed, hidden, pageTitle, trail };
 
     provide(KEY, context);
 
@@ -113,6 +148,7 @@ export function usePageCrumbTrail(placedInFrame: boolean) {
 
     const show = computed(
         () =>
+            !repeatsTitle(context.trail.value, context.pageTitle.value) &&
             !context.hidden.value &&
             context.trail.value.length > 0 &&
             (placedInFrame
