@@ -220,3 +220,19 @@ test('V2Dialog: tall sheets pin the header (title and X); the open-sheet guard i
         /\(4\) browser Back stays a known limit, with `beforeunload` for reload and tab close\./,
     );
 });
+
+test('V2Dialog: confirmDisabled switches the filled action off and says why above the footer', () => {
+    const d = read('resources/js/components/v2/V2Dialog.vue');
+    assert.match(d, /confirmDisabled\?: boolean;/);
+    assert.match(d, /confirmDisabledReason\?: string;/);
+    assert.match(d, /:disabled="busy \|\| confirmDisabled"/);
+    assert.match(d, /id="v2-dialog-confirm-reason"/);
+    assert.match(d, /role="status"/);
+    assert.match(d, /'v2-dialog-confirm-reason'/);
+    // the reason line sits above the footer row
+    assert.ok(
+        d.indexOf('id="v2-dialog-confirm-reason"') <
+            d.indexOf('sm:flex-row sm:justify-end'),
+    );
+    assert.match(d, /Choose a supplier to continue\./);
+});

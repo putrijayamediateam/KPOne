@@ -38,6 +38,12 @@ import { useLeaveGuard } from '@/composables/useLeaveGuard';
  * (3) the listener is removed when the page or sheet unmounts, so nothing keeps asking on the next page;
  * (4) browser Back stays a known limit, with `beforeunload` for reload and tab close.
  * Pages need no guard of their own for an open sheet.
+ *
+ * `confirmDisabled` switches the filled action off, and `confirmDisabledReason` says why in a muted line directly above the
+ * footer (read out politely, and named by the button's `aria-describedby`). Say what is missing, then what fixes it:
+ * "Choose a supplier to continue.", "Enter the quantity received to continue.". Use it for a state the person can see and
+ * fix (a missing choice), not for a refusal that only the server can decide; those stay as an error after pressing. While
+ * `busy` the button is disabled with no reason line.
  */
 const props = withDefaults(
     defineProps<{
@@ -49,6 +55,9 @@ const props = withDefaults(
         tone?: 'default' | 'danger';
         reasonLabel?: string;
         busy?: boolean;
+        /** Switches the filled action off (a real disabled button) and says why in `confirmDisabledReason`. */
+        confirmDisabled?: boolean;
+        confirmDisabledReason?: string;
         /** Only the confirm button: no Cancel (for a dialog that now only says something, with a single Close). */
         singleAction?: boolean;
         size?: 'default' | 'tall';
@@ -60,6 +69,8 @@ const props = withDefaults(
         tone: 'default',
         reasonLabel: undefined,
         busy: false,
+        confirmDisabled: false,
+        confirmDisabledReason: undefined,
         singleAction: false,
         size: 'default',
         dirty: false,
@@ -272,8 +283,21 @@ const submit = () => {
                         </p>
                     </div>
                 </div>
+                <p
+                    v-if="confirmDisabled && confirmDisabledReason"
+                    id="v2-dialog-confirm-reason"
+                    role="status"
+                    class="border-t bg-card px-5 pt-3 pb-1 text-sm text-muted-foreground"
+                >
+                    {{ confirmDisabledReason }}
+                </p>
                 <div
-                    class="flex flex-col-reverse gap-2 border-t bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
+                    class="flex flex-col-reverse gap-2 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
+                    :class="
+                        confirmDisabled && confirmDisabledReason
+                            ? ''
+                            : 'border-t'
+                    "
                     :inert="asking"
                 >
                     <DialogClose
@@ -284,7 +308,12 @@ const submit = () => {
                     </DialogClose>
                     <button
                         type="button"
-                        :disabled="busy"
+                        :disabled="busy || confirmDisabled"
+                        :aria-describedby="
+                            confirmDisabled && confirmDisabledReason
+                                ? 'v2-dialog-confirm-reason'
+                                : undefined
+                        "
                         :aria-disabled="
                             reasonLabel && reason.trim() === ''
                                 ? 'true'
