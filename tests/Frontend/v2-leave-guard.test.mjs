@@ -164,6 +164,7 @@ test('V2LeaveGuard.ask: in-page actions, the five rules', () => {
         guard.indexOf("emit('discard')") <
             guard.indexOf('run();', guard.indexOf('const discard')),
     );
+
     // the docs carry the rules
     for (const words of [
         'a second click on any trigger does nothing, and the focus stays on Keep editing',
