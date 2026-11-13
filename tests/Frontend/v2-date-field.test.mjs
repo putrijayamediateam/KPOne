@@ -135,6 +135,9 @@ test('V2DateField: ISO model, empty on bad text, clear when optional, calendar b
     assert.match(s, /weekday: false/);
     assert.match(s, /props\.weekday \?/);
     assert.match(s, /subject: undefined/);
+    assert.match(s, /minMessage: undefined/);
+    assert.match(s, /maxMessage: undefined/);
+    assert.match(s, /props\.minMessage\s*:\s*props\.maxMessage/);
     assert.match(s, /Choose a date for/);
     assert.match(s, /NEVER reads month-first/);
     assert.match(s, /aria-hidden="true"\s+data-slot="v2-date-echo"/);

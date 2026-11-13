@@ -19,7 +19,7 @@ import V2Field from './V2Field.vue';
  * refused: "Type the date day first, such as 13 Dec 2026."; an impossible date is refused by name ("There is no 31 Nov.",
  * "There is no 29 Feb in 2027."). Outside the optional `min` and `max` (inclusive, ISO) the box says why with the limit as a
  * date: "Choose a date on or after 1 Jan 2026."; pass `subject` ("Expiry") and it reads "Expiry must be on or after
- * 13 Nov 2026." The block never guesses the subject. For "after" rather than "on or after", pass the next day as `min`.
+ * 13 Nov 2026." The block never guesses the subject. For a message of its own (for example "Expiry must be after 13 Nov 2026." with `min` set to the next day), the page passes `minMessage` or `maxMessage`; the limit itself stays inclusive.
  *
  * `modelValue` is ISO "YYYY-MM-DD" or '' (the same value as a native date input, so a page only swaps the tag). It is
  * updated when the person leaves the box, presses Enter, picks from the calendar or presses Clear. If the text is not a
@@ -46,6 +46,8 @@ const props = withDefaults(
         placeholder?: string;
         weekday?: boolean;
         subject?: string;
+        minMessage?: string;
+        maxMessage?: string;
     }>(),
     {
         hint: undefined,
@@ -57,6 +59,8 @@ const props = withDefaults(
         placeholder: 'e.g. 13 Nov 2026',
         weekday: false,
         subject: undefined,
+        minMessage: undefined,
+        maxMessage: undefined,
     },
 );
 
@@ -135,7 +139,11 @@ const commit = () => {
     const range = rangeProblem(r.date.iso, props.min, props.max, props.subject);
 
     if (range) {
-        typedProblem.value = range;
+        // The page may say it its own way ("Expiry must be after 13 Nov 2026.") when its rule is stricter than the limit.
+        typedProblem.value =
+            (r.date.iso < (props.min ?? '')
+                ? props.minMessage
+                : props.maxMessage) ?? range;
         send('');
 
         return;
