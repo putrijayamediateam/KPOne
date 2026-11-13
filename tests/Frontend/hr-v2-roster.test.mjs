@@ -105,7 +105,15 @@ test('V2 blocks, crumb and the rail from 1536 px with a disclosure bar below it'
     // The rail never outgrows the page.
     assert.match(
         template,
-        /sticky top-20 flex max-h-\[calc\(100dvh-6rem\)\] flex-col gap-3 overflow-y-auto/,
+        /sticky top-20 -mx-2 flex max-h-\[calc\(100dvh-6rem\)\] flex-col gap-3 overflow-y-auto/,
+    );
+    // Round 2: the rail scrolls, fades while more is below, and is reachable by keyboard; no line looks cut.
+    assert.match(template, /:style="railMask"/);
+    assert.match(script, /black calc\(100% - 3rem\), transparent/);
+    assert.match(script, /transparent, black 2rem/);
+    assert.match(
+        template,
+        /tabindex="0"\s+role="region"\s+aria-label="Check before approval"/,
     );
 });
 

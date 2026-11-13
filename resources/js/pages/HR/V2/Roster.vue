@@ -1,6 +1,13 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 import ComplianceRulesCards from '@/components/hr-v2/ComplianceRulesCards.vue';
 import RosterChecks from '@/components/hr-v2/RosterChecks.vue';
 import InputError from '@/components/InputError.vue';
@@ -153,6 +160,52 @@ const checkTitle = computed(() =>
         : `${checkCount.value} things to check before approval`,
 );
 
+// The rail's fade shows only while there is more to scroll to (Daniel, round 2).
+const railBox = ref<HTMLElement | null>(null);
+const railMoreBelow = ref(false);
+const railMoreAbove = ref(false);
+const updateRail = () => {
+    const box = railBox.value;
+    railMoreBelow.value =
+        !!box && box.scrollTop + box.clientHeight < box.scrollHeight - 4;
+    railMoreAbove.value = !!box && box.scrollTop > 4;
+};
+// Each edge fades only while there is more to read past it, so no line ever looks cut mid-sentence.
+const railMask = computed(() => {
+    if (!railMoreAbove.value && !railMoreBelow.value) {
+        return {};
+    }
+
+    const top = railMoreAbove.value ? 'transparent, black 2rem' : 'black';
+    const bottom = railMoreBelow.value
+        ? 'black calc(100% - 3rem), transparent'
+        : 'black';
+    const mask = `linear-gradient(to bottom, ${top}, ${bottom})`;
+
+    return { maskImage: mask, WebkitMaskImage: mask };
+});
+let railObserver: ResizeObserver | null = null;
+// The rail appears and goes with the planner tab, so follow the element rather than the mount.
+watch(railBox, (box) => {
+    railObserver?.disconnect();
+
+    if (box && typeof ResizeObserver !== 'undefined') {
+        railObserver ??= new ResizeObserver(updateRail);
+        railObserver.observe(box);
+        Array.from(box.children).forEach((c) => railObserver?.observe(c));
+    }
+
+    nextTick(updateRail);
+});
+onMounted(() => {
+    updateRail();
+    window.addEventListener('resize', updateRail);
+});
+onBeforeUnmount(() => {
+    window.removeEventListener('resize', updateRail);
+    railObserver?.disconnect();
+});
+
 const minimumStep = (session: string, role: string, by: number) => {
     const current = Number(minimumForm.values[session][role]) || 0;
     minimumForm.values[session][role] = Math.min(20, Math.max(0, current + by));
@@ -262,10 +315,18 @@ const inputClass =
                 "
                 #rail
             >
-                <!-- The rail never outgrows the page: it sticks under the top bar and scrolls on its own (Daniel). -->
+                <!-- The rail never outgrows the page: it sticks under the top bar and scrolls on its own (Daniel). While more
+                     is below, its bottom edge fades so no line looks cut mid-sentence; it is focusable for keyboard
+                     scrolling, and the last item clears the fade (Daniel, round 2). -->
                 <div
-                    class="sticky top-20 flex max-h-[calc(100dvh-6rem)] flex-col gap-3 overflow-y-auto pr-1"
+                    ref="railBox"
+                    class="sticky top-20 -mx-2 flex max-h-[calc(100dvh-6rem)] flex-col gap-3 overflow-y-auto overscroll-contain rounded-[10px] px-2 pt-1 pb-6 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    :style="railMask"
+                    tabindex="0"
+                    role="region"
+                    aria-label="Check before approval"
                     data-test="roster-warnings"
+                    @scroll.passive="updateRail"
                 >
                     <p class="text-sm font-semibold">{{ checkTitle }}</p>
                     <RosterChecks
