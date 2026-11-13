@@ -59,6 +59,10 @@ const invoiceTabs = [
 ];
 const page = usePage();
 const busy = ref(false);
+// BIL-25 (Siti): a reversed receipt is a settled correction, so it stays grey.
+// 'reversed' has no tone in presentation.ts today; this keeps it grey if one is added.
+const receiptTone = (status: string) =>
+    status === 'reversed' ? ('neutral' as const) : undefined;
 const contextCleared = ref(false);
 const completionOpen = ref(false);
 const paymentOpen = ref(false);
@@ -919,7 +923,10 @@ const reverse = (receipt: Receipt) =>
                                         {{ myr(receipt.amountSen) }}
                                     </td>
                                     <td class="p-3">
-                                        <StatusBadge :status="receipt.status" />
+                                        <StatusBadge
+                                            :status="receipt.status"
+                                            :tone="receiptTone(receipt.status)"
+                                        />
                                     </td>
                                     <td class="p-3">
                                         <div
@@ -989,7 +996,10 @@ const reverse = (receipt: Receipt) =>
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>
-                            <StatusBadge :status="receipt.status" />
+                            <StatusBadge
+                                :status="receipt.status"
+                                :tone="receiptTone(receipt.status)"
+                            />
                             <div class="flex flex-wrap gap-2">
                                 <IssuePrintButton
                                     v-if="billing.can.print"
@@ -1029,15 +1039,24 @@ const reverse = (receipt: Receipt) =>
                                 }}</span>
                             </div>
                             <div class="mt-1 text-[11px] text-muted-foreground">
-                                {{ receipt.number }} ·
-                                {{ receipt.receivedAt }} ·
-                                <span class="capitalize">{{
-                                    receipt.status
-                                }}</span>
+                                {{ receipt.number }} · {{ receipt.receivedAt }}
+                                <span class="v2:hidden"
+                                    >·
+                                    <span class="capitalize">{{
+                                        receipt.status
+                                    }}</span></span
+                                >
+                            </div>
+                            <!-- BIL-25: the badge shows only in Version 2; Classic keeps the plain status above. -->
+                            <div class="mt-1 hidden v2:block">
+                                <StatusBadge
+                                    :status="receipt.status"
+                                    :tone="receiptTone(receipt.status)"
+                                />
                             </div>
                             <p
                                 v-if="receipt.refundedSen"
-                                class="text-xs text-muted-foreground tabular-nums"
+                                class="text-xs text-muted-foreground tabular-nums v2:mt-1"
                                 data-testid="payment-refunded"
                             >
                                 Refunded {{ myr(receipt.refundedSen) }} ·
@@ -1048,7 +1067,7 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="text-[11px] break-words text-muted-foreground"
+                                class="text-[11px] break-words text-muted-foreground v2:mt-1"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>

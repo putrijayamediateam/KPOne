@@ -230,7 +230,7 @@ test('buttons expose the approved hierarchy and interactive states', () => {
 
     assert.match(button, /cursor-pointer/);
     assert.match(button, /disabled:cursor-not-allowed/);
-    assert.match(button, /focus-visible:ring-\[3px\]/);
+    assert.match(button, /focus-visible:ring-ring focus-visible:ring-2/);
 });
 
 test('input and select controls remain visibly editable and accessible', () => {
