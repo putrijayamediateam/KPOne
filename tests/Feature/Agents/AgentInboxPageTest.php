@@ -114,7 +114,7 @@ class AgentInboxPageTest extends VisitTestCase
         $this->selectBranch($director);
         $this->get(route('agents.inbox'))->assertInertia(fn (Assert $page) => $page
             ->where('proposals.0.id', $own->id)->where('proposals.0.canDecide', false)
-            ->where('proposals.0.lines', fn ($lines) => collect($lines)->pluck('value')->contains('8 unit') && collect($lines)->pluck('value')->contains('10 unit')));
+            ->where('proposals.0.lines', fn ($lines) => collect($lines)->pluck('value')->contains('8 units') && collect($lines)->pluck('value')->contains('10 unit')));
         $this->post(route('agents.inbox.approve', $own), ['lock_version' => 0])->assertRedirect(route('agents.inbox', ['tab' => 'pending']))->assertSessionHasErrors('status');
         $this->assertSame('pending', $own->refresh()->status);
     }

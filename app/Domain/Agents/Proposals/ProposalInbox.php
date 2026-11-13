@@ -84,6 +84,30 @@ final class ProposalInbox
     }
 
     /**
+     * The restock "Suggested order" line: the quantity with its unit in the plural ("22 tablets"), and, when the location has
+     * a maximum, why that quantity ("22 tablets, to bring stock up to the maximum of 25"). Only this line is worded this way.
+     */
+    private function orderLine(string $quantity, ?string $unit, ?string $maximum): string
+    {
+        $line = $quantity.($unit === null ? '' : ' '.($quantity === '1' ? $unit : $this->plural($unit)));
+
+        return $maximum === null ? $line : $line.', to bring stock up to the maximum of '.$maximum;
+    }
+
+    /** A unit name in the plural: "tablet" to "tablets", "box" to "boxes", "strip" to "strips"; a name already ending in "s" is kept. */
+    private function plural(string $unit): string
+    {
+        $lower = strtolower($unit);
+
+        return match (true) {
+            str_ends_with($lower, 's') => $unit,
+            (bool) preg_match('/(x|z|ch|sh)$/', $lower) => $unit.'es',
+            (bool) preg_match('/[^aeiou]y$/', $lower) => substr($unit, 0, -1).'ies',
+            default => $unit.'s',
+        };
+    }
+
+    /**
      * @param  array{skus: array<string, array{code: string, name: string, unit: string}>, locations: array<string, string>, batches: array<string, string>}  $names
      * @return list<array{label: string, value: string}>
      */
@@ -103,7 +127,7 @@ final class ProposalInbox
         return match ($proposal->type) {
             'inventory.restock_suggestion' => [...$lines, $location(),
                 ['label' => 'Now in stock', 'value' => $qty('current_quantity').$unit], ['label' => 'Reorder level', 'value' => $qty('reorder_level').$unit],
-                ['label' => isset($p['max_level']) ? 'Fill to maximum ('.$qty('max_level').$unit.')' : 'Suggested order', 'value' => $qty('suggested_quantity').$unit]],
+                ['label' => 'Suggested order', 'value' => $this->orderLine($qty('suggested_quantity'), $sku['unit'] ?? null, isset($p['max_level']) ? $qty('max_level') : null)]],
             'inventory.expiry_warning' => [...$lines, $location(), ['label' => 'Batch', 'value' => $names['batches'][$p['batch_public_id']] ?? 'Unknown batch'],
                 ['label' => 'Quantity', 'value' => $qty('quantity').$unit], ['label' => 'Expires', 'value' => (string) $p['expiry_date']],
                 ['label' => 'Days left', 'value' => (string) $p['days_left']],
