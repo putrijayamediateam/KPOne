@@ -176,3 +176,23 @@ test('V2LeaveGuard.ask: in-page actions, the five rules', () => {
         assert.ok(guard.replace(/\s*\n\s*\*\s*/g, ' ').includes(words), words);
     }
 });
+
+test('Browser Back and Forward are held while dirty (one popstate listener, before Inertia)', () => {
+    const pop = read('resources/js/lib/v2-leave-popstate.ts');
+    const composable = read('resources/js/composables/useLeaveGuard.ts');
+    const app = read('resources/js/app.ts');
+    // the module is imported before Inertia starts, so its listener runs first
+    assert.match(app.split('\n')[0], /import '@\/lib\/v2-leave-popstate';/);
+    assert.match(pop, /event\.stopImmediatePropagation\(\)/);
+    assert.match(
+        pop,
+        /window\.history\.pushState\(shown\.state, '', shown\.url\)/,
+    );
+    assert.match(pop, /document\.addEventListener\('inertia:navigate'/);
+    // clean forms are never held
+    assert.match(pop, /find\(\(g\) => g\.dirty\(\)\)/);
+    assert.match(composable, /registerPopStateGuard/);
+    assert.match(composable, /stopPop\(\)/);
+    // Discard goes through the same bypassing visit as a held link
+    assert.match(composable, /bypass = true;/);
+});

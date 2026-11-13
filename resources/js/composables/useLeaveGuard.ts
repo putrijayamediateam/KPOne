@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/vue3';
 import { onBeforeUnmount } from 'vue';
+import { registerPopStateGuard } from '@/lib/v2-leave-popstate';
 import { holdTarget } from '@/lib/v2-leave-rule';
 
 /**
@@ -12,7 +13,8 @@ import { holdTarget } from '@/lib/v2-leave-rule';
  * (1) A same-path visit and a partial reload or a polling visit (such as the Registration and Queue live refresh) is never held;
  * (2) a successful save never asks;
  * (3) the listener is removed when the page or sheet unmounts, so nothing keeps asking on the next page;
- * (4) browser Back stays a known limit, with `beforeunload` for reload and tab close.
+ * (4) browser Back and Forward are held too (see `lib/v2-leave-popstate.ts`: the question is asked, the page stays as it is);
+ *     reload and tab close get the browser's own warning (`beforeunload`).
  */
 export function useLeaveGuard(
     dirty: () => boolean,
@@ -47,9 +49,14 @@ export function useLeaveGuard(
     };
 
     window.addEventListener('beforeunload', warnOnUnload);
+    const stopPop = registerPopStateGuard({
+        dirty: () => dirty() && !bypass,
+        held: onHeld,
+    });
 
     onBeforeUnmount(() => {
         stop();
+        stopPop();
         window.removeEventListener('beforeunload', warnOnUnload);
     });
 
