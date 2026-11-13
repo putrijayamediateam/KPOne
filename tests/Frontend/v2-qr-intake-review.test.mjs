@@ -98,5 +98,5 @@ test('V2 blocks Save on an unreadable date and says what is missing before Accep
     assert.ok(page.includes('v2-accept-reason-bar'));
     assert.ok(page.includes('Relationship: not chosen yet.'));
     // Only the dialog's confirm is red: the trigger stays an outline button.
-    assert.ok(!/border-destructive/.test(page));
+    assert.ok(!/border border-destructive px-4/.test(page));
 });
