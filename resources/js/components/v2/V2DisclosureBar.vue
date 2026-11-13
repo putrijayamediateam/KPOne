@@ -4,7 +4,8 @@ import { ref } from 'vue';
 /**
  * Version 2 disclosure bar: a full-width bar with a title (for example "3 need attention") that opens a panel under
  * it. 44px below 1024px, 36px from 1024px; `aria-expanded` and `aria-controls` tie the button to the panel. It is closed by
- * default; `defaultOpen` opens it. `keepMounted` keeps the panel in the DOM (hidden) while the bar is closed, so a half-filled form inside keeps what
+ * default; `defaultOpen` opens it. `keepMounted` keeps the panel in the DOM while the bar is closed, with the real `hidden` attribute (so screen readers skip it,
+ * Tab never reaches a field inside it, and fields keep their typed values), so a half-filled form inside keeps what
  * was typed; without it the panel is removed when closed. `tone="warning"` adds an amber dot beside the title (hidden from screen readers; the
  * title carries the meaning), so a "5 need attention" bar does not read as a plain accordion.
  */
@@ -58,7 +59,7 @@ const id = `v2-bar-${Math.random().toString(36).slice(2, 8)}`;
         </button>
         <div
             v-if="keepMounted || open"
-            v-show="open"
+            :hidden="!open"
             :id="id"
             class="border-t p-4"
         >

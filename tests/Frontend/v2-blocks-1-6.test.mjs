@@ -209,5 +209,6 @@ test('V2DisclosureBar: keepMounted keeps the panel in the DOM, hidden, while clo
     assert.match(s, /keepMounted\?: boolean/);
     assert.match(s, /keepMounted: false/);
     assert.match(s, /v-if="keepMounted \|\| open"/);
-    assert.match(s, /v-show="open"/);
+    assert.match(s, /:hidden="!open"/);
+    assert.doesNotMatch(s, /v-show/);
 });
