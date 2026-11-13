@@ -130,12 +130,17 @@ const branchOptions = computed(() =>
                         :options="c.categoryOptions.value"
                     />
                 </V2Field>
-                <CatalogueOptionPicker
-                    v-model="form.order_unit"
-                    type="service_unit"
-                    label="Order unit"
-                    :error="form.errors.order_unit"
-                />
+                <!-- The shared picker draws its own small label; match the V2 label and mark it required until V2Picker lands. -->
+                <div
+                    class="min-w-0 [&_label]:text-sm [&_label]:font-medium [&_label]:text-foreground [&_label]:after:text-destructive [&_label]:after:content-['_*']"
+                >
+                    <CatalogueOptionPicker
+                        v-model="form.order_unit"
+                        type="service_unit"
+                        label="Order unit"
+                        :error="form.errors.order_unit"
+                    />
+                </div>
             </div>
         </V2FormCard>
 
