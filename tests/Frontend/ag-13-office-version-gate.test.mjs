@@ -52,6 +52,7 @@ test('Version 2 panel says steps in plain words and wraps long card text', () =>
     );
     assert.match(page, /const plainStep = /);
     assert.match(v2, /plainStep\(step\.summary\)/);
+    assert.match(v2, /plainStep\(\s*agent\.currentTask/);
     assert.match(v2, /line-clamp-3/);
     assert.match(v2, /rounded-lg border border-border bg-muted\/40/);
     // Classic keeps the raw summary.

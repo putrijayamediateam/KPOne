@@ -402,9 +402,11 @@ onMounted(() => {
                                     "
                                 >
                                     {{
-                                        agent.currentTask ??
-                                        agent.lastStep ??
-                                        'Nothing to do right now.'
+                                        plainStep(
+                                            agent.currentTask ??
+                                                agent.lastStep ??
+                                                'Nothing to do right now.',
+                                        )
                                     }}
                                 </span>
                                 <span
