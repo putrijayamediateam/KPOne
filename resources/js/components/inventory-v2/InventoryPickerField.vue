@@ -1,17 +1,22 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2SearchCombobox from '@/components/v2/V2SearchCombobox.vue';
 import type { ComboOption } from '@/components/v2/V2SearchCombobox.vue';
 import { inventoryPickerUrl } from '@/lib/inventory-picker';
 import type { InventoryPickerRow } from '@/lib/inventory-picker';
+import { quantityWithUnit } from '@/lib/inventory-v2-words';
 import { requestJson } from '@/lib/json-client';
+import { formatDate } from '@/lib/presentation';
 
 /**
  * Inventory V2 only: a supplier, location or SKU picker on `V2SearchCombobox`, over the same server search as the
  * Classic `InventorySearchSelect` (`GET /inventory/picker`, context `operations`, at most 25 matches). The chosen
- * value shows as text with a Clear button, never as a filled box (Daniel, page 2 plan).
+ * value shows as text with a Clear button, never as a filled box (Daniel, page 2 plan). Batches (page 2b) are for one
+ * SKU, earliest expiry first as the server sends them, shown at once as choice buttons (the list is short and the order
+ * matters); a held batch is left out and counted.
  */
-type Kind = 'suppliers' | 'locations' | 'skus';
+type Kind = 'suppliers' | 'locations' | 'skus' | 'batches';
 
 const props = withDefaults(
     defineProps<{
@@ -23,8 +28,21 @@ const props = withDefaults(
         selectedLabel?: string;
         error?: string;
         required?: boolean;
+        /** Batches only: the SKU whose batches to list. */
+        sku?: string;
+        /** Batches only: the location whose on-hand quantity each batch shows ("5 units here"). */
+        location?: string;
+        /** Batches only: the stock unit for that quantity. */
+        unit?: string;
     }>(),
-    { selectedLabel: '', error: '', required: false },
+    {
+        selectedLabel: '',
+        error: '',
+        required: false,
+        sku: '',
+        location: '',
+        unit: '',
+    },
 );
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
@@ -65,17 +83,40 @@ const toOption = (row: InventoryPickerRow): ComboOption => {
         };
     }
 
+    if (props.kind === 'batches') {
+        return {
+            id,
+            label: String(row.batchNumber),
+            detail: [
+                row.expiryDate
+                    ? `Expires ${formatDate(String(row.expiryDate))}`
+                    : '',
+                row.onHand != null
+                    ? `${quantityWithUnit(String(row.onHand), props.unit)} here`
+                    : '',
+            ]
+                .filter(Boolean)
+                .join(' · '),
+        };
+    }
+
     return {
         id,
         label: String(row.name),
         detail: String(row.code ?? ''),
     };
 };
+/** Held batches cannot be dispatched (the server refuses them), so they are not offered; this says how many. */
+const heldCount = computed(
+    () => rows.value.filter((row) => row.held === true).length,
+);
 
 const options = computed(() =>
     rows.value
         .filter(
-            (row) => !(props.kind === 'suppliers' && row.isActive === false),
+            (row) =>
+                !(props.kind === 'suppliers' && row.isActive === false) &&
+                row.held !== true,
         )
         .map(toOption),
 );
@@ -92,6 +133,11 @@ const search = async () => {
                 context: 'operations',
                 expectedBranchId: props.expectedBranchId,
                 query: query.value,
+                sku: props.kind === 'batches' ? props.sku : undefined,
+                location:
+                    props.kind === 'batches' && props.location
+                        ? props.location
+                        : undefined,
             }),
         );
 
@@ -115,7 +161,7 @@ watch(query, (value) => {
         clearTimeout(timer);
     }
 
-    if (value.trim() === '') {
+    if (value.trim() === '' && props.kind !== 'batches') {
         rows.value = [];
 
         return;
@@ -123,6 +169,21 @@ watch(query, (value) => {
 
     timer = setTimeout(() => void search(), 250);
 });
+
+// Batches list as soon as the SKU is known, without typing (as the Classic batch select does).
+watch(
+    () => props.sku,
+    (sku) => {
+        if (props.kind === 'batches') {
+            rows.value = [];
+
+            if (sku) {
+                void search();
+            }
+        }
+    },
+    { immediate: true },
+);
 
 const pick = (option: ComboOption) => {
     chosen.value = option.detail
@@ -160,7 +221,7 @@ const errorId = `inv-picker-${Math.random().toString(36).slice(2, 8)}-error`;
 <template>
     <div class="grid min-w-0 gap-1.5">
         <div
-            v-if="modelValue && chosen"
+            v-if="modelValue && chosen && kind !== 'batches'"
             class="grid gap-1.5"
             role="group"
             :aria-label="label"
@@ -191,6 +252,49 @@ const errorId = `inv-picker-${Math.random().toString(36).slice(2, 8)}-error`;
                 </button>
             </div>
         </div>
+        <template v-else-if="kind === 'batches'">
+            <V2OptionGroup
+                v-if="options.length"
+                :model-value="modelValue"
+                :label="label"
+                :required="required"
+                :options="
+                    options.map((option) => ({
+                        value: option.id,
+                        label: option.detail
+                            ? `${option.label} · ${option.detail}`
+                            : option.label,
+                    }))
+                "
+                @update:model-value="
+                    (value) => {
+                        const option = options.find(
+                            (entry) => entry.id === value,
+                        );
+                        if (option) pick(option);
+                    }
+                "
+            />
+            <p v-else class="text-sm" role="status">
+                <span class="font-medium">{{ label }}</span
+                ><br />
+                <span class="text-muted-foreground">{{
+                    loading
+                        ? 'Loading batches…'
+                        : failed
+                          ? 'Batches could not be loaded. Try again.'
+                          : 'No batch of this item can be sent from here.'
+                }}</span>
+            </p>
+            <p class="text-xs text-muted-foreground">
+                Earliest expiry first.
+                <template v-if="heldCount > 0">
+                    {{ heldCount }} held
+                    {{ heldCount === 1 ? 'batch is' : 'batches are' }} not
+                    shown.</template
+                >
+            </p>
+        </template>
         <template v-else>
             <!-- The combobox names itself for screen readers; this is the visible label (Daniel: no placeholder-only field). -->
             <span class="text-sm font-medium" aria-hidden="true"
@@ -210,7 +314,11 @@ const errorId = `inv-picker-${Math.random().toString(36).slice(2, 8)}-error`;
                 @select="pick"
             />
             <p class="text-xs text-muted-foreground">
-                Up to 25 matches. Type to narrow.
+                {{
+                    kind === 'skus'
+                        ? 'Search by SKU code. Up to 25 matches.'
+                        : 'Up to 25 matches. Type to narrow.'
+                }}
             </p>
         </template>
         <p

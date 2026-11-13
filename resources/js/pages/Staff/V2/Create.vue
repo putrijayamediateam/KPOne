@@ -101,6 +101,21 @@ const errorFor = (key: string): string | undefined => {
         return undefined;
     }
 
+    // Plain wording for the two password lines (the server's rule is in the hint beside the field).
+    if (key === 'password') {
+        if (/must be at least 12 characters/.test(message)) {
+            return 'The password must be at least 12 characters.';
+        }
+
+        if (/confirmation does not match/.test(message)) {
+            return 'The two passwords do not match.';
+        }
+    }
+
+    if (key === 'email' && /has already been taken/.test(message)) {
+        return 'That email is already used by another staff member.';
+    }
+
     const plain = PLAIN.find(([pattern]) => pattern.test(key));
 
     return plain && /field is required\.?$/.test(message) ? plain[1] : message;
