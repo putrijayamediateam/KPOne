@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
+import OrdersSection from '@/components/inventory-v2/OrdersSection.vue';
 import StockPanelBar from '@/components/inventory-v2/StockPanelBar.vue';
 import { Input } from '@/components/ui/input';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -692,10 +693,19 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                     Movement records are read-only.
                 </p>
 
-                <StockPanelBar title="Receiving, transfers and stock requests">
+                <!-- Page 2a: suppliers, purchase orders and receiving on the V2 blocks; the forms stay when the bar closes. -->
+                <V2DisclosureBar title="Orders and receiving" keep-mounted>
+                    <OrdersSection
+                        :operations="operations"
+                        :receipt-memory-context="receiptMemoryContext"
+                        :timezone="inventory.branchTimezone"
+                    />
+                </V2DisclosureBar>
+                <StockPanelBar title="Stock requests and transfers">
                     <InventoryOperationsPanel
                         :operations="operations"
                         :receipt-memory-context="receiptMemoryContext"
+                        hide-orders
                     />
                 </StockPanelBar>
                 <StockPanelBar
