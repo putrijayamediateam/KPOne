@@ -214,3 +214,12 @@ test('2a: the Classic panel leaves out suppliers and purchase orders only when t
         !read('resources/js/pages/Inventory/Index.vue').includes('hide-orders'),
     );
 });
+
+test('2a: the V2 home shows the orders section in a bar that keeps its forms, and the Classic panel without orders', () => {
+    const home = read('resources/js/pages/Inventory/V2/Index.vue');
+    assert.match(
+        home,
+        /<V2DisclosureBar title="Orders and receiving" keep-mounted>\s*<OrdersSection/,
+    );
+    assert.match(home, /<InventoryOperationsPanel[\s\S]*?hide-orders\s*\/>/);
+});
