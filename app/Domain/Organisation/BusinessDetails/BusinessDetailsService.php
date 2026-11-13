@@ -40,6 +40,9 @@ final class BusinessDetailsService
             'phone' => ['nullable', 'string', 'max:40'], 'email' => ['nullable', 'email:rfc', 'max:254'],
             // CAT-9: optional second clinic phone. When the key is absent (an older client), the saved value is kept.
             'phone_secondary' => ['sometimes', 'nullable', 'string', 'max:40'],
+            // Drug label short address: optional, at most 96 characters (the label's address budget), single line. When the
+            // key is absent (an older client), the saved value is kept.
+            'label_address' => ['sometimes', 'nullable', 'string', 'max:96'],
             'remove_logo' => ['sometimes', 'boolean'],
             'organisation_id' => ['prohibited'], 'branch_id' => ['prohibited'], 'logo_asset_id' => ['prohibited'], 'path' => ['prohibited'],
         ])->validate();
@@ -62,6 +65,11 @@ final class BusinessDetailsService
         }
         if ($secondaryGiven) {
             $branchFields['phone_secondary'] = $data['phone_secondary'];
+        }
+        if (array_key_exists('label_address', $data)) {
+            // Trim all whitespace (tabs included) so a direct service call cannot store a blank-looking value.
+            $labelAddress = trim((string) ($data['label_address'] ?? ''));
+            $branchFields['label_address'] = $labelAddress === '' ? null : $labelAddress;
         }
         $hash = hash('sha256', json_encode([(int) $data['expected_branch_id'], (int) $data['organisation_lock_version'],
             (int) $data['branch_lock_version'], $organisationFields, $branchFields, $remove, $image['sha256'] ?? null], JSON_THROW_ON_ERROR));

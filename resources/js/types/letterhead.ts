@@ -13,6 +13,8 @@ export type PrintLetterhead = {
         // do not carry the key.
         phone_secondary?: string | null;
         email: string | null;
+        // Drug label short address (BranchLetterhead details.label_address): used only by the drug label.
+        label_address?: string | null;
     };
     logo: { url: string; mime: string; width: number; height: number } | null;
     footerText: string | null;
