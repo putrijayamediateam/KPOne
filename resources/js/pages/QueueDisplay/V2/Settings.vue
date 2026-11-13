@@ -44,7 +44,10 @@ const props = defineProps<{
     maxPosters: number;
     screenUrl: string;
 }>();
-usePageCrumbs(() => [{ title: 'Queue Display (TV)' }]);
+usePageCrumbs(() => [
+    { title: 'Clinic management', href: '/clinic-management' },
+    { title: 'Queue Display (TV)' },
+]);
 
 const kindLabels: Record<RoomKind, string> = {
     consultation: 'Consultation room',
