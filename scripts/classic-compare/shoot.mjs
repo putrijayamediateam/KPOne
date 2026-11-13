@@ -21,7 +21,7 @@ const fixCounters = (page) =>
         const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
 
         for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-            n.nodeValue = n.nodeValue.replace(/\b\d+ ?(min|mins|minutes?)\b/gi, 'N min');
+            n.nodeValue = n.nodeValue.replace(/\b\d+ ?(hr|hrs|hours?)\b/gi, 'N hr').replace(/\b\d+ ?(min|mins|minutes?)\b/gi, 'N min');
         }
     });
 const USERS = ['demo.ca', 'demo.director'];

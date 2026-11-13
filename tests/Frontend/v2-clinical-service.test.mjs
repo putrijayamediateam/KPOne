@@ -75,8 +75,43 @@ test('V2 keeps the Classic toggle wording and the Consultation tariff panel', ()
         assert.ok(normal(classic).includes(text) && normal(v2).includes(text));
     }
 
-    assert.ok(v2.includes('<ConsultationTariffPanel'));
+    assert.ok(v2.includes('<ConsultationTariffV2'));
     assert.ok(classic.includes('<ConsultationTariffPanel'));
+});
+
+test('V2 consultation tariff keeps the Classic route, payload and versions, in a closed bar with an outline save', () => {
+    const tariffV2 = read(
+        'resources/js/components/clinical-service-v2/ConsultationTariffV2.vue',
+    );
+    const tariffClassic = read(
+        'resources/js/components/catalogue/ConsultationTariffPanel.vue',
+    );
+
+    for (const key of [
+        "form.post('/clinical-services/consultation-tariffs'",
+        'self_pay_sen: rmToSen(data.prices.self_pay_rm)',
+        'panel_default_sen: rmToSen(data.prices.panel_default_rm)',
+        'amount_sen: rmToSen(override.amount_rm)',
+        'expected_versions',
+        'expected_branch_id',
+        'self_pay: props.tariff.selfPayVersion',
+        'panel_default: props.tariff.panelDefaultVersion',
+        'form.expected_versions.panel_overrides[selectedNewPanel.value] = 0',
+    ]) {
+        assert.ok(
+            normal(tariffClassic).includes(normal(key)),
+            `classic ${key}`,
+        );
+        assert.ok(normal(tariffV2).includes(normal(key)), `v2 ${key}`);
+    }
+
+    assert.ok(
+        tariffV2.includes('<V2DisclosureBar title="Consultation tariff"'),
+    );
+    assert.ok(!/defaultOpen|default-open/.test(tariffV2));
+    assert.ok(tariffV2.includes('<V2MoneyInput'));
+    assert.ok(!/type="number"/.test(tariffV2));
+    assert.ok(!/bg-primary/.test(tariffV2));
 });
 
 test('V2 form: shared picker reused, required fields marked, pricing gated by permission, one action bar', () => {
