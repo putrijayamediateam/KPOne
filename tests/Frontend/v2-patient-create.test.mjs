@@ -40,8 +40,9 @@ test('V2 reuses the shared patient form with newPatient and is registered', () =
     assert.match(config, /'Patient\/Create'/);
 });
 
-test('V2 asks before discarding entries and names fields only', () => {
-    assert.match(page, /Discard what you entered\?/);
-    assert.match(page, /Keep editing/);
+test('V2 leaves through the shared V2LeaveGuard and logs nothing', () => {
+    assert.ok(
+        page.includes('<V2LeaveGuard :dirty="dirty && !form.processing" />'),
+    );
     assert.ok(!/console\./.test(page));
 });

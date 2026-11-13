@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { Head, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
+import { computed } from 'vue';
 import PatientFormV2 from '@/components/patient-v2/PatientFormV2.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
-import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
+import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2StickySummary from '@/components/v2/V2StickySummary.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
@@ -205,26 +205,6 @@ const saveClass = computed(() => [
 ]);
 const inputClass =
     'h-11 w-full rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring aria-[invalid=true]:border-destructive md:text-[15px] lg:h-9';
-
-// Leaving with entries not yet saved asks first. Nothing typed is logged or flashed.
-const discardOpen = ref(false);
-const leave = (event: MouseEvent) => {
-    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button) {
-        return;
-    }
-
-    event.preventDefault();
-
-    if (dirty.value && !form.processing) {
-        discardOpen.value = true;
-    } else {
-        router.visit('/patients');
-    }
-};
-const discard = () => {
-    discardOpen.value = false;
-    router.visit('/patients');
-};
 </script>
 
 <template>
@@ -237,12 +217,11 @@ const discard = () => {
             rail-width="narrow"
         >
             <template #actions>
-                <a
+                <Link
                     href="/patients"
                     class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:justify-start max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:text-primary lg:h-9"
-                    @click="leave"
                     ><span class="max-sm:hidden">Back to patients</span
-                    ><span class="sm:hidden">← Patients</span></a
+                    ><span class="sm:hidden">← Patients</span></Link
                 >
             </template>
 
@@ -370,15 +349,6 @@ const discard = () => {
                 </V2StickySummary>
             </template>
         </V2WorkLayout>
-        <V2Dialog
-            :open="discardOpen"
-            title="Discard what you entered?"
-            description="This patient has not been created yet."
-            confirm-label="Discard"
-            cancel-label="Keep editing"
-            tone="danger"
-            @update:open="(open: boolean) => (discardOpen = open)"
-            @confirm="discard"
-        />
+        <V2LeaveGuard :dirty="dirty && !form.processing" />
     </PageFrame>
 </template>
