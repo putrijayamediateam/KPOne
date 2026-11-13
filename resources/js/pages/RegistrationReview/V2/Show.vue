@@ -20,6 +20,7 @@ import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import type { GuardianInput } from '@/lib/guardian-contact';
 import { requestJson } from '@/lib/json-client';
+import { focusInvalidField } from '@/lib/patient-registration';
 import { ageOn } from '@/lib/patient-v2';
 import { formatDate } from '@/lib/presentation';
 
@@ -246,16 +247,13 @@ const saveCorrection = () => {
     });
 };
 const accept = () => {
-    if (acceptBlocker.value) {
-        return;
-    }
-
     if (guardianLookupBusy.value || guardianLookupError.value) {
         return;
     }
 
     acceptance.post(`/registration-review/${props.intake.publicId}/accept`, {
         preserveScroll: true,
+        onError: focusInvalidField,
     });
 };
 const selectCandidate = (patientNumber: string) => {
@@ -535,9 +533,6 @@ const acceptRefusal = computed(
         acceptance.errors.status ||
         '',
 );
-const acceptDisabled = computed(
-    () => !!acceptBlocker.value || acceptance.processing,
-);
 const rejectOpen = ref(false);
 const rejectLabel = (category: string) =>
     category.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase());
@@ -588,10 +583,11 @@ const confirmReject = () => {
                     >
                         {{ actionError }}
                     </p>
-                    <p
-                        class="font-mono text-xs break-all text-muted-foreground"
-                    >
-                        {{ intake.publicId }}
+                    <p class="text-xs text-muted-foreground">
+                        Reference:
+                        <span class="font-mono break-all">{{
+                            intake.publicId
+                        }}</span>
                     </p>
 
                     <form
@@ -886,6 +882,11 @@ const confirmReject = () => {
                                     {{ intake.consentedAt }}. Consent details
                                     cannot be edited here.
                                 </p>
+                                <p class="text-[13px] text-muted-foreground">
+                                    Saves the details, reason and coverage
+                                    above. The verification below is saved when
+                                    you accept.
+                                </p>
                                 <div>
                                     <button
                                         type="submit"
@@ -1115,6 +1116,13 @@ const confirmReject = () => {
                                 label="Resolution"
                                 :options="resolutionChoices"
                             />
+                            <p
+                                v-if="intake.duplicateCandidates.length"
+                                class="text-[13px] text-muted-foreground"
+                            >
+                                Match on a candidate above fills the patient
+                                number below.
+                            </p>
                             <V2Field
                                 v-if="acceptance.resolution === 'match'"
                                 label="Patient number"
@@ -1255,13 +1263,9 @@ const confirmReject = () => {
                         <button
                             type="submit"
                             form="v2-review-accept"
-                            :class="[
-                                primaryButton,
-                                acceptDisabled ? 'opacity-50' : '',
-                            ]"
-                            :aria-disabled="acceptDisabled"
+                            :class="primaryButton"
                             aria-describedby="v2-accept-reason-bar"
-                            :disabled="acceptance.processing"
+                            :disabled="!canMutate || acceptance.processing"
                         >
                             {{
                                 acceptance.processing
@@ -1281,7 +1285,7 @@ const confirmReject = () => {
                             id="v2-accept-reason-bar"
                             class="text-center text-[13px] text-muted-foreground sm:text-right"
                         >
-                            {{ acceptBlocker }}
+                            Still to do: {{ acceptBlocker }}
                         </p>
                     </V2StickyBar>
                 </div>
@@ -1292,13 +1296,9 @@ const confirmReject = () => {
                     <button
                         type="submit"
                         form="v2-review-accept"
-                        :class="[
-                            primaryButton,
-                            acceptDisabled ? 'opacity-50' : '',
-                        ]"
-                        :aria-disabled="acceptDisabled"
+                        :class="primaryButton"
                         aria-describedby="v2-accept-reason-rail"
-                        :disabled="acceptance.processing"
+                        :disabled="!canMutate || acceptance.processing"
                     >
                         {{
                             acceptance.processing
@@ -1318,7 +1318,7 @@ const confirmReject = () => {
                         id="v2-accept-reason-rail"
                         class="text-[13px] text-muted-foreground"
                     >
-                        {{ acceptBlocker }}
+                        Still to do: {{ acceptBlocker }}
                     </p>
                     <p class="text-[13px] text-muted-foreground">
                         No patient, visit or queue record is created until
