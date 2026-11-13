@@ -14,3 +14,10 @@ Phones also: `filters-sheet`. 1440 to 768: `filter-applied`.
 Note on `publish-stale-after-reload`: the demo price entry added underneath the open dialog has the same amount as the one
 already shown, so the current price line does not change in this shot; the dialog state (kept amount, alert gone) is the point.
 Not opened: Check price list and Price history (not touched), the stale alert in dark mode.
+
+## Round 4 (feature/v2-pricing, head 54c4742f): Daniel's last four items
+`round4/` holds 1440 and 390 shots of the whole Pricing set again, plus `<width>-director-list.png` and
+`<width>-director-row-menu.png` (the disabled "Publish price" with "You can't publish prices with your role." and the
+one-line note on the page), `<width>-publish-stale-after-reload.png` (the "Prices reloaded. Check the current price, then press
+Publish price." status line), and the list shots where "Ear syringing" reads "No price" and the Cetirizine "Next: …" line sits on
+its own row with "9:22 AM" kept together.
