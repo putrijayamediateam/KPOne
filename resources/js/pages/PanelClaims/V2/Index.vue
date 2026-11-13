@@ -451,9 +451,9 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                 <V2Table
                     v-if="invoiceMode"
                     label="Approved Panel invoices without a claim"
-                    :columns="10"
+                    :columns="8"
                     cards="xl"
-                    min-width="1120px"
+                    min-width="860px"
                     data-testid="invoice-cards"
                     :empty="work.eligible.data.length === 0"
                     :empty-message="`${
@@ -486,9 +486,7 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                             <th scope="col">Invoice no</th>
                             <th scope="col" class="text-right">Amount</th>
                             <th scope="col">Status</th>
-                            <th scope="col">Visit date</th>
-                            <th scope="col">Due date</th>
-                            <th scope="col">Doctor</th>
+                            <th scope="col">Dates</th>
                             <th scope="col">Remark note</th>
                             <th scope="col" class="text-right">Actions</th>
                         </tr>
@@ -535,7 +533,12 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                                 <span
                                     class="block text-xs font-normal text-muted-foreground"
                                     >{{ row.visitNumber }} ·
-                                    {{ visitTypeLabel(row.visitType) }}</span
+                                    {{ visitTypeLabel(row.visitType)
+                                    }}<template v-if="row.doctorName">
+                                        <span class="max-xl:hidden">
+                                            · {{ row.doctorName }}</span
+                                        ></template
+                                    ></span
                                 >
                             </td>
                             <td data-label="Invoice no" class="text-sm">
@@ -560,27 +563,38 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                                 />
                             </td>
                             <td
+                                class="text-sm whitespace-nowrap max-xl:!hidden"
+                            >
+                                <span class="block"
+                                    >Visit {{ row.visitDate }}</span
+                                >
+                                <span
+                                    class="block text-xs text-muted-foreground"
+                                    >Due {{ row.dueDate }}</span
+                                >
+                            </td>
+                            <td
                                 data-label="Visit date"
-                                class="text-sm whitespace-nowrap"
+                                class="text-sm whitespace-nowrap xl:hidden"
                             >
                                 {{ row.visitDate }}
                             </td>
                             <td
                                 data-label="Due date"
-                                class="text-sm whitespace-nowrap"
+                                class="text-sm whitespace-nowrap xl:hidden"
                             >
                                 {{ row.dueDate }}
                             </td>
                             <td
+                                v-if="row.doctorName"
                                 data-label="Doctor"
-                                class="text-sm"
-                                :class="row.doctorName ? '' : 'max-xl:!hidden'"
+                                class="text-sm xl:hidden"
                             >
                                 {{ row.doctorName }}
                             </td>
                             <td
                                 data-label="Remark note"
-                                class="max-w-56 text-sm max-xl:max-w-none max-xl:!text-right xl:truncate"
+                                class="max-w-44 text-sm max-xl:max-w-none max-xl:!text-right xl:truncate"
                                 :class="row.remarkNote ? '' : 'max-xl:!hidden'"
                             >
                                 {{ row.remarkNote }}
@@ -606,9 +620,9 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                 <V2Table
                     v-else
                     label="Panel claims"
-                    :columns="9"
+                    :columns="8"
                     cards="xl"
-                    min-width="1120px"
+                    min-width="860px"
                     data-testid="claim-cards"
                     :empty="work.claims.data.length === 0"
                     empty-message="No claims match. Create a claim from the Pending or Overdue tab, or change the tab, date range or filters."
@@ -640,7 +654,6 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                             <th scope="col" class="text-right">Amount</th>
                             <th scope="col">Status</th>
                             <th scope="col">Date</th>
-                            <th scope="col">Updated by</th>
                             <th scope="col">Remarks</th>
                             <th scope="col" class="text-right">Actions</th>
                         </tr>
@@ -720,21 +733,31 @@ const selectInvoiceMenu = (allocationId: string, id: string) => {
                                 />
                             </td>
                             <td
+                                class="text-sm whitespace-nowrap max-xl:!hidden"
+                            >
+                                <span class="block">{{ row.createdAt }}</span>
+                                <span
+                                    v-if="row.updatedBy"
+                                    class="block text-xs text-muted-foreground"
+                                    >Updated by {{ row.updatedBy }}</span
+                                >
+                            </td>
+                            <td
                                 data-label="Date"
-                                class="text-sm whitespace-nowrap"
+                                class="text-sm whitespace-nowrap xl:hidden"
                             >
                                 {{ row.createdAt }}
                             </td>
                             <td
+                                v-if="row.updatedBy"
                                 data-label="Updated by"
-                                class="text-sm"
-                                :class="row.updatedBy ? '' : 'max-xl:!hidden'"
+                                class="text-sm xl:hidden"
                             >
                                 {{ row.updatedBy }}
                             </td>
                             <td
                                 data-label="Remarks"
-                                class="max-w-56 text-sm max-xl:max-w-none max-xl:!text-right xl:truncate"
+                                class="max-w-44 text-sm max-xl:max-w-none max-xl:!text-right xl:truncate"
                                 :class="row.remarks ? '' : 'max-xl:!hidden'"
                             >
                                 {{ row.remarks }}
