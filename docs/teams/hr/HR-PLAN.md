@@ -2321,6 +2321,45 @@ Shared rules for all five:
 - **Tests:** template lint (no patient or money fields), opt-out stops sending, caps stop sending, a fake provider
   proves failures never change HR data, webhook signatures checked, OTP limits.
 
+### 15.3a HR-14 as built (2026-11-10)
+
+- **The owner's answers:**
+  - "Email now, SMS/WhatsApp later".
+  - The four messages: leave approved or rejected, roster week approved, payslip ready, and staff claim decided or recorded as paid.
+  - "Keep SMS/WhatsApp unconnected": SMS and WhatsApp are built but always show "Not connected", with no provider and no sending.
+  - "leave OTP out, decide with HR-15": no one-time-code code, table, setting or test.
+  - "Send directly, no worker": a message is sent right after the HR change commits, with no queue and no worker.
+  - "Narrow the test": the WA-01 guard exempts only the HR-14 message migration from its word check, which still refuses `wa.me` and WA-01 in it.
+  - "Approve" the hub line `/hr/messages`.
+- **One page, `/hr/messages`:**
+  - My messages (every human role, not the TV account): which channels KPOne may use for your own news.
+  - Settings (Director, HR Manager): each channel's switch, the clinic's price per message, a monthly cap, and this month's count and cost.
+  - Sent (Director, HR Manager): one row per message, newest first, filtered by status. The text is never kept.
+- **Nothing is on by default:**
+  - A channel sends only when it is connected, switched on and under its cap.
+  - Settings for a channel that is not connected cannot be saved ahead (Daniel). Switching off a channel that was set up before always works.
+- **The messages:**
+  - Fixed templates whose placeholders accept only a date, a month, an `SC-` claim number or one of three decision words.
+  - No amount, reason, patient detail, identity or bank value can get in (a lint test).
+  - Every message ends with how to stop: "open KPOne, then My messages".
+- **Sending:**
+  - Through Laravel's default mailer. The same `MAIL_*` setup serves the hiring emails (section 19), and Resend connects over SMTP with no new package.
+  - Each message is reserved under the cap's advisory lock, then sent outside any transaction.
+  - A failure is recorded on its delivery row (`no_address`, `not_connected`, `send_failed`), and the HR action still succeeds (tested through a real claim approval).
+  - Within one action, such as a payroll lock or a roster approval, a mail service that fails is not tried again: the rest are recorded `send_skipped` (Suresh; tested through a real roster approval).
+  - A rolled-back HR change sends nothing.
+- **Deploy note:**
+  - Set `HR_MESSAGES_EMAIL_ENABLED=true` and the `MAIL_*` settings in the environment's secrets only after the owner has chosen the account holder.
+  - Set a short mail timeout (for example `MAIL_TIMEOUT=10`), because sends run before the page answers.
+- **New permissions:** `hr.messages.receive.own` (all 11 human roles, not the TV account) and `hr.messages.manage.organisation` (Director, HR Manager).
+- **Known limits:**
+  - Email goes to the account's sign-in address.
+  - No SMS or WhatsApp provider, so no stop-reply handling.
+  - A claim refunded through payroll sends no claim message.
+  - A message still `sending` when PHP stops counts against the cap for the month.
+  - A provider bounce that arrives later is not recorded.
+  - Locking a large payroll with email on adds about one to two seconds per person.
+
 ### 15.4 HR-15 Locum portal (needs HR-14 for OTP)
 
 - **Accounts:** a locum gets a KPOne sign-in only when HR asks and the account administrator creates it through
@@ -2331,7 +2370,7 @@ Shared rules for all five:
   the clinic offers, and their own claims and payslips if HR-6 and HR-7 apply to them. Nothing clinical by
   implication: any clinical permission for a locum doctor is a separate explicit role decision (AGENTS.md).
 - **Sign-in:** password (the existing rules) or a one-time code by SMS or WhatsApp to the account's own number
-  (HR-14). Sessions follow the existing timeout and inactive-account rules.
+  (HR-14). **OTP is decided with HR-15** (owner, 2026-11-10: "leave OTP out, decide with HR-15"); HR-14 has none. Sessions follow the existing timeout and inactive-account rules.
 - **Open shifts:** HR posts an open shift; a locum asks to take it; a manager who is not the locum confirms; the
   confirmed shift joins the next roster draft. No automatic assignment.
 - **Tests:** no self-registration path, role permissions exact, a locum sees only their own data, OTP limits, and a
@@ -2813,3 +2852,448 @@ Migrations from `2026_11_10_002900` (after HR-7c's `002800`).
 - The person's MTD details are never flashed into the session (`dontFlash`).
 - Deploy note: drafts prepared before the deploy ask to be prepared again once, because the run fingerprint gains the MTD schedule.
 - An earlier month this year whose run was never prepared is not detected: the year to date silently lacks it.
+
+## 19. HR-17 Hiring pipeline: design note (owner, 2026-11-10, relayed by B.E.R.N.I.S.S)
+
+Builds on HR-13 (15.2a). It covers CAs, interns, locums and Resident Doctors: a detailed form, a first review, phone screening, three interview times picked by the candidate, interview documents, the result, a talent pool and a staff-account handoff.
+
+**Switched off like HR-13.** The public form, the candidate links and every email stay off until the owner approves the new privacy notice (a lawyer review is recommended). Synthetic data only.
+
+### 19.1 The owner's answers this note follows
+
+The owner's words: "ikut cadangan berniss semua, …"
+
+1. Auto-reject after 3 working days without an HR decision. The candidate is told.
+2. One working day before an auto-reject, a reminder goes to the clinic's hiring mailbox. The address is configuration only.
+3. Email is used for hiring only, through the owner's Resend account.
+4. Each application has a private link (hashed token). There is no candidate account.
+5. Interview slots are one hour, on working days, inside 9am–1pm and 2pm–5pm. The candidate picks 3 and HR confirms 1.
+6. Interview documents: the function now, with dummy PDFs until the owner sends the real ones.
+7. No offer and no onboarding checklist in KPOne. After "Passed": a talent pool (consent and retention) and a staff-account handoff.
+8. HR Manager and Director only.
+9. Build it now and keep it off.
+
+### 19.1a The owner's answers to the four open points (2026-11-10, relayed by B.E.R.N.I.S.S)
+
+1. Auto-reject: "Both stages". It applies at new and phone_screening, 3 working days each, with a reminder to the hiring mailbox the day before.
+2. Slots: "10 working days" ahead.
+3. Slot clash: "Whole group". One confirmed interview per slot for the organisation.
+4. Handoff: "anyone yg ada access to create staff". It is shown to whoever can create staff accounts, using the same check as the staff-creation path, not a role list.
+- Email goes out directly after commit, with no queue and no worker. Resend connects over SMTP with the built-in mailer, so no new package is needed.
+
+### 19.2 Email: one mail setup, no new package (recommended)
+
+- Staff messages (HR-14) and hiring send through Laravel's default mailer, using the same `MAIL_*` settings.
+- **Recommendation: connect Resend over SMTP** (`smtp.resend.com`, port 587, username `resend`, password = the API key held in environment secrets) with Laravel's built-in `smtp` mailer.
+  - This needs **no new Composer package**.
+  - Laravel's `resend` mailer would need `resend/resend-php` plus its HTTP client. The owner can still choose that later as a separate dependency decision.
+- `.env.example` gains empty placeholders only:
+  - `HR_HIRING_MAILBOX=` (the hiring mailbox address);
+  - `HR_HIRING_EMAIL_ENABLED=false`.
+  - The key never appears in code or in `.env.example`.
+- **Every email is also shown in KPOne:**
+  - on the candidate's private page, as "Messages from the clinic";
+  - on the HR application view, as one row per email with the template and time.
+  - The text is rebuilt from the template, never stored.
+- Tests use `Mail::fake()` and never send.
+
+### 19.3 Stages
+
+Stored stage codes:
+
+```
+new ──► phone_screening ──► scheduling ──► interview ──► passed
+  │            │                 │             └────► failed
+  └────────────┴─────────────────┴──► not_taken_forward (HR) · auto_rejected (no decision in time) · withdrawn
+```
+
+- **Old values.** HR-13's `shortlisted` and `offered` stay readable for old rows, but no new move goes to them.
+  - The CHECK is widened in a new migration. The HR-13 migration itself is not edited.
+- **Auto-reject:**
+  - Clock: 3 working days at each stage that waits for HR (`new` and `phone_screening`).
+  - Working days: the applicant branch's working days less its public holidays, both from HR-2a leave settings. A position with no branch uses the first active branch.
+  - Job: a daily `hr-applications:auto-reject` moves the application and tells the candidate.
+  - Reminder: the day before, one email per waiting application goes to the hiring mailbox, plus an in-KPOne notice.
+- **Phone screening:**
+  - HR keeps a call checklist (KPOne ships none, at most 15 items).
+  - Each call records the ticks, a 1–5 rating and an optional short note (encrypted, never audited).
+  - Pass moves the application to `scheduling`; reject moves it to `not_taken_forward`. The candidate is told either way.
+
+### 19.4 Form per position type
+
+- **The position type.** A position gains a type: `ca`, `intern`, `locum` or `resident_doctor`. Existing positions get `ca` and HR can change it.
+- **Common fields:** name, phone, email, preferred branch, earliest start date, highest education, years of relevant work, languages spoken, short message, and the CV (PDF, as HR-13).
+- **Fields by type:**
+
+  | Type | Extra fields |
+  |---|---|
+  | Intern | institution, programme, internship start and end |
+  | Locum | days and times usually available |
+  | Resident Doctor | MMC number, APC year and APC expiry date |
+
+- **Doctors' registration.** The MMC number and APC are what the candidate states. KPOne does no MMC or APC check; HR checks by hand.
+- **Not asked:** no IC number, date of birth, photo, salary expectation or wage field (owner's point 7).
+- **Language and privacy:**
+  - English and Bahasa Melayu side by side, as HR-13.
+  - New privacy notice version `draft-hr17-applications-v1`, covering email, the private link and the optional talent-pool consent.
+
+### 19.5 Candidate private link
+
+- **The link:**
+  - Shown once on the thank-you page and sent by email. The token travels in the URL fragment (`/careers/status#token`) and is exchanged for an httpOnly cookie, like the QR status page.
+  - Stored hashed.
+  - It lapses when the application's values are purged.
+- **What the candidate sees:**
+  - stage in words;
+  - the clinic's messages;
+  - the slot picker while at `scheduling`;
+  - documents to download once the interview is confirmed;
+  - a "Withdraw my application" button.
+- **What the candidate never sees:** HR's ratings, notes or checklist.
+- **Limits:** per-IP and per-token rate limits. No account, no sign-up, no password.
+
+### 19.6 Interview slots
+
+- **Slot rules:**
+  - Starts at 9, 10, 11 or 12 am, or 2, 3 or 4 pm, branch-local.
+  - On working days, from the next working day up to 10 working days ahead.
+- **Not offered:** a slot already confirmed for another candidate, or a public holiday.
+- **Picking:**
+  - The candidate picks exactly 3; HR confirms 1 or asks for new picks. The candidate is told each time.
+  - There is one confirmed interview per organisation per slot: a PostgreSQL unique index plus a lock, because HR is one team.
+- **Rescheduling:** HR cancels the confirmed slot with a reason code and the candidate picks again.
+
+### 19.7 Interview documents
+
+- **HR side:**
+  - HR uploads PDFs per position type: at most 10 MB each and 10 per type.
+  - They are stored encrypted in the HR-4b vault with no original file name.
+- **Candidate side:**
+  - Downloads are available only while the interview is confirmed.
+  - Each download writes an event before any byte is sent.
+- **Test data:** synthetic dummy PDFs only. The owner sends the real ones later.
+
+### 19.8 Result, talent pool and staff-account handoff
+
+- **Result.** HR records Passed or Failed after the interview, and the candidate is told.
+- **No offer or onboarding checklist.** Wages are handled by call, WhatsApp or in person (owner's point 7).
+- **Talent pool (HR-17e):**
+  - Only with a separate, optional consent tick on the form, added with HR-17e together with a way to withdraw it.
+  - A passed or failed candidate with consent can be kept in the pool for a clinic-entered period (KPOne ships no number), counted from closing. Without consent, the HR-13 retention applies.
+  - HR can invite a pool candidate to a new position, which starts a new application at `phone_screening`.
+- **Staff-account handoff:**
+  - "Ask for a staff account" records a request: name, email, position, branch.
+  - The account administrator sees it on the Staff page as a short list.
+  - The administrator creates the account through the usual Staff create screen (`StaffProvisioningService`) and marks the request done.
+  - HR creates no account and changes no role or branch.
+  - Seen by whoever passes the staff-creation check (today the Director and Technical Admin), showing name, email, position and branch only (owner, 2026-11-10).
+
+### 19.9 Notifications inside KPOne for HR
+
+- A "Needs you" panel on `/hr/applications`:
+  - new applications;
+  - slot picks waiting for a decision;
+  - interviews today;
+  - auto-rejects due tomorrow.
+- Each row says why it is listed.
+- No push and no badge outside HR pages. Reminders go only to the hiring mailbox.
+
+### 19.10 Slices (each its own PR: Suresh, Daniel for screens, a green gate, then ship it)
+
+| Slice | What | Migrations (HR range) |
+|---|---|---|
+| HR-17a | Position types, the detailed form, new stages, phone screening with checklist and rating, privacy notice v1 | `003400` tables, `003500` widen stages |
+| HR-17b | Candidate private link and status page, hiring email through the shared mailer (off), messages shown in KPOne, auto-reject and the reminder, "Needs you" panel | `003600` |
+| HR-17c | Interview slots: pick 3, confirm 1, reschedule | `003700` |
+| HR-17d | Interview documents per position type and recorded downloads | `003800` |
+| HR-17e | Result, talent pool with consent and retention, staff-account handoff | `003900` |
+
+- **New permissions:** none. Everything uses `hr.applications.manage.organisation` (Director, HR Manager). The handoff list reuses the existing staff and access permissions.
+- **New routes:** public routes under `/careers/status` (off with the form), and HR routes under `/hr/applications`. No hub-map change.
+
+### 19.11 Existing assertions I expect to change (each needs approval)
+
+- `tests/Feature/HR/JobApplicationsTest.php`:
+  - lines 184–185 and 198–201: the step list `new → shortlisted → interview → offered` becomes the new stages;
+  - lines 92 and 109: the notice version `draft-hr13-applications-v1` becomes `draft-hr17-applications-v1`;
+  - line 170: the error list gains the new required fields.
+- `tests/Frontend/hr-13-job-applications.test.mjs` line 84: the closing-stage list `['offered', 'not_taken_forward', 'withdrawn']` becomes the new closing stages. The public-form field and language checks there may gain the new fields.
+- I will list exact lines in each slice's PR. Nothing else is expected.
+
+### 19.12 What Daniel needs to review
+
+- the long public form at 390 and 1440 px, in both languages and both themes;
+- the candidate status page and slot picker, the first public page with interaction after HR-13;
+- the HR application view with stages, the call checklist and rating, and the "Needs you" panel;
+- the slot confirmation dialog;
+- the documents tab;
+- the Staff page handoff list (a Staff Experience page, so Kavitha's team is told).
+
+### 19.13 Known risks and limits
+
+- Email to applicants is personal data under PDPA. The notice must say so, and nothing is sent until the owner approves it.
+- The MMC and APC details are not verified by KPOne.
+- Auto-reject counts working days from HR-2a settings. A branch with no working days set never auto-rejects, and this is shown as a warning.
+- The private link works for anyone holding it.
+- A busy hiring mailbox may miss reminders. The "Needs you" panel is the reliable place to look.
+
+### 19.14 HR-17a as built (2026-11-10)
+
+- Position types, the per-type questions, the new stages, and the phone screening with HR's call checklist (versioned; none shipped). The rating is not audited.
+- The privacy notice is `draft-hr17-applications-v1`.
+- **No talent-pool tick or promise until HR-17e** (Suresh). The column stays false, and nothing sent is taken as consent.
+- A screening note is cleared only once its application is purged.
+- The purge also clears the form's answers and the call note.
+- Older HR-13 applications at Shortlisted or Offered still finish their way.
+- No new permission.
+- Known limits:
+  - the answers and the call note are decrypted for the 25 listed rows (as HR-13);
+  - consent withdrawal and the talent pool come with HR-17e;
+  - the MMC number and APC are as stated by the candidate.
+
+## 20. HR-10 Appraisal, letters, discipline and incidents: design note (draft for the owner, 2026-11-10)
+
+Builds on HR-4a (staff files), HR-4b (documents), HR-3a and HR-3b (attendance and overtime) and HR-2a (leave). It
+covers section 2's HR-10 line: appraisal cycles, letters with numbered issued copies, a restricted discipline file
+and incident reports. **Nothing here is built until the owner answers 20.1 and says "start HR-10".** Synthetic data
+only until the PDPA review. Data Protection Officer: HR Manager (decision 83).
+
+### 20.1 Questions for the owner (with my recommendation)
+
+1. **Offer letters.** The owner decided on 2026-11-10 that no offer is made in KPOne (19.1, point 7). **Recommend:**
+   letters cover confirmation, warning, show-cause and "other" only; no offer letter.
+2. **Who sees discipline records.** **Recommend:** Director and HR Manager only, on a separate permission. An HR
+   Manager's own case only by a Director; nobody handles their own case. The staff member sees only the letters
+   issued to them (show-cause, warning), never the case notes.
+3. **Incidents: HR or clinical governance.** **Recommend:** HR-10 takes staff and workplace incidents (safety, conduct,
+   equipment, near misses). A report about patient care is flagged "needs clinical review" and its handling waits for
+   a clinical-governance decision; the form tells staff not to write a patient's name, IC or diagnosis.
+4. **Appraisal frequency and criteria.** **Recommend:** KPOne ships no criteria and no cycle length. HR enters the
+   criteria (versioned) and opens a cycle with dates; a supervisor rates each criterion 1 to 5 with a comment.
+5. **Letter wording.** **Recommend:** KPOne ships no letter text. HR enters templates (EN and BM, versioned), and the
+   clinic's adviser approves them before real use, as with the MC wording.
+6. **Retention** of appraisals, letters, discipline cases and incidents: [DECIDE], added to the PDPA pack's 04 table.
+
+### 20.2 Slices (each its own PR: Suresh, Daniel for screens, a green gate, then ship it)
+
+| Slice | What | Migrations (HR range) |
+|---|---|---|
+| HR-10a | Letters: templates (EN/BM, versioned), numbered issued copies, printable page, staff see their own | `004000` tables, `004100` grants |
+| HR-10b | Appraisal: criteria (versioned), cycles, supervisor rating, staff comment, Director sign-off, attendance and leave summary pulled in | `004200`, `004300` |
+| HR-10c | Discipline: restricted case file, show-cause and warning letters through HR-10a, outcome | `004400`, `004500` |
+| HR-10d | Incidents: report from any staff member, manager actions and closing, clinical-review flag | `004600`, `004700` |
+
+### 20.3 HR-10a Letters
+
+- **Templates.** Type (confirmation, warning, show-cause, other), title, EN and BM body with fixed placeholders only:
+  `{name}`, `{position}`, `{branch}`, `{date}`, `{reference}`, `{start_date}` and, for warnings, a free paragraph HR
+  writes per letter. Each save is a new version; KPOne ships none.
+- **Issue.** HR picks a staff file and a template; KPOne fills the placeholders, shows a preview, and on Issue stores
+  an encrypted, immutable snapshot (text, letterhead text, logo bytes, template version) and a number
+  `HRL/{year}/{6-digit}` from a locked yearly counter, never reused. A replacement or void keeps the original, as the
+  MC does. **No email**: the letter is printed and signed by hand; HR can record "given to the staff member on <date>".
+- **Who.** Issue and void: `hr.letters.issue.organisation` (Director, HR Manager; nobody issues a letter to
+  themselves; an HR Manager's own letters only by a Director). Staff see their own issued letters on My HR details
+  (`hr.records.view.own`).
+- **PostgreSQL.** Snapshots and numbers append-only; a void needs a reason; one number per letter.
+
+### 20.4 HR-10b Appraisal
+
+- **Criteria** (versioned, at most 15) and **cycles** (name, period, which staff). A cycle shows, per person, the
+  attendance summary from HR-3a (late days, missing clock-outs), approved leave days from HR-2a and approved overtime
+  from HR-3b, read only and for the cycle's dates.
+- **Steps.** The supervisor (`hr.appraisal.manage.organisation`: Director, HR Manager) rates each criterion 1 to 5 with
+  a comment, then sends it; the staff member reads it and adds their own comment (`hr.appraisal.view.own`, all human
+  roles); the Director signs it off. Nobody appraises themselves; an HR Manager's appraisal only by the Director.
+- **Stays out.** No ranking of staff against each other, no total score used for pay, no automatic decision.
+- Signed-off appraisals are immutable; comments are encrypted and never audited.
+
+### 20.5 HR-10c Discipline (restricted)
+
+- **Case.** Opened by `hr.discipline.manage.organisation` (Director, HR Manager) for one staff file: the allegation,
+  facts and notes (encrypted), dates, and attached documents through the HR-4b vault (category Discipline).
+- **Steps.** Show-cause letter (HR-10a) → the staff member's reply (recorded by HR, encrypted) → outcome: no action,
+  verbal warning, written warning (HR-10a), final warning, or "refer to the Director for termination". **KPOne never
+  ends employment or changes an account**; ending a period stays in HR-4a and account changes with the account
+  administrator.
+- **Who.** Separate permission; the case is never shown on the staff file's other tabs, the dashboard or any export.
+  The subject cannot open the case; an HR Manager's own case only by a Director. Every open is recorded first.
+- **PostgreSQL.** Case events append-only; an outcome once; no delete or truncate.
+
+### 20.6 HR-10d Incidents
+
+- **Report** (`hr.incidents.report.own`, all human roles, not the TV account): when, where (branch), category
+  (workplace safety, staff conduct, equipment or premises, near miss, patient care), what happened (encrypted, at
+  most 2,000 characters), optional photos (HR-2b checks, EXIF removed). The form says: "Do not write a patient's
+  name, IC or diagnosis."
+- **Handling** (`hr.incidents.manage.organisation`: Director, HR Manager): acknowledge, add actions with owners and
+  due dates, close with an outcome. The reporter sees their own report's status, not the manager's notes.
+- **Patient care** reports are flagged "Needs clinical review" and listed apart; who reviews them is the owner's
+  decision (20.1, point 3).
+- An incident about a staff member's conduct can be linked to a discipline case only by
+  `hr.discipline.manage.organisation`.
+
+### 20.7 New permissions
+
+`hr.letters.issue.organisation`, `hr.appraisal.manage.organisation`, `hr.appraisal.view.own`,
+`hr.discipline.manage.organisation`, `hr.incidents.report.own`, `hr.incidents.manage.organisation`, each granted by
+an additive migration as before. None is administrative authority.
+
+### 20.8 Existing assertions I expect to change (each needs approval)
+
+- `tests/Feature/ClinicManagementTest.php`: the exact destination map gains `/hr/letters`, `/hr/appraisals`,
+  `/hr/discipline` and `/hr/incidents` (one per slice).
+- The HR-4a "My HR details" tests may gain the staff member's own letters and appraisals. I will list exact lines in
+  each slice's PR.
+
+### 20.9 What Daniel needs to review
+
+- the letter template editor and the issued-letter print page (A4, EN and BM);
+- the appraisal form at 390 and 1440, with the read-only attendance summary;
+- the discipline case page (restricted, plain words, no red);
+- the incident report form for every staff member, and the manager's list.
+
+### 20.10 Known risks and limits
+
+- Discipline and incident text is sensitive; it is encrypted, never audited, and shown only to the two roles.
+- Patient-care incidents may need clinical review that KPOne does not yet route.
+- Letter wording needs the clinic's adviser before real use; appraisal criteria are the clinic's own.
+- With one Director and one HR Manager, an HR Manager's own appraisal and discipline depend on the Director alone.
+
+## 21. HR-15 Locum portal: design note (draft; notes only until the owner decides, decision 82)
+
+Expands 15.4. A locum today is a staff file without a KPOne sign-in (HR-4a), paid outside KPOne. HR-15 lets a locum
+the clinic chooses sign in to see their own shifts and take open shifts. **Nothing is built until the owner answers
+21.1 and says "start HR-15".** Synthetic data only. Data Protection Officer: HR Manager.
+
+### 21.1 Questions for the owner (with my recommendation)
+
+1. **Which locums get a sign-in?** **Recommend:** only those HR asks for, one by one; a locum file stays sign-in-free
+   by default.
+2. **Clinical access for a locum doctor.** **Recommend:** none in HR-15. If a locum doctor is to consult in KPOne, that
+   is a separate, explicit role decision under AGENTS.md (it would mean the Resident Doctor permissions, which HR-15
+   never grants).
+3. **Sign-in method.** **Recommend:** password with the existing rules, and Google sign-in for an existing active
+   account. A one-time code by SMS or WhatsApp only once HR-14 has a chosen provider (15.7 question 2); until then, no
+   OTP.
+4. **Open shifts.** **Recommend:** HR posts open shifts; a locum asks; a manager who is not the locum confirms; the
+   shift joins the next roster draft and still needs the roster approval (HR-1). First come is not first served: the
+   manager chooses.
+5. **Pay.** **Recommend:** locums stay paid outside KPOne in v1 (decision 30's sibling); the portal shows shifts only,
+   no rates or amounts.
+
+### 21.2 Slices
+
+| Slice | What | Migrations |
+|---|---|---|
+| HR-15a | The `locum` role (narrow), linking an account to its HR-4a locum file; account creation only through `StaffProvisioningService`; "My shifts" for a locum | `004800` role and grants, `004900` link |
+| HR-15b | Open shifts: post, ask, confirm by a manager, into the next roster draft | `005000` |
+| HR-15c | One-time code sign-in, only after HR-14 has an SMS or WhatsApp provider and the owner says so | later |
+
+### 21.3 Accounts and the role
+
+- HR presses "Ask for a sign-in" on a locum file; the account administrator creates the account the usual way (the
+  same handoff as HR-17e: a request on the Staff page, never an account made by HR). Public registration stays
+  disabled; an unknown Google identity never creates a user.
+- **Role `locum`:** `hr.roster.view.own` and a new `hr.open_shifts.request.own` only. No patient, clinical, billing,
+  inventory, Insights or staff-directory permission. A test pins the role's exact permission list.
+- The link from account to locum file is set once by the administrator and checked on every request.
+
+### 21.4 Open shifts
+
+- `hr.open_shifts.manage.organisation` (Director, HR Manager) posts a shift (branch, date, start and end, role
+  needed), with the same rules as a roster shift (HR-1: no overlap, at most 16 hours, rest warnings from HR-5b).
+- A locum asks; a manager confirms one locum and declines the others with a reason; the confirmed shift is added to
+  the branch's next draft week and is visible to the locum only after that week is approved.
+- Append-only events; a confirmed request cannot be confirmed twice (unique index), races tested.
+
+### 21.5 New permissions and expected assertion changes
+
+- New: `hr.open_shifts.manage.organisation`, `hr.open_shifts.request.own`, and the role `locum`.
+- Expected changes (each needs approval): the exact role list in `PermissionCatalogue` tests and the staff-authority
+  administrability test gain the `locum` role (it carries no administrative authority, so every administrator can
+  administer it); the Clinic management map gains `/hr/open-shifts`.
+
+### 21.6 Risks and limits
+
+- A new role touches staff authority; AC-01's rules must hold (tested).
+- A locum shares nothing with patient data by design; a mistake here is a clinical-access risk, so the role's
+  permission list is pinned exactly.
+- OTP waits for HR-14's provider; until then sign-in is password or Google only.
+
+## 22. HR-16 Selfie or location at clock-in: design note (draft; notes only until the owner decides, decision 82)
+
+Expands 15.5. **The riskiest item in KPOne HR.** A selfie is biometric-adjacent and a location is sensitive; both
+need the owner's PDPA review, a written purpose, a consent text and a clinic-set retention **before any real staff
+use**. Nothing is built until the owner answers 22.1 and says "start HR-16".
+
+### 22.1 Questions for the owner (with my recommendation)
+
+1. **Which problem are we solving?** Buddy-punching (someone clocking in for another) points to the selfie; clocking
+   in from home points to the location check. **Recommend:** start with the location check only, at one branch,
+   because it stores less (no image).
+2. **Which branch first, and the geofence radius.** **Recommend:** one branch, a radius the Director enters (KPOne
+   suggests 150 m, as a suggestion only).
+3. **Retention of selfies,** if they are ever used. **Recommend:** 30 days, entered by the clinic; deleted daily after.
+4. **Consent text** (EN/BM) and who approves it: the owner's PDPA review, with the Data Protection Officer (HR Manager).
+5. **What happens on "outside" or "no photo".** **Recommend:** never block the clock-in; flag it on Review for a
+   manager to ask the person.
+
+### 22.2 Slices
+
+| Slice | What | Migrations |
+|---|---|---|
+| HR-16a | Location check per branch: off by default; geofence entered by the Director; "inside", "outside" or "not available" and an accuracy band stored, never coordinates | `005100` |
+| HR-16b | Photo at clock-in per branch: off by default; encrypted; viewed only on a disputed day with an audited view; purged after the clinic-set retention | `005200` |
+
+### 22.3 Rules both slices share
+
+- **Off by default for every branch.** A Director turns one on for one branch, with the consent text shown to staff
+  once and their acknowledgement recorded before their first press there.
+- **Only at the moment of the press.** The browser reads the location or takes the photo when the person presses
+  Clock in or Clock out, never before or after; no background tracking, no continuous location (AGENTS.md).
+- **A refusal never blocks.** Refusing the camera or location, or a GPS failure, still records the press, marked
+  "no photo" or "location not checked".
+- **No face matching** and no outside biometric or location service; no biometric template is ever made.
+- **Seen by** Director and HR Manager only, on Review; every photo view is audited before the image is sent.
+- **Coordinates are never stored** (HR-16a); the server receives them once, compares them with the geofence and keeps
+  only the result. A test proves no coordinate column exists and none reaches the log or audit.
+
+### 22.4 Expected assertion changes
+
+- HR-3a's attendance tests: a session gains an optional check result; existing assertions on the session row's exact
+  keys may need one more key (each listed for approval in the slice's PR). With both checks off, every HR-3a test must
+  pass unchanged.
+
+### 22.5 What Daniel needs to review
+
+- the consent screen at 390 px (EN/BM), the clock-in button's camera and location prompts, and how "outside" or "no
+  photo" looks on Review without accusing anyone (no red, plain words).
+
+### 22.6 Risks and limits
+
+- Under PDPA a selfie may be treated as biometric data; the review may say no, in which case HR-16b is never built.
+- Browser location can be wrong indoors; "outside" is a prompt for a conversation, never a decision.
+- Turning either on for real staff without the review breaks the owner's condition (decision 45).
+
+## 23. HR-PHOTO: photo clock-in, as built (owner, 2026-11-12; supersedes section 22's selfie part)
+
+The owner chose option 2, "Camera app" (Daniel's board V2, GUIDE section 18), with decision B (other people's photos
+behind an audited Show), "grace yes" (the confirmation chip uses HR's grace minutes) and the A+B Me home (DS-13, whose
+ring opens the same camera flow).
+
+- **Every button press needs a live photo.** A capture token is taken when the camera opens and is good for one press
+  of that kind for five minutes. A press without a photo is refused by the service and by PostgreSQL. A correction never
+  has a photo, and its time reads "No photo (added by correction)"; a correction that only moves a press's time keeps the
+  photo, labelled "Time changed by correction".
+- **The one-time "About clock-in photos" notice** comes before a person's first camera use and again when its wording
+  version changes; the server keeps who saw which version and when.
+- **Storage:** re-encoded JPEG (no EXIF; EXIF rotation applied first), 1280 px and a 240 px thumbnail, encrypted on the
+  private disk, deleted with the attendance record after 7 years.
+- **Viewing:** your own photo shows directly; anyone else's only for the Director and the HR Manager, behind Show, with
+  an audit row (photo id and size) written before the picture is sent, and a Hide photo button after.
+- **Mirroring (deliberate):** the live camera preview is mirrored, as people expect from a front camera, but the review
+  photo and the stored photo are not mirrored, so they match what HR sees and what was actually in front of the camera.
+- **Known limit:** the server cannot prove a photo is live. The token proves only that the camera was opened in the last
+  five minutes; a hand-built request could send a saved or changed picture. The safeguard is the reviewer seeing the
+  photo. Nothing here claims more than that.

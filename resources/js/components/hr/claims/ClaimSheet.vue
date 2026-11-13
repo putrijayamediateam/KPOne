@@ -6,6 +6,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { OperationalSelect } from '@/components/ui/select';
@@ -167,12 +168,10 @@ const send = () => {
                 </div>
                 <div class="grid gap-1.5">
                     <Label for="claim-date">Date you paid *</Label>
-                    <Input
+                    <DateField
                         id="claim-date"
                         v-model="form.spentOn"
-                        type="date"
                         :max="today"
-                        class="w-44 max-lg:h-11"
                         :aria-invalid="!!errors.spent_on"
                     />
                     <InputError :message="errors.spent_on" />
@@ -180,7 +179,7 @@ const send = () => {
                 <div class="grid gap-1.5">
                     <Label for="claim-amount">Amount *</Label>
                     <div
-                        class="flex w-44 items-stretch overflow-hidden rounded-md border bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
+                        class="flex w-44 items-stretch overflow-hidden rounded-md border bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
                         :class="
                             errors.amount
                                 ? 'border-destructive'

@@ -45,6 +45,15 @@ type MonthFigures = {
     leave: { days: number; people: number } | null;
     shortfallDays: number | null;
 };
+type StaffCost = {
+    runs: number;
+    waiting: number;
+    people: number;
+    unreadable: number;
+    earningsText: string;
+    employerText: string;
+    totalText: string;
+};
 type BranchCard = {
     id: number;
     name: string;
@@ -59,6 +68,7 @@ const props = defineProps<{
         month: string;
         months: { value: string; label: string }[];
         attendanceSettingsSaved: boolean;
+        staffCost: StaffCost | null;
         branches: BranchCard[];
     };
 }>();
@@ -119,6 +129,114 @@ function days(value: number): string {
                 />
             </div>
         </div>
+
+        <section
+            v-if="dashboard.staffCost"
+            class="rounded-lg border bg-card p-4"
+            data-test="staff-cost"
+            aria-labelledby="staff-cost-title"
+        >
+            <div class="flex flex-wrap items-center gap-2">
+                <h2 id="staff-cost-title" class="text-base font-semibold">
+                    Staff cost, {{ monthLabel }}
+                </h2>
+                <StatusBadge
+                    status="estimate"
+                    label="Estimate"
+                    tone="warning"
+                    data-test="staff-cost-estimate"
+                />
+            </div>
+            <p class="mt-1 text-sm text-muted-foreground">
+                One figure for the whole clinic, from approved pay runs only.
+                Not split by person or branch. Includes corrections approved
+                later. An estimate until the clinic's accountant has checked the
+                pay rules.
+            </p>
+            <p
+                v-if="dashboard.staffCost.runs === 0"
+                class="mt-3 text-sm"
+                data-test="staff-cost-none"
+            >
+                No approved pay run for this month yet.
+            </p>
+            <dl
+                v-else
+                class="mt-3 flex flex-col gap-2 text-sm sm:grid sm:grid-cols-4 sm:gap-x-6"
+            >
+                <div class="flex items-baseline justify-between gap-4 sm:block">
+                    <dt class="text-muted-foreground">Total staff cost</dt>
+                    <dd
+                        class="text-lg font-semibold tabular-nums"
+                        data-test="staff-cost-total"
+                    >
+                        {{ dashboard.staffCost.totalText }}
+                    </dd>
+                </div>
+                <div class="flex items-baseline justify-between gap-4 sm:block">
+                    <dt class="text-muted-foreground">
+                        Pay after unpaid leave
+                        <span class="block text-xs"
+                            >Gross pay less unpaid leave; other deductions are
+                            part of this pay</span
+                        >
+                    </dt>
+                    <dd class="tabular-nums">
+                        {{ dashboard.staffCost.earningsText }}
+                    </dd>
+                </div>
+                <div class="flex items-baseline justify-between gap-4 sm:block">
+                    <dt class="text-muted-foreground">
+                        Employer contributions
+                        <span class="block text-xs"
+                            >Added on top of pay by the clinic</span
+                        >
+                    </dt>
+                    <dd class="tabular-nums">
+                        {{ dashboard.staffCost.employerText }}
+                    </dd>
+                </div>
+                <div class="flex items-baseline justify-between gap-4 sm:block">
+                    <dt class="text-muted-foreground">
+                        People paid through KPOne
+                        <span class="block text-xs"
+                            >Locums and the Director's and HR Manager's own pay
+                            are outside KPOne</span
+                        >
+                    </dt>
+                    <dd class="tabular-nums">
+                        {{ dashboard.staffCost.people }}
+                    </dd>
+                </div>
+            </dl>
+            <p
+                v-if="dashboard.staffCost.waiting > 0"
+                class="mt-2 text-sm text-muted-foreground"
+                data-test="staff-cost-waiting"
+            >
+                {{ dashboard.staffCost.waiting }}
+                {{
+                    dashboard.staffCost.waiting === 1
+                        ? 'pay run is'
+                        : 'pay runs are'
+                }}
+                not approved yet and not counted.
+            </p>
+            <p
+                v-if="dashboard.staffCost.unreadable > 0"
+                class="mt-2 text-sm font-medium text-warning-strong"
+                role="status"
+                data-test="staff-cost-unreadable"
+            >
+                {{ dashboard.staffCost.unreadable }}
+                {{
+                    dashboard.staffCost.unreadable === 1
+                        ? 'amount in an approved pay run'
+                        : 'amounts in approved pay runs'
+                }}
+                could not be read, so this figure is incomplete.
+            </p>
+        </section>
 
         <details
             class="rounded-lg border bg-card px-4 py-3 text-sm"

@@ -5,7 +5,7 @@
 import { ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { MonthField } from '@/components/ui/date-field';
 import { Label } from '@/components/ui/label';
 import { ErrorState } from '@/components/ui/state';
 
@@ -123,11 +123,9 @@ const download = async (kind: Kind) => {
                 <div class="flex flex-col gap-2 border-t pt-3">
                     <div class="grid gap-1.5">
                         <Label for="outside-export-month">Month</Label>
-                        <Input
+                        <MonthField
                             id="outside-export-month"
                             v-model="month"
-                            type="month"
-                            class="w-44 max-lg:h-11"
                             aria-describedby="outside-export-month-help"
                             :aria-invalid="!!monthError"
                         />

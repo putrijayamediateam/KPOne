@@ -150,6 +150,11 @@ scroll region, a hidden `<caption>`, a loading row, an empty row and consistent 
 - **Don't** leave fields without a label. The survey found 10 of 13 fields unlabelled on `pages/Pricing/Index.vue`
   and 7 of 23 on `pages/PanelSettings/Form.vue`; a placeholder is not a label.
 - **Don't** use placeholder text as the only instruction; it disappears when the person types.
+- **Dates in a field are always `dd/mm/yyyy`** (Malaysian order; owner decision 2026-11-10). Never the browser's own
+  `mm/dd/yyyy`. Use the one shared date field (and its date-time and month versions) for every staff date input, so a
+  US-locale browser can't make `11/04/2026` read as 11 April. Where the order could still mislead, echo the chosen date
+  in words under the field ("= 4 Nov 2026"), as the ringgit echo does on Approval Limits. A date field has a visible
+  label, a hint for what is allowed ("Today or earlier"), and its error under the field.
 - **Don't** write server-validation messages in internal language. Say what to do: "Enter the 12-digit SSM number."
 - Error colour: `InputError.vue` uses `text-red-600 dark:text-red-500`. New code should use `text-destructive`
   (same look, one token). Staff Experience may switch the component.
@@ -267,8 +272,9 @@ cookie); `.dark` on `<html>` switches the tokens.
 - **Plain English, short sentences.** Explain the result, not the system: "Shows receipts by the day they were
   paid." instead of "original receipt date, not invoice finalisation". Keep internal words out of the UI
   ("canonical", "operational view", "cohort", "projection", "provisioning", "authoritative").
-- **Numbers:** money as `RM 0.00` (two decimals, space after RM), dates as `5 Nov 2026` on screens and in the branch
-  time zone, with times as `5:04 PM`. Prints have their own date and phone rules (section 14).
+- **Numbers:** money as `RM 0.00` (two decimals, space after RM), dates as `5 Nov 2026` in text on screens and in the branch
+  time zone, with times as `5:04 PM`. A date **field** is `dd/mm/yyyy` (section 7), and a short numeric date in a table
+  may also be `dd/mm/yyyy`; never `mm/dd/yyyy` or `2026-11-05` on a staff screen. Prints have their own date and phone rules (section 14).
 - **Long rules** (the Daily summary page shows about 15 lines before the form on a phone; the text comes from
   `app/Domain/Shared/Services/DailySummaryReportService.php` and is shown by `pages/Reports/BranchReport.vue`):
   one summary sentence on screen, the rest in a collapsible "How this report counts" block.

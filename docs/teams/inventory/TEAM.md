@@ -27,8 +27,15 @@ coordinator at the owner's request (2026-11-05).
 - Governed stock count, recount and write-off approval.
 - Transfers and stock requests; reorder levels; suppliers.
 - The stock movement ledger and balances, and the Stock movement report's data source.
+- The 2026-11-11 programme (section 6 item 32): purchase requests, PO approval and print, supplier invoice match,
+  supplier price lists and lead times, reorder and min/max suggestions, stock other branches need, cycle counts,
+  the draft controlled-drug register, recalls across branches, GS1 hints at receiving, the opening-stock import,
+  and the pilot procedure and pharmacist pack under `docs/pilot/inventory/`.
 - Pages: `Inventory/Index.vue`, `Readiness.vue`, `BatchHolds.vue`, `StockReview.vue`, `GovernedStock.vue`, the
-  Suppliers settings screen.
+  Suppliers settings screen, and the programme pages (`PurchaseRequests.vue`, `PurchaseOrderPrint.vue`,
+  `SupplierInvoices.vue`, `SupplierTerms.vue`, `SupplierReturns.vue`, `TreatmentUsage.vue`,
+  `ReorderSuggestions.vue`, `BranchReplenishment.vue`, `ControlledRegister.vue`, `ControlledRegisterShow.vue`,
+  `ControlledRegisterPrint.vue`, `Recalls.vue` and `Skus.vue`).
 
 **Shared with other teams (change only through a small agreed change):**
 - Dispensing allocation and stock debit at Complete; drug-label batch and expiry: **Dispensary & OTC** team
@@ -65,6 +72,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | `inventory.supplier_returns.request.branch` | CA Supervisor | Request, cancel (own) and dispatch supplier returns (STK-7) |
 | `inventory.supplier_returns.approve.branch` | Finance Officer, Director | Approve or reject supplier returns (never their own request) and record the credit note (STK-7) |
 | `inventory.usage.record.branch` | CA, CA Supervisor | Record treatment-room usage and waste (STK-8); reversal uses `inventory.variances.approve.branch` |
+| `inventory.cost.view.organisation` | Director, Finance Officer | See inventory cost (STK-13) |
+| `inventory.purchase_orders.approve.organisation` | Director, Finance Officer | Approve purchase orders, never one they raised or submitted (STK-19) |
+| `inventory.purchase_requests.create.branch` | CA, CA Supervisor | Raise purchase requests; converting one uses the purchase order create permission (STK-18) |
+| `inventory.supplier_invoices.record.branch` / `.approve.branch` | record: CA Supervisor, Finance Officer; approve: Finance Officer, Director | Supplier invoice match; the recorder never decides (STK-22) |
+| `inventory.controlled_register.view.branch` / `.check.branch` | CA Supervisor, Finance Officer, Director | Draft controlled-drug register and its second-person checks (STK-24) |
+| `inventory.recalls.manage.organisation` / `.lift.organisation` | start: Director; lift: Director, Finance Officer | Recalls across branches; never lifted by the starter (STK-25) |
 
 ## 5. What is built (history)
 
@@ -90,6 +103,33 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-9 | Barcode scanning on Inventory screens (receiving, governed count and write-off, treatment-room usage, supplier returns): handheld scanner, typing, or the browser's built-in camera reader; one barcode, one SKU per organisation (domain and PostgreSQL, existing duplicates listed on Pilot readiness); a scan only finds | merged in PR #253 (`4445021`) |
 | STK-11 | Patient returns location for DSP-7: a `dispensary_returns` location type that is never picked or dispensed from, the `dispensary_return` movement written only by `InventoryMovementService::recordDispensaryReturn` (for the Dispensary return check), returns stock kept out of every usable-stock figure, and out only by STK-5 or a move to another returns location | merged in PR #279 (`d3fcea1`) |
 | STK-10B | Receipt cost evidence (option B of the STK-10 analysis): each delivered batch records the total paid, as on the supplier invoice, marked actual; a blank cost keeps the order estimate, marked estimate; both receiving forms take the total; the order estimate says it is per stock unit; no cost shown anywhere | merged in PR #309 (`a1a44d8`) |
+| DD-12 | Inventory page header and task links | #496, #512 |
+| STK-12 | Patient-returns stock listed by itself ("Patient returns only" filter) | #497 |
+| STK-13 | Supplier price list and lead time per SKU; cost seen only by Director and Finance Officer | #500 |
+| STK-14 | General SKU edit screen | #505 |
+| STK-15, STK-15b | Treatment-room waste and approved write-offs on Insights → Inventory | #604 (carries #506) |
+| STK-15c | A reversed governed count loss leaves Recorded wastage | #614 |
+| STK-16 | Read-only reorder suggestions (usage and lead time) | #509 |
+| STK-17 | Return several lots from one delivery together | #518 |
+| STK-18 | Purchase requests: a CA asks, another person turns it into a draft purchase order | #565 |
+| STK-19 | Purchase orders approved by a different Finance Officer or Director (domain and PostgreSQL) | #520 |
+| STK-20 | Printable A4 purchase order | #522 |
+| STK-22 | Supplier invoice three-way match; a difference decided by a Finance Officer or Director who did not record it; KPOne pays nothing | #527 |
+| STK-23 | Cycle counts by ABC class, with blind counting, feeding the STK-5 governed count | #528 |
+| STK-24 | Controlled-drug register with second-person checks (DRAFT, pending pharmacist review) and its review sheet `docs/pilot/controlled-register/REVIEW.md` | #533 |
+| STK-25 | Recalls across branches: a Director starts, another Director or a Finance Officer lifts | #539 |
+| STK-26 | Verified receiving names the GS1 carton's batch and expiry on the scanned line (hint only) | #598 (in batch #601) |
+| STK-30 | Optional maximum on reorder levels; suggestions fill up to it | #606 |
+| STK-30b | Version and idempotency key on saving a reorder level | #611 |
+| STK-31 | Stock other branches need: suggestions sent as an ordinary stock request from the branch that holds the stock; a stock request may now point at another branch | #615 |
+| STK-21 | Close the rest of a partly received purchase order (short close by a Finance Officer or Director who did not raise or submit it; no stock or money change) | #525 |
+| STK-35 | Import opening stock from one CSV: check first, then every row or none; each opening still needs STK-1 sign-off by someone else | #617 |
+| STK-34 | Draft stock admission procedure, `docs/pilot/inventory/STOCK-ADMISSION.md` (docs) | #618 |
+| STK-36 | Pharmacist review pack for the controlled register and FEFO, `docs/pilot/inventory/PHARMACIST-REVIEW-PACK.md` (docs) | #619 |
+| STK-37 | Stock moves use the STK-2 usable-batch rule: dispatch always; a direct transfer too, except between returns locations and within a branch into a store that is neither a dispensary nor returns (the STK-25 quarantine shelf) | #624 |
+| STK-33 | Stock health (`/inventory/stock-health`): days on hand, turnover and expiry loss per SKU and location, quantities only | #626 |
+| DD-75, DD-76 | Inventory task links: three groups side by side from 1024 px, folding groups with a count on phones (44 px summaries); a two-line Pilot readiness card pointing to the pharmacist review pack | #629 |
+| DD tiles | Inventory summary tiles (SKUs with stock, Total batches, Expired batches) stay in one row at every width, sentence case; fits 320 px | #633 (in batch #634) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -178,7 +218,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     `unified-catalogue-setup.test.mjs` for it. Still waiting on the owner: the accountant's name and package.
     Migration `2026_11_07_000700`.
 30. Who may see cost (owner, relayed by B.E.R.N.I.S.S in the owner's words, 2026-11-06): "only Director sees cost".
-    If KPOne ever shows a stock cost, only the Director sees it. The same relay said "option A" for STK-10; that
+    If KPOne ever shows a stock cost, only the Director sees it. *Superseded by item 33 (STK-13): the Director and
+    the Finance Officer see cost.* The same relay said "option A" for STK-10; that
     conflicted with "yes, do option B" in this session, so the team asked the owner here, and the owner chose
     "Option B, keep building".
 31. STK-10B "ship it" from the owner in the team's session (2026-11-06); PR #309. Design review by Daniel (Lead UI/UX
@@ -187,6 +228,47 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     placeholder-only Batch, Expiry and Quantity boxes on the Post receipt row stay with design debt DD-12, agreed
     with Daniel. Merged as `a1a44d8` (head `703f534`, CI green).
 
+32. **Inventory programme (owner, 2026-11-11):** "ill agree to add those but no need to wait for accountant, just do
+    it until done." and "so a until g will be build right? u have my approval". The team builds STK-12 to STK-36
+    slice by slice (section 9). Valuation figures are labelled "Management report — cost policy to be confirmed by
+    the clinic's accountant"; the pharmacist review does not block building; each slice still needs its new
+    permissions approved, Daniel's look for new screens, and green CI.
+33. Programme choices (owner, "agree all", 2026-11-11, and later answers): only a Director or Finance Officer sees
+    inventory cost (STK-13); a Finance Officer also approves purchase orders, never one they raised or submitted
+    (STK-19); a CA Supervisor or Finance Officer records a supplier invoice and a Finance Officer or Director, never
+    the recorder, decides a mismatch (STK-22); the controlled-drug register is viewed and checked by a CA
+    Supervisor, Finance Officer or Director, with a second-person check (STK-24); purchase requests by a CA or CA
+    Supervisor ("agree purchase requests", 2026-11-12, STK-18); a Director starts a recall and a Director or Finance
+    Officer who did not start it lifts it ("recall A", 2026-11-12, STK-25).
+34. Always brought to the owner: go-live, real data, legal, PDPA, tax, new permissions or modules, money or
+    stock policy, deleting data, and anything that costs money. The owner's own words in a team session always
+    win. (The delegation note recorded here on 2026-11-12 was removed on the owner's decision of 2026-11-13, "1b".)
+35. Merging (B.E.R.N.I.S.S, 2026-11-12): she merges team PRs in batch PRs and may refresh a PR's head herself. The
+    team does not push to a PR while it is in a batch, except for a tweak she asked for.
+36. STK-31 (B.E.R.N.I.S.S for the owner, 2026-11-12): option (A), push from the branch that holds the stock. A stock
+    request may point at an active location of another branch when the stock comes from a branch; only the
+    destination branch receives; a cross-branch line is capped at what the source can spare; the page is visible
+    with `inventory.view.branch` (cross-branch on-hand and levels, no cost or patient data) and "Request these"
+    needs `inventory.stock_requests.create.branch`.
+37. Pilot documents (B.E.R.N.I.S.S for the owner, 2026-11-12): the stock admission procedure (STK-34) and the
+    pharmacist review pack (STK-36) stay DRAFT, say they are not legal or regulatory advice, quote only screens on
+    `main`, and leave responsible-person names and retention years blank for the clinic.
+38. STK-37 (B.E.R.N.I.S.S for the owner, 2026-11-12): moving held, recalled or expired stock is a safety gap, not a
+    policy question. Dispatch always needs a usable batch; a direct transfer needs one except between two returns
+    locations and within one branch into a location that is neither a dispensary nor returns. Stock in an
+    organisation store has no branch hold. The FEFO trail and a short-dated warning wait for the pharmacist's
+    answers (pack questions B6.6 and B6.7).
+39. STK-33 (B.E.R.N.I.S.S for the owner, 2026-11-12): Stock health is read-only, quantities only, with
+    `inventory.view.branch` and no cost; the Reports team (Farah) was told. STK-32 (seasonal forecast) is parked
+    until there is real history.
+40. Approved changes to existing tests (B.E.R.N.I.S.S for the owner, 2026-11-12): the STK-35 readiness pin
+    ('No import' → 'No balance correction'); the STK-33 Inventory task link pin (adds '/inventory/stock-health');
+    and, in STK-21, `SupplierInvoiceTest` closing its part-received order through the real short close instead of
+    raw SQL (setup only).
+41. Approved changes to existing tests (B.E.R.N.I.S.S for the owner, 2026-11-12): in DD-75, the DD-12 task link pin
+    expects each link twice (`[...grouped, ...grouped]`), once in the desktop groups and once in the phone groups.
+    The compact tiles (#633, Daniel's OK) changed no existing assertion; they add one test.
+
 ## 7. Open items and known limits
 
 - **Planned, not built:** STK-10 valuation (accountant policy first). STK-10B (cost evidence) is merged; its
@@ -194,10 +276,32 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   receipt line keeps only `unit_cost_sen`; Ask KPOne does not show `cost_total_sen` or `cost_source` until the
   Agent platform's AG-7b. Label batch and expiry is the Dispensary
   team's DSP-2 (merged).
-- **Parked review (2026-10-21):** no match against a supplier's invoice, no printable purchase order, reorder levels raise no alert by themselves (STK-4 worklists now show
-  low stock). `InventoryController::referenceData()` still projects all items, SKUs and locations unbounded.
+- **Parked review (2026-10-21):** supplier invoice match (STK-22), the printable purchase order (STK-20) and reorder
+  suggestions (STK-16, STK-30) are now built. `InventoryController::referenceData()` still projects all items, SKUs
+  and locations unbounded.
+- **Found while writing the pharmacist pack (STK-36):** the transfer gaps are closed by STK-37 (#624). Still open:
+  the FEFO audit entry records that an exception was chosen, not which reason,
+  and a re-save before completion loses the earlier reason; no report lists FEFO exceptions; no short-dated
+  warning at Dispensary. Each waits for the pharmacist's answers and the owner.
+- **Pilot staffing:** the controlled-register checker cannot be anyone who recorded a movement on that register
+  since the last check, so a controlled-delivery day needs a third person (raised with the owner, 2026-11-12).
+- STK-31 limits: the cross-branch guard is insert-only; no idempotency key on stock request creation (existing
+  design); one low-stock query per other branch.
+- STK-37 limits (Mei Ling, low risk, the same as for dispensing): stock in transit is not re-checked on receipt, so
+  a batch recalled or held while in transit still lands (dispensing refuses it there); a recall locks only the
+  chosen SKU's batches, so a sibling SKU's batch with the same number is not serialised against it; item
+  deactivation and expiry edits do not take the batch lock. Direct transfer has no screen today.
+- STK-35 limits: the organisation lock is held while a large import records (up to 500 rows); no two-process test
+  of an import racing a single opening; `crypto.randomUUID()` needs a secure context; a held existing batch is
+  reused without the row saying so. The file is never stored, only its SHA-256.
+- STK-33 limits: about 8 queries per page and the whole branch loaded before slicing, not load-tested; an index on
+  `(source_location_id, occurred_at)` and `(destination_location_id, occurred_at)` may be needed later; "used"
+  leaves out a treatment usage reversed after the period, as Reorder suggestions and Insights do.
+- STK-21 limits: a short close cannot be undone (raise a new order for the rest); the printed purchase order does
+  not show a short close.
 - **Professional questions** for a pharmacist or the regulator: regulated items, registers, FEFO policy,
-  retention.
+  retention. They are collected in `docs/pilot/controlled-register/REVIEW.md` and
+  `docs/pilot/inventory/PHARMACIST-REVIEW-PACK.md` (STK-36).
 - Quarantine holds the whole batch at that branch; corrections reverse a whole untouched receipt; a wrong
   item is rejected, never substituted.
 - Privileged direct SQL is outside the ledger guard; no PostgreSQL guard was added in STK-6A. STK-6 adds one
@@ -278,3 +382,10 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
    and package, then the accountant's written policy before any valuation or export. *Analysis only (owner request 2026-11-05):* `docs/reports/ANALYSIS-STK-10.md` lists what
    KPOne records about cost today, the gaps, and the questions an accountant must answer. Nothing is built until
    the owner chooses an option and, for a valuation or export, the accountant's written policy exists.
+7. **The 2026-11-11 programme (section 6 item 32), status on 2026-11-12:**
+   - Merged: STK-12 to STK-26, STK-30, STK-30b, STK-31, STK-33 to STK-37, STK-15b and STK-15c (section 5).
+     Design follow-ups merged: DD-75 and DD-76 (#629) and the compact summary tiles (#633).
+     STK-37 was added on 2026-11-12 from a gap found while writing STK-36.
+   - Parked by B.E.R.N.I.S.S until the accountant's cost policy exists: STK-27 (cost policy and weighted
+     average cost), STK-28 (stock value, COGS, margin and RM losses) and STK-29 (monthly journal summary CSV).
+   - Parked until there is real usage history: STK-32 (seasonal usage forecast).

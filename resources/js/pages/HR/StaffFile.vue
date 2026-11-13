@@ -17,6 +17,7 @@ import type {
 import { dateLabel, statusTone } from '@/components/hr/records/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -79,6 +80,15 @@ const props = defineProps<{
         workers: { id: string; name: string }[];
         worker: WorkerHeader & { lockVersion: number };
         attention: string[];
+        signIn: {
+            state: 'none' | 'open' | 'linked';
+            label: string;
+            requestId: string | null;
+            email: string | null;
+            accountName: string | null;
+            at: string | null;
+            lockVersion: number | null;
+        } | null;
         periods: Period[];
         positions: {
             title: string;
@@ -122,6 +132,50 @@ const errors = computed(
     () => (page.props.errors ?? {}) as Record<string, string | undefined>,
 );
 const w = computed(() => props.file.worker);
+
+// ---- HR-15a: a locum's KPOne sign-in ----
+const signIn = reactive({
+    email: '',
+    key: crypto.randomUUID(),
+    processing: false,
+    cancelOpen: false,
+});
+const askSignIn = () => {
+    signIn.processing = true;
+    router.post(
+        `/hr/records/${w.value.id}/sign-in`,
+        { email: signIn.email, idempotency_key: signIn.key },
+        {
+            preserveScroll: true,
+            onSuccess: () => {
+                signIn.email = '';
+                signIn.key = crypto.randomUUID();
+            },
+            onFinish: () => (signIn.processing = false),
+        },
+    );
+};
+const cancelSignIn = () => {
+    const current = props.file.signIn;
+
+    if (!current?.requestId) {
+        return;
+    }
+
+    signIn.processing = true;
+    router.post(
+        `/hr/records/${w.value.id}/sign-in/${current.requestId}/cancel`,
+        {
+            expected_lock_version: current.lockVersion,
+            idempotency_key: crypto.randomUUID(),
+        },
+        {
+            preserveScroll: true,
+            onSuccess: () => (signIn.cancelOpen = false),
+            onFinish: () => (signIn.processing = false),
+        },
+    );
+};
 const tabs = [
     { value: 'employment', label: 'Employment' },
     { value: 'personal', label: 'Personal' },
@@ -611,7 +665,11 @@ const bankDialog = computed(() => {
                 <StatusBadge
                     v-if="w.kind === 'locum'"
                     status="locum"
-                    label="No KPOne sign-in"
+                    :label="
+                        file.signIn?.state === 'linked'
+                            ? 'Locum with a KPOne sign-in'
+                            : 'Locum, no KPOne sign-in'
+                    "
                     tone="neutral"
                 />
             </div>
@@ -679,6 +737,90 @@ const bankDialog = computed(() => {
             aria-labelledby="employment-title"
             class="flex flex-col gap-4"
         >
+            <div
+                v-if="file.signIn"
+                class="flex flex-col gap-3 rounded-xl border bg-card p-4"
+                data-test="locum-sign-in"
+            >
+                <h2 class="text-base font-semibold">KPOne sign-in</h2>
+                <template v-if="file.signIn.state === 'none'">
+                    <p class="text-sm text-muted-foreground">
+                        A locum has no KPOne sign-in unless HR asks for one.
+                        With a sign-in they see only their own approved shifts:
+                        no patient, clinical or pay details.
+                    </p>
+                    <form
+                        v-if="file.canManage"
+                        class="flex flex-col gap-2"
+                        @submit.prevent="askSignIn"
+                    >
+                        <Label for="locum-sign-in-email"
+                            >Email the locum will sign in with</Label
+                        >
+                        <div class="flex flex-wrap gap-2">
+                            <Input
+                                id="locum-sign-in-email"
+                                v-model="signIn.email"
+                                type="email"
+                                autocomplete="off"
+                                class="max-w-sm min-w-0 flex-1 max-lg:min-h-11"
+                                :aria-invalid="!!errors.email"
+                                aria-describedby="locum-sign-in-help"
+                            />
+                            <Button
+                                type="submit"
+                                variant="outline"
+                                class="max-lg:min-h-11"
+                                :disabled="signIn.processing"
+                                data-test="ask-sign-in"
+                                >{{
+                                    signIn.processing
+                                        ? 'Asking…'
+                                        : 'Ask for a sign-in'
+                                }}</Button
+                            >
+                        </div>
+                        <p
+                            id="locum-sign-in-help"
+                            class="text-sm text-muted-foreground"
+                        >
+                            The account administrator creates the account on the
+                            Staff page and links it here. HR creates no account.
+                        </p>
+                        <InputError :message="errors.email" />
+                    </form>
+                </template>
+                <template v-else-if="file.signIn.state === 'open'">
+                    <p class="text-sm">
+                        {{ file.signIn.label }}. Asked on
+                        {{ file.signIn.at }} for {{ file.signIn.email }}.
+                    </p>
+                    <div v-if="file.canManage">
+                        <Button
+                            variant="outline"
+                            class="max-lg:min-h-11"
+                            data-test="cancel-sign-in"
+                            @click="signIn.cancelOpen = true"
+                            >Cancel request</Button
+                        >
+                    </div>
+                </template>
+                <p v-else class="text-sm">
+                    {{ file.signIn.label }} as {{ file.signIn.accountName }},
+                    linked on {{ file.signIn.at }}.
+                </p>
+            </div>
+            <OperationalConfirmDialog
+                v-model:open="signIn.cancelOpen"
+                title="Cancel the sign-in request?"
+                description="The account administrator will no longer see it on the Staff page. You can ask again later."
+                confirm-label="Cancel request"
+                cancel-label="Keep it"
+                processing-label="Cancelling…"
+                :processing="signIn.processing"
+                :error="errors.request"
+                @confirm="cancelSignIn"
+            />
             <div class="flex flex-wrap items-center justify-between gap-2">
                 <h2 id="employment-title" class="text-base font-semibold">
                     Employment periods
@@ -1284,11 +1426,9 @@ const bankDialog = computed(() => {
                         <Label for="document-issued"
                             >Issue date (optional)</Label
                         >
-                        <Input
+                        <DateField
                             id="document-issued"
                             v-model="upload.issuedOn"
-                            type="date"
-                            class="max-lg:h-11"
                         />
                         <InputError :message="errors.issued_on" />
                     </div>
@@ -1296,11 +1436,9 @@ const bankDialog = computed(() => {
                         <Label for="document-expires"
                             >Expiry date (optional)</Label
                         >
-                        <Input
+                        <DateField
                             id="document-expires"
                             v-model="upload.expiresOn"
-                            type="date"
-                            class="max-lg:h-11"
                         />
                         <InputError :message="errors.expires_on" />
                     </div>
@@ -1404,11 +1542,9 @@ const bankDialog = computed(() => {
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="period-start">Start date</Label>
-                        <Input
+                        <DateField
                             id="period-start"
                             v-model="period.startsOn"
-                            type="date"
-                            class="max-lg:h-11"
                             :aria-invalid="!!errors.starts_on"
                         />
                         <InputError :message="errors.starts_on" />
@@ -1417,11 +1553,9 @@ const bankDialog = computed(() => {
                         <Label for="period-probation"
                             >Probation ends (optional)</Label
                         >
-                        <Input
+                        <DateField
                             id="period-probation"
                             v-model="period.probationEndsOn"
-                            type="date"
-                            class="max-lg:h-11"
                         />
                         <InputError :message="errors.probation_ends_on" />
                     </div>
@@ -1429,21 +1563,17 @@ const bankDialog = computed(() => {
                         <Label for="period-confirmed"
                             >Confirmed on (optional)</Label
                         >
-                        <Input
+                        <DateField
                             id="period-confirmed"
                             v-model="period.confirmedOn"
-                            type="date"
-                            class="max-lg:h-11"
                         />
                         <InputError :message="errors.confirmed_on" />
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="period-end">End date (optional)</Label>
-                        <Input
+                        <DateField
                             id="period-end"
                             v-model="period.endsOn"
-                            type="date"
-                            class="max-lg:h-11"
                             :aria-invalid="!!errors.ends_on"
                         />
                         <InputError :message="errors.ends_on" />
@@ -1571,11 +1701,9 @@ const bankDialog = computed(() => {
                     </div>
                     <div class="grid gap-1.5">
                         <Label for="position-from">Applies from</Label>
-                        <Input
+                        <DateField
                             id="position-from"
                             v-model="position.fromDate"
-                            type="date"
-                            class="max-lg:h-11"
                             :aria-invalid="!!errors.from_date"
                         />
                         <InputError :message="errors.from_date" />
@@ -1682,11 +1810,9 @@ const bankDialog = computed(() => {
                     </template>
                     <div class="grid gap-1.5">
                         <Label for="personal-dob">Date of birth</Label>
-                        <Input
+                        <DateField
                             id="personal-dob"
                             v-model="personal.dateOfBirth"
-                            type="date"
-                            class="max-lg:h-11"
                         />
                         <InputError :message="errors.date_of_birth" />
                     </div>

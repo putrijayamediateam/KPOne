@@ -18,6 +18,12 @@ export type InventoryDocumentLine = {
     sku: string;
     orderedQuantity?: string;
     receivedQuantity?: string;
+    /** STK-21: ordered less received, exact. */
+    outstandingQuantity?: string;
+    /** The item's name, shown before its SKU. */
+    item?: string;
+    /** STK-21: frozen when the rest of the order was closed short. */
+    notDeliveredQuantity?: string | null;
     requestedQuantity?: string;
     dispatchedQuantity?: string | null;
     physicalQuantity?: string | null;
@@ -55,6 +61,18 @@ export type InventoryDocument = {
     location?: string;
     lines: InventoryDocumentLine[];
     differences?: InventoryTransferDifference[];
+    raisedByYou?: boolean;
+    closeKind?: 'complete' | 'short' | null;
+    shortCloseReason?: string | null;
+    shortCloseNote?: string | null;
+    closedBy?: string;
+    closedOn?: string;
+    // STK-18: the purchase request a draft order came from.
+    fromRequest?: string | null;
+    // STK-31: which end of a stock request this branch is (the server still decides).
+    atRequesting?: boolean;
+    atSource?: boolean;
+    atDestination?: boolean;
 };
 
 export type InventoryOperations = {
@@ -68,7 +86,7 @@ export type InventoryOperations = {
     stockRequests: InventoryDocument[];
     stocktakes: InventoryDocument[];
     adjustments: Array<Record<string, string>>;
-    lowStock: Array<Record<string, string>>;
+    lowStock: Array<Record<string, string | null>>;
     expiringBatches: Array<Record<string, string>>;
 };
 

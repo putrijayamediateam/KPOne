@@ -3,7 +3,6 @@ import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { CalendarCheck, CalendarX, Clock } from '@lucide/vue';
 import {
     computed,
-    nextTick,
     onBeforeUnmount,
     onMounted,
     reactive,
@@ -11,12 +10,17 @@ import {
     useTemplateRef,
     watch,
 } from 'vue';
+import ClockPhotoNotice from '@/components/hr/attendance/ClockPhotoNotice.vue';
+import ClockPhotoThumb from '@/components/hr/attendance/ClockPhotoThumb.vue';
+import type { ClockPhotoEntry } from '@/components/hr/attendance/ClockPhotoThumb.vue';
+import LocationCheckSettings from '@/components/hr/attendance/LocationCheckSettings.vue';
 import MyOvertimeSection from '@/components/hr/attendance/MyOvertime.vue';
 import OvertimeAskSheet from '@/components/hr/attendance/OvertimeAskSheet.vue';
 import OvertimeSettingsForm from '@/components/hr/attendance/OvertimeSettingsForm.vue';
 import OvertimeTab from '@/components/hr/attendance/OvertimeTab.vue';
 import SummaryTab from '@/components/hr/attendance/SummaryTab.vue';
 import type {
+    LocationCheckCard,
     MyOvertime,
     OvertimeChoice,
     OvertimeOptions,
@@ -28,6 +32,8 @@ import type {
 import { weekTone } from '@/components/hr/attendance/types';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField, DateTimeField } from '@/components/ui/date-field';
+import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -45,6 +51,8 @@ import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
 import { Textarea } from '@/components/ui/textarea';
+import { useClockPhoto } from '@/composables/useClockPhoto';
+import { useScrollStrip } from '@/composables/useScrollStrip';
 
 type Tab = 'my' | 'review' | 'overtime' | 'summary' | 'settings';
 type Kind = 'change_in' | 'set_out' | 'add_day';
@@ -73,6 +81,14 @@ type Row = {
     needsClockOut: boolean;
     overtimeChoice?: OvertimeChoice | null;
     week?: WeekHours | null;
+    /** HR-PHOTO: each press's photo; anyone else's needs Show. */
+    photos?: { in: ClockPhotoEntry | null; out: ClockPhotoEntry | null } | null;
+    /** HR-16a: each press's location result in plain words; never a position. */
+    location?: {
+        in: string | null;
+        out: string | null;
+        outside: boolean;
+    } | null;
 };
 type Correction = {
     publicId: string;
@@ -123,6 +139,14 @@ const props = defineProps<{
             correctionDays: number | null;
             corrections: Correction[];
             overtime: MyOvertime;
+            /** HR-16a: on at the branch the next press goes to. */
+            location: {
+                consentNeeded: boolean;
+                consentEn: string | null;
+                consentBm: string | null;
+                /** Your own latest result, in plain words. */
+                lastResult: string | null;
+            } | null;
         } | null;
         review: {
             branches: { id: number; name: string }[];
@@ -158,6 +182,7 @@ const props = defineProps<{
                 by: string;
             }[];
             overtime: OvertimeSettingsCard;
+            location: LocationCheckCard | null;
         } | null;
         overtime: OvertimeTabData | null;
         summary: SummaryTabData | null;
@@ -209,20 +234,26 @@ const visit = (params: Record<string, string | number | undefined>) =>
         },
     );
 
-// ---- Tabs (DD-30 pattern from the Queue board, #296) ----
+// ---- Tabs: the shared scroll strip brings the current tab into view and fades the hidden edge (Daniel, HR-PHOTO) ----
 const tabStrip = useTemplateRef<HTMLElement>('tabStrip');
-const tabNav = () =>
-    tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]') ?? null;
-const moreTabsRight = ref(false);
-const updateTabFade = () => {
-    const nav = tabNav();
-
-    moreTabsRight.value =
-        nav !== null &&
-        nav.scrollWidth > nav.clientWidth + 1 &&
-        nav.scrollLeft + nav.clientWidth < nav.scrollWidth - 1;
-};
+const tabNav = ref<HTMLElement | null>(null);
+onMounted(() => {
+    tabNav.value =
+        tabStrip.value?.querySelector<HTMLElement>('[role="tablist"]') ?? null;
+});
+const { measure: measureTabs, fadeStyle: tabFade } = useScrollStrip(
+    tabNav,
+    '[aria-selected="true"]',
+);
 const selectTab = (tab: string) => visit({ tab });
+
+// HR-PHOTO (Daniel): reopen the notice from My attendance; and say that Show is recorded when the day has anyone else's photo.
+const aboutPhotos = ref(false);
+const reviewHasOthersPhotos = computed(() =>
+    (props.attendance.review?.rows ?? []).some(
+        (r) => r.photos?.in?.needsShow || r.photos?.out?.needsShow,
+    ),
+);
 
 // ---- Server time (Daniel: ticks every second, never in a live region) ----
 const offset = ref(0);
@@ -269,13 +300,11 @@ watch(() => props.attendance.my?.serverNow, syncClock);
 onMounted(() => {
     syncClock();
     timer = setInterval(() => (tick.value = Date.now()), 1000);
-    const nav = tabNav();
-    nav?.addEventListener('scroll', updateTabFade, { passive: true });
-    void nextTick().then(updateTabFade);
+    tabNav.value?.addEventListener('scroll', measureTabs, { passive: true });
 });
 onBeforeUnmount(() => {
     clearInterval(timer);
-    tabNav()?.removeEventListener('scroll', updateTabFade);
+    tabNav.value?.removeEventListener('scroll', measureTabs);
 });
 
 // ---- One polite live region for state changes only (a refusal is read once, by its alert under the button) ----
@@ -286,6 +315,17 @@ watch(
         const my = props.attendance.my;
 
         if (my && my.state !== oldState) {
+            // When the same response carries a toast (this page's own press), the toast's live region reads it, so the
+            // region here stays quiet and the change is read once. A change from elsewhere, with no toast, is still read.
+            if (
+                (page as unknown as { flash?: { toast?: unknown } }).flash
+                    ?.toast
+            ) {
+                announcement.value = '';
+
+                return;
+            }
+
             announcement.value =
                 my.state === 'in'
                     ? String(label ?? 'Clocked in.')
@@ -297,26 +337,82 @@ watch(
 );
 
 // ---- Clock in and out ----
-const clock = reactive({ processing: false, confirmOut: false, key: '' });
+const clock = reactive({
+    processing: false,
+    confirmOut: false,
+    key: '',
+    locating: false,
+    consentFor: null as 'in' | 'out' | null,
+});
+// HR-16a: where the branch checks location, the browser reads it once, at the press, and never before or after. A
+// refusal, a failure or "without location" still records the press.
 const press = (kind: 'in' | 'out') => {
-    clock.key = clock.key || crypto.randomUUID();
+    const location = props.attendance.my?.location;
+
+    if (!location) {
+        send(kind, {});
+
+        return;
+    }
+
+    if (location.consentNeeded) {
+        clock.confirmOut = false;
+        clock.consentFor = kind;
+
+        return;
+    }
+
+    locate(kind, false);
+};
+const locate = (kind: 'in' | 'out', consent: boolean) => {
+    clock.consentFor = null;
+    const extra: Record<string, unknown> = consent
+        ? { location_consent: true }
+        : {};
+
+    if (!('geolocation' in navigator)) {
+        send(kind, { ...extra, location_unavailable: 'failed' });
+
+        return;
+    }
+
+    clock.locating = true;
     clock.processing = true;
-    router.post(
-        kind === 'in' ? '/hr/attendance/clock-in' : '/hr/attendance/clock-out',
-        { idempotency_key: clock.key },
-        {
-            preserveScroll: true,
-            onSuccess: () => {
-                clock.key = '';
-                clock.confirmOut = false;
-            },
-            onError: () => {
-                clock.key = '';
-                clock.confirmOut = false;
-            },
-            onFinish: () => (clock.processing = false),
+    navigator.geolocation.getCurrentPosition(
+        (position) => {
+            clock.locating = false;
+            send(kind, {
+                ...extra,
+                clock_position: {
+                    latitude: position.coords.latitude,
+                    longitude: position.coords.longitude,
+                    accuracy: position.coords.accuracy,
+                },
+            });
         },
+        (error) => {
+            clock.locating = false;
+            send(kind, {
+                ...extra,
+                location_unavailable: error.code === 1 ? 'denied' : 'failed',
+            });
+        },
+        { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
     );
+};
+const withoutLocation = (kind: 'in' | 'out') => {
+    clock.consentFor = null;
+    send(kind, { location_unavailable: 'declined' });
+};
+// HR-PHOTO: every press goes through the camera; the location result (HR-16a) rides along with the photo.
+const { open: openCamera } = useClockPhoto();
+const send = (kind: 'in' | 'out', extra: Record<string, unknown>) => {
+    clock.confirmOut = false;
+    clock.processing = false;
+    openCamera(kind, {
+        extra,
+        onDone: () => router.reload({ preserveScroll: true } as never),
+    });
 };
 
 // ---- Corrections ----
@@ -621,11 +717,7 @@ const correctionStatusTone = (
                 :tabs="tabs"
                 label="Attendance sections"
                 class="min-w-0 max-sm:[&>button]:h-11 max-sm:[&>button]:px-2.5"
-                :class="
-                    moreTabsRight
-                        ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
-                        : ''
-                "
+                :style="tabFade"
                 @update:model-value="selectTab"
             />
         </div>
@@ -702,7 +794,13 @@ const correctionStatusTone = (
                         @click="press('in')"
                     >
                         <Clock class="size-5" />
-                        {{ clock.processing ? 'Clocking in…' : 'Clock in' }}
+                        {{
+                            clock.locating
+                                ? 'Checking location…'
+                                : clock.processing
+                                  ? 'Clocking in…'
+                                  : 'Clock in'
+                        }}
                     </Button>
                     <Button
                         v-else-if="attendance.my.state === 'in'"
@@ -712,9 +810,31 @@ const correctionStatusTone = (
                         @click="clock.confirmOut = true"
                     >
                         <Clock class="size-5" />
-                        {{ clock.processing ? 'Clocking out…' : 'Clock out' }}
+                        {{
+                            clock.locating
+                                ? 'Checking location…'
+                                : clock.processing
+                                  ? 'Clocking out…'
+                                  : 'Clock out'
+                        }}
                     </Button>
                     <InputError :message="errors.clock" />
+                    <p
+                        v-if="attendance.my.location"
+                        class="text-sm text-muted-foreground"
+                        data-test="location-note"
+                    >
+                        This branch checks your location when you press. Only
+                        inside, outside or not available is kept, never where
+                        you are.
+                    </p>
+                    <p
+                        v-if="attendance.my.location?.lastResult"
+                        class="text-sm text-muted-foreground"
+                        data-test="location-last"
+                    >
+                        {{ attendance.my.location.lastResult }}
+                    </p>
                     <p
                         v-if="
                             attendance.my.state === 'out' &&
@@ -735,12 +855,22 @@ const correctionStatusTone = (
                     <p v-else class="text-sm text-muted-foreground">
                         No approved shift today.
                     </p>
+                    <!-- HR-PHOTO: shown at every branch, beside the location note where the branch checks location. -->
                     <p
                         class="text-xs text-muted-foreground"
                         data-test="privacy-line"
                     >
-                        KPOne records the time only. No location or photo.
+                        KPOne records the time and a photo of you at each press.
+                        HR can see it. Kept for 7 years (to confirm).
                     </p>
+                    <button
+                        type="button"
+                        class="self-start text-xs font-medium text-brand-strong underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        data-test="clock-photo-about"
+                        @click="aboutPhotos = true"
+                    >
+                        About clock-in photos
+                    </button>
                     <p
                         v-if="
                             attendance.my.state !== 'out' ||
@@ -864,6 +994,22 @@ const correctionStatusTone = (
                                 · Worked {{ r.worked }}</span
                             >
                         </p>
+                        <div
+                            v-if="r.photos?.in || r.photos?.out"
+                            class="flex flex-wrap items-center gap-3"
+                            data-test="my-photos"
+                        >
+                            <ClockPhotoThumb
+                                v-if="r.photos?.in"
+                                :photo="r.photos.in"
+                                :name="`Your clock-in photo, ${r.dateLabel}`"
+                            />
+                            <ClockPhotoThumb
+                                v-if="r.photos?.out"
+                                :photo="r.photos.out"
+                                :name="`Your clock-out photo, ${r.dateLabel}`"
+                            />
+                        </div>
                         <div
                             v-if="r.flags.length > 0 || r.correctionWaiting"
                             class="flex flex-wrap gap-1"
@@ -1037,20 +1183,18 @@ const correctionStatusTone = (
                                 "
                                 >‹</Button
                             >
-                            <Input
+                            <DateField
                                 id="review-date"
-                                type="date"
-                                class="min-h-11 w-40 sm:min-h-9"
                                 :model-value="attendance.review.date ?? ''"
                                 @change="
-                                    (e: Event) =>
+                                    (value: string) =>
                                         visit({
                                             branch: attendance.review?.branch
                                                 ?.id,
-                                            date: (e.target as HTMLInputElement)
-                                                .value,
+                                            date: value,
                                         })
                                 "
+                                :echo="false"
                             />
                             <Button
                                 variant="outline"
@@ -1137,11 +1281,47 @@ const correctionStatusTone = (
                                         />
                                     </td>
                                     <td>{{ r.shift?.label ?? 'No shift' }}</td>
-                                    <td class="tabular-nums">
-                                        {{ r.session?.in ?? '–' }}
+                                    <td class="min-w-64 tabular-nums">
+                                        <div
+                                            class="flex flex-wrap items-center gap-2 xl:flex-nowrap"
+                                        >
+                                            <span>{{
+                                                r.session?.in ?? '–'
+                                            }}</span>
+                                            <ClockPhotoThumb
+                                                v-if="r.photos?.in"
+                                                :photo="r.photos.in"
+                                                :name="`Clock-in photo of ${r.person}`"
+                                            />
+                                        </div>
+                                        <p
+                                            v-if="r.location?.in"
+                                            class="text-xs text-muted-foreground"
+                                            data-test="review-location-in"
+                                        >
+                                            {{ r.location.in }}
+                                        </p>
                                     </td>
-                                    <td class="tabular-nums">
-                                        {{ r.session?.out ?? '–' }}
+                                    <td class="min-w-64 tabular-nums">
+                                        <div
+                                            class="flex flex-wrap items-center gap-2 xl:flex-nowrap"
+                                        >
+                                            <span>{{
+                                                r.session?.out ?? '–'
+                                            }}</span>
+                                            <ClockPhotoThumb
+                                                v-if="r.photos?.out"
+                                                :photo="r.photos.out"
+                                                :name="`Clock-out photo of ${r.person}`"
+                                            />
+                                        </div>
+                                        <p
+                                            v-if="r.location?.out"
+                                            class="text-xs text-muted-foreground"
+                                            data-test="review-location-out"
+                                        >
+                                            {{ r.location.out }}
+                                        </p>
                                     </td>
                                     <td class="tabular-nums">
                                         {{ r.worked ?? '–' }}
@@ -1224,6 +1404,51 @@ const correctionStatusTone = (
                                 >
                             </p>
                             <div
+                                v-if="r.photos?.in || r.photos?.out"
+                                class="flex flex-col gap-2"
+                                data-test="review-card-photos"
+                            >
+                                <!-- One line each, named In and Out, so each Show or Hide belongs to its own press (Daniel). -->
+                                <div
+                                    v-if="r.photos?.in"
+                                    class="flex flex-wrap items-center gap-2"
+                                >
+                                    <span
+                                        class="w-8 text-xs text-muted-foreground"
+                                        >In</span
+                                    >
+                                    <ClockPhotoThumb
+                                        :photo="r.photos.in"
+                                        :name="`Clock-in photo of ${r.person}`"
+                                    />
+                                </div>
+                                <div
+                                    v-if="r.photos?.out"
+                                    class="flex flex-wrap items-center gap-2"
+                                >
+                                    <span
+                                        class="w-8 text-xs text-muted-foreground"
+                                        >Out</span
+                                    >
+                                    <ClockPhotoThumb
+                                        :photo="r.photos.out"
+                                        :name="`Clock-out photo of ${r.person}`"
+                                    />
+                                </div>
+                            </div>
+                            <p
+                                v-if="r.location?.in"
+                                class="text-xs text-muted-foreground"
+                            >
+                                Clock in: {{ r.location.in }}
+                            </p>
+                            <p
+                                v-if="r.location?.out"
+                                class="text-xs text-muted-foreground"
+                            >
+                                Clock out: {{ r.location.out }}
+                            </p>
+                            <div
                                 v-if="r.flags.length > 0 || r.correctionWaiting"
                                 class="mt-1 flex flex-wrap gap-1"
                             >
@@ -1267,6 +1492,13 @@ const correctionStatusTone = (
                             </Button>
                         </li>
                     </ul>
+                    <p
+                        v-if="reviewHasOthersPhotos"
+                        class="text-xs text-muted-foreground"
+                        data-test="review-photo-recorded"
+                    >
+                        Showing a photo is recorded.
+                    </p>
                 </template>
 
                 <div
@@ -1441,11 +1673,9 @@ const correctionStatusTone = (
                 </div>
                 <div class="grid gap-1">
                     <Label for="effective-from">Applies from *</Label>
-                    <Input
+                    <DateField
                         id="effective-from"
                         v-model="settingsForm.effective_from"
-                        type="date"
-                        class="min-h-11 w-48 sm:min-h-9"
                         aria-describedby="effective-help"
                     />
                     <p
@@ -1486,6 +1716,10 @@ const correctionStatusTone = (
                 :card="attendance.settings.overtime"
                 :today="attendance.settings.today"
             />
+            <LocationCheckSettings
+                v-if="attendance.settings.location"
+                :card="attendance.settings.location"
+            />
         </section>
 
         <!-- Clock out confirm (Daniel: only Clock out asks) -->
@@ -1502,6 +1736,76 @@ const correctionStatusTone = (
                 <Clock class="size-5" />
             </template>
         </OperationalConfirmDialog>
+
+        <!-- HR-16a: consent once per version, before the first press at this branch -->
+        <Sheet
+            :open="clock.consentFor !== null"
+            @update:open="(open: boolean) => !open && (clock.consentFor = null)"
+        >
+            <SheetContent
+                side="bottom"
+                class="flex max-h-[90dvh] flex-col sm:mx-auto sm:max-w-xl sm:rounded-t-xl"
+                data-test="location-consent"
+            >
+                <SheetHeader>
+                    <SheetTitle>Location check at this branch</SheetTitle>
+                    <SheetDescription>
+                        Read this once. You can clock
+                        {{ clock.consentFor === 'out' ? 'out' : 'in' }} without
+                        it.
+                    </SheetDescription>
+                    <p
+                        class="text-xs text-muted-foreground"
+                        data-test="location-consent-draft"
+                    >
+                        Draft wording until the clinic's PDPA review. Synthetic
+                        data only.
+                    </p>
+                </SheetHeader>
+                <!-- Closing with X records nothing and gives no consent; the sheet opens again at the next press (Daniel). -->
+                <div
+                    class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 text-sm"
+                    data-test="location-consent-text"
+                >
+                    <section class="flex flex-col gap-1">
+                        <h3 class="font-medium">English</h3>
+                        <p class="whitespace-pre-line">
+                            {{ attendance.my?.location?.consentEn }}
+                        </p>
+                    </section>
+                    <section class="flex flex-col gap-1" lang="ms">
+                        <h3 class="font-medium">Bahasa Melayu</h3>
+                        <p class="whitespace-pre-line">
+                            {{ attendance.my?.location?.consentBm }}
+                        </p>
+                    </section>
+                </div>
+                <!-- Pinned below the text; two equal choices, neither preselected (Daniel). -->
+                <div
+                    class="grid shrink-0 gap-2 border-t p-4 sm:grid-cols-2"
+                    data-test="location-consent-actions"
+                >
+                    <Button
+                        variant="outline"
+                        class="min-h-11"
+                        data-test="location-without"
+                        @click="withoutLocation(clock.consentFor ?? 'in')"
+                    >
+                        Clock
+                        {{ clock.consentFor === 'out' ? 'out' : 'in' }}
+                        without location
+                    </Button>
+                    <Button
+                        variant="outline"
+                        class="min-h-11"
+                        data-test="location-agree"
+                        @click="locate(clock.consentFor ?? 'in', true)"
+                    >
+                        I understand, check my location
+                    </Button>
+                </div>
+            </SheetContent>
+        </Sheet>
 
         <!-- Decision -->
         <OperationalConfirmDialog
@@ -1615,11 +1919,9 @@ const correctionStatusTone = (
                         <Label for="correction-in"
                             >Clock-in date and time *</Label
                         >
-                        <Input
+                        <DateTimeField
                             id="correction-in"
                             v-model="correction.inTime"
-                            type="datetime-local"
-                            class="min-h-11 sm:min-h-9"
                         />
                         <InputError :message="correctionErrors.in_time" />
                     </div>
@@ -1630,11 +1932,9 @@ const correctionStatusTone = (
                         <Label for="correction-out"
                             >Clock-out date and time *</Label
                         >
-                        <Input
+                        <DateTimeField
                             id="correction-out"
                             v-model="correction.outTime"
-                            type="datetime-local"
-                            class="min-h-11 sm:min-h-9"
                         />
                         <InputError :message="correctionErrors.out_time" />
                     </div>
@@ -1696,5 +1996,14 @@ const correctionStatusTone = (
                 </form>
             </SheetContent>
         </Sheet>
+        <Dialog v-model:open="aboutPhotos">
+            <DialogContent
+                class="flex max-h-[90vh] max-w-[min(32rem,calc(100%-2rem))] flex-col p-0"
+                :show-close-button="false"
+                data-test="clock-photo-about-dialog"
+            >
+                <ClockPhotoNotice mode="info" @cancel="aboutPhotos = false" />
+            </DialogContent>
+        </Dialog>
     </div>
 </template>

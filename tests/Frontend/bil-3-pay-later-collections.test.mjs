@@ -24,11 +24,15 @@ test('the pay-later collection page compiles', () => {
 });
 
 test('the page shows totals, the overdue filter and a link to each billing page', () => {
-    assert.ok(page.includes('title="Pay later to collect"'));
+    // Owner OK 2026-11-11 (BIL-23): the page is renamed "Bills to collect".
+    assert.ok(page.includes('title="Bills to collect"'));
     assert.ok(page.includes('data-testid="pay-later-totals"'));
     assert.ok(page.includes('Show only bills past their due date'));
     assert.ok(page.includes(':href="row.url"'));
-    assert.ok(page.includes('day(s) past due'));
+    // Owner OK 2026-11-10 (BIL-18): a proper plural instead of "day(s)".
+    assert.ok(
+        page.includes("row.daysOverdue === 1 ? 'day' : 'days' }} past due"),
+    );
     assert.ok(page.includes("'/pay-later-collections'"));
 });
 
@@ -42,7 +46,6 @@ test('the Outstanding bill box links the list only when the server sends the lin
     assert.ok(outstanding.includes('v-if="collectionsUrl"'));
     assert.ok(outstanding.includes(':href="collectionsUrl"'));
     assert.ok(outstanding.includes('?.payLaterCollectionsUrl ?? null'));
-    assert.ok(
-        outstanding.includes('View all pay-later to collect at this branch'),
-    );
+    // Owner OK 2026-11-12 (BIL-28): the link names the page it opens, "Bills to collect" (BIL-23).
+    assert.ok(outstanding.includes('View all bills to collect at this branch'));
 });

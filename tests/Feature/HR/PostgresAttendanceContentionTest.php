@@ -5,6 +5,7 @@ namespace Tests\Feature\HR;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use App\Domain\HR\Attendance\Services\CorrectionService;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
@@ -115,6 +116,59 @@ class PostgresAttendanceContentionTest extends TestCase
         $this->assertSame(1, DB::table('hr_clock_events')->where('correction_id', $correction->id)->count());
     }
 
+    /**
+     * TEAM.md section 7 hardening (HR-3a known limit): a clock-in racing a manager approving that person's correction.
+     * Both lock the staff member's account row first, so they run one after the other in either order. Whichever goes
+     * first, the approval lands once and closes the session at the corrected time, and the clock-in is either refused
+     * ("already clocked in", when it goes first) or opens a new session that starts after the corrected clock-out time.
+     * The two sessions never overlap.
+     */
+    public function test_a_clock_in_queued_before_an_approved_correction_is_refused_and_the_correction_lands_once(): void
+    {
+        $this->clockInAgainstApprovedCorrection(clockInFirst: true);
+    }
+
+    public function test_a_clock_in_queued_after_an_approved_correction_starts_after_the_corrected_clock_out(): void
+    {
+        $this->clockInAgainstApprovedCorrection(clockInFirst: false);
+    }
+
+    private function clockInAgainstApprovedCorrection(bool $clockInFirst): void
+    {
+        $f = $this->fixture();
+        $now = CarbonImmutable::now('UTC');
+        $session = new ClockSession;
+        $session->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'user_id' => $f['staff']->id, 'branch_id' => $f['branch']->id,
+            'local_date' => $now->subHours(3)->setTimezone($f['branch']->timezone)->toDateString(), 'timezone' => $f['branch']->timezone,
+            'clock_in_at' => $now->subHours(3), 'status' => 'open'])->save();
+        $correction = app(CorrectionService::class)->propose($f['staff'], ['kind' => 'set_out', 'session_id' => $session->public_id, 'reason_code' => 'forgot',
+            'out_time' => $now->subHour()->setTimezone($f['branch']->timezone)->format('Y-m-d\TH:i'), 'idempotency_key' => (string) Str::uuid()]);
+        $in = $this->worker($f['staff'], ['op' => 'in']);
+        $approve = $this->worker($f['manager1'], ['op' => 'approve', 'correction' => $correction->public_id, 'expected_lock_version' => 1]);
+        $out = $this->race($f['staff'], $clockInFirst ? [$in, $approve] : [$approve, $in], inOrder: true);
+
+        // The approval always lands, once, and closes the session at the corrected time.
+        $this->assertSame(1, substr_count($out, 'SUCCESS approve'), $out);
+        $this->assertSame('approved', AttendanceCorrection::query()->whereKey($correction->id)->value('status'));
+        $this->assertSame(1, DB::table('hr_clock_events')->where('correction_id', $correction->id)->count());
+        $closed = ClockSession::query()->whereKey($session->id)->firstOrFail();
+        $this->assertSame('closed', $closed->status);
+        $this->assertNotNull($closed->clock_out_at);
+
+        $sessions = ClockSession::query()->where('user_id', $f['staff']->id)->orderBy('clock_in_at')->get();
+        if (! $clockInFirst) {
+            // The approval went first: the clock-in opened a new session after the corrected clock-out.
+            $this->assertSame(1, substr_count($out, 'SUCCESS in'), $out);
+            $this->assertCount(2, $sessions, $out);
+            $this->assertSame('open', $sessions[1]->status);
+            $this->assertTrue($sessions[1]->clock_in_at->greaterThanOrEqualTo($closed->clock_out_at), $out);
+        } else {
+            // The clock-in went first and found the session still open.
+            $this->assertSame(1, substr_count($out, 'STALE clock: You are already clocked in since'), $out);
+            $this->assertCount(1, $sessions, $out);
+        }
+    }
+
     /** @return array<string, mixed> */
     private function fixture(): array
     {
@@ -155,6 +209,11 @@ class PostgresAttendanceContentionTest extends TestCase
     private function worker(User $actor, array $args): array
     {
         $args['idempotency_key'] ??= (string) Str::uuid();
+        if ($args['op'] === 'in') {
+            // HR-PHOTO: the camera's token, taken before the race (the worker makes its own synthetic photo).
+            app(ClockPhotoService::class)->markNoticeSeen($actor, ClockPhotoService::NOTICE_VERSION);
+            $args['capture_token'] ??= app(ClockPhotoService::class)->issueToken($actor, 'in')['token'];
+        }
         $input = new InputStream;
         $process = new Process([PHP_BINARY, base_path('tests/Support/PostgresAttendanceWorker.php'), (string) $actor->id,
             base64_encode(json_encode($args, JSON_THROW_ON_ERROR)), 'kpone-attendance-pg-'.Str::lower(Str::random(8))], base_path());
@@ -169,9 +228,12 @@ class PostgresAttendanceContentionTest extends TestCase
     /**
      * Holds the staff member's account row, starts both workers, proves each is waiting behind this session, then releases.
      *
+     * With $inOrder, each worker is sent GO only once the one before it is proven waiting, so PostgreSQL queues them on
+     * the row lock in that order and the race is decided the same way every run.
+     *
      * @param  list<Worker>  $workers
      */
-    private function race(User $staff, array $workers): string
+    private function race(User $staff, array $workers, bool $inOrder = false): string
     {
         DB::beginTransaction();
         try {
@@ -181,12 +243,20 @@ class PostgresAttendanceContentionTest extends TestCase
                 $worker['process']->start();
             }
             $this->waitReady($workers);
-            foreach ($workers as $worker) {
-                $worker['input']->write("GO\n");
-                $worker['input']->close();
-            }
-            foreach ($workers as $worker) {
-                $this->waitForDatabaseBlock($worker['process'], $parentPid);
+            if ($inOrder) {
+                foreach ($workers as $worker) {
+                    $worker['input']->write("GO\n");
+                    $worker['input']->close();
+                    $this->waitForDatabaseBlock($worker['process'], $parentPid);
+                }
+            } else {
+                foreach ($workers as $worker) {
+                    $worker['input']->write("GO\n");
+                    $worker['input']->close();
+                }
+                foreach ($workers as $worker) {
+                    $this->waitForDatabaseBlock($worker['process'], $parentPid);
+                }
             }
             DB::commit();
         } catch (\Throwable $exception) {
@@ -262,7 +332,7 @@ class PostgresAttendanceContentionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic attendance evidence.
-            foreach (['hr_clock_events', 'hr_attendance_corrections', 'hr_clock_sessions', 'hr_attendance_retries', 'hr_attendance_settings'] as $table) {
+            foreach (['hr_clock_photos', 'hr_clock_capture_tokens', 'hr_clock_photo_notices', 'hr_clock_events', 'hr_attendance_corrections', 'hr_clock_sessions', 'hr_attendance_retries', 'hr_attendance_settings'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");

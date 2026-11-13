@@ -34,6 +34,8 @@ const props = withDefaults(
         placeholder?: string;
         calendarLabel?: string;
         echo?: boolean;
+        /** 'patient' gives the larger rounded look of the public QR form. */
+        look?: 'staff' | 'patient';
     }>(),
     {
         modelValue: '',
@@ -43,6 +45,7 @@ const props = withDefaults(
         placeholder: undefined,
         calendarLabel: undefined,
         echo: true,
+        look: 'staff',
     },
 );
 const emit = defineEmits<{
@@ -57,6 +60,8 @@ const hintId = useId();
 const input = ref<HTMLInputElement | null>(null);
 const text = ref(formatDisplayDate(props.modelValue));
 const open = ref(false);
+// change fires only when the value differs from the last one announced, as a native input does.
+let lastChange = props.modelValue ?? '';
 const calendar = ref<InstanceType<typeof DateCalendar> | null>(null);
 // The arrow keys work as soon as the calendar opens: focus lands on the selected day.
 const onOpenFocus = (event: Event): void => {
@@ -120,13 +125,17 @@ const onBlur = (): void => {
         text.value = formatDisplayDate(iso);
     }
 
-    emit('change', iso);
+    if (iso !== lastChange) {
+        lastChange = iso;
+        emit('change', iso);
+    }
 };
 const onPick = (iso: string): void => {
     text.value = formatDisplayDate(iso);
     problem.value = '';
     open.value = false;
     commit(iso);
+    lastChange = iso;
     emit('change', iso);
 };
 const onClear = (): void => {
@@ -134,6 +143,7 @@ const onClear = (): void => {
     problem.value = '';
     open.value = false;
     commit('');
+    lastChange = '';
     emit('change', '');
 };
 
@@ -161,7 +171,7 @@ const calendarValue = computed(() => normaliseIso(parseDisplayDate(text.value)) 
 
 <template>
     <div :class="cn('w-full', attrs.class as string)">
-        <div class="relative flex h-9 w-full items-center max-sm:h-11">
+        <div :class="cn('relative flex w-full items-center', props.look === 'patient' ? 'h-12' : 'h-9 max-sm:h-11')">
         <input
             ref="input"
             v-bind="inputAttrs"
@@ -172,7 +182,14 @@ const calendarValue = computed(() => normaliseIso(parseDisplayDate(text.value)) 
             :placeholder="placeholder ?? words.placeholder"
             data-slot="input"
             data-kpone-field="date"
-            class="h-full w-full min-w-0 rounded-md border border-input bg-card px-3 py-1 pr-11 text-base shadow-xs transition-[background-color,border-color,box-shadow] outline-none selection:bg-brand selection:text-brand-foreground placeholder:text-muted-foreground hover:border-foreground/25 read-only:bg-muted/70 read-only:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-destructive/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-sm dark:bg-input/30 dark:aria-invalid:ring-destructive/40"
+            :class="
+                cn(
+                    'h-full w-full min-w-0 border border-input bg-card px-3 py-1 pr-11 text-base shadow-xs transition-[background-color,border-color,box-shadow] outline-none selection:bg-brand selection:text-brand-foreground placeholder:text-muted-foreground hover:border-foreground/25 read-only:bg-muted/70 read-only:text-muted-foreground disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground disabled:opacity-70 aria-invalid:border-destructive aria-invalid:ring-destructive/20 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-sm dark:bg-field-fill/30 dark:aria-invalid:ring-destructive/40',
+                    props.look === 'patient'
+                        ? 'rounded-xl border-border shadow-none md:text-base'
+                        : 'rounded-md',
+                )
+            "
             @input="onInput"
             @blur="onBlur"
         />

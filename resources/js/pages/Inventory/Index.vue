@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { ChevronDown } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
@@ -52,6 +54,14 @@ type InventoryDirectory = {
     currentPage: number;
     lastPage: number;
 };
+
+// STK-24: the controlled-drug register link shows only for its viewers (the server checks too).
+const page = usePage();
+const canViewControlledRegister = computed(() =>
+    page.props.auth.permissions.includes(
+        'inventory.controlled_register.view.branch',
+    ),
+);
 
 const props = defineProps<{
     inventory: InventoryDirectory;
@@ -115,6 +125,7 @@ const statusOptions = [
     { value: '', label: 'All statuses' },
     { value: 'active', label: 'Available' },
     { value: 'inactive', label: 'Unavailable' },
+    { value: 'returns', label: 'Patient returns only' },
 ];
 const movementOptions = [
     { value: '', label: 'All movement types' },
@@ -186,72 +197,321 @@ const clearFilters = () => {
 </script>
 
 <template>
-    <div class="flex flex-wrap gap-3 px-4">
-        <a
-            href="/inventory/counts"
-            class="inline-flex min-h-11 items-center underline"
-            >Stock count (governed)</a
-        ><a
-            href="/inventory/writeoffs"
-            class="inline-flex min-h-11 items-center underline"
-            >Write-off (governed)</a
-        ><a
-            href="/inventory/supplier-returns"
-            class="inline-flex min-h-11 items-center underline"
-            >Supplier returns</a
-        ><a
-            href="/inventory/treatment-usage"
-            class="inline-flex min-h-11 items-center underline"
-            >Treatment room usage</a
-        >
-    </div>
-    <a
-        href="/inventory/stock-review"
-        class="inline-flex min-h-11 items-center px-4 underline"
-        >Stock review</a
-    >
-    <a
-        href="/inventory/batch-holds"
-        class="mx-4 mt-4 inline-flex min-h-11 items-center self-start rounded-md border px-4 text-sm underline"
-        >Batch safety holds</a
-    >
-    <a
-        href="/inventory/readiness"
-        class="mx-4 mt-4 inline-flex min-h-11 items-center self-start rounded-md border px-4 text-sm"
-        >Pilot readiness</a
-    >
     <Head title="Inventory" />
     <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
         <PageHeader
             title="Inventory"
             :description="`Stock, batches and movement history for ${inventory.branch}.`"
-        >
-            <template #actions>
-                <ActionLink href="/workspace" variant="secondary">
-                    Return to Workspace
-                </ActionLink>
-            </template>
-        </PageHeader>
+        />
+
+        <nav aria-label="Inventory tasks" class="kp-control-group">
+            <!-- DD-75 (Daniel): from lg each group is an always-visible heading with its links; below lg the same
+                 links sit in three closed disclosures (no script). Keep the two copies in the same order: a test
+                 checks they match. -->
+            <div class="hidden w-full gap-6 lg:grid lg:grid-cols-3">
+                <section
+                    aria-labelledby="inventory-tasks-count-and-adjust"
+                    class="space-y-2"
+                >
+                    <h2
+                        id="inventory-tasks-count-and-adjust"
+                        class="text-sm font-semibold"
+                    >
+                        Count and adjust
+                    </h2>
+                    <div class="flex flex-wrap gap-2">
+                        <ActionLink
+                            href="/inventory/counts"
+                            variant="outline"
+                            class="min-h-9"
+                            >Stock count (governed)</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/writeoffs"
+                            variant="outline"
+                            class="min-h-9"
+                            >Write-off (governed)</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/treatment-usage"
+                            variant="outline"
+                            class="min-h-9"
+                            >Treatment room usage</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/batch-holds"
+                            variant="outline"
+                            class="min-h-9"
+                            >Batch safety holds</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/recalls"
+                            variant="outline"
+                            class="min-h-9"
+                            >Recalls</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/controlled-register"
+                            variant="outline"
+                            v-if="canViewControlledRegister"
+                            class="min-h-9"
+                            >Controlled register</ActionLink
+                        >
+                    </div>
+                </section>
+                <section
+                    aria-labelledby="inventory-tasks-orders-and-suppliers"
+                    class="space-y-2"
+                >
+                    <h2
+                        id="inventory-tasks-orders-and-suppliers"
+                        class="text-sm font-semibold"
+                    >
+                        Orders and suppliers
+                    </h2>
+                    <div class="flex flex-wrap gap-2">
+                        <ActionLink
+                            href="/inventory/purchase-requests"
+                            variant="outline"
+                            class="min-h-9"
+                            >Purchase requests</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/reorder-suggestions"
+                            variant="outline"
+                            class="min-h-9"
+                            >Reorder suggestions</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/branch-replenishment"
+                            variant="outline"
+                            class="min-h-9"
+                            >Stock other branches need</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/supplier-invoices"
+                            variant="outline"
+                            class="min-h-9"
+                            >Supplier invoices</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/supplier-returns"
+                            variant="outline"
+                            class="min-h-9"
+                            >Supplier returns</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/supplier-terms"
+                            variant="outline"
+                            class="min-h-9"
+                            >Supplier price list</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/skus"
+                            variant="outline"
+                            class="min-h-9"
+                            >SKUs</ActionLink
+                        >
+                    </div>
+                </section>
+                <section
+                    aria-labelledby="inventory-tasks-reports-and-checks"
+                    class="space-y-2"
+                >
+                    <h2
+                        id="inventory-tasks-reports-and-checks"
+                        class="text-sm font-semibold"
+                    >
+                        Reports and checks
+                    </h2>
+                    <div class="flex flex-wrap gap-2">
+                        <ActionLink
+                            href="/inventory/stock-review"
+                            variant="outline"
+                            class="min-h-9"
+                            >Stock review</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/stock-health"
+                            variant="outline"
+                            class="min-h-9"
+                            >Stock health</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/readiness"
+                            variant="outline"
+                            class="min-h-9"
+                            >Pilot readiness</ActionLink
+                        >
+                    </div>
+                </section>
+            </div>
+            <div class="w-full space-y-2 lg:hidden">
+                <details class="group rounded-lg border bg-card">
+                    <summary
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+                    >
+                        Count and adjust ·
+                        {{ canViewControlledRegister ? 6 : 5 }}
+                        <ChevronDown
+                            class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
+                            aria-hidden="true"
+                        />
+                    </summary>
+                    <div class="flex flex-wrap gap-2 px-3 pb-3">
+                        <ActionLink
+                            href="/inventory/counts"
+                            variant="outline"
+                            class="min-h-11"
+                            >Stock count (governed)</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/writeoffs"
+                            variant="outline"
+                            class="min-h-11"
+                            >Write-off (governed)</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/treatment-usage"
+                            variant="outline"
+                            class="min-h-11"
+                            >Treatment room usage</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/batch-holds"
+                            variant="outline"
+                            class="min-h-11"
+                            >Batch safety holds</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/recalls"
+                            variant="outline"
+                            class="min-h-11"
+                            >Recalls</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/controlled-register"
+                            variant="outline"
+                            v-if="canViewControlledRegister"
+                            class="min-h-11"
+                            >Controlled register</ActionLink
+                        >
+                    </div>
+                </details>
+                <details class="group rounded-lg border bg-card">
+                    <summary
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+                    >
+                        Orders and suppliers · 7
+                        <ChevronDown
+                            class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
+                            aria-hidden="true"
+                        />
+                    </summary>
+                    <div class="flex flex-wrap gap-2 px-3 pb-3">
+                        <ActionLink
+                            href="/inventory/purchase-requests"
+                            variant="outline"
+                            class="min-h-11"
+                            >Purchase requests</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/reorder-suggestions"
+                            variant="outline"
+                            class="min-h-11"
+                            >Reorder suggestions</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/branch-replenishment"
+                            variant="outline"
+                            class="min-h-11"
+                            >Stock other branches need</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/supplier-invoices"
+                            variant="outline"
+                            class="min-h-11"
+                            >Supplier invoices</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/supplier-returns"
+                            variant="outline"
+                            class="min-h-11"
+                            >Supplier returns</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/supplier-terms"
+                            variant="outline"
+                            class="min-h-11"
+                            >Supplier price list</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/skus"
+                            variant="outline"
+                            class="min-h-11"
+                            >SKUs</ActionLink
+                        >
+                    </div>
+                </details>
+                <details class="group rounded-lg border bg-card">
+                    <summary
+                        class="flex min-h-11 cursor-pointer list-none items-center gap-2 px-3 text-sm font-medium focus-visible:rounded-lg focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none [&::-webkit-details-marker]:hidden"
+                    >
+                        Reports and checks · 3
+                        <ChevronDown
+                            class="ml-auto size-4 shrink-0 transition-transform group-open:rotate-180"
+                            aria-hidden="true"
+                        />
+                    </summary>
+                    <div class="flex flex-wrap gap-2 px-3 pb-3">
+                        <ActionLink
+                            href="/inventory/stock-review"
+                            variant="outline"
+                            class="min-h-11"
+                            >Stock review</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/stock-health"
+                            variant="outline"
+                            class="min-h-11"
+                            >Stock health</ActionLink
+                        >
+                        <ActionLink
+                            href="/inventory/readiness"
+                            variant="outline"
+                            class="min-h-11"
+                            >Pilot readiness</ActionLink
+                        >
+                    </div>
+                </details>
+            </div>
+        </nav>
 
         <section
-            class="grid gap-3 sm:grid-cols-3"
+            class="grid grid-cols-3 gap-2 sm:gap-3"
             aria-label="Inventory summary"
         >
-            <div class="rounded-xl border bg-card px-4 py-3">
-                <p class="text-xs text-muted-foreground">SKUs with Stock</p>
-                <p class="mt-1 text-xl font-semibold tabular-nums">
+            <div class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
+                <p class="text-xs break-words text-muted-foreground">
+                    SKUs with stock
+                </p>
+                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
                     {{ inventory.summary.skusWithStock }}
                 </p>
             </div>
-            <div class="rounded-xl border bg-card px-4 py-3">
-                <p class="text-xs text-muted-foreground">Total Batches</p>
-                <p class="mt-1 text-xl font-semibold tabular-nums">
+            <div class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
+                <p class="text-xs break-words text-muted-foreground">
+                    Total batches
+                </p>
+                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
                     {{ inventory.summary.totalBatches }}
                 </p>
             </div>
-            <div class="rounded-xl border bg-card px-4 py-3">
-                <p class="text-xs text-muted-foreground">Expired Batches</p>
-                <p class="mt-1 text-xl font-semibold tabular-nums">
+            <div class="min-w-0 rounded-xl border bg-card p-2 sm:px-4 sm:py-3">
+                <p class="text-xs break-words text-muted-foreground">
+                    Expired batches
+                </p>
+                <p class="mt-1 text-lg font-semibold tabular-nums sm:text-xl">
                     {{ inventory.summary.expiredBatches }}
                 </p>
             </div>
@@ -326,22 +586,22 @@ const clearFilters = () => {
                     <label for="movement-date-from" class="text-xs font-medium">
                         Date from
                     </label>
-                    <Input
+                    <DateField
                         id="movement-date-from"
                         v-model="dateFrom"
-                        type="date"
                         :max="dateTo || undefined"
+                        :echo="false"
                     />
                 </div>
                 <div v-if="inventory.tab === 'movements'" class="space-y-1">
                     <label for="movement-date-to" class="text-xs font-medium">
                         Date to
                     </label>
-                    <Input
+                    <DateField
                         id="movement-date-to"
                         v-model="dateTo"
-                        type="date"
                         :min="dateFrom || undefined"
+                        :echo="false"
                     />
                 </div>
                 <div v-if="inventory.tab !== 'stock'" class="space-y-1">

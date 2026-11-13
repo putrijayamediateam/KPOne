@@ -15,6 +15,7 @@ import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -753,8 +754,12 @@ const openType = (row?: TypeRow) => {
     typeForm.is_active = row?.isActive ?? true;
     typeForm.accepts_evidence_files = row?.acceptsEvidenceFiles ?? false;
     typeForm.evidence_retention_days = row?.evidenceRetentionDays ?? '';
+    savedRetentionDays.value = Number(row?.evidenceRetentionDays ?? 0);
     typeOpen.value = true;
 };
+// PDPA 15 (owner, 2026-11-11: "cap at 7 years"): leave records go 7 years after their leave year, so files cannot be kept longer.
+const MAX_EVIDENCE_DAYS = 2555;
+const savedRetentionDays = ref(0);
 const saveType = () =>
     typeForm.put('/hr/leave/types', {
         preserveScroll: true,
@@ -2032,11 +2037,9 @@ const calendarDays = computed(() =>
                 >
                     <div class="grid gap-2">
                         <Label for="holiday-date">Date</Label>
-                        <Input
+                        <DateField
                             id="holiday-date"
                             v-model="holidayForm.holiday_date"
-                            type="date"
-                            class="h-11 sm:h-9"
                         />
                         <InputError
                             :message="holidayForm.errors.holiday_date"
@@ -2267,11 +2270,9 @@ const calendarDays = computed(() =>
                     <div class="grid gap-4 sm:grid-cols-2 sm:items-start">
                         <div class="grid gap-2">
                             <Label for="apply-start">Start date *</Label>
-                            <Input
+                            <DateField
                                 id="apply-start"
                                 v-model="applyForm.start_date"
-                                type="date"
-                                class="h-11 sm:h-9"
                                 :aria-invalid="
                                     applyForm.errors.start_date
                                         ? 'true'
@@ -2288,11 +2289,9 @@ const calendarDays = computed(() =>
                         </div>
                         <div class="grid gap-2">
                             <Label for="apply-end">End date *</Label>
-                            <Input
+                            <DateField
                                 id="apply-end"
                                 v-model="applyForm.end_date"
-                                type="date"
-                                class="h-11 sm:h-9"
                                 :min="applyForm.start_date || undefined"
                                 :aria-invalid="
                                     applyForm.errors.end_date
@@ -2737,7 +2736,21 @@ const calendarDays = computed(() =>
                                 class="text-xs text-muted-foreground"
                             >
                                 Files are deleted after this. Requests and their
-                                history stay.
+                                history stay. At most 2,555 days (7 years). When
+                                you lower the days, files already older than
+                                that are deleted the next night.
+                            </p>
+                            <p
+                                v-if="savedRetentionDays > MAX_EVIDENCE_DAYS"
+                                class="text-xs text-muted-foreground"
+                                data-test="type-retention-over-cap"
+                            >
+                                This type was saved with
+                                {{ savedRetentionDays.toLocaleString('en-MY') }}
+                                days. Leave records are deleted 7 years after
+                                their leave year, and the files go with them, so
+                                the 7 years win. Enter 2,555 or fewer to save a
+                                change.
                             </p>
                             <InputError
                                 :message="

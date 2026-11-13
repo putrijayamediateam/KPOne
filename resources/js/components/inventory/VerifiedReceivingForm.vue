@@ -1,9 +1,12 @@
 <script setup lang="ts">
 import { useForm } from '@inertiajs/vue3';
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import { DateField } from '@/components/ui/date-field';
 import { formatInventoryReason } from '@/lib/inventory-picker';
-import type { ScannedSku } from '@/lib/scan';
+import { formatDate } from '@/lib/presentation';
+import { boxLotHint } from '@/lib/receiving-gs1';
+import type { Gs1Read, ScannedSku } from '@/lib/scan';
 import type { InventoryDocument } from '@/types/inventory-operations';
 const props = defineProps<{
     row: InventoryDocument;
@@ -109,15 +112,29 @@ const submit = (review: boolean) => {
 };
 // STK-9: a scan only finds and highlights the order line; it never ticks, fills or saves anything.
 const scannedLine = ref<string | null>(null);
+// STK-26: what a GS1 box said (batch, expiry). Shown as a hint on the scanned line only; it never fills a lot.
+const boxRead = ref<Gs1Read | null>(null);
+const boxHint = computed(() => {
+    const line = form.lines.find(
+        (entry) => entry.line_public_id === scannedLine.value,
+    );
+
+    return line ? boxLotHint(boxRead.value, line.lots, formatDate) : null;
+});
 function lineFor(sku: ScannedSku) {
     return props.row.lines.find((line) => line.skuPublicId === sku.public_id);
 }
 function onOrder(sku: ScannedSku): string | null {
-    return lineFor(sku)
-        ? null
-        : `SKU ${sku.sku_code} · ${sku.item_name} is not on this receiving order. Nothing was changed.`;
+    if (lineFor(sku)) {
+        return null;
+    }
+
+    // STK-26: a refused scan must not leave the previous box's batch on screen.
+    boxRead.value = null;
+
+    return `SKU ${sku.sku_code} · ${sku.item_name} is not on this receiving order. Nothing was changed.`;
 }
-async function highlight(sku: ScannedSku) {
+async function highlight(sku: ScannedSku, gs1: Gs1Read | null = null) {
     const line = lineFor(sku);
 
     if (!line) {
@@ -125,6 +142,7 @@ async function highlight(sku: ScannedSku) {
     }
 
     scannedLine.value = line.publicId;
+    boxRead.value = gs1;
     await nextTick();
     // Keep focus in the scan box: moving it into a quantity field would let the next scan type into it and
     // submit the receipt with its Enter.
@@ -191,6 +209,20 @@ watch(
                         >Scanned</span
                     >
                 </legend>
+                <!-- STK-26: present for the whole time the line is the scanned one, so a change of text is announced. -->
+                <p
+                    v-if="scannedLine === line.line_public_id"
+                    class="text-sm wrap-anywhere empty:sr-only"
+                    :class="
+                        boxHint?.warn
+                            ? 'font-medium text-warning-strong'
+                            : 'text-muted-foreground'
+                    "
+                    role="status"
+                    data-testid="receiving-box-hint"
+                >
+                    {{ boxHint?.message ?? '' }}
+                </p>
                 <label class="flex min-h-11 items-center gap-2"
                     ><input
                         v-model="line.included"
@@ -231,11 +263,9 @@ watch(
                                 class="h-11 min-w-0 rounded border bg-background px-3"
                         /></label>
                         <label class="grid gap-1 text-sm"
-                            >Real expiry date<input
+                            >Real expiry date<DateField
                                 v-model="entry.expiry_date"
-                                type="date"
                                 required
-                                class="h-11 min-w-0 rounded border bg-background px-3"
                         /></label>
                         <label class="grid gap-1 text-sm"
                             >Lot quantity<input

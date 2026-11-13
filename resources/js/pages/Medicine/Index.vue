@@ -12,6 +12,7 @@ import SupplierPicker from '@/components/catalogue/SupplierPicker.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import {
     Dialog,
     DialogContent,
@@ -1391,9 +1392,10 @@ const toggleDescription = computed(() => {
                                     "
                             /></label>
                             <label class="grid gap-1 text-xs"
-                                >Expiry date<Input
-                                    v-model="form.batch.expiry_date"
-                                    type="date" /><InputError
+                                >Expiry date<DateField
+                                    v-model="
+                                        form.batch.expiry_date
+                                    " /><InputError
                                     :message="form.errors['batch.expiry_date']"
                             /></label>
                         </div>

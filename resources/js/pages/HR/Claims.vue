@@ -17,6 +17,7 @@ import { paidLine, statusTone } from '@/components/hr/claims/types';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
+import { DateField, MonthField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
@@ -812,12 +813,7 @@ const dialogOpen = computed(
             >
                 <div class="grid gap-1.5">
                     <Label for="claim-month">Month</Label>
-                    <Input
-                        id="claim-month"
-                        v-model="month"
-                        type="month"
-                        class="w-44 max-lg:h-11"
-                    />
+                    <MonthField id="claim-month" v-model="month" />
                 </div>
                 <Button type="submit" variant="outline" class="max-lg:min-h-11"
                     >Show</Button
@@ -941,7 +937,7 @@ const dialogOpen = computed(
                             >Director approves claims above</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
+                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
                         >
                             <span
                                 class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
@@ -1229,12 +1225,10 @@ const dialogOpen = computed(
             </div>
             <div class="grid gap-1.5">
                 <Label for="claim-pay-date">Paid on *</Label>
-                <Input
+                <DateField
                     id="claim-pay-date"
                     v-model="payment.paidOn"
-                    type="date"
                     :max="claims.today"
-                    class="w-44 max-lg:h-11"
                 />
                 <InputError :message="errors.paid_on" />
             </div>
@@ -1339,7 +1333,7 @@ const dialogOpen = computed(
                             >Limit a claim (optional)</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
+                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
                         >
                             <span
                                 class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"
@@ -1360,7 +1354,7 @@ const dialogOpen = computed(
                             >Limit a month for each person (optional)</Label
                         >
                         <div
-                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-input/30"
+                            class="flex w-44 items-stretch overflow-hidden rounded-md border border-input bg-transparent focus-within:ring-2 focus-within:ring-ring dark:bg-field-fill/30"
                         >
                             <span
                                 class="flex items-center self-stretch rounded-l-md border-r bg-muted px-3 text-sm font-medium text-foreground"

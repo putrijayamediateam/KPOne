@@ -7,6 +7,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { PageHeader } from '@/components/ui/page-header';
 import { OperationalSelect } from '@/components/ui/select';
+import { useScrollStrip } from '@/composables/useScrollStrip';
+import { formatDayMonth } from '@/lib/presentation';
 import type {
     InsightsRangeFilters,
     InsightsRangeReport,
@@ -97,6 +99,11 @@ const titles: Record<InsightsRangeFilters['section'], string> = {
 };
 const title = computed(() => titles[section.value]);
 
+// 390 px: the report tabs are one scrolling row; the current report is brought into view and the hidden edge fades.
+const reportTabs = ref<HTMLElement | null>(null);
+const { measure: measureReportTabs, fadeStyle: reportTabsFade } =
+    useScrollStrip(reportTabs, '[aria-current="page"]');
+
 const money = (amountSen: number) =>
     new Intl.NumberFormat('en-MY', {
         style: 'currency',
@@ -138,19 +145,19 @@ const cardRows = computed(() => {
                 label: 'Average in-clinic time',
                 value: `${value.time.inClinic.average} min`,
                 previous: `${value.time.inClinic.previousAverage} min`,
-                note: `Longest ${value.time.inClinic.longest} min${value.time.inClinic.longestAt ? ` · ${value.time.inClinic.longestAt}` : ''}`,
+                note: `Longest ${value.time.inClinic.longest} min${value.time.inClinic.longestAt ? ` · ${formatDate(value.time.inClinic.longestAt)}` : ''}`,
             },
             {
                 label: 'Average waiting time',
                 value: `${value.time.waiting.average} min`,
                 previous: `${value.time.waiting.previousAverage} min`,
-                note: `Longest ${value.time.waiting.longest} min${value.time.waiting.longestAt ? ` · ${value.time.waiting.longestAt}` : ''}`,
+                note: `Longest ${value.time.waiting.longest} min${value.time.waiting.longestAt ? ` · ${formatDate(value.time.waiting.longestAt)}` : ''}`,
             },
             {
                 label: 'Average serving time',
                 value: `${value.time.serving.average} min`,
                 previous: `${value.time.serving.previousAverage} min`,
-                note: `Longest ${value.time.serving.longest} min${value.time.serving.longestAt ? ` · ${value.time.serving.longestAt}` : ''}`,
+                note: `Longest ${value.time.serving.longest} min${value.time.serving.longestAt ? ` · ${formatDate(value.time.serving.longestAt)}` : ''}`,
             },
             { label: 'Urgent visits', value: String(value.priority.urgent) },
             { label: 'Normal visits', value: String(value.priority.normal) },
@@ -211,6 +218,12 @@ const cardRows = computed(() => {
             {
                 label: 'Recorded wastage',
                 value: `${value.summary.wastageUnits} units`,
+                note: 'Stocktake losses, damage adjustments and approved write-offs for expiry or other reasons. Reversed write-offs and reversed count losses are left out. Counts all stock units together.',
+            },
+            {
+                label: 'Treatment-room waste',
+                value: `${value.summary.treatmentWasteUnits} units`,
+                note: 'Stock wasted in treatment rooms (opened, spilled or broken, contaminated or other). Reversed entries are left out. Not included in Recorded wastage. Counts all stock units together.',
             },
             {
                 label: 'Inventory value',
@@ -309,7 +322,7 @@ const chartPoints = computed<ChartPoint[]>(() => {
 
     if (value.kind === 'sales') {
         return value.dailyTrend.map((point) => ({
-            label: point.date.slice(5),
+            label: `${Number(point.date.slice(8, 10))}/${Number(point.date.slice(5, 7))}`,
             value: point.salesSen,
             detail: `${money(point.salesSen)} · ${point.patients} distinct ${patientNoun(point.patients)}`,
             patients: point.patients,
@@ -318,7 +331,7 @@ const chartPoints = computed<ChartPoint[]>(() => {
 
     if (value.kind === 'in-clinic') {
         return value.dailyVisits.map((point) => ({
-            label: point.date.slice(5),
+            label: `${Number(point.date.slice(8, 10))}/${Number(point.date.slice(5, 7))}`,
             value: point.patients,
             detail: `${point.patients} visits`,
         }));
@@ -437,14 +450,18 @@ const occupancyMax = computed(() =>
         />
 
         <nav
+            ref="reportTabs"
             class="flex gap-1 overflow-x-auto border-b"
+            :style="reportTabsFade"
             aria-label="Insights reports"
+            @scroll.passive="measureReportTabs"
         >
             <a
                 v-for="item in sections"
                 :key="item.id"
                 :href="item.href"
-                class="border-b-2 px-3 py-2 text-sm whitespace-nowrap"
+                :aria-current="item.id === section ? 'page' : undefined"
+                class="inline-flex items-center border-b-2 px-3 py-2 text-sm whitespace-nowrap max-lg:min-h-11"
                 :class="
                     item.id === section
                         ? 'border-primary font-medium text-foreground'
@@ -595,7 +612,7 @@ const occupancyMax = computed(() =>
                             :key="`${row.date}:${row.methodCode}`"
                         >
                             <td class="p-2 whitespace-nowrap">
-                                {{ row.date }}
+                                {{ formatDate(row.date) }}
                             </td>
                             <td class="p-2">
                                 {{
@@ -767,17 +784,17 @@ const occupancyMax = computed(() =>
                             :style="{
                                 height: `${Math.max(point.minutes > 0 ? 3 : 0, (point.minutes / Math.max(1, ...trend.points.map((item) => item.minutes))) * 100)}%`,
                             }"
-                            :aria-label="`${point.date}: ${point.minutes} minutes`"
+                            :aria-label="`${formatDate(point.date)}: ${point.minutes} minutes`"
                         >
                             <span
                                 class="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 rounded bg-foreground px-2 py-1 text-xs whitespace-nowrap text-background group-hover:block"
-                                >{{ point.date }} ·
+                                >{{ formatDate(point.date) }} ·
                                 {{ point.minutes }} min</span
                             >
                         </div>
                         <span
                             class="mt-1 truncate text-center text-[10px] text-muted-foreground"
-                            >{{ point.date.slice(5) }}</span
+                            >{{ formatDayMonth(point.date) }}</span
                         >
                     </div>
                 </div>

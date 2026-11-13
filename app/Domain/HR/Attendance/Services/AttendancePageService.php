@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Photos\ClockPhotoLabels;
 use App\Domain\HR\Roster\Models\RosterShift;
 use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Identity\Models\StaffBranchAssignment;
@@ -17,7 +18,8 @@ use Illuminate\Support\Collection;
 /** HR-3a page props for /hr/attendance: My attendance, Review and Settings. Read only. */
 final class AttendancePageService
 {
-    public function __construct(private BranchAccessService $branches, private AttendanceDays $days, private AttendanceSettingsService $settings, private OvertimePageService $overtime, private AttendanceTotals $totals) {}
+    public function __construct(private BranchAccessService $branches, private AttendanceDays $days, private AttendanceSettingsService $settings, private OvertimePageService $overtime, private AttendanceTotals $totals,
+        private LocationCheckService $location) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -45,7 +47,9 @@ final class AttendancePageService
             'review' => $canReview && $tab === 'review' ? $this->review($actor, $query) : null,
             'overtime' => ($canApprove || $canReview) && $tab === 'overtime' ? $this->overtime->overtimeTab($actor, $query) : null,
             'summary' => $canReview && $tab === 'summary' ? $this->overtime->summaryTab($actor, $query) : null,
-            'settings' => $canReview && $tab === 'settings' ? [...$this->settingsPage($actor), 'overtime' => $this->overtime->settingsCard($actor)] : null,
+            'settings' => $canReview && $tab === 'settings' ? [...$this->settingsPage($actor), 'overtime' => $this->overtime->settingsCard($actor),
+                // HR-16a: only the Director turns the location check on or off.
+                'location' => $actor->can(ClockPermissions::LOCATION_MANAGE) ? $this->location->settingsCard($actor) : null] : null,
         ];
     }
 
@@ -66,7 +70,9 @@ final class AttendancePageService
             ->whereDate('local_date', '<=', $weekStart->addDays(6)->toDateString())->orderBy('clock_in_at')->get();
         $shifts = $this->days->shifts($actor->organisation_id, [$actor->id], $from, $weekStart->addDays(6));
         $waiting = $this->waiting($sessions);
-        $rows = collect($this->days->rows($actor->organisation_id, $sessions, $shifts, $waiting));
+        $photos = app(ClockPhotoLabels::class)->forSessions($sessions, $actor);
+        $rows = collect($this->days->rows($actor->organisation_id, $sessions, $shifts, $waiting))
+            ->map(fn (array $r): array => [...$r, 'photos' => $r['session'] === null ? null : ($photos[$r['session']['publicId']] ?? null)]);
         $week = $rows->filter(fn (array $r): bool => $r['date'] >= $weekStart->toDateString())->values();
         $settings = $this->settings->forDate($actor->organisation_id, $today);
         $earliest = $settings === null ? $today->toDateString() : $today->subDays($settings->correctionDays)->toDateString();
@@ -109,6 +115,8 @@ final class AttendancePageService
             'corrections' => $this->corrections(AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('user_id', $actor->id)
                 ->orderByDesc('id')->limit(20)->get(), $actor),
             'overtime' => $this->overtime->my($actor, $rows->all(), $today),
+            // HR-16a: the check at the branch the next press goes to (the open session's branch for a clock-out).
+            'location' => $this->location->forPerson($actor, $state === 'in' ? (int) $open->branch_id : $branch?->id),
         ];
     }
 
@@ -135,7 +143,13 @@ final class AttendancePageService
             ->where(fn ($q) => $q->where(fn ($q) => $q->where('branch_id', $branch->id)->whereDate('local_date', $date->toDateString()))
                 ->orWhere(fn ($q) => $q->whereIn('user_id', $shifts->pluck('staff_user_id')->unique()->values())->whereDate('local_date', $date->toDateString())))
             ->orderBy('clock_in_at')->get();
-        $rows = $this->days->rows($actor->organisation_id, $sessions, $shifts, $this->waiting($sessions));
+        // A split shift across two branches (HR-PLAN 9: two sessions): match against the same people's approved shifts at
+        // every branch, so the other half is paired with its own shift instead of showing "Not on the roster", then keep
+        // the rows that belong here (this branch's shift, or a session pressed at this branch).
+        $ids = array_values(array_unique(array_map('intval', [...$sessions->pluck('user_id')->all(), ...$shifts->pluck('staff_user_id')->all()])));
+        $allShifts = $ids === [] ? $shifts : $this->days->shifts($actor->organisation_id, $ids, $date, $date);
+        $rows = array_values(array_filter($this->days->rows($actor->organisation_id, $sessions, $allShifts, $this->waiting($sessions)),
+            fn (array $r): bool => ($r['shift']['branchId'] ?? null) === $branch->id || ($r['session']['branchId'] ?? null) === $branch->id));
         $people = User::query()->whereIn('id', collect($rows)->pluck('userId')->unique())->get()->keyBy('id');
         // HR-3b: a manager may ask for overtime on someone's behalf from a closed day on Review (never their own from here).
         $choices = [];
@@ -150,8 +164,15 @@ final class AttendancePageService
         }
         // HR-PLAN 10.1: the weekly hours chip on Review too (one pass for everyone on the page).
         $weeks = $this->totals->week($actor->organisation_id, array_values(array_map('intval', $people->keys()->all())), $date);
+        // HR-16a: the location result of each press, in plain words (never a position or a distance).
+        $locations = $this->location->labels(array_values(array_map('intval', $sessions->pluck('id')->all())));
+        $sessionIds = $sessions->pluck('id', 'public_id');
+        // HR-PHOTO: other people's photos stay behind Show (needsShow); nothing is opened or recorded until it is pressed.
+        $photos = app(ClockPhotoLabels::class)->forSessions($sessions, $actor);
         $rows = array_map(fn (array $r): array => [...$r, 'person' => (string) (isset($people[$r['userId']]) ? $people[$r['userId']]->name : 'Staff member'),
-            'overtimeChoice' => $r['session'] === null ? null : ($choices[$r['session']['publicId']] ?? null), 'week' => $weeks[$r['userId']] ?? null], $rows);
+            'overtimeChoice' => $r['session'] === null ? null : ($choices[$r['session']['publicId']] ?? null), 'week' => $weeks[$r['userId']] ?? null,
+            'location' => $r['session'] === null ? null : ($locations[(int) ($sessionIds[$r['session']['publicId']] ?? 0)] ?? null),
+            'photos' => $r['session'] === null ? null : ($photos[$r['session']['publicId']] ?? null)], $rows);
         $pending = AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('status', 'pending')->orderBy('id')->limit(100)->get();
         $flagged = count(array_filter($rows, fn (array $r): bool => $r['flags'] !== []));
         $staffIds = StaffBranchAssignment::query()->where('branch_id', $branch->id)->whereDate('valid_from', '<=', $date->toDateString())
@@ -252,6 +273,8 @@ final class AttendancePageService
                 'canDecide' => $c->status === 'pending' && $actor->can(ClockPermissions::REVIEW) && $c->user_id !== $actor->id && $c->proposed_by_user_id !== $actor->id,
                 'canCancel' => $c->status === 'pending' && $c->proposed_by_user_id === $actor->id,
                 'lockVersion' => $c->lock_version,
+                // When the correction was sent (ISO, UTC), so the HR space can show how long the oldest has waited.
+                'sentAt' => CarbonImmutable::parse($c->created_at)->utc()->toIso8601String(),
             ];
         })->values()->all();
     }

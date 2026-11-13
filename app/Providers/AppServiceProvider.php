@@ -13,6 +13,7 @@ use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
 use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Policies\ClinicalEncounterPolicy;
+use App\Domain\DepartmentSpace\UiVersionResolver;
 use App\Domain\Identity\Policies\StaffPolicy;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\PublicCheckInLink;
@@ -41,6 +42,7 @@ use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Validation\Rules\Password;
+use Inertia\Inertia;
 use Spatie\Permission\Events\PermissionAttachedEvent;
 use Spatie\Permission\Events\PermissionDetachedEvent;
 use Spatie\Permission\Events\RoleAttachedEvent;
@@ -53,6 +55,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
+        // One read of the Version 2 preference per request, shared by everything that needs it.
+        $this->app->scoped(UiVersionResolver::class);
         $this->app->scoped(AccessChangeActorContext::class);
         $this->app->scoped(BranchAccessService::class);
         // AG-10: the tenth agent data source joins the registry by tag (AgentToolRegistry stays unchanged).
@@ -69,6 +73,10 @@ class AppServiceProvider extends ServiceProvider
         RateLimiter::for('reports-downloads', fn (Request $request) => Limit::perMinute(10)->by('reports:'.$request->user()?->organisation_id.':'.$request->user()?->id));
         QueueEntry::updating(fn (QueueEntry $entry) => app(CallHoldService::class)->leavingWaiting($entry));
         QueueEntry::updating(fn (QueueEntry $entry) => app(TreatmentStepService::class)->leavingServing($entry));
+        // Version 2 pages: the same render() call gets the V2 page when the person is in V2 and the page is registered.
+        Inertia::transformComponentUsing(fn ($component) => is_string($component)
+            ? app(UiVersionResolver::class)->pageFor($component)
+            : $component);
         $this->configureDefaults();
         $this->configureAuthorization();
         $this->configureAuditListeners();
@@ -138,6 +146,12 @@ class AppServiceProvider extends ServiceProvider
             Limit::perMinute(3)->by('hr-apply:'.$request->ip()),
             Limit::perHour(10)->by('hr-apply-hour:'.$request->ip()),
             Limit::perHour(100)->by('hr-apply-all'),
+        ]);
+        // HR-17b: the candidate's private link page. Per IP, and the exchange of a link for its cookie is tighter.
+        RateLimiter::for('hr-applications-status', fn (Request $request): array => [Limit::perMinute(60)->by('hr-status:'.$request->ip())]);
+        RateLimiter::for('hr-applications-link', fn (Request $request): array => [
+            Limit::perMinute(10)->by('hr-link:'.$request->ip()),
+            Limit::perHour(60)->by('hr-link-hour:'.$request->ip()),
         ]);
         RateLimiter::for('public-intake-exchange', fn (Request $request): array => $this->publicLinkExchangeLimits($request));
         RateLimiter::for('public-intake-submit', function (Request $request): array {

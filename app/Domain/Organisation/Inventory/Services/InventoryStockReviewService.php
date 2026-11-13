@@ -27,6 +27,12 @@ final class InventoryStockReviewService
 
     public const OUTCOMES = ['ordered_externally', 'no_action_needed', 'monitoring', 'disposal_requested_external'];
 
+    /** STK-16: the same low-stock rows (usable quantity at or below a positive reorder level) for reorder suggestions. */
+    public function lowStockQuery(User $actor, Branch $branch): Builder
+    {
+        return $this->items($actor, $branch, 'low_stock');
+    }
+
     /** Live quantities only. Existing per-location thresholds are never merged. */
     private function items(User $actor, Branch $branch, string $kind): Builder
     {

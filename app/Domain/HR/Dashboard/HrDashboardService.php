@@ -45,6 +45,7 @@ final class HrDashboardService
         private RosterPageService $roster,
         private LeaveCalendar $leave,
         private AuditRecorder $audit,
+        private StaffCostService $cost,
     ) {}
 
     /**
@@ -69,7 +70,13 @@ final class HrDashboardService
         $now = CarbonImmutable::now('UTC');
         $months = $this->monthOptions($now);
         $month = $this->month($query['month'] ?? null, $months);
-        $this->audit->record('hr.dashboard.viewed', null, ['branch_ids' => $branches->pluck('id')->all(), 'month' => $month, 'sections' => array_keys(array_filter($can))], $actor);
+        // HR-9b: the clinic-wide staff cost is the Director's alone, never per person or branch (StaffCostService).
+        $staffCost = $this->cost->forMonth($actor, $month);
+        $sections = array_keys(array_filter($can));
+        if ($staffCost !== null) {
+            $sections[] = 'staff_cost';
+        }
+        $this->audit->record('hr.dashboard.viewed', null, ['branch_ids' => $branches->pluck('id')->all(), 'month' => $month, 'sections' => $sections], $actor);
 
         $names = $this->names($actor->organisation_id);
 
@@ -79,6 +86,7 @@ final class HrDashboardService
             'month' => $month,
             'months' => $months,
             'attendanceSettingsSaved' => $this->settings->forDate($actor->organisation_id, CarbonImmutable::now('Asia/Kuala_Lumpur')->toDateString()) !== null,
+            'staffCost' => $staffCost,
             'branches' => $branches->map(fn (Branch $branch): array => [
                 'id' => $branch->id,
                 'name' => $branch->name,

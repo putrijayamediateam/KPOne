@@ -13,6 +13,7 @@ use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -21,6 +22,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Spatie\Permission\Models\Role;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\ClockPhotoFixture;
 use Tests\Support\StaffBranchAssignmentBootstrapper;
 
 /**
@@ -438,7 +440,7 @@ class AttendanceTest extends VisitTestCase
 
         $this->at('2027-03-08 07:55');
         $this->selectBranch($ca, $puchong);
-        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, 'in')])->assertSessionHasNoErrors();
         $this->at('2027-03-08 14:10');
         $this->clock($ca, 'out')->assertSessionHasNoErrors();
         $this->at('2027-03-08 16:00');
@@ -457,6 +459,113 @@ class AttendanceTest extends VisitTestCase
         DB::table('hr_clock_sessions')->where('user_id', $away->id)->update(['status' => 'missing_out']);
         $this->propose($away, ['kind' => 'add_day', 'branch_id' => $this->branch->id, 'in_time' => '2027-03-09T08:05', 'out_time' => '2027-03-09T10:30', 'reason_code' => 'forgot'])
             ->assertSessionHasErrors(['in_time' => 'There is a clock-in on 9 Mar 2027 with no clock-out. Add its clock-out time instead.']);
+    }
+
+    public function test_attendance_older_than_seven_years_is_purged_with_what_hangs_on_it_and_only_by_the_purge(): void
+    {
+        // Retention (owner, 2026-11-11; the accountant confirms the 7 years before real use). PostgreSQL checks the 7 years
+        // against its own clock, so this test works in real time.
+        $real = CarbonImmutable::createFromTimestamp(time(), 'UTC');
+        $this->travelTo($real->subYears(7)->subDays(30));
+        $ca = $this->actor('ca');
+        $director = $this->actor('director');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $this->travelTo($real->subYears(7)->subDays(30)->addHours(6));
+        $this->clock($ca, 'out')->assertSessionHasNoErrors();
+        $this->travelTo($real->subYears(7)->subDays(20));
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $this->travelTo($real->subYears(7)->subDays(20)->addHours(6));
+        $this->clock($ca, 'out')->assertSessionHasNoErrors();
+        [$old, $held] = ClockSession::query()->orderBy('id')->get()->all();
+        // A recent event on the second session keeps it until that event is 7 years old too.
+        DB::table('hr_clock_events')->insert(['organisation_id' => $this->organisation->id, 'clock_session_id' => $held->id, 'kind' => 'out',
+            'occurred_at' => $held->clock_out_at, 'method' => 'button', 'recorded_by_user_id' => $ca->id, 'created_at' => $real->subYears(6)]);
+        // An old consent goes on its own time.
+        $setting = DB::table('hr_location_check_settings')->insertGetId(['organisation_id' => $this->organisation->id, 'branch_id' => $this->branch->id,
+            'enabled' => true, 'geofence_centre_lat' => 3.1, 'geofence_centre_lng' => 101.7, 'radius_metres' => 150, 'consent_en' => 'x', 'consent_bm' => 'x',
+            'created_by_user_id' => $director->id, 'created_at' => $real->subYears(8)]);
+        DB::table('hr_location_consents')->insert(['organisation_id' => $this->organisation->id, 'user_id' => $ca->id, 'setting_id' => $setting,
+            'acknowledged_at' => $real->subYears(7)->subDays(30)]);
+        $this->travelBack();
+        $this->clock($ca, 'in')->assertSessionHasNoErrors(); // today's session
+        $recent = ClockSession::query()->where('status', 'open')->sole();
+
+        $this->artisan('hr-attendance:purge')->expectsOutputToContain('Deleted 1 clock sessions, 0 corrections and 1 location consents.')->assertSuccessful();
+        $this->assertSame([$held->id, $recent->id], ClockSession::query()->orderBy('id')->pluck('id')->all());
+        $this->assertSame(0, DB::table('hr_clock_events')->where('clock_session_id', $old->id)->count());
+        $this->assertSame(0, DB::table('hr_location_consents')->count());
+        $this->assertSame(1, DB::table('hr_location_check_settings')->count()); // settings versions are kept
+        $this->assertSame([['sessions' => 1, 'corrections' => 0, 'consents' => 1, 'retention_years' => 7]], DB::table('audit_logs')
+            ->where('event', 'hr.attendance.retention_purged')->pluck('metadata')->map(fn ($m): mixed => json_decode((string) $m, true))->all());
+        $this->artisan('hr-attendance:purge')->expectsOutputToContain('Deleted 0 clock sessions, 0 corrections and 0 location consents.')->assertSuccessful();
+        $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
+            ->filter(fn ($e): bool => str_contains((string) $e->command, 'hr-attendance:purge'))->pluck('expression')->values()->all());
+
+        // Only the purge deletes, and only rows past 7 years by their own time; TRUNCATE stays refused.
+        $this->assertRefused('P0001', fn () => DB::table('hr_clock_sessions')->where('id', $held->id)->delete());
+        $this->assertRefused('P0001', function () use ($held): void {
+            DB::statement("SELECT set_config('kpone.hr_attendance_purge', 'on', true)");
+            DB::table('hr_clock_events')->where('clock_session_id', $held->id)->where('created_at', '>', now()->subYears(7))->delete(); // 6 years old
+        });
+        $this->assertRefused('P0001', function () use ($recent): void {
+            DB::statement("SELECT set_config('kpone.hr_attendance_purge', 'on', true)");
+            DB::table('hr_clock_events')->where('clock_session_id', $recent->id)->delete();
+        });
+        $this->assertRefused('P0001', fn () => DB::statement('TRUNCATE hr_clock_sessions CASCADE'));
+        $this->assertSame(2, ClockSession::query()->count());
+    }
+
+    public function test_a_waiting_correction_says_when_it_was_sent(): void
+    {
+        // For the HR space's "oldest waiting" line (Daniel, Kavitha): when the correction was sent, ISO and in UTC.
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $this->settings($hr)->assertSessionHasNoErrors();
+        $this->at('2027-03-08 08:00');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $session = ClockSession::query()->sole();
+        $this->at('2027-03-08 18:00'); // 10:00 UTC
+        $this->propose($ca, ['kind' => 'set_out', 'session_id' => $session->public_id, 'out_time' => '2027-03-08T17:00', 'reason_code' => 'forgot'])->assertSessionHasNoErrors();
+        $this->selectBranch($hr);
+        $this->get(route('hr.attendance.index', ['tab' => 'review']))->assertInertia(fn (Assert $page) => $page
+            ->where('attendance.review.pending.0.sentAt', '2027-03-08T10:00:00+00:00'));
+    }
+
+    public function test_review_pairs_each_half_of_a_split_shift_across_two_branches_with_its_own_shift(): void
+    {
+        // HR-3a known limit: Review loaded shifts for one branch, so the other branch's half of a split shift showed as
+        // "Not on the roster". Each half is now matched with its own shift, and each branch's Review shows its own half.
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $puchong = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->firstOrFail();
+        StaffBranchAssignmentBootstrapper::create(StaffProfile::query()->where('user_id', $ca->id)->firstOrFail(), $puchong,
+            ['is_primary' => false, 'assignment_type' => 'temporary', 'valid_from' => '2027-03-07', 'valid_until' => null]);
+        $this->settings($hr, ['effective_from' => self::WEEK])->assertSessionHasNoErrors();
+        $this->roster($hr, $director, [[$ca, '08:00', '12:00', 0]]);
+        $this->roster($hr, $director, [[$ca, '17:00', '21:00', 0]], $puchong);
+
+        $this->at('2027-03-08 07:58');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $this->at('2027-03-08 12:01');
+        $this->clock($ca, 'out')->assertSessionHasNoErrors();
+        $this->at('2027-03-08 16:58');
+        $this->selectBranch($ca, $puchong);
+        $this->post(route('hr.attendance.clock-in'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, 'in')])->assertSessionHasNoErrors();
+        $this->at('2027-03-08 21:02');
+        $this->selectBranch($ca, $puchong);
+        $this->post(route('hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, 'out')])->assertSessionHasNoErrors();
+
+        $this->at('2027-03-08 22:00');
+        $this->selectBranch($hr);
+        $review = fn (Branch $branch): array => $this->get(route('hr.attendance.index', ['tab' => 'review', 'branch' => $branch->id, 'date' => self::WEEK]))
+            ->viewData('page')['props']['attendance']['review']['rows'];
+        foreach ([[$this->branch, '8:00 AM to 12:00 PM', '7:58 AM'], [$puchong, '5:00 PM to 9:00 PM', '4:58 PM']] as [$branch, $shift, $in]) {
+            $rows = $review($branch);
+            $this->assertCount(1, $rows, $branch->name);
+            $this->assertSame(["Full day, {$shift}", $branch->id, $in, []], [$rows[0]['shift']['label'], $rows[0]['session']['branchId'],
+                $rows[0]['session']['in'], $rows[0]['flags']], $branch->name);
+        }
     }
 
     public function test_review_corrections_name_a_person_and_only_the_proposer_withdraws_with_the_current_version(): void
@@ -523,6 +632,41 @@ class AttendanceTest extends VisitTestCase
         $this->assertSame('pending', DB::table('hr_attendance_corrections')->where('public_id', $correctionId)->value('status'));
     }
 
+    public function test_a_withdrawal_records_who_withdrew_it_and_when_and_postgresql_holds_that_shape(): void
+    {
+        // TEAM.md section 7 hardening (HR-3a known limit): the row now says who withdrew a correction, not only the audit.
+        $hr = $this->actor('hr_manager');
+        $ca = $this->actor('ca');
+        $this->settings($hr)->assertSessionHasNoErrors();
+        $this->at('2027-03-08 08:00');
+        $this->clock($ca, 'in')->assertSessionHasNoErrors();
+        $session = ClockSession::query()->sole();
+        $this->at('2027-03-08 09:00');
+        $this->propose($ca, ['kind' => 'set_out', 'session_id' => $session->public_id, 'out_time' => '2027-03-08T08:45', 'reason_code' => 'forgot'])->assertSessionHasNoErrors();
+        $waiting = AttendanceCorrection::query()->sole();
+        $this->assertNull($waiting->withdrawn_by_user_id);
+        $this->assertNull($waiting->withdrawn_at);
+
+        // PostgreSQL refuses a withdrawal that does not name the proposer and the time, and a withdrawal on any other step.
+        $this->assertRefused('23514', fn () => DB::table('hr_attendance_corrections')->where('id', $waiting->id)->update(['status' => 'cancelled', 'lock_version' => 2]));
+        $this->assertRefused('23514', fn () => DB::table('hr_attendance_corrections')->where('id', $waiting->id)
+            ->update(['status' => 'cancelled', 'withdrawn_by_user_id' => $hr->id, 'withdrawn_at' => now(), 'lock_version' => 2]));
+        $this->assertRefused('23514', fn () => DB::table('hr_attendance_corrections')->where('id', $waiting->id)
+            ->update(['withdrawn_by_user_id' => $ca->id, 'withdrawn_at' => now()]));
+
+        $this->selectBranch($ca);
+        $this->post(route('hr.attendance.corrections.cancel', $waiting->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $waiting->refresh();
+        $this->assertSame('cancelled', $waiting->status);
+        $this->assertSame($ca->id, $waiting->withdrawn_by_user_id);
+        $this->assertSame('2027-03-08 01:00:00', $waiting->withdrawn_at?->utc()->format('Y-m-d H:i:s')); // 09:00 Kuala Lumpur
+        $this->assertNull($waiting->decided_by_user_id);
+
+        // A correction never starts withdrawn.
+        $this->assertRefused('23514', fn () => DB::table('hr_attendance_corrections')->insert([...collect((array) DB::table('hr_attendance_corrections')->where('id', $waiting->id)->first())
+            ->except(['id'])->all(), 'public_id' => (string) Str::uuid(), 'status' => 'pending', 'lock_version' => 1]));
+    }
+
     private function approvedLeave(User $person, User $hr, User $director): void
     {
         $type = DB::table('hr_leave_types')->insertGetId(['organisation_id' => $person->organisation_id, 'code' => 'AL', 'name' => 'Synthetic annual', 'is_paid' => true,
@@ -542,7 +686,7 @@ class AttendanceTest extends VisitTestCase
     {
         $this->selectBranch($actor);
 
-        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => $key ?? (string) Str::uuid()]);
+        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => $key ?? (string) Str::uuid(), ...ClockPhotoFixture::press($this, $kind)]);
     }
 
     /** @param array<string, mixed> $input */
@@ -572,14 +716,15 @@ class AttendanceTest extends VisitTestCase
     }
 
     /** @param list<array{User, string, string, int}> $shifts */
-    private function roster(User $hr, User $director, array $shifts): void
+    private function roster(User $hr, User $director, array $shifts, ?Branch $branch = null): void
     {
+        $branch ??= $this->branch;
         $this->selectBranch($hr);
-        $this->post(route('hr.roster.drafts.store'), ['branch_id' => $this->branch->id, 'week' => self::WEEK, 'mode' => 'blank', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->post(route('hr.roster.drafts.store'), ['branch_id' => $branch->id, 'week' => self::WEEK, 'mode' => 'blank', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $version = RosterVersion::query()->latest('id')->firstOrFail();
         foreach ($shifts as [$person, $start, $end, $break]) {
             $this->post(route('hr.roster.shifts.store', $version->public_id), ['staff_user_id' => $person->id, 'date' => self::WEEK, 'start_time' => $start, 'end_time' => $end,
-                'break_minutes' => $break, 'session_type' => 'full_day', 'branch_room_id' => null, 'branch_id' => $this->branch->id, 'week' => self::WEEK,
+                'break_minutes' => $break, 'session_type' => 'full_day', 'branch_room_id' => null, 'branch_id' => $branch->id, 'week' => self::WEEK,
                 'expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         }
         $this->post(route('hr.roster.submit', $version->public_id), ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();

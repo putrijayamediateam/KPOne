@@ -2,6 +2,7 @@
 
 namespace App\Domain\HR\Records\Services;
 
+use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Records\Models\BankDetail;
 use App\Domain\HR\Records\Models\EmploymentPeriod;
 use App\Domain\HR\Records\Models\PersonalDetails;
@@ -52,6 +53,9 @@ final class StaffFileService
             $subject = User::query()->whereKey($userId)->firstOrFail();
             if ($subject->hasRole('queue_display') && $subject->getRoleNames()->count() === 1) {
                 throw ValidationException::withMessages(['user_id' => 'The TV account has no staff file.']);
+            }
+            if ($subject->hasRole(PermissionCatalogue::LOCUM_ROLE)) {
+                throw ValidationException::withMessages(['user_id' => 'A locum sign-in uses the locum\'s own file. Add the locum, then ask for a sign-in there.']);
             }
             if (Worker::query()->where('user_id', $userId)->exists()) {
                 throw ValidationException::withMessages(['user_id' => "{$subject->name} already has a staff file."]);

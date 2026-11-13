@@ -50,12 +50,15 @@ test('the ticking server time is never in a live region; one polite region annou
     );
 });
 
-test('the privacy line says only the time is recorded', () => {
+test('the privacy line says the time and a photo are recorded', () => {
+    // HR-PHOTO (owner-approved change, 2026-11-12): every press carries a live photo, so the line says so.
     assert.match(
         template,
-        /KPOne records the time only\. No location or photo\./,
+        /KPOne records the time and a photo of you at each press\.\s+HR can see it\. Kept for 7 years \(to confirm\)\./,
     );
-    assert.doesNotMatch(source, /geolocation|getUserMedia|capture=/);
+    // The camera lives in the shared ClockPhotoDialog; this page only opens it, and never takes a file upload.
+    assert.match(source, /useClockPhoto\(\)/);
+    assert.doesNotMatch(source, /getUserMedia|capture=/);
 });
 
 test('flags are warning chips with text, never danger; corrections show recorded beside new', () => {

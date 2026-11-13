@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, UserRound } from '@lucide/vue';
+import { ArrowLeft, Check, UserRound } from '@lucide/vue';
 import { computed, onUnmounted, reactive, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
@@ -15,6 +15,7 @@ import ReceiptCorrections from '@/components/billing/ReceiptCorrections.vue';
 import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
+import { DateField } from '@/components/ui/date-field';
 import {
     Dialog,
     DialogContent,
@@ -48,7 +49,7 @@ const props = withDefaults(
 const responsibilityTotals: Array<[keyof BillingState, string]> = [
     ['self_pay', 'Self-pay received'],
     ['panel', 'Panel responsibility'],
-    ['deferred', 'Approved pay later'],
+    ['deferred', 'Pay later still owed'],
 ];
 const invoiceTabs = [
     { value: 'all', label: 'All' },
@@ -58,6 +59,10 @@ const invoiceTabs = [
 ];
 const page = usePage();
 const busy = ref(false);
+// BIL-25 (Siti): a reversed receipt is a settled correction, so it stays grey.
+// 'reversed' has no tone in presentation.ts today; this keeps it grey if one is added.
+const receiptTone = (status: string) =>
+    status === 'reversed' ? ('neutral' as const) : undefined;
 const contextCleared = ref(false);
 const completionOpen = ref(false);
 const paymentOpen = ref(false);
@@ -453,6 +458,56 @@ const reverse = (receipt: Receipt) =>
                     </div>
                 </section>
                 <OutstandingBills :groups="billing.outstanding" />
+                <section
+                    v-if="billing.voidedInvoices?.length"
+                    class="rounded-xl border bg-card p-4 text-[13px]"
+                    aria-labelledby="voided-invoices-heading"
+                    data-testid="voided-invoices"
+                >
+                    <h2 id="voided-invoices-heading" class="font-semibold">
+                        Voided invoices
+                    </h2>
+                    <p class="text-xs text-muted-foreground">
+                        Kept for the record. They no longer count towards what
+                        is owed.
+                    </p>
+                    <div
+                        v-for="voided in billing.voidedInvoices"
+                        :key="voided.number"
+                        class="mt-2 rounded-md bg-muted/40 p-2"
+                    >
+                        <p class="text-sm tabular-nums">
+                            <span class="font-medium">{{ voided.number }}</span>
+                            · {{ myr(voided.totalSen) }}
+                            <StatusBadge
+                                status="voided"
+                                tone="neutral"
+                                class="ml-1 align-middle"
+                            />
+                        </p>
+                        <p class="text-xs text-muted-foreground">
+                            {{ voided.voidedAt }} by {{ voided.voidedBy }}
+                        </p>
+                        <ul
+                            class="mt-1 space-y-0.5"
+                            :aria-label="`Receipts of ${voided.number}`"
+                        >
+                            <li
+                                v-for="r in voided.receipts"
+                                :key="r.number"
+                                class="text-xs tabular-nums"
+                            >
+                                {{ r.number }} · {{ r.method }} ·
+                                {{ myr(r.amountSen) }} ·
+                                {{
+                                    r.status === 'reversed'
+                                        ? 'Reversed'
+                                        : 'Received'
+                                }}
+                            </li>
+                        </ul>
+                    </div>
+                </section>
                 <ReceiptRefunds
                     v-if="billing.refunds"
                     :refunds="billing.refunds"
@@ -868,7 +923,10 @@ const reverse = (receipt: Receipt) =>
                                         {{ myr(receipt.amountSen) }}
                                     </td>
                                     <td class="p-3">
-                                        <StatusBadge :status="receipt.status" />
+                                        <StatusBadge
+                                            :status="receipt.status"
+                                            :tone="receiptTone(receipt.status)"
+                                        />
                                     </td>
                                     <td class="p-3">
                                         <div
@@ -938,7 +996,10 @@ const reverse = (receipt: Receipt) =>
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>
-                            <StatusBadge :status="receipt.status" />
+                            <StatusBadge
+                                :status="receipt.status"
+                                :tone="receiptTone(receipt.status)"
+                            />
                             <div class="flex flex-wrap gap-2">
                                 <IssuePrintButton
                                     v-if="billing.can.print"
@@ -978,15 +1039,24 @@ const reverse = (receipt: Receipt) =>
                                 }}</span>
                             </div>
                             <div class="mt-1 text-[11px] text-muted-foreground">
-                                {{ receipt.number }} ·
-                                {{ receipt.receivedAt }} ·
-                                <span class="capitalize">{{
-                                    receipt.status
-                                }}</span>
+                                {{ receipt.number }} · {{ receipt.receivedAt }}
+                                <span class="v2:hidden"
+                                    >·
+                                    <span class="capitalize">{{
+                                        receipt.status
+                                    }}</span></span
+                                >
+                            </div>
+                            <!-- BIL-25: the badge shows only in Version 2; Classic keeps the plain status above. -->
+                            <div class="mt-1 hidden v2:block">
+                                <StatusBadge
+                                    :status="receipt.status"
+                                    :tone="receiptTone(receipt.status)"
+                                />
                             </div>
                             <p
                                 v-if="receipt.refundedSen"
-                                class="text-xs text-muted-foreground tabular-nums"
+                                class="text-xs text-muted-foreground tabular-nums v2:mt-1"
                                 data-testid="payment-refunded"
                             >
                                 Refunded {{ myr(receipt.refundedSen) }} ·
@@ -997,7 +1067,7 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="text-[11px] break-words text-muted-foreground"
+                                class="text-[11px] break-words text-muted-foreground v2:mt-1"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>
@@ -1025,7 +1095,30 @@ const reverse = (receipt: Receipt) =>
                                 · {{ billing[kind]!.memberReference }}</span
                             >
                         </p>
-                        <p v-if="billing[kind]!.dueDate" class="text-xs">
+                        <p
+                            v-if="
+                                kind === 'deferment' &&
+                                billing[kind]!.status === 'approved' &&
+                                billing[kind]!.remainingSen === 0
+                            "
+                            class="flex items-center gap-1 text-xs font-medium text-success"
+                            data-testid="pay-later-settled"
+                        >
+                            <Check class="size-3.5" aria-hidden="true" />
+                            <span>Paid in full · nothing left to collect</span>
+                        </p>
+                        <p v-else-if="billing[kind]!.dueDate" class="text-xs">
+                            <template
+                                v-if="
+                                    kind === 'deferment' &&
+                                    billing[kind]!.status === 'approved' &&
+                                    billing[kind]!.remainingSen !== null &&
+                                    billing[kind]!.remainingSen! <
+                                        billing[kind]!.amountSen
+                                "
+                                >{{ myr(billing[kind]!.remainingSen!) }} still
+                                to collect ·
+                            </template>
                             Due {{ formatDate(billing[kind]!.dueDate) }}
                         </p>
                         <p
@@ -1207,14 +1300,19 @@ const reverse = (receipt: Receipt) =>
                                 class="billing-input"
                                 autocomplete="off"
                         /></label>
-                        <button
-                            v-if="dueNowText && !isCompleted"
+                        <Button
+                            v-if="
+                                dueNowText &&
+                                (!isCompleted ||
+                                    (billing.invoice?.state.due_now ?? 0) > 0)
+                            "
                             type="button"
-                            class="text-xs font-medium text-primary"
+                            variant="outline"
+                            class="mt-1 h-auto min-h-11 w-fit text-xs text-primary"
                             @click="form.amount = dueNowText"
                         >
                             Use amount due (RM {{ dueNowText }})
-                        </button>
+                        </Button>
                         <label
                             id="payment-method-label"
                             class="block"
@@ -1254,7 +1352,11 @@ const reverse = (receipt: Receipt) =>
                             v-if="!form.method"
                             class="text-xs text-muted-foreground"
                         >
-                            Choose a payment method to enable Add Payment.
+                            {{
+                                isCompleted
+                                    ? 'Choose a payment method to enable Settle Outstanding Balance.'
+                                    : 'Choose a payment method to enable Add Payment.'
+                            }}
                         </p></template
                     >
                     <DialogFooter
@@ -1339,14 +1441,15 @@ const reverse = (receipt: Receipt) =>
                                 class="billing-input"
                                 autocomplete="off"
                         /></label>
-                        <button
+                        <Button
                             v-if="dueNowText && !isCompleted"
                             type="button"
-                            class="mb-2 text-xs font-medium text-primary"
+                            variant="outline"
+                            class="mt-1 mb-2 h-auto min-h-11 w-fit text-xs text-primary"
                             @click="form.responsibility_amount = dueNowText"
                         >
                             Use amount due (RM {{ dueNowText }})
-                        </button>
+                        </Button>
                         <label class="block"
                             >Reason / verification evidence<textarea
                                 v-model="form.reason"
@@ -1398,10 +1501,8 @@ const reverse = (receipt: Receipt) =>
                                 needs approval and is not a cash receipt.
                             </p>
                             <label class="mt-2 block"
-                                >Pay later due date<input
-                                    v-model="form.due_date"
-                                    type="date"
-                                    class="billing-input" /></label
+                                >Pay later due date<DateField
+                                    v-model="form.due_date" /></label
                             ><Button
                                 variant="secondary"
                                 size="sm"

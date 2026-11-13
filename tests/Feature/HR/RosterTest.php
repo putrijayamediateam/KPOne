@@ -54,7 +54,7 @@ class RosterTest extends VisitTestCase
         $this->assertSame(['director', 'hr_manager'], RosterPermissions::grants()[RosterPermissions::MANAGE]);
         $this->assertSame(['director'], RosterPermissions::grants()[RosterPermissions::APPROVE]);
         $this->assertNotContains(PermissionCatalogue::QUEUE_DISPLAY_ROLE, RosterPermissions::grants()[RosterPermissions::VIEW_OWN]);
-        $this->assertEqualsCanonicalizing(array_keys(array_diff_key($roles, [PermissionCatalogue::QUEUE_DISPLAY_ROLE => true])), RosterPermissions::HUMAN_ROLES);
+        $this->assertEqualsCanonicalizing(array_keys(array_diff_key($roles, [PermissionCatalogue::QUEUE_DISPLAY_ROLE => true, PermissionCatalogue::LOCUM_ROLE => true])), RosterPermissions::HUMAN_ROLES);
     }
 
     /** @return list<array{string, int, bool}> */
@@ -62,7 +62,7 @@ class RosterTest extends VisitTestCase
     {
         return [['director', 200, true], ['hr_manager', 200, true], ['ca', 200, false], ['ca_supervisor', 200, false], ['resident_doctor', 200, false],
             ['finance_officer', 200, false], ['panel_officer', 200, false], ['administrator', 200, false], ['technical_admin', 200, false],
-            ['marketing', 200, false], ['business_development', 200, false], ['queue_display', 403, false]];
+            ['marketing', 200, false], ['business_development', 200, false], ['locum', 200, false], ['queue_display', 403, false]];
     }
 
     #[DataProvider('viewers')]

@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
 use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
 use App\Domain\Clinical\Dispensary\Models\DispensaryItem;
@@ -92,7 +93,7 @@ class VisitHistoryService
             ],
             'billTo' => app(InvoiceBillToService::class)->link($actor, $visit, $invoice),
             'notes' => app(InvoiceNoteService::class)->link($actor, $visit, $invoice),
-            'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines) : null,
+            'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines, $branch->timezone) : null,
             'outstanding' => $canFinance ? app(OutstandingBillService::class)->summary($actor, $visit) : null,
             'canSeeFinancial' => $canFinance,
             'canSeeLines' => $canFinance && $canLines,
@@ -168,7 +169,7 @@ class VisitHistoryService
             'consultation' => $encounter ? $this->consultation($encounter, $timezone) : null,
             'medicines' => $this->medicines($plan, $handoff),
             'services' => $this->services($plan, $handoff, $timezone),
-            'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines) : null,
+            'financial' => $invoice ? $this->financial($actor, $visit, $invoice, $canLines, $timezone) : null,
             'canSeeFinancial' => $canFinance,
             'links' => [
                 'back' => $consultationReturnVisit
@@ -340,11 +341,14 @@ class VisitHistoryService
     }
 
     /** @return array<string, mixed> */
-    private function financial(User $actor, Visit $visit, Invoice $invoice, bool $canLines): array
+    private function financial(User $actor, Visit $visit, Invoice $invoice, bool $canLines, string $timezone): array
     {
         $payments = Payment::query()
             ->whereIn('id', PaymentAllocation::query()->where('invoice_id', $invoice->id)->select('payment_id'))
             ->orderBy('id')->get();
+        // BIL-19: who recorded each receipt, by the same name rule as the Billing page (BIL-2); screens only.
+        $recorders = app(StaffAccessService::class)->visibleUsers($actor)
+            ->whereIn('id', $payments->pluck('recorded_by_user_id')->filter()->unique())->pluck('name', 'id');
         $canPrint = $actor->can('billing.print.branch');
         $refunded = FinancialLedger::approvedRefundsByPayment($payments->pluck('id'));
 
@@ -370,6 +374,8 @@ class VisitHistoryService
                 'refundedSen' => $refunded[$payment->id] ?? 0,
                 'method' => $payment->method_snapshot,
                 'status' => $payment->status,
+                'receivedAt' => $payment->received_at->setTimezone($timezone)->format('j M Y, g:i A'),
+                'recordedBy' => (string) ($recorders[$payment->recorded_by_user_id] ?? 'Staff member'),
                 'printUrl' => $canPrint ? route('billing.receipt', [$visit, $invoice, $payment]) : null,
             ])->all(),
             'printUrl' => $canPrint ? route('billing.print', [$visit, $invoice]) : null,

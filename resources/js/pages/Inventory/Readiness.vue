@@ -1,8 +1,11 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
+import { ArrowLeft } from '@lucide/vue';
 import { ref, watch } from 'vue';
+import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { PageHeader } from '@/components/ui/page-header';
 
 type Row = {
     id: number;
@@ -53,6 +56,7 @@ const props = defineProps<{
             more: boolean;
         };
         canFixBarcodes: boolean;
+        canImportOpening?: boolean;
     };
 }>();
 const search = ref(props.readiness.q);
@@ -123,30 +127,36 @@ watch(
     <main
         class="mx-auto flex w-full max-w-7xl min-w-0 flex-col gap-5 p-4 md:p-7"
     >
-        <div>
-            <a href="/inventory" class="text-sm underline">Inventory</a>
-            <h1 class="mt-3 text-2xl font-semibold">Pilot readiness</h1>
-            <p class="text-sm text-muted-foreground">
-                {{ readiness.branchName }} · Review only. No import, balance
-                correction or pilot go-live approval.
-            </p>
+        <ActionLink
+            href="/inventory"
+            variant="ghost"
+            class="-ml-3 min-h-11 self-start"
+            ><ArrowLeft class="size-4" aria-hidden="true" />
+            Inventory</ActionLink
+        >
+        <PageHeader
+            title="Pilot readiness"
+            :description="`${readiness.branchName} · Check each SKU and sign off openings. Importing opening stock is a separate page. No balance correction or pilot go-live approval.`"
+        />
+        <div v-if="readiness.canImportOpening" class="flex flex-wrap gap-2">
+            <ActionLink
+                href="/inventory/opening-import"
+                variant="outline"
+                class="min-h-11 lg:min-h-9"
+                >Import opening stock</ActionLink
+            >
         </div>
         <section class="space-y-2 rounded-lg border bg-card p-4 text-sm">
             <p>
-                One base stock unit per SKU. Quantities use exactly up to three
-                decimal places. Input → base uses factor 1.000 only. Non-base
-                units, unsupported conversions, precision loss and overflow are
-                refused; stored purchase/conversion labels are never guessed.
+                Each SKU has one base stock unit, with up to 3 decimals. Other
+                units and conversions are refused.
             </p>
             <p>
-                Reference managers verify the existing base unit. An independent
-                checker must sign each opening; the recorder cannot sign their
-                own count. This page never changes a recorded count.
-            </p>
-            <p>
-                Transfers and treatment-room consumption are outside the pilot.
-                Responsible clinician, FEFO and regulated-item questions remain
-                open.
+                Someone other than the person who recorded an opening must sign
+                it off. This page never changes a count. Open questions
+                (responsible clinician, FEFO, regulated items) are in the
+                pharmacist review pack that goes with the pilot papers, not in
+                KPOne.
             </p>
         </section>
         <p

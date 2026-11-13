@@ -30,7 +30,7 @@ class InventoryController extends Controller
             'tab' => ['sometimes', Rule::in(['stock', 'batches', 'movements'])],
             'search' => ['nullable', 'string', 'max:100'],
             'location' => ['nullable', 'uuid'],
-            'status' => ['nullable', Rule::in(['active', 'inactive'])],
+            'status' => ['nullable', Rule::in(['active', 'inactive', 'returns'])],
             'movement_type' => ['nullable', Rule::in(InventoryDirectoryService::MOVEMENT_TYPES)],
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
