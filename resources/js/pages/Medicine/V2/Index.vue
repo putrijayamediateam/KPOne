@@ -8,6 +8,7 @@ import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
+import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
 import V2RowMenu from '@/components/v2/V2RowMenu.vue';
 import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
@@ -95,7 +96,6 @@ const formQuery = () =>
     c.editing.value ? { edit: c.editing.value.publicId } : { add: '1' };
 const openedByPush = ref(false);
 const discardOpen = ref(false);
-const pendingUrl = ref<string | null>(null);
 let leaving = false;
 const goForm = (extra: Record<string, string>) => {
     openedByPush.value = true;
@@ -112,18 +112,11 @@ const closeToList = () => {
     c.formOpen.value = false;
     openedByPush.value = false;
 
-    if (pendingUrl.value) {
-        const url = pendingUrl.value;
-
-        pendingUrl.value = null;
-        router.visit(url);
-    } else {
-        router.get('/medicines', filterQuery(), {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
-        });
-    }
+    router.get('/medicines', filterQuery(), {
+        preserveState: true,
+        preserveScroll: true,
+        replace: true,
+    });
 
     leaving = false;
 };
@@ -191,7 +184,6 @@ const confirmDiscard = () => {
 };
 const keepEditing = () => {
     discardOpen.value = false;
-    pendingUrl.value = null;
 
     if (restored.value) {
         const kept = restored.value;
@@ -210,12 +202,11 @@ const keepEditing = () => {
         );
     }
 };
-const warnBeforeUnload = (event: BeforeUnloadEvent) => {
-    if (c.isDirty.value) {
-        event.preventDefault();
-    }
+// Browser Back or Forward swaps the page: stash the form only then (a menu link or crumb is asked about by V2LeaveGuard).
+let popped = false;
+const onPopState = () => {
+    popped = true;
 };
-let stopBefore: (() => void) | null = null;
 onMounted(() => {
     const kept = takeStash();
 
@@ -224,25 +215,14 @@ onMounted(() => {
         discardOpen.value = true;
     }
 
-    window.addEventListener('beforeunload', warnBeforeUnload);
-    stopBefore = router.on('before', (event) => {
-        const target = new URL(
-            String(event.detail.visit.url),
-            window.location.origin,
-        );
-
-        if (c.isDirty.value && !leaving && target.pathname !== '/medicines') {
-            pendingUrl.value = target.pathname + target.search;
-            discardOpen.value = true;
-
-            return false;
-        }
-    });
+    window.addEventListener('popstate', onPopState, true);
 });
 onBeforeUnmount(() => {
-    c.stashUnsaved();
-    window.removeEventListener('beforeunload', warnBeforeUnload);
-    stopBefore?.();
+    if (popped) {
+        c.stashUnsaved();
+    }
+
+    window.removeEventListener('popstate', onPopState, true);
 });
 
 const outlineButton =
@@ -689,6 +669,7 @@ const groupsLine = (items: string[]) =>
             </div>
         </V2Dialog>
 
+        <V2LeaveGuard :dirty="c.isDirty.value" />
         <DiscardPrompt
             :open="discardOpen"
             description="You have unsaved changes on this medicine. If you close now, what you entered here is lost."
