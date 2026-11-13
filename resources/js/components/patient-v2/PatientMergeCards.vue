@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import type { PatientMergePanelData } from '@/components/patient/PatientMergePanel.vue';
 import { OperationalSelect } from '@/components/ui/select';
@@ -124,9 +124,14 @@ const submitMerge = () => {
             otherNumber.value = '';
             proposal.reset('reason_code');
             proposal.idempotency_key = crypto.randomUUID();
-        },
-        onFinish: () => {
             confirming.value = null;
+        },
+        onError: () => {
+            dialogError.value =
+                proposal.errors.other_patient_number ||
+                proposal.errors.reason_code ||
+                proposal.errors.idempotency_key ||
+                'The request could not be sent. Check the details and try again.';
         },
     });
 };
@@ -150,10 +155,14 @@ const submitUnmerge = (patientNumber: string, lockVersion: number) => {
             },
             onSuccess: () => {
                 unmergeReason.value = '';
+                confirming.value = null;
+            },
+            onError: () => {
+                dialogError.value =
+                    'The request could not be sent. Check the details and try again.';
             },
             onFinish: () => {
                 acting.value = false;
-                confirming.value = null;
             },
         },
     );
@@ -176,9 +185,15 @@ const decide = (
             onStart: () => {
                 acting.value = true;
             },
+            onSuccess: () => {
+                confirming.value = null;
+            },
+            onError: () => {
+                dialogError.value =
+                    'The request could not be completed. Reload the record and try again.';
+            },
             onFinish: () => {
                 acting.value = false;
-                confirming.value = null;
             },
         },
     );
@@ -242,9 +257,11 @@ const dialog = computed(() => {
 const confirmDialog = () => {
     const c = confirming.value;
 
-    if (!c) {
+    if (!c || busy.value) {
         return;
     }
+
+    dialogError.value = '';
 
     if (c.kind === 'propose') {
         submitMerge();
@@ -264,6 +281,10 @@ const confirmDialog = () => {
 const acting = ref(false);
 const busy = computed(() => proposal.processing || acting.value);
 const unmergeTried = ref(false);
+const dialogError = ref('');
+watch(confirming, () => {
+    dialogError.value = '';
+});
 
 const identifierText = (summary: Summary) =>
     summary.identifier
@@ -467,14 +488,14 @@ const rows = (summary: Summary) => [
                     class="flex flex-col gap-3 sm:flex-row sm:items-end"
                     @submit.prevent="confirming = { kind: 'propose' }"
                 >
-                    <label class="grid min-w-0 flex-1 gap-1.5 text-sm">
+                    <div class="grid min-w-0 flex-1 gap-1.5 text-sm">
                         <span class="font-medium">Reason</span>
                         <OperationalSelect
                             v-model="proposal.reason_code"
                             label="Reason"
                             :options="reasonOptions(merge.mergeReasons)"
                         />
-                    </label>
+                    </div>
                     <button
                         type="submit"
                         :class="outlineButton"
@@ -504,6 +525,9 @@ const rows = (summary: Summary) => [
             @update:open="(open: boolean) => !open && (confirming = null)"
             @confirm="confirmDialog"
         >
+            <p v-if="dialogError" role="alert" class="text-sm text-destructive">
+                {{ dialogError }}
+            </p>
             <div
                 v-if="confirming?.kind === 'unmerge'"
                 class="flex flex-col gap-1.5"

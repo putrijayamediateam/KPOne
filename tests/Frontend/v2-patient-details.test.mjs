@@ -153,3 +153,20 @@ test('no console output and missing values are said in words', () => {
         assert.ok(page.includes(words), words);
     }
 });
+
+test('failures keep their dialog open with a message, and Retire cannot be pressed twice', () => {
+    assert.ok(merge.includes('onError'));
+    assert.ok(merge.includes('dialogError'));
+    assert.ok(/onSuccess: \(\) => \{\s*confirming\.value = null;/.test(merge));
+    assert.ok(page.includes(':busy="retireBusy"'));
+    assert.ok(/if \(retireBusy\.value\) \{\s*return;/.test(page));
+});
+
+test('only the Classic identifier messages are shown, so a server message cannot echo the number', () => {
+    const fn = page.slice(
+        page.indexOf('const identifierError'),
+        page.indexOf('const closeIdentifierDialog'),
+    );
+    assert.ok(fn.includes('.value') && fn.includes('.identifiers'));
+    assert.ok(!fn.includes('Object.values'));
+});

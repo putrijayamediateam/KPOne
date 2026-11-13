@@ -57,10 +57,10 @@ const identifierForm = useForm({
     issuing_country_code: 'MY',
     value: '',
 });
+// Only the two messages Classic shows; nothing else the server sends is displayed (it could mention the number).
 const identifierError = () =>
     (identifierForm.errors as Record<string, string>).value ??
-    (identifierForm.errors as Record<string, string>).identifiers ??
-    Object.values(identifierForm.errors)[0];
+    (identifierForm.errors as Record<string, string>).identifiers;
 const closeIdentifierDialog = () => {
     dialogOpen.value = false;
     correcting.value = null;
@@ -109,10 +109,16 @@ const submitIdentifier = () => {
 
 // ---- Retire identifier ----
 const retiring = ref<PatientIdentifier | null>(null);
+const retireBusy = ref(false);
+const retireFailed = ref(false);
 const retire = () => {
     const identifier = retiring.value;
 
     if (!identifier) {
+        return;
+    }
+
+    if (retireBusy.value) {
         return;
     }
 
@@ -121,8 +127,18 @@ const retire = () => {
         {},
         {
             preserveScroll: true,
-            onFinish: () => {
+            onStart: () => {
+                retireBusy.value = true;
+                retireFailed.value = false;
+            },
+            onSuccess: () => {
                 retiring.value = null;
+            },
+            onError: () => {
+                retireFailed.value = true;
+            },
+            onFinish: () => {
+                retireBusy.value = false;
             },
         },
     );
@@ -531,6 +547,7 @@ const fieldClass =
                         maxlength="2"
                         autocomplete="off"
                         :class="[fieldClass, 'uppercase']"
+                        @keydown.enter.prevent="submitIdentifier"
                     />
                 </label>
                 <label class="grid gap-1.5 text-sm">
@@ -544,6 +561,7 @@ const fieldClass =
                         autocapitalize="off"
                         spellcheck="false"
                         :class="fieldClass"
+                        @keydown.enter.prevent="submitIdentifier"
                     />
                 </label>
                 <InputError :message="identifierError()" />
@@ -560,8 +578,18 @@ const fieldClass =
             "
             confirm-label="Retire identifier"
             tone="danger"
+            :busy="retireBusy"
             @update:open="(open: boolean) => !open && (retiring = null)"
             @confirm="retire"
-        />
+        >
+            <p
+                v-if="retireFailed"
+                role="alert"
+                class="text-sm text-destructive"
+            >
+                The identifier could not be retired. Check the record and try
+                again.
+            </p>
+        </V2Dialog>
     </PageFrame>
 </template>
