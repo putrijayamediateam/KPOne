@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
-import DiscardPrompt from '@/components/catalogue-v2/DiscardPrompt.vue';
+import { computed, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import MedicineForm from '@/components/medicine-v2/MedicineForm.vue';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -15,11 +14,7 @@ import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2Toolbar from '@/components/v2/V2Toolbar.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
-import {
-    clearStash,
-    takeStash,
-    useMedicineForm,
-} from '@/composables/medicine/useMedicineForm';
+import { useMedicineForm } from '@/composables/medicine/useMedicineForm';
 import type {
     MedicineRow,
     SetupOptions,
@@ -92,11 +87,8 @@ const filterQuery = () => ({
     search: search.value || undefined,
     status: status.value || undefined,
 });
-const formQuery = () =>
-    c.editing.value ? { edit: c.editing.value.publicId } : { add: '1' };
 const openedByPush = ref(false);
-const discardOpen = ref(false);
-let leaving = false;
+const guard = ref<InstanceType<typeof V2LeaveGuard> | null>(null);
 const goForm = (extra: Record<string, string>) => {
     openedByPush.value = true;
     router.get(
@@ -108,7 +100,6 @@ const goForm = (extra: Record<string, string>) => {
 const openAdd = () => goForm({ add: '1' });
 const openEditPage = (row: MedicineRow) => goForm({ edit: row.publicId });
 const closeToList = () => {
-    leaving = true;
     c.formOpen.value = false;
     openedByPush.value = false;
 
@@ -117,12 +108,11 @@ const closeToList = () => {
         preserveScroll: true,
         replace: true,
     });
-
-    leaving = false;
 };
 const leaveForm = () => {
+    // Unsaved work: ask first (the shared question); Discard closes the form straight to the list.
     if (c.isDirty.value) {
-        discardOpen.value = true;
+        guard.value?.ask(closeToList);
 
         return;
     }
@@ -150,81 +140,11 @@ const syncFromUrl = () => {
             );
         }
     } else if (c.formOpen.value) {
-        if (c.isDirty.value && !leaving) {
-            // Back or Forward with unsaved work: put the form's address back and ask first.
-            router.get(
-                '/medicines',
-                { ...filterQuery(), ...formQuery() },
-                { preserveState: true, preserveScroll: true, replace: true },
-            );
-            discardOpen.value = true;
-
-            return;
-        }
-
         c.formOpen.value = false;
         openedByPush.value = false;
     }
 };
 watch(() => page.url, syncFromUrl, { immediate: true });
-// The browser's Back button swaps the page and would drop a half-filled form. The form's data is stashed on the way
-// out; the new page instance finds it and asks first. "Keep editing" brings the form back where it was.
-const restored = ref<ReturnType<typeof takeStash>>(null);
-const confirmDiscard = () => {
-    discardOpen.value = false;
-
-    if (restored.value) {
-        restored.value = null;
-        clearStash();
-
-        return;
-    }
-
-    closeToList();
-};
-const keepEditing = () => {
-    discardOpen.value = false;
-
-    if (restored.value) {
-        const kept = restored.value;
-
-        restored.value = null;
-        c.restore(kept);
-        router.get(
-            '/medicines',
-            {
-                ...filterQuery(),
-                ...(kept.editing
-                    ? { edit: kept.editing.publicId }
-                    : { add: '1' }),
-            },
-            { preserveState: true, preserveScroll: true, replace: true },
-        );
-    }
-};
-// Browser Back or Forward swaps the page: stash the form only then (a menu link or crumb is asked about by V2LeaveGuard).
-let popped = false;
-const onPopState = () => {
-    popped = true;
-};
-onMounted(() => {
-    const kept = takeStash();
-
-    if (kept) {
-        restored.value = kept;
-        discardOpen.value = true;
-    }
-
-    window.addEventListener('popstate', onPopState, true);
-});
-onBeforeUnmount(() => {
-    if (popped) {
-        c.stashUnsaved();
-    }
-
-    window.removeEventListener('popstate', onPopState, true);
-});
-
 const outlineButton =
     'inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9';
 const filledButton =
@@ -669,12 +589,6 @@ const groupsLine = (items: string[]) =>
             </div>
         </V2Dialog>
 
-        <V2LeaveGuard :dirty="c.isDirty.value" />
-        <DiscardPrompt
-            :open="discardOpen"
-            description="You have unsaved changes on this medicine. If you close now, what you entered here is lost."
-            @keep="keepEditing()"
-            @discard="confirmDiscard()"
-        />
+        <V2LeaveGuard ref="guard" :dirty="c.isDirty.value" />
     </PageFrame>
 </template>

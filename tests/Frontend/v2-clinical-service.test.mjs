@@ -152,22 +152,17 @@ test('V2 list: one filled page button, row menu, Back-safe address state, no nat
     assert.doesNotMatch(v2 + form, /type="file"/);
     assert.match(v2, /add: '1'/);
     assert.match(v2, /edit: row\.publicId/);
-    assert.match(v2, /takeStash\(\)/);
-    assert.match(v2, /c\.stashUnsaved\(\)/);
-    assert.ok(v2.includes('<V2LeaveGuard :dirty="c.isDirty.value" />'));
+    assert.ok(
+        v2.includes('<V2LeaveGuard ref="guard" :dirty="c.isDirty.value" />'),
+    );
     assert.match(
         v2,
         /import V2LeaveGuard from '@\/components\/v2\/V2LeaveGuard\.vue'/,
     );
-    assert.match(v2, /addEventListener\('popstate'/);
-    assert.ok(!/beforeunload/.test(v2));
+    assert.match(v2, /guard\.value\?\.ask\(closeToList\)/);
+    assert.ok(!/popstate|stashUnsaved|takeStash|beforeunload/.test(v2));
     assert.match(v2, /← Clinical services/);
-    assert.ok(v2.includes('<DiscardPrompt'));
-    assert.ok(
-        v2.includes(
-            "import DiscardPrompt from '@/components/catalogue-v2/DiscardPrompt.vue'",
-        ),
-    );
+    assert.ok(!/DiscardPrompt/.test(v2));
     assert.ok(v2.includes("'no price'"));
     assert.match(v2, /max-xl:hidden!/);
     assert.match(v2, /data-action="open-filters"/);

@@ -163,20 +163,20 @@ test("Daniel's changes: URL state, neutral Controlled chip, always-visible save 
     assert.match(v2, /edit: row\.publicId/);
     assert.match(v2, /watch\(\(\) => page\.url, syncFromUrl/);
     assert.match(v2, /window\.history\.back\(\)/);
-    assert.match(v2, /takeStash\(\)/);
-    assert.match(v2, /c\.stashUnsaved\(\)/);
-    assert.match(formLogic, /export const takeStash/);
-    // A menu link or crumb while dirty is held by the shared V2LeaveGuard (different path); this page keeps its own
-    // prompt for the same-path form address, browser Back and Forward (stashed on popstate only).
-    assert.ok(v2.includes('<V2LeaveGuard :dirty="c.isDirty.value" />'));
+    // One shared question for every way out with unsaved work: a menu link or crumb (V2LeaveGuard's router rule) and the
+    // same-path form address (← Medicines, Back to the list) through guard.ask(). Browser Back to ANOTHER page is the one
+    // documented limit (no stash and no popstate handler any more); the browser's own warning covers reload and tab close.
+    assert.ok(
+        v2.includes('<V2LeaveGuard ref="guard" :dirty="c.isDirty.value" />'),
+    );
     assert.match(
         v2,
         /import V2LeaveGuard from '@\/components\/v2\/V2LeaveGuard\.vue'/,
     );
-    assert.match(v2, /addEventListener\('popstate'/);
-    assert.ok(!/beforeunload/.test(v2));
+    assert.match(v2, /guard\.value\?\.ask\(closeToList\)/);
+    assert.ok(!/DiscardPrompt/.test(v2));
+    assert.ok(!/popstate|stashUnsaved|takeStash|beforeunload/.test(v2));
     assert.ok(!/router\.on\('before'/.test(v2));
-    assert.ok(v2.includes('<DiscardPrompt'));
     assert.match(formLogic, /const isDirty = computed/);
     // b. neutral Controlled chip (the owner's CAT-1 decision), no amber
     assert.doesNotMatch(v2, /tone="warning"/);

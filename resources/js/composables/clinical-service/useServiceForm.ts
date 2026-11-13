@@ -45,25 +45,6 @@ export type ConsultationTariff = {
     }[];
 };
 
-// Unsaved work survives the page being swapped (the browser's Back button): the page stashes it on its way out and a new
-// instance asks whether to keep it. Module scope outlives the component.
-type Stash = {
-    data: Record<string, unknown>;
-    baseline: string;
-    editing: ServiceRow | null;
-};
-let stash: Stash | null = null;
-export const takeStash = (): Stash | null => {
-    const kept = stash;
-
-    stash = null;
-
-    return kept;
-};
-export const clearStash = () => {
-    stash = null;
-};
-
 export function useServiceForm(setup: SetupOptions) {
     const formOpen = ref(false);
     const editing = ref<ServiceRow | null>(null);
@@ -216,24 +197,6 @@ export function useServiceForm(setup: SetupOptions) {
     const isDirty = computed(
         () => formOpen.value && JSON.stringify(form.data()) !== baseline.value,
     );
-    const stashUnsaved = () => {
-        if (!isDirty.value) {
-            return;
-        }
-
-        stash = {
-            data: JSON.parse(JSON.stringify(form.data())),
-            baseline: baseline.value,
-            editing: editing.value,
-        };
-    };
-    const restore = (kept: Stash) => {
-        editing.value = kept.editing;
-        editLoadError.value = '';
-        Object.assign(form, kept.data);
-        baseline.value = kept.baseline;
-        formOpen.value = true;
-    };
 
     return {
         formOpen,
@@ -247,7 +210,5 @@ export function useServiceForm(setup: SetupOptions) {
         formError,
         submit,
         isDirty,
-        stashUnsaved,
-        restore,
     };
 }
