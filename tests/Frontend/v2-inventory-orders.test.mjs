@@ -257,3 +257,12 @@ test('2a: the V2 home shows the orders section in a bar that keeps its forms, an
         /<InventoryOperationsPanel[\s\S]*?hide-orders[\s\S]*?\/>/,
     );
 });
+
+test('Receive: the expiry uses the day-first V2 date field, limited to the branch today', () => {
+    assert.match(receive, /<V2DateField\s+v-model="entry\.expiry_date"/);
+    assert.match(receive, /subject="Expiry"/);
+    assert.match(receive, /:min="branchToday\(\)"/);
+    // The native month-first box is gone; the missing-expiry refusal before sending stays.
+    assert.ok(!/type="date"/.test(receive));
+    assert.match(receive, /'Enter the expiry date for every lot\.'/);
+});

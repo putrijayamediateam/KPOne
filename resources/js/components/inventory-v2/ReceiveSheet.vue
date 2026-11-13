@@ -2,6 +2,7 @@
 import { useForm } from '@inertiajs/vue3';
 import { computed, nextTick, ref, watch } from 'vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import V2DateField from '@/components/v2/V2DateField.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import { formatInventoryReason } from '@/lib/inventory-picker';
@@ -494,24 +495,22 @@ const needsApproval = computed(() =>
                                 class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                             />
                         </label>
-                        <label class="grid gap-1.5 text-sm font-medium"
-                            >Expiry date <span class="sr-only">(required)</span>
-                            <input
-                                v-model="entry.expiry_date"
-                                type="date"
-                                required
-                                class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
-                            />
-                            <span
-                                class="text-xs font-normal"
-                                :class="
-                                    expiryLine(entry.expiry_date).warn
-                                        ? 'font-medium text-warning-strong'
-                                        : 'text-muted-foreground'
-                                "
-                                >{{ expiryLine(entry.expiry_date).text }}</span
-                            >
-                        </label>
+                        <!-- Daniel: expiry decides whether a batch can be dispensed, so it uses the day-first V2 date
+                             field, never the US box. A date before the branch's today is refused by the field itself
+                             ("Expiry must be on or after …"); an expiry of today is allowed and says it cannot be
+                             dispensed. -->
+                        <V2DateField
+                            v-model="entry.expiry_date"
+                            label="Expiry date"
+                            subject="Expiry"
+                            required
+                            :min="branchToday()"
+                            :hint="
+                                expiryLine(entry.expiry_date).warn
+                                    ? expiryLine(entry.expiry_date).text
+                                    : undefined
+                            "
+                        />
                         <label class="grid gap-1.5 text-sm font-medium"
                             >Quantity in this lot
                             <span class="sr-only">(required)</span>
