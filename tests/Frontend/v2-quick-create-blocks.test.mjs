@@ -87,3 +87,17 @@ test('V2StickyBar reads the rail breakpoint from V2WorkLayout; the prop override
     assert.match(bar, /railFrom\?: RailFrom; always\?: boolean/);
     assert.match(bar, /:class="hideFrom"/);
 });
+
+test('V2StickyBar: the row is capped to form width, right-aligned from 640px with natural-width buttons, stacked full-width below', () => {
+    const bar = v2('V2StickyBar');
+    assert.match(bar, /data-slot="v2-sticky-bar-row"/);
+    assert.match(
+        bar,
+        /flex w-full max-w-3xl flex-col gap-2 sm:flex-row sm:justify-end/,
+    );
+    assert.match(
+        bar,
+        /\[&>\*\]:h-11 \[&>\*\]:w-full sm:\[&>\*\]:w-auto sm:\[&>\*\]:min-w-40/,
+    );
+    assert.match(bar, /pb-\[max\(0\.75rem,env\(safe-area-inset-bottom\)\)\]/);
+});

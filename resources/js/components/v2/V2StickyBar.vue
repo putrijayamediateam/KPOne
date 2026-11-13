@@ -13,6 +13,10 @@ import type { RailFrom } from './railKey';
  * keeps the original behaviour: shown below 640px, hidden from 640px. `always` shows the bar at every width, for a long
  * form with no rail where the action must stay in reach.
  *
+ * The bar's background spans the column, but its row is capped to the width of a form column (48rem, starting at the column's left edge like the form does) and, from 640px, right-aligned
+ * with the buttons at their natural width, so on a wide screen the filled button is not a stretched strip. Below 640px the
+ * buttons stack at full width. The bar is sticky in the flow, so the last row of the page is never behind it.
+ *
  * Its gutter is `-mx-4` (16px), which must match the 16px page gutter the shell gives V2WorkLayout: change one and you
  * must change the other. For a bar that also shows a selection summary and a reason, use V2SelectionBar.
  */
@@ -39,9 +43,14 @@ const hideFrom = computed(() => {
 <template>
     <div
         data-slot="v2-sticky-bar"
-        class="sticky bottom-0 z-10 -mx-4 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] [&>*]:h-11 [&>*]:w-full"
+        class="sticky bottom-0 z-10 -mx-4 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]"
         :class="hideFrom"
     >
-        <slot />
+        <div
+            data-slot="v2-sticky-bar-row"
+            class="flex w-full max-w-3xl flex-col gap-2 sm:flex-row sm:justify-end [&>*]:h-11 [&>*]:w-full sm:[&>*]:w-auto sm:[&>*]:min-w-40"
+        >
+            <slot />
+        </div>
     </div>
 </template>
