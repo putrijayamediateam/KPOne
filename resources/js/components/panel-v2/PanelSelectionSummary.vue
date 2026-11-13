@@ -9,7 +9,8 @@ import V2StickySummary from '@/components/v2/V2StickySummary.vue';
  */
 const props = defineProps<{
     title: string;
-    detail: string;
+    panel: string;
+    money: string;
     primaryLabel: string;
     clearLabel: string;
     busy?: boolean;
@@ -35,7 +36,10 @@ void props;
 <template>
     <V2StickySummary
         :title="title"
-        :items="[{ label: 'Panel and amount', value: detail }]"
+        :items="[
+            { label: 'Panel', value: panel },
+            { label: 'Amount', value: money },
+        ]"
         :aria-label="label"
         :data-testid="testId"
     >

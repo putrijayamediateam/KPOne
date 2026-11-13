@@ -924,11 +924,11 @@ const selection = computed(() => {
             </template>
 
             <template #rail>
-                <PanelSummaryBlock :summary="work.summary" />
                 <PanelSelectionSummary
                     v-if="selection"
                     :title="selection.title"
-                    :detail="selection.detail"
+                    :panel="selection.panel"
+                    :money="selection.money"
                     :primary-label="selection.primaryLabel"
                     :clear-label="selection.clearLabel"
                     :busy="selection.busy"
@@ -942,6 +942,7 @@ const selection = computed(() => {
                     @primary="selection.primary"
                     @clear="selection.clear"
                 />
+                <PanelSummaryBlock :summary="work.summary" />
             </template>
         </V2WorkLayout>
 
