@@ -737,3 +737,10 @@ test('a long Panel name is cut at table width so it cannot squeeze the Status co
     assert.ok(page.includes('xl:max-w-56 xl:truncate'));
     assert.ok(page.includes(':title="item.visit.coverageLabel"'));
 });
+
+test('the attention list shows Not ready as a plain chip with the reason as text beside it', () => {
+    assert.ok(attention.includes('label="Not ready"'));
+    assert.ok(/\{\{\s*item\.notReadyReason\s*\}\}/.test(attention));
+    assert.ok(!/·\s*\{\{\s*item\.notReadyReason/.test(attention));
+    assert.ok(!attention.includes('`Not ready — ${item.notReadyReason}`'));
+});

@@ -55,12 +55,15 @@ const shown = computed(() =>
                         Show in list
                     </button>
                 </div>
-                <V2Chip
+                <p
                     v-if="item.notReadyReason"
-                    class="self-start"
-                    tone="warning"
-                    :label="`Not ready — ${item.notReadyReason}`"
-                />
+                    class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground"
+                >
+                    <V2Chip tone="warning" label="Not ready" />
+                    <span class="min-w-0 break-words">{{
+                        item.notReadyReason
+                    }}</span>
+                </p>
             </li>
         </ul>
         <button
