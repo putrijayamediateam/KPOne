@@ -172,11 +172,25 @@ test('only the Classic identifier messages are shown, so a server message cannot
 });
 
 test('the pending request line keeps a space between the verb and the KP number', () => {
-    assert.ok(/\{\{ ' '\s*\}\}<span class="font-mono">/.test(merge));
+    assert.ok(/\{\{ ' '\s*\}\}<span class="font-mono[^"]*">/.test(merge));
 });
 
 test('no eyebrow repeats the crumb, and the identifier dialog hints the format without echoing', () => {
     assert.ok(!page.includes(':eyebrow='));
     assert.ok(page.includes('For example 900101-01-5555'));
     assert.ok(page.includes("'Passport number'"));
+});
+
+test('merge dialogs say what will happen, with unbreakable KP numbers', () => {
+    assert.ok(merge.includes("replaceAll('-', '\\u2011')"));
+    assert.ok(merge.includes('will be hidden and kept as a merged record'));
+    assert.ok(merge.includes('keep their own KP number'));
+    assert.ok(merge.includes('You can undo this later with another approval'));
+    assert.ok(merge.includes('stay exactly as they are'));
+    assert.ok(
+        merge.includes('becomes visible again as its own record') ||
+            merge.includes('become visible again as its own record'),
+    );
+    assert.ok(!merge.includes('This takes effect straight away'));
+    assert.ok(!/border-warning\/40 bg-warning\/10/.test(merge));
 });

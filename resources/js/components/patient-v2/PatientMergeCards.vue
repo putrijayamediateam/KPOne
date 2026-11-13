@@ -46,6 +46,10 @@ const reasonOptions = (options: Option[]) => [
     ...options,
 ];
 
+// A KP number must not break at its hyphen in a title or sentence: use the non-breaking hyphen.
+const nb = (kp: string | null | undefined) =>
+    (kp ?? '').replaceAll('-', '\u2011');
+
 const outlineButton =
     'inline-flex h-11 items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 lg:h-9';
 
@@ -206,49 +210,62 @@ const dialog = computed(() => {
         return null;
     }
 
+    const kept = nb(props.patientNumber);
+
     if (c.kind === 'propose') {
+        const other = nb(
+            comparison.value?.other.patientNumber ?? 'The duplicate',
+        );
+
         return {
             title: 'Send this merge for approval?',
-            description: `This record (${props.patientNumber}) is kept and ${comparison.value?.other.patientNumber ?? 'the duplicate'} is hidden, never deleted. A different CA Supervisor or Director must approve it, and it can be undone.`,
+            description: `Nothing changes until a different CA Supervisor or Director approves. Then ${other} will be hidden and kept as a merged record, and ${kept} stays. Nothing is deleted or moved: visits, invoices and documents keep their own KP number. It can be undone later.`,
             confirmLabel: 'Send for approval',
             tone: 'default' as const,
         };
     }
 
     if (c.kind === 'unmerge') {
+        const other = nb(c.record.patientNumber);
+
         return {
-            title: `Ask to unmerge ${c.record.patientNumber}?`,
-            description:
-                'A different CA Supervisor or Director must approve before the record comes back.',
+            title: `Ask to unmerge ${other}?`,
+            description: `Nothing changes until a different CA Supervisor or Director approves. Then ${other} becomes visible again as its own record, exactly as before. Visits registered on ${kept} after the merge stay with ${kept}.`,
             confirmLabel: 'Send for approval',
             tone: 'default' as const,
         };
     }
 
     const request = c.request;
+    const merged = nb(request.mergedPatientNumber);
+    const keptNumber = nb(request.keptPatientNumber);
 
     if (c.kind === 'approve') {
-        return {
-            title:
-                request.kind === 'merge'
-                    ? `Approve merging ${request.mergedPatientNumber} into ${request.keptPatientNumber}?`
-                    : `Approve unmerging ${request.mergedPatientNumber} from ${request.keptPatientNumber}?`,
-            description: 'This takes effect straight away.',
-            confirmLabel: 'Approve',
-            tone: 'default' as const,
-        };
+        return request.kind === 'merge'
+            ? {
+                  title: `Approve merging ${merged} into ${keptNumber}?`,
+                  description: `${merged} will be hidden and kept as a merged record. Its visits, invoices and documents keep their own KP number and are listed with ${keptNumber}. You can undo this later with another approval.`,
+                  confirmLabel: 'Approve',
+                  tone: 'default' as const,
+              }
+            : {
+                  title: `Approve unmerging ${merged} from ${keptNumber}?`,
+                  description: `${merged} will become visible again as its own record, exactly as before. Visits registered on ${keptNumber} after the merge stay with ${keptNumber}.`,
+                  confirmLabel: 'Approve',
+                  tone: 'default' as const,
+              };
     }
 
     return c.kind === 'reject'
         ? {
               title: 'Reject this request?',
-              description: 'The records stay as they are.',
+              description: `The request is closed and nothing changes: ${merged} and ${keptNumber} stay exactly as they are.`,
               confirmLabel: 'Reject',
               tone: 'danger' as const,
           }
         : {
               title: 'Withdraw your request?',
-              description: 'The records stay as they are.',
+              description: `Your request is closed before anyone approves it. Nothing changes: ${merged} and ${keptNumber} stay exactly as they are.`,
               confirmLabel: 'Withdraw',
               tone: 'default' as const,
           };
@@ -322,7 +339,7 @@ const rows = (summary: Summary) => [
                 class="flex flex-col gap-2 rounded-[10px] border p-3 text-sm sm:flex-row sm:items-center sm:justify-between"
             >
                 <div class="min-w-0 break-words">
-                    <span class="font-mono font-medium">{{
+                    <span class="font-mono font-medium whitespace-nowrap">{{
                         record.patientNumber
                     }}</span>
                     · {{ record.fullName }} · merged
@@ -346,10 +363,16 @@ const rows = (summary: Summary) => [
 
         <section
             v-if="merge.pending.length"
-            class="flex min-w-0 flex-col gap-3 rounded-[14px] border border-warning/40 bg-warning/10 p-5"
+            class="flex min-w-0 flex-col gap-3 rounded-[14px] border border-border bg-card p-5"
             data-testid="pending-merges"
         >
-            <h2 class="text-base font-semibold">Waiting for approval</h2>
+            <h2 class="flex items-center gap-2 text-base font-semibold">
+                <span
+                    class="size-2.5 shrink-0 rounded-full bg-warning"
+                    aria-hidden="true"
+                ></span
+                >Waiting for approval
+            </h2>
             <div
                 v-for="request in merge.pending"
                 :key="request.publicId"
@@ -360,11 +383,11 @@ const rows = (summary: Summary) => [
                         request.kind === 'merge' ? 'Merge' : 'Unmerge'
                     }}</span>
                     {{ ' '
-                    }}<span class="font-mono">{{
+                    }}<span class="font-mono whitespace-nowrap">{{
                         request.mergedPatientNumber
                     }}</span>
                     {{ request.kind === 'merge' ? 'into' : 'from' }}
-                    <span class="font-mono">{{
+                    <span class="font-mono whitespace-nowrap">{{
                         request.keptPatientNumber
                     }}</span>
                     · {{ request.reason }}
