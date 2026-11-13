@@ -61,6 +61,7 @@ final class ProposalInbox
                 'lockVersion' => $p->lock_version,
                 'lines' => $this->lines($p, $names),
                 'canDecide' => $this->proposals->canDecide($actor, $p, $assigned),
+                'cannotDecideReason' => $this->proposals->cannotDecideReason($actor, $p, $assigned),
             ])->values()->all(),
             'pagination' => ['page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total()],
         ];
