@@ -140,12 +140,11 @@ test('date of birth is shown in words, the nationality label is plain, errors ar
     assert.ok(page.includes('form.clearErrors(key as never)'));
 });
 
-test('leaving with unsaved changes asks first, and the rail starts at 1280 px', () => {
-    assert.ok(page.includes('Discard your changes?'));
-    assert.ok(page.includes('Keep editing'));
-    assert.ok(page.includes('Discard changes'));
-    assert.ok(/if \(dirty\.value && !form\.processing\)/.test(page));
-    assert.ok(page.includes('event.preventDefault();'));
-    assert.ok(!/<Link/.test(page));
+test('leaving with unsaved changes uses the shared V2LeaveGuard, and the rail starts at 1280 px', () => {
+    assert.ok(
+        page.includes('<V2LeaveGuard :dirty="dirty && !form.processing" />'),
+    );
+    assert.ok(page.includes(':href="patientUrl"'));
+    assert.ok(!page.includes('event.preventDefault();'));
     assert.ok(page.includes('rail-from="xl"'));
 });

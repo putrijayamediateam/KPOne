@@ -84,8 +84,11 @@ test('V2StickyBar reads the rail breakpoint from V2WorkLayout; the prop override
     assert.match(bar, /from === null\s*\? 'sm:hidden'/);
     assert.match(bar, /lg: 'lg:hidden', xl: 'xl:hidden', '2xl': '2xl:hidden'/);
     assert.match(bar, /if \(props\.always\) \{\s*return '';/);
-    assert.match(bar, /railFrom\?: RailFrom; always\?: boolean/);
-    assert.match(bar, /:class="hideFrom"/);
+    assert.match(
+        bar,
+        /railFrom\?: RailFrom;\s+always\?: boolean;\s+hideFrom\?: 'sm' \| RailFrom;/,
+    );
+    assert.match(bar, /:class="hideClass"/);
 });
 
 test('V2StickyBar: the row is capped to form width, right-aligned from 640px with natural-width buttons, stacked full-width below', () => {
