@@ -13,6 +13,8 @@ const props = defineProps<{
     row: InventoryDocument;
     branchId: number;
     nonce: string;
+    /** The branch time zone: expiry dates are judged against the branch's today. */
+    timezone: string;
     open: boolean;
 }>();
 const emit = defineEmits<{ close: [] }>();
@@ -201,41 +203,163 @@ const plural = (amount: number, unit: string) =>
         : /(s|x|z|ch|sh)$/i.test(unit)
           ? `${unit}es`
           : `${unit}s`;
-/** "Receiving adds 120 tablets of Paracetamol to Cheras Dispensary" for each included line (Daniel: it changes stock). */
-const stockSummary = computed(() =>
+/** Whole thousandths, as the server counts stock (StockUnitQuantity); null when blank or not a quantity. */
+const thousandths = (value: unknown): number | null => {
+    const match = /^(\d{1,12})(?:\.(\d{1,3}))?$/.exec(
+        String(value ?? '').trim(),
+    );
+
+    return match
+        ? Number(match[1]) * 1000 + Number((match[2] ?? '').padEnd(3, '0'))
+        : null;
+};
+const amount = (value: number) => String(value / 1000);
+/**
+ * What each included line does to stock, before the press (Daniel, page 2a change 4). It follows the counted quantity
+ * and the lots, with the server's rules (ReceivingPayload): accepted and quarantined lots enter stock, a quarantined
+ * lot's batch is held so it cannot be dispensed, a rejected lot never enters stock, and the lots must add up to the
+ * counted quantity.
+ */
+const stockSummary = computed(() => {
+    const uncounted = form.lines
+        .map((line, index) => ({ line, source: props.row.lines[index] }))
+        .filter(
+            ({ line }) =>
+                line.included && thousandths(line.physical_quantity) === null,
+        );
+    // A long order would repeat one sentence per line, so lines with nothing counted share one sentence.
+    const waiting =
+        uncounted.length === 0
+            ? []
+            : uncounted.length === 1
+              ? [
+                    `${uncounted[0].source?.item ?? uncounted[0].source?.sku}: enter the counted quantity.`,
+                ]
+              : [
+                    `Enter the counted quantity for ${uncounted.length} lines, or untick "Receive this line now".`,
+                ];
+
+    return [...lineSentences.value, ...waiting];
+});
+const lineSentences = computed(() =>
     form.lines.flatMap((line, index) => {
-        if (!line.included) {
+        const counted = thousandths(line.physical_quantity);
+
+        if (!line.included || counted === null) {
             return [];
         }
 
         const source = props.row.lines[index];
         const unit = source?.stockUnit ?? '';
+        const name = source?.item ?? source?.sku ?? '';
+
         const sum = (outcome: string) =>
             line.lots
                 .filter((entry) => entry.outcome === outcome)
                 .reduce(
-                    (total, entry) => total + (Number(entry.quantity) || 0),
+                    (total, entry) =>
+                        total + (thousandths(entry.quantity) ?? 0),
                     0,
                 );
         const accepted = sum('accepted');
         const quarantined = sum('quarantined');
-        const parts: string[] = [];
+        const rejected = sum('rejected');
+        const inLots = accepted + quarantined + rejected;
 
-        if (accepted > 0) {
-            parts.push(
-                `adds ${accepted} ${plural(accepted, unit)} of ${source?.item ?? source?.sku} to ${props.row.destination}`,
+        if (inLots === 0) {
+            return [`${name}: enter the quantity in each lot.`];
+        }
+
+        const sentences: string[] = [];
+        const entering = accepted + quarantined;
+
+        if (entering > 0) {
+            sentences.push(
+                `Receiving adds ${amount(entering)} ${plural(entering / 1000, unit)} of ${name} to ${props.row.destination}` +
+                    (quarantined > 0
+                        ? `; ${amount(quarantined)} of them ${quarantined === 1000 ? 'is' : 'are'} held aside (quarantined) and can't be dispensed.`
+                        : '.'),
+            );
+        } else {
+            sentences.push(`Nothing of ${name} is added to stock.`);
+        }
+
+        if (rejected > 0) {
+            sentences.push(
+                `${amount(rejected)} rejected ${plural(rejected / 1000, unit)} ${rejected === 1000 ? "doesn't" : "don't"} enter stock.`,
             );
         }
 
-        if (quarantined > 0) {
-            parts.push(
-                `puts ${quarantined} ${plural(quarantined, unit)} on hold (quarantined)`,
+        if (inLots !== counted) {
+            sentences.push(
+                `The lots add up to ${amount(inLots)}, but you counted ${amount(counted)}. They must match before it can post.`,
             );
         }
 
-        return parts.length ? [`Receiving ${parts.join(' and ')}.`] : [];
+        return sentences;
     }),
 );
+/** The branch's today as YYYY-MM-DD (en-CA formats dates that way). */
+const branchToday = () =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: props.timezone }).format(
+        new Date(),
+    );
+/**
+ * A plain line under each expiry box (Daniel, page 2a change 1): the native box can read month-first, so the chosen
+ * date is said in words. The server refuses an expiry before the day it is received; a batch that expires today
+ * can be received but never dispensed.
+ */
+const expiryLine = (value: string) => {
+    if (!value) {
+        return {
+            text: 'Enter the expiry date printed on the box.',
+            warn: false,
+        };
+    }
+
+    const words = formatDate(value);
+    const today = branchToday();
+
+    if (value < today) {
+        return {
+            text: `${words} has already passed. Expired stock can't be received.`,
+            warn: true,
+        };
+    }
+
+    if (value === today) {
+        return {
+            text: `Expires today, ${words}. It can be received but not dispensed.`,
+            warn: true,
+        };
+    }
+
+    return { text: `Expires ${words}`, warn: false };
+};
+const expiryProblem = ref<string | null>(null);
+/** V2 only: refuse a missing or past expiry with a plain line before sending, then send exactly as Classic. */
+const post = (review: boolean) => {
+    const today = branchToday();
+    const lots = form.lines
+        .filter((line) => line.included)
+        .flatMap((line) => line.lots);
+
+    expiryProblem.value = lots.some(
+        (entry) => entry.expiry_date && entry.expiry_date < today,
+    )
+        ? "A lot's expiry date has already passed. Expired stock can't be received."
+        : lots.some((entry) => !entry.expiry_date)
+          ? 'Enter the expiry date for every lot.'
+          : null;
+
+    if (expiryProblem.value) {
+        void nextTick(() => summary.value?.focus());
+
+        return;
+    }
+
+    submit(review);
+};
 /** Said before the press: these need a different approver first (Daniel, condition 4). */
 const needsApproval = computed(() =>
     form.lines.some(
@@ -258,16 +382,17 @@ const needsApproval = computed(() =>
         cancel-label="Cancel"
         :busy="form.processing"
         @update:open="requestClose"
-        @confirm="submit(false)"
+        @confirm="post(false)"
     >
         <div
-            v-if="costError || Object.keys(form.errors).length"
+            v-if="costError || expiryProblem || Object.keys(form.errors).length"
             ref="summary"
             tabindex="-1"
             role="alert"
             class="rounded-[14px] border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm text-destructive outline-none"
         >
             <p class="font-medium">This receipt was not saved.</p>
+            <p v-if="expiryProblem">{{ expiryProblem }}</p>
             <p v-if="costError">{{ costError }}</p>
             <p v-for="(error, key) in form.errors" :key="key">{{ error }}</p>
         </div>
@@ -378,9 +503,13 @@ const needsApproval = computed(() =>
                                 class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                             />
                             <span
-                                v-if="entry.expiry_date"
-                                class="text-xs font-normal text-muted-foreground"
-                                >{{ formatDate(entry.expiry_date) }}</span
+                                class="text-xs font-normal"
+                                :class="
+                                    expiryLine(entry.expiry_date).warn
+                                        ? 'font-medium text-warning-strong'
+                                        : 'text-muted-foreground'
+                                "
+                                >{{ expiryLine(entry.expiry_date).text }}</span
                             >
                         </label>
                         <label class="grid gap-1.5 text-sm font-medium"
@@ -432,9 +561,9 @@ const needsApproval = computed(() =>
                         @update:model-value="(value) => (entry.reason = value)"
                     />
                     <button
+                        v-if="line.lots.length > 1"
                         type="button"
-                        class="justify-self-start text-sm font-medium text-primary underline-offset-4 hover:underline disabled:text-muted-foreground disabled:no-underline"
-                        :disabled="line.lots.length === 1"
+                        class="inline-flex h-11 items-center justify-center justify-self-start rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
                         @click="line.lots.splice(number, 1)"
                     >
                         Remove lot {{ number + 1 }}
@@ -458,7 +587,7 @@ const needsApproval = computed(() =>
                 {{ sentence }}
             </p>
             <p v-if="!stockSummary.length" class="text-muted-foreground">
-                Nothing is added to stock yet.
+                No line is being received.
             </p>
             <p v-if="needsApproval" class="font-medium">
                 This delivery has an exception, so it needs a different CA
@@ -470,7 +599,7 @@ const needsApproval = computed(() =>
             type="button"
             class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted disabled:opacity-50 lg:h-9"
             :disabled="form.processing"
-            @click="submit(true)"
+            @click="post(true)"
         >
             Request exception approval
         </button>

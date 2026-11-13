@@ -26,6 +26,8 @@ import type {
 const props = defineProps<{
     operations: InventoryOperations;
     receiptMemoryContext: InventoryReceiptMemoryContext;
+    /** The branch time zone, so the receive sheet knows the branch's today for expiry dates. */
+    timezone: string;
 }>();
 
 const orders = useOrdersAndReceiving(props);
@@ -728,9 +730,9 @@ const shortCloseRow = computed(() => shortClose.row);
                 </label>
             </div>
             <button
+                v-if="purchaseOrder.lines.length > 1"
                 type="button"
-                class="justify-self-start text-sm font-medium text-primary underline-offset-4 hover:underline disabled:text-muted-foreground disabled:no-underline"
-                :disabled="purchaseOrder.lines.length === 1"
+                class="inline-flex h-11 items-center justify-center justify-self-start rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
                 @click="removePurchaseOrderLine(index)"
             >
                 Remove line {{ index + 1 }}
@@ -891,6 +893,7 @@ const shortCloseRow = computed(() => shortClose.row);
         :row="receiving"
         :branch-id="operations.expectedBranchId"
         :nonce="receiptMemoryContext.sessionNonce"
+        :timezone="timezone"
         :open="true"
         @close="receiveRow = null"
     />

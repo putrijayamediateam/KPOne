@@ -698,6 +698,7 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                     <OrdersSection
                         :operations="operations"
                         :receipt-memory-context="receiptMemoryContext"
+                        :timezone="inventory.branchTimezone"
                     />
                 </V2DisclosureBar>
                 <StockPanelBar title="Stock requests and transfers">

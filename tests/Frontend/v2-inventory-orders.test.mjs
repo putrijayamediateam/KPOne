@@ -146,7 +146,33 @@ test('2a: the receive sheet keeps the Classic verified receiving request', () =>
     assert.match(receive, /form\.idempotency_key = crypto\.randomUUID\(\);/);
     assert.match(receive, /form\.retry_key = crypto\.randomUUID\(\);/);
     // Said before the press (Daniel): what enters stock, and that an exception needs another approver.
-    assert.match(receive, /Receiving \$\{parts\.join\(' and '\)\}\./);
+    // It follows the counted quantity and the lots, with the server's rules: accepted and quarantined enter stock,
+    // quarantined is held aside, rejected never enters, and the lots must equal the counted quantity.
+    assert.match(receive, /enter the counted quantity\./);
+    assert.match(
+        receive,
+        /Enter the counted quantity for \$\{uncounted\.length\} lines/,
+    );
+    assert.match(receive, /const entering = accepted \+ quarantined;/);
+    assert.match(
+        receive,
+        /held aside \(quarantined\) and can't be dispensed\./,
+    );
+    assert.match(receive, /rejected \$\{plural\(rejected \/ 1000, unit\)\}/);
+    assert.match(receive, /They must match before it can post\./);
+    // The expiry box says the chosen date in words (it can read month-first), against the branch's today.
+    assert.match(receive, /Expires \$\{words\}/);
+    assert.match(receive, /timeZone: props\.timezone/);
+    assert.match(receive, /Expired stock can't be received\./);
+    // A missing or past expiry is refused with a plain line before sending; the send itself stays Classic's.
+    assert.match(receive, /@confirm="post\(false\)"/);
+    assert.match(receive, /@click="post\(true\)"/);
+    assert.match(block(receive, 'post'), /submit\(review\);\};/);
+    // "Remove lot N" is a real 44 px button.
+    assert.match(
+        receive,
+        /class="inline-flex h-11[^"]*"\s*@click="line\.lots\.splice\(number, 1\)"\s*>\s*Remove lot \{\{ number \+ 1 \}\}/,
+    );
     assert.match(
         receive,
         /needs a different CA\s+Supervisor, Finance Officer or Director/,
@@ -212,6 +238,8 @@ test('2a: the Classic panel leaves out suppliers and purchase orders only when t
         /v-if="operations\.permissions\.manageSuppliers && !hideOrders"/,
     );
     assert.match(classicPanel, /v-if="!hideOrders"/);
+    // It defaults to false: an optional boolean prop with no default, so Classic shows orders unless told otherwise.
+    assert.ok(!/withDefaults[\s\S]*hideOrders/.test(classicPanel));
     // Classic Inventory never passes it.
     assert.ok(
         !read('resources/js/pages/Inventory/Index.vue').includes('hide-orders'),
