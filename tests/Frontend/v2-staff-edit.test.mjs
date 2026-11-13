@@ -24,3 +24,12 @@ test('Staff/Edit is registered for V2 and sends the same fields as Classic (PATC
         assert.ok(new RegExp(`\\b${key}:`).test(page), `v2 ${key}`);
     }
 });
+
+test('Staff/Edit: plain required lines, errors clear on edit, server words for real refusals', () => {
+    assert.match(page, /Enter the full name\./);
+    assert.match(page, /Enter the work email\./);
+    assert.match(page, /Choose a department\./);
+    assert.match(page, /field is required/);
+    assert.match(page, /clear\('name'\)/);
+    assert.match(page, /form\.clearErrors\(key\)/);
+});

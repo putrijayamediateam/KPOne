@@ -25,6 +25,31 @@ const form = useForm({
 
 const submit = () => form.patch(`/staff/${props.staff.id}`);
 
+const rawError = (key: string) =>
+    (form.errors as Record<string, string | undefined>)[key];
+
+// A plain line instead of a raw field name for the standard "required" text; real refusals (an email already used)
+// keep the server's words. A field's error goes as soon as that field is edited.
+const PLAIN: Record<string, string> = {
+    name: 'Enter the full name.',
+    email: 'Enter the work email.',
+    department_id: 'Choose a department.',
+};
+
+const errorFor = (key: string): string | undefined => {
+    const message = rawError(key);
+
+    return message !== undefined &&
+        PLAIN[key] &&
+        /field is required\.?$/.test(message)
+        ? PLAIN[key]
+        : message;
+};
+
+const clear = (
+    key: 'name' | 'email' | 'staff_number' | 'job_title' | 'department_id',
+) => form.clearErrors(key);
+
 const control =
     'h-11 w-full rounded-[10px] border bg-card px-3 text-base outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9';
 const border = (error?: string) =>
@@ -47,70 +72,75 @@ const border = (error?: string) =>
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Full name"
-                            :error="form.errors.name"
+                            :error="errorFor('name')"
                         >
                             <input
                                 :id="id"
                                 v-model="form.name"
+                                @input="clear('name')"
                                 :aria-describedby="describedBy"
-                                :class="[control, border(form.errors.name)]"
+                                :class="[control, border(errorFor('name'))]"
                             />
                         </V2Field>
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Work email"
-                            :error="form.errors.email"
+                            :error="errorFor('email')"
                         >
                             <input
                                 :id="id"
                                 v-model="form.email"
+                                @input="clear('email')"
                                 type="email"
                                 :aria-describedby="describedBy"
-                                :class="[control, border(form.errors.email)]"
+                                :class="[control, border(errorFor('email'))]"
                             />
                         </V2Field>
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Staff number"
-                            :error="form.errors.staff_number"
+                            :error="errorFor('staff_number')"
                         >
                             <input
                                 :id="id"
                                 v-model="form.staff_number"
+                                @input="clear('staff_number')"
                                 :aria-describedby="describedBy"
                                 :class="[
                                     control,
-                                    border(form.errors.staff_number),
+                                    border(errorFor('staff_number')),
                                 ]"
                             />
                         </V2Field>
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Job title"
-                            :error="form.errors.job_title"
+                            :error="errorFor('job_title')"
                         >
                             <input
                                 :id="id"
                                 v-model="form.job_title"
+                                @input="clear('job_title')"
                                 :aria-describedby="describedBy"
                                 :class="[
                                     control,
-                                    border(form.errors.job_title),
+                                    border(errorFor('job_title')),
                                 ]"
                             />
                         </V2Field>
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Department"
-                            :error="form.errors.department_id"
+                            :error="errorFor('department_id')"
                         >
                             <select
                                 :id="id"
                                 v-model="form.department_id"
+                                @change="clear('department_id')"
                                 :aria-describedby="describedBy"
                                 :class="[
                                     control,
-                                    border(form.errors.department_id),
+                                    border(errorFor('department_id')),
                                 ]"
                             >
                                 <option
