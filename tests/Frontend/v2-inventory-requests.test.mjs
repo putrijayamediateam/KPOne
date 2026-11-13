@@ -262,9 +262,15 @@ test("2b round 2: Daniel's changes (units, live sum, item names, batch quantitie
         block(receive, 'confirm'),
         /if\(!valid\.value\)\{tried\.value=true;/,
     );
+    // The reason line by the switched-off button says it once; the summary box speaks only when every line adds up.
+    assert.ok(
+        !receive.includes(
+            'Confirm receipt sends nothing until every line adds up',
+        ),
+    );
     assert.match(
         receive,
-        /!valid\s*\?\s*'Confirm receipt sends nothing until every line adds up/,
+        /v-if="valid"\s+class="rounded-\[14px\] border bg-muted\/40/,
     );
     assert.match(
         receive,
