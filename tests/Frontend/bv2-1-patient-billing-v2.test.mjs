@@ -207,18 +207,15 @@ test('the right column starts at 1280 px; the main action is never missing at an
     // V2StickyBar reads the layout's rail breakpoint (shown below 1280 px), so the header button shows from 1280 px.
     assert.match(page, /\[primaryButton, 'max-xl:hidden'\]/);
     assert.match(page, /<V2StickyBar\s+v-if="primary"/);
-    // The payment summary is defined once and placed by width, never twice: above the work below 1280 px, the rail from it.
-    assert.match(page, /useMediaQuery\('\(min-width: 1280px\)'\)/);
-    assert.equal(page.match(/<DefineSummary>/g).length, 1);
-    assert.match(
+    // The payment summary is rendered once in the rail, stacked above the work below 1280 px (railBelow "stack-top"),
+    // so nothing remounts (and no open dialog closes) when the width crosses 1280 px.
+    assert.match(page, /rail-below="stack-top"/);
+    assert.equal(page.match(/<template #rail>/g).length, 1);
+    assert.equal(page.match(/data-testid="billing-financial"/g).length, 1);
+    assert.doesNotMatch(
         page,
-        /<template #rail-collapsed>\s*<div v-if="!isXl"[^>]*>\s*<ReuseSummary \/>/,
+        /useMediaQuery|createReusableTemplate|#rail-collapsed/,
     );
-    assert.match(
-        page,
-        /<template #rail>\s*<template v-if="isXl">\s*<ReuseSummary \/>\s*<ReuseNotes \/>/,
-    );
-    assert.match(page, /<ReuseNotes v-if="!isXl" \/>/);
 });
 
 test('the "More billing actions" menu keeps Governed correction last, in the Danger group', () => {

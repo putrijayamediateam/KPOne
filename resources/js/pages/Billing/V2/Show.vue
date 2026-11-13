@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { Check, ChevronDown } from '@lucide/vue';
-import { createReusableTemplate, useMediaQuery } from '@vueuse/core';
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import BillingChargeRows from '@/components/billing/BillingChargeRows.vue';
 import BillingCompletionDialog from '@/components/billing/BillingCompletionDialog.vue';
@@ -103,11 +102,6 @@ onUnmounted(stopV2Success);
 // file changes.
 onMounted(() => document.body.setAttribute('data-billing-v2', ''));
 onUnmounted(() => document.body.removeAttribute('data-billing-v2'));
-
-// One payment summary, placed by width: the right column from 1280 px, above the work below it.
-const [DefineSummary, ReuseSummary] = createReusableTemplate();
-const [DefineNotes, ReuseNotes] = createReusableTemplate();
-const isXl = useMediaQuery('(min-width: 1280px)');
 
 usePageCrumbs(() => [
     ...(props.billing.backLink
@@ -300,300 +294,11 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
         </section>
     </PageFrame>
     <template v-else>
-        <DefineSummary>
-            <section :class="[card, 'p-4']" data-testid="billing-financial">
-                <template v-if="billing.invoice"
-                    ><div class="flex items-start justify-between gap-3">
-                        <div>
-                            <p class="text-[13px] text-muted-foreground">
-                                Financial summary
-                            </p>
-                            <h2 class="font-semibold">
-                                {{ billing.invoice.number ?? 'Draft Invoice' }}
-                            </h2>
-                        </div>
-                        <V2Chip v-bind="chip(billing.invoice.status)" />
-                    </div>
-                    <!-- Due now first: whose bill is in the page heading above. -->
-                    <!-- One element, so a screen reader reads the label with the figure ("Due now RM 40.00"). -->
-                    <p
-                        v-if="dueParts"
-                        class="mt-3"
-                        data-testid="billing-due-now"
-                    >
-                        <span
-                            v-if="dueParts.label"
-                            class="block text-[13px] font-medium text-muted-foreground"
-                            >{{ dueParts.label }}
-                        </span>
-                        <span
-                            class="block text-3xl leading-[1.15] font-bold tracking-tight whitespace-nowrap tabular-nums"
-                            >{{ dueParts.figure }}</span
-                        >
-                    </p>
-                    <dl
-                        class="mt-3 text-[15px]"
-                        data-testid="billing-summary-grid"
-                    >
-                        <div class="billing-summary-row-v2">
-                            <dt class="font-medium">Invoice Total</dt>
-                            <dd class="font-semibold tabular-nums">
-                                {{ myr(billing.invoice.state.total) }}
-                            </dd>
-                        </div>
-                        <div
-                            v-for="[key, label] in responsibilityTotals"
-                            :key="key"
-                            class="billing-summary-row-v2"
-                        >
-                            <dt class="text-muted-foreground">
-                                {{ label }}
-                            </dt>
-                            <dd class="tabular-nums">
-                                {{ myr(billing.invoice.state[key]) }}
-                            </dd>
-                        </div>
-                        <div class="billing-summary-row-v2">
-                            <dt class="font-medium">Outstanding</dt>
-                            <dd class="font-medium tabular-nums">
-                                {{ myr(outstandingSen(billing.invoice.state)) }}
-                            </dd>
-                        </div>
-                    </dl>
-                    <dl
-                        v-if="
-                            billing.invoice.adjustment.adjustmentSen !== 0 ||
-                            billing.invoice.refundCreditSen
-                        "
-                        class="mt-2 border-t pt-2 text-[13px]"
-                    >
-                        <div class="flex justify-between py-1">
-                            <dt>Original subtotal</dt>
-                            <dd class="tabular-nums">
-                                {{
-                                    myr(billing.invoice.adjustment.subtotalSen)
-                                }}
-                            </dd>
-                        </div>
-                        <div
-                            v-if="
-                                billing.invoice.adjustment.adjustmentSen !== 0
-                            "
-                            class="flex justify-between py-1"
-                        >
-                            <dt>
-                                {{
-                                    billing.invoice.adjustment.adjustmentSen < 0
-                                        ? 'Discount'
-                                        : 'Surcharge'
-                                }}
-                            </dt>
-                            <dd class="tabular-nums">
-                                {{
-                                    billing.invoice.adjustment.adjustmentSen < 0
-                                        ? '−'
-                                        : '+'
-                                }}{{
-                                    myr(
-                                        Math.abs(
-                                            billing.invoice.adjustment
-                                                .adjustmentSen,
-                                        ),
-                                    )
-                                }}
-                            </dd>
-                        </div>
-                        <div
-                            v-if="billing.invoice.refundCreditSen"
-                            class="flex justify-between py-1"
-                            data-testid="billing-refund-credit"
-                        >
-                            <dt>Refund credit</dt>
-                            <dd class="tabular-nums">
-                                −{{ myr(billing.invoice.refundCreditSen) }}
-                            </dd>
-                        </div>
-                    </dl>
-                    <div class="mt-3">
-                        <InvoiceAdjustmentDialog :billing="billing" />
-                    </div>
-                    <p
-                        v-if="billing.invoice.correctionHold"
-                        role="status"
-                        class="mt-3"
-                    >
-                        <V2Chip
-                            tone="warning"
-                            label="Correction hold — review required."
-                        />
-                    </p>
-                    <details
-                        v-if="billing.can.pay || billing.can.panelPropose"
-                        class="mt-3 text-[13px]"
-                    >
-                        <summary
-                            class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-[10px] border border-border px-3 font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9 [&::-webkit-details-marker]:hidden"
-                        >
-                            How to settle this invoice
-                            <ChevronDown
-                                class="size-4 transition-transform [details[open]_&]:rotate-180"
-                                aria-hidden="true"
-                            />
-                            <span class="sr-only">(opens below)</span>
-                        </summary>
-                        <p
-                            class="mt-2 rounded-[10px] bg-muted p-3 text-muted-foreground"
-                            data-testid="billing-howto"
-                        >
-                            <span class="font-semibold text-foreground"
-                                >How to settle this invoice.</span
-                            >
-                            Use Add → Record new payment for money received. Use
-                            Add → Propose Panel responsibility or Request pay
-                            later for approval, then collect any remaining
-                            patient balance.
-                        </p>
-                    </details></template
-                >
-                <p v-else class="text-[13px] text-muted-foreground">
-                    Build a draft to see the financial summary.
-                </p>
-            </section>
-
-            <section
-                v-if="billing.invoice"
-                :class="card"
-                data-testid="billing-payments"
-            >
-                <header
-                    class="flex items-center justify-between gap-2 border-b px-4 py-3"
-                >
-                    <h2 class="font-semibold">Payments</h2>
-                    <div class="flex gap-2">
-                        <ActionLink :href="`${base}/payments`" variant="outline"
-                            >Manage</ActionLink
-                        ><DropdownMenu
-                            v-if="
-                                billing.can.pay ||
-                                billing.can.panelPropose ||
-                                billing.can.deferPropose
-                            "
-                            ><DropdownMenuTrigger as-child
-                                ><Button
-                                    type="button"
-                                    variant="outline"
-                                    class="max-lg:min-h-11"
-                                    :disabled="busy"
-                                    >Add</Button
-                                ></DropdownMenuTrigger
-                            ><DropdownMenuContent align="end"
-                                ><DropdownMenuItem
-                                    v-if="billing.can.pay"
-                                    class="max-lg:min-h-11"
-                                    @select="openEntry('payment')"
-                                    >Record new payment</DropdownMenuItem
-                                ><DropdownMenuItem
-                                    v-if="billing.can.panelPropose"
-                                    class="max-lg:min-h-11"
-                                    @select="openEntry('panel')"
-                                    >Propose Panel
-                                    responsibility</DropdownMenuItem
-                                ><DropdownMenuItem
-                                    v-if="billing.can.deferPropose"
-                                    class="max-lg:min-h-11"
-                                    @select="openEntry('deferment')"
-                                    >Request pay later</DropdownMenuItem
-                                ></DropdownMenuContent
-                            ></DropdownMenu
-                        >
-                    </div>
-                </header>
-                <p
-                    v-if="!billing.payments.length"
-                    class="p-4 text-[13px] text-muted-foreground"
-                >
-                    No payments recorded.
-                </p>
-                <ul v-else class="divide-y">
-                    <li
-                        v-for="receipt in billing.payments"
-                        :key="receipt.publicId"
-                        class="p-4"
-                    >
-                        <!-- Rail-safe: the method takes the free width and wraps by word; the amount never shrinks. -->
-                        <div
-                            class="flex items-start justify-between gap-2"
-                            data-testid="rail-payment-row"
-                        >
-                            <span
-                                class="min-w-0 font-semibold [overflow-wrap:break-word]"
-                                >{{ receipt.method }}</span
-                            ><span
-                                class="shrink-0 whitespace-nowrap tabular-nums"
-                                >{{ myr(receipt.amountSen) }}</span
-                            >
-                        </div>
-                        <p class="mt-1 text-[13px] text-muted-foreground">
-                            {{ receipt.number }} ·
-                            {{ receipt.receivedAt }}
-                        </p>
-                        <V2Chip
-                            class="mt-1"
-                            v-bind="
-                                chip(
-                                    receipt.status,
-                                    receiptTone(receipt.status),
-                                )
-                            "
-                        />
-                        <p
-                            v-if="receipt.refundedSen"
-                            class="mt-1 text-[13px] text-muted-foreground tabular-nums"
-                            data-testid="payment-refunded"
-                        >
-                            Refunded
-                            {{ myr(receipt.refundedSen) }} ·
-                            {{ myr(receipt.amountSen - receipt.refundedSen) }}
-                            kept
-                        </p>
-                        <p
-                            v-if="receipt.recordedBy"
-                            class="mt-1 text-[13px] break-words text-muted-foreground"
-                        >
-                            Recorded by {{ receipt.recordedBy }}
-                        </p>
-                    </li>
-                </ul>
-            </section>
-        </DefineSummary>
-        <DefineNotes
-            ><section
-                v-if="billing.billTo || billing.notes"
-                :class="[card, 'divide-y']"
-            >
-                <div v-if="billing.billTo" class="p-4">
-                    <h2
-                        class="mb-2 text-[13px] font-medium text-muted-foreground"
-                    >
-                        Invoice
-                    </h2>
-                    <InvoiceBillTo :context="billing.billTo" />
-                </div>
-                <div
-                    v-if="billing.notes"
-                    class="flex flex-wrap items-center justify-between gap-2 p-4"
-                >
-                    <span class="text-[13px] font-medium text-muted-foreground"
-                        >Invoice notes</span
-                    >
-                    <InvoiceNotes :context="billing.notes" />
-                </div>
-            </section>
-        </DefineNotes>
         <PageFrame class="billing-v2-page" data-testid="billing-columns">
             <V2WorkLayout
                 eyebrow="Visit"
                 rail-from="xl"
+                rail-below="stack-top"
                 rail-label="Payment summary"
                 :title="title"
                 :description="description"
@@ -1106,8 +811,6 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         later are not cash receipts.
                     </p>
 
-                    <ReuseNotes v-if="!isXl" />
-
                     <BillingCompletionDialog
                         v-if="billing.invoice"
                         v-model:open="completionOpen"
@@ -1140,18 +843,333 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         </div>
                     </V2StickyBar>
                 </template>
-                <!-- Below 1280 px the payment summary leads the page; from 1280 px it is the right column. Rendered in one
-                     place at a time, so no test id, dialog or form appears twice. -->
-                <template #rail-collapsed>
-                    <div v-if="!isXl" class="flex flex-col gap-4">
-                        <ReuseSummary />
-                    </div>
-                </template>
+                <!-- The payment summary: the right column from 1280 px, stacked above the work below it (railBelow
+                     "stack-top"). Rendered once, so nothing remounts when the width changes. -->
                 <template #rail>
-                    <template v-if="isXl">
-                        <ReuseSummary />
-                        <ReuseNotes />
-                    </template>
+                    <section
+                        :class="[card, 'p-4']"
+                        data-testid="billing-financial"
+                    >
+                        <template v-if="billing.invoice"
+                            ><div
+                                class="flex items-start justify-between gap-3"
+                            >
+                                <div>
+                                    <p
+                                        class="text-[13px] text-muted-foreground"
+                                    >
+                                        Financial summary
+                                    </p>
+                                    <h2 class="font-semibold">
+                                        {{
+                                            billing.invoice.number ??
+                                            'Draft Invoice'
+                                        }}
+                                    </h2>
+                                </div>
+                                <V2Chip v-bind="chip(billing.invoice.status)" />
+                            </div>
+                            <!-- Due now first: whose bill is in the page heading above. -->
+                            <!-- One element, so a screen reader reads the label with the figure ("Due now RM 40.00"). -->
+                            <p
+                                v-if="dueParts"
+                                class="mt-3"
+                                data-testid="billing-due-now"
+                            >
+                                <span
+                                    v-if="dueParts.label"
+                                    class="block text-[13px] font-medium text-muted-foreground"
+                                    >{{ dueParts.label }}
+                                </span>
+                                <span
+                                    class="block text-3xl leading-[1.15] font-bold tracking-tight whitespace-nowrap tabular-nums"
+                                    >{{ dueParts.figure }}</span
+                                >
+                            </p>
+                            <dl
+                                class="mt-3 text-[15px]"
+                                data-testid="billing-summary-grid"
+                            >
+                                <div class="billing-summary-row-v2">
+                                    <dt class="font-medium">Invoice Total</dt>
+                                    <dd class="font-semibold tabular-nums">
+                                        {{ myr(billing.invoice.state.total) }}
+                                    </dd>
+                                </div>
+                                <div
+                                    v-for="[key, label] in responsibilityTotals"
+                                    :key="key"
+                                    class="billing-summary-row-v2"
+                                >
+                                    <dt class="text-muted-foreground">
+                                        {{ label }}
+                                    </dt>
+                                    <dd class="tabular-nums">
+                                        {{ myr(billing.invoice.state[key]) }}
+                                    </dd>
+                                </div>
+                                <div class="billing-summary-row-v2">
+                                    <dt class="font-medium">Outstanding</dt>
+                                    <dd class="font-medium tabular-nums">
+                                        {{
+                                            myr(
+                                                outstandingSen(
+                                                    billing.invoice.state,
+                                                ),
+                                            )
+                                        }}
+                                    </dd>
+                                </div>
+                            </dl>
+                            <dl
+                                v-if="
+                                    billing.invoice.adjustment.adjustmentSen !==
+                                        0 || billing.invoice.refundCreditSen
+                                "
+                                class="mt-2 border-t pt-2 text-[13px]"
+                            >
+                                <div class="flex justify-between py-1">
+                                    <dt>Original subtotal</dt>
+                                    <dd class="tabular-nums">
+                                        {{
+                                            myr(
+                                                billing.invoice.adjustment
+                                                    .subtotalSen,
+                                            )
+                                        }}
+                                    </dd>
+                                </div>
+                                <div
+                                    v-if="
+                                        billing.invoice.adjustment
+                                            .adjustmentSen !== 0
+                                    "
+                                    class="flex justify-between py-1"
+                                >
+                                    <dt>
+                                        {{
+                                            billing.invoice.adjustment
+                                                .adjustmentSen < 0
+                                                ? 'Discount'
+                                                : 'Surcharge'
+                                        }}
+                                    </dt>
+                                    <dd class="tabular-nums">
+                                        {{
+                                            billing.invoice.adjustment
+                                                .adjustmentSen < 0
+                                                ? '−'
+                                                : '+'
+                                        }}{{
+                                            myr(
+                                                Math.abs(
+                                                    billing.invoice.adjustment
+                                                        .adjustmentSen,
+                                                ),
+                                            )
+                                        }}
+                                    </dd>
+                                </div>
+                                <div
+                                    v-if="billing.invoice.refundCreditSen"
+                                    class="flex justify-between py-1"
+                                    data-testid="billing-refund-credit"
+                                >
+                                    <dt>Refund credit</dt>
+                                    <dd class="tabular-nums">
+                                        −{{
+                                            myr(billing.invoice.refundCreditSen)
+                                        }}
+                                    </dd>
+                                </div>
+                            </dl>
+                            <div class="mt-3">
+                                <InvoiceAdjustmentDialog :billing="billing" />
+                            </div>
+                            <p
+                                v-if="billing.invoice.correctionHold"
+                                role="status"
+                                class="mt-3"
+                            >
+                                <V2Chip
+                                    tone="warning"
+                                    label="Correction hold — review required."
+                                />
+                            </p>
+                            <details
+                                v-if="
+                                    billing.can.pay || billing.can.panelPropose
+                                "
+                                class="mt-3 text-[13px]"
+                            >
+                                <summary
+                                    class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-[10px] border border-border px-3 font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9 [&::-webkit-details-marker]:hidden"
+                                >
+                                    How to settle this invoice
+                                    <ChevronDown
+                                        class="size-4 transition-transform [details[open]_&]:rotate-180"
+                                        aria-hidden="true"
+                                    />
+                                    <span class="sr-only">(opens below)</span>
+                                </summary>
+                                <p
+                                    class="mt-2 rounded-[10px] bg-muted p-3 text-muted-foreground"
+                                    data-testid="billing-howto"
+                                >
+                                    <span class="font-semibold text-foreground"
+                                        >How to settle this invoice.</span
+                                    >
+                                    Use Add → Record new payment for money
+                                    received. Use Add → Propose Panel
+                                    responsibility or Request pay later for
+                                    approval, then collect any remaining patient
+                                    balance.
+                                </p>
+                            </details></template
+                        >
+                        <p v-else class="text-[13px] text-muted-foreground">
+                            Build a draft to see the financial summary.
+                        </p>
+                    </section>
+
+                    <section
+                        v-if="billing.invoice"
+                        :class="card"
+                        data-testid="billing-payments"
+                    >
+                        <header
+                            class="flex items-center justify-between gap-2 border-b px-4 py-3"
+                        >
+                            <h2 class="font-semibold">Payments</h2>
+                            <div class="flex gap-2">
+                                <ActionLink
+                                    :href="`${base}/payments`"
+                                    variant="outline"
+                                    >Manage</ActionLink
+                                ><DropdownMenu
+                                    v-if="
+                                        billing.can.pay ||
+                                        billing.can.panelPropose ||
+                                        billing.can.deferPropose
+                                    "
+                                    ><DropdownMenuTrigger as-child
+                                        ><Button
+                                            type="button"
+                                            variant="outline"
+                                            class="max-lg:min-h-11"
+                                            :disabled="busy"
+                                            >Add</Button
+                                        ></DropdownMenuTrigger
+                                    ><DropdownMenuContent align="end"
+                                        ><DropdownMenuItem
+                                            v-if="billing.can.pay"
+                                            class="max-lg:min-h-11"
+                                            @select="openEntry('payment')"
+                                            >Record new
+                                            payment</DropdownMenuItem
+                                        ><DropdownMenuItem
+                                            v-if="billing.can.panelPropose"
+                                            class="max-lg:min-h-11"
+                                            @select="openEntry('panel')"
+                                            >Propose Panel
+                                            responsibility</DropdownMenuItem
+                                        ><DropdownMenuItem
+                                            v-if="billing.can.deferPropose"
+                                            class="max-lg:min-h-11"
+                                            @select="openEntry('deferment')"
+                                            >Request pay later</DropdownMenuItem
+                                        ></DropdownMenuContent
+                                    ></DropdownMenu
+                                >
+                            </div>
+                        </header>
+                        <p
+                            v-if="!billing.payments.length"
+                            class="p-4 text-[13px] text-muted-foreground"
+                        >
+                            No payments recorded.
+                        </p>
+                        <ul v-else class="divide-y">
+                            <li
+                                v-for="receipt in billing.payments"
+                                :key="receipt.publicId"
+                                class="p-4"
+                            >
+                                <!-- Rail-safe: the method takes the free width and wraps by word; the amount never shrinks. -->
+                                <div
+                                    class="flex items-start justify-between gap-2"
+                                    data-testid="rail-payment-row"
+                                >
+                                    <span
+                                        class="min-w-0 font-semibold [overflow-wrap:break-word]"
+                                        >{{ receipt.method }}</span
+                                    ><span
+                                        class="shrink-0 whitespace-nowrap tabular-nums"
+                                        >{{ myr(receipt.amountSen) }}</span
+                                    >
+                                </div>
+                                <p
+                                    class="mt-1 text-[13px] text-muted-foreground"
+                                >
+                                    {{ receipt.number }} ·
+                                    {{ receipt.receivedAt }}
+                                </p>
+                                <V2Chip
+                                    class="mt-1"
+                                    v-bind="
+                                        chip(
+                                            receipt.status,
+                                            receiptTone(receipt.status),
+                                        )
+                                    "
+                                />
+                                <p
+                                    v-if="receipt.refundedSen"
+                                    class="mt-1 text-[13px] text-muted-foreground tabular-nums"
+                                    data-testid="payment-refunded"
+                                >
+                                    Refunded
+                                    {{ myr(receipt.refundedSen) }} ·
+                                    {{
+                                        myr(
+                                            receipt.amountSen -
+                                                receipt.refundedSen,
+                                        )
+                                    }}
+                                    kept
+                                </p>
+                                <p
+                                    v-if="receipt.recordedBy"
+                                    class="mt-1 text-[13px] break-words text-muted-foreground"
+                                >
+                                    Recorded by {{ receipt.recordedBy }}
+                                </p>
+                            </li>
+                        </ul>
+                    </section>
+                    <section
+                        v-if="billing.billTo || billing.notes"
+                        :class="[card, 'divide-y']"
+                    >
+                        <div v-if="billing.billTo" class="p-4">
+                            <h2
+                                class="mb-2 text-[13px] font-medium text-muted-foreground"
+                            >
+                                Invoice
+                            </h2>
+                            <InvoiceBillTo :context="billing.billTo" />
+                        </div>
+                        <div
+                            v-if="billing.notes"
+                            class="flex flex-wrap items-center justify-between gap-2 p-4"
+                        >
+                            <span
+                                class="text-[13px] font-medium text-muted-foreground"
+                                >Invoice notes</span
+                            >
+                            <InvoiceNotes :context="billing.notes" />
+                        </div>
+                    </section>
                 </template>
             </V2WorkLayout>
         </PageFrame>
