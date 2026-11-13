@@ -172,4 +172,24 @@ class V2ShellNavigationTest extends VisitTestCase
         // used because building their sidebar costs a query; an eager prop fails this test with 13 against 12.)
         $this->assertSame($off, $on);
     }
+
+    public function test_pages_in_the_management_space_get_the_clinic_management_crumb_while_the_sidebar_keeps_management(): void
+    {
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $this->turnOn($director);
+
+        $this->get('/staff')->assertOk()->assertInertia(fn (Assert $p) => $p
+            ->where('workspace.shell.current', ['key' => 'management', 'title' => 'Clinic management', 'href' => '/clinic-management']));
+
+        $shell = app(V2ShellNavigation::class)->for($director, 'branches');
+        $this->assertSame('Clinic management', $shell['current']['title'] ?? null);
+        // The sidebar item and the space home keep their own name.
+        $items = array_merge(...array_column($shell['groups'], 'items'));
+        $management = array_values(array_filter($items, fn (array $item) => $item['key'] === 'management'))[0];
+        $this->assertSame('Management', $management['title']);
+        $this->assertSame('/spaces/management', $management['href']);
+        // Other spaces are unchanged.
+        $this->assertSame('Billing', app(V2ShellNavigation::class)->for($director, 'billing/work')['current']['title'] ?? null);
+    }
 }
