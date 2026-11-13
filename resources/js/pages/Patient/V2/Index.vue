@@ -158,7 +158,7 @@ const linkButton =
                                         :href="
                                             patientHref(patient.patientNumber)
                                         "
-                                        class="block text-sm font-medium text-primary hover:underline"
+                                        class="-my-1.5 block py-1.5 text-sm font-medium text-primary hover:underline max-xl:-my-2.5 max-xl:py-2.5"
                                         >{{ patient.fullName }}</Link
                                     >
                                     <span
