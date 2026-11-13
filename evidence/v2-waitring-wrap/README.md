@@ -1,0 +1,1 @@
+WaitRing '1193 min · very long wait' in cells 140, 110, 90 and 260 px wide (specimen). Before: the ring box shrank to 22, 16, 13 px while its 36 px drawing stayed, so the ring sat on the text. After: ring 36 px at every width, text starts at 75 px and wraps by word inside the cell.
