@@ -2,7 +2,6 @@
 import { computed, reactive, ref, watch } from 'vue';
 import V2PhoneField from '@/components/registration-v2/V2PhoneField.vue';
 import { DateField } from '@/components/ui/date-field';
-import { OperationalSelect } from '@/components/ui/select';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
@@ -96,8 +95,7 @@ const genderOptions = [
     { value: 'indeterminate', label: 'Indeterminate' },
     { value: 'unknown', label: 'Unknown' },
 ];
-const relationshipOptions = [
-    { value: '', label: 'Choose a relationship' },
+const relationshipChoices = [
     { value: 'mother', label: 'Mother' },
     { value: 'father', label: 'Father' },
     { value: 'legal_guardian', label: 'Legal guardian' },
@@ -304,18 +302,14 @@ const inputClass =
                 Add guardian contact
             </button>
             <div v-else class="grid min-w-0 gap-4 md:grid-cols-2">
-                <V2Field
-                    label="Relationship"
-                    :error="err('guardian.relationship')"
-                >
-                    <template #default>
-                        <OperationalSelect
-                            v-model="fields.guardian.relationship"
-                            label="Relationship"
-                            :options="relationshipOptions"
-                        />
-                    </template>
-                </V2Field>
+                <div class="md:col-span-2">
+                    <V2OptionGroup
+                        v-model="fields.guardian.relationship"
+                        label="Relationship"
+                        :options="relationshipChoices"
+                        :error="err('guardian.relationship')"
+                    />
+                </div>
                 <V2Field
                     label="Guardian full name"
                     :error="err('guardian.full_name')"
@@ -332,36 +326,19 @@ const inputClass =
                         />
                     </template>
                 </V2Field>
-                <V2Field
-                    label="Phone country (2-letter code)"
-                    :error="err('guardian.phone_country')"
-                >
-                    <template #default="{ id, describedBy, invalid }">
-                        <input
-                            :id="id"
-                            v-model="fields.guardian.phone_country"
-                            :aria-describedby="describedBy"
-                            :aria-invalid="invalid"
-                            maxlength="2"
-                            autocomplete="off"
-                            :class="[inputClass, 'uppercase']"
-                        />
-                    </template>
-                </V2Field>
-                <V2Field label="Guardian phone" :error="err('guardian.phone')">
-                    <template #default="{ id, describedBy, invalid }">
-                        <input
-                            :id="id"
-                            v-model="fields.guardian.phone"
-                            :aria-describedby="describedBy"
-                            :aria-invalid="invalid"
-                            type="tel"
-                            maxlength="64"
-                            autocomplete="off"
-                            :class="inputClass"
-                        />
-                    </template>
-                </V2Field>
+                <div class="md:col-span-2">
+                    <V2PhoneField
+                        id="guardian-phone"
+                        v-model="fields.guardian.phone"
+                        v-model:country="fields.guardian.phone_country"
+                        label="Guardian phone"
+                        empty-label="Choose a country"
+                        :error="
+                            err('guardian.phone') ||
+                            err('guardian.phone_country')
+                        "
+                    />
+                </div>
                 <div class="md:col-span-2">
                     <V2Field
                         label="Guardian email (optional)"
