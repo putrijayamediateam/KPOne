@@ -50,5 +50,6 @@ return [
         'Billing/Show',
         'Agents/Assistant',
         'Agents/DailySummary',
+        'Inventory/TreatmentUsage',
     ],
 ];
