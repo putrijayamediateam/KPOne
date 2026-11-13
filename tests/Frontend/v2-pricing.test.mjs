@@ -86,7 +86,7 @@ test('V2 keeps the publish permission and the scheduled-price line', () => {
     assert.match(v2, /v-if="canPublish"/);
     assert.match(
         v2,
-        /Next: RM \$\{[^}]*\} from \$\{charge\.scheduledPrice\.effectiveLabel\}/,
+        /Next: RM \$\{[^}]*\} from \$\{charge\.scheduledPrice\.effectiveLabel/,
     );
     assert.ok(v2.includes('Publish price'));
 });
@@ -182,4 +182,19 @@ test('a stale price shows in its own alert, never on the amount field; Reload ke
     assert.match(reload, /target\.value = fresh;/);
     assert.doesNotMatch(reload, /router\.post|submit\(/);
     assert.doesNotMatch(reload, /form\.amount =|form\.priceBook =/);
+});
+
+test("Daniel's last four: reload status line, 'No price' in words, Next line on its own row, a reason when the person cannot publish", () => {
+    assert.match(v2, /data-test="publish-reloaded"/);
+    assert.match(v2, /role="status"/);
+    assert.ok(v2.includes('Prices reloaded.'));
+    assert.match(publish, /form\.reloaded = true;/);
+    assert.match(v2, /data-test="no-price"/);
+    assert.ok(v2.includes('>No price</span'));
+    assert.match(v2, /data-test="next-price-row"/);
+    assert.ok(v2.includes('\\u00A0$1'));
+    assert.ok(v2.includes("id: 'publish-disabled'"));
+    assert.ok(v2.includes('allowed: false'));
+    assert.ok(v2.includes("You can't publish prices with your role."));
+    assert.match(v2, /data-test="cannot-publish-note"/);
 });

@@ -35,6 +35,7 @@ export function usePricingPublish(
         busy: false,
         error: '',
         stale: false,
+        reloaded: false,
     });
     const open = computed({
         get: () => target.value !== null,
@@ -53,6 +54,7 @@ export function usePricingPublish(
         form.busy = false;
         form.error = '';
         form.stale = false;
+        form.reloaded = false;
         target.value = charge;
     };
 
@@ -86,6 +88,7 @@ export function usePricingPublish(
         form.busy = true;
         form.error = '';
         form.stale = false;
+        form.reloaded = false;
         router.post(
             `/pricing/charges/${charge.publicId}/publish`,
             {
@@ -128,6 +131,8 @@ export function usePricingPublish(
                     target.value = fresh;
                     form.error = '';
                     form.stale = false;
+                    // Said in words in the dialog, so nobody wonders whether the reload ran.
+                    form.reloaded = true;
                 } else {
                     target.value = null;
                 }

@@ -122,12 +122,16 @@ const priceText = (charge: ChargeRow) =>
     charge.currentPrice && charge.currentPrice.amountSen !== null
         ? `RM ${(charge.currentPrice.amountSen / 100).toFixed(2)}`
         : '—';
+// A non-breaking space keeps "9:22 AM" together, so "AM" never sits alone on a line.
 const scheduledText = (charge: ChargeRow) =>
     charge.scheduledPrice
-        ? `Next: RM ${(charge.scheduledPrice.amountSen / 100).toFixed(2)} from ${charge.scheduledPrice.effectiveLabel}`
+        ? `Next: RM ${(charge.scheduledPrice.amountSen / 100).toFixed(2)} from ${charge.scheduledPrice.effectiveLabel.replace(/ (AM|PM)$/, '\u00A0$1')}`
         : null;
+const hasPrice = (charge: ChargeRow) =>
+    !!charge.currentPrice && charge.currentPrice.amountSen !== null;
 
 // --- row menu
+const PUBLISH_REASON = "You can't publish prices with your role.";
 const menuFor = (charge: ChargeRow): RowMenuGroup[] => [
     {
         label: 'Open',
@@ -140,6 +144,21 @@ const menuFor = (charge: ChargeRow): RowMenuGroup[] => [
             },
         ],
     },
+    ...(props.canPublish
+        ? []
+        : [
+              {
+                  label: 'Money',
+                  items: [
+                      {
+                          id: 'publish-disabled',
+                          label: 'Publish price',
+                          allowed: false,
+                          reason: PUBLISH_REASON,
+                      },
+                  ],
+              },
+          ]),
     {
         label: 'Status',
         items: [
@@ -335,6 +354,14 @@ const submitCharge = () => {
             </template>
 
             <template #main>
+                <p
+                    v-if="!canPublish"
+                    class="text-sm text-muted-foreground"
+                    data-test="cannot-publish-note"
+                >
+                    {{ PUBLISH_REASON }} You can still see current prices and
+                    open Price history.
+                </p>
                 <V2DisclosureBar
                     v-if="noPrice.length"
                     :title="`${noPrice.length} ${noPrice.length === 1 ? 'charge has' : 'charges have'} no price`"
@@ -477,14 +504,31 @@ const submitCharge = () => {
                                                     : 'Inactive'
                                             "
                                         />
-                                        {{ priceText(charge) }}</span
+                                        <span
+                                            v-if="hasPrice(charge)"
+                                            data-test="price"
+                                            >{{ priceText(charge) }}</span
+                                        >
+                                        <span
+                                            v-else
+                                            class="text-muted-foreground"
+                                            data-test="no-price"
+                                            >No price</span
+                                        ></span
                                     >
                                     <span
                                         v-if="scheduledText(charge)"
-                                        class="text-xs text-muted-foreground xl:whitespace-nowrap"
+                                        class="text-xs whitespace-nowrap text-muted-foreground max-xl:hidden"
                                         >{{ scheduledText(charge) }}</span
                                     >
                                 </div>
+                            </td>
+                            <td
+                                v-if="scheduledText(charge)"
+                                class="text-xs text-muted-foreground xl:hidden"
+                                data-test="next-price-row"
+                            >
+                                {{ scheduledText(charge) }}
                             </td>
                             <td data-label="Status" class="max-xl:hidden!">
                                 <V2Chip
@@ -551,6 +595,15 @@ const submitCharge = () => {
                     {{ bookScheduled }}
                 </p>
             </div>
+            <p
+                v-if="publish.form.reloaded"
+                role="status"
+                class="rounded-[10px] border border-primary/40 bg-primary/5 px-3 py-2 text-sm"
+                data-test="publish-reloaded"
+            >
+                Prices reloaded. Check the current price, then press Publish
+                price.
+            </p>
             <div
                 v-if="publish.form.stale"
                 role="alert"
