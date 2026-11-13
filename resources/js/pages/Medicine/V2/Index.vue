@@ -24,6 +24,7 @@ import type {
 } from '@/composables/medicine/useMedicineForm';
 import { useMedicineRowActions } from '@/composables/medicine/useMedicineRowActions';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
+import DiscardPrompt from '@/components/catalogue-v2/DiscardPrompt.vue';
 
 /**
  * Version 2 Medicine Catalogue (shown only in V2; Classic is `pages/Medicine/Index.vue`, untouched). Same props, same
@@ -688,15 +689,11 @@ const groupsLine = (items: string[]) =>
             </div>
         </V2Dialog>
 
-        <V2Dialog
-            v-model:open="discardOpen"
-            title="Discard your changes?"
+        <DiscardPrompt
+            :open="discardOpen"
             description="You have unsaved changes on this medicine. If you close now, what you entered here is lost."
-            confirm-label="Discard changes"
-            cancel-label="Keep editing"
-            tone="danger"
-            @update:open="$event || keepEditing()"
-            @confirm="confirmDiscard()"
+            @keep="keepEditing()"
+            @discard="confirmDiscard()"
         />
     </PageFrame>
 </template>

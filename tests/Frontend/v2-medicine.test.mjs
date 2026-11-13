@@ -168,7 +168,7 @@ test("Daniel's changes: URL state, neutral Controlled chip, always-visible save 
     assert.match(formLogic, /export const takeStash/);
     assert.match(v2, /beforeunload/);
     assert.match(v2, /router\.on\('before'/);
-    assert.ok(v2.includes('Discard your changes?'));
+    assert.ok(v2.includes('<DiscardPrompt'));
     assert.match(formLogic, /const isDirty = computed/);
     // b. neutral Controlled chip (the owner's CAT-1 decision), no amber
     assert.doesNotMatch(v2, /tone="warning"/);
