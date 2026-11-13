@@ -262,11 +262,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 40. BIL-24 (2026-11-11, the owner in the Billing session, "start with 1"): make Bills to collect cheaper on a long history
     without changing what it shows; no index migration in this slice (recorded as the next step if needed).
 43. BIL-28 (2026-11-12, the owner in the Billing session): the link reads "View all bills to collect at this branch"; the owner approved changing the one existing assertion that pinned the old words (bil-3 test).
-44. BV2-0 (2026-11-13, owner "start all v2" via the coordinator; plan approved with conditions): the first try moved the workspace logic into a shared composable, but 7 existing tests mount or read the Classic file, so it was stopped. The coordinator chose option A: Classic stays byte-identical, the Version 2 page gets its own copy of the logic and a parity test pins the copy to Classic; Kumar reviews line by line; BV2-0 merges alone.
+44. BV2-0 (2026-11-13, owner "start all v2" via the coordinator; plan approved with conditions): the first try moved the workspace logic into a shared composable, but 7 existing tests would break (they mount or read the Classic file), so it was stopped. The coordinator chose option A: Classic stays byte-identical, the Version 2 page gets its own copy of the logic and a parity test pins the copy to Classic; Kumar reviews line by line; BV2-0 merges alone.
 
 ## 7. Open items and known limits
 
-- **Debt (BV2-0):** about 260 lines of the Patient Billing workspace logic exist twice, in Classic `components/billing/BillingWorkspace.vue` and the Version 2 copy `composables/billing/useBillingWorkspaceV2.ts`. The parity test fails if they differ, so a change to one must be made to both. A shared-composable refactor needs its own approval (it would edit 7 existing tests).
+- **Debt (BV2-0):** about 260 lines of the Patient Billing workspace logic exist twice, in Classic `components/billing/BillingWorkspace.vue` and the Version 2 copy `composables/billing/useBillingWorkspaceV2.ts`. The parity test fails if they differ, so a change to one must be made to both. A shared-composable refactor needs its own approval (7 existing tests would break and need edits).
 - **Walked and tested in BIL-1 (2026-11-05):** invoice void and reissue, adjustment reversal, later settlement
   of pay-later debt on a return visit, rejected and partially accepted Panel decisions
   (`tests/Feature/Billing/MoneyFlowWalkTest.php`). All worked as the rules say.
