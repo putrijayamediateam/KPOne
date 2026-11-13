@@ -12,7 +12,7 @@ import V2Dialog from './V2Dialog.vue';
  * One mechanism: this and V2Dialog's open-sheet guard both use `useLeaveGuard` (rule in `lib/v2-leave-rule.ts`). Only GET
  * visits to a different path are held. The form's own save (a PATCH or POST), a visit to the same path (a reload, a partial
  * reload, a polling refresh) and everything when `dirty` is false are never held; the listeners go when the page unmounts.
- * Browser Back stays a known limit (no history trap); `beforeunload` covers reload and closing the tab. Put it once on the page: `<V2LeaveGuard :dirty="form.isDirty" />`.
+ * Browser Back and Forward are held too (the page stays as it is and the question is asked); `beforeunload` covers reload and closing the tab. Put it once on the page: `<V2LeaveGuard :dirty="form.isDirty" />`.
  * The page decides `dirty`; after a save the redirect to the next page is part of the save and is not asked about.
  *
  * In-page actions: a same-path action (a tab, "Add another", opening a different record in the same page) is never caught by

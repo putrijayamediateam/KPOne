@@ -230,7 +230,8 @@ test('2b: Classic stays untouched by V2 and leaves out requests only when the V2
         home,
         /<V2DisclosureBar\s+title="Stock requests and transfers"\s+keep-mounted\s*>\s*<RequestsSection/,
     );
-    assert.match(home, /hide-orders\s*hide-requests/);
+    // Page 2c: the Classic Operations panel is no longer on the V2 home at all.
+    assert.ok(!home.includes('<InventoryOperationsPanel'));
 });
 
 test("2b round 2: Daniel's changes (units, live sum, item names, batch quantities, SKU hint)", () => {
@@ -281,6 +282,6 @@ test("2b round 2: Daniel's changes (units, live sum, item names, batch quantitie
         read('resources/js/lib/inventory-picker.ts'),
         /params\.set\('location', input\.location\);/,
     );
-    // Item search matches the SKU code only, so the box says so.
-    assert.match(picker, /Search by SKU code\. Up to 25 matches\./);
+    // Item search matches the name or the SKU code (owner, #724), and the box says so.
+    assert.match(picker, /Search by name or SKU code\. Up to 25 matches\./);
 });

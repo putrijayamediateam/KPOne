@@ -36,8 +36,14 @@ import { useLeaveGuard } from '@/composables/useLeaveGuard';
  * (1) A same-path visit and a partial reload or a polling visit (such as the Registration and Queue live refresh) is never held;
  * (2) a successful save never asks;
  * (3) the listener is removed when the page or sheet unmounts, so nothing keeps asking on the next page;
- * (4) browser Back stays a known limit, with `beforeunload` for reload and tab close.
+ * (4) browser Back and Forward are held too; `beforeunload` covers reload and tab close.
  * Pages need no guard of their own for an open sheet.
+ *
+ * `confirmDisabled` switches the filled action off, and `confirmDisabledReason` says why in a muted line directly above the
+ * footer (read out politely, and named by the button's `aria-describedby`). Say what is missing, then what fixes it:
+ * "Choose a supplier to continue.", "Enter the quantity received to continue.". Use it for a state the person can see and
+ * fix (a missing choice), not for a refusal that only the server can decide; those stay as an error after pressing. While
+ * `busy` the button is natively disabled with no reason line. The reason line is always in the DOM (empty when not needed) so its text is announced when it appears; with no reason the button is still aria-disabled, and the dev console warns (a silently disabled button is a bug).
  */
 const props = withDefaults(
     defineProps<{
@@ -49,6 +55,9 @@ const props = withDefaults(
         tone?: 'default' | 'danger';
         reasonLabel?: string;
         busy?: boolean;
+        /** Switches the filled action off (an aria-disabled button that stays focusable, so a keyboard user reaches it and hears the reason; pressing it does nothing) and says why in `confirmDisabledReason`. */
+        confirmDisabled?: boolean;
+        confirmDisabledReason?: string;
         /** Only the confirm button: no Cancel (for a dialog that now only says something, with a single Close). */
         singleAction?: boolean;
         size?: 'default' | 'tall';
@@ -60,6 +69,8 @@ const props = withDefaults(
         tone: 'default',
         reasonLabel: undefined,
         busy: false,
+        confirmDisabled: false,
+        confirmDisabledReason: undefined,
         singleAction: false,
         size: 'default',
         dirty: false,
@@ -169,7 +180,26 @@ const discard = () => {
     }
 };
 
+if (import.meta.env.DEV) {
+    watch(
+        () => [props.confirmDisabled, props.confirmDisabledReason],
+        ([disabled, why]) => {
+            if (disabled && !why) {
+                console.warn(
+                    'V2Dialog: confirmDisabled needs a confirmDisabledReason, so no one meets a silently disabled button.',
+                );
+            }
+        },
+        { immediate: true },
+    );
+}
+
 const submit = () => {
+    // aria-disabled keeps the button reachable by keyboard, so pressing it must do nothing.
+    if (props.confirmDisabled) {
+        return;
+    }
+
     if (props.reasonLabel && reason.value.trim() === '') {
         tried.value = true;
         nextTick(() => box.value?.focus());
@@ -272,8 +302,28 @@ const submit = () => {
                         </p>
                     </div>
                 </div>
+                <!-- Always in the DOM, so a screen reader announces the text when it appears. -->
+                <p
+                    id="v2-dialog-confirm-reason"
+                    role="status"
+                    aria-live="polite"
+                    :class="
+                        confirmDisabled && confirmDisabledReason
+                            ? 'border-t bg-card px-5 pt-3 pb-1 text-sm text-muted-foreground'
+                            : 'h-0 overflow-hidden'
+                    "
+                >
+                    <template v-if="confirmDisabled && confirmDisabledReason">{{
+                        confirmDisabledReason
+                    }}</template>
+                </p>
                 <div
-                    class="flex flex-col-reverse gap-2 border-t bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
+                    class="flex flex-col-reverse gap-2 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
+                    :class="
+                        confirmDisabled && confirmDisabledReason
+                            ? ''
+                            : 'border-t'
+                    "
                     :inert="asking"
                 >
                     <DialogClose
@@ -285,17 +335,26 @@ const submit = () => {
                     <button
                         type="button"
                         :disabled="busy"
+                        :aria-describedby="
+                            confirmDisabled && confirmDisabledReason
+                                ? 'v2-dialog-confirm-reason'
+                                : undefined
+                        "
                         :aria-disabled="
-                            reasonLabel && reason.trim() === ''
+                            confirmDisabled ||
+                            (reasonLabel && reason.trim() === '')
                                 ? 'true'
                                 : undefined
                         "
                         class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 lg:h-9"
-                        :class="
+                        :class="[
+                            confirmDisabled
+                                ? 'cursor-not-allowed opacity-50'
+                                : '',
                             tone === 'danger'
                                 ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                                : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        "
+                                : 'bg-primary text-primary-foreground hover:bg-primary/90',
+                        ]"
                         @click="submit"
                     >
                         {{ confirmLabel }}
