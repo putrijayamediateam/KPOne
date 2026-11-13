@@ -53,8 +53,8 @@ const props = withDefaults(
 );
 const emit = defineEmits<{
     'update:modelValue': [value: string];
-    /** The chosen value's words, for a page that says it in a sentence. */
-    picked: [label: string];
+    /** The chosen value's words, for a page that says it in a sentence, and a SKU's stock unit. */
+    picked: [label: string, unit: string];
 }>();
 
 const query = ref('');
@@ -77,9 +77,15 @@ const toOption = (row: InventoryPickerRow): ComboOption => {
     const id = String(row.publicId ?? row.id);
 
     if (props.kind === 'skus') {
-        // `operations` rows carry the item's name and the stock unit; `references` rows carry only the SKU code.
+        // `operations` rows carry `name` and `code`; `references` rows carry `itemName` and `skuCode` (page 2d).
         return row.skuCode
-            ? { id, label: String(row.skuCode) }
+            ? {
+                  id,
+                  label: String(row.itemName ?? row.skuCode),
+                  detail: [row.itemName ? row.skuCode : null, row.stockUnit]
+                      .filter(Boolean)
+                      .join(' · '),
+              }
             : {
                   id,
                   label: String(row.name ?? row.code),
@@ -224,7 +230,10 @@ const pick = (option: ComboOption) => {
         : option.label;
     query.value = '';
     emit('update:modelValue', option.id);
-    emit('picked', option.label);
+    const row = rows.value.find(
+        (candidate) => String(candidate.publicId ?? candidate.id) === option.id,
+    );
+    emit('picked', option.label, String(row?.stockUnit ?? ''));
 };
 
 const clear = () => {

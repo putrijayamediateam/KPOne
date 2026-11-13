@@ -8,6 +8,7 @@ import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2Picker from '@/components/v2/V2Picker.vue';
 import type { PickerOption } from '@/components/v2/V2Picker.vue';
 import { formatInventoryReason } from '@/lib/inventory-picker';
+import { quantityWithUnit } from '@/lib/inventory-v2-words';
 import { requestJson } from '@/lib/json-client';
 import { formatDate } from '@/lib/presentation';
 
@@ -282,13 +283,20 @@ const branchChoices = computed(() =>
         label: b.name,
     })),
 );
+/** A patient returns location must belong to a branch (STK-11), so "Shared" is offered only for the other types. */
 const locationBranchChoices = computed(() => [
-    { value: '', label: 'Shared (no branch)' },
+    ...(locationForm.type === 'dispensary_returns'
+        ? []
+        : [{ value: '', label: 'Shared (no branch)' }]),
     ...branchChoices.value,
 ]);
+const returnsNeedsBranch = computed(
+    () => locationForm.type === 'dispensary_returns' && !locationForm.branch_id,
+);
 /** The chosen location's and SKU's words, from the pickers, for the sentence below. */
 const openingLocation = ref('');
 const openingSku = ref('');
+const openingUnit = ref('');
 watch(
     () => [
         openingBalanceForm.location_public_id,
@@ -301,6 +309,7 @@ watch(
 
         if (!sku) {
             openingSku.value = '';
+            openingUnit.value = '';
         }
     },
 );
@@ -315,7 +324,11 @@ const openingSentence = computed(() => {
         return 'Choose the location, SKU and batch, and enter the quantity, to see what this records.';
     }
 
-    return `Records ${quantity} stock units of ${sku} in ${location} as opening stock. It counts at once; someone else checks it on Pilot readiness.`;
+    const amount = openingUnit.value
+        ? quantityWithUnit(quantity, openingUnit.value)
+        : `${quantity} stock units`;
+
+    return `Records ${amount} of ${sku} in ${location} as opening stock. It counts at once; someone else checks it on Pilot readiness.`;
 });
 
 const branchToday = () =>
@@ -408,7 +421,12 @@ const fieldClass =
             required
             :expected-branch-id="referenceData.expectedBranchId"
             :error="openingBalanceForm.errors.sku_public_id"
-            @picked="(value) => (openingSku = value)"
+            @picked="
+                (value, unit) => {
+                    openingSku = value;
+                    openingUnit = unit;
+                }
+            "
         />
         <V2Picker
             :model-value="openingBalanceForm.batch_public_id || null"
@@ -430,7 +448,11 @@ const fieldClass =
             "
         />
         <label class="grid gap-1.5 text-sm font-medium"
-            >Quantity (stock units) <span class="sr-only">(required)</span>
+            ><span
+                >Quantity (stock units)
+                <span class="text-destructive" aria-hidden="true">*</span
+                ><span class="sr-only">(required)</span></span
+            >
             <input
                 v-model="openingBalanceForm.quantity"
                 inputmode="decimal"
@@ -463,7 +485,10 @@ const fieldClass =
         @confirm="submit"
     >
         <label class="grid gap-1.5 text-sm font-medium"
-            >Code <span class="sr-only">(required)</span>
+            ><span
+                >Code <span class="text-destructive" aria-hidden="true">*</span
+                ><span class="sr-only">(required)</span></span
+            >
             <input
                 v-model="itemForm.code"
                 autocomplete="off"
@@ -478,7 +503,11 @@ const fieldClass =
             >
         </label>
         <label class="grid gap-1.5 text-sm font-medium"
-            >Generic name <span class="sr-only">(required)</span>
+            ><span
+                >Generic name
+                <span class="text-destructive" aria-hidden="true">*</span
+                ><span class="sr-only">(required)</span></span
+            >
             <input
                 v-model="itemForm.generic_name"
                 autocomplete="off"
@@ -531,7 +560,11 @@ const fieldClass =
             :error="skuForm.errors.inventory_item_public_id"
         />
         <label class="grid gap-1.5 text-sm font-medium"
-            >SKU code <span class="sr-only">(required)</span>
+            ><span
+                >SKU code
+                <span class="text-destructive" aria-hidden="true">*</span
+                ><span class="sr-only">(required)</span></span
+            >
             <input
                 v-model="skuForm.sku_code"
                 autocomplete="off"
@@ -547,12 +580,21 @@ const fieldClass =
         </label>
         <div class="grid items-start gap-3 sm:grid-cols-2">
             <label class="grid gap-1.5 text-sm font-medium"
-                >Pack size
+                ><span
+                    >Pack size
+                    <span class="text-destructive" aria-hidden="true">*</span
+                    ><span class="sr-only">(required)</span></span
+                >
                 <input
                     v-model="skuForm.pack_size"
+                    required
                     inputmode="decimal"
                     :class="fieldClass"
                 />
+                <span class="text-xs font-normal text-muted-foreground"
+                    >Recorded only. Stock is always counted in the stock unit,
+                    so leave 1 unless your records use it.</span
+                >
                 <span
                     v-if="skuForm.errors.pack_size"
                     class="text-sm text-destructive"
@@ -560,12 +602,20 @@ const fieldClass =
                 >
             </label>
             <label class="grid gap-1.5 text-sm font-medium"
-                >Unit conversion
+                ><span
+                    >Unit conversion
+                    <span class="text-destructive" aria-hidden="true">*</span
+                    ><span class="sr-only">(required)</span></span
+                >
                 <input
                     v-model="skuForm.unit_conversion"
+                    required
                     inputmode="decimal"
                     :class="fieldClass"
                 />
+                <span class="text-xs font-normal text-muted-foreground"
+                    >Recorded only, not used in any count. Leave 1.</span
+                >
                 <span
                     v-if="skuForm.errors.unit_conversion"
                     class="text-sm text-destructive"
@@ -573,13 +623,21 @@ const fieldClass =
                 >
             </label>
             <label class="grid gap-1.5 text-sm font-medium"
-                >Purchase unit
+                ><span
+                    >Purchase unit
+                    <span class="text-destructive" aria-hidden="true">*</span
+                    ><span class="sr-only">(required)</span></span
+                >
                 <input
                     v-model="skuForm.purchase_unit"
+                    required
                     autocomplete="off"
                     maxlength="100"
                     :class="fieldClass"
                 />
+                <span class="text-xs font-normal text-muted-foreground"
+                    >How the supplier sells it, for example box.</span
+                >
                 <span
                     v-if="skuForm.errors.purchase_unit"
                     class="text-sm text-destructive"
@@ -587,9 +645,14 @@ const fieldClass =
                 >
             </label>
             <label class="grid gap-1.5 text-sm font-medium"
-                >Stock unit
+                ><span
+                    >Stock unit
+                    <span class="text-destructive" aria-hidden="true">*</span
+                    ><span class="sr-only">(required)</span></span
+                >
                 <input
                     v-model="skuForm.stock_unit"
+                    required
                     autocomplete="off"
                     maxlength="100"
                     :class="fieldClass"
@@ -604,13 +667,22 @@ const fieldClass =
                 >
             </label>
             <label class="grid gap-1.5 text-sm font-medium"
-                >Dispensing unit
+                ><span
+                    >Dispensing unit
+                    <span class="text-destructive" aria-hidden="true">*</span
+                    ><span class="sr-only">(required)</span></span
+                >
                 <input
                     v-model="skuForm.dispensing_unit"
+                    required
                     autocomplete="off"
                     maxlength="100"
                     :class="fieldClass"
                 />
+                <span class="text-xs font-normal text-muted-foreground"
+                    >Must be the same as the stock unit, or Dispensary will not
+                    dispense this SKU.</span
+                >
                 <span
                     v-if="skuForm.errors.dispensing_unit"
                     class="text-sm text-destructive"
@@ -628,6 +700,12 @@ const fieldClass =
         confirm-label="Add location"
         cancel-label="Cancel"
         :busy="locationForm.processing"
+        :confirm-disabled="returnsNeedsBranch"
+        :confirm-disabled-reason="
+            returnsNeedsBranch
+                ? 'A patient returns location must belong to a branch. Choose a branch.'
+                : undefined
+        "
         @update:open="requestClose"
         @confirm="submit"
     >
@@ -639,7 +717,10 @@ const fieldClass =
             @update:model-value="(value) => (locationForm.branch_id = value)"
         />
         <label class="grid gap-1.5 text-sm font-medium"
-            >Code <span class="sr-only">(required)</span>
+            ><span
+                >Code <span class="text-destructive" aria-hidden="true">*</span
+                ><span class="sr-only">(required)</span></span
+            >
             <input
                 v-model="locationForm.code"
                 autocomplete="off"
@@ -654,7 +735,10 @@ const fieldClass =
             >
         </label>
         <label class="grid gap-1.5 text-sm font-medium"
-            >Name <span class="sr-only">(required)</span>
+            ><span
+                >Name <span class="text-destructive" aria-hidden="true">*</span
+                ><span class="sr-only">(required)</span></span
+            >
             <input
                 v-model="locationForm.name"
                 autocomplete="off"
@@ -710,7 +794,11 @@ const fieldClass =
             :error="batchForm.errors.inventory_sku_public_id"
         />
         <label class="grid gap-1.5 text-sm font-medium"
-            >Batch number <span class="sr-only">(required)</span>
+            ><span
+                >Batch number
+                <span class="text-destructive" aria-hidden="true">*</span
+                ><span class="sr-only">(required)</span></span
+            >
             <input
                 v-model="batchForm.batch_number"
                 autocomplete="off"

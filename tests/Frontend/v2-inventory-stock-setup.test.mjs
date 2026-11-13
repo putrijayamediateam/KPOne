@@ -123,3 +123,53 @@ test('2d: the V2 home shows Stock setup as a V2 bar', () => {
     assert.ok(!home.includes('<InventoryReferenceDataPanel'));
     assert.ok(!home.includes('<StockPanelBar'));
 });
+
+test("2d round 2: Daniel's changes (returns branch, item and unit in the sentence, SKU fields)", () => {
+    // 1) A patient returns location must belong to a branch: "Shared" goes away and Add location says why.
+    assert.match(
+        section,
+        /locationForm\.type === 'dispensary_returns'\s*\?\s*\[\]\s*:\s*\[\{ value: '', label: 'Shared \(no branch\)' \}\]/,
+    );
+    assert.match(section, /:confirm-disabled="returnsNeedsBranch"/);
+    assert.match(
+        section,
+        /A patient returns location must belong to a branch\. Choose a branch\./,
+    );
+    // 2) The sentence names the item and the real unit word ("40 tablets of Paracetamol…").
+    assert.match(section, /quantityWithUnit\(quantity, openingUnit\.value\)/);
+    assert.match(section, /openingUnit = unit;/);
+    const picker = read(
+        'resources/js/components/inventory-v2/InventoryPickerField.vue',
+    );
+    assert.match(picker, /label: String\(row\.itemName \?\? row\.skuCode\)/);
+    assert.match(
+        picker,
+        /emit\('picked', option\.label, String\(row\?\.stockUnit \?\? ''\)\)/,
+    );
+
+    // 3) and 4) Every SKU field is marked required, and the unclear ones say what they do.
+    for (const field of [
+        'pack_size',
+        'unit_conversion',
+        'purchase_unit',
+        'stock_unit',
+        'dispensing_unit',
+    ]) {
+        assert.match(
+            section,
+            new RegExp(
+                `aria-hidden="true"\\s*>\\*</span\\s*><span class="sr-only">\\(required\\)</span\\s*></span\\s*>\\s*<input\\s*v-model="skuForm\\.${field}"\\s*required`,
+            ),
+            field,
+        );
+    }
+
+    assert.match(
+        section,
+        /Recorded\s+only,\s+not\s+used\s+in\s+any\s+count\.\s+Leave\s+1\./,
+    );
+    assert.match(
+        section,
+        /Must\s+be\s+the\s+same\s+as\s+the\s+stock\s+unit,\s+or\s+Dispensary\s+will\s+not\s+dispense\s+this\s+SKU\./,
+    );
+});
