@@ -93,3 +93,18 @@ test('UX-24 Daniel: the sidebar mark is a small file at first paint; the header 
         'the filled space action comes before Clock in',
     );
 });
+
+test('UX-24 Daniel: after the photo dialog closes, focus returns to the control that opened it (the menu button for the menu row)', () => {
+    assert.match(
+        clock,
+        /const press = \(returnFocusTo\?: HTMLElement \| null\) => \{/,
+    );
+    assert.match(clock, /watch\(\s*\(\) => clockPhotoState\.step,/);
+    assert.match(clock, /'\[data-test="clock-photo-dialog"\]'/);
+    assert.match(clock, /returnFocusTo\.focus\(\);/);
+    assert.match(menu, /@select="pressClockAfterMenu"/);
+    assert.match(
+        squash(menu),
+        /pressClock\( document\.querySelector<HTMLElement>\( '\[aria-haspopup="menu"\]\[aria-expanded="true"\]', \), \)/,
+    );
+});

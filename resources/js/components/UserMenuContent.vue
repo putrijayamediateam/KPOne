@@ -54,6 +54,14 @@ const {
     label: clockLabel,
     visible: clockVisible,
 } = useClockShortcut();
+// UX-24 (Daniel): open the photo dialog only after this menu has closed and given focus back to its button, so
+// "Not now" returns focus there instead of to the page.
+const pressClockAfterMenu = () =>
+    pressClock(
+        document.querySelector<HTMLElement>(
+            '[aria-haspopup="menu"][aria-expanded="true"]',
+        ),
+    );
 onMounted(() => {
     if (accountMenu.value?.clock) {
         void loadClock();
@@ -85,7 +93,7 @@ const switchSpaces = (enabled: boolean) =>
             class="cursor-pointer max-lg:min-h-11"
             :class="{ 'lg:hidden': inSpaceShell || topBarClock }"
             data-test="clock-shortcut-row"
-            @select="pressClock()"
+            @select="pressClockAfterMenu"
         >
             <Clock class="mr-2 h-4 w-4" />{{ clockLabel }}
         </DropdownMenuItem>

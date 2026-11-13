@@ -1,7 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import type { ComputedRef, InjectionKey } from 'vue';
-import { computed, reactive } from 'vue';
-import { useClockPhoto } from '@/composables/useClockPhoto';
+import { computed, reactive, watch } from 'vue';
+import { clockPhotoState, useClockPhoto } from '@/composables/useClockPhoto';
 import { requestJson } from '@/lib/json-client';
 
 type ClockState = {
@@ -59,19 +59,55 @@ export function useClockShortcut() {
     };
 
     const { open } = useClockPhoto();
-    const press = () => {
+    /**
+     * `returnFocusTo` (UX-24, Daniel): where focus goes once the photo dialog has closed (Not now, Done or the close
+     * button). The account menu row passes its menu button, because the row itself is gone by then.
+     */
+    const press = (returnFocusTo?: HTMLElement | null) => {
         if (clock.needsAttendancePage) {
             router.visit(ATTENDANCE);
 
             return;
         }
 
-        open(clock.state === 'in' ? 'out' : 'in', {
+        const opened = open(clock.state === 'in' ? 'out' : 'in', {
             onDone: () => {
                 void load();
                 router.reload();
             },
         });
+
+        if (opened && returnFocusTo) {
+            const stop = watch(
+                () => clockPhotoState.step,
+                (step) => {
+                    if (step !== 'idle') {
+                        return;
+                    }
+
+                    stop();
+                    // The rest of the page is inert while the dialog is still on screen, so wait until it has gone
+                    // (at most about a second), then put focus back.
+                    let frames = 0;
+                    const refocus = () => {
+                        if (
+                            document.querySelector(
+                                '[data-test="clock-photo-dialog"]',
+                            ) &&
+                            frames++ < 60
+                        ) {
+                            requestAnimationFrame(refocus);
+
+                            return;
+                        }
+
+                        returnFocusTo.focus();
+                    };
+
+                    requestAnimationFrame(refocus);
+                },
+            );
+        }
     };
 
     const label = computed(() =>
