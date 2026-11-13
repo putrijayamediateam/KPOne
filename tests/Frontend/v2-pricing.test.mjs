@@ -84,7 +84,10 @@ test('the new charge and price book forms send the same fields as Classic', () =
 
 test('V2 keeps the publish permission and the scheduled-price line', () => {
     assert.match(v2, /v-if="canPublish"/);
-    assert.match(v2, /From \$\{charge\.scheduledPrice\.effectiveLabel\}/);
+    assert.match(
+        v2,
+        /Next: RM \$\{[^}]*\} from \$\{charge\.scheduledPrice\.effectiveLabel\}/,
+    );
     assert.ok(v2.includes('Publish price'));
 });
 
@@ -104,8 +107,8 @@ test('Classic keeps its own page and does not import V2 pieces', () => {
 
 test('the publish dialog shows the current and scheduled price and the stale-price message (Daniel)', () => {
     assert.match(v2, /data-test="publish-current"/);
-    assert.match(v2, /Current price/);
-    assert.match(v2, /scheduledText\(publish\.target\.value as ChargeRow\)/);
+    assert.match(v2, /\{\{ bookInfo \}\}/);
+    assert.match(v2, /\{\{ bookScheduled \}\}/);
     assert.ok(
         publish.includes(
             "'Someone published a newer price. Reload to see it.'",
@@ -128,10 +131,44 @@ test('phones get one "Filters (n)" sheet and the deactivate confirm uses plain w
         /Filters\{\{\s*filterCount \? ` \(\$\{filterCount\}\)` : ''/,
     );
     assert.match(v2, /applied/);
+    assert.match(v2, /confirm-label="Apply"/);
     assert.match(v2, /data-action="reset-filters"/);
     assert.ok(
         v2.includes(
             'It will not be offered on new invoices. Existing invoices are not changed. You can activate it again.',
         ),
     );
+});
+
+test('money safety (Daniel): no guessed price book, an empty amount at the start, a red border on invalid fields', () => {
+    // More than one active book: nothing is preselected.
+    assert.match(
+        v2,
+        /activeBooks\.value\.length === 1 \? activeBooks\.value\[0\]\.publicId : ''/,
+    );
+    assert.match(publish, /form\.priceBook = defaultPriceBook;/);
+    assert.match(publish, /form\.amount = '';/);
+    assert.doesNotMatch(publish, /toFixed\(2\)/);
+    assert.ok(v2.includes("label: 'Choose a price book'"));
+    assert.ok(v2.includes('Current price in ${book.name}'));
+    assert.match(v2, /:class="fieldClass\(invalid\)"/);
+    assert.ok(
+        v2.includes("inputClass.replace('border-input', 'border-destructive')"),
+    );
+
+    // The payload is unchanged.
+    for (const key of [
+        'price_book_public_id',
+        'amount_sen',
+        'expected_version',
+        'expected_branch_id',
+    ]) {
+        assert.ok(publish.includes(key), key);
+    }
+});
+
+test('phone header: New charge full width, the other two as a text-link row; cards fold Type and Status (Daniel)', () => {
+    assert.match(v2, /data-test="page-links"/);
+    assert.match(v2, /max-sm:hidden/);
+    assert.match(v2, /max-xl:hidden/);
 });

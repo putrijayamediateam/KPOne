@@ -66,6 +66,12 @@ const activeBranchId = page.props.branchContext?.active?.id ?? null;
 
 const inputClass =
     'h-11 w-full rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9';
+const fieldClass = (invalid?: boolean) =>
+    invalid
+        ? inputClass.replace('border-input', 'border-destructive')
+        : inputClass;
+const textLink =
+    'inline-flex h-11 items-center rounded-[10px] text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
 const outlineButton =
     'inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9';
 const filledButton =
@@ -118,7 +124,7 @@ const priceText = (charge: ChargeRow) =>
         : '—';
 const scheduledText = (charge: ChargeRow) =>
     charge.scheduledPrice
-        ? `From ${charge.scheduledPrice.effectiveLabel}: RM ${(charge.scheduledPrice.amountSen / 100).toFixed(2)}`
+        ? `Next: RM ${(charge.scheduledPrice.amountSen / 100).toFixed(2)} from ${charge.scheduledPrice.effectiveLabel}`
         : null;
 
 // --- row menu
@@ -174,8 +180,46 @@ const onMenu = (charge: ChargeRow, id: string) => {
 
 // --- publish price
 const publish = usePricingPublish(activeBranchId);
+const activeBooks = computed(() =>
+    props.priceBooks.filter((book) => book.isActive),
+);
+const beginPublish = (charge: ChargeRow) =>
+    publish.begin(
+        charge,
+        activeBooks.value.length === 1 ? activeBooks.value[0].publicId : '',
+    );
+const chosenBook = computed(() =>
+    props.priceBooks.find((book) => book.publicId === publish.form.priceBook),
+);
+const bookInfo = computed(() => {
+    const charge = publish.target.value as ChargeRow | null;
+    const book = chosenBook.value;
+
+    if (!charge || !book) {
+        return 'Choose a price book to see its current price.';
+    }
+
+    if (!charge.currentPrice) {
+        return 'No price has been published for this charge yet.';
+    }
+
+    if (charge.currentPrice.priceBookPublicId === book.publicId) {
+        return `Current price in ${book.name}: ${priceText(charge)}`;
+    }
+
+    return `The current price in ${book.name} is not shown here. Open Price history to check it before you publish.`;
+});
+const bookScheduled = computed(() => {
+    const charge = publish.target.value as ChargeRow | null;
+
+    return charge &&
+        chosenBook.value &&
+        charge.currentPrice?.priceBookPublicId === chosenBook.value.publicId
+        ? scheduledText(charge)
+        : null;
+});
 const bookOptions = computed(() => [
-    { value: '', label: 'Select a price book' },
+    { value: '', label: 'Choose a price book' },
     ...props.priceBooks
         .filter((book) => book.isActive)
         .map((book) => ({
@@ -253,12 +297,12 @@ const submitCharge = () => {
                 <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
                     <Link
                         href="/pricing/price-check"
-                        :class="[outlineButton, 'max-sm:order-3']"
+                        :class="[outlineButton, 'max-sm:hidden']"
                         >Check price list</Link
                     >
                     <button
                         type="button"
-                        :class="[outlineButton, 'max-sm:order-2']"
+                        :class="[outlineButton, 'max-sm:hidden']"
                         data-action="new-price-book"
                         @click="bookOpen = true"
                     >
@@ -266,12 +310,25 @@ const submitCharge = () => {
                     </button>
                     <button
                         type="button"
-                        :class="[filledButton, 'max-sm:order-1']"
+                        :class="[filledButton, 'max-sm:w-full']"
                         data-action="new-charge"
                         @click="chargeOpen = true"
                     >
                         New charge
                     </button>
+                    <div class="flex gap-5 sm:hidden" data-test="page-links">
+                        <Link href="/pricing/price-check" :class="textLink"
+                            >Check price list</Link
+                        >
+                        <button
+                            type="button"
+                            :class="textLink"
+                            data-action="new-price-book-phone"
+                            @click="bookOpen = true"
+                        >
+                            New price book
+                        </button>
+                    </div>
                 </div>
             </template>
 
@@ -390,23 +447,44 @@ const submitCharge = () => {
                                 }}</span>
                                 <span
                                     class="block text-xs text-muted-foreground"
-                                    >{{ charge.code }}</span
+                                    >{{ charge.code
+                                    }}<span class="xl:hidden">
+                                        · {{ typeLabel(charge.type) }}</span
+                                    ></span
                                 >
                             </td>
-                            <td data-label="Type" class="whitespace-nowrap">
+                            <td
+                                data-label="Type"
+                                class="whitespace-nowrap max-xl:hidden"
+                            >
                                 {{ typeLabel(charge.type) }}
                             </td>
                             <td data-label="Current price" class="text-right">
                                 <div class="flex flex-col items-end">
-                                    <span>{{ priceText(charge) }}</span>
+                                    <span class="flex items-center gap-2">
+                                        <V2Chip
+                                            class="xl:hidden"
+                                            :tone="
+                                                charge.isActive
+                                                    ? 'success'
+                                                    : 'neutral'
+                                            "
+                                            :label="
+                                                charge.isActive
+                                                    ? 'Active'
+                                                    : 'Inactive'
+                                            "
+                                        />
+                                        {{ priceText(charge) }}</span
+                                    >
                                     <span
                                         v-if="scheduledText(charge)"
-                                        class="text-xs text-muted-foreground"
+                                        class="text-xs text-muted-foreground xl:whitespace-nowrap"
                                         >{{ scheduledText(charge) }}</span
                                     >
                                 </div>
                             </td>
-                            <td data-label="Status">
+                            <td data-label="Status" class="max-xl:hidden">
                                 <V2Chip
                                     :tone="
                                         charge.isActive ? 'success' : 'neutral'
@@ -429,7 +507,7 @@ const submitCharge = () => {
                                         ]"
                                         data-action="publish-price"
                                         :aria-label="`Publish price for ${charge.displayName}`"
-                                        @click="publish.begin(charge)"
+                                        @click="beginPublish(charge)"
                                     >
                                         Publish price
                                     </button>
@@ -466,18 +544,9 @@ const submitCharge = () => {
                 class="rounded-[10px] border bg-muted/40 px-3 py-2 text-sm"
                 data-test="publish-current"
             >
-                <p>
-                    <span class="text-muted-foreground">Current price</span>
-                    ·
-                    <span class="font-medium">{{
-                        priceText(publish.target.value as ChargeRow)
-                    }}</span>
-                </p>
-                <p
-                    v-if="scheduledText(publish.target.value as ChargeRow)"
-                    class="text-muted-foreground"
-                >
-                    {{ scheduledText(publish.target.value as ChargeRow) }}
+                <p>{{ bookInfo }}</p>
+                <p v-if="bookScheduled" class="text-muted-foreground">
+                    {{ bookScheduled }}
                 </p>
             </div>
             <V2Field
@@ -511,7 +580,7 @@ const submitCharge = () => {
                     placeholder="e.g. 25.00"
                     :aria-describedby="describedBy"
                     :aria-invalid="invalid"
-                    :class="inputClass"
+                    :class="fieldClass(invalid)"
                     data-field="amount"
                     @keydown.enter.prevent="publish.submit()"
                 />
@@ -530,7 +599,7 @@ const submitCharge = () => {
         <V2Dialog
             v-model:open="sheetOpen"
             title="Filters"
-            confirm-label="Show charges"
+            confirm-label="Apply"
             cancel-label="Close"
             @confirm="sheetOpen = false"
         >
@@ -563,7 +632,7 @@ const submitCharge = () => {
                     :class="outlineButton"
                     @click="resetFilters"
                 >
-                    Reset filters
+                    Reset
                 </button>
             </div>
         </V2Dialog>
@@ -619,7 +688,7 @@ const submitCharge = () => {
                     autocomplete="off"
                     :aria-describedby="describedBy"
                     :aria-invalid="invalid"
-                    :class="inputClass"
+                    :class="fieldClass(invalid)"
                 />
             </V2Field>
         </V2Dialog>
@@ -688,7 +757,7 @@ const submitCharge = () => {
                     autocomplete="off"
                     :aria-describedby="describedBy"
                     :aria-invalid="invalid"
-                    :class="inputClass"
+                    :class="fieldClass(invalid)"
                 />
             </V2Field>
             <V2Field
@@ -704,7 +773,7 @@ const submitCharge = () => {
                     autocomplete="off"
                     :aria-describedby="describedBy"
                     :aria-invalid="invalid"
-                    :class="inputClass"
+                    :class="fieldClass(invalid)"
                 />
             </V2Field>
         </V2Dialog>

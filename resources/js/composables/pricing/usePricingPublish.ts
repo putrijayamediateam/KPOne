@@ -41,12 +41,11 @@ export function usePricingPublish(activeBranchId: number | null) {
         },
     });
 
-    const begin = (charge: PublishableCharge) => {
-        form.priceBook = charge.currentPrice?.priceBookPublicId ?? '';
-        form.amount =
-            charge.currentPrice && charge.currentPrice.amountSen !== null
-                ? (charge.currentPrice.amountSen / 100).toFixed(2)
-                : '';
+    // Money safety (Daniel): the price book is never guessed when there is more than one, and the amount starts empty
+    // so pressing Publish unchanged cannot record a duplicate version.
+    const begin = (charge: PublishableCharge, defaultPriceBook = '') => {
+        form.priceBook = defaultPriceBook;
+        form.amount = '';
         form.busy = false;
         form.error = '';
         form.stale = false;
