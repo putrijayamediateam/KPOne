@@ -99,7 +99,9 @@ const correction = useForm({
 const acceptance = useForm({
     lock_version: props.intake.lockVersion,
     idempotency_key: props.visitOptions.idempotencyKey,
-    resolution: 'match',
+    // With no duplicate candidate there is nothing to match, so the review starts on creating a new patient.
+    resolution:
+        props.intake.duplicateCandidates.length === 0 ? 'create' : 'match',
     guardian_choice: '',
     guardian_relationship: [
         'mother',
