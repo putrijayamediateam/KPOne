@@ -1,0 +1,1 @@
+V2MaskedValue round 2: pending (Showing…, second press ignored: 1 reveal call), spoken mask, Hides in line, print hides value, focus stays after auto-hide, failed buttons identical at rest (grey earlier was hover).
