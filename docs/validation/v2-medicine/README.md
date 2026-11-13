@@ -28,3 +28,14 @@ Manufacturer) still look like Classic inside the form, with a "Choose a saved va
 fields are plain number inputs until the V2 money input lands (empty stays empty, 0.00 is valid, "(RM)" in the label).
 Full-page captures can show the shell's top bar and sidebar twice in the middle: a capture artefact, not on screen.
 Not opened: stale or error states of Edit, the Add page with opening stock rows.
+
+## Round 3 (feature/v2-medicine, head 4ab080b7): Daniel's last notes
+`round3/` (1440 and 390): `controlled-mark-confirm` and `controlled-unmark-confirm` (light and dark; both now say "below the label border"
+and "reprints of earlier labels", and what changes at Dispensary and in the controlled register, in each direction),
+`discard-prompt-after-back` (light and dark: the "Discard your changes?" question after the browser's Back button with a
+half-filled form) and `after-keep-editing` (the form back with exactly what was typed).
+
+Follow-up logged: the form uses its own Cancel/Save bar. Once Kavitha's rail-aware `V2StickyBar` with `always` (#673) is on main,
+switch the form to it so the system has one bar family (expected to be a one-line change).
+Known limit, in the PR text too: after Back with unsaved work the list shows for a moment before the question appears; "Keep
+editing" restores exactly what was typed.
