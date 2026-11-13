@@ -6,7 +6,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
  * cards (`cards`: below 1024px, or `cards="xl"` below 1280px); `td[data-select]` and `td[data-actions]` are the
  * selection row on top and the full-width action row at the bottom of a card. Right-aligned cells use tabular figures.
  * The empty state sits in a cell with no padding and never wider than that cell (a padded cell used to push the page
- * about 10px sideways in cards mode). A table that can scroll shows a right-edge fade and keeps its first column in view. Prefer cards on phones for any
+ * about 10px sideways in cards mode). A card cell that holds an email, a code or free text opts in to breaking a long
+ * unbreakable value with `data-wrap` on its `td`; other cells never split a word or a number ("RM 1,240.00"). A table that can scroll shows a right-edge fade and keeps its first column in view. Prefer cards on phones for any
  * table with row actions.
  */
 const props = withDefaults(

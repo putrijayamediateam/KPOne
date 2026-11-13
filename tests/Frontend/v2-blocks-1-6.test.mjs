@@ -227,8 +227,16 @@ test('V2 table cards: the card grid column can shrink (minmax(0, 1fr)), so an em
     );
 });
 
-test('V2 table cards: a long unbreakable value wraps inside its card (overflow-wrap: anywhere)', () => {
+test('V2 table cards: only a cell marked data-wrap breaks a long unbreakable value (overflow-wrap: anywhere); ordinary cells never split words or numbers', () => {
     const css = read('resources/css/v2.css');
-    assert.match(css, /\.v2-cards-lg td \{\s*overflow-wrap: anywhere;/);
-    assert.match(css, /\.v2-cards-xl td \{\s*overflow-wrap: anywhere;/);
+    assert.match(
+        css,
+        /\.v2-cards-lg td\[data-wrap\] \{\s*overflow-wrap: anywhere;/,
+    );
+    assert.match(
+        css,
+        /\.v2-cards-xl td\[data-wrap\] \{\s*overflow-wrap: anywhere;/,
+    );
+    assert.doesNotMatch(css, /\.v2-cards-(lg|xl) td \{\s*overflow-wrap/);
+    assert.match(read('resources/js/components/v2/V2Table.vue'), /data-wrap/);
 });

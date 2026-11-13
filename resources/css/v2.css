@@ -36,7 +36,6 @@
         padding: 0.25rem 0.75rem;
     }
     .v2-cards-lg td {
-        overflow-wrap: anywhere;
         display: flex;
         align-items: baseline;
         justify-content: space-between;
@@ -45,6 +44,9 @@
         text-align: right;
         position: static !important;
         background: transparent !important;
+    }
+    .v2-cards-lg td[data-wrap] {
+        overflow-wrap: anywhere;
     }
     .v2-cards-lg td[data-label]::before {
         content: attr(data-label);
@@ -124,7 +126,6 @@
         padding: 0.25rem 0.75rem;
     }
     .v2-cards-xl td {
-        overflow-wrap: anywhere;
         display: flex;
         align-items: baseline;
         justify-content: space-between;
@@ -133,6 +134,9 @@
         text-align: right;
         position: static !important;
         background: transparent !important;
+    }
+    .v2-cards-xl td[data-wrap] {
+        overflow-wrap: anywhere;
     }
     .v2-cards-xl td[data-label]::before {
         content: attr(data-label);
