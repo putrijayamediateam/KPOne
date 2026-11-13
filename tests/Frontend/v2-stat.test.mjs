@@ -43,7 +43,7 @@ test('V2Stat reads as one group: label, value, status, detail, in that order', (
     assert.match(s, /:aria-label="reading"/);
     assert.match(
         s,
-        /\[props\.label, props\.value, props\.status, props\.detail\]/,
+        /props\.label,\s+props\.value,\s+detailSaysStatus \? undefined : props\.status,\s+props\.detail,/,
     );
     assert.match(s, /\.join\(', '\)/);
 });
