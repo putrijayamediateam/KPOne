@@ -150,6 +150,24 @@ const emptyDescription = computed(() =>
         ? 'All active items have the prices billing needs.'
         : 'Change the search or type, or add items in the catalogues.',
 );
+// A text button with an underline and a 44 px target at touch widths (opens the full list and the unit text).
+const textButton =
+    'inline-flex min-h-11 items-center text-sm font-medium text-primary underline underline-offset-2 hover:text-primary/80 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
+const open = ref<Set<string>>(new Set());
+const rowKey = (row: Row, part: string) => `${row.type}:${row.code}:${part}`;
+const isOpen = (row: Row, part: string) => open.value.has(rowKey(row, part));
+const toggleOpen = (row: Row, part: string) => {
+    const next = new Set(open.value);
+    const key = rowKey(row, part);
+
+    if (next.has(key)) {
+        next.delete(key);
+    } else {
+        next.add(key);
+    }
+
+    open.value = next;
+};
 const outlineButton =
     'inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9';
 </script>
@@ -157,6 +175,13 @@ const outlineButton =
 <template>
     <Head title="Price list check" />
     <PageFrame>
+        <Link
+            href="/pricing"
+            class="inline-flex h-11 w-fit items-center rounded-[10px] text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
+            data-action="back-to-pricing"
+        >
+            ← Pricing
+        </Link>
         <V2WorkLayout
             title="Price list check"
             description="Every active medicine and clinical service with its current prices. Fix anything flagged before using it in billing."
@@ -272,6 +297,14 @@ const outlineButton =
                         </button>
                     </div>
 
+                    <p
+                        class="text-sm text-muted-foreground"
+                        data-test="colour-key"
+                    >
+                        Red chips need fixing before billing. Amber chips need a
+                        check. Green means the prices are in place.
+                    </p>
+
                     <V2Table
                         label="Price list"
                         :columns="5"
@@ -333,21 +366,29 @@ const outlineButton =
                                     {{ rm(row.panelDefaultSen) }}
                                 </td>
                                 <td data-label="Panel prices">
-                                    <details
-                                        v-if="row.panelPrices.length"
-                                        class="text-sm"
-                                    >
-                                        <summary
-                                            class="flex min-h-11 cursor-pointer items-center lg:min-h-9"
+                                    <div v-if="row.panelPrices.length">
+                                        <button
+                                            type="button"
+                                            :class="textButton"
+                                            :aria-expanded="
+                                                isOpen(row, 'panels')
+                                            "
+                                            @click="toggleOpen(row, 'panels')"
                                         >
-                                            {{ panelSummary(row) }}
-                                        </summary>
+                                            {{ panelSummary(row) }} ·
+                                            {{
+                                                isOpen(row, 'panels')
+                                                    ? 'Hide'
+                                                    : 'Show'
+                                            }}
+                                        </button>
                                         <p
+                                            v-if="isOpen(row, 'panels')"
                                             class="text-xs break-words text-muted-foreground"
                                         >
                                             {{ panelText(row) }}
                                         </p>
-                                    </details>
+                                    </div>
                                     <span v-else class="text-muted-foreground"
                                         >—</span
                                     >
@@ -382,36 +423,50 @@ const outlineButton =
                                             more</span
                                         >
                                     </div>
-                                    <details
+                                    <div
                                         v-if="
                                             hiddenChecks(row).length ||
                                             row.checks.includes('unit_differs')
                                         "
-                                        class="mt-1 text-xs text-muted-foreground"
                                     >
-                                        <summary
-                                            class="flex min-h-11 cursor-pointer items-center lg:min-h-9"
-                                        >
-                                            Details
-                                        </summary>
-                                        <p
-                                            v-if="hiddenChecks(row).length"
-                                            class="break-words"
-                                        >
-                                            All checks: {{ allChecksText(row) }}
-                                        </p>
-                                        <p
-                                            v-if="
-                                                row.checks.includes(
-                                                    'unit_differs',
-                                                )
+                                        <button
+                                            type="button"
+                                            :class="textButton"
+                                            :aria-expanded="
+                                                isOpen(row, 'checks')
                                             "
-                                            class="break-words"
-                                            data-testid="unit-text"
+                                            @click="toggleOpen(row, 'checks')"
                                         >
-                                            {{ unitText(row) }}
-                                        </p>
-                                    </details>
+                                            {{
+                                                isOpen(row, 'checks')
+                                                    ? 'Hide details'
+                                                    : 'Show details'
+                                            }}
+                                        </button>
+                                        <div
+                                            v-if="isOpen(row, 'checks')"
+                                            class="text-xs text-muted-foreground"
+                                        >
+                                            <p
+                                                v-if="hiddenChecks(row).length"
+                                                class="break-words"
+                                            >
+                                                All checks:
+                                                {{ allChecksText(row) }}
+                                            </p>
+                                            <p
+                                                v-if="
+                                                    row.checks.includes(
+                                                        'unit_differs',
+                                                    )
+                                                "
+                                                class="break-words"
+                                                data-testid="unit-text"
+                                            >
+                                                {{ unitText(row) }}
+                                            </p>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                         </template>

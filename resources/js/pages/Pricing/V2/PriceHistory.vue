@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router, usePage } from '@inertiajs/vue3';
+import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
@@ -52,11 +52,15 @@ const filterError = computed(
     () => Object.values(page.props.errors ?? {})[0] ?? '',
 );
 
-usePageCrumbs(() => [
-    { title: 'Clinic management', href: '/clinic-management' },
+// The way back comes from a fixed list of targets, never a free address; Pricing is the default.
+const parent = computed(() =>
     props.from === 'price-check'
         ? { title: 'Price list check', href: '/pricing/price-check' }
         : { title: 'Pricing', href: '/pricing' },
+);
+usePageCrumbs(() => [
+    { title: 'Clinic management', href: '/clinic-management' },
+    { title: parent.value.title, href: parent.value.href },
     { title: 'Price history' },
 ]);
 
@@ -84,15 +88,24 @@ const changeBook = (value: string | null) => {
 };
 const reload = () => router.reload();
 
-const subtitle = computed(() =>
-    [
+// The subtitle reads as words: a plain-word code such as CONSULTATION is shown as "Consultation", and a unit that only
+// repeats the code is left out. Real codes (with digits or hyphens) and other units stay as they are.
+const words = (code: string) =>
+    /^[A-Z]+$/.test(code) ? code.charAt(0) + code.slice(1).toLowerCase() : code;
+const subtitle = computed(() => {
+    const code = words(props.result.charge.code);
+    const unit = props.result.charge.unit;
+
+    return [
         props.result.charge.displayName,
-        props.result.charge.code,
-        props.result.charge.unit ? `unit ${props.result.charge.unit}` : null,
+        code,
+        unit && unit.toLowerCase() !== code.toLowerCase()
+            ? `unit ${unit}`
+            : null,
     ]
         .filter(Boolean)
-        .join(' · '),
-);
+        .join(' · ');
+});
 const rm = (sen: number) =>
     `RM ${Math.floor(sen / 100)}.${String(sen % 100).padStart(2, '0')}`;
 const bookLabel = (row: Row) =>
@@ -121,6 +134,13 @@ const emptyDescription = computed(() =>
 <template>
     <Head title="Price history" />
     <PageFrame>
+        <Link
+            :href="parent.href"
+            class="inline-flex h-11 w-fit items-center rounded-[10px] text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
+            data-action="back"
+        >
+            ← {{ parent.title }}
+        </Link>
         <V2WorkLayout title="Price history" :description="subtitle">
             <template #main>
                 <p
@@ -161,6 +181,10 @@ const emptyDescription = computed(() =>
                         @update:model-value="changeBook"
                     />
                 </div>
+
+                <p class="text-sm text-muted-foreground" data-test="times-note">
+                    Times are in the branch's time zone.
+                </p>
 
                 <V2Table
                     label="Price history"
@@ -229,7 +253,11 @@ const emptyDescription = computed(() =>
                                     />
                                     <span
                                         v-else
-                                        class="text-xs text-muted-foreground"
+                                        class="inline-flex items-center gap-1.5 text-xs text-muted-foreground"
+                                        ><span
+                                            class="size-2 shrink-0 rounded-full bg-muted-foreground/50"
+                                            aria-hidden="true"
+                                        ></span
                                         >{{ mutedStatus(row) }}</span
                                     >
                                     <V2Chip

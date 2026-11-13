@@ -79,6 +79,19 @@ test('Price history keeps the Classic address, book filter, fixed way back and s
     assert.ok(!historyV2.includes('Back to Pricing'));
 });
 
+test("Daniel's round 1: real Details buttons, a colour key, words in the subtitle, a back link, a time note and a dot on Replaced", () => {
+    assert.ok(!/<details\b/.test(checkV2));
+    assert.match(checkV2, /:aria-expanded="\s*isOpen\(row/);
+    assert.ok(checkV2.includes('min-h-11'));
+    assert.ok(checkV2.includes('Red chips need fixing before billing.'));
+    assert.ok(checkV2.includes('data-action="back-to-pricing"'));
+    assert.ok(historyV2.includes('data-action="back"'));
+    assert.ok(historyV2.includes('← {{ parent.title }}'));
+    assert.ok(historyV2.includes('Times are in the branch'));
+    assert.ok(historyV2.includes('bg-muted-foreground/50'));
+    assert.ok(historyV2.includes('const words = (code: string) =>'));
+});
+
 test('Classic pages import nothing from V2', () => {
     assert.ok(!/\/V2\//.test(checkClassic));
     assert.ok(!/\/V2\//.test(historyClassic));
