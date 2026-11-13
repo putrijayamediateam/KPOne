@@ -28,6 +28,7 @@ return [
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
+        'Patient/Edit',
         'BusinessDetails/Index',
         'QueueDisplay/Settings',
         'Inventory/Index',
