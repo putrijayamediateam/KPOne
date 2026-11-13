@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { computed, nextTick, onMounted, ref, watch } from 'vue';
-import { DateField } from '@/components/ui/date-field';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2DateField from '@/components/v2/V2DateField.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
@@ -63,6 +63,8 @@ const selected = computed(() =>
 const usesDate = computed(
     () => !!selected.value && ['date', 'week'].includes(selected.value.date),
 );
+// The same words the server uses, so a typed date outside the range reads the same before and after Answer.
+const dateLimitMessage = 'Choose a date from 1 Jan 2020 up to today.';
 const dateLabel = computed(() =>
     selected.value?.date === 'week' ? 'Any day in the week' : 'Date',
 );
@@ -72,7 +74,8 @@ const branchOptions = computed(() => [
 ]);
 
 const ask = () => {
-    if (!selected.value) {
+    // A date the box could not read leaves the model empty: the box says why, and nothing is asked.
+    if (!selected.value || (usesDate.value && !date.value)) {
         return;
     }
 
@@ -268,19 +271,17 @@ const filled =
                                 data-test="assistant-branch"
                             />
                         </V2Field>
-                        <V2Field
+                        <V2DateField
                             v-if="usesDate"
-                            v-slot="{ id }"
+                            v-model="date"
                             :label="dateLabel"
-                        >
-                            <DateField
-                                :id="id"
-                                v-model="date"
-                                :max="today"
-                                min="2020-01-01"
-                                data-test="assistant-date"
-                            />
-                        </V2Field>
+                            subject="The date"
+                            :max="today"
+                            min="2020-01-01"
+                            :min-message="dateLimitMessage"
+                            :max-message="dateLimitMessage"
+                            data-test="assistant-date"
+                        />
                         <div v-else class="flex min-w-0 flex-col gap-1.5">
                             <span class="text-sm font-medium text-foreground"
                                 >When</span
@@ -299,7 +300,9 @@ const filled =
                         <button
                             type="submit"
                             :class="filled"
-                            :disabled="!selected || processing"
+                            :disabled="
+                                !selected || processing || (usesDate && !date)
+                            "
                             data-test="assistant-ask"
                         >
                             Answer
