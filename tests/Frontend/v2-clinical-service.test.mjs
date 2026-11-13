@@ -105,13 +105,34 @@ test('V2 consultation tariff keeps the Classic route, payload and versions, in a
         assert.ok(normal(tariffV2).includes(normal(key)), `v2 ${key}`);
     }
 
-    assert.ok(
-        tariffV2.includes('<V2DisclosureBar title="Consultation tariff"'),
-    );
+    assert.ok(tariffV2.includes('<V2DisclosureBar :title="barTitle"'));
+    assert.ok(tariffV2.includes('Consultation tariff · Self-pay'));
     assert.ok(!/defaultOpen|default-open/.test(tariffV2));
     assert.ok(tariffV2.includes('<V2MoneyInput'));
     assert.ok(!/type="number"/.test(tariffV2));
     assert.ok(!/bg-primary/.test(tariffV2));
+});
+
+test('V2 consultation tariff: rates on the closed bar, a reason for the disabled button, a visible result and kept typing on a refused save', () => {
+    const tariffV2 = read(
+        'resources/js/components/clinical-service-v2/ConsultationTariffV2.vue',
+    );
+
+    assert.ok(
+        tariffV2.includes('Self-pay ${rm(props.tariff.selfPayAmountRm)}'),
+    );
+    assert.ok(tariffV2.includes('Choose a Panel first.'));
+    assert.ok(tariffV2.includes('Saved. Published now:'));
+    assert.ok(tariffV2.includes('Not saved. Nothing was published'));
+    // New props never overwrite typing while our own Save is in flight; success adopts the new rates explicitly.
+    assert.match(
+        tariffV2,
+        /if \(!saving\.value\) \{\s*syncFromTariff\(tariff\);/,
+    );
+    assert.match(
+        tariffV2,
+        /onSuccess: \(\) => \{\s*syncFromTariff\(props\.tariff\);/,
+    );
 });
 
 test('V2 form: shared picker reused, required fields marked, pricing gated by permission, one action bar', () => {

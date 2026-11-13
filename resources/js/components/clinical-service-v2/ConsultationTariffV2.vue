@@ -70,6 +70,7 @@ const form = useForm({
 const formError = (key: string) => form.errors[key as keyof typeof form.errors];
 const selectedNewPanel = ref('');
 const saving = ref(false);
+const savedNote = ref('');
 const hasCharge = computed(() => props.tariff.chargeExists);
 const addablePanels = computed(() => {
     const selected = new Set(
@@ -79,25 +80,34 @@ const addablePanels = computed(() => {
     return props.panels.filter((panel) => !selected.has(String(panel.id)));
 });
 
+const syncFromTariff = (tariff: ConsultationTariff) => {
+    form.code = tariff.code;
+    form.display_name = tariff.displayName;
+    form.prices.self_pay_rm = tariff.selfPayAmountRm ?? '';
+    form.prices.panel_default_rm = tariff.panelDefaultAmountRm ?? '';
+    form.prices.panel_overrides = tariff.panelOverrides.map((override) => ({
+        panel_id: override.panelId,
+        amount_rm: override.amountRm ?? '',
+    }));
+    form.expected_versions.self_pay = tariff.selfPayVersion;
+    form.expected_versions.panel_default = tariff.panelDefaultVersion;
+    form.expected_versions.panel_overrides = Object.fromEntries(
+        tariff.panelOverrides.map((override) => [
+            override.panelId,
+            override.version,
+        ]),
+    ) as Record<string, number>;
+};
+
+// New props adopt the saved rates, except while our own Save is in flight: a refused Save (for example "changed since
+// this page was opened") must keep what was typed and keep the old expected versions, so a retry is refused again
+// until the person reloads and reviews. A successful Save adopts the new rates in `onSuccess`.
 watch(
     () => props.tariff,
     (tariff) => {
-        form.code = tariff.code;
-        form.display_name = tariff.displayName;
-        form.prices.self_pay_rm = tariff.selfPayAmountRm ?? '';
-        form.prices.panel_default_rm = tariff.panelDefaultAmountRm ?? '';
-        form.prices.panel_overrides = tariff.panelOverrides.map((override) => ({
-            panel_id: override.panelId,
-            amount_rm: override.amountRm ?? '',
-        }));
-        form.expected_versions.self_pay = tariff.selfPayVersion;
-        form.expected_versions.panel_default = tariff.panelDefaultVersion;
-        form.expected_versions.panel_overrides = Object.fromEntries(
-            tariff.panelOverrides.map((override) => [
-                override.panelId,
-                override.version,
-            ]),
-        ) as Record<string, number>;
+        if (!saving.value) {
+            syncFromTariff(tariff);
+        }
     },
     { deep: true },
 );
@@ -128,6 +138,15 @@ const addPanelOverride = () => {
     selectedNewPanel.value = '';
 };
 
+const rm = (amount: string | null) =>
+    amount === null || amount === '' ? 'no price' : `RM ${amount}`;
+// The closed bar shows the saved rates (not what is typed), so they can be read without opening it.
+const barTitle = computed(() =>
+    props.tariff.chargeExists
+        ? `Consultation tariff · Self-pay ${rm(props.tariff.selfPayAmountRm)} · Default Panel ${rm(props.tariff.panelDefaultAmountRm)}`
+        : 'Consultation tariff · not set up yet',
+);
+
 const panelName = (panelId: string) =>
     props.panels.find((panel) => String(panel.id) === panelId)?.name ??
     props.tariff.panelOverrides.find((saved) => saved.panelId === panelId)
@@ -148,8 +167,13 @@ const submit = () => {
             })),
         },
     }));
+    savedNote.value = '';
     form.post('/clinical-services/consultation-tariffs', {
         preserveScroll: true,
+        onSuccess: () => {
+            syncFromTariff(props.tariff);
+            savedNote.value = `Saved. Published now: Self-pay ${rm(form.prices.self_pay_rm)}, Default Panel ${rm(form.prices.panel_default_rm)}${form.prices.panel_overrides.length ? `, and ${form.prices.panel_overrides.length} Panel-specific ${form.prices.panel_overrides.length === 1 ? 'rate' : 'rates'}` : ''}.`;
+        },
         onFinish: () => {
             saving.value = false;
             form.transform((data) => data);
@@ -164,7 +188,7 @@ const outlineButton =
 </script>
 
 <template>
-    <V2DisclosureBar title="Consultation tariff" keep-mounted>
+    <V2DisclosureBar :title="barTitle" keep-mounted>
         <div class="flex flex-col gap-4" data-test="consultation-tariff">
             <p class="text-sm text-muted-foreground">
                 These rates are used for the dedicated Consultation line on
@@ -291,10 +315,18 @@ const outlineButton =
                             type="button"
                             :class="outlineButton"
                             :disabled="!selectedNewPanel"
+                            aria-describedby="add-override-why"
                             @click="addPanelOverride"
                         >
                             Add override
                         </button>
+                        <p
+                            v-if="!selectedNewPanel"
+                            id="add-override-why"
+                            class="basis-full text-xs text-muted-foreground"
+                        >
+                            Choose a Panel first.
+                        </p>
                     </div>
                     <div
                         v-if="form.prices.panel_overrides.length"
@@ -355,6 +387,24 @@ const outlineButton =
                     />
                 </div>
 
+                <p
+                    v-if="savedNote && !form.hasErrors"
+                    role="status"
+                    class="rounded-[10px] border border-success/40 bg-success/10 px-3 py-2 text-sm"
+                    data-test="tariff-saved"
+                >
+                    {{ savedNote }}
+                </p>
+                <p
+                    v-if="form.hasErrors"
+                    role="alert"
+                    class="rounded-[10px] border border-destructive px-3 py-2 text-sm text-destructive"
+                    data-test="tariff-refused"
+                >
+                    Not saved. Nothing was published, and what you typed is
+                    still here. Check the messages above, or reload if the rates
+                    changed elsewhere.
+                </p>
                 <div
                     v-if="canPublishPrices"
                     class="flex flex-wrap items-center justify-between gap-3 border-t pt-3"
