@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
@@ -10,6 +10,7 @@ import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import { ErrorState } from '@/components/ui/state';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
 import V2Table from '@/components/v2/V2Table.vue';
@@ -97,13 +98,39 @@ const extraFilters = computed(
                 : []),
         ].filter(Boolean).length,
 );
+const filtersOpen = ref(false);
+const sheetOpen = ref(false);
+// On a phone every filter is in the sheet, so its button counts them all.
+const phoneFilterCount = computed(
+    () =>
+        extraFilters.value +
+        ((
+            props.inventory.tab === 'movements'
+                ? props.inventory.filters.movementType
+                : props.inventory.filters.status
+        )
+            ? 1
+            : 0),
+);
+// Staff read "Kuala Lumpur time", not the system zone name.
+const timezoneLabel = computed(
+    () =>
+        `${(props.inventory.branchTimezone.split('/').pop() ?? '').replaceAll('_', ' ')} time`,
+);
+const sentence = (value: unknown) => {
+    const text = String(value ?? '');
+
+    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
+};
+const movementOptions = inventoryMovementOptions.map((option) => ({
+    ...option,
+    label: sentence(option.label),
+}));
 const tile = 'min-w-0 rounded-[14px] border bg-card p-3 sm:px-4';
 const taskLink =
     'inline-flex min-h-11 items-center rounded-[10px] border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
 const button =
     'inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9';
-const medicine = (value: unknown) =>
-    value == null ? 'Not mapped to Medicine' : String(value);
 const availabilityTone = (row: InventoryDirectory['data'][number]) =>
     row.available ? 'success' : 'neutral';
 const batchTone = (status: unknown) =>
@@ -202,6 +229,7 @@ const batchTone = (status: unknown) =>
                 />
 
                 <form
+                    class="flex flex-col gap-3"
                     aria-label="Inventory filters"
                     @submit.prevent="applyFilters"
                 >
@@ -209,14 +237,12 @@ const batchTone = (status: unknown) =>
                         v-model="search"
                         search-label="Search SKU, item or medicine"
                         search-placeholder="SKU, item or medicine"
-                        more-filters
                         @search="applyFilters"
-                        @reset="clearFilters"
                     >
                         <template #filters>
                             <div
                                 v-if="inventory.tab !== 'movements'"
-                                class="w-full sm:w-48"
+                                class="hidden w-48 sm:block"
                             >
                                 <OperationalSelect
                                     v-model="status"
@@ -224,16 +250,36 @@ const batchTone = (status: unknown) =>
                                     :options="inventoryStatusOptions"
                                 />
                             </div>
-                            <div v-else class="w-full sm:w-56">
+                            <div v-else class="hidden w-56 sm:block">
                                 <OperationalSelect
                                     v-model="movementType"
                                     label="Movement type"
-                                    :options="inventoryMovementOptions"
+                                    :options="movementOptions"
                                 />
                             </div>
                         </template>
                         <template #primary>
-                            <div class="flex gap-2">
+                            <div class="flex gap-2 max-sm:w-full">
+                                <button
+                                    type="button"
+                                    :class="[button, 'flex-1 sm:hidden']"
+                                    @click="sheetOpen = true"
+                                >
+                                    Filters{{
+                                        phoneFilterCount
+                                            ? ` (${phoneFilterCount})`
+                                            : ''
+                                    }}
+                                </button>
+                                <button
+                                    type="button"
+                                    :class="[button, 'max-sm:hidden']"
+                                    :aria-expanded="filtersOpen"
+                                    aria-controls="v2-inventory-filters"
+                                    @click="filtersOpen = !filtersOpen"
+                                >
+                                    More filters
+                                </button>
                                 <button
                                     type="submit"
                                     :class="[button, 'flex-1 sm:flex-none']"
@@ -243,7 +289,7 @@ const batchTone = (status: unknown) =>
                                 </button>
                                 <button
                                     type="button"
-                                    :class="[button, 'flex-1 sm:flex-none']"
+                                    :class="[button, 'max-sm:hidden']"
                                     :disabled="loading"
                                     @click="clearFilters"
                                 >
@@ -251,23 +297,27 @@ const batchTone = (status: unknown) =>
                                 </button>
                             </div>
                         </template>
-                        <template #more>
-                            <div class="grid w-full gap-1 text-xs sm:w-64">
-                                <span aria-hidden="true">Location</span>
-                                <InventorySearchSelect
-                                    v-model="location"
-                                    label="Inventory location"
-                                    :options="locationOptions"
-                                    kind="locations"
-                                    context="directory"
-                                    :expected-branch-id="
-                                        operations.expectedBranchId
-                                    "
-                                />
-                            </div>
-                            <label
-                                v-if="inventory.tab === 'movements'"
-                                class="grid gap-1 text-xs"
+                    </V2Toolbar>
+                    <div
+                        v-if="filtersOpen"
+                        id="v2-inventory-filters"
+                        class="flex flex-wrap items-end gap-2 rounded-[14px] border bg-card p-3 max-sm:hidden"
+                    >
+                        <div class="grid w-64 gap-1 text-xs">
+                            <span aria-hidden="true">Location</span>
+                            <InventorySearchSelect
+                                v-model="location"
+                                label="Inventory location"
+                                :options="locationOptions"
+                                kind="locations"
+                                context="directory"
+                                :expected-branch-id="
+                                    operations.expectedBranchId
+                                "
+                            />
+                        </div>
+                        <template v-if="inventory.tab === 'movements'">
+                            <label class="grid gap-1 text-xs"
                                 >Date from
                                 <DateField
                                     v-model="dateFrom"
@@ -275,9 +325,7 @@ const batchTone = (status: unknown) =>
                                     :echo="false"
                                 />
                             </label>
-                            <label
-                                v-if="inventory.tab === 'movements'"
-                                class="grid gap-1 text-xs"
+                            <label class="grid gap-1 text-xs"
                                 >Date to
                                 <DateField
                                     v-model="dateTo"
@@ -285,21 +333,21 @@ const batchTone = (status: unknown) =>
                                     :echo="false"
                                 />
                             </label>
-                            <label
-                                v-if="inventory.tab !== 'stock'"
-                                class="grid min-w-48 gap-1 text-xs"
-                                >Batch
-                                <Input
-                                    v-model="batch"
-                                    maxlength="100"
-                                    placeholder="Batch number"
-                                />
-                            </label>
                         </template>
-                    </V2Toolbar>
+                        <label
+                            v-if="inventory.tab !== 'stock'"
+                            class="grid min-w-48 gap-1 text-xs"
+                            >Batch
+                            <Input
+                                v-model="batch"
+                                maxlength="100"
+                                placeholder="Batch number"
+                            />
+                        </label>
+                    </div>
                     <p
                         v-if="extraFilters"
-                        class="mt-2 text-xs text-muted-foreground"
+                        class="text-xs text-muted-foreground max-sm:hidden"
                     >
                         {{ extraFilters }} extra
                         {{ extraFilters === 1 ? 'filter' : 'filters' }} applied
@@ -315,29 +363,41 @@ const batchTone = (status: unknown) =>
                     {{
                         loading
                             ? 'Updating inventory…'
-                            : `${inventory.total} ${inventory.total === 1 ? 'record' : 'records'} · 25 per page · times in ${inventory.branchTimezone}`
+                            : `${inventory.total} ${inventory.total === 1 ? 'record' : 'records'} · 25 per page · ${timezoneLabel}`
                     }}
                 </p>
 
+                <div
+                    v-if="inventory.data.length === 0 && !loading"
+                    class="flex min-h-28 flex-col items-center justify-center gap-1 rounded-[14px] border bg-card px-4 py-6 text-center text-sm text-muted-foreground"
+                    role="status"
+                    data-test="v2-inventory-empty"
+                >
+                    <p class="font-medium text-foreground">No records</p>
+                    <p>
+                        No
+                        {{
+                            inventory.tab === 'movements' ? 'movement' : 'stock'
+                        }}
+                        records are available for {{ inventory.branch }} with
+                        these filters.
+                    </p>
+                </div>
+
                 <V2Table
-                    v-if="inventory.tab === 'stock'"
+                    v-else-if="inventory.tab === 'stock'"
                     label="Stock overview"
-                    :columns="7"
-                    cards="lg"
-                    min-width="1040px"
-                    :empty="inventory.data.length === 0"
-                    :empty-message="`No stock records are available for ${inventory.branch} with these filters.`"
+                    :columns="4"
+                    cards="xl"
+                    min-width="800px"
                     :loading="loading"
                 >
                     <template #head>
                         <tr>
-                            <th scope="col">SKU and item</th>
-                            <th scope="col">Medicine</th>
+                            <th scope="col">Item</th>
                             <th scope="col">Location</th>
-                            <th scope="col">Batch</th>
-                            <th scope="col">Expiry</th>
-                            <th scope="col" class="text-right">Quantity</th>
-                            <th scope="col">Status</th>
+                            <th scope="col">Batch and expiry</th>
+                            <th scope="col" class="text-right">Stock</th>
                         </tr>
                     </template>
                     <template #body>
@@ -345,51 +405,62 @@ const batchTone = (status: unknown) =>
                             v-for="(row, index) in inventory.data"
                             :key="`${row.skuCode}-${row.location}-${row.batchNumber}-${index}`"
                         >
-                            <td data-label="SKU and item" data-primary>
+                            <td data-label="Item" data-primary>
                                 <span class="block font-medium break-words">{{
                                     row.itemName
                                 }}</span>
                                 <span
-                                    class="block font-mono text-xs break-words text-muted-foreground"
-                                    >{{ row.skuCode }}</span
+                                    class="block text-xs break-words text-muted-foreground"
+                                    ><span class="font-mono">{{
+                                        row.skuCode
+                                    }}</span
+                                    ><template v-if="row.medicineName != null">
+                                        · {{ row.medicineName }}</template
+                                    ></span
                                 >
-                            </td>
-                            <td data-label="Medicine" class="break-words">
-                                {{ medicine(row.medicineName) }}
                             </td>
                             <td data-label="Location" class="break-words">
-                                {{ row.location }}
-                                <span
-                                    class="block text-xs text-muted-foreground"
-                                    >{{ row.locationType }} ·
-                                    {{ row.branch }}</span
+                                <div class="min-w-0">
+                                    {{ row.location }}
+                                    <span
+                                        class="block text-xs text-muted-foreground"
+                                        >{{ row.locationType }} ·
+                                        {{ row.branch }}</span
+                                    >
+                                </div>
+                            </td>
+                            <td data-label="Batch and expiry">
+                                <div class="min-w-0">
+                                    <span
+                                        class="block font-mono text-xs break-words"
+                                        >{{ row.batchNumber }}</span
+                                    >
+                                    <span
+                                        class="block text-xs text-muted-foreground"
+                                        >Expires {{ row.expiryDate }}</span
+                                    >
+                                </div>
+                            </td>
+                            <td data-label="Stock" class="text-right">
+                                <div
+                                    class="flex flex-wrap items-center justify-end gap-x-2 gap-y-1"
                                 >
-                            </td>
-                            <td
-                                data-label="Batch"
-                                class="font-mono text-xs break-words"
-                            >
-                                {{ row.batchNumber }}
-                            </td>
-                            <td data-label="Expiry" class="whitespace-nowrap">
-                                {{ row.expiryDate }}
-                            </td>
-                            <td
-                                data-label="Quantity"
-                                class="text-right font-semibold whitespace-nowrap"
-                            >
-                                {{ row.quantity }} {{ row.stockUnit }}
-                            </td>
-                            <td data-label="Status">
-                                <V2Chip
-                                    :tone="availabilityTone(row)"
-                                    :label="
-                                        inventoryStatusLabel(
-                                            row,
-                                            row.availabilityStatus,
-                                        )
-                                    "
-                                />
+                                    <span class="whitespace-nowrap"
+                                        ><V2Chip
+                                            :tone="availabilityTone(row)"
+                                            :label="
+                                                inventoryStatusLabel(
+                                                    row,
+                                                    row.availabilityStatus,
+                                                )
+                                            "
+                                    /></span>
+                                    <span
+                                        class="font-semibold whitespace-nowrap tabular-nums"
+                                        >{{ row.quantity }}
+                                        {{ row.stockUnit }}</span
+                                    >
+                                </div>
                             </td>
                         </tr>
                     </template>
@@ -398,23 +469,17 @@ const batchTone = (status: unknown) =>
                 <V2Table
                     v-else-if="inventory.tab === 'batches'"
                     label="Batch and expiry"
-                    :columns="8"
-                    cards="lg"
-                    min-width="1120px"
-                    :empty="inventory.data.length === 0"
-                    :empty-message="`No stock records are available for ${inventory.branch} with these filters.`"
+                    :columns="4"
+                    cards="xl"
+                    min-width="800px"
                     :loading="loading"
                 >
                     <template #head>
                         <tr>
-                            <th scope="col">SKU and item</th>
-                            <th scope="col">Medicine</th>
-                            <th scope="col">Batch</th>
-                            <th scope="col">Location</th>
-                            <th scope="col">Received</th>
-                            <th scope="col">Expiry</th>
-                            <th scope="col">Status</th>
-                            <th scope="col" class="text-right">Quantity</th>
+                            <th scope="col">Item</th>
+                            <th scope="col">Batch and location</th>
+                            <th scope="col">Received and expiry</th>
+                            <th scope="col" class="text-right">Stock</th>
                         </tr>
                     </template>
                     <template #body>
@@ -422,59 +487,73 @@ const batchTone = (status: unknown) =>
                             v-for="(row, index) in inventory.data"
                             :key="`${row.skuCode}-${row.location}-${row.batchNumber}-${index}`"
                         >
-                            <td data-label="SKU and item" data-primary>
+                            <td data-label="Item" data-primary>
                                 <span class="block font-medium break-words">{{
                                     row.itemName
                                 }}</span>
                                 <span
-                                    class="block font-mono text-xs break-words text-muted-foreground"
-                                    >{{ row.skuCode }}</span
+                                    class="block text-xs break-words text-muted-foreground"
+                                    ><span class="font-mono">{{
+                                        row.skuCode
+                                    }}</span
+                                    ><template v-if="row.medicineName != null">
+                                        · {{ row.medicineName }}</template
+                                    ></span
                                 >
                             </td>
-                            <td data-label="Medicine" class="break-words">
-                                {{ medicine(row.medicineName) }}
-                            </td>
-                            <td
-                                data-label="Batch"
-                                class="font-mono text-xs break-words"
-                            >
-                                {{ row.batchNumber }}
-                            </td>
-                            <td data-label="Location" class="break-words">
-                                {{ row.location }}
-                            </td>
-                            <td data-label="Received" class="whitespace-nowrap">
-                                {{ row.receivedDate ?? '—' }}
-                            </td>
-                            <td data-label="Expiry" class="whitespace-nowrap">
-                                {{ row.expiryDate }}
-                            </td>
-                            <td data-label="Status">
-                                <div class="flex flex-wrap gap-1">
-                                    <V2Chip
-                                        :tone="
-                                            row.expiryStatus === 'Expired'
-                                                ? 'danger'
-                                                : 'success'
-                                        "
-                                        :label="String(row.expiryStatus)"
-                                    />
-                                    <V2Chip
-                                        :tone="batchTone(row.batchStatus)"
-                                        :label="
-                                            inventoryStatusLabel(
-                                                row,
-                                                row.batchStatus,
-                                            )
-                                        "
-                                    />
+                            <td data-label="Batch and location">
+                                <div class="min-w-0">
+                                    <span
+                                        class="block font-mono text-xs break-words"
+                                        >{{ row.batchNumber }}</span
+                                    >
+                                    <span
+                                        class="block text-xs break-words text-muted-foreground"
+                                        >{{ row.location }}</span
+                                    >
                                 </div>
                             </td>
-                            <td
-                                data-label="Quantity"
-                                class="text-right font-semibold whitespace-nowrap"
-                            >
-                                {{ row.quantity }} {{ row.stockUnit }}
+                            <td data-label="Received and expiry">
+                                <div class="min-w-0">
+                                    <span class="block"
+                                        >Expires {{ row.expiryDate }}</span
+                                    >
+                                    <span
+                                        class="block text-xs text-muted-foreground"
+                                        >Received
+                                        {{ row.receivedDate ?? '—' }}</span
+                                    >
+                                </div>
+                            </td>
+                            <td data-label="Stock" class="text-right">
+                                <div
+                                    class="flex flex-wrap items-center justify-end gap-x-2 gap-y-1"
+                                >
+                                    <span class="whitespace-nowrap"
+                                        ><V2Chip
+                                            :tone="
+                                                row.expiryStatus === 'Expired'
+                                                    ? 'danger'
+                                                    : 'success'
+                                            "
+                                            :label="String(row.expiryStatus)"
+                                    /></span>
+                                    <span class="whitespace-nowrap"
+                                        ><V2Chip
+                                            :tone="batchTone(row.batchStatus)"
+                                            :label="
+                                                inventoryStatusLabel(
+                                                    row,
+                                                    row.batchStatus,
+                                                )
+                                            "
+                                    /></span>
+                                    <span
+                                        class="font-semibold whitespace-nowrap tabular-nums"
+                                        >{{ row.quantity }}
+                                        {{ row.stockUnit }}</span
+                                    >
+                                </div>
                             </td>
                         </tr>
                     </template>
@@ -483,20 +562,15 @@ const batchTone = (status: unknown) =>
                 <V2Table
                     v-else
                     label="Stock movements"
-                    :columns="7"
-                    cards="lg"
-                    min-width="1120px"
-                    :empty="inventory.data.length === 0"
-                    :empty-message="`No movement records are available for ${inventory.branch} with these filters.`"
+                    :columns="4"
+                    cards="xl"
+                    min-width="800px"
                     :loading="loading"
                 >
                     <template #head>
                         <tr>
-                            <th scope="col">Date and time</th>
-                            <th scope="col">Type</th>
-                            <th scope="col">SKU and item</th>
-                            <th scope="col">Batch</th>
-                            <th scope="col">Direction</th>
+                            <th scope="col">Date and type</th>
+                            <th scope="col">Item and batch</th>
                             <th scope="col" class="text-right">Quantity</th>
                             <th scope="col">Reference</th>
                         </tr>
@@ -506,41 +580,45 @@ const batchTone = (status: unknown) =>
                             v-for="(row, index) in inventory.data"
                             :key="`${row.occurredAt}-${row.skuCode}-${row.batchNumber}-${index}`"
                         >
-                            <td
-                                data-label="Date and time"
-                                data-primary
-                                class="whitespace-nowrap"
-                            >
-                                {{ row.occurredAt }}
+                            <td data-label="Date and type" data-primary>
+                                <span class="block">{{ row.occurredAt }}</span>
+                                <span class="whitespace-nowrap"
+                                    ><V2Chip
+                                        tone="neutral"
+                                        :label="sentence(row.typeLabel)"
+                                /></span>
                             </td>
-                            <td data-label="Type">
-                                <V2Chip
-                                    tone="neutral"
-                                    :label="String(row.typeLabel)"
-                                />
+                            <td data-label="Item and batch">
+                                <div class="min-w-0">
+                                    <span
+                                        class="block font-medium break-words"
+                                        >{{ row.itemName }}</span
+                                    >
+                                    <span
+                                        class="block text-xs break-words text-muted-foreground"
+                                        ><span class="font-mono"
+                                            >{{ row.skuCode }} ·
+                                            {{ row.batchNumber }}</span
+                                        ><template
+                                            v-if="row.medicineName != null"
+                                        >
+                                            · {{ row.medicineName }}</template
+                                        ></span
+                                    >
+                                </div>
                             </td>
-                            <td data-label="SKU and item">
-                                <span class="block font-medium break-words">{{
-                                    row.itemName
-                                }}</span>
-                                <span
-                                    class="block font-mono text-xs break-words text-muted-foreground"
-                                    >{{ row.skuCode }} ·
-                                    {{ medicine(row.medicineName) }}</span
-                                >
-                            </td>
-                            <td
-                                data-label="Batch"
-                                class="font-mono text-xs break-words"
-                            >
-                                {{ row.batchNumber }}
-                            </td>
-                            <td data-label="Direction">{{ row.direction }}</td>
-                            <td
-                                data-label="Quantity"
-                                class="text-right font-semibold whitespace-nowrap"
-                            >
-                                {{ row.quantityDisplay }} {{ row.stockUnit }}
+                            <td data-label="Quantity" class="text-right">
+                                <div class="min-w-0">
+                                    <span
+                                        class="font-semibold whitespace-nowrap"
+                                        >{{ row.quantityDisplay }}
+                                        {{ row.stockUnit }}</span
+                                    >
+                                    <span
+                                        class="block text-xs text-muted-foreground"
+                                        >{{ row.direction }}</span
+                                    >
+                                </div>
                             </td>
                             <td data-label="Reference" class="break-words">
                                 {{ row.reference }}
@@ -581,4 +659,85 @@ const batchTone = (status: unknown) =>
             </template>
         </V2WorkLayout>
     </PageFrame>
+
+    <V2Dialog
+        v-model:open="sheetOpen"
+        title="Filters"
+        confirm-label="Apply"
+        cancel-label="Close"
+        @confirm="
+            sheetOpen = false;
+            applyFilters();
+        "
+    >
+        <div class="grid gap-3">
+            <label
+                v-if="inventory.tab !== 'movements'"
+                class="grid gap-1 text-sm font-medium"
+                >Status
+                <OperationalSelect
+                    v-model="status"
+                    label="Inventory status"
+                    :options="inventoryStatusOptions"
+                />
+            </label>
+            <label v-else class="grid gap-1 text-sm font-medium"
+                >Movement type
+                <OperationalSelect
+                    v-model="movementType"
+                    label="Movement type"
+                    :options="movementOptions"
+                />
+            </label>
+            <div class="grid gap-1 text-sm font-medium">
+                <span aria-hidden="true">Location</span>
+                <InventorySearchSelect
+                    v-model="location"
+                    label="Inventory location"
+                    :options="locationOptions"
+                    kind="locations"
+                    context="directory"
+                    :expected-branch-id="operations.expectedBranchId"
+                />
+            </div>
+            <template v-if="inventory.tab === 'movements'">
+                <label class="grid gap-1 text-sm font-medium"
+                    >Date from
+                    <DateField
+                        v-model="dateFrom"
+                        :max="dateTo || undefined"
+                        :echo="false"
+                    />
+                </label>
+                <label class="grid gap-1 text-sm font-medium"
+                    >Date to
+                    <DateField
+                        v-model="dateTo"
+                        :min="dateFrom || undefined"
+                        :echo="false"
+                    />
+                </label>
+            </template>
+            <label
+                v-if="inventory.tab !== 'stock'"
+                class="grid gap-1 text-sm font-medium"
+                >Batch
+                <Input
+                    v-model="batch"
+                    maxlength="100"
+                    placeholder="Batch number"
+                />
+            </label>
+            <button
+                type="button"
+                class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                @click="
+                    sheetOpen = false;
+                    clearFilters();
+                "
+            >
+                Reset filters
+            </button>
+        </div>
+    </V2Dialog>
 </template>

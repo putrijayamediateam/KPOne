@@ -171,3 +171,18 @@ test('V2 Inventory home: uses the V2 blocks, is registered, and Classic does not
             !classic.includes('useInventoryHome'),
     );
 });
+
+test('V2 Inventory home: Daniel V2 checklist points (phone filter sheet, cards below 1280, staff words)', () => {
+    // A phone gets search plus one "Filters (n)" button that opens a sheet with every filter, Reset and Apply.
+    assert.match(page, /Filters\{\{/);
+    assert.match(page, /<V2Dialog[\s\S]*?title="Filters"[\s\S]*?Reset filters/);
+    assert.match(page, /'flex-1 sm:hidden'/);
+    // Tables turn into cards below 1280 px (the V2 sidebar is showing).
+    assert.equal((page.match(/cards="xl"/g) ?? []).length, 3);
+    // Movement types keep the Classic values, in sentence case.
+    assert.match(page, /inventoryMovementOptions\.map/);
+    assert.match(page, /:label="sentence\(row\.typeLabel\)"/);
+    // No system zone name ("Asia/Kuala_Lumpur") on screen.
+    assert.ok(!page.includes('times in ${inventory.branchTimezone}'));
+    assert.match(page, /replaceAll\('_', ' '\)/);
+});
