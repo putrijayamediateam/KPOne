@@ -22,5 +22,6 @@ return [
         'Queue/Index',
         'Patient/Index',
         'Staff/Index',
+        'Staff/Show',
     ],
 ];
