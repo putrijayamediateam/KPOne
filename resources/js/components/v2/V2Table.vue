@@ -5,7 +5,8 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
  * Version 2 table. Default rows are 52px at 15px; `dense` is 44px at 14px. Cells carry `data-label` for the phone
  * cards (`cards`: below 1024px, or `cards="xl"` below 1280px); `td[data-select]` and `td[data-actions]` are the
  * selection row on top and the full-width action row at the bottom of a card. Right-aligned cells use tabular figures.
- * A table that can scroll shows a right-edge fade and keeps its first column in view. Prefer cards on phones for any
+ * The empty state sits in a cell with no padding and never wider than that cell (a padded cell used to push the page
+ * about 10px sideways in cards mode). A table that can scroll shows a right-edge fade and keeps its first column in view. Prefer cards on phones for any
  * table with row actions.
  */
 const props = withDefaults(
@@ -104,9 +105,9 @@ onBeforeUnmount(() => observer?.disconnect());
                     </td>
                 </tr>
                 <tr v-else-if="empty" data-empty-row>
-                    <td :colspan="columns" class="p-0">
+                    <td :colspan="columns" class="!p-0">
                         <div
-                            class="sticky left-0 flex min-h-28 flex-col items-center justify-center gap-2 px-4 py-6 text-center"
+                            class="sticky left-0 flex min-h-28 max-w-full flex-col items-center justify-center gap-2 px-4 py-6 text-center"
                             :style="visible ? { width: `${visible}px` } : {}"
                         >
                             <svg

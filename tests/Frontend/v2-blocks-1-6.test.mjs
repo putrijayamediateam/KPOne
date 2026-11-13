@@ -203,3 +203,32 @@ test('V2WorkLayout: eyebrow is a muted line above the title, outside the heading
     assert.match(s, /text-muted-foreground"\s*>\s*\{\{ eyebrow \}\}/);
     assert.ok(s.indexOf('{{ eyebrow }}') < s.indexOf('<h1'));
 });
+
+test('V2Table: the empty state cell has no padding and the empty block is never wider than its cell', () => {
+    const s = v2('V2Table');
+    assert.match(s, /<td :colspan="columns" class="!p-0">/);
+    assert.match(s, /sticky left-0 flex min-h-28 max-w-full flex-col/);
+});
+
+test('V2 table cards: the card grid column can shrink (minmax(0, 1fr)), so an empty state cannot widen the page', () => {
+    const css = read('resources/css/v2.css');
+    assert.equal(
+        (css.match(/grid-template-columns: minmax\(0, 1fr\);/g) ?? []).length >=
+            2,
+        true,
+    );
+    assert.match(
+        css,
+        /\.v2-cards-lg tbody \{\s*display: grid;\s*grid-template-columns: minmax\(0, 1fr\);/,
+    );
+    assert.match(
+        css,
+        /\.v2-cards-xl tbody \{\s*display: grid;\s*grid-template-columns: minmax\(0, 1fr\);/,
+    );
+});
+
+test('V2 table cards: a long unbreakable value wraps inside its card (overflow-wrap: anywhere)', () => {
+    const css = read('resources/css/v2.css');
+    assert.match(css, /\.v2-cards-lg td \{\s*overflow-wrap: anywhere;/);
+    assert.match(css, /\.v2-cards-xl td \{\s*overflow-wrap: anywhere;/);
+});
