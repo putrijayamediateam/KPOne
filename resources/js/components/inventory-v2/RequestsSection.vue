@@ -11,6 +11,7 @@ import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import { useRequestsAndTransfers } from '@/composables/inventory-v2/useRequestsAndTransfers';
 import { stockRequestActionAllowed } from '@/lib/inventory-operation-transitions';
+import { trimQuantity } from '@/lib/supplier-terms';
 import type { TransferReceiptLinePayload } from '@/lib/transfer-receipt';
 import type {
     InventoryDocument as DocumentRow,
@@ -149,6 +150,24 @@ const saveRequest = () =>
             closeSheet();
         },
     );
+/**
+ * V2 only: the server answers a request whose two locations are the same with a bare "not found" page, so the sheet
+ * says it in words first and sends nothing. Everything else goes to the server as in Classic.
+ */
+const sameLocation = ref(false);
+const sendRequest = () => {
+    sameLocation.value =
+        stockRequest.source !== '' &&
+        stockRequest.source === stockRequest.destination;
+
+    if (!sameLocation.value) {
+        saveRequest();
+    }
+};
+watch(
+    () => [stockRequest.source, stockRequest.destination],
+    () => (sameLocation.value = false),
+);
 const saveDispatch = (row: DocumentRow) =>
     send(
         'post',
@@ -436,7 +455,7 @@ const confirmOpen = computed({
         cancel-label="Cancel"
         :busy="busy"
         @update:open="requestClose"
-        @confirm="saveRequest"
+        @confirm="sendRequest"
     >
         <p v-if="operationError" role="alert" class="text-sm text-destructive">
             {{ operationError }}
@@ -455,7 +474,11 @@ const confirmOpen = computed({
             label="Send to"
             required
             :expected-branch-id="operations.expectedBranchId"
-            :error="fieldError('destination_location_public_id')"
+            :error="
+                sameLocation
+                    ? 'Choose a different location from the one you take from.'
+                    : fieldError('destination_location_public_id')
+            "
         />
         <fieldset
             v-for="(line, index) in stockRequest.lines"
@@ -527,10 +550,11 @@ const confirmOpen = computed({
             >
                 <p class="font-medium break-words">{{ lineName(line) }}</p>
                 <p class="text-muted-foreground">
-                    Requested {{ line.requestedQuantity }}
+                    Requested {{ trimQuantity(line.requestedQuantity ?? '0') }}
                     {{ line.stockUnit }}
                     <template v-if="line.dispatchedQuantity">
-                        · dispatched {{ line.dispatchedQuantity }}</template
+                        · dispatched
+                        {{ trimQuantity(line.dispatchedQuantity) }}</template
                     >
                     <template v-if="line.batch">
                         · batch {{ line.batch }}</template
@@ -575,7 +599,8 @@ const confirmOpen = computed({
                     {{ lineName(line) }}
                 </legend>
                 <p class="text-sm text-muted-foreground">
-                    Send {{ line.requestedQuantity }} {{ line.stockUnit }}
+                    Send {{ trimQuantity(line.requestedQuantity ?? '0') }}
+                    {{ line.stockUnit }}
                 </p>
                 <InventoryPickerField
                     v-model="dispatchBatch[line.publicId]"

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
+import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2SearchCombobox from '@/components/v2/V2SearchCombobox.vue';
 import type { ComboOption } from '@/components/v2/V2SearchCombobox.vue';
 import { inventoryPickerUrl } from '@/lib/inventory-picker';
@@ -11,7 +12,8 @@ import { formatDate } from '@/lib/presentation';
  * Inventory V2 only: a supplier, location or SKU picker on `V2SearchCombobox`, over the same server search as the
  * Classic `InventorySearchSelect` (`GET /inventory/picker`, context `operations`, at most 25 matches). The chosen
  * value shows as text with a Clear button, never as a filled box (Daniel, page 2 plan). Batches (page 2b) are for one
- * SKU, earliest expiry first as the server sends them, and list without typing; a held batch is left out and counted.
+ * SKU, earliest expiry first as the server sends them, shown at once as choice buttons (the list is short and the order
+ * matters); a held batch is left out and counted.
  */
 type Kind = 'suppliers' | 'locations' | 'skus' | 'batches';
 
@@ -227,6 +229,49 @@ const errorId = `inv-picker-${Math.random().toString(36).slice(2, 8)}-error`;
                 </button>
             </div>
         </div>
+        <template v-else-if="kind === 'batches'">
+            <V2OptionGroup
+                v-if="options.length"
+                model-value=""
+                :label="label"
+                :required="required"
+                :options="
+                    options.map((option) => ({
+                        value: option.id,
+                        label: option.detail
+                            ? `${option.label} · ${option.detail}`
+                            : option.label,
+                    }))
+                "
+                @update:model-value="
+                    (value) => {
+                        const option = options.find(
+                            (entry) => entry.id === value,
+                        );
+                        if (option) pick(option);
+                    }
+                "
+            />
+            <p v-else class="text-sm" role="status">
+                <span class="font-medium">{{ label }}</span
+                ><br />
+                <span class="text-muted-foreground">{{
+                    loading
+                        ? 'Loading batches…'
+                        : failed
+                          ? 'Batches could not be loaded. Try again.'
+                          : 'No batch of this item can be sent from here.'
+                }}</span>
+            </p>
+            <p class="text-xs text-muted-foreground">
+                Earliest expiry first.
+                <template v-if="heldCount > 0">
+                    {{ heldCount }} held
+                    {{ heldCount === 1 ? 'batch is' : 'batches are' }} not
+                    shown.</template
+                >
+            </p>
+        </template>
         <template v-else>
             <!-- The combobox names itself for screen readers; this is the visible label (Daniel: no placeholder-only field). -->
             <span class="text-sm font-medium" aria-hidden="true"
@@ -246,16 +291,7 @@ const errorId = `inv-picker-${Math.random().toString(36).slice(2, 8)}-error`;
                 @select="pick"
             />
             <p class="text-xs text-muted-foreground">
-                {{
-                    kind === 'batches'
-                        ? 'Earliest expiry first. Up to 25 batches. Type to narrow.'
-                        : 'Up to 25 matches. Type to narrow.'
-                }}
-                <template v-if="kind === 'batches' && heldCount > 0">
-                    {{ heldCount }} held
-                    {{ heldCount === 1 ? 'batch is' : 'batches are' }} not
-                    shown.</template
-                >
+                Up to 25 matches. Type to narrow.
             </p>
         </template>
         <p

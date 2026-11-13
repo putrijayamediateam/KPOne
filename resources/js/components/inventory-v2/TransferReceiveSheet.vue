@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, watch } from 'vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
+import { trimQuantity } from '@/lib/supplier-terms';
 import {
     defaultTransferReceiptRow,
     transferReceiptDifferenceCount,
@@ -135,7 +136,7 @@ const requestClose = (open: boolean) => {
                 {{ lineName(index) }}
             </legend>
             <p class="text-sm text-muted-foreground">
-                Dispatched {{ receipt.dispatched
+                Dispatched {{ trimQuantity(receipt.dispatched)
                 }}<template v-if="batchFor(index)">
                     · batch {{ batchFor(index) }}</template
                 >

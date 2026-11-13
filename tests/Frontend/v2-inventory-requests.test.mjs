@@ -128,6 +128,13 @@ test('2b: the V2 saves send the Classic routes and payloads, closing the sheet o
         /action: \(\) => decideStockRequest\(row, 'reject'\)/,
     );
     assert.match(section, /destructive: true,/);
+    // The same location twice is stopped with words before sending (the server answers it with "not found").
+    assert.match(section, /@confirm="sendRequest"/);
+    assert.match(
+        section,
+        /Choose a different location from the one you take from\./,
+    );
+    assert.match(block(section, 'sendRequest'), /saveRequest\(\);/);
 });
 
 test('2b: the receive and differences sheets keep the Classic scripts', () => {
@@ -195,6 +202,11 @@ test("2b: row menus, sheets and wording follow Daniel's page 2 rules", () => {
         /sku: props\.kind === 'batches' \? props\.sku : undefined/,
     );
     assert.match(picker, /Earliest expiry first\./);
+    // The batch list shows at once as choice buttons (the combobox list opens only after typing).
+    assert.match(
+        picker,
+        /<template v-else-if="kind === 'batches'">\s*<V2OptionGroup/,
+    );
     assert.match(picker, /row\.held !== true/);
 });
 
