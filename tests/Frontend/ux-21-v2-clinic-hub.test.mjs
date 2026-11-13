@@ -55,7 +55,7 @@ test('UX-21: cards with a heading per group, 44 px rows with a 3:1 focus ring, g
         page,
         /<h2\s+class="min-w-0 flex-1 text-\[15px\] font-semibold"\s*>/,
     );
-    assert.match(page, /class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"/);
+    assert.match(page, /class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3"/);
     assert.match(
         page,
         /min-h-11[^"]*focus-visible:ring-2 focus-visible:ring-ring/,

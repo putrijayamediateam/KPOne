@@ -183,7 +183,7 @@ const toggle = (key: string) => {
 
                 <div
                     v-else
-                    class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"
+                    class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3"
                     data-test="hub-groups"
                 >
                     <section
