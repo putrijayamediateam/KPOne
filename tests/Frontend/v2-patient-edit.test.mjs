@@ -145,5 +145,7 @@ test('leaving with unsaved changes asks first, and the rail starts at 1280 px', 
     assert.ok(page.includes('Keep editing'));
     assert.ok(page.includes('Discard changes'));
     assert.ok(/if \(dirty\.value && !form\.processing\)/.test(page));
+    assert.ok(page.includes('event.preventDefault();'));
+    assert.ok(!/<Link/.test(page));
     assert.ok(page.includes('rail-from="xl"'));
 });

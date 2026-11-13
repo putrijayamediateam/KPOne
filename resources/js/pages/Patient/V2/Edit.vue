@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
+import { Head, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
 import PatientFormV2 from '@/components/patient-v2/PatientFormV2.vue';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -156,9 +156,16 @@ const patientUrl =
 // Leaving with unsaved changes asks first (Keep editing / Discard changes). The text typed is never logged or flashed.
 const discardOpen = ref(false);
 const leave = (event: MouseEvent) => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.button) {
+        return;
+    }
+
+    event.preventDefault();
+
     if (dirty.value && !form.processing) {
-        event.preventDefault();
         discardOpen.value = true;
+    } else {
+        router.visit(patientUrl);
     }
 };
 const discard = () => {
@@ -177,12 +184,12 @@ const discard = () => {
             rail-width="narrow"
         >
             <template #actions>
-                <Link
+                <a
                     :href="patientUrl"
                     @click="leave"
                     class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:justify-start max-sm:border-0 max-sm:bg-transparent max-sm:px-0 max-sm:text-primary lg:h-9"
                     ><span class="max-sm:hidden">Back to patient</span
-                    ><span class="sm:hidden">← Patient</span></Link
+                    ><span class="sm:hidden">← Patient</span></a
                 >
             </template>
 
