@@ -19,7 +19,7 @@ use Illuminate\Support\Collection;
 final class AttendanceDays
 {
     /** An open clock-in this long before a shift starts belongs to that shift. */
-    private const EARLY_ARRIVAL_MINUTES = 120;
+    public const EARLY_ARRIVAL_MINUTES = 120;
 
     public function __construct(private AttendanceSettingsService $settings) {}
 

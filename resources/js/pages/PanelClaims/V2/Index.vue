@@ -2,7 +2,6 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
 import PanelClaimFilterFields from '@/components/panel-v2/PanelClaimFilterFields.vue';
-import PanelSelectionBar from '@/components/panel-v2/PanelSelectionBar.vue';
 import PanelSelectionSummary from '@/components/panel-v2/PanelSelectionSummary.vue';
 import PanelSummaryBlock from '@/components/panel-v2/PanelSummaryBlock.vue';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -14,6 +13,7 @@ import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
 import V2RowMenu from '@/components/v2/V2RowMenu.vue';
+import V2SelectionBar from '@/components/v2/V2SelectionBar.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
 import V2Toolbar from '@/components/v2/V2Toolbar.vue';
@@ -826,22 +826,29 @@ const selection = computed(() => {
                     selection is kept when you change page.
                 </p>
 
-                <PanelSelectionBar
-                    v-if="selection"
-                    :summary="`${selection.title} · ${selection.detail}`"
-                    :action-label="selection.primaryLabel"
-                    :secondary-label="selection.clearLabel"
-                    :busy="selection.busy"
-                    :rule-line="selection.ruleLine"
-                    :rule-id="selection.ruleId"
-                    :notices="selection.notices"
-                    :errors="selection.errors"
-                    :test-id="selection.testId"
-                    :primary-test-id="selection.primaryTestId"
-                    :label="selection.ariaLabel"
-                    @action="selection.primary"
-                    @secondary="selection.clear"
-                />
+                <V2SelectionBar
+                    :visible="!!selection"
+                    :summary="
+                        selection
+                            ? `${selection.title} · ${selection.detail}`
+                            : ''
+                    "
+                    :action-label="selection?.primaryLabel ?? ''"
+                    :secondary-label="selection?.clearLabel"
+                    :busy="selection?.busy"
+                    :hint-tone="
+                        selection?.notices.length ? 'warning' : 'neutral'
+                    "
+                    :data-testid="selection?.testId"
+                    @action="selection?.primary()"
+                    @secondary="selection?.clear()"
+                >
+                    <template #hint>
+                        <span :id="selection?.ruleId">{{
+                            selection?.notices[0] ?? selection?.ruleLine
+                        }}</span>
+                    </template>
+                </V2SelectionBar>
             </template>
 
             <template #rail>

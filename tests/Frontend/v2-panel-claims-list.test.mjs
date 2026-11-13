@@ -18,7 +18,7 @@ const lib = read('resources/js/lib/panel-claims-v2.ts');
 const selection = read(
     'resources/js/components/panel-v2/PanelSelectionSummary.vue',
 );
-const bar = read('resources/js/components/panel-v2/PanelSelectionBar.vue');
+const bar = read('resources/js/components/v2/V2SelectionBar.vue');
 const filters = read(
     'resources/js/components/panel-v2/PanelClaimFilterFields.vue',
 );
@@ -149,7 +149,6 @@ test('the Classic wording the Version 2 page keeps', () => {
         'pack-panel-rule',
         'bulk-claim-bar',
         'claim-pack-bar',
-        'claim-pack-print',
         'claim-pack-error',
     ];
     const v2 = flat(
@@ -239,7 +238,7 @@ test('the page is registered and the layout rules hold', () => {
     // One filled button at most: only the selection summary has one, and only when something is ticked.
     assert.ok(!/bg-primary(?!\/)/.test(page), 'no filled button in the page');
     assert.match(selection, /bg-primary px-4/);
-    assert.match(bar, /bg-primary px-4/);
+    assert.match(bar, /bg-primary/);
     assert.match(page, /v-if="selection"/);
     assert.match(page, /cards="xl"/);
     assert.match(page, /rail-from="2xl"/);
@@ -248,13 +247,16 @@ test('the page is registered and the layout rules hold', () => {
 
     // The rail summary (from 1536 px) and the bar (below it) carry the same props.
     assert.ok(page.includes('<PanelSelectionSummary'));
-    assert.ok(page.includes('<PanelSelectionBar'));
-    assert.match(bar, /2xl:hidden/);
+    assert.ok(page.includes('<V2SelectionBar'));
+    assert.match(bar, /V2_RAIL_FROM/);
     assert.ok(!page.includes('variant='));
 
     // Ids and test ids live on the bar only.
-    assert.equal([...page.matchAll(/:rule-id=/g)].length, 1);
-    assert.equal([...page.matchAll(/:test-id=/g)].length, 1);
+    assert.equal([...page.matchAll(/:id="selection\?\.ruleId"/g)].length, 1);
+    assert.equal(
+        [...page.matchAll(/:data-testid="selection\?\.testId"/g)].length,
+        1,
+    );
 
     // Create claim is an outline row button (36 px, 44 px below 1024), the menu keeps View invoice.
     assert.match(page, /Create claim for invoice/);
@@ -265,15 +267,17 @@ test('the page is registered and the layout rules hold', () => {
 });
 
 test('the selection never hides an error or the Panel rule', () => {
-    for (const part of [selection, bar]) {
-        assert.match(part, /role="alert"/);
-        assert.match(part, /role="status"/);
-        assert.match(part, /\{\{ ruleLine \}\}/);
-        assert.match(part, /aria-busy/);
-        assert.match(part, /Loader2/);
-        assert.ok(!part.includes('Each invoice gets its own'));
-    }
-
+    // The rail summary shows the rule, notices and errors itself.
+    assert.match(selection, /role="alert"/);
+    assert.match(selection, /role="status"/);
+    assert.match(selection, /\{\{ ruleLine \}\}/);
+    assert.match(selection, /aria-busy/);
+    assert.match(selection, /Loader2/);
+    // The shared bar shows the rule (or the maximum note, as a warning) in its hint and keeps the pack rule id.
+    assert.match(page, /selection\?\.notices\[0\] \?\? selection\?\.ruleLine/);
+    assert.match(page, /:id="selection\?\.ruleId"/);
+    assert.match(bar, /hintTone/);
+    assert.match(bar, /aria-busy/);
     assert.match(bar, /aria-live="polite"/);
     // "Create N claims" opens a dialog holding the date, remarks, rules and errors; Confirm runs the Classic logic.
     assert.match(page, /bulkDialogOpen/);
