@@ -71,3 +71,18 @@ test('V2 shows the Classic wording for who can act', () => {
     assert.ok(page.includes('v-if="request.canDecide"'));
     assert.ok(page.includes('v-if="request.canWithdraw"'));
 });
+
+test('V2 keeps the filled button in the dialog and says what an approval does', () => {
+    assert.ok(!page.includes('filledButton'));
+    assert.ok(page.includes(':class="approveButton"'));
+    assert.ok(
+        page.includes(
+            'The two records are linked. Nothing is moved or deleted.',
+        ),
+    );
+    assert.ok(page.includes('The link between the two records is removed.'));
+    assert.ok(page.includes("'Approve merge'"));
+    assert.ok(page.includes("'Approve unmerge'"));
+    // No more private data than Classic: no phone, identifier or date of birth.
+    assert.ok(!/phone|identifier|dateOfBirth|date_of_birth/i.test(page));
+});

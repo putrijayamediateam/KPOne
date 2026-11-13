@@ -79,6 +79,7 @@ const dialog = computed(() => {
     const { request, action } = current;
     const merged = nb(request.mergedPatientNumber);
     const kept = nb(request.keptPatientNumber);
+    const both = `${merged} (${request.mergedName}) and ${kept} (${request.keptName})`;
 
     if (action === 'approve') {
         return {
@@ -88,9 +89,10 @@ const dialog = computed(() => {
                     : `Approve unmerging ${merged} from ${kept}?`,
             description:
                 request.kind === 'merge'
-                    ? `${merged} will be hidden and kept as a merged record. Its visits, invoices and documents keep their own KP number. You can undo this later with another approval.`
-                    : `${merged} will be a separate patient record again. Nothing else is moved.`,
-            confirmLabel: 'Approve',
+                    ? `${both}. The two records are linked. Nothing is moved or deleted. You can undo this later with another approval.`
+                    : `${both}. The link between the two records is removed. Nothing is moved or deleted.`,
+            confirmLabel:
+                request.kind === 'merge' ? 'Approve merge' : 'Approve unmerge',
             tone: 'default' as const,
         };
     }
@@ -98,13 +100,13 @@ const dialog = computed(() => {
     return action === 'reject'
         ? {
               title: 'Reject this request?',
-              description: `Nothing changes for ${merged} or ${kept}. The person who proposed it can ask again.`,
+              description: `${both}. Nothing changes. The person who proposed it can ask again.`,
               confirmLabel: 'Reject request',
               tone: 'danger' as const,
           }
         : {
               title: 'Withdraw your request?',
-              description: `Nothing changes for ${merged} or ${kept}.`,
+              description: `${both}. Nothing changes.`,
               confirmLabel: 'Withdraw request',
               tone: 'danger' as const,
           };
@@ -150,8 +152,8 @@ const confirmDialog = () => {
 
 const outlineButton =
     'inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:h-9';
-const filledButton =
-    'inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:h-9';
+const approveButton =
+    'inline-flex h-11 items-center justify-center rounded-[10px] border border-primary bg-card px-4 text-sm font-medium text-primary outline-none hover:bg-primary/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:h-9';
 const linkClass =
     'font-mono underline decoration-muted-foreground/60 underline-offset-2 hover:decoration-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
 </script>
@@ -238,7 +240,7 @@ const linkClass =
                                     <template v-if="request.canDecide">
                                         <button
                                             type="button"
-                                            :class="filledButton"
+                                            :class="approveButton"
                                             @click="ask(request, 'approve')"
                                         >
                                             Approve
