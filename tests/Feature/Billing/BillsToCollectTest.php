@@ -90,6 +90,30 @@ class BillsToCollectTest extends BillingTestCase
         $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page->where('billing.invoice.state.due_now', 500));
     }
 
+    /**
+     * BIL-26: a bill whose invoice is on hold for a correction or has out-of-date source is flagged for review (the
+     * Outstanding bills rule), beside the rows so each row keeps its agreed fields. The amounts do not change.
+     */
+    public function test_a_bill_on_hold_for_correction_is_flagged_for_review(): void
+    {
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        $this->cashMethod($visit);
+        $this->payTenAndDeferThirty($ca, $visit, $invoice);
+
+        $this->selectBranch($ca);
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
+            ->where('collections.all.count', 1)->where('collections.reviewRequired', []));
+
+        // source_stale is frozen once an invoice is finalised (kpone_invoice_immutable); correction_hold can change.
+        $invoice->refresh()->forceFill(['correction_hold' => true])->save();
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page
+            ->where('collections.reviewRequired', [$visit->visit_number])
+            ->where('collections.all', ['count' => 1, 'totalSen' => 3000, 'overdueCount' => 0, 'overdueSen' => 0])
+            ->where('collections.data.0.remainingSen', 3000));
+        $invoice->refresh()->forceFill(['correction_hold' => false])->save();
+        $this->get(route('billing.pay-later-collections'))->assertInertia(fn (Assert $page) => $page->where('collections.reviewRequired', []));
+    }
+
     public function test_an_open_visit_still_paying_at_the_counter_is_not_listed(): void
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();
