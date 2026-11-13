@@ -21,5 +21,6 @@ return [
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
+        'BusinessDetails/Index',
     ],
 ];
