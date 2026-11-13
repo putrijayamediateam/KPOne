@@ -348,7 +348,12 @@ test('no native selects: Batch and FEFO use OperationalSelect, the batch wraps i
     assert.match(template(v2), /:data-batch-select="item\.publicId"/);
     assert.match(template(v2), /data-batch-select="add"/);
     assert.match(v2, /disabled: stock\.held/);
-    // Clicking the visible word opens its field (Hakim).
+    // Clicking the visible word opens its field (Hakim): a synthetic click only focuses the reka trigger, so the page
+    // focuses it and presses Enter (checked in Chromium with a mouse click and a phone tap).
+    assert.match(
+        v2,
+        /trigger\.focus\(\);\s+trigger\.dispatchEvent\(\s+new KeyboardEvent\('keydown', \{ key: 'Enter', bubbles: true \}\),/,
+    );
     assert.equal(
         (template(v2).match(/@click="\s*openSelect\(/g) ?? []).length,
         4,

@@ -1207,11 +1207,22 @@ const batchOptions = (
         label: `${matchesBox(target, index) ? 'Matches the box · ' : ''}${batchOptionText(stock, unit)}`,
         disabled: stock.held,
     }));
-// Hakim: clicking the visible word opens its field, as a <label> did for the native select.
-const openSelect = (labelId: string) =>
-    document
-        .querySelector<HTMLButtonElement>(`[aria-labelledby="${labelId}"]`)
-        ?.click();
+// Hakim: clicking the visible word opens its field, as a <label> did for the native select. The select opens from a
+// real pointer or the keyboard only (a synthetic click just focuses it), so focus the trigger and press Enter on it.
+const openSelect = (labelId: string) => {
+    const trigger = document.querySelector<HTMLButtonElement>(
+        `[aria-labelledby="${labelId}"]`,
+    );
+
+    if (trigger === null || trigger.disabled) {
+        return;
+    }
+
+    trigger.focus();
+    trigger.dispatchEvent(
+        new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }),
+    );
+};
 const selectTriggerClass =
     'mt-1 h-auto min-h-11 w-full py-2 text-left whitespace-normal data-[size=default]:h-auto lg:min-h-9 *:data-[slot=select-value]:line-clamp-none';
 
