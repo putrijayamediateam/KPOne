@@ -4,7 +4,8 @@ import { ref } from 'vue';
 /**
  * Version 2 disclosure bar: a full-width bar with a title (for example "3 need attention") that opens a panel under
  * it. 44px below 1024px, 36px from 1024px; `aria-expanded` and `aria-controls` tie the button to the panel. It is closed by
- * default; `defaultOpen` opens it. `tone="warning"` adds an amber dot beside the title (hidden from screen readers; the
+ * default; `defaultOpen` opens it. `keepMounted` keeps the panel in the DOM (hidden) while the bar is closed, so a half-filled form inside keeps what
+ * was typed; without it the panel is removed when closed. `tone="warning"` adds an amber dot beside the title (hidden from screen readers; the
  * title carries the meaning), so a "5 need attention" bar does not read as a plain accordion.
  */
 const props = withDefaults(
@@ -12,8 +13,9 @@ const props = withDefaults(
         title: string;
         defaultOpen?: boolean;
         tone?: 'neutral' | 'warning';
+        keepMounted?: boolean;
     }>(),
-    { defaultOpen: false, tone: 'neutral' },
+    { defaultOpen: false, tone: 'neutral', keepMounted: false },
 );
 
 const open = ref(props.defaultOpen);
@@ -54,7 +56,12 @@ const id = `v2-bar-${Math.random().toString(36).slice(2, 8)}`;
                 <path d="m6 9 6 6 6-6" />
             </svg>
         </button>
-        <div v-if="open" :id="id" class="border-t p-4">
+        <div
+            v-if="keepMounted || open"
+            v-show="open"
+            :id="id"
+            class="border-t p-4"
+        >
             <slot />
         </div>
     </section>

@@ -203,3 +203,11 @@ test('V2WorkLayout: eyebrow is a muted line above the title, outside the heading
     assert.match(s, /text-muted-foreground"\s*>\s*\{\{ eyebrow \}\}/);
     assert.ok(s.indexOf('{{ eyebrow }}') < s.indexOf('<h1'));
 });
+
+test('V2DisclosureBar: keepMounted keeps the panel in the DOM, hidden, while closed', () => {
+    const s = v2('V2DisclosureBar');
+    assert.match(s, /keepMounted\?: boolean/);
+    assert.match(s, /keepMounted: false/);
+    assert.match(s, /v-if="keepMounted \|\| open"/);
+    assert.match(s, /v-show="open"/);
+});
