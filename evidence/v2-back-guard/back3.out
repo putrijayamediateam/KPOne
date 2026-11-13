@@ -1,0 +1,16 @@
+===== desktop
+1 clean V2: Back+Forward -> /staff/13/edit | pushState by guard: 0 | history.length 5 -> 5 | dialogs 0
+2 dirty Back: dialogs 1 | url /staff/13/edit
+3 Keep editing: value Typed once | scroll 0 -> 0 | history.length 5 -> 5
+4 after 3 more Keep editing: history.length 5 | url /staff/13/edit | value Typed once
+5 Discard ->  /staff/13 (Back was heading to /staff/13)
+6 now on edit via Forward, URL /staff/13/edit
+7 beforeunload prevented while dirty: true
+===== phone (Chromium mobile emulation)
+1 clean V2: Back+Forward -> /staff/13/edit | pushState by guard: 0 | history.length 5 -> 5 | dialogs 0
+2 dirty Back: dialogs 1 | url /staff/13/edit
+3 Keep editing: value Typed once | scroll 200 -> 200 | history.length 5 -> 5
+4 after 3 more Keep editing: history.length 5 | url /staff/13/edit | value Typed once
+5 Discard ->  /staff/13 (Back was heading to /staff/13)
+6 now on edit via Forward, URL /staff/13/edit
+7 beforeunload prevented while dirty: true
