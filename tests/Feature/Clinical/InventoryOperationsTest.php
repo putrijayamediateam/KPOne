@@ -15,6 +15,7 @@ use App\Domain\Organisation\Inventory\Models\StockRequest;
 use App\Domain\Organisation\Inventory\Services\InventoryAuthorityService;
 use App\Domain\Organisation\Inventory\Services\InventoryControlService;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
+use App\Domain\Organisation\Inventory\Services\InventoryPickerService;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
 use App\Domain\Organisation\Inventory\Services\LegacyStockPath;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
@@ -530,6 +531,26 @@ class InventoryOperationsTest extends ClinicalTestCase
 
         $this->assertSame($requestCount, StockRequest::query()->count());
         $this->assertSame($auditCount, DB::table('audit_logs')->count());
+    }
+
+    public function test_operations_sku_search_also_matches_the_item_name(): void
+    {
+        // Owner, 2026-11-13: "fix stock search". Typing the medicine's name found nothing; only the SKU code matched.
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $fixture = $this->inventoryFixture($supervisor, 'NAMESEARCH');
+        $picker = app(InventoryPickerService::class);
+        $ids = fn (string $search, string $context = 'operations') => array_column($picker->choices($supervisor, $this->branch, 'skus', $context, $search), 'publicId');
+
+        // The item's name, in any letter case, finds the SKU; the SKU code still does.
+        $this->assertContains($fixture['sku']->public_id, $ids('synthetic namesearch item'));
+        $this->assertContains($fixture['sku']->public_id, $ids('NAMESEARCH-SKU'));
+        // Wildcards stay literal: a "%" or "_" in the search matches only those characters.
+        $this->assertNotContains($fixture['sku']->public_id, $ids('Synthetic%Item'));
+        $this->assertNotContains($fixture['sku']->public_id, $ids('Synthetic_NAMESEARCH'));
+        // Same result shape as before.
+        $row = collect($picker->choices($supervisor, $this->branch, 'skus', 'operations', 'namesearch item'))->firstWhere('publicId', $fixture['sku']->public_id);
+        $this->assertSame(['publicId', 'code', 'stockUnit', 'name'], array_keys($row));
     }
 
     public function test_stock_request_branch_source_cannot_be_overridden_by_warehouse_authority(): void
