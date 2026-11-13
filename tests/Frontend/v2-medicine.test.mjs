@@ -59,7 +59,7 @@ test('the form state and the payload are a faithful copy of Classic', () => {
         .replaceAll('dialogOpen', 'formOpen')
         .replaceAll('props.setup', 'setup');
     const v2Submit = squash(
-        between(formLogic, 'const submit = () => {', 'return {'),
+        between(formLogic, 'const submit = () => {', '// Unsaved-work check'),
     );
 
     assert.equal(v2Submit, classicSubmit);
@@ -123,7 +123,7 @@ test('V2 form: shared pickers reused, required fields marked, optional dosage be
     assert.match(form, /label="Catalogue code"\s+required/);
     assert.match(form, /label="Display name"\s+required/);
     assert.ok(form.includes('Dosage and instructions (optional)'));
-    assert.ok(form.includes('<V2StickyBar'));
+    assert.ok(form.includes('data-test="medicine-form-actions"'));
     assert.ok(form.includes('v-if="setup.canManageInventory"'));
     assert.ok(form.includes('v-if="setup.canManagePrices"'));
     assert.ok(form.includes('v-if="setup.canReceiveStock"'));
@@ -150,7 +150,31 @@ test('Classic keeps its own page and does not import V2 pieces', () => {
 });
 
 test('prices wrap in cards (no sideways scroll at 320) and a missing price reads "No price"', () => {
-    assert.ok(v2.includes("'No price'"));
+    assert.ok(v2.includes("'no price'"));
+    assert.match(v2, /Self-pay:/);
+    assert.match(v2, /Default Panel:/);
     assert.doesNotMatch(v2, /class="block whitespace-nowrap"/);
     assert.match(v2, /xl:whitespace-nowrap/);
+});
+
+test("Daniel's changes: URL state, neutral Controlled chip, always-visible save bar, unsaved-work guard, Controlled words", () => {
+    // a. real URL state, front end only
+    assert.match(v2, /add: '1'/);
+    assert.match(v2, /edit: row\.publicId/);
+    assert.match(v2, /watch\(\(\) => page\.url, syncFromUrl/);
+    assert.match(v2, /window\.history\.back\(\)/);
+    assert.match(v2, /beforeunload/);
+    assert.match(v2, /router\.on\('before'/);
+    assert.ok(v2.includes('Discard your changes?'));
+    assert.match(formLogic, /const isDirty = computed/);
+    // b. neutral Controlled chip (the owner's CAT-1 decision), no amber
+    assert.doesNotMatch(v2, /tone="warning"/);
+    assert.match(v2, /tone="neutral"\s+label="Controlled"/);
+    // d. one action bar at every width
+    assert.doesNotMatch(form, /V2StickyBar/);
+    assert.match(form, /sticky bottom-0/);
+    // f. the Controlled confirm says what changes for the label and the Dispensary
+    assert.ok(rowLogic.includes('At Dispensary, a returned'));
+    assert.ok(rowLogic.includes('controlled register'));
+    assert.ok(rowLogic.includes('Ubat Terkawal/Controlled Medicine'));
 });

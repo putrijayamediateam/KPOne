@@ -76,8 +76,8 @@ export function useMedicineRowActions() {
         }
 
         return row.isControlled
-            ? `${row.displayName} will no longer show "Ubat Terkawal/Controlled Medicine" on drug labels, including reprints. The change is recorded.`
-            : `New drug labels for ${row.displayName} will show "Ubat Terkawal/Controlled Medicine" below the label. The change is recorded.`;
+            ? `${row.displayName} will no longer show "Ubat Terkawal/Controlled Medicine" on drug labels, including reprints. At Dispensary, a returned ${row.displayName} can then be checked into the patient returns location instead of being disposed of only. Its stock will stop being listed in the controlled register. The change is recorded.`
+            : `New drug labels for ${row.displayName} will show "Ubat Terkawal/Controlled Medicine" below the label. At Dispensary, a returned ${row.displayName} can only be disposed of and is never put back into stock. Its stock will be listed in the controlled register. The change is recorded.`;
     });
     // DSP-1b: drug groups the Dispensary allergy warning matches against (one per line).
     const groupsRow = ref<MedicineRow | null>(null);

@@ -11,7 +11,6 @@ import { OperationalSelect } from '@/components/ui/select';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
-import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import type {
     SetupOptions,
     useMedicineForm,
@@ -45,7 +44,9 @@ const saveLabel = computed(() =>
     props.c.editing.value ? 'Save' : 'Add medicine',
 );
 const saveClass = computed(() =>
-    props.c.editing.value && !form.isDirty ? outlineButton : filledButton,
+    props.c.editing.value && !props.c.isDirty.value
+        ? outlineButton
+        : filledButton,
 );
 const saveDisabled = computed(
     () =>
@@ -592,26 +593,26 @@ const branchOptions = computed(() =>
             <InputError :message="form.errors.batch" />
         </V2FormCard>
 
+        <!-- One action bar at every width for this long form, so the filled button is always in reach. -->
         <div
-            class="hidden items-center justify-end gap-2 sm:flex"
+            class="sticky bottom-0 z-10 -mx-4 flex items-center justify-end gap-2 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:-mx-8 lg:px-8"
             data-test="medicine-form-actions"
         >
             <button
                 type="button"
-                :class="outlineButton"
+                :class="[outlineButton, 'max-sm:hidden']"
                 :disabled="form.processing || c.editLoading.value"
                 @click="$emit('cancel')"
             >
                 Cancel
             </button>
-            <button type="submit" :class="saveClass" :disabled="saveDisabled">
+            <button
+                type="submit"
+                :class="[saveClass, 'max-sm:w-full']"
+                :disabled="saveDisabled"
+            >
                 {{ saveLabel }}
             </button>
         </div>
-        <V2StickyBar>
-            <button type="submit" :class="saveClass" :disabled="saveDisabled">
-                {{ saveLabel }}
-            </button>
-        </V2StickyBar>
     </form>
 </template>

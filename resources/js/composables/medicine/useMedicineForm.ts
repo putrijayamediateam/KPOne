@@ -1,5 +1,5 @@
 import { useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { JsonRequestError, requestJson } from '@/lib/json-client';
 import { rmToSen } from '@/lib/money';
 
@@ -118,6 +118,7 @@ export function useMedicineForm(setup: SetupOptions) {
             ? String(setup.activeBranchId)
             : '';
         formOpen.value = true;
+        snapshot();
     };
     const openEdit = async (row: MedicineRow) => {
         editLoading.value = true;
@@ -185,6 +186,12 @@ export function useMedicineForm(setup: SetupOptions) {
             form.expected_branch_id = setup.activeBranchId
                 ? String(setup.activeBranchId)
                 : '';
+            // A shared link opens the page with only the id: take the name from the loaded details.
+            editing.value = {
+                ...row,
+                displayName: details.medicine.display_name ?? row.displayName,
+            };
+            snapshot();
         } catch (error) {
             editLoadError.value =
                 error instanceof JsonRequestError
@@ -280,7 +287,17 @@ export function useMedicineForm(setup: SetupOptions) {
         }
     };
 
+    // Unsaved-work check for the full page: the form as loaded (or as blank) against the form now.
+    const baseline = ref('');
+    const snapshot = () => {
+        baseline.value = JSON.stringify(form.data());
+    };
+    const isDirty = computed(
+        () => formOpen.value && JSON.stringify(form.data()) !== baseline.value,
+    );
+
     return {
+        isDirty,
         formOpen,
         editing,
         editingSkuLabel,

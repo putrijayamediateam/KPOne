@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { Head, router, usePage } from '@inertiajs/vue3';
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import MedicineForm from '@/components/medicine-v2/MedicineForm.vue';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -76,6 +76,126 @@ const visit = (overrides: Record<string, string | number> = {}) => {
 const filterCount = computed(() => (status.value ? 1 : 0));
 const sheetOpen = ref(false);
 
+// Add and Edit live in the address (?add=1 or ?edit=<id>), so Back, Forward, refresh and a shared link all behave.
+// Nothing here needs a server route: it is the same /medicines page with a query.
+const page = usePage();
+const urlQuery = computed(
+    () => new URLSearchParams((page.url.split('?')[1] ?? '').split('#')[0]),
+);
+const filterQuery = () => ({
+    search: search.value || undefined,
+    status: status.value || undefined,
+});
+const formQuery = () =>
+    c.editing.value ? { edit: c.editing.value.publicId } : { add: '1' };
+const openedByPush = ref(false);
+const discardOpen = ref(false);
+const pendingUrl = ref<string | null>(null);
+let leaving = false;
+const goForm = (extra: Record<string, string>) => {
+    openedByPush.value = true;
+    router.get(
+        '/medicines',
+        { ...filterQuery(), ...extra },
+        { preserveState: true, preserveScroll: true },
+    );
+};
+const openAdd = () => goForm({ add: '1' });
+const openEditPage = (row: MedicineRow) => goForm({ edit: row.publicId });
+const closeToList = () => {
+    leaving = true;
+    c.formOpen.value = false;
+    openedByPush.value = false;
+
+    if (pendingUrl.value) {
+        const url = pendingUrl.value;
+
+        pendingUrl.value = null;
+        router.visit(url);
+    } else {
+        router.get('/medicines', filterQuery(), {
+            preserveState: true,
+            preserveScroll: true,
+            replace: true,
+        });
+    }
+
+    leaving = false;
+};
+const leaveForm = () => {
+    if (c.isDirty.value) {
+        discardOpen.value = true;
+
+        return;
+    }
+
+    if (openedByPush.value) {
+        openedByPush.value = false;
+        window.history.back();
+    } else {
+        closeToList();
+    }
+};
+const syncFromUrl = () => {
+    const query = urlQuery.value;
+    const editId = query.get('edit');
+
+    if (query.get('add') === '1') {
+        if (!c.formOpen.value || c.editing.value) {
+            c.openCreate();
+        }
+    } else if (editId) {
+        if (!c.formOpen.value || c.editing.value?.publicId !== editId) {
+            c.openEdit(
+                props.medicines.data.find((row) => row.publicId === editId) ??
+                    ({ publicId: editId, displayName: '' } as MedicineRow),
+            );
+        }
+    } else if (c.formOpen.value) {
+        if (c.isDirty.value && !leaving) {
+            // Back or Forward with unsaved work: put the form's address back and ask first.
+            router.get(
+                '/medicines',
+                { ...filterQuery(), ...formQuery() },
+                { preserveState: true, preserveScroll: true, replace: true },
+            );
+            discardOpen.value = true;
+
+            return;
+        }
+
+        c.formOpen.value = false;
+        openedByPush.value = false;
+    }
+};
+watch(() => page.url, syncFromUrl, { immediate: true });
+const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (c.isDirty.value) {
+        event.preventDefault();
+    }
+};
+let stopBefore: (() => void) | null = null;
+onMounted(() => {
+    window.addEventListener('beforeunload', warnBeforeUnload);
+    stopBefore = router.on('before', (event) => {
+        const target = new URL(
+            String(event.detail.visit.url),
+            window.location.origin,
+        );
+
+        if (c.isDirty.value && !leaving && target.pathname !== '/medicines') {
+            pendingUrl.value = target.pathname + target.search;
+            discardOpen.value = true;
+
+            return false;
+        }
+    });
+});
+onBeforeUnmount(() => {
+    window.removeEventListener('beforeunload', warnBeforeUnload);
+    stopBefore?.();
+});
+
 const outlineButton =
     'inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9';
 const filledButton =
@@ -129,7 +249,7 @@ const onMenu = (row: MedicineRow, id: string) => {
     }
 };
 
-const money = (value: string | null) => (value ? `RM ${value}` : 'No price');
+const money = (value: string | null) => (value ? `RM ${value}` : 'no price');
 const strengthLine = (row: MedicineRow) =>
     [row.strengthText, row.dosageForm, row.orderUnit]
         .filter(Boolean)
@@ -147,7 +267,7 @@ const groupsLine = (items: string[]) =>
                 type="button"
                 class="inline-flex h-11 w-fit items-center rounded-[10px] text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
                 data-action="back-to-medicines"
-                @click="c.formOpen.value = false"
+                @click="leaveForm()"
             >
                 ← Medicines
             </button>
@@ -164,11 +284,7 @@ const groupsLine = (items: string[]) =>
                 "
             >
                 <template #main>
-                    <MedicineForm
-                        :c="c"
-                        :setup="setup"
-                        @cancel="c.formOpen.value = false"
-                    />
+                    <MedicineForm :c="c" :setup="setup" @cancel="leaveForm()" />
                 </template>
             </V2WorkLayout>
         </template>
@@ -183,7 +299,7 @@ const groupsLine = (items: string[]) =>
                     type="button"
                     :class="filledButton"
                     data-action="add-medicine"
-                    @click="c.openCreate()"
+                    @click="openAdd()"
                 >
                     Add medicine
                 </button>
@@ -283,7 +399,7 @@ const groupsLine = (items: string[]) =>
                                     <V2Chip
                                         v-if="row.isControlled"
                                         class="xl:hidden"
-                                        tone="warning"
+                                        tone="neutral"
                                         label="Controlled"
                                     />
                                 </span>
@@ -316,12 +432,12 @@ const groupsLine = (items: string[]) =>
                             >
                                 <div class="text-right">
                                     <span class="block xl:whitespace-nowrap"
-                                        >Self-pay
+                                        >Self-pay:
                                         {{ money(row.selfPayAmountRm) }}</span
                                     >
                                     <span
                                         class="block text-xs text-muted-foreground xl:whitespace-nowrap"
-                                        >Default Panel
+                                        >Default Panel:
                                         {{
                                             money(row.panelDefaultAmountRm)
                                         }}</span
@@ -343,7 +459,7 @@ const groupsLine = (items: string[]) =>
                                     />
                                     <V2Chip
                                         v-if="row.isControlled"
-                                        tone="warning"
+                                        tone="neutral"
                                         label="Controlled"
                                     />
                                 </span>
@@ -360,7 +476,7 @@ const groupsLine = (items: string[]) =>
                                         ]"
                                         data-action="edit-medicine"
                                         :aria-label="`Edit ${row.displayName}`"
-                                        @click="c.openEdit(row)"
+                                        @click="openEditPage(row)"
                                     >
                                         Edit
                                     </button>
@@ -523,5 +639,19 @@ const groupsLine = (items: string[]) =>
                 />
             </div>
         </V2Dialog>
+
+        <V2Dialog
+            v-model:open="discardOpen"
+            title="Discard your changes?"
+            description="You have unsaved changes on this medicine. If you leave now they are lost."
+            confirm-label="Discard changes"
+            cancel-label="Keep editing"
+            tone="danger"
+            @update:open="$event || (pendingUrl = null)"
+            @confirm="
+                discardOpen = false;
+                closeToList();
+            "
+        />
     </PageFrame>
 </template>
