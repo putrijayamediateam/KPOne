@@ -27,5 +27,6 @@ return [
         'Patient/Index',
         'QueueDisplay/Settings',
         'Inventory/Index',
+        'InventoryServicesSettings/Suppliers',
     ],
 ];
