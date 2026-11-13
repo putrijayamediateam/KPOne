@@ -18,7 +18,7 @@ import {
     Trash2,
     TriangleAlert,
 } from '@lucide/vue';
-import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
 import { Button } from '@/components/ui/button';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -30,7 +30,6 @@ import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2RowMenu from '@/components/v2/V2RowMenu.vue';
 import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
-import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2StickySummary from '@/components/v2/V2StickySummary.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
@@ -53,8 +52,8 @@ import type { BoxBatchHint } from '@/lib/gs1-batch';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate, formatStatusLabel } from '@/lib/presentation';
 import type { Gs1Read, ScannedSku } from '@/lib/scan';
-import AllergyMatchWarning from '@/pages/Dispensary/Partials/AllergyMatchWarning.vue';
 import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
+import AllergyMatchWarning from '@/pages/Dispensary/V2/Partials/AllergyMatchWarning.vue';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Dispensary', href: '/registration' }] },
@@ -1233,7 +1232,9 @@ const primaryLabel = computed(() =>
     primaryAction.value === 'start'
         ? 'Start Dispensing'
         : primaryAction.value === 'save'
-          ? `Save all lines (${unsavedCount.value})`
+          ? unsavedCount.value === 1
+              ? 'Save 1 line'
+              : `Save all ${unsavedCount.value} lines`
           : 'Complete Dispensary',
 );
 // The same disabled rule as Classic's Complete button.
@@ -1251,6 +1252,9 @@ const runPrimary = () => {
     if (primaryDisabled.value) {
         return;
     }
+
+    // Hakim: clear first, so the same refusal pressed twice is brought into view again.
+    actionError.value = null;
 
     if (primaryAction.value === 'start') {
         caseAction('start');
@@ -1326,7 +1330,7 @@ const actionGroups = computed<RowMenuGroup[]>(() => {
 
     if (props.dispensary.can.return) {
         groups.push({
-            label: 'Move',
+            label: 'Send back to the doctor',
             items: [
                 {
                     id: 'return',
@@ -1381,6 +1385,21 @@ const onAction = (id: string) => {
 const allergyNames = computed(() =>
     props.dispensary.allergySafety.allergies.map((allergy) => allergy.allergen),
 );
+// Daniel: three allergy states in words; "not recorded" must never look like "no allergies".
+const allergyState = computed<'none' | 'listed' | 'unrecorded'>(() =>
+    props.dispensary.allergySafety.allergies.length > 0
+        ? 'listed'
+        : props.dispensary.allergySafety.status === 'no_known_allergies'
+          ? 'none'
+          : 'unrecorded',
+);
+const allergyHeading = computed(() =>
+    allergyState.value === 'listed'
+        ? `Allergies (${props.dispensary.allergySafety.allergies.length})`
+        : allergyState.value === 'none'
+          ? 'No known allergies'
+          : 'Allergies not recorded',
+);
 const otcOptions = [
     { value: 'none', label: 'Patient reports no allergy' },
     { value: 'has_allergy', label: 'Patient reports an allergy' },
@@ -1415,6 +1434,35 @@ const primaryBarDescribedBy = computed(() =>
         ? 'dispensary-complete-blocked-reason-phone'
         : undefined,
 );
+// Daniel: the label budget shows only while the field is focused or near its limit; over it, the field turns red and
+// says by how much. The budgets are the server's (labelLimits); a long text still saves and the label then blocks.
+const focusedField = ref<string | null>(null);
+const labelOver = (value: string | null | undefined, limit?: number | null) =>
+    limit ? Math.max(0, (value ?? '').length - limit) : 0;
+const labelHint = (
+    value: string | null | undefined,
+    limit: number | null | undefined,
+    key: string,
+) => {
+    if (!limit) {
+        return '';
+    }
+
+    const over = labelOver(value, limit);
+
+    if (over > 0) {
+        return `${over} character${over === 1 ? '' : 's'} over the label limit`;
+    }
+
+    return focusedField.value === key || limit - (value ?? '').length <= 10
+        ? `Label max ${limit} characters`
+        : '';
+};
+// Announce an allergy match only when it appears after the page has loaded (an add or edit), never on load.
+const pageReady = ref(false);
+onMounted(() => {
+    pageReady.value = true;
+});
 const outlineButton =
     'inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 lg:h-9';
 const filledButton =
@@ -1426,9 +1474,10 @@ const filledButton =
     <PageFrame>
         <V2WorkLayout
             title="Dispensary"
-            :eyebrow="`Visit ${dispensary.visit.visitNumber}`"
+            :eyebrow="isOtc ? 'OTC visit' : 'Consultation visit'"
             description="Check each line, save it, then complete."
             rail-label="This dispensary"
+            rail-from="2xl"
         >
             <template v-if="actionGroups.length" #actions>
                 <div class="sm:hidden" data-testid="dispensary-actions-menu">
@@ -1488,19 +1537,19 @@ const filledButton =
                         v-if="!isOtc"
                         class="mt-3 rounded-[10px] border p-3 text-sm"
                         :class="
-                            allergyNames.length
-                                ? 'border-warning/30 bg-warning/10'
-                                : 'border-border bg-muted/40'
+                            allergyState === 'none'
+                                ? 'border-border bg-muted/40'
+                                : 'border-warning/30 bg-warning/10'
                         "
+                        :data-allergy-state="allergyState"
                         data-testid="dispensary-allergies"
                     >
-                        <p class="font-semibold">
-                            Allergy safety:
-                            {{
-                                formatStatusLabel(
-                                    dispensary.allergySafety.status,
-                                )
-                            }}
+                        <p class="flex items-center gap-2 font-semibold">
+                            <TriangleAlert
+                                v-if="allergyState !== 'none'"
+                                class="size-4 shrink-0 text-warning-strong"
+                                aria-hidden="true"
+                            />{{ allergyHeading }}
                         </p>
                         <ul
                             v-if="dispensary.allergySafety.allergies.length"
@@ -1841,21 +1890,36 @@ const filledButton =
                             v-if="dispensary.can.update && forms[item.publicId]"
                             class="grid gap-2 text-xs sm:grid-cols-2 lg:grid-cols-4"
                         >
-                            <p class="text-muted-foreground sm:col-span-full">
-                                Label limits (characters; saved clinical text is
-                                unchanged): dosage
-                                {{ dispensary.labelLimits?.dosage }}, frequency
-                                {{ dispensary.labelLimits?.frequency }},
-                                duration {{ dispensary.labelLimits?.duration }},
-                                instruction
-                                {{ dispensary.labelLimits?.instruction }},
-                                precaution
-                                {{ dispensary.labelLimits?.precaution }},
-                                quantity {{ dispensary.labelLimits?.quantity }}.
-                                Dosage, frequency and instruction share 3
-                                printed rows. Route is not printed. Over-budget
-                                labels are blocked, never truncated.
-                            </p>
+                            <div
+                                class="sm:col-span-full"
+                                data-testid="label-limits"
+                            >
+                                <V2DisclosureBar title="Label limits">
+                                    <p
+                                        class="text-[13px] text-muted-foreground"
+                                    >
+                                        Label limits (characters; saved clinical
+                                        text is unchanged): dosage
+                                        {{ dispensary.labelLimits?.dosage }},
+                                        frequency
+                                        {{ dispensary.labelLimits?.frequency }},
+                                        duration
+                                        {{ dispensary.labelLimits?.duration }},
+                                        instruction
+                                        {{
+                                            dispensary.labelLimits?.instruction
+                                        }}, precaution
+                                        {{
+                                            dispensary.labelLimits?.precaution
+                                        }}, quantity
+                                        {{ dispensary.labelLimits?.quantity }}.
+                                        Dosage, frequency and instruction share
+                                        3 printed rows. Route is not printed.
+                                        Over-budget labels are blocked, never
+                                        truncated.
+                                    </p>
+                                </V2DisclosureBar>
+                            </div>
                             <label
                                 >Quantity ({{ item.unit }})<input
                                     v-model="forms[item.publicId].quantity"
@@ -1864,57 +1928,271 @@ const filledButton =
                                     data-field="quantity"
                             /></label>
                             <label
-                                >Dosage (label max
-                                {{ dispensary.labelLimits?.dosage }}
-                                characters)<input
+                                >Dosage<input
                                     v-model="forms[item.publicId].dosage"
-                                    :class="inputClass"
+                                    :class="[
+                                        inputClass,
+                                        labelOver(
+                                            forms[item.publicId].dosage,
+                                            dispensary.labelLimits?.dosage,
+                                        )
+                                            ? 'border-destructive'
+                                            : '',
+                                    ]"
+                                    :aria-invalid="
+                                        labelOver(
+                                            forms[item.publicId].dosage,
+                                            dispensary.labelLimits?.dosage,
+                                        ) > 0
+                                    "
+                                    @focus="
+                                        focusedField =
+                                            'forms[item.publicId].dosage'
+                                    "
+                                    @blur="focusedField = null"
                                     maxlength="500"
                                     data-field="dosage"
-                            /></label>
+                                /><span
+                                    v-if="
+                                        labelHint(
+                                            forms[item.publicId].dosage,
+                                            dispensary.labelLimits?.dosage,
+                                            'forms[item.publicId].dosage',
+                                        )
+                                    "
+                                    class="mt-1 block text-[13px]"
+                                    :class="
+                                        labelOver(
+                                            forms[item.publicId].dosage,
+                                            dispensary.labelLimits?.dosage,
+                                        )
+                                            ? 'font-medium text-destructive'
+                                            : 'text-muted-foreground'
+                                    "
+                                    >{{
+                                        labelHint(
+                                            forms[item.publicId].dosage,
+                                            dispensary.labelLimits?.dosage,
+                                            'forms[item.publicId].dosage',
+                                        )
+                                    }}</span
+                                ></label
+                            >
                             <label
-                                >Frequency (label max
-                                {{ dispensary.labelLimits?.frequency }}
-                                characters)<input
+                                >Frequency<input
                                     v-model="forms[item.publicId].frequency"
-                                    :class="inputClass"
+                                    :class="[
+                                        inputClass,
+                                        labelOver(
+                                            forms[item.publicId].frequency,
+                                            dispensary.labelLimits?.frequency,
+                                        )
+                                            ? 'border-destructive'
+                                            : '',
+                                    ]"
+                                    :aria-invalid="
+                                        labelOver(
+                                            forms[item.publicId].frequency,
+                                            dispensary.labelLimits?.frequency,
+                                        ) > 0
+                                    "
+                                    @focus="
+                                        focusedField =
+                                            'forms[item.publicId].frequency'
+                                    "
+                                    @blur="focusedField = null"
                                     maxlength="500"
                                     data-field="frequency"
-                            /></label>
+                                /><span
+                                    v-if="
+                                        labelHint(
+                                            forms[item.publicId].frequency,
+                                            dispensary.labelLimits?.frequency,
+                                            'forms[item.publicId].frequency',
+                                        )
+                                    "
+                                    class="mt-1 block text-[13px]"
+                                    :class="
+                                        labelOver(
+                                            forms[item.publicId].frequency,
+                                            dispensary.labelLimits?.frequency,
+                                        )
+                                            ? 'font-medium text-destructive'
+                                            : 'text-muted-foreground'
+                                    "
+                                    >{{
+                                        labelHint(
+                                            forms[item.publicId].frequency,
+                                            dispensary.labelLimits?.frequency,
+                                            'forms[item.publicId].frequency',
+                                        )
+                                    }}</span
+                                ></label
+                            >
                             <label
-                                >Duration (label max
-                                {{ dispensary.labelLimits?.duration }}
-                                characters)<input
+                                >Duration<input
                                     v-model="forms[item.publicId].duration"
-                                    :class="inputClass"
+                                    :class="[
+                                        inputClass,
+                                        labelOver(
+                                            forms[item.publicId].duration,
+                                            dispensary.labelLimits?.duration,
+                                        )
+                                            ? 'border-destructive'
+                                            : '',
+                                    ]"
+                                    :aria-invalid="
+                                        labelOver(
+                                            forms[item.publicId].duration,
+                                            dispensary.labelLimits?.duration,
+                                        ) > 0
+                                    "
+                                    @focus="
+                                        focusedField =
+                                            'forms[item.publicId].duration'
+                                    "
+                                    @blur="focusedField = null"
                                     maxlength="500"
                                     data-field="duration"
-                            /></label>
+                                /><span
+                                    v-if="
+                                        labelHint(
+                                            forms[item.publicId].duration,
+                                            dispensary.labelLimits?.duration,
+                                            'forms[item.publicId].duration',
+                                        )
+                                    "
+                                    class="mt-1 block text-[13px]"
+                                    :class="
+                                        labelOver(
+                                            forms[item.publicId].duration,
+                                            dispensary.labelLimits?.duration,
+                                        )
+                                            ? 'font-medium text-destructive'
+                                            : 'text-muted-foreground'
+                                    "
+                                    >{{
+                                        labelHint(
+                                            forms[item.publicId].duration,
+                                            dispensary.labelLimits?.duration,
+                                            'forms[item.publicId].duration',
+                                        )
+                                    }}</span
+                                ></label
+                            >
                             <label
-                                >Route (not printed on the label)<input
+                                >Route<input
                                     v-model="forms[item.publicId].route"
                                     :class="inputClass"
                                     maxlength="500"
                                     data-field="route"
-                            /></label>
+                                /><span
+                                    class="mt-1 block text-[13px] text-muted-foreground"
+                                    >Not printed on the label</span
+                                ></label
+                            >
                             <label class="sm:col-span-2"
-                                >Instruction (label max
-                                {{ dispensary.labelLimits?.instruction }}
-                                characters)<input
+                                >Instruction<input
                                     v-model="forms[item.publicId].instruction"
-                                    :class="inputClass"
+                                    :class="[
+                                        inputClass,
+                                        labelOver(
+                                            forms[item.publicId].instruction,
+                                            dispensary.labelLimits?.instruction,
+                                        )
+                                            ? 'border-destructive'
+                                            : '',
+                                    ]"
+                                    :aria-invalid="
+                                        labelOver(
+                                            forms[item.publicId].instruction,
+                                            dispensary.labelLimits?.instruction,
+                                        ) > 0
+                                    "
+                                    @focus="
+                                        focusedField =
+                                            'forms[item.publicId].instruction'
+                                    "
+                                    @blur="focusedField = null"
                                     maxlength="2000"
                                     data-field="instruction"
-                            /></label>
+                                /><span
+                                    v-if="
+                                        labelHint(
+                                            forms[item.publicId].instruction,
+                                            dispensary.labelLimits?.instruction,
+                                            'forms[item.publicId].instruction',
+                                        )
+                                    "
+                                    class="mt-1 block text-[13px]"
+                                    :class="
+                                        labelOver(
+                                            forms[item.publicId].instruction,
+                                            dispensary.labelLimits?.instruction,
+                                        )
+                                            ? 'font-medium text-destructive'
+                                            : 'text-muted-foreground'
+                                    "
+                                    >{{
+                                        labelHint(
+                                            forms[item.publicId].instruction,
+                                            dispensary.labelLimits?.instruction,
+                                            'forms[item.publicId].instruction',
+                                        )
+                                    }}</span
+                                ></label
+                            >
                             <label class="sm:col-span-2"
-                                >Precaution (label max
-                                {{ dispensary.labelLimits?.precaution }}
-                                characters)<input
+                                >Precaution<input
                                     v-model="forms[item.publicId].precaution"
-                                    :class="inputClass"
+                                    :class="[
+                                        inputClass,
+                                        labelOver(
+                                            forms[item.publicId].precaution,
+                                            dispensary.labelLimits?.precaution,
+                                        )
+                                            ? 'border-destructive'
+                                            : '',
+                                    ]"
+                                    :aria-invalid="
+                                        labelOver(
+                                            forms[item.publicId].precaution,
+                                            dispensary.labelLimits?.precaution,
+                                        ) > 0
+                                    "
+                                    @focus="
+                                        focusedField =
+                                            'forms[item.publicId].precaution'
+                                    "
+                                    @blur="focusedField = null"
                                     maxlength="2000"
                                     data-field="precaution"
-                            /></label>
+                                /><span
+                                    v-if="
+                                        labelHint(
+                                            forms[item.publicId].precaution,
+                                            dispensary.labelLimits?.precaution,
+                                            'forms[item.publicId].precaution',
+                                        )
+                                    "
+                                    class="mt-1 block text-[13px]"
+                                    :class="
+                                        labelOver(
+                                            forms[item.publicId].precaution,
+                                            dispensary.labelLimits?.precaution,
+                                        )
+                                            ? 'font-medium text-destructive'
+                                            : 'text-muted-foreground'
+                                    "
+                                    >{{
+                                        labelHint(
+                                            forms[item.publicId].precaution,
+                                            dispensary.labelLimits?.precaution,
+                                            'forms[item.publicId].precaution',
+                                        )
+                                    }}</span
+                                ></label
+                            >
                             <label class="sm:col-span-2"
                                 >Batch<select
                                     v-model.number="
@@ -2027,6 +2305,7 @@ const filledButton =
                                 before fulfilment.
                             </p>
                             <AllergyMatchWarning
+                                :announce="pageReady"
                                 v-if="matchesFor(item).length"
                                 v-model="allergyChecks[checkKey(item)]"
                                 :matches="matchesFor(item)"
@@ -2039,8 +2318,16 @@ const filledButton =
                                 data-testid="allergy-resave-hint"
                             >
                                 This medicine matches an allergy recorded after
-                                it was saved. Tick the box, then press Save
+                                it was saved. Tick the box, then press Save this
                                 line.
+                            </p>
+                            <p
+                                v-if="needsAllergyCheck(item)"
+                                :id="`save-blocked-${item.publicId}`"
+                                class="text-[13px] font-medium text-destructive sm:col-span-full"
+                                data-testid="save-blocked-allergy"
+                            >
+                                Tick the allergy check to save this line.
                             </p>
                             <div class="flex items-end gap-2 sm:col-span-full">
                                 <Button
@@ -2048,17 +2335,27 @@ const filledButton =
                                     size="sm"
                                     :disabled="
                                         busy ||
-                                        needsAllergyCheck(item) ||
                                         (item.status !== 'pending' &&
                                             !isDirty(item) &&
                                             !item.allergyUnconfirmed)
                                     "
+                                    :aria-disabled="needsAllergyCheck(item)"
+                                    :aria-describedby="
+                                        needsAllergyCheck(item)
+                                            ? `save-blocked-${item.publicId}`
+                                            : undefined
+                                    "
+                                    class="aria-disabled:cursor-not-allowed aria-disabled:opacity-60"
                                     data-action="save-line"
-                                    @click="saveItem(item)"
+                                    @click="
+                                        needsAllergyCheck(item)
+                                            ? null
+                                            : saveItem(item)
+                                    "
                                     ><LoaderCircle
                                         v-if="busy"
                                         class="size-4 animate-spin"
-                                    />Save line</Button
+                                    />Save this line</Button
                                 >
                                 <Button
                                     size="sm"
@@ -2149,6 +2446,7 @@ const filledButton =
                                 >
                             </div>
                             <AllergyMatchWarning
+                                :announce="pageReady"
                                 v-if="
                                     dispensary.can.update &&
                                     matchesFor(item).length
@@ -2309,53 +2607,252 @@ const filledButton =
                                 data-field="add-quantity"
                         /></label>
                         <label
-                            >Dosage (label max
-                            {{ dispensary.labelLimits?.dosage }}
-                            characters)<input
+                            >Dosage<input
                                 v-model="addForm.dosage"
-                                :class="inputClass"
+                                :class="[
+                                    inputClass,
+                                    labelOver(
+                                        addForm.dosage,
+                                        dispensary.labelLimits?.dosage,
+                                    )
+                                        ? 'border-destructive'
+                                        : '',
+                                ]"
+                                :aria-invalid="
+                                    labelOver(
+                                        addForm.dosage,
+                                        dispensary.labelLimits?.dosage,
+                                    ) > 0
+                                "
+                                @focus="focusedField = 'addForm.dosage'"
+                                @blur="focusedField = null"
                                 maxlength="500"
                                 data-field="add-dosage"
-                        /></label>
+                            /><span
+                                v-if="
+                                    labelHint(
+                                        addForm.dosage,
+                                        dispensary.labelLimits?.dosage,
+                                        'addForm.dosage',
+                                    )
+                                "
+                                class="mt-1 block text-[13px]"
+                                :class="
+                                    labelOver(
+                                        addForm.dosage,
+                                        dispensary.labelLimits?.dosage,
+                                    )
+                                        ? 'font-medium text-destructive'
+                                        : 'text-muted-foreground'
+                                "
+                                >{{
+                                    labelHint(
+                                        addForm.dosage,
+                                        dispensary.labelLimits?.dosage,
+                                        'addForm.dosage',
+                                    )
+                                }}</span
+                            ></label
+                        >
                         <label
-                            >Frequency (label max
-                            {{ dispensary.labelLimits?.frequency }}
-                            characters)<input
+                            >Frequency<input
                                 v-model="addForm.frequency"
-                                :class="inputClass"
+                                :class="[
+                                    inputClass,
+                                    labelOver(
+                                        addForm.frequency,
+                                        dispensary.labelLimits?.frequency,
+                                    )
+                                        ? 'border-destructive'
+                                        : '',
+                                ]"
+                                :aria-invalid="
+                                    labelOver(
+                                        addForm.frequency,
+                                        dispensary.labelLimits?.frequency,
+                                    ) > 0
+                                "
+                                @focus="focusedField = 'addForm.frequency'"
+                                @blur="focusedField = null"
                                 maxlength="500"
                                 data-field="add-frequency"
-                        /></label>
+                            /><span
+                                v-if="
+                                    labelHint(
+                                        addForm.frequency,
+                                        dispensary.labelLimits?.frequency,
+                                        'addForm.frequency',
+                                    )
+                                "
+                                class="mt-1 block text-[13px]"
+                                :class="
+                                    labelOver(
+                                        addForm.frequency,
+                                        dispensary.labelLimits?.frequency,
+                                    )
+                                        ? 'font-medium text-destructive'
+                                        : 'text-muted-foreground'
+                                "
+                                >{{
+                                    labelHint(
+                                        addForm.frequency,
+                                        dispensary.labelLimits?.frequency,
+                                        'addForm.frequency',
+                                    )
+                                }}</span
+                            ></label
+                        >
                         <label
-                            >Duration (label max
-                            {{ dispensary.labelLimits?.duration }}
-                            characters)<input
+                            >Duration<input
                                 v-model="addForm.duration"
-                                :class="inputClass"
+                                :class="[
+                                    inputClass,
+                                    labelOver(
+                                        addForm.duration,
+                                        dispensary.labelLimits?.duration,
+                                    )
+                                        ? 'border-destructive'
+                                        : '',
+                                ]"
+                                :aria-invalid="
+                                    labelOver(
+                                        addForm.duration,
+                                        dispensary.labelLimits?.duration,
+                                    ) > 0
+                                "
+                                @focus="focusedField = 'addForm.duration'"
+                                @blur="focusedField = null"
                                 maxlength="500"
-                        /></label>
+                            /><span
+                                v-if="
+                                    labelHint(
+                                        addForm.duration,
+                                        dispensary.labelLimits?.duration,
+                                        'addForm.duration',
+                                    )
+                                "
+                                class="mt-1 block text-[13px]"
+                                :class="
+                                    labelOver(
+                                        addForm.duration,
+                                        dispensary.labelLimits?.duration,
+                                    )
+                                        ? 'font-medium text-destructive'
+                                        : 'text-muted-foreground'
+                                "
+                                >{{
+                                    labelHint(
+                                        addForm.duration,
+                                        dispensary.labelLimits?.duration,
+                                        'addForm.duration',
+                                    )
+                                }}</span
+                            ></label
+                        >
                         <label
-                            >Route (not printed on the label)<input
+                            >Route<input
                                 v-model="addForm.route"
                                 :class="inputClass"
                                 maxlength="500"
-                        /></label>
+                            /><span
+                                class="mt-1 block text-[13px] text-muted-foreground"
+                                >Not printed on the label</span
+                            ></label
+                        >
                         <label class="sm:col-span-2"
-                            >Instruction (label max
-                            {{ dispensary.labelLimits?.instruction }}
-                            characters)<input
+                            >Instruction<input
                                 v-model="addForm.instruction"
-                                :class="inputClass"
+                                :class="[
+                                    inputClass,
+                                    labelOver(
+                                        addForm.instruction,
+                                        dispensary.labelLimits?.instruction,
+                                    )
+                                        ? 'border-destructive'
+                                        : '',
+                                ]"
+                                :aria-invalid="
+                                    labelOver(
+                                        addForm.instruction,
+                                        dispensary.labelLimits?.instruction,
+                                    ) > 0
+                                "
+                                @focus="focusedField = 'addForm.instruction'"
+                                @blur="focusedField = null"
                                 maxlength="2000"
-                        /></label>
+                            /><span
+                                v-if="
+                                    labelHint(
+                                        addForm.instruction,
+                                        dispensary.labelLimits?.instruction,
+                                        'addForm.instruction',
+                                    )
+                                "
+                                class="mt-1 block text-[13px]"
+                                :class="
+                                    labelOver(
+                                        addForm.instruction,
+                                        dispensary.labelLimits?.instruction,
+                                    )
+                                        ? 'font-medium text-destructive'
+                                        : 'text-muted-foreground'
+                                "
+                                >{{
+                                    labelHint(
+                                        addForm.instruction,
+                                        dispensary.labelLimits?.instruction,
+                                        'addForm.instruction',
+                                    )
+                                }}</span
+                            ></label
+                        >
                         <label class="sm:col-span-2"
-                            >Precaution (label max
-                            {{ dispensary.labelLimits?.precaution }}
-                            characters)<input
+                            >Precaution<input
                                 v-model="addForm.precaution"
-                                :class="inputClass"
+                                :class="[
+                                    inputClass,
+                                    labelOver(
+                                        addForm.precaution,
+                                        dispensary.labelLimits?.precaution,
+                                    )
+                                        ? 'border-destructive'
+                                        : '',
+                                ]"
+                                :aria-invalid="
+                                    labelOver(
+                                        addForm.precaution,
+                                        dispensary.labelLimits?.precaution,
+                                    ) > 0
+                                "
+                                @focus="focusedField = 'addForm.precaution'"
+                                @blur="focusedField = null"
                                 maxlength="2000"
-                        /></label>
+                            /><span
+                                v-if="
+                                    labelHint(
+                                        addForm.precaution,
+                                        dispensary.labelLimits?.precaution,
+                                        'addForm.precaution',
+                                    )
+                                "
+                                class="mt-1 block text-[13px]"
+                                :class="
+                                    labelOver(
+                                        addForm.precaution,
+                                        dispensary.labelLimits?.precaution,
+                                    )
+                                        ? 'font-medium text-destructive'
+                                        : 'text-muted-foreground'
+                                "
+                                >{{
+                                    labelHint(
+                                        addForm.precaution,
+                                        dispensary.labelLimits?.precaution,
+                                        'addForm.precaution',
+                                    )
+                                }}</span
+                            ></label
+                        >
                         <label class="sm:col-span-2"
                             >Batch<select
                                 v-model.number="addForm.availabilityIndex"
@@ -2446,22 +2943,35 @@ const filledButton =
                             selected. A later batch needs a controlled reason
                             when an eligible earlier-expiry batch exists.
                         </p>
-                        <p
-                            class="text-xs text-muted-foreground sm:col-span-full"
+                        <div
+                            class="sm:col-span-full"
+                            data-testid="label-limits-add"
                         >
-                            Label limits: dosage
-                            {{ dispensary.labelLimits?.dosage }}, frequency
-                            {{ dispensary.labelLimits?.frequency }}, duration
-                            {{ dispensary.labelLimits?.duration }}, instruction
-                            {{ dispensary.labelLimits?.instruction }},
-                            precaution {{ dispensary.labelLimits?.precaution }},
-                            quantity
-                            {{ dispensary.labelLimits?.quantity }} characters.
-                            Dosage, frequency and instruction share 3 printed
-                            rows. Route is not printed. Printing does not
-                            truncate saved text.
-                        </p>
+                            <V2DisclosureBar title="Label limits">
+                                <p class="text-[13px] text-muted-foreground">
+                                    Dosage
+                                    {{ dispensary.labelLimits?.dosage }},
+                                    frequency
+                                    {{ dispensary.labelLimits?.frequency }},
+                                    duration
+                                    {{ dispensary.labelLimits?.duration }},
+                                    instruction
+                                    {{ dispensary.labelLimits?.instruction }},
+                                    precaution
+                                    {{ dispensary.labelLimits?.precaution }},
+                                    quantity
+                                    {{
+                                        dispensary.labelLimits?.quantity
+                                    }}
+                                    characters. Dosage, frequency and
+                                    instruction share 3 printed rows. Route is
+                                    not printed. Printing does not truncate
+                                    saved text.
+                                </p>
+                            </V2DisclosureBar>
+                        </div>
                         <AllergyMatchWarning
+                            :announce="pageReady"
                             v-if="matchesFor(chosen).length"
                             v-model="addAllergyCheck"
                             :matches="matchesFor(chosen)"
@@ -2748,10 +3258,105 @@ const filledButton =
                     </div>
                 </section>
 
-                <V2StickyBar v-if="primaryAction">
+                <!-- Below the rail (1536 px): the counts and actions are one card at the end of the main column
+                     (from 640 px; phones use the counts bar and the Actions menu), and the filled action is the
+                     sticky bar, so a long case reaches it without scrolling to the end (Daniel). -->
+                <section
+                    class="hidden flex-col gap-3 rounded-[14px] border bg-card p-4 sm:flex 2xl:hidden"
+                    aria-label="This dispensary"
+                    data-testid="dispensary-end-card"
+                >
+                    <h2 class="text-base leading-[22px] font-semibold">
+                        This dispensary
+                    </h2>
+                    <dl class="flex flex-col gap-2 text-sm">
+                        <div
+                            v-for="item in summaryItems"
+                            :key="item.label"
+                            class="flex items-baseline justify-between gap-3"
+                        >
+                            <dt class="text-muted-foreground">
+                                {{ item.label }}
+                            </dt>
+                            <dd class="text-right font-medium tabular-nums">
+                                {{ item.value }}
+                            </dd>
+                        </div>
+                    </dl>
+                    <div class="flex flex-col gap-2 sm:max-w-sm">
+                        <OperationalSelect
+                            v-if="
+                                dispensary.tvCall?.canCall &&
+                                dispensary.tvCall.rooms.length > 1
+                            "
+                            v-model="callRoomId"
+                            label="Dispensary room"
+                            placeholder="Choose room"
+                            trigger-class="h-11 w-full lg:h-9"
+                            :options="
+                                dispensary.tvCall.rooms.map((room) => ({
+                                    value: room.id,
+                                    label: room.name,
+                                }))
+                            "
+                        />
+                        <button
+                            v-if="dispensary.tvCall?.canCall"
+                            type="button"
+                            :class="outlineButton"
+                            :disabled="busy || callNeedsRoom"
+                            data-testid="dispensary-call"
+                            @click="callPatient"
+                        >
+                            <Megaphone class="size-4" aria-hidden="true" />Call
+                            patient
+                        </button>
+                        <a
+                            v-if="canPrintAll"
+                            :href="labelsUrl"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            :class="outlineButton"
+                            ><Printer class="size-4" aria-hidden="true" />Print
+                            all labels
+                            <span class="sr-only"
+                                >(opens print preview in a new tab)</span
+                            ></a
+                        >
+                        <!-- Daniel: Return to Doctor sits apart, behind its own label, so a misclick cannot send the case back. -->
+                        <div
+                            v-if="dispensary.can.return"
+                            class="!h-auto border-t pt-3"
+                            data-testid="dispensary-send-back"
+                        >
+                            <p
+                                class="mb-2 text-[13px] font-medium text-muted-foreground"
+                            >
+                                Send back to the doctor
+                            </p>
+                            <button
+                                type="button"
+                                :class="outlineButton"
+                                :disabled="busy"
+                                data-testid="dispensary-return"
+                                @click="returnOpen = true"
+                            >
+                                <RotateCcw
+                                    class="size-4"
+                                    aria-hidden="true"
+                                />Return to Doctor
+                            </button>
+                        </div>
+                    </div>
+                </section>
+                <div
+                    v-if="primaryAction"
+                    class="sticky bottom-0 z-10 -mx-4 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:-mx-6 lg:px-6 2xl:hidden"
+                    data-testid="dispensary-bar"
+                >
                     <button
                         type="button"
-                        :class="filledButton"
+                        :class="[filledButton, 'sm:w-auto sm:min-w-64']"
                         :aria-disabled="primaryDisabled"
                         :aria-describedby="primaryBarDescribedBy"
                         data-testid="dispensary-primary-bar"
@@ -2765,12 +3370,12 @@ const filledButton =
                             completeBlockedReason
                         "
                         id="dispensary-complete-blocked-reason-phone"
-                        class="mt-2 !h-auto text-[13px] text-muted-foreground"
+                        class="mt-2 text-[13px] text-muted-foreground"
                         data-testid="dispensary-complete-blocked-reason-phone"
                     >
                         {{ completeBlockedReason }}
                     </p>
-                </V2StickyBar>
+                </div>
             </template>
             <template #rail>
                 <V2StickySummary title="This dispensary" :items="summaryItems">
@@ -2824,17 +3429,30 @@ const filledButton =
                             >(opens print preview in a new tab)</span
                         ></a
                     >
-                    <button
+                    <!-- Daniel: Return to Doctor sits apart, behind its own label, so a misclick cannot send the case back. -->
+                    <div
                         v-if="dispensary.can.return"
-                        type="button"
-                        :class="outlineButton"
-                        :disabled="busy"
-                        data-testid="dispensary-return"
-                        @click="returnOpen = true"
+                        class="!h-auto border-t pt-3"
+                        data-testid="dispensary-send-back"
                     >
-                        <RotateCcw class="size-4" aria-hidden="true" />Return to
-                        Doctor
-                    </button>
+                        <p
+                            class="mb-2 text-[13px] font-medium text-muted-foreground"
+                        >
+                            Send back to the doctor
+                        </p>
+                        <button
+                            type="button"
+                            :class="outlineButton"
+                            :disabled="busy"
+                            data-testid="dispensary-return"
+                            @click="returnOpen = true"
+                        >
+                            <RotateCcw
+                                class="size-4"
+                                aria-hidden="true"
+                            />Return to Doctor
+                        </button>
+                    </div>
                     <p
                         v-if="
                             primaryAction === 'complete' &&

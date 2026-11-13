@@ -109,13 +109,21 @@ test('one filled button carries the next step; Complete is not offered while any
         v2,
         /if \(props\.dispensary\.can\.start\) \{\s+return 'start';\s+\}\s+if \(props\.dispensary\.can\.update && unsavedCount\.value > 0\) \{\s+return 'save';\s+\}\s+return props\.dispensary\.can\.complete \? 'complete' : null;/,
     );
-    assert.match(v2, /`Save all lines \(\$\{unsavedCount\.value\}\)`/);
+    assert.match(
+        v2,
+        /\? 'Save 1 line'\s+: `Save all \$\{unsavedCount\.value\} lines`/,
+    );
     assert.equal(
-        (template(v2).match(/:class="filledButton"/g) ?? []).length,
+        (template(v2).match(/:class="\[?filledButton/g) ?? []).length,
         2,
         'the summary button and the phone bar',
     );
-    assert.match(template(v2), /<V2StickyBar v-if="primaryAction">/);
+    // Below the rail (1536 px) the filled action is a sticky bar at every width (Daniel).
+    assert.match(template(v2), /rail-from="2xl"/);
+    assert.match(
+        template(v2),
+        /class="sticky bottom-0 z-10 -mx-4 [^"]*2xl:hidden"\s+data-testid="dispensary-bar"/,
+    );
 });
 
 test('the patient and allergy card is the first card of the main column, never in the rail', () => {
@@ -179,8 +187,8 @@ test('the reason Complete is blocked is tied to both buttons, and on phones sits
     assert.match(template(v2), /:aria-describedby="primaryDescribedBy"/);
     assert.match(template(v2), /:aria-describedby="primaryBarDescribedBy"/);
     const bar = template(v2).slice(
-        template(v2).indexOf('<V2StickyBar'),
-        template(v2).indexOf('</V2StickyBar>'),
+        template(v2).indexOf('data-testid="dispensary-bar"'),
+        template(v2).indexOf('<template #rail>'),
     );
     assert.ok(bar.includes('dispensary-complete-blocked-reason-phone'));
 });
@@ -195,4 +203,91 @@ test('an error is brought into view and focused; the Verify dialog stays open wh
         /scrollIntoView\(\{\s+block: 'center',\s+behavior: reduce \? 'auto' : 'smooth',/,
     );
     assert.match(v2, /\(confirming = open \|\| completing\)/);
+});
+
+test('Return to Doctor sits apart behind "Send back to the doctor", in the end card, the rail and the phone menu (Daniel)', () => {
+    assert.equal(
+        (template(v2).match(/data-testid="dispensary-send-back"/g) ?? [])
+            .length,
+        2,
+    );
+    assert.equal(
+        (template(v2).match(/Send back to the doctor/g) ?? []).length,
+        2,
+    );
+    assert.match(v2, /label: 'Send back to the doctor'/);
+});
+
+test('three allergy states in words; "not recorded" never reads as "no allergies" (Daniel)', () => {
+    assert.match(v2, /'Allergies not recorded'/);
+    assert.match(v2, /'No known allergies'/);
+    assert.match(
+        v2,
+        /`Allergies \(\$\{props\.dispensary\.allergySafety\.allergies\.length\}\)`/,
+    );
+    assert.match(
+        v2,
+        /status === 'no_known_allergies'\s+\? 'none'\s+: 'unrecorded'/,
+    );
+});
+
+test('the eyebrow names the visit type; the visit number is in the crumb only (Daniel)', () => {
+    assert.match(
+        template(v2),
+        /:eyebrow="isOtc \? 'OTC visit' : 'Consultation visit'"/,
+    );
+});
+
+test('lines: short labels, the label budget only when focused or near it, and over it in red words (Daniel)', () => {
+    assert.ok(!/\(label max/.test(template(v2)));
+    assert.equal((template(v2).match(/labelHint\(/g) ?? []).length, 20);
+    assert.match(
+        v2,
+        /`\$\{over\} character\$\{over === 1 \? '' : 's'\} over the label limit`/,
+    );
+    assert.match(
+        v2,
+        /focusedField\.value === key \|\| limit - \(value \?\? ''\)\.length <= 10/,
+    );
+    assert.equal(
+        (template(v2).match(/>Not printed on the label</g) ?? []).length,
+        2,
+    );
+    assert.equal(
+        (template(v2).match(/<V2DisclosureBar title="Label limits">/g) ?? [])
+            .length,
+        2,
+    );
+});
+
+test('lines: a save with an unticked allergy match is aria-disabled with the reason beside it (Daniel)', () => {
+    assert.match(template(v2), /:aria-disabled="needsAllergyCheck\(item\)"/);
+    assert.match(template(v2), /Tick the allergy check to save this line\./);
+    assert.match(
+        template(v2),
+        /needsAllergyCheck\(item\)\s+\? null\s+: saveItem\(item\)/,
+    );
+    assert.match(template(v2), />Save this line</);
+});
+
+test('the V2 allergy warning: icon and "Allergy match:" words, 44 px row with a 24 px box, announced only after load', () => {
+    const warning = read(
+        'resources/js/pages/Dispensary/V2/Partials/AllergyMatchWarning.vue',
+    );
+    assert.match(
+        v2,
+        /from '@\/pages\/Dispensary\/V2\/Partials\/AllergyMatchWarning\.vue'/,
+    );
+    assert.match(warning, /Allergy match:/);
+    assert.match(warning, /flex min-h-11 w-\[calc\(100%\+1rem\)\]/);
+    assert.match(
+        warning,
+        /class="size-6 shrink-0 accent-destructive lg:size-4"/,
+    );
+    assert.match(warning, /if \(props\.announce\) \{/);
+    assert.equal(
+        (template(v2).match(/:announce="pageReady"/g) ?? []).length,
+        3,
+    );
+    assert.match(warning, /so always read the full allergy list\./);
 });
