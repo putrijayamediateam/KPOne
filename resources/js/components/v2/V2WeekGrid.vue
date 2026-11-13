@@ -3,7 +3,8 @@ import { nextTick, ref } from 'vue';
 
 /**
  * Version 2 week grid: people as rows and the seven days as columns from 1280 px, one card per day below 1280 px.
- * The first column stays in view while the grid scrolls. Every entry is text (for a shift, its times), a note such as
+ * The first column and the day row stay in view while the page scrolls (the day row sits under the V2 top bar).
+ * A time never breaks inside itself; an empty editable cell shows "+ Add" on hover and focus. Every entry is text (for a shift, its times), a note such as
  * "On leave" is a word, and a day warning shows an icon and a word ("Short"), never colour alone. Arrow keys move
  * between the cells of the grid; Home and End go to the first and last day of the row; Enter or Space on a cell
  * opens its first entry, or asks to add one when the cell is empty. The block only shows and
@@ -27,6 +28,8 @@ export type WeekGridRow = {
     entries: Record<string, WeekGridEntry[]>;
     /** A word for a day, for example "On leave" or "On leave (half day)". */
     notes?: Record<string, string>;
+    /** A warning for one person on one day, shown with an icon and the words, for example "Rest under 11 h". */
+    warnings?: Record<string, string>;
 };
 export type WeekGridTotal = { text: string; warning?: string };
 
@@ -122,10 +125,52 @@ const onKey = (event: KeyboardEvent, r: number, c: number) => {
     moveTo(to[0], to[1]);
 };
 
+// A time never splits inside itself ("2:00 PM"); the line may only break after the en dash.
+const noBreak = (text: string) =>
+    text
+        .split(' – ')
+        .map((part) => part.replace(/ /g, '\u00a0'))
+        .join(' – ');
+
+// What a screen reader hears on a cell, for example "Aisyah, Tue 17 Nov, 8:00 AM to 2:00 PM, Morning. Press Enter to
+// edit." or "Add shift for Aisyah on Wed 18 Nov".
+const cellName = (row: WeekGridRow, day: WeekGridDay) => {
+    const entries = row.entries[day.key] ?? [];
+    const parts = [
+        row.notes?.[day.key],
+        row.warnings?.[day.key],
+        ...entries.map((e) =>
+            [e.label.replace(' – ', ' to '), e.detail]
+                .filter(Boolean)
+                .join(', '),
+        ),
+    ].filter(Boolean);
+
+    if (parts.length === 0) {
+        return props.editable
+            ? `${props.addLabel} for ${row.title} on ${day.long}`
+            : `${row.title}, ${day.long}, nothing planned`;
+    }
+
+    const said = `${row.title}, ${day.long}, ${parts.join('; ')}`;
+
+    if (!props.editable) {
+        return said;
+    }
+
+    return entries.length > 0
+        ? `${said}. Press Enter to edit.`
+        : `${said}. Press Enter to ${props.addLabel.toLowerCase()}.`;
+};
+
 const dayItems = (dayKey: string) =>
     props.rows.flatMap((row) =>
         (row.entries[dayKey] ?? []).map((entry) => ({ row, entry })),
     );
+const dayWarnings = (dayKey: string) =>
+    props.rows
+        .filter((row) => row.warnings?.[dayKey])
+        .map((row) => `${row.title}: ${row.warnings?.[dayKey]}`);
 const dayNotes = (dayKey: string) =>
     props.rows
         .filter((row) => row.notes?.[dayKey])
@@ -144,7 +189,7 @@ const button =
         <!-- From 1280 px: people as rows, days as columns -->
         <div
             ref="grid"
-            class="max-w-full overflow-x-auto rounded-[14px] border bg-card max-xl:hidden"
+            class="max-w-full rounded-[14px] border bg-card max-xl:hidden"
             role="region"
             :aria-label="label"
         >
@@ -168,7 +213,7 @@ const button =
                     <tr class="border-b">
                         <th
                             scope="col"
-                            class="sticky left-0 z-[1] bg-card px-3 py-2 text-[13px] font-medium text-muted-foreground"
+                            class="sticky top-16 left-0 z-[3] bg-card px-3 py-2 text-[13px] font-medium text-muted-foreground"
                         >
                             {{ rowHeader }}
                         </th>
@@ -176,7 +221,7 @@ const button =
                             v-for="day in days"
                             :key="day.key"
                             scope="col"
-                            class="px-2 py-2 text-[13px] font-medium text-muted-foreground"
+                            class="sticky top-16 z-[2] bg-card px-2 py-2 text-[13px] font-medium text-muted-foreground"
                         >
                             <span class="sr-only">{{ day.long }}</span
                             ><span aria-hidden="true">{{ day.label }}</span>
@@ -208,8 +253,8 @@ const button =
                             role="gridcell"
                             :data-cell="`${r}-${c}`"
                             :tabindex="isFocusCell(r, c) ? 0 : -1"
-                            :aria-label="`${row.title}, ${day.long}`"
-                            class="px-1.5 py-1.5 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
+                            :aria-label="cellName(row, day)"
+                            class="group/cell relative px-1.5 py-1.5 outline-none focus-visible:z-[1] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring focus-visible:outline-solid"
                             @keydown="onKey($event, r, c)"
                             @focus="
                                 focusRow = r;
@@ -222,6 +267,40 @@ const button =
                                     class="text-[13px] font-medium"
                                     >{{ row.notes[day.key] }}</span
                                 >
+                                <span
+                                    v-if="row.warnings?.[day.key]"
+                                    class="inline-flex items-start gap-1 text-[13px] font-medium"
+                                >
+                                    <svg
+                                        class="mt-0.5 size-3.5 shrink-0 text-warning"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2.25"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        aria-hidden="true"
+                                    >
+                                        <path
+                                            d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01"
+                                        />
+                                    </svg>
+                                    {{ row.warnings[day.key] }}
+                                </span>
+                                <button
+                                    v-if="
+                                        editable &&
+                                        (row.entries[day.key] ?? []).length ===
+                                            0
+                                    "
+                                    type="button"
+                                    tabindex="-1"
+                                    aria-hidden="true"
+                                    class="flex min-h-9 w-full items-center justify-center rounded-[10px] border border-dashed border-border text-[13px] font-medium text-muted-foreground opacity-0 group-hover/cell:opacity-100 group-focus-visible/cell:opacity-100 hover:bg-muted"
+                                    @click="emit('add', day.key, row.key)"
+                                >
+                                    + {{ addLabel }}
+                                </button>
                                 <template
                                     v-for="entry in row.entries[day.key] ?? []"
                                     :key="entry.key"
@@ -243,7 +322,7 @@ const button =
                                     >
                                         <span
                                             class="font-medium tabular-nums"
-                                            >{{ entry.label }}</span
+                                            >{{ noBreak(entry.label) }}</span
                                         >
                                         <span
                                             v-if="entry.detail"
@@ -253,11 +332,11 @@ const button =
                                     </button>
                                     <span
                                         v-else
-                                        class="flex flex-col rounded-[10px] border border-border px-2 py-1.5"
+                                        class="flex flex-col px-2 py-1.5"
                                     >
                                         <span
                                             class="font-medium tabular-nums"
-                                            >{{ entry.label }}</span
+                                            >{{ noBreak(entry.label) }}</span
                                         >
                                         <span
                                             v-if="entry.detail"
@@ -312,15 +391,6 @@ const button =
                     </tr>
                 </tfoot>
             </table>
-            <div v-if="editable && rows.length > 0" class="border-t px-3 py-1">
-                <button
-                    type="button"
-                    :class="textLink"
-                    @click="emit('add', days[0]?.key ?? '', null)"
-                >
-                    {{ addLabel }}
-                </button>
-            </div>
         </div>
 
         <!-- Below 1280 px: one card per day -->
@@ -358,6 +428,25 @@ const button =
                     </span>
                 </div>
                 <p
+                    v-for="warning in dayWarnings(day.key)"
+                    :key="warning"
+                    class="inline-flex items-start gap-1 text-[13px] font-medium"
+                >
+                    <svg
+                        class="mt-0.5 size-3.5 shrink-0 text-warning"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2.25"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        aria-hidden="true"
+                    >
+                        <path d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01" />
+                    </svg>
+                    {{ warning }}
+                </p>
+                <p
                     v-for="note in dayNotes(day.key)"
                     :key="note"
                     class="text-[13px] text-muted-foreground"
@@ -384,7 +473,7 @@ const button =
                                 <template v-if="item.row.subtitle"
                                     >{{ item.row.subtitle }} · </template
                                 ><span class="tabular-nums">{{
-                                    item.entry.label
+                                    noBreak(item.entry.label)
                                 }}</span
                                 ><template v-if="item.entry.detail">
                                     · {{ item.entry.detail }}</template

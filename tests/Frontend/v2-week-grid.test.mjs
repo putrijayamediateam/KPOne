@@ -36,29 +36,55 @@ test('V2WeekGrid compiles and is a V2 block with no page logic', () => {
     );
 });
 
-test('the grid shows from 1280 px with a sticky first column, and day cards below 1280 px', () => {
+test('the grid shows from 1280 px with a sticky first column and day row, and day cards below 1280 px', () => {
     assert.match(
         template,
-        /max-w-full overflow-x-auto rounded-\[14px\] border bg-card max-xl:hidden/,
+        /class="max-w-full rounded-\[14px\] border bg-card max-xl:hidden"/,
     );
     assert.match(template, /<ul class="grid gap-3 md:grid-cols-2 xl:hidden">/);
     assert.equal(
-        (template.match(/sticky left-0 z-\[1\] bg-card/g) ?? []).length,
+        (template.match(/sticky (top-16 )?left-0 z-\[\d\] bg-card/g) ?? [])
+            .length,
         3,
     );
+    // The day row stays under the 64 px V2 top bar while the page scrolls.
+    assert.equal((template.match(/sticky top-16/g) ?? []).length, 2);
     assert.match(template, /table-fixed/);
     assert.match(template, /<col class="w-40" \/>/);
 });
 
-test('entries are text, notes are words, a warning has an icon and a word', () => {
-    assert.match(template, /\{\{ entry\.label \}\}|entry\.label\s*\}\}/);
+test('entries are text that never breaks inside a time, notes are words, warnings have an icon and words', () => {
+    assert.match(script, /\.split\(' – '\)/);
+    assert.match(script, /replace\(\/ \/g, '\\u00a0'\)/);
+    assert.equal((template.match(/noBreak\(/g) ?? []).length, 3);
     assert.match(template, /row\.notes\[day\.key\]/);
+    assert.match(template, /row\.warnings\[day\.key\]/);
     assert.match(template, /totals\[day\.key\]\?\.warning/);
     // The page gives the warning word ("Below minimum"); the block has none of its own.
     assert.doesNotMatch(template, /\bShort\b|Below minimum/);
+    assert.ok((template.match(/<svg/g) ?? []).length >= 4);
+});
+
+test('an empty editable cell shows + Add on hover and focus; a read-only entry does not look like a button', () => {
     assert.match(
         template,
-        /<svg[\s\S]*?aria-hidden="true"[\s\S]*?\{\{ totals\[day\.key\]\?\.warning \}\}/,
+        /group-hover\/cell:opacity-100 group-focus-visible\/cell:opacity-100/,
+    );
+    assert.match(template, /\+ \{\{ addLabel \}\}/);
+    assert.match(template, /v-else\s+class="flex flex-col px-2 py-1\.5"/);
+});
+
+test('each cell has a spoken name, and the focus ring is offset', () => {
+    assert.match(template, /:aria-label="cellName\(row, day\)"/);
+    assert.match(
+        script,
+        /`\$\{props\.addLabel\} for \$\{row\.title\} on \$\{day\.long\}`/,
+    );
+    assert.match(script, /\. Press Enter to edit\./);
+    assert.match(script, /replace\(' – ', ' to '\)/);
+    assert.match(
+        template,
+        /focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring/,
     );
 });
 
