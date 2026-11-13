@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
+import { cellKeyAction, clampIndex, entryKeyAction } from '@/lib/v2-week-grid';
 
 /**
  * Version 2 week grid: people as rows and the seven days as columns from 1280 px, one card per day below 1280 px.
@@ -61,68 +62,113 @@ const emit = defineEmits<{
     add: [dayKey: string, rowKey: string | number | null];
 }>();
 
-// Roving focus: one cell of the grid is in the tab order; arrows move it.
+// Roving focus: one cell of the grid is in the tab order; arrows move it. The index is clamped when read, so a cell
+// stays reachable by Tab after rows are filtered or the days change (Kavitha, 2026-11-13).
 const focusRow = ref(0);
 const focusCol = ref(0);
+const activeRow = computed(() => clampIndex(focusRow.value, props.rows.length));
+const activeCol = computed(() => clampIndex(focusCol.value, props.days.length));
 const grid = ref<HTMLElement | null>(null);
+// The cell a keyboard user stepped into to reach its entries (a split shift), as "row-col"; null otherwise.
+const entered = ref<string | null>(null);
+
+watch(
+    () => [props.rows.length, props.days.length],
+    () => {
+        entered.value = null;
+    },
+);
 
 const isFocusCell = (r: number, c: number) =>
-    focusRow.value === r && focusCol.value === c;
+    activeRow.value === r && activeCol.value === c;
+const isEntered = (r: number, c: number) => entered.value === `${r}-${c}`;
+
+const cellAt = (r: number, c: number) =>
+    grid.value?.querySelector<HTMLElement>(`[data-cell="${r}-${c}"]`);
+const entryAt = (r: number, c: number, i: number) =>
+    grid.value?.querySelector<HTMLElement>(`[data-entry="${r}-${c}-${i}"]`);
 
 const moveTo = async (r: number, c: number) => {
-    focusRow.value = Math.max(0, Math.min(props.rows.length - 1, r));
-    focusCol.value = Math.max(0, Math.min(props.days.length - 1, c));
+    entered.value = null;
+    focusRow.value = r;
+    focusCol.value = c;
     await nextTick();
-    grid.value
-        ?.querySelector<HTMLElement>(
-            `[data-cell="${focusRow.value}-${focusCol.value}"]`,
-        )
-        ?.focus();
+    cellAt(activeRow.value, activeCol.value)?.focus();
 };
 
 const onKey = (event: KeyboardEvent, r: number, c: number) => {
-    const moves: Record<string, [number, number]> = {
-        ArrowRight: [r, c + 1],
-        ArrowLeft: [r, c - 1],
-        ArrowDown: [r + 1, c],
-        ArrowUp: [r - 1, c],
-        Home: [r, 0],
-        End: [r, props.days.length - 1],
-    };
-
-    // Only act on the cell itself, not on a button inside it.
+    // Only act on the cell itself; keys on its entries are handled by onEntryKey.
     if ((event.target as HTMLElement).dataset.cell === undefined) {
         return;
     }
 
-    // Enter or Space on a cell opens its first entry, or asks to add one when it is empty.
-    if (event.key === 'Enter' || event.key === ' ') {
-        if (!props.editable) {
-            return;
-        }
+    const row = props.rows[r];
+    const day = props.days[c];
+    const entries = row && day ? (row.entries[day.key] ?? []) : [];
+    const action = cellKeyAction(
+        event.key,
+        { row: r, col: c },
+        { rows: props.rows.length, cols: props.days.length },
+        entries.length,
+        props.editable,
+    );
 
-        event.preventDefault();
-        const row = props.rows[r];
-        const day = props.days[c];
-        const first = row?.entries[day?.key ?? '']?.[0];
-
-        if (row && day && first) {
-            emit('open', first.key, row.key, day.key);
-        } else if (row && day) {
-            emit('add', day.key, row.key);
-        }
-
-        return;
-    }
-
-    const to = moves[event.key];
-
-    if (!to) {
+    if (action.kind === 'none') {
         return;
     }
 
     event.preventDefault();
-    moveTo(to[0], to[1]);
+
+    if (action.kind === 'move') {
+        moveTo(action.row, action.col);
+    } else if (action.kind === 'open' && row && day) {
+        emit('open', entries[0].key, row.key, day.key);
+    } else if (action.kind === 'add' && row && day) {
+        emit('add', day.key, row.key);
+    } else if (action.kind === 'enter') {
+        entered.value = `${r}-${c}`;
+        nextTick(() => entryAt(r, c, 0)?.focus());
+    }
+};
+
+const onEntryKey = (
+    event: KeyboardEvent,
+    r: number,
+    c: number,
+    i: number,
+    count: number,
+) => {
+    const action = entryKeyAction(event.key, event.shiftKey, i, count);
+
+    if (action.kind === 'none') {
+        return;
+    }
+
+    if (action.kind === 'leave') {
+        // Let Tab move on out of the grid as usual; the entries leave the tab order again.
+        entered.value = null;
+
+        return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+
+    if (action.kind === 'focus') {
+        entryAt(r, c, action.index)?.focus();
+    } else {
+        entered.value = null;
+        cellAt(r, c)?.focus();
+    }
+};
+
+// Leaving a stepped-into cell by mouse or any other way puts its entries back out of the tab order.
+const onCellFocusOut = (event: FocusEvent, r: number, c: number) => {
+    const to = event.relatedTarget as Node | null;
+
+    if (isEntered(r, c) && !(to && cellAt(r, c)?.contains(to))) {
+        entered.value = null;
+    }
 };
 
 // A time never splits inside itself ("2:00 PM"); the line may only break after the en dash.
@@ -213,7 +259,7 @@ const button =
                     <tr class="border-b">
                         <th
                             scope="col"
-                            class="sticky top-16 left-0 z-[3] bg-card px-3 py-2 text-[13px] font-medium text-muted-foreground"
+                            class="sticky top-[var(--v2-topbar-h,4rem)] left-0 z-[3] bg-card px-3 py-2 text-[13px] font-medium text-muted-foreground"
                         >
                             {{ rowHeader }}
                         </th>
@@ -221,7 +267,7 @@ const button =
                             v-for="day in days"
                             :key="day.key"
                             scope="col"
-                            class="sticky top-16 z-[2] bg-card px-2 py-2 text-[13px] font-medium text-muted-foreground"
+                            class="sticky top-[var(--v2-topbar-h,4rem)] z-[2] bg-card px-2 py-2 text-[13px] font-medium text-muted-foreground"
                         >
                             <span class="sr-only">{{ day.long }}</span
                             ><span aria-hidden="true">{{ day.label }}</span>
@@ -260,6 +306,7 @@ const button =
                                 focusRow = r;
                                 focusCol = c;
                             "
+                            @focusout="onCellFocusOut($event, r, c)"
                         >
                             <div class="flex min-w-0 flex-col gap-1">
                                 <span
@@ -302,15 +349,32 @@ const button =
                                     + {{ addLabel }}
                                 </button>
                                 <template
-                                    v-for="entry in row.entries[day.key] ?? []"
+                                    v-for="(entry, i) in row.entries[day.key] ??
+                                    []"
                                     :key="entry.key"
                                 >
+                                    <!-- Mouse targets, hidden from assistive tech (the cell already says it all), until
+                                         a keyboard user steps into a cell with several entries. -->
                                     <button
                                         v-if="editable"
                                         type="button"
-                                        tabindex="-1"
+                                        :data-entry="`${r}-${c}-${i}`"
+                                        :tabindex="isEntered(r, c) ? 0 : -1"
+                                        :aria-hidden="
+                                            isEntered(r, c) ? undefined : 'true'
+                                        "
                                         :class="entryButton"
                                         :aria-label="entry.actionLabel"
+                                        @keydown="
+                                            onEntryKey(
+                                                $event,
+                                                r,
+                                                c,
+                                                i,
+                                                (row.entries[day.key] ?? [])
+                                                    .length,
+                                            )
+                                        "
                                         @click="
                                             emit(
                                                 'open',

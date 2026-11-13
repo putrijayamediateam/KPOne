@@ -43,12 +43,21 @@ test('the grid shows from 1280 px with a sticky first column and day row, and da
     );
     assert.match(template, /<ul class="grid gap-3 md:grid-cols-2 xl:hidden">/);
     assert.equal(
-        (template.match(/sticky (top-16 )?left-0 z-\[\d\] bg-card/g) ?? [])
-            .length,
+        (
+            template.match(
+                /sticky (top-\[var\(--v2-topbar-h,4rem\)\] )?left-0 z-\[\d\] bg-card/g,
+            ) ?? []
+        ).length,
         3,
     );
-    // The day row stays under the 64 px V2 top bar while the page scrolls.
-    assert.equal((template.match(/sticky top-16/g) ?? []).length, 2);
+    // The day row stays under the V2 top bar while the page scrolls; its height comes from the shell's variable,
+    // with the 64 px bar as the fallback, so a change to the bar cannot silently hide the day row.
+    assert.equal(
+        (template.match(/sticky top-\[var\(--v2-topbar-h,4rem\)\]/g) ?? [])
+            .length,
+        2,
+    );
+    assert.doesNotMatch(template, /top-16/);
     assert.match(template, /table-fixed/);
     assert.match(template, /<col class="w-40" \/>/);
 });
@@ -88,24 +97,101 @@ test('each cell has a spoken name, and the focus ring is offset', () => {
     );
 });
 
-test('keyboard: a roving cell, arrows, Home and End move; Enter or Space opens or adds', () => {
+test('keyboard: a roving cell whose index is clamped, and entries that are hidden until a cell is stepped into', () => {
     assert.match(template, /role="grid"/);
     assert.match(template, /role="gridcell"/);
     assert.match(template, /:tabindex="isFocusCell\(r, c\) \? 0 : -1"/);
+    assert.match(script, /clampIndex\(focusRow\.value, props\.rows\.length\)/);
+    assert.match(script, /clampIndex\(focusCol\.value, props\.days\.length\)/);
+    // One announcement: the cell's name says it all; its entry buttons stay out of the accessibility tree and the tab
+    // order until a keyboard user steps into a cell with several entries.
+    assert.match(template, /:tabindex="isEntered\(r, c\) \? 0 : -1"/);
+    assert.match(template, /isEntered\(r, c\) \? undefined : 'true'/);
+    assert.match(template, /@focusout="onCellFocusOut\(\$event, r, c\)"/);
+});
 
-    for (const key of [
-        'ArrowRight',
-        'ArrowLeft',
-        'ArrowDown',
-        'ArrowUp',
-        'Home',
-        'End',
-    ]) {
-        assert.match(script, new RegExp(`${key}: \\[`));
-    }
+const loadLib = async () => {
+    const ts = (await import('typescript')).default;
+    const lib = readFileSync(
+        new URL('../../resources/js/lib/v2-week-grid.ts', import.meta.url),
+        'utf8',
+    );
+    const js = ts.transpileModule(lib, {
+        compilerOptions: {
+            target: ts.ScriptTarget.ES2022,
+            module: ts.ModuleKind.ES2022,
+        },
+    }).outputText;
 
-    assert.match(script, /event\.key === 'Enter' \|\| event\.key === ' '/);
-    assert.match(script, /emit\('add', day\.key, row\.key\)/);
+    return import(
+        `data:text/javascript;base64,${Buffer.from(js).toString('base64')}`
+    );
+};
+
+test('the focus index is clamped, so one cell stays reachable after rows or days shrink', async () => {
+    const { clampIndex } = await loadLib();
+    assert.equal(clampIndex(5, 3), 2);
+    assert.equal(clampIndex(-1, 3), 0);
+    assert.equal(clampIndex(1, 3), 1);
+    // No rows at all: index 0, never NaN or -1.
+    assert.equal(clampIndex(4, 0), 0);
+});
+
+test('cell keys: arrows, Home and End move inside the grid; Enter opens one entry, steps into several, adds on empty', async () => {
+    const { cellKeyAction } = await loadLib();
+    const size = { rows: 3, cols: 7 };
+    const at = { row: 1, col: 3 };
+    const move = (key, from = at) => cellKeyAction(key, from, size, 1, true);
+
+    assert.deepEqual(move('ArrowRight'), { kind: 'move', row: 1, col: 4 });
+    assert.deepEqual(move('ArrowLeft'), { kind: 'move', row: 1, col: 2 });
+    assert.deepEqual(move('ArrowDown'), { kind: 'move', row: 2, col: 3 });
+    assert.deepEqual(move('ArrowUp'), { kind: 'move', row: 0, col: 3 });
+    assert.deepEqual(move('Home'), { kind: 'move', row: 1, col: 0 });
+    assert.deepEqual(move('End'), { kind: 'move', row: 1, col: 6 });
+    // At the edges a move stays inside the grid.
+    assert.deepEqual(move('ArrowUp', { row: 0, col: 0 }), {
+        kind: 'move',
+        row: 0,
+        col: 0,
+    });
+    assert.deepEqual(move('ArrowRight', { row: 2, col: 6 }), {
+        kind: 'move',
+        row: 2,
+        col: 6,
+    });
+
+    assert.deepEqual(cellKeyAction('Enter', at, size, 0, true), {
+        kind: 'add',
+    });
+    assert.deepEqual(cellKeyAction(' ', at, size, 1, true), { kind: 'open' });
+    assert.deepEqual(cellKeyAction('Enter', at, size, 2, true), {
+        kind: 'enter',
+    });
+    // A read-only grid only moves.
+    assert.deepEqual(cellKeyAction('Enter', at, size, 2, false), {
+        kind: 'none',
+    });
+    assert.deepEqual(cellKeyAction('x', at, size, 1, true), { kind: 'none' });
+});
+
+test("entry keys: Tab and Shift+Tab move between a cell's entries, Escape goes back, and nothing traps focus", async () => {
+    const { entryKeyAction } = await loadLib();
+
+    assert.deepEqual(entryKeyAction('Tab', false, 0, 2), {
+        kind: 'focus',
+        index: 1,
+    });
+    assert.deepEqual(entryKeyAction('Tab', true, 1, 2), {
+        kind: 'focus',
+        index: 0,
+    });
+    // Shift+Tab on the first entry and Escape on any entry go back to the cell.
+    assert.deepEqual(entryKeyAction('Tab', true, 0, 2), { kind: 'cell' });
+    assert.deepEqual(entryKeyAction('Escape', false, 1, 2), { kind: 'cell' });
+    // Tab on the last entry leaves the grid as usual.
+    assert.deepEqual(entryKeyAction('Tab', false, 1, 2), { kind: 'leave' });
+    assert.deepEqual(entryKeyAction('Enter', false, 0, 2), { kind: 'none' });
 });
 
 test('targets are 44 px below 1024 and 36 px from 1024; each Edit and Add has a spoken name', () => {
