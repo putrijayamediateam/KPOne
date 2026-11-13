@@ -587,15 +587,11 @@ const money = (value: string | null) => (value ? `RM ${value}` : 'no price');
             @confirm="confirmToggle()"
         />
 
-        <V2Dialog
-            v-model:open="discardOpen"
-            title="Discard your changes?"
+        <DiscardPrompt
+            :open="discardOpen"
             description="You have unsaved changes on this clinical service. If you close now, what you entered here is lost."
-            confirm-label="Discard changes"
-            cancel-label="Keep editing"
-            tone="danger"
-            @update:open="$event || keepEditing()"
-            @confirm="confirmDiscard()"
+            @keep="keepEditing()"
+            @discard="confirmDiscard()"
         />
     </PageFrame>
 </template>
