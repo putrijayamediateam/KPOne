@@ -24,7 +24,7 @@ final class PayrollPermissions
     /** @return array<string, list<string>> */
     public static function grants(): array
     {
-        return [self::PREPARE => ['director', 'hr_manager'], self::APPROVE => ['director'], self::EXPORT => ['director'],
+        return [self::PREPARE => ['director', 'hr_manager'], self::APPROVE => ['director'], self::EXPORT => ['director', 'hr_manager'],
             self::PAYSLIPS_OWN => RosterPermissions::HUMAN_ROLES];
     }
 }

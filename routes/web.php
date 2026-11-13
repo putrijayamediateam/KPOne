@@ -14,6 +14,7 @@ use App\Http\Controllers\BillingController;
 use App\Http\Controllers\BillingWorkController;
 use App\Http\Controllers\BranchContextController;
 use App\Http\Controllers\BranchController;
+use App\Http\Controllers\BranchReplenishmentController;
 use App\Http\Controllers\BranchReportController;
 use App\Http\Controllers\BusinessDetailsController;
 use App\Http\Controllers\CashClosingController;
@@ -60,6 +61,7 @@ use App\Http\Controllers\InventoryController;
 use App\Http\Controllers\InventoryMovementController;
 use App\Http\Controllers\InventoryOperationsController;
 use App\Http\Controllers\InventoryReadinessController;
+use App\Http\Controllers\InventoryRecallController;
 use App\Http\Controllers\InventoryReferenceController;
 use App\Http\Controllers\InventoryScanController;
 use App\Http\Controllers\InventoryStockReviewController;
@@ -70,6 +72,7 @@ use App\Http\Controllers\JobApplicationController;
 use App\Http\Controllers\MedicalCertificateController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
+use App\Http\Controllers\OpeningImportController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
 use App\Http\Controllers\PanelPaymentCorrectionsController;
@@ -89,6 +92,7 @@ use App\Http\Controllers\PublicCheckInController;
 use App\Http\Controllers\PublicCheckInLinkController;
 use App\Http\Controllers\PublicIntakeReviewController;
 use App\Http\Controllers\PurchaseOrderPrintController;
+use App\Http\Controllers\PurchaseRequestController;
 use App\Http\Controllers\QueueController;
 use App\Http\Controllers\QueueDisplayController;
 use App\Http\Controllers\QueueDisplaySettingsController;
@@ -105,6 +109,7 @@ use App\Http\Controllers\StaffBranchAssignmentController;
 use App\Http\Controllers\StaffController;
 use App\Http\Controllers\StaffRoleController;
 use App\Http\Controllers\StaffStatusController;
+use App\Http\Controllers\StockHealthController;
 use App\Http\Controllers\SupplierInvoiceController;
 use App\Http\Controllers\SupplierReturnController;
 use App\Http\Controllers\SupplierSettingsController;
@@ -164,6 +169,9 @@ Route::post('careers/status/leave-pool', [JobApplicationController::class, 'leav
 Route::post('careers/status/withdraw', [JobApplicationController::class, 'withdraw'])
     ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
     ->name('hr-applications.status.withdraw');
+Route::post('careers/status/delete', [JobApplicationController::class, 'erase'])
+    ->middleware(['public-intake.proxy', 'throttle:hr-applications-link', 'sensitive.no-store:no-referrer'])
+    ->name('hr-applications.status.delete');
 
 Route::get('check-in', PublicCheckInController::class)
     ->middleware(['public-intake.proxy', 'throttle:public-checkin-view', 'sensitive.no-store:no-referrer'])
@@ -196,6 +204,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // DS-1 department spaces (the new front door; no menu link until the DS-2 switch).
     Route::put('spaces/preference', [SpacePreferenceController::class, 'update'])->middleware(['sensitive.no-store', 'throttle:20,1'])->name('spaces.preference');
     Route::post('spaces/{space}/ask', [SpaceAskController::class, 'ask'])->where('space', '[a-z_]+')->middleware(['sensitive.no-store', 'throttle:60,1'])->name('spaces.ask');
+    // DS-13: the Me home lives at /spaces/me; /me is a plain redirect to it.
+    Route::get('me', fn () => to_route('spaces.show', ['space' => 'me']))->middleware('sensitive.no-store')->name('me');
     Route::get('spaces', [DepartmentSpaceController::class, 'index'])->middleware('sensitive.no-store')->name('spaces.index');
     Route::get('spaces/{space}', [DepartmentSpaceController::class, 'show'])->where('space', '[a-z_]+')->middleware('sensitive.no-store')->name('spaces.show');
 
@@ -232,6 +242,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // HR-3a attendance (owner, 2026-11-06). Rules live in app/Domain/HR/Attendance. Server time; HR-16a may keep a location result, never a position.
     Route::prefix('hr/attendance')->controller(HrAttendanceController::class)->middleware('sensitive.no-store')->group(function (): void {
         Route::get('/', 'index')->middleware('permission:hr.attendance.clock.own,hr.attendance.review.organisation')->name('hr.attendance.index');
+        Route::get('clock-state', 'clockState')->middleware(['permission:hr.attendance.clock.own', 'throttle:60,1'])->name('hr.attendance.clock-state');
         Route::middleware(['permission:hr.attendance.clock.own', 'throttle:10,1'])->group(function (): void {
             Route::post('clock-in', 'clockIn')->name('hr.attendance.clock-in');
             Route::post('clock-out', 'clockOut')->name('hr.attendance.clock-out');
@@ -434,6 +445,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{application}/interview/confirm', 'confirmInterview')->whereUuid('application')->name('hr.applications.interview.confirm');
                 Route::post('{application}/interview/ask-again', 'askAgain')->whereUuid('application')->name('hr.applications.interview.ask-again');
                 Route::post('{application}/interview/cancel', 'cancelInterview')->whereUuid('application')->name('hr.applications.interview.cancel');
+                Route::post('{application}/extend-deadline', 'extendDeadline')->whereUuid('application')->name('hr.applications.extend-deadline');
                 Route::post('interview-documents', 'addDocument')->name('hr.applications.documents.store');
                 Route::post('interview-documents/{document}/remove', 'removeDocument')->whereUuid('document')->name('hr.applications.documents.remove');
                 // HR-17e talent pool and staff-account handoff.
@@ -890,6 +902,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'print'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store'])->name('inventory.controlled-register.print');
         Route::post('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'recordPrint'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.print.record');
         Route::post('inventory/controlled-register/{sku}/checks', [ControlledRegisterController::class, 'check'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.check');
+        Route::get('inventory/recalls', [InventoryRecallController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.recalls');
+        Route::get('inventory/recalls/batches', [InventoryRecallController::class, 'batches'])->middleware(['permission:inventory.recalls.manage.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.recalls.batches');
+        Route::post('inventory/recalls', [InventoryRecallController::class, 'store'])->middleware(['permission:inventory.recalls.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.recalls.store');
+        Route::post('inventory/recalls/{recall}/lift', [InventoryRecallController::class, 'lift'])->whereUuid('recall')->middleware(['permission:inventory.recalls.lift.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.recalls.lift');
         Route::get('inventory/supplier-returns', [SupplierReturnController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-returns');
         Route::post('inventory/supplier-returns', [SupplierReturnController::class, 'store'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.store');
         Route::post('inventory/supplier-returns/{supplierReturn}/{action}', [SupplierReturnController::class, 'act'])->whereNumber('supplierReturn')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-returns.act');
@@ -898,7 +914,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/supplier-invoices/{supplierInvoice}/{decision}', [SupplierInvoiceController::class, 'decide'])->whereUuid('supplierInvoice')->whereIn('decision', ['accepted', 'rejected'])->middleware(['permission:inventory.supplier_invoices.approve.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-invoices.decide');
         Route::post('inventory/supplier-return-groups', [SupplierReturnController::class, 'storeGroup'])->middleware(['permission:inventory.supplier_returns.request.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-return-groups.store');
         Route::post('inventory/supplier-return-groups/{group}/{action}', [SupplierReturnController::class, 'actGroup'])->whereNumber('group')->whereIn('action', ['approved', 'rejected', 'cancelled', 'dispatched', 'credit_recorded'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.supplier-return-groups.act');
+        Route::get('inventory/purchase-requests', [PurchaseRequestController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.purchase-requests');
+        Route::post('inventory/purchase-requests', [PurchaseRequestController::class, 'store'])->middleware(['permission:inventory.purchase_requests.create.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.purchase-requests.store');
+        Route::post('inventory/purchase-requests/{purchaseRequest}/{action}', [PurchaseRequestController::class, 'act'])->whereUuid('purchaseRequest')->whereIn('action', ['convert', 'reject', 'withdraw'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.purchase-requests.act');
         Route::get('inventory/reorder-suggestions', [ReorderSuggestionController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.reorder-suggestions');
+        Route::get('inventory/stock-health', [StockHealthController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.stock-health');
+        Route::get('inventory/branch-replenishment', [BranchReplenishmentController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.branch-replenishment');
         Route::get('inventory/skus', [SkuEditController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.skus');
         Route::put('inventory/skus/{sku}', [SkuEditController::class, 'update'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.skus.update');
         Route::get('inventory/supplier-terms', [SupplierTermsController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.supplier-terms');
@@ -912,6 +933,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/stock-review/{kind}/{reviewItem}', [InventoryStockReviewController::class, 'store'])->whereIn('kind', ['low_stock', 'expiring', 'expired'])->whereNumber('reviewItem')->middleware(['permission:inventory.stock_reviews.manage.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.stock-review.store');
         Route::get('inventory/batch-holds', [InventoryBatchHoldController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.batch-holds');
         Route::post('inventory/batch-holds/{batch}/{action}', [InventoryBatchHoldController::class, 'store'])->whereUuid('batch')->whereIn('action', ['place', 'release'])->middleware(['sensitive.no-store', 'throttle:30,1'])->name('inventory.batch-holds.store');
+        Route::get('inventory/opening-import', [OpeningImportController::class, 'index'])->middleware(['permission:inventory.opening_balance.branch', 'sensitive.no-store'])->name('inventory.opening-import');
+        Route::get('inventory/opening-import/template', [OpeningImportController::class, 'template'])->middleware(['permission:inventory.opening_balance.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.opening-import.template');
+        Route::post('inventory/opening-import/check', [OpeningImportController::class, 'check'])->middleware(['permission:inventory.opening_balance.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.opening-import.check');
+        Route::post('inventory/opening-import', [OpeningImportController::class, 'store'])->middleware(['permission:inventory.opening_balance.branch', 'sensitive.no-store', 'throttle:10,1'])->name('inventory.opening-import.store');
         Route::get('inventory/readiness', [InventoryReadinessController::class, 'index'])->middleware('permission:inventory.view.branch')->name('inventory.readiness');
         Route::post('inventory/readiness/{kind}/{key}', [InventoryReadinessController::class, 'verify'])->whereIn('kind', ['unit', 'opening'])->whereUuid('key')->middleware('throttle:30,1')->name('inventory.readiness.verify');
         Route::post('inventory/readiness/barcode/{sku}', [InventoryReadinessController::class, 'barcode'])->whereUuid('sku')->middleware(['permission:inventory.references.manage.organisation', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.readiness.barcode');
@@ -1107,6 +1132,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/purchase-orders/{purchaseOrder}/approve', [InventoryOperationsController::class, 'approvePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.approve');
         Route::post('inventory/purchase-orders/{purchaseOrder}/cancel', [InventoryOperationsController::class, 'cancelPurchaseOrder'])->middleware(['permission:inventory.purchase_orders.create.organisation,inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.cancel');
         Route::post('inventory/purchase-orders/{purchaseOrder}/close', [InventoryOperationsController::class, 'closePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.close');
+        Route::post('inventory/purchase-orders/{purchaseOrder}/short-close', [InventoryOperationsController::class, 'shortClosePurchaseOrder'])->middleware(['permission:inventory.purchase_orders.approve.organisation', 'throttle:20,1'])->name('inventory.purchase-orders.short-close');
         Route::post('inventory/purchase-orders/{purchaseOrder}/receipts', [InventoryOperationsController::class, 'receivePurchaseOrder'])->middleware(['permission:inventory.receiving.branch', 'throttle:30,1'])->name('inventory.purchase-orders.receipts.store');
         Route::post('inventory/purchase-orders/{purchaseOrder}/receiving-reviews', [InventoryOperationsController::class, 'requestReceivingReview'])->middleware(['permission:inventory.receiving.branch', 'throttle:30,1'])->name('inventory.receiving.reviews.store');
         Route::post('inventory/receiving-reviews/{review}/approve', [InventoryOperationsController::class, 'approveReceivingReview'])->whereUuid('review')->middleware(['permission:inventory.receiving.exceptions.approve.branch', 'throttle:20,1'])->name('inventory.receiving.reviews.approve');
@@ -1123,6 +1149,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::post('inventory/stocktakes/{stocktake}/post', [InventoryOperationsController::class, 'postStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.post');
         Route::post('inventory/stocktakes/{stocktake}/cancel', [InventoryOperationsController::class, 'cancelStocktake'])->middleware(['permission:inventory.stocktake.branch', 'throttle:20,1'])->name('inventory.stocktakes.cancel');
         Route::post('inventory/adjustments', [InventoryOperationsController::class, 'adjustment'])->middleware(['permission:inventory.adjust.branch', 'throttle:20,1'])->name('inventory.adjustments.store');
+        Route::get('inventory/reorder-levels/current', [InventoryOperationsController::class, 'currentReorderLevel'])->middleware(['permission:inventory.reorder.manage.branch', 'throttle:120,1'])->name('inventory.reorder-levels.current');
         Route::put('inventory/reorder-levels', [InventoryOperationsController::class, 'reorderLevel'])->middleware(['permission:inventory.reorder.manage.branch', 'throttle:30,1'])->name('inventory.reorder-levels.update');
 
         Route::middleware(['permission:medicines.manage.organisation'])->prefix('medicines')->group(function () {

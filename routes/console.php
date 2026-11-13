@@ -3,12 +3,17 @@
 use App\Console\Commands\AgentsDailyRun;
 use App\Console\Commands\AutoRejectJobApplications;
 use App\Console\Commands\CleanupPublicPatientIntakes;
+use App\Console\Commands\PurgeAttendanceRecords;
 use App\Console\Commands\PurgeCompliancePhotos;
+use App\Console\Commands\PurgeHrCredentials;
 use App\Console\Commands\PurgeHrDocuments;
+use App\Console\Commands\PurgeInterviewRecords;
 use App\Console\Commands\PurgeJobApplications;
 use App\Console\Commands\PurgeLeaveEvidence;
+use App\Console\Commands\PurgeLeaveRecords;
 use App\Console\Commands\PurgeLocationResults;
 use App\Console\Commands\PurgePanelStatements;
+use App\Console\Commands\PurgeStaffClaims;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Schedule;
@@ -34,8 +39,22 @@ Schedule::command(PurgeLeaveEvidence::class)
     ->withoutOverlapping()
     ->onOneServer();
 
+// PDPA 15 (owner, 2026-11-11; the accountant confirms the 7 years before real use): leave years older than 7 years are
+// deleted, with their requests, ledger, entitlements and evidence. Pending requests are never deleted.
+Schedule::command(PurgeLeaveRecords::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // HR-4b: staff document files are deleted after their category's clinic-entered retention.
 Schedule::command(PurgeHrDocuments::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// PDPA 15 (owner, 2026-11-11; the accountant confirms the 7 years before real use): closed staff claims, with their
+// receipts, actions and payments, are deleted after 7 years.
+Schedule::command(PurgeStaffClaims::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();
@@ -46,8 +65,29 @@ Schedule::command(PurgeJobApplications::class)
     ->withoutOverlapping()
     ->onOneServer();
 
+// PDPA 15 (owner, 2026-11-11): an unsuccessful candidate's interview time choices, bookings and document download
+// records are deleted 6 months after the application closed.
+Schedule::command(PurgeInterviewRecords::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// PDPA 15 (owner, 2026-11-11; the accountant confirms the 7 years before real use): credential records no longer in
+// force, and those of staff who left, are deleted after 7 years.
+Schedule::command(PurgeHrCredentials::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
 // HR-16a retention (owner, 2026-11-11): location-check results are deleted after 90 days; the clock presses stay.
 Schedule::command(PurgeLocationResults::class)
+    ->daily()
+    ->withoutOverlapping()
+    ->onOneServer();
+
+// HR-3a retention (owner, 2026-11-11; the accountant confirms the 7 years before real use): attendance records older
+// than 7 years are deleted.
+Schedule::command(PurgeAttendanceRecords::class)
     ->daily()
     ->withoutOverlapping()
     ->onOneServer();

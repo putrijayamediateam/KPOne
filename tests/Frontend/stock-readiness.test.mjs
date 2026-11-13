@@ -5,7 +5,7 @@ const read = path => readFileSync(new URL(`../../${path}`, import.meta.url), 'ut
 test('stock readiness is explicit, bounded, responsive and contains no pilot expansion', () => {
     const page = read('resources/js/pages/Inventory/Readiness.vue');
 
-    for (const text of ['25 per page', 'Search includes items beyond this page', 'Independent authorised checker required', 'No import', 'Unsupported', 'min-h-11']) {
+    for (const text of ['25 per page', 'Search includes items beyond this page', 'Independent authorised checker required', 'No balance correction', 'Unsupported', 'min-h-11']) {
         assert.ok(page.replace(/\s+/g, ' ').toLowerCase().includes(text.toLowerCase()), text);
     }
 

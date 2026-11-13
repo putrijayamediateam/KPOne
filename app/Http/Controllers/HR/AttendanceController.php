@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\DepartmentSpace\MeSpace;
 use App\Domain\HR\Attendance\Services\AttendancePageService;
 use App\Domain\HR\Attendance\Services\AttendanceSettingsService;
 use App\Domain\HR\Attendance\Services\ClockService;
@@ -11,6 +12,7 @@ use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Domain\HR\Attendance\Services\OvertimeSettingsService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Http\Controllers\Controller;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -25,6 +27,18 @@ class AttendanceController extends Controller
         return Inertia::render('HR/Attendance', ['attendance' => $pages->page($request->user(), $request->only(['tab', 'branch', 'date', 'month', 'period'])),
             // HR-5a: your own expiring or expired credentials, in words; inside KPOne only.
             'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
+    }
+
+    /**
+     * DS-12 and DS-13: the same state My attendance shows, for the top-bar shortcut and the Me home ring. Read only: it
+     * opens Attendance and never presses. The extra facts (clock-in time, shift, rostered minutes) come from the same rows
+     * and the same Late rule as Review.
+     */
+    public function clockState(Request $request, MeSpace $me): JsonResponse
+    {
+        $my = $me->attendanceMine($request->user()) ?? [];
+
+        return response()->json($me->ring($request->user(), $my) + ['label' => $my['clockedInLabel'] ?? $my['doneLabel'] ?? null]);
     }
 
     public function clockIn(Request $request, ClockService $clock): RedirectResponse
