@@ -710,3 +710,47 @@ test('a long Panel note cannot widen a phone card', () => {
     assert.ok(page.includes('max-xl:max-w-none'));
     assert.ok(page.includes('max-xl:break-words'));
 });
+
+const attention = read(
+    'resources/js/components/registration-v2/AttentionList.vue',
+);
+
+test('the attention list always stacks, wraps names by word, and names its button for what it does', () => {
+    // The list sits in a narrow rail, so the layout must not depend on the viewport width.
+    assert.ok(!/sm:grid-cols/.test(attention));
+    assert.ok(!/max-sm:/.test(attention));
+    assert.ok(attention.includes('grid-cols-[minmax(0,1fr)_auto]'));
+    assert.ok(attention.includes('break-words'));
+    assert.ok(!attention.includes('break-all'));
+    assert.ok(attention.includes('Show in list'));
+    assert.ok(
+        attention.includes(
+            '`Show ${item.label} ${item.patientName} in the list`',
+        ),
+    );
+    assert.ok(!/>\s*View\s*</.test(attention));
+    // The chip is its own line under the name.
+    assert.ok(attention.indexOf('<V2Chip') > attention.indexOf('Show in list'));
+});
+
+test('a long Panel name is cut at table width so it cannot squeeze the Status column', () => {
+    assert.ok(page.includes('xl:max-w-36 xl:truncate'));
+    assert.ok(page.includes(':title="item.visit.coverageLabel"'));
+});
+
+test('the attention list shows Not ready as a plain chip with the reason as text beside it', () => {
+    assert.ok(attention.includes('label="Not ready"'));
+    assert.ok(/\{\{\s*item\.notReadyReason\s*\}\}/.test(attention));
+    assert.ok(!/·\s*\{\{\s*item\.notReadyReason/.test(attention));
+    assert.ok(!attention.includes('`Not ready — ${item.notReadyReason}`'));
+});
+
+test('the table gives Patient room, hides Payment unless a Panel row is on screen, and never cuts Actions', () => {
+    assert.ok(page.includes('const hasPanelRow = computed'));
+    assert.ok(/<th v-if="hasPanelRow" scope="col">Payment<\/th>/.test(page));
+    assert.ok(/v-if="hasPanelRow"\s+data-label="Payment"/.test(page));
+    assert.ok(page.includes('xl:min-w-48'));
+    assert.ok(page.includes('xl:max-w-32'));
+    assert.ok(/class="w-px text-right whitespace-nowrap"/.test(page));
+    assert.ok(page.includes('xl:w-px xl:whitespace-nowrap'));
+});
