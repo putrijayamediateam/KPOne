@@ -58,6 +58,31 @@ const POLL_MS = 10_000;
 
 const feed = ref<OfficeFeed>(props.feed);
 const paused = ref(false);
+
+// "Pause motion" stops the scene's movement (never the live data). A person who has asked their device for reduced motion
+// already gets a still scene from the CSS, so the button is not offered to them; the choice is kept in this browser only.
+const MOTION_KEY = 'kpone.agents.office.motion';
+const osReducedMotion =
+    typeof window !== 'undefined' &&
+    typeof window.matchMedia === 'function' &&
+    window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+const readMotionOff = (): boolean => {
+    try {
+        return window.localStorage.getItem(MOTION_KEY) === 'off';
+    } catch {
+        return false;
+    }
+};
+const motionOff = ref(readMotionOff());
+const toggleMotion = () => {
+    motionOff.value = !motionOff.value;
+
+    try {
+        window.localStorage.setItem(MOTION_KEY, motionOff.value ? 'off' : 'on');
+    } catch {
+        // The choice then lasts only for this visit.
+    }
+};
 const clock = ref(new Date());
 let timer: ReturnType<typeof setTimeout> | undefined;
 let controller: AbortController | undefined;
@@ -435,6 +460,21 @@ onMounted(() => {
                             >
                                 Studio floor · live
                             </span>
+                            <button
+                                v-if="!osReducedMotion"
+                                type="button"
+                                class="inline-flex min-h-11 items-center rounded-[10px] border border-slate-400/30 px-3 text-xs font-medium text-slate-200 outline-none hover:bg-slate-400/10 focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-sky-300/60 aria-pressed:bg-sky-300/15 aria-pressed:font-semibold lg:min-h-9"
+                                :aria-pressed="motionOff"
+                                data-test="office-motion"
+                                @click="toggleMotion"
+                            >
+                                <span
+                                    v-if="motionOff"
+                                    aria-hidden="true"
+                                    class="mr-1"
+                                    >✓</span
+                                >Pause motion
+                            </button>
                             <span class="text-xs text-[#8d9bb3]">
                                 <span class="md:hidden"
                                     >Scroll sideways to see the whole office. </span
@@ -453,6 +493,7 @@ onMounted(() => {
                                 :selected="selected"
                                 :clock="clock"
                                 :can-open-inbox="canOpenInbox"
+                                :motion-off="motionOff"
                                 @select="select"
                                 @open-inbox="openInbox"
                             />
@@ -823,6 +864,18 @@ onMounted(() => {
                     />
                     {{ counts.waiting }} waiting for a decision
                 </component>
+                <button
+                    v-if="!osReducedMotion"
+                    type="button"
+                    class="inline-flex min-h-11 items-center rounded-full border px-3 py-1 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-brand aria-pressed:bg-brand/10 aria-pressed:font-semibold lg:min-h-9"
+                    :aria-pressed="motionOff"
+                    data-test="office-motion"
+                    @click="toggleMotion"
+                >
+                    <span v-if="motionOff" aria-hidden="true" class="mr-1"
+                        >✓</span
+                    >Pause motion
+                </button>
                 <span
                     v-if="paused"
                     class="rounded-full border border-warning px-3 py-1 text-warning"
@@ -841,6 +894,7 @@ onMounted(() => {
                     :selected="selected"
                     :clock="clock"
                     :can-open-inbox="canOpenInbox"
+                    :motion-off="motionOff"
                     @select="select"
                     @open-inbox="openInbox"
                 />
