@@ -317,7 +317,6 @@ watch(
 );
 
 usePageCrumbs(() => [
-    { title: 'Registration', href: '/registration' },
     { title: 'QR intake', href: '/registration?tab=qr-intake' },
     { title: 'Review' },
 ]);
@@ -529,6 +528,13 @@ const acceptBlocker = computed(() => {
 
     return '';
 });
+const acceptRefusal = computed(
+    () =>
+        acceptance.errors.idempotency_key ||
+        acceptance.errors.lock_version ||
+        acceptance.errors.status ||
+        '',
+);
 const acceptDisabled = computed(
     () => !!acceptBlocker.value || acceptance.processing,
 );
@@ -1207,21 +1213,6 @@ const confirmReject = () => {
                                         acceptance.errors.confirm_repeat
                                     }}</span>
                                 </label>
-                                <p
-                                    v-if="
-                                        acceptance.errors.idempotency_key ||
-                                        acceptance.errors.lock_version ||
-                                        acceptance.errors.status
-                                    "
-                                    role="alert"
-                                    class="text-sm text-destructive md:col-span-2"
-                                >
-                                    {{
-                                        acceptance.errors.idempotency_key ||
-                                        acceptance.errors.lock_version ||
-                                        acceptance.errors.status
-                                    }}
-                                </p>
                             </div>
                         </V2FormCard>
                     </form>
@@ -1279,6 +1270,13 @@ const confirmReject = () => {
                             }}
                         </button>
                         <p
+                            v-if="acceptRefusal"
+                            role="alert"
+                            class="text-center text-sm text-destructive sm:text-right"
+                        >
+                            {{ acceptRefusal }}
+                        </p>
+                        <p
                             v-if="acceptBlocker"
                             id="v2-accept-reason-bar"
                             class="text-center text-[13px] text-muted-foreground sm:text-right"
@@ -1308,6 +1306,13 @@ const confirmReject = () => {
                                 : 'Accept and add to queue'
                         }}
                     </button>
+                    <p
+                        v-if="acceptRefusal"
+                        role="alert"
+                        class="text-sm text-destructive"
+                    >
+                        {{ acceptRefusal }}
+                    </p>
                     <p
                         v-if="acceptBlocker"
                         id="v2-accept-reason-rail"
