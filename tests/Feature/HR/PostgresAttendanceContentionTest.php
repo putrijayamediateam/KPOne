@@ -5,6 +5,7 @@ namespace Tests\Feature\HR;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use App\Domain\HR\Attendance\Services\CorrectionService;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
@@ -208,6 +209,11 @@ class PostgresAttendanceContentionTest extends TestCase
     private function worker(User $actor, array $args): array
     {
         $args['idempotency_key'] ??= (string) Str::uuid();
+        if ($args['op'] === 'in') {
+            // HR-PHOTO: the camera's token, taken before the race (the worker makes its own synthetic photo).
+            app(ClockPhotoService::class)->markNoticeSeen($actor, ClockPhotoService::NOTICE_VERSION);
+            $args['capture_token'] ??= app(ClockPhotoService::class)->issueToken($actor, 'in')['token'];
+        }
         $input = new InputStream;
         $process = new Process([PHP_BINARY, base_path('tests/Support/PostgresAttendanceWorker.php'), (string) $actor->id,
             base64_encode(json_encode($args, JSON_THROW_ON_ERROR)), 'kpone-attendance-pg-'.Str::lower(Str::random(8))], base_path());
@@ -326,7 +332,7 @@ class PostgresAttendanceContentionTest extends TestCase
     {
         DB::transaction(function () use ($id): void {
             // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic attendance evidence.
-            foreach (['hr_clock_events', 'hr_attendance_corrections', 'hr_clock_sessions', 'hr_attendance_retries', 'hr_attendance_settings'] as $table) {
+            foreach (['hr_clock_photos', 'hr_clock_capture_tokens', 'hr_clock_photo_notices', 'hr_clock_events', 'hr_attendance_corrections', 'hr_clock_sessions', 'hr_attendance_retries', 'hr_attendance_settings'] as $table) {
                 DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
                 DB::table($table)->where('organisation_id', $id)->delete();
                 DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");

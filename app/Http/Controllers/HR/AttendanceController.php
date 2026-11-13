@@ -3,8 +3,12 @@
 namespace App\Http\Controllers\HR;
 
 use App\Domain\DepartmentSpace\MeSpace;
+use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
+use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use App\Domain\HR\Attendance\Services\AttendancePageService;
 use App\Domain\HR\Attendance\Services\AttendanceSettingsService;
+use App\Domain\HR\Attendance\Services\ClockResult;
 use App\Domain\HR\Attendance\Services\ClockService;
 use App\Domain\HR\Attendance\Services\CorrectionService;
 use App\Domain\HR\Attendance\Services\LocationCheckService;
@@ -30,39 +34,82 @@ class AttendanceController extends Controller
     }
 
     /**
-     * DS-12 and DS-13: the same state My attendance shows, for the top-bar shortcut and the Me home ring. Read only: it
-     * opens Attendance and never presses. The extra facts (clock-in time, shift, rostered minutes) come from the same rows
-     * and the same Late rule as Review.
+     * DS-12 and DS-13: the same state My attendance shows, for the top-bar shortcut and the Me home ring. Read only:
+     * HR-PHOTO's camera dialog makes the press. The extra facts (clock-in time, shift, rostered minutes) come from the
+     * same rows and the same Late rule as Review.
      */
     public function clockState(Request $request, MeSpace $me): JsonResponse
     {
         $my = $me->attendanceMine($request->user()) ?? [];
 
-        return response()->json($me->ring($request->user(), $my) + ['label' => $my['clockedInLabel'] ?? $my['doneLabel'] ?? null]);
+        return response()->json($me->ring($request->user(), $my) + [
+            'label' => $my['clockedInLabel'] ?? $my['doneLabel'] ?? null,
+            // HR-PHOTO: every press takes a live photo through the camera dialog, after the one-time notice.
+            'photoRequired' => true,
+            'photoNotice' => ['version' => ClockPhotoService::NOTICE_VERSION, 'seen' => app(ClockPhotoService::class)->noticeSeen($request->user())],
+        ]);
     }
 
-    public function clockIn(Request $request, ClockService $clock): RedirectResponse
+    public function clockIn(Request $request, ClockService $clock, ClockResult $result): RedirectResponse|JsonResponse
     {
-        $label = null;
-        $response = $this->run($request, 'my', null, function () use ($request, $clock, &$label): void {
-            $session = $clock->clockIn($request->user(), $this->pressInput($request));
-            $label = 'Clocked in at '.$session->clock_in_at->setTimezone($session->timezone)->format('g:i A').'.';
+        return $this->press($request, 'in', fn () => $clock->clockIn($request->user(), $this->pressInput($request)), $result);
+    }
+
+    public function clockOut(Request $request, ClockService $clock, ClockResult $result): RedirectResponse|JsonResponse
+    {
+        return $this->press($request, 'out', fn () => $clock->clockOut($request->user(), $this->pressInput($request)), $result);
+    }
+
+    /**
+     * HR-PHOTO: the camera dialog asks for JSON and gets the confirmation (time and chip) or the 422 errors; the
+     * Attendance page's own form keeps its redirect and toast.
+     *
+     * @param  callable(): ClockSession  $action
+     */
+    private function press(Request $request, string $kind, callable $action, ClockResult $result): RedirectResponse|JsonResponse
+    {
+        $session = null;
+        $response = $this->run($request, 'my', null, function () use ($action, &$session): void {
+            $session = $action();
         });
-        Inertia::flash('toast', ['type' => 'success', 'message' => $label]);
+        /** @var ClockSession $session */
+        $confirmation = $result->for($session, $kind);
+        if ($request->wantsJson()) {
+            return response()->json($confirmation, 200, ['Cache-Control' => 'no-store, private']);
+        }
+        Inertia::flash('toast', ['type' => 'success', 'message' => $confirmation['title'].' at '.$confirmation['time'].'.']);
 
         return $response;
     }
 
-    public function clockOut(Request $request, ClockService $clock): RedirectResponse
+    /** HR-PHOTO: the person has read the current "About clock-in photos" notice. */
+    public function photoNotice(Request $request, ClockPhotoService $photos): JsonResponse
     {
-        $label = null;
-        $response = $this->run($request, 'my', null, function () use ($request, $clock, &$label): void {
-            $session = $clock->clockOut($request->user(), $this->pressInput($request));
-            $label = 'Clocked out at '.$session->clock_out_at?->setTimezone($session->timezone)->format('g:i A').'.';
-        });
-        Inertia::flash('toast', ['type' => 'success', 'message' => $label]);
+        $photos->markNoticeSeen($request->user(), $request->input('version'));
 
-        return $response;
+        return response()->json(['version' => ClockPhotoService::NOTICE_VERSION, 'seen' => true], 200, ['Cache-Control' => 'no-store, private']);
+    }
+
+    /** HR-PHOTO: when the camera opens, a token good for one press of that kind for five minutes. */
+    public function capture(Request $request, ClockPhotoService $photos): JsonResponse
+    {
+        return response()->json($photos->issueToken($request->user(), (string) $request->input('kind')), 200, ['Cache-Control' => 'no-store, private']);
+    }
+
+    /** HR-PHOTO: your own photo, or (for a reviewer) someone else's, recorded before any byte is sent. */
+    public function photo(Request $request, ClockPhotoService $photos, string $photo, string $size): \Illuminate\Http\Response
+    {
+        // The size is checked here, not in the route, so the cross-site refusal answers first for any address.
+        abort_unless(in_array($size, ['full', 'thumb'], true), 404);
+        $opened = $photos->open($request->user(), $photo, $size);
+
+        return response($opened['content'], 200, [
+            'Content-Type' => 'image/jpeg',
+            'Content-Disposition' => 'inline; filename="clock-photo.jpg"',
+            'X-Content-Type-Options' => 'nosniff',
+            'Content-Security-Policy' => "sandbox; default-src 'none'",
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 
     public function propose(Request $request, CorrectionService $corrections): RedirectResponse
@@ -97,7 +144,10 @@ class AttendanceController extends Controller
     {
         $position = $request->input('clock_position');
 
+        // HR-PHOTO: the photo is checked and re-encoded when the press reaches it (after the branch and session checks);
+        // the token proves the camera was just opened.
         return ['idempotency_key' => $request->input('idempotency_key'), 'location_consent' => $request->boolean('location_consent'),
+            'photo_prepared' => fn (): array => ClockPhotoFiles::prepare($request->file('photo')), 'capture_token' => $request->input('capture_token'),
             'location_unavailable' => $request->input('location_unavailable'),
             'clock_position' => is_array($position) ? array_intersect_key($position, array_flip(['latitude', 'longitude', 'accuracy'])) : null];
     }
