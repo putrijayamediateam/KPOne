@@ -89,6 +89,7 @@ own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for h
 | DD-77 | Inventory home (V2): Classic location picker and Classic operations/setup panels inside the V2 page | Time-boxed exception: Classic picker (Search button + list), Classic filled buttons and the inner "Inventory Operations" heading stay until the panels are converted; panels must use keepMounted so typed data is not lost | 17 | Inventory | Major | Inventory home V2 review (2026-11-13) | Open |
 | DD-78 | Patient details (V2): the Merge panel and Change history are V2 copies/wrappers of Classic components | Time-boxed: the wrapped parts keep Classic logic; the deeper merge restyle moves to the Patient merges page (page 6 of the Patients area) | 18 | Patients and Registration | Minor | Patient details V2 review (2026-11-13) | Open |
 | DD-79 | Native time inputs in V2 forms (Roster opening hours, Add shift) | Native time boxes show "--:-- --" and the browser's clock icon; replace with a shared V2 time field with a plain echo ("= 8:00 AM") | 19 | Staff Experience (shared component) | Minor | HR V2 Roster review (2026-11-13) | Open |
+| DD-80 | Me home (V2 shell, UX-24 part 1): peach-to-blue hero gradient and four pastel tiles (leave blue, claims pink, roster green, attendance yellow) | Pastel fills break the V2 look (cobalt on bluish grey, colour only for status); use neutral cards with a cobalt icon and a quiet hero with no gradient; do not copy the pastel tile pattern to any other page | 20 | Staff Experience / HR (Me home content) | Minor | UX-24 review (2026-11-13) | Open |
 
 ## Not debt (out of scope, owner-approved)
 
@@ -143,3 +144,4 @@ receipt and drug-label print layouts.
 - 2026-11-13: DD-77 added (Inventory home V2 Classic panels and location picker, time-boxed). Cost visibility in V2 mirrors Classic and the server exactly (owner rule STK-10: only the Director sees stock cost); no V2 page may widen it.
 - 2026-11-13: DD-74 marked Fixed (#640, merged in batch #648 as cbad21a).
 - 2026-11-13: DD-78 (Patient details V2 wrapped Merge and Change history) and DD-79 (native time inputs in V2 forms) added, both time-boxed.
+- 2026-11-13: DD-80 added (Me home pastel tiles and hero gradient in the V2 shell); fix with the Me page's own PR or UX-24 part 2.
