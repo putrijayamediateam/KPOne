@@ -150,3 +150,47 @@ test('V2DateRange: a plain-date echo ("1 Nov 2026 to 13 Nov 2026") on by default
     assert.match(s, /`Up to \$\{to\}`/);
     assert.doesNotMatch(s, /new Date|Intl\.|toLocale/);
 });
+
+test('V2Dialog size="tall": full height on a phone, 42rem from 640px, 56rem from 1024px, up to 90dvh', () => {
+    const s = v2('V2Dialog');
+    assert.match(s, /size\?: 'default' \| 'tall'/);
+    assert.match(s, /size: 'default'/);
+    assert.match(
+        s,
+        /max-sm:inset-0 max-sm:h-dvh max-sm:rounded-none sm:max-h-\[90dvh\] sm:max-w-2xl lg:max-w-\[56rem\]/,
+    );
+    // The default size keeps its bottom sheet.
+    assert.match(
+        s,
+        /max-h-\[90dvh\] max-sm:inset-x-0 max-sm:bottom-0 max-sm:rounded-t-\[18px\] sm:max-w-lg/,
+    );
+});
+
+test('V2Dialog dirty guard: every close path asks first, Keep editing is focused, Esc on the question means keep, the rest is inert', () => {
+    const s = v2('V2Dialog');
+    assert.match(s, /dirty\?: boolean/);
+    assert.match(s, /dirty: false/);
+    assert.match(s, /<DialogRoot :open="open" @update:open="onOpenChange">/);
+    assert.match(s, /if \(asking\.value\) \{\s*keepEditing\(\);/);
+    assert.match(s, /if \(props\.dirty\) \{/);
+    assert.match(s, /keepButton\.value\?\.focus\(\)/);
+    assert.match(s, /Discard your changes\?/);
+    assert.match(s, />\s*Keep editing\s*</);
+    assert.match(s, />\s*Discard changes\s*</);
+    assert.match(s, /role="alertdialog"/);
+    assert.match(s, /discard: \[\]/);
+    assert.equal((s.match(/:inert="asking"/g) ?? []).length, 3);
+    // A close from the page (after a save) is not guarded: the guard only sits on the dialog's own close paths.
+    assert.doesNotMatch(
+        s,
+        /watch\(\s*\(\) => props\.open,[\s\S]{0,200}asking\.value = true/,
+    );
+});
+
+test('V2Dialog discard question keeps Tab and Shift+Tab inside its two buttons (the page behind is inert)', () => {
+    const s = v2('V2Dialog');
+    assert.match(s, /@keydown="trapTab"/);
+    assert.match(s, /ref="discardButton"/);
+    assert.match(s, /event\.shiftKey && document\.activeElement === first/);
+    assert.match(s, /!event\.shiftKey && document\.activeElement === last/);
+});

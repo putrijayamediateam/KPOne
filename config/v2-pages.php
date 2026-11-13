@@ -28,5 +28,6 @@ return [
         'Patient/Index',
         'QueueDisplay/Settings',
         'Inventory/Index',
+        'Staff/Index',
     ],
 ];
