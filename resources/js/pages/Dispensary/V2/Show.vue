@@ -1404,24 +1404,27 @@ const otcOptions = [
     { value: 'none', label: 'Patient reports no allergy' },
     { value: 'has_allergy', label: 'Patient reports an allergy' },
 ];
-// Hakim: an error can appear far above the sticky bar on a phone; bring it into view and focus it.
+// Hakim: an error can appear far above the sticky bar on a phone; bring it into view and focus it. The focus waits one
+// task so it lands after a closing dialog has handed focus back to its trigger (a failed Complete closes Verify).
 const actionErrorRef = ref<HTMLElement | null>(null);
 watch(actionError, (message) => {
     if (!message) {
         return;
     }
 
-    void nextTick(() => {
-        const reduce = window.matchMedia?.(
-            '(prefers-reduced-motion: reduce)',
-        ).matches;
+    void nextTick(() =>
+        window.setTimeout(() => {
+            const reduce = window.matchMedia?.(
+                '(prefers-reduced-motion: reduce)',
+            ).matches;
 
-        actionErrorRef.value?.scrollIntoView({
-            block: 'center',
-            behavior: reduce ? 'auto' : 'smooth',
-        });
-        actionErrorRef.value?.focus({ preventScroll: true });
-    });
+            actionErrorRef.value?.scrollIntoView({
+                block: 'center',
+                behavior: reduce ? 'auto' : 'smooth',
+            });
+            actionErrorRef.value?.focus({ preventScroll: true });
+        }, 0),
+    );
 });
 // Hakim: tie the reason Complete is blocked to the button, for screen readers.
 const primaryDescribedBy = computed(() =>
