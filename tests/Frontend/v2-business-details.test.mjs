@@ -81,3 +81,23 @@ test('V2 does not add a native select, file input, or a back link beside the cru
 test('Classic imports nothing from V2', () => {
     assert.ok(!/\/V2\//.test(classic));
 });
+
+test('V2 never shows two filled saves, names what each save covers and confirms Remove logo', () => {
+    assert.ok(v2.includes('footerFilled'));
+    assert.match(
+        v2,
+        /footerDirty\.value && !\(props\.canEdit && changed\(branchKeys\)\)/,
+    );
+    assert.ok(v2.includes('Saves the letterhead only.'));
+    assert.ok(v2.includes('Saves the print footer only.'));
+    assert.ok(v2.includes('Keep logo'));
+    assert.match(v2, /@click="removeOpen = true"/);
+    assert.ok(v2.includes('every branch'));
+});
+
+test('V2 view-only shows plain text, no Save, and the permission line', () => {
+    assert.ok(v2.includes('data-test="company-readonly"'));
+    assert.ok(v2.includes('data-test="branch-readonly"'));
+    assert.ok(v2.includes('Only the Director and Administrator'));
+    assert.match(v2, /<form\s+v-if="canEdit"/);
+});

@@ -159,6 +159,13 @@ const chooseLogo = (event: Event) => {
     form.logo = file;
     form.remove_logo = false;
 };
+const removeOpen = ref(false);
+const footerDirty = computed(
+    () => footerForm.footer_text !== (props.letterhead.footerText ?? ''),
+);
+const footerFilled = computed(
+    () => footerDirty.value && !(props.canEdit && changed(branchKeys)),
+);
 const removeLogo = () => {
     clearPreview();
     form.logo = null;
@@ -498,8 +505,8 @@ const filledButton =
                     </V2DisclosureBar>
 
                     <p v-if="!canEdit" class="text-sm text-muted-foreground">
-                        You can view these details. Only an authorised editor
-                        can save changes. The print footer can be edited
+                        You can view this. Only the Director and Administrator
+                        can change it. The print footer can be edited
                         separately.
                     </p>
 
@@ -513,7 +520,66 @@ const filledButton =
                         @update:model-value="askTab"
                     />
 
+                    <V2FormCard
+                        v-if="!canEdit"
+                        v-show="tab === 'company'"
+                        role="tabpanel"
+                        title="Company"
+                        description="Legal identity, registration and the shared logo."
+                        data-test="company-readonly"
+                    >
+                        <dl class="grid gap-3 text-sm md:grid-cols-2">
+                            <div class="md:col-span-2">
+                                <dt class="text-muted-foreground">
+                                    Legal name
+                                </dt>
+                                <dd class="font-medium break-words">
+                                    {{ letterhead.organisation.legal_name }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-muted-foreground">
+                                    Registration type
+                                </dt>
+                                <dd class="font-medium">
+                                    {{
+                                        letterhead.organisation
+                                            .registration_type ?? 'Not set'
+                                    }}
+                                </dd>
+                            </div>
+                            <div>
+                                <dt class="text-muted-foreground">
+                                    Registration number
+                                </dt>
+                                <dd class="font-medium break-words">
+                                    {{
+                                        letterhead.organisation
+                                            .registration_number || 'Not set'
+                                    }}
+                                </dd>
+                            </div>
+                            <div class="md:col-span-2">
+                                <dt class="text-muted-foreground">
+                                    Company logo
+                                </dt>
+                                <dd>
+                                    <img
+                                        v-if="letterhead.logo"
+                                        :src="letterhead.logo.url"
+                                        alt="Company logo"
+                                        class="mt-1 max-h-24 max-w-40 object-contain"
+                                    />
+                                    <span v-else class="font-medium"
+                                        >No logo</span
+                                    >
+                                </dd>
+                            </div>
+                        </dl>
+                    </V2FormCard>
+
                     <form
+                        v-if="canEdit"
                         v-show="tab === 'company'"
                         role="tabpanel"
                         aria-label="Company"
@@ -640,7 +706,7 @@ const filledButton =
                                             v-if="logoUrl"
                                             type="button"
                                             :class="outlineButton"
-                                            @click="removeLogo"
+                                            @click="removeOpen = true"
                                         >
                                             Remove logo
                                         </button>
@@ -684,7 +750,11 @@ const filledButton =
                     >
                         <V2FormCard
                             title="Branch"
-                            description="Letterhead and print footer are set per branch. You can edit the branch you are working in."
+                            :description="
+                                canEdit
+                                    ? 'Letterhead and print footer are set per branch. You can edit the branch you are working in.'
+                                    : 'Letterhead and print footer are set per branch.'
+                            "
                         >
                             <V2Field
                                 v-slot="{ id, describedBy }"
@@ -711,7 +781,81 @@ const filledButton =
                         </V2FormCard>
 
                         <template v-if="isActiveBranch">
+                            <V2FormCard
+                                v-if="!canEdit"
+                                title="Clinic details and contact"
+                                description="Printed in the letterhead of this branch."
+                                data-test="branch-readonly"
+                            >
+                                <dl class="grid gap-3 text-sm md:grid-cols-2">
+                                    <div class="md:col-span-2">
+                                        <dt class="text-muted-foreground">
+                                            Clinic name
+                                        </dt>
+                                        <dd class="font-medium break-words">
+                                            {{ letterhead.details.clinic_name }}
+                                        </dd>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <dt class="text-muted-foreground">
+                                            Address
+                                        </dt>
+                                        <dd class="font-medium break-words">
+                                            {{
+                                                [
+                                                    letterhead.details
+                                                        .address_line_1,
+                                                    letterhead.details
+                                                        .address_line_2,
+                                                    letterhead.details.postcode,
+                                                    letterhead.details.city,
+                                                    letterhead.details.state,
+                                                    letterhead.details.country,
+                                                ]
+                                                    .filter(Boolean)
+                                                    .join(', ')
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-muted-foreground">
+                                            Phone
+                                        </dt>
+                                        <dd class="font-medium">
+                                            {{
+                                                letterhead.details.phone ||
+                                                'Not set'
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div>
+                                        <dt class="text-muted-foreground">
+                                            Second phone
+                                        </dt>
+                                        <dd class="font-medium">
+                                            {{
+                                                letterhead.details
+                                                    .phone_secondary ||
+                                                'Not set'
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div class="md:col-span-2">
+                                        <dt class="text-muted-foreground">
+                                            Clinic email
+                                        </dt>
+                                        <dd class="font-medium break-words">
+                                            {{
+                                                letterhead.details.email ||
+                                                'Not set'
+                                            }}
+                                        </dd>
+                                    </div>
+                                </dl>
+                            </V2FormCard>
+
                             <form
+                                v-if="canEdit"
                                 class="flex min-w-0 flex-col gap-4"
                                 data-test="branch-form"
                                 novalidate
@@ -871,10 +1015,14 @@ const filledButton =
                                     </V2FormCard>
                                 </fieldset>
                                 <div
-                                    v-if="canEdit"
-                                    class="flex flex-wrap items-center justify-end gap-2"
+                                    class="sticky bottom-0 z-10 -mx-4 flex flex-wrap items-center justify-end gap-x-3 gap-y-1 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] lg:-mx-8 lg:px-8"
                                     data-test="branch-actions"
                                 >
+                                    <p
+                                        class="mr-auto text-xs text-muted-foreground max-sm:w-full"
+                                    >
+                                        Saves the letterhead only.
+                                    </p>
                                     <button
                                         type="button"
                                         :class="outlineButton"
@@ -954,12 +1102,18 @@ const filledButton =
                                             Reload
                                         </button>
                                     </p>
-                                    <div class="flex justify-end">
+                                    <div
+                                        class="flex flex-wrap items-center justify-end gap-3"
+                                    >
+                                        <p
+                                            class="mr-auto text-xs text-muted-foreground max-sm:w-full"
+                                        >
+                                            Saves the print footer only.
+                                        </p>
                                         <button
                                             type="submit"
                                             :class="[
-                                                footerForm.footer_text !==
-                                                (letterhead.footerText ?? '')
+                                                footerFilled
                                                     ? filledButton
                                                     : outlineButton,
                                                 'max-sm:w-full',
@@ -982,6 +1136,19 @@ const filledButton =
                 </div>
             </template>
         </V2WorkLayout>
+
+        <V2Dialog
+            v-model:open="removeOpen"
+            title="Remove the company logo?"
+            description="The logo is shared by every branch, so this removes it from the letters and prints of all branches. It is removed when you press Save."
+            confirm-label="Remove logo"
+            cancel-label="Keep logo"
+            tone="danger"
+            @confirm="
+                removeLogo();
+                removeOpen = false;
+            "
+        />
 
         <V2Dialog
             :open="pendingTab !== null"
