@@ -3275,3 +3275,25 @@ use**. Nothing is built until the owner answers 22.1 and says "start HR-16".
 - Under PDPA a selfie may be treated as biometric data; the review may say no, in which case HR-16b is never built.
 - Browser location can be wrong indoors; "outside" is a prompt for a conversation, never a decision.
 - Turning either on for real staff without the review breaks the owner's condition (decision 45).
+
+## 23. HR-PHOTO: photo clock-in, as built (owner, 2026-11-12; supersedes section 22's selfie part)
+
+The owner chose option 2, "Camera app" (Daniel's board V2, GUIDE section 18), with decision B (other people's photos
+behind an audited Show), "grace yes" (the confirmation chip uses HR's grace minutes) and the A+B Me home (DS-13, whose
+ring opens the same camera flow).
+
+- **Every button press needs a live photo.** A capture token is taken when the camera opens and is good for one press
+  of that kind for five minutes. A press without a photo is refused by the service and by PostgreSQL. A correction never
+  has a photo, and its time reads "No photo (added by correction)"; a correction that only moves a press's time keeps the
+  photo, labelled "Time changed by correction".
+- **The one-time "About clock-in photos" notice** comes before a person's first camera use and again when its wording
+  version changes; the server keeps who saw which version and when.
+- **Storage:** re-encoded JPEG (no EXIF; EXIF rotation applied first), 1280 px and a 240 px thumbnail, encrypted on the
+  private disk, deleted with the attendance record after 7 years.
+- **Viewing:** your own photo shows directly; anyone else's only for the Director and the HR Manager, behind Show, with
+  an audit row (photo id and size) written before the picture is sent, and a Hide photo button after.
+- **Mirroring (deliberate):** the live camera preview is mirrored, as people expect from a front camera, but the review
+  photo and the stored photo are not mirrored, so they match what HR sees and what was actually in front of the camera.
+- **Known limit:** the server cannot prove a photo is live. The token proves only that the camera was opened in the last
+  five minutes; a hand-built request could send a saved or changed picture. The safeguard is the reviewer seeing the
+  photo. Nothing here claims more than that.
