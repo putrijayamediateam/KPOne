@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { Volume2, VolumeX } from '@lucide/vue';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, onBeforeUnmount, onMounted, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
@@ -46,14 +46,32 @@ const treatmentDialogKey = ref<string | null>(null);
 const sheetOpen = ref(false);
 const callNextOpen = ref(false);
 // The 3 s poll waits while a menu, dialog or sheet is open, so nothing moves under a hand.
+const menuOpen = ref(false);
 const overlayOpen = () =>
     dialogKind.value !== null ||
     sheetOpen.value ||
     callNextOpen.value ||
     treatmentDialogKey.value !== null ||
-    document.querySelector(
-        '[data-slot="v2-row-menu"][aria-expanded="true"]',
-    ) !== null;
+    menuOpen.value;
+// Reactive for the live line: true while something is open and the poll is waiting on purpose.
+const pollWaiting = computed(overlayOpen);
+let menuWatcher: MutationObserver | undefined;
+onMounted(() => {
+    const sync = () => {
+        menuOpen.value =
+            document.querySelector(
+                '[data-slot="v2-row-menu"][aria-expanded="true"]',
+            ) !== null;
+    };
+
+    menuWatcher = new MutationObserver(sync);
+    menuWatcher.observe(document.body, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['aria-expanded'],
+    });
+});
+onBeforeUnmount(() => menuWatcher?.disconnect());
 const board = useQueueBoardV2(props, { paused: overlayOpen });
 const {
     roomSaving,
@@ -448,8 +466,11 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                         data-testid="live-line"
                     >
                         <template v-if="refreshFailedAt"
-                            >Live refresh paused. Showing the last results from
+                            >Could not refresh. Showing the last results from
                             {{ updatedAt }}. Retrying.</template
+                        >
+                        <template v-else-if="pollWaiting"
+                            >Live updates paused while this is open.</template
                         >
                         <template v-else>Live · every 3 seconds</template>
                     </p>

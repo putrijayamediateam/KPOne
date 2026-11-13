@@ -110,14 +110,7 @@ export const rowMenu = (
     if (can.call) {
         const blocked = !!hold?.active;
 
-        call.push({
-            id: 'call-in',
-            label: 'Call in',
-            allowed: !blocked,
-            reason: blocked ? `Not ready to call: ${hold?.reason}` : undefined,
-        });
-        action('call-in', 'call');
-
+        // The row has its own "Call in" button at every width, so the menu keeps only the override path.
         if (blocked && hold?.canOverride) {
             call.push({
                 id: 'override-call',

@@ -18,6 +18,7 @@ test('the V2 queue poll waits while a menu, dialog, sheet, treatment dialog or C
         'sheetOpen.value',
         'callNextOpen.value',
         'treatmentDialogKey.value !== null',
+        'menuOpen.value',
         '[data-slot="v2-row-menu"][aria-expanded="true"]',
     ]) {
         assert.ok(overlay.includes(piece), piece);
@@ -48,7 +49,21 @@ test('a failed refresh shows a visible notice with the time of the last good res
     assert.match(logic, /refreshFailedAt\.value = null/);
     assert.match(
         page,
-        /Live refresh paused\.\s+Showing the last results\s+from\s+\{\{ updatedAt \}\}\.\s+Retrying\./,
+        /Could not refresh\.\s+Showing the last results\s+from\s+\{\{ updatedAt \}\}\.\s+Retrying\./,
     );
     assert.match(page, /role="status"/);
+});
+
+test('while the poll waits on purpose the live line says so, and it says it before "Live"', () => {
+    assert.match(page, /Live updates paused while this is open\./);
+    assert.match(page, /const pollWaiting = computed\(overlayOpen\)/);
+    assert.match(page, /new MutationObserver\(sync\)/);
+    assert.match(page, /attributeFilter: \['aria-expanded'\]/);
+});
+
+test("the row menu does not repeat the row's own Call in button", () => {
+    const lib = read('resources/js/lib/queue-v2.ts');
+
+    assert.doesNotMatch(lib, /id: 'call-in'/);
+    assert.match(lib, /id: 'override-call'/);
 });
