@@ -67,3 +67,9 @@ test('Staff/Create: plain card lines and the real password rule in words', () =>
         /At least 12 characters, with capital and small letters, a number and a symbol\./,
     );
 });
+
+test('Staff/Create: plain password and email-in-use lines (V2 only)', () => {
+    assert.match(page, /The password must be at least 12 characters\./);
+    assert.match(page, /The two passwords do not match\./);
+    assert.match(page, /That email is already used by another staff member\./);
+});

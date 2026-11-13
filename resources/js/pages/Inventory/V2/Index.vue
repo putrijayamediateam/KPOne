@@ -5,6 +5,7 @@ import InventoryOperationsPanel from '@/components/inventory/InventoryOperations
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import OrdersSection from '@/components/inventory-v2/OrdersSection.vue';
+import RequestsSection from '@/components/inventory-v2/RequestsSection.vue';
 import StockPanelBar from '@/components/inventory-v2/StockPanelBar.vue';
 import { Input } from '@/components/ui/input';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -701,11 +702,19 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                         :timezone="inventory.branchTimezone"
                     />
                 </V2DisclosureBar>
-                <StockPanelBar title="Stock requests and transfers">
+                <!-- Page 2b: stock requests and transfers on the V2 blocks. -->
+                <V2DisclosureBar
+                    title="Stock requests and transfers"
+                    keep-mounted
+                >
+                    <RequestsSection :operations="operations" />
+                </V2DisclosureBar>
+                <StockPanelBar title="Reorder levels and older records">
                     <InventoryOperationsPanel
                         :operations="operations"
                         :receipt-memory-context="receiptMemoryContext"
                         hide-orders
+                        hide-requests
                     />
                 </StockPanelBar>
                 <StockPanelBar
