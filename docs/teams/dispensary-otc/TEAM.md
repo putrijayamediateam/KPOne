@@ -455,6 +455,10 @@ order, each its own PR:
 25. **DSP-22 "No known allergies" with its recorded date — not built (Daniel, 2026-11-13).** The V2 patient card says
     "No known allergies" in words; showing when that was recorded needs a new server prop on the Dispensary case, so it
     was left out of the look-only V2 PR. Small, separate item.
+26. **V2 Dispensary: use ScanInput's short-help and hide-camera option — waiting for Zulkifli's ScanInput option
+    (Daniel, 2026-11-13).** On the V2 case page, give scan to check one help sentence ("Scanning only checks. It doesn't
+    save anything or check the quantity or batch.") and hide the camera button where the device can't use it. Until the
+    option lands, the camera sentence stays.
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
