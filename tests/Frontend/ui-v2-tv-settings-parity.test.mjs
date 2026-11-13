@@ -106,3 +106,22 @@ test('Classic is untouched and no Classic dialog or table is used in V2', () => 
     assert.ok(!v2.includes('StatusBadge'));
     assert.ok(!/<table/.test(v2));
 });
+
+test('only Save screen content is filled on the page; Leave is never the filled button', () => {
+    assert.match(v2, /type="submit"\s+variant="outline"[\s\S]{0,300}?Add room/);
+    assert.match(
+        v2,
+        /type="submit"\s+variant="outline"[\s\S]{0,300}?Upload poster/,
+    );
+    assert.match(v2, /confirm-label="Save and leave"/);
+    assert.match(v2, /variant="outline"[\s\S]{0,160}?Leave without saving/);
+});
+
+test('moving the saved mode to short or full names asks first; room names show in full with a counter', () => {
+    assert.match(v2, /needsPrivacyConfirm/);
+    assert.match(v2, /Change who sees patient names\?/);
+    assert.match(v2, /Everyone in the waiting room will see and hear/);
+    assert.match(v2, /data-primary/);
+    assert.match(v2, /\/ 60/);
+    assert.match(v2, /Deactivate \$\{deactivating\.name\}\?/);
+});

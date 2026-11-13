@@ -98,6 +98,27 @@ const leaveAnyway = () => {
         allowLeave = false;
     }
 };
+const saveAndLeave = () => {
+    leaveOpen.value = false;
+
+    if (needsPrivacyConfirm.value) {
+        privacyOpen.value = true;
+
+        return;
+    }
+
+    const target = pendingUrl;
+    performSave(() => {
+        if (target) {
+            router.visit(target, {
+                preserveScroll: true,
+                onFinish: () => {
+                    allowLeave = false;
+                },
+            });
+        }
+    });
+};
 const warnUnload = (event: BeforeUnloadEvent) => {
     if (settingsForm.isDirty) {
         event.preventDefault();
@@ -150,7 +171,18 @@ const saveEdit = () => {
         onSuccess: () => (editing.value = null),
     });
 };
+const deactivating = ref<RoomRow | null>(null);
+const askToggle = (room: RoomRow) => {
+    if (room.isActive) {
+        deactivating.value = room;
+
+        return;
+    }
+
+    toggleRoom(room);
+};
 const toggleRoom = (room: RoomRow) => {
+    deactivating.value = null;
     router.post(
         `/queue-display-settings/rooms/${room.id}/${room.isActive ? 'deactivate' : 'activate'}`,
         { lock_version: room.lockVersion },
@@ -205,11 +237,34 @@ watch(
         }
     },
 );
+// Moving the saved setting to short or full names is a privacy change: Save asks first (a V2-only step).
+const privacyOpen = ref(false);
+const savedMode = computed(() => props.settings.callDisplayMode ?? 'number');
+const needsPrivacyConfirm = computed(
+    () =>
+        settingsForm.call_display_mode !== savedMode.value &&
+        settingsForm.call_display_mode !== 'number',
+);
+const privacySentence = computed(() =>
+    settingsForm.call_display_mode === 'name'
+        ? "Everyone in the waiting room will see and hear each patient's full registered name."
+        : "Everyone in the waiting room will see and hear the queue number and the first two words of each patient's name.",
+);
 const saveSettings = () => {
     if (!settingsForm.isDirty || settingsForm.processing) {
         return;
     }
 
+    if (needsPrivacyConfirm.value) {
+        privacyOpen.value = true;
+
+        return;
+    }
+
+    performSave();
+};
+const performSave = (after?: () => void) => {
+    privacyOpen.value = false;
     settingsForm
         .transform((data) => ({
             ...data,
@@ -218,7 +273,10 @@ const saveSettings = () => {
         }))
         .patch(`/queue-display-settings/branches/${props.branch.id}`, {
             preserveScroll: true,
-            onSuccess: () => settingsForm.defaults(),
+            onSuccess: () => {
+                settingsForm.defaults();
+                after?.();
+            },
         });
 };
 
@@ -329,6 +387,7 @@ const removePoster = () => {
                         <V2Field
                             v-slot="{ id, describedBy, invalid }"
                             label="Name shown on the TV"
+                            :hint="`${roomForm.name.length} / 60`"
                             :error="roomForm.errors.name"
                         >
                             <Input
@@ -358,6 +417,7 @@ const removePoster = () => {
                         </V2Field>
                         <Button
                             type="submit"
+                            variant="outline"
                             :disabled="roomForm.processing"
                             class="h-11 lg:h-9"
                         >
@@ -385,7 +445,7 @@ const removePoster = () => {
                         <template #body>
                             <tr v-for="room in rooms" :key="room.id">
                                 <td
-                                    data-label="Name"
+                                    data-primary
                                     class="font-medium [overflow-wrap:anywhere]"
                                 >
                                     {{ room.name }}
@@ -423,7 +483,7 @@ const removePoster = () => {
                                             variant="outline"
                                             class="h-11 lg:h-9"
                                             :aria-label="`${room.isActive ? 'Deactivate' : 'Activate'} ${room.name}`"
-                                            @click="toggleRoom(room)"
+                                            @click="askToggle(room)"
                                         >
                                             {{
                                                 room.isActive
@@ -581,6 +641,7 @@ const removePoster = () => {
                         </FileChooseButton>
                         <Button
                             type="submit"
+                            variant="outline"
                             class="h-11 lg:h-9"
                             :disabled="
                                 posterForm.processing || !posterForm.poster
@@ -658,6 +719,7 @@ const removePoster = () => {
         <V2Field
             v-slot="{ id, describedBy, invalid }"
             label="Name shown on the TV"
+            :hint="`${editForm.name.length} / 60`"
             :error="editForm.errors.name"
         >
             <Input
@@ -703,10 +765,38 @@ const removePoster = () => {
         :open="leaveOpen"
         title="Leave without saving?"
         description="Your screen content changes have not been saved. If you leave now they are lost."
-        confirm-label="Leave without saving"
+        confirm-label="Save and leave"
         cancel-label="Stay on this page"
-        tone="danger"
         @update:open="(value) => (leaveOpen = value)"
-        @confirm="leaveAnyway"
+        @confirm="saveAndLeave"
+    >
+        <Button
+            type="button"
+            variant="outline"
+            class="h-11 w-full sm:w-fit lg:h-9"
+            @click="leaveAnyway"
+            >Leave without saving</Button
+        >
+    </V2Dialog>
+
+    <V2Dialog
+        :open="privacyOpen"
+        title="Change who sees patient names?"
+        :description="privacySentence"
+        confirm-label="Save screen content"
+        cancel-label="Cancel"
+        :busy="settingsForm.processing"
+        @update:open="(value) => (privacyOpen = value)"
+        @confirm="performSave()"
+    />
+
+    <V2Dialog
+        :open="deactivating !== null"
+        :title="deactivating ? `Deactivate ${deactivating.name}?` : ''"
+        description="This room will no longer be offered for new calls. You can activate it again at any time."
+        confirm-label="Deactivate"
+        cancel-label="Keep room"
+        @update:open="(value) => !value && (deactivating = null)"
+        @confirm="deactivating && toggleRoom(deactivating)"
     />
 </template>
