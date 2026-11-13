@@ -8,8 +8,11 @@ import { ref } from 'vue';
  *
  * - The panel stays mounted when the bar closes (`v-show`), so a half-filled form is never lost. Replace with
  *   `V2DisclosureBar keepMounted` once that option exists.
- * - V2 scope for the Classic forms inside: 44 px fields and buttons below 1024 px, and one filled button per form
- *   (its submit); every other default button reads as outline.
+ * - Closed, the panel is hidden and `inert`, so none of its fields can take focus.
+ * - The Classic panel heading ("Inventory Operations", "Stock Setup") repeats the bar title, so it is kept for screen
+ *   readers only.
+ * - V2 scope for the Classic forms inside: 44 px fields and buttons below 1024 px, and no filled button
+ *   (the page has no main action): every default (filled) button reads as outline, submits included.
  */
 const props = defineProps<{ title: string }>();
 
@@ -46,26 +49,35 @@ void props;
                 <path d="m6 9 6 6 6-6" />
             </svg>
         </button>
-        <div v-show="open" :id="id" class="stock-panel border-t p-4">
+        <div
+            v-show="open"
+            :id="id"
+            :inert="!open"
+            class="stock-panel border-t p-4"
+        >
             <slot />
         </div>
     </section>
 </template>
 
 <style scoped>
-.stock-panel
-    :deep(button[data-slot='button']:not([data-variant]):not([type='submit'])) {
+.stock-panel :deep(> section > h2:first-child),
+.stock-panel :deep(> section > div:first-child > h2:first-child) {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+.stock-panel :deep(button[data-slot='button']:not([data-variant])) {
     border: 1px solid var(--border);
     background: var(--card);
     color: var(--foreground);
 }
 
-.stock-panel
-    :deep(
-        button[data-slot='button']:not([data-variant]):not(
-                [type='submit']
-            ):hover
-    ) {
+.stock-panel :deep(button[data-slot='button']:not([data-variant]):hover) {
     background: var(--muted);
 }
 

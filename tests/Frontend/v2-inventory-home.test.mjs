@@ -190,9 +190,10 @@ test('V2 Inventory home: Daniel V2 checklist points (phone filter sheet, cards b
 test("V2 Inventory home: Daniel's verdict (kept-mounted stock panels, filter wording, minus sign)", () => {
     const bar = read('resources/js/components/inventory-v2/StockPanelBar.vue');
     // A closed bar keeps its form (v-show, never v-if), and the Classic forms get 44 px controls below 1024 px.
-    assert.match(bar, /<div v-show="open"/);
+    assert.match(bar, /<div\s+v-show="open"/);
     assert.ok(!/v-if="open"/.test(bar));
     assert.match(bar, /max-width: 1023\.98px/);
+    assert.ok(!bar.includes("type='submit'"), 'submits are flattened too');
     assert.match(bar, /min-height: 2\.75rem/);
     assert.equal((page.match(/<StockPanelBar/g) ?? []).length, 2);
     // "2 filters applied" beside Clear, "Filters (2)" on the phone button; no "extra filters".
@@ -201,4 +202,19 @@ test("V2 Inventory home: Daniel's verdict (kept-mounted stock panels, filter wor
     assert.ok(!/\}\} extra/.test(page));
     assert.match(page, /minus\(row\.quantityDisplay\)/);
     assert.match(page, /\\u2212/);
+});
+
+test('V2 Inventory home round 2: no repeated panel heading, inert when closed, V2DateRange, plural units', () => {
+    const bar = read('resources/js/components/inventory-v2/StockPanelBar.vue');
+    assert.match(bar, /:inert="!open"/);
+    assert.match(bar, /> section > h2:first-child/);
+    assert.match(
+        page,
+        /<V2DateRange[\s\S]*?v-model:from="dateFrom"[\s\S]*?v-model:to="dateTo"/,
+    );
+    assert.ok(!page.includes('<DateField'));
+    assert.match(page, /\$\{name\}s/);
+    assert.ok(!/\{\{ row\.stockUnit \}\}/.test(page));
+    // Classic keeps its own unit words.
+    assert.match(classic, /\{\{ row\.quantity \}\} \{\{ row\.stockUnit \}\}/);
 });

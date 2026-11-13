@@ -5,12 +5,12 @@ import InventoryOperationsPanel from '@/components/inventory/InventoryOperations
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import StockPanelBar from '@/components/inventory-v2/StockPanelBar.vue';
-import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import { ErrorState } from '@/components/ui/state';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2DateRange from '@/components/v2/V2DateRange.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
@@ -118,6 +118,17 @@ const timezoneLabel = computed(
     () =>
         `${(props.inventory.branchTimezone.split('/').pop() ?? '').replaceAll('_', ' ')} time`,
 );
+// "40 units", "1 unit": the plural of the stock unit when the quantity is not 1 (V2 only; Classic keeps its words).
+const units = (quantity: unknown, unit: unknown) => {
+    const name = String(unit ?? '');
+    const amount = Number(String(quantity ?? '').replace(/[^0-9.-]/g, ''));
+
+    if (name === '' || Math.abs(amount) === 1) {
+        return name;
+    }
+
+    return /(s|x|z|ch|sh)$/i.test(name) ? `${name}es` : `${name}s`;
+};
 // A real minus sign (−40 unit), not a hyphen.
 const minus = (value: unknown) => String(value ?? '').replace(/^-/, '\u2212');
 const sentence = (value: unknown) => {
@@ -343,24 +354,12 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                                 "
                             />
                         </div>
-                        <template v-if="inventory.tab === 'movements'">
-                            <label class="grid gap-1 text-xs"
-                                >Date from
-                                <DateField
-                                    v-model="dateFrom"
-                                    :max="dateTo || undefined"
-                                    :echo="false"
-                                />
-                            </label>
-                            <label class="grid gap-1 text-xs"
-                                >Date to
-                                <DateField
-                                    v-model="dateTo"
-                                    :min="dateFrom || undefined"
-                                    :echo="false"
-                                />
-                            </label>
-                        </template>
+                        <V2DateRange
+                            v-if="inventory.tab === 'movements'"
+                            v-model:from="dateFrom"
+                            v-model:to="dateTo"
+                            label="Movement dates"
+                        />
                         <label
                             v-if="inventory.tab !== 'stock'"
                             class="grid min-w-48 gap-1 text-xs"
@@ -478,7 +477,9 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                                     <span
                                         class="font-semibold whitespace-nowrap tabular-nums"
                                         >{{ row.quantity }}
-                                        {{ row.stockUnit }}</span
+                                        {{
+                                            units(row.quantity, row.stockUnit)
+                                        }}</span
                                     >
                                 </div>
                             </td>
@@ -571,7 +572,9 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                                     <span
                                         class="font-semibold whitespace-nowrap tabular-nums"
                                         >{{ row.quantity }}
-                                        {{ row.stockUnit }}</span
+                                        {{
+                                            units(row.quantity, row.stockUnit)
+                                        }}</span
                                     >
                                 </div>
                             </td>
@@ -632,7 +635,12 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                                     <span
                                         class="font-semibold whitespace-nowrap"
                                         >{{ minus(row.quantityDisplay) }}
-                                        {{ row.stockUnit }}</span
+                                        {{
+                                            units(
+                                                row.quantityDisplay,
+                                                row.stockUnit,
+                                            )
+                                        }}</span
                                     >
                                     <span
                                         class="block text-xs text-muted-foreground"
@@ -718,24 +726,12 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                     :expected-branch-id="operations.expectedBranchId"
                 />
             </div>
-            <template v-if="inventory.tab === 'movements'">
-                <label class="grid gap-1 text-sm font-medium"
-                    >Date from
-                    <DateField
-                        v-model="dateFrom"
-                        :max="dateTo || undefined"
-                        :echo="false"
-                    />
-                </label>
-                <label class="grid gap-1 text-sm font-medium"
-                    >Date to
-                    <DateField
-                        v-model="dateTo"
-                        :min="dateFrom || undefined"
-                        :echo="false"
-                    />
-                </label>
-            </template>
+            <V2DateRange
+                v-if="inventory.tab === 'movements'"
+                v-model:from="dateFrom"
+                v-model:to="dateTo"
+                label="Movement dates"
+            />
             <label
                 v-if="inventory.tab !== 'stock'"
                 class="grid gap-1 text-sm font-medium"
