@@ -217,6 +217,6 @@ test('V2Dialog: tall sheets pin the header (title and X); the open-sheet guard i
     );
     assert.match(
         s,
-        /\(4\) browser Back stays a known limit, with `beforeunload` for reload and tab close\./,
+        /\(4\) browser Back and Forward are held too; `beforeunload` covers reload and tab close\./,
     );
 });
