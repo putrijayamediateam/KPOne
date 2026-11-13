@@ -130,7 +130,7 @@ test('UX-17: the server builds the shell only when the switch is on', () => {
 
     assert.match(
         middleware,
-        /'shell' => \$spaces\['enabled'\] \? fn \(\) => app\(V2ShellNavigation::class\)->for\(\$user, \$request->path\(\)\) : null,/,
+        /'shell' => app\(UiVersionResolver::class\)->isV2\(\$user, \$request\) \? fn \(\) => app\(V2ShellNavigation::class\)->for\(\$user, \$request->path\(\)\) : null,/,
     );
 });
 
