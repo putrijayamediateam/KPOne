@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
-import CompliancePanel from '@/components/hr/compliance/CompliancePanel.vue';
-import ComplianceRules from '@/components/hr/compliance/ComplianceRules.vue';
+import ComplianceRulesCards from '@/components/hr-v2/ComplianceRulesCards.vue';
+import RosterChecks from '@/components/hr-v2/RosterChecks.vue';
 import InputError from '@/components/InputError.vue';
 import { DateField } from '@/components/ui/date-field';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -21,6 +21,7 @@ import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { useRosterPage } from '@/composables/hr/useRosterPage';
 import type { RosterProps, Version } from '@/composables/hr/useRosterPage';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
+import { groupChecks } from '@/lib/hr-roster-v2';
 
 /**
  * Version 2 Roster (shown only in V2; Classic is `pages/HR/Roster.vue`, untouched). Same props, routes, permissions,
@@ -134,14 +135,18 @@ const moreGroups = computed<RowMenuGroup[]>(() => {
 });
 
 const checks = computed(() => planner.value?.warnings ?? []);
-const checkCount = computed(
-    () =>
-        checks.value.length +
-        (planner.value?.compliance?.warnings ?? []).reduce(
-            (n, w) => n + (w.count ?? 1),
-            0,
-        ),
-);
+// Counted the way the panel shows them: one per day below minimum, one per other check, one per rule warning.
+const checkCount = computed(() => {
+    const grouped = groupChecks(checks.value);
+
+    return (
+        grouped.days.length +
+        grouped.other.length +
+        (planner.value?.compliance?.warnings ?? []).length
+    );
+});
+const rulesNotSet = computed(() => planner.value?.compliance?.setUp === false);
+const rulesRotation = computed(() => !!planner.value?.compliance);
 const checkTitle = computed(() =>
     checkCount.value === 1
         ? '1 thing to check before approval'
@@ -248,21 +253,23 @@ const inputClass =
                 </div>
             </template>
 
-            <template v-if="roster.tab === 'planner' && checkCount > 0" #rail>
-                <div class="flex flex-col gap-3" data-test="roster-warnings">
+            <template
+                v-if="
+                    roster.tab === 'planner' &&
+                    planner &&
+                    shown &&
+                    (checkCount > 0 || rulesNotSet || rulesRotation)
+                "
+                #rail
+            >
+                <!-- The rail never outgrows the page: it sticks under the top bar and scrolls on its own (Daniel). -->
+                <div
+                    class="sticky top-20 flex max-h-[calc(100dvh-6rem)] flex-col gap-3 overflow-y-auto pr-1"
+                    data-test="roster-warnings"
+                >
                     <p class="text-sm font-semibold">{{ checkTitle }}</p>
-                    <ul class="flex flex-col gap-2 text-sm">
-                        <li
-                            v-for="warning in checks"
-                            :key="warning"
-                            class="flex flex-col gap-1"
-                        >
-                            <V2Chip tone="warning" label="Check" />
-                            <span>{{ warning }}</span>
-                        </li>
-                    </ul>
-                    <CompliancePanel
-                        v-if="planner?.compliance"
+                    <RosterChecks
+                        :warnings="checks"
                         :compliance="planner.compliance"
                         :branch="planner.branch.name"
                     />
@@ -319,7 +326,7 @@ const inputClass =
                     <!-- My roster: one column -->
                     <section
                         v-if="roster.tab === 'my' && roster.my"
-                        class="flex w-full max-w-[48rem] flex-col gap-3"
+                        class="flex w-full max-w-[40rem] flex-col gap-3"
                         aria-label="My shifts"
                     >
                         <ul
@@ -493,18 +500,20 @@ const inputClass =
 
                         <!-- Below 1536 px the rail's checks sit here, above the days (Daniel). -->
                         <V2DisclosureBar
-                            v-if="checkCount > 0"
+                            v-if="
+                                shown &&
+                                (checkCount > 0 || rulesNotSet || rulesRotation)
+                            "
                             class="2xl:hidden"
-                            :title="checkTitle"
-                            tone="warning"
+                            :title="
+                                checkCount > 0
+                                    ? checkTitle
+                                    : 'Checks before approval'
+                            "
+                            :tone="checkCount > 0 ? 'warning' : 'neutral'"
                         >
-                            <ul class="flex flex-col gap-2 text-sm">
-                                <li v-for="warning in checks" :key="warning">
-                                    {{ warning }}
-                                </li>
-                            </ul>
-                            <CompliancePanel
-                                v-if="planner?.compliance"
+                            <RosterChecks
+                                :warnings="checks"
                                 :compliance="planner.compliance"
                                 :branch="planner.branch.name"
                             />
@@ -537,7 +546,7 @@ const inputClass =
 
                         <ul
                             v-else
-                            class="grid gap-3 md:grid-cols-2 2xl:grid-cols-3"
+                            class="grid gap-3 md:grid-cols-2"
                             data-test="planner-days"
                         >
                             <li
@@ -559,7 +568,7 @@ const inputClass =
                                         <V2Chip
                                             v-if="isShort(day.date)"
                                             tone="warning"
-                                            label="Short"
+                                            label="Below minimum"
                                         />
                                     </span>
                                 </div>
@@ -581,6 +590,15 @@ const inputClass =
                                         v-for="item in dayShifts(day.date)"
                                         :key="item.shift.id"
                                         class="flex items-center justify-between gap-3 py-2"
+                                        :class="
+                                            planner.can.edit
+                                                ? 'cursor-pointer'
+                                                : ''
+                                        "
+                                        @click="
+                                            planner.can.edit &&
+                                            openEdit(item.shift)
+                                        "
                                     >
                                         <div class="min-w-0 text-sm">
                                             <p class="font-medium break-words">
@@ -610,7 +628,7 @@ const inputClass =
                                             type="button"
                                             :class="button"
                                             :aria-label="`Edit shift: ${item.row.name}, ${day.long}, ${item.shift.startLabel} to ${item.shift.endLabel}`"
-                                            @click="openEdit(item.shift)"
+                                            @click.stop="openEdit(item.shift)"
                                         >
                                             Edit
                                         </button>
@@ -751,21 +769,23 @@ const inputClass =
                                 :class="
                                     minimumForm.isDirty ? primaryButton : button
                                 "
+                                data-test="minimums-save"
                                 :disabled="minimumForm.processing"
                                 @click="saveMinimums"
                             >
                                 {{
                                     minimumForm.processing
                                         ? 'Saving…'
-                                        : 'Save minimums'
+                                        : 'Save minimum staffing'
                                 }}
                             </button>
                         </div>
-                        <ComplianceRules
+                        <ComplianceRulesCards
                             v-if="roster.minimums.compliance"
                             :settings="roster.minimums.compliance"
                             :branch="roster.minimums.branch"
                             :week="roster.week.start"
+                            :primary-allowed="!minimumForm.isDirty"
                         />
                     </section>
                 </div>
@@ -888,22 +908,13 @@ const inputClass =
                         :class="[numberClass, 'w-32 text-left']"
                     />
                 </V2Field>
-                <V2Field
-                    v-slot="{ id, describedBy }"
+                <V2OptionGroup
+                    v-model="shiftForm.session_type"
+                    :options="sessionOptions"
                     label="Session"
                     required
                     :error="shiftForm.errors.session_type"
-                >
-                    <OperationalSelect
-                        :id="id"
-                        v-model="shiftForm.session_type"
-                        :options="sessionOptions"
-                        label="Session"
-                        :describedby="describedBy"
-                        :invalid="!!shiftForm.errors.session_type"
-                        trigger-class="h-11 w-full lg:h-9"
-                    />
-                </V2Field>
+                />
                 <V2Field
                     v-slot="{ id, describedBy }"
                     label="Proposed room"
