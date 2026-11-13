@@ -18,7 +18,9 @@ return [
         'Registration/Create',
         'Registration/Show',
         'Registration/Edit',
+        'ClinicalService/Index',
         'Dispensary/Show',
+        'Medicine/Index',
         'PaymentMethods/Index',
         'Pricing/Index',
         'Agents/Inbox',
@@ -30,6 +32,8 @@ return [
         'BusinessDetails/Index',
         'QueueDisplay/Settings',
         'Inventory/Index',
+        'InventoryServicesSettings/Suppliers',
         'Staff/Index',
+        'Staff/Show',
     ],
 ];
