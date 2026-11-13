@@ -27,6 +27,7 @@ return [
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
+        'BusinessDetails/Index',
         'QueueDisplay/Settings',
         'Inventory/Index',
         'Staff/Index',
