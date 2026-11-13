@@ -48,7 +48,7 @@ test('a failed refresh shows a visible notice with the time of the last good res
     assert.match(logic, /refreshFailedAt\.value = null/);
     assert.match(
         page,
-        /Live refresh paused\. Showing last successful\s+results \(\{\{ updatedAt \}\}\)\./,
+        /Live refresh paused\.\s+Showing the last results\s+from\s+\{\{ updatedAt \}\}\.\s+Retrying\./,
     );
     assert.match(page, /role="status"/);
 });

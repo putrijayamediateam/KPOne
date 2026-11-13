@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { Volume2, VolumeX } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, nextTick, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
@@ -26,6 +26,7 @@ import type {
     QueueBoardProps,
     QueueTab,
 } from '@/composables/queue/useQueueBoardV2';
+import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import { formatDate } from '@/lib/presentation';
 import { needsAttention, rowMenu, rowStatus } from '@/lib/queue-v2';
 import type { PatientBoardRow, QueueRow } from '@/types';
@@ -36,6 +37,7 @@ import type { PatientBoardRow, QueueRow } from '@/types';
  * (`composables/queue/useQueueBoardV2.ts`), kept equal by `ui-v2-queue-parity.test.mjs`.
  */
 const props = defineProps<QueueBoardProps>();
+usePageCrumbs(() => [{ title: 'Consultation' }]);
 const dialogKind = ref<
     'call' | 'notReady' | 'ready' | 'cancel' | 'treatmentCall' | null
 >(null);
@@ -115,6 +117,27 @@ const updatedAt = computed(() =>
         })
         .replace(/\b(am|pm)\b/gi, (period) => period.toUpperCase()),
 );
+// The automatic-retry message is the amber notice on the live line; showing it again in red would say it twice.
+const visibleError = computed(() =>
+    error.value === 'Live Queue could not be refreshed. Retrying…'
+        ? ''
+        : error.value,
+);
+const showPayment = computed(() =>
+    boardRows.value.some(
+        (row) => /panel/i.test(row.coverageLabel) || !!row.panelNote,
+    ),
+);
+const choosingRoom = () => {
+    changingRoom.value = true;
+    void nextTick(() =>
+        document
+            .querySelector<HTMLElement>(
+                '[data-testid="doctor-room-choice"] [role="combobox"]',
+            )
+            ?.focus(),
+    );
+};
 const filterBadge = computed(
     () =>
         [draftFilters.doctor_id, draftFilters.priority].filter(Boolean).length,
@@ -142,8 +165,11 @@ const openDialog = (
     kind: 'call' | 'notReady' | 'ready' | 'cancel' | 'treatmentCall',
     row: PatientBoardRow,
 ) => {
-    dialogRow.value = row;
-    dialogKind.value = kind;
+    // Let the menu close and return focus first, so the dialog keeps focus (and returns it to the row's menu button).
+    setTimeout(() => {
+        dialogRow.value = row;
+        dialogKind.value = kind;
+    }, 0);
 };
 const selectItem = (item: { row: PatientBoardRow }, id: string) => {
     const target = rowMenu(item.row, live.value.branch.id).targets[id];
@@ -216,6 +242,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                     :branch-id="live.branch.id"
                     :busy="busyKey !== null"
                     :refresh="refreshBoard"
+                    @choose-room="choosingRoom"
                     @dialog="callNextOpen = $event"
                     @processing="busyKey = $event ? 'call-next' : null"
                 />
@@ -357,7 +384,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                 </button>
                                 <button
                                     type="button"
-                                    class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                                    class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:hidden lg:h-9"
                                     @click="clearFilters"
                                 >
                                     Reset
@@ -365,10 +392,16 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                 <button
                                     type="button"
                                     class="inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-border bg-card hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:size-9"
-                                    :aria-pressed="
+                                    :aria-label="
                                         readyAlerts.chimeEnabled.value
+                                            ? 'Sound is on. Turn off'
+                                            : 'Sound is off. Turn on'
                                     "
-                                    :aria-label="`Notification sound: ${readyAlerts.chimeEnabled.value ? 'on' : 'off'}`"
+                                    :title="
+                                        readyAlerts.chimeEnabled.value
+                                            ? 'Sound is on. Turn off'
+                                            : 'Sound is off. Turn on'
+                                    "
                                     data-testid="sound-toggle"
                                     @click="readyAlerts.toggleChime"
                                 >
@@ -386,9 +419,17 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                             </div>
                         </template>
                     </V2Toolbar>
-                    <InputError :message="error" />
+                    <InputError :message="visibleError" />
                 </form>
 
+                <p
+                    v-if="readyAlerts.chimeEnabled.value"
+                    class="text-[13px] text-muted-foreground"
+                    data-testid="sound-help"
+                >
+                    Sound is on. If you hear nothing, tap anywhere on this page
+                    once: browsers block sound until you do.
+                </p>
                 <div
                     class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 text-[13px] text-muted-foreground"
                 >
@@ -407,8 +448,8 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                         data-testid="live-line"
                     >
                         <template v-if="refreshFailedAt"
-                            >Live refresh paused. Showing last successful
-                            results ({{ updatedAt }}).</template
+                            >Live refresh paused. Showing the last results from
+                            {{ updatedAt }}. Retrying.</template
                         >
                         <template v-else>Live · every 3 seconds</template>
                     </p>
@@ -416,7 +457,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
 
                 <V2Table
                     label="Consultation queue"
-                    :columns="6"
+                    :columns="showPayment ? 6 : 5"
                     cards="xl"
                     min-width="880px"
                     :empty="!rowsWithMenu.length"
@@ -430,7 +471,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                             <th scope="col">Patient</th>
                             <th scope="col">Arrived</th>
                             <th scope="col">Doctor and notes</th>
-                            <th scope="col">Payment</th>
+                            <th v-if="showPayment" scope="col">Payment</th>
                             <th scope="col">Status and wait</th>
                             <th scope="col" class="text-right">Actions</th>
                         </tr>
@@ -503,6 +544,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                 </span>
                             </td>
                             <td
+                                v-if="showPayment"
                                 data-label="Payment"
                                 class="text-sm whitespace-nowrap"
                                 :class="
@@ -512,7 +554,13 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                         : ''
                                 "
                             >
-                                <span class="max-xl:text-right xl:contents">
+                                <span
+                                    v-if="
+                                        /panel/i.test(item.row.coverageLabel) ||
+                                        item.row.panelNote
+                                    "
+                                    class="max-xl:text-right xl:contents"
+                                >
                                     <span class="block">{{
                                         item.row.coverageLabel
                                     }}</span>
@@ -532,7 +580,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                     class="flex min-w-0 flex-col gap-1.5 max-xl:flex-row max-xl:flex-wrap max-xl:items-center max-xl:gap-x-3"
                                 >
                                     <div
-                                        class="flex flex-wrap items-center gap-1.5 max-xl:justify-end"
+                                        class="flex flex-wrap items-center gap-1.5 max-xl:justify-start"
                                     >
                                         <V2Chip
                                             :tone="item.status.tone"
@@ -613,6 +661,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                     </div>
                                     <p
                                         v-if="item.row.callHold?.active"
+                                        :id="`call-hold-${item.row.key}`"
                                         class="max-w-56 truncate text-xs text-muted-foreground max-xl:text-right"
                                         :title="
                                             item.row.callHold.reason ??
@@ -654,6 +703,11 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                         :aria-disabled="
                                             item.row.callHold?.active
                                                 ? 'true'
+                                                : undefined
+                                        "
+                                        :aria-describedby="
+                                            item.row.callHold?.active
+                                                ? `call-hold-${item.row.key}`
                                                 : undefined
                                         "
                                         :title="

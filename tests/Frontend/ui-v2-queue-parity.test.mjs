@@ -23,7 +23,7 @@ const block = (source, name, indent) => {
     for (const line of lines.slice(1)) {
         if (
             new RegExp(
-                `^${indent}(const |let |watch\\(|onMounted\\(|onBeforeUnmount\\(|\\/\\/|\\/\\*\\*)`,
+                `^${indent}(const |let |type |watch\\(|onMounted\\(|onBeforeUnmount\\(|\\/\\/|\\/\\*\\*)`,
             ).test(line)
         ) {
             break;
@@ -57,10 +57,7 @@ const SHARED = [
     'selectTab',
     'clearFilters',
     'source',
-    'requestCall',
     'recall',
-    'openTreatmentCall',
-    'submitTreatmentCall',
     'refreshBoard',
     'finishCall',
     'openConsultation',
@@ -114,12 +111,7 @@ test('the V2 composable keeps the Classic polling, lifecycle and listeners', () 
 });
 
 test('V2 and Classic use the same endpoints for every queue action', () => {
-    const endpoints = [
-        '/queue/room',
-        '/queue/recall',
-        '/queue/treatment-call',
-        '/encounter',
-    ];
+    const endpoints = ['/queue/room', '/queue/recall', '/encounter'];
 
     for (const endpoint of endpoints) {
         assert.ok(v2.includes(endpoint), `V2 composable: ${endpoint}`);
@@ -168,4 +160,84 @@ test('the V2 queue page uses only the existing queue endpoints, never a new rout
     assert.doesNotMatch(page, /router\.(post|put|patch|delete)\(/);
     assert.match(page, /useQueueBoardV2\(props, \{ paused: overlayOpen \}\)/);
     assert.doesNotMatch(page, /QueueCallDialog|VisitCancellationDialog/);
+});
+
+// Payload keys of every V2 dialog, key by key, against the Classic dialog that stays untouched.
+const keysOf = (source, marker) => {
+    const at = source.indexOf(marker);
+    const body = source.slice(at, at + 900);
+
+    return [...body.matchAll(/\b(\w+):/g)].map(([, key]) => key);
+};
+
+test('the V2 dialogs send the same payload keys as the Classic ones', () => {
+    const dialogs = read(
+        'resources/js/components/queue-v2/QueueRowDialogs.vue',
+    );
+    const classicCall = read(
+        'resources/js/components/queue/QueueCallDialog.vue',
+    );
+    const classicReadiness = read(
+        'resources/js/components/queue/CallReadinessActions.vue',
+    );
+    const classicCancel = read(
+        'resources/js/components/patient-board/VisitCancellationDialog.vue',
+    );
+    const expectKeys = (v2Marker, classicSource, classicMarker, keys) => {
+        for (const key of keys) {
+            assert.ok(
+                keysOf(dialogs, v2Marker).includes(key),
+                `V2 ${v2Marker}: ${key}`,
+            );
+            assert.ok(
+                keysOf(classicSource, classicMarker).includes(key),
+                `Classic ${classicMarker}: ${key}`,
+            );
+        }
+    };
+
+    expectKeys('/queue/call`', classicCall, '/queue/call`', [
+        'expected_branch_id',
+        'visit_lock_version',
+        'queue_lock_version',
+        'override_reason',
+        'call_hold_id',
+        'call_hold_lock_version',
+        'idempotency_key',
+    ]);
+    expectKeys('/queue/readiness`', classicReadiness, '/queue/readiness`', [
+        'expected_branch_id',
+        'queue_lock_version',
+        'lock_version',
+        'call_hold_id',
+        'reason_code',
+        'idempotency_key',
+        'from',
+    ]);
+    expectKeys('/cancel`', classicCancel, '/cancel`', [
+        'expected_branch_id',
+        'lock_version',
+        'queue_lock_version',
+        'cancellation_reason',
+    ]);
+    assert.ok(
+        keysOf(dialogs, '/queue/treatment-call`').includes('branch_room_id'),
+    );
+    assert.ok(
+        keysOf(classic, '/queue/treatment-call`').includes('branch_room_id'),
+    );
+});
+
+test('a dialog never closes while its request is running and never outlives a branch change', () => {
+    const dialogs = read(
+        'resources/js/components/queue-v2/QueueRowDialogs.vue',
+    );
+    const callNext = read('resources/js/components/queue-v2/CallNextV2.vue');
+
+    assert.match(dialogs, /!value && !busy && emit\('close'\)/);
+    assert.match(dialogs, /\(\) => props\.branchId,[\s\S]*?emit\('close'\)/);
+    assert.match(
+        callNext,
+        /onBeforeUnmount\(\(\) => \{[\s\S]*?emit\('dialog', false\)/,
+    );
 });

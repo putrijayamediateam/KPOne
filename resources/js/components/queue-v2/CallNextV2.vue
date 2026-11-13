@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
 import { LoaderCircle, TriangleAlert } from '@lucide/vue';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import {
@@ -31,6 +31,7 @@ const props = defineProps<{
 const emit = defineEmits<{
     processing: [busy: boolean];
     dialog: [open: boolean];
+    chooseRoom: [];
 }>();
 
 const open = ref(false);
@@ -81,6 +82,11 @@ const latestCandidate = () =>
  * Re-poll and show the latest state. After "no longer next" this swaps to the new patient; after any other refusal
  * (for example the room was cleared) it shows why nobody can be called now, with Close as the only action.
  */
+// Classic moves focus to the title after a swap or when nobody is left; the V2 dialog takes focus on its own panel.
+const focusDialog = () =>
+    void nextTick(() =>
+        document.querySelector<HTMLElement>('[data-slot="v2-dialog"]')?.focus(),
+    );
 const showLatest = async (refusal?: string) => {
     let next: CallNextCandidate | null = null;
 
@@ -117,6 +123,7 @@ const showLatest = async (refusal?: string) => {
         error.value = '';
         notice.value = '';
         liveMessage.value = goneReason.value;
+        focusDialog();
 
         return;
     }
@@ -136,6 +143,7 @@ const showLatest = async (refusal?: string) => {
     error.value = '';
     notice.value = callNextSwapMessage(next);
     liveMessage.value = notice.value;
+    focusDialog();
     // Daniel: hold the new Call button for a moment, so a second press meant for the old patient cannot land.
     paused.value = true;
     clearTimeout(pauseTimer);
@@ -193,7 +201,11 @@ const submit = () => {
         },
     );
 };
-onBeforeUnmount(() => clearTimeout(pauseTimer));
+onBeforeUnmount(() => {
+    clearTimeout(pauseTimer);
+    // The page pauses its poll while this dialog is open; never leave it paused when the control goes away.
+    emit('dialog', false);
+});
 </script>
 
 <template>
@@ -226,6 +238,16 @@ onBeforeUnmount(() => clearTimeout(pauseTimer));
             <template v-if="ready && block.candidate"
                 >Next: {{ block.candidate.queueNumber }} ·
                 {{ block.candidate.patientName }}</template
+            >
+            <template v-else-if="block.state === 'no_room'"
+                >Choose your room first.
+                <button
+                    type="button"
+                    class="inline-flex h-11 items-center font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                    @click="emit('chooseRoom')"
+                >
+                    Choose room
+                </button></template
             >
             <template v-else>{{ block.reason ?? '' }}</template>
         </p>

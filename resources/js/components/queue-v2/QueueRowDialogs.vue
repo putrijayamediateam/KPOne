@@ -49,6 +49,13 @@ watch(
                 : '';
     },
 );
+watch(
+    () => props.branchId,
+    () => {
+        key = '';
+        emit('close');
+    },
+);
 watch([reason, overrideReason], () => {
     key = '';
 });
@@ -125,7 +132,7 @@ const cancel = (cancellationReason: string | null) => {
             expected_branch_id: props.branchId,
             lock_version: entry.visitLockVersion,
             queue_lock_version: entry.queueLockVersion,
-            cancellation_reason: cancellationReason,
+            cancellation_reason: cancellationReason.slice(0, 500),
         },
         {
             preserveScroll: true,
@@ -287,7 +294,7 @@ const confirmLabel = computed(() =>
         :tone="kind === 'cancel' ? 'danger' : 'default'"
         :reason-label="kind === 'cancel' ? 'Cancellation reason' : undefined"
         :busy="busy"
-        @update:open="(value) => !value && emit('close')"
+        @update:open="(value) => !value && !busy && emit('close')"
         @confirm="confirm"
     >
         <template v-if="kind === 'call'">

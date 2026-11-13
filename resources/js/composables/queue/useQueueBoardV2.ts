@@ -94,7 +94,6 @@ export function useQueueBoardV2(
             },
         );
     };
-    type QueueTab = 'all' | 'waiting' | 'serving' | 'removed';
     const tabs = computed<
         Array<{ value: QueueTab; label: string; count?: number }>
     >(() => [
@@ -144,10 +143,6 @@ export function useQueueBoardV2(
         queueVisibleError(draftValidationError.value, operationalError.value),
     );
     const busyKey = ref<string | null>(null);
-    const cancellationRow = ref<PatientBoardRow | null>(null);
-    const cancelOpen = ref(false);
-    const callRow = ref<PatientBoardRow | null>(null);
-    const callOpen = ref(false);
     const draftFilters = reactive(emptyQueueFilters());
     const appliedFilters = reactive(emptyQueueFilters());
     const csrf = () =>
@@ -507,15 +502,6 @@ export function useQueueBoardV2(
         });
     };
     const source = (row: PatientBoardRow) => row.source as QueueRow;
-    const requestCall = (row: PatientBoardRow) => {
-        if (busyKey.value !== null) {
-            return;
-        }
-
-        operationalError.value = '';
-        callRow.value = row;
-        callOpen.value = true;
-    };
     const recall = (row: PatientBoardRow) => {
         if (busyKey.value !== null) {
             return;
@@ -536,50 +522,6 @@ export function useQueueBoardV2(
                     operationalError.value =
                         Object.values(errors)[0] ??
                         'The patient could not be called again.';
-                },
-                onFinish: () => {
-                    busyKey.value = null;
-                },
-            },
-        );
-    };
-    // Calls a serving patient to a treatment room on the TV; the consultation stays with the doctor.
-    const treatmentRow = ref<PatientBoardRow | null>(null);
-    const treatmentRoomId = ref<string | number>('');
-    const treatmentError = ref('');
-    const openTreatmentCall = (row: PatientBoardRow) => {
-        treatmentRow.value = row;
-        treatmentError.value = '';
-        treatmentRoomId.value =
-            props.treatmentRooms?.length === 1
-                ? props.treatmentRooms[0].id
-                : '';
-    };
-    const submitTreatmentCall = () => {
-        const row = treatmentRow.value;
-
-        if (row === null || treatmentRoomId.value === '') {
-            treatmentError.value = 'Choose a treatment room.';
-
-            return;
-        }
-
-        busyKey.value = row.key;
-        router.patch(
-            `/visits/${encodeURIComponent(row.visitNumber)}/queue/treatment-call`,
-            {
-                expected_branch_id: live.value.branch.id,
-                queue_lock_version: source(row).queueLockVersion,
-                branch_room_id: treatmentRoomId.value,
-            },
-            {
-                preserveScroll: true,
-                preserveState: true,
-                onSuccess: () => (treatmentRow.value = null),
-                onError: (errors) => {
-                    treatmentError.value =
-                        Object.values(errors)[0] ??
-                        'The patient could not be called to the treatment room.';
                 },
                 onFinish: () => {
                     busyKey.value = null;
@@ -629,10 +571,6 @@ export function useQueueBoardV2(
                 },
             },
         );
-    };
-    const requestCancellation = (row: PatientBoardRow) => {
-        cancellationRow.value = row;
-        cancelOpen.value = true;
     };
     const handleVisibility = () => {
         if (!pollingLifecycle.canRun()) {
@@ -684,51 +622,25 @@ export function useQueueBoardV2(
         tabs,
         live,
         readyAlerts,
-        treatmentAlerts,
         activeTab,
         completedLine,
         servingLine,
         isRefreshing,
         isApplyingFilters,
-        draftValidationError,
-        operationalError,
         error,
         busyKey,
-        cancellationRow,
-        cancelOpen,
-        callRow,
-        callOpen,
         draftFilters,
-        appliedFilters,
-        csrf,
-        pollingLifecycle,
-        receivedAt,
-        clockNow,
-        effectiveNowMs,
-        elapsedMinutes,
         doctorOptions,
         urgencyOptions,
-        sourceRows,
-        compactTime,
         boardRows,
-        schedule,
         refresh,
-        replaceAppliedRefresh,
         applyFilters,
         selectTab,
         clearFilters,
-        source,
-        requestCall,
         recall,
-        treatmentRow,
-        treatmentRoomId,
-        treatmentError,
-        openTreatmentCall,
-        submitTreatmentCall,
         refreshBoard,
         finishCall,
         openConsultation,
-        requestCancellation,
-        handleVisibility,
+        receivedAt,
     };
 }
