@@ -1,14 +1,17 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import DailyLinaReport from '@/components/agents/v2/DailyLinaReport.vue';
 import { DateField } from '@/components/ui/date-field';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2KeyValueList from '@/components/v2/V2KeyValueList.vue';
-import V2Stat from '@/components/v2/V2Stat.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
+import { usePageCrumbs } from '@/composables/usePageCrumbs';
+import { plural, ringgit } from '@/lib/agent-summary';
+import type { Lina, Stamp } from '@/lib/agent-summary';
 import { formatDate, formatDateTime } from '@/lib/presentation';
 
 /**
@@ -16,46 +19,6 @@ import { formatDate, formatDateTime } from '@/lib/presentation';
  * route (`/agents/daily-summary?date=`), same permissions: the server decides which parts a viewer may see, and a part
  * that arrives as null is simply not drawn. Totals only; no colour carries a direction, the words do.
  */
-type Stamp = { slot: '0700' | '1400'; builtAt: string | null };
-type ClinicFigures = {
-    registered: number;
-    served: number;
-    averageWaitMinutes: number;
-    averageConsultationMinutes: number;
-};
-type MoneyFigures = {
-    netSalesSen: number;
-    totalReceivedSen: number;
-    cashNetSen: number;
-    nonCashNetSen: number;
-    panelApprovedSen: number;
-    payLaterDueSen: number;
-};
-type Lina = Stamp & {
-    date: string;
-    kind: 'whole_day' | 'so_far';
-    comparedWith: string | null;
-    clinic: { now: ClinicFigures; before: ClinicFigures | null } | null;
-    doctors:
-        | {
-              doctorId: number;
-              doctor: string;
-              seen: number;
-              averageConsultationMinutes: number;
-              seenBefore: number | null;
-          }[]
-        | null;
-    money: { now: MoneyFigures; before: MoneyFigures | null } | null;
-    panel: {
-        unclaimedInvoices: number;
-        unclaimedSen: number;
-        overdueUnclaimedInvoices: number;
-        overdueUnclaimedSen: number;
-        acceptedUnpaidClaims: number;
-        acceptedOutstandingSen: number;
-    } | null;
-    stock: { lowStock: number; expiring: number; expired: number } | null;
-};
 type HanaCount = { total: number; pending: number };
 type Hana = Stamp & {
     date: string;
@@ -106,11 +69,6 @@ const show = () => {
     );
 };
 
-const ringgit = (sen: number) =>
-    `RM ${(sen / 100).toLocaleString('en-MY', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-    })}`;
 const slotLabel = (slot: Stamp['slot']) =>
     slot === '0700' ? '07:00 run' : '14:00 update';
 const builtLine = (stamp: Stamp) =>
@@ -118,85 +76,6 @@ const builtLine = (stamp: Stamp) =>
         ? `${slotLabel(stamp.slot)}, built ${formatDateTime(stamp.builtAt)}`
         : slotLabel(stamp.slot);
 
-// The words carry the direction (no green or red: a longer wait is "up" and not good). Nothing on either day says nothing.
-const compare = (
-    now: number,
-    before: number | null | undefined,
-    format: (value: number) => string = String,
-): string | undefined => {
-    if (
-        before === null ||
-        before === undefined ||
-        (now === 0 && before === 0)
-    ) {
-        return undefined;
-    }
-
-    if (now > before) {
-        return `Up from ${format(before)}`;
-    }
-
-    return now < before
-        ? `Down from ${format(before)}`
-        : `Same as ${format(before)}`;
-};
-
-const clinicStats = (lina: Lina) => {
-    const now = lina.clinic!.now;
-    const before = lina.clinic!.before;
-
-    return [
-        {
-            label: 'Registered',
-            value: String(now.registered),
-            detail: compare(now.registered, before?.registered),
-        },
-        {
-            label: 'Seen by a doctor',
-            value: String(now.served),
-            detail: compare(now.served, before?.served),
-        },
-        {
-            label: 'Average wait',
-            value: `${now.averageWaitMinutes} min`,
-            detail: compare(
-                now.averageWaitMinutes,
-                before?.averageWaitMinutes,
-                (value) => `${value} min`,
-            ),
-        },
-        {
-            label: 'Average consultation',
-            value: `${now.averageConsultationMinutes} min`,
-            detail: compare(
-                now.averageConsultationMinutes,
-                before?.averageConsultationMinutes,
-                (value) => `${value} min`,
-            ),
-        },
-    ];
-};
-const moneyStats = (lina: Lina) => {
-    const now = lina.money!.now;
-    const before = lina.money!.before;
-    const row = (label: string, key: keyof MoneyFigures, detail?: string) => ({
-        label,
-        value: ringgit(now[key]),
-        detail:
-            [compare(now[key], before?.[key], ringgit), detail]
-                .filter(Boolean)
-                .join('. ') || undefined,
-    });
-
-    return [
-        row('Net invoice sales', 'netSalesSen'),
-        row('Total received', 'totalReceivedSen', 'Cash and Non-cash'),
-        row('Cash received', 'cashNetSen', 'Net'),
-        row('Non-cash received', 'nonCashNetSen', 'Net'),
-        row('Panel approved', 'panelApprovedSen'),
-        row('Pay later due', 'payLaterDueSen'),
-    ];
-};
 const hanaLabels: Record<keyof Hana['counts'], string> = {
     restock: 'Restock',
     expiry: 'Expiry warning',
@@ -208,36 +87,13 @@ const hanaItems = (hana: Hana) =>
         label: hanaLabels[key],
         value: `${hana.counts[key].total} made, ${hana.counts[key].pending} waiting for a decision`,
     }));
-const doctorLine = (doctor: NonNullable<Lina['doctors']>[number]) =>
-    [
-        doctor.seen > 0
-            ? `${doctor.seen} seen, about ${doctor.averageConsultationMinutes} min each`
-            : 'None seen',
-        compare(doctor.seen, doctor.seenBefore),
-    ]
-        .filter(Boolean)
-        .join(' · ');
-const panelItems = (panel: NonNullable<Lina['panel']>) => [
-    {
-        label: 'Invoices not claimed yet',
-        value: `${panel.unclaimedInvoices} (${ringgit(panel.unclaimedSen)}), ${panel.overdueUnclaimedInvoices} overdue (${ringgit(panel.overdueUnclaimedSen)})`,
-    },
-    {
-        label: 'Accepted claims waiting for payment',
-        value: `${panel.acceptedUnpaidClaims} (${ringgit(panel.acceptedOutstandingSen)})`,
-    },
-];
-const stockItems = (stock: NonNullable<Lina['stock']>) => [
-    { label: 'Low stock', value: String(stock.lowStock) },
-    { label: 'Expiring within 90 days', value: String(stock.expiring) },
-    { label: 'Expired on hand', value: String(stock.expired) },
-];
+// Counts due is one item at one location; a difference is a count that did not match the books.
 const rizalItems = (rizal: Rizal) => [
-    { label: 'Counts due', value: String(rizal.countsDue) },
-    { label: 'Open count cases', value: String(rizal.openCases) },
+    { label: 'Counts due', value: plural(rizal.countsDue, 'count') },
+    { label: 'Open count cases', value: plural(rizal.openCases, 'case') },
     {
         label: 'Differences not yet resolved',
-        value: String(rizal.unresolvedVariances),
+        value: plural(rizal.unresolvedVariances, 'difference'),
     },
 ];
 const lastCounted = (item: DueItem) =>
@@ -249,7 +105,7 @@ const linaHeading = (lina: Lina) =>
     lina.kind === 'whole_day'
         ? `07:00 report, covers ${formatDate(lina.date)}`
         : `14:00 update, today so far (${formatDate(lina.date)})`;
-// Today so far first once the 14:00 update exists; the 07:00 report stays right below it.
+// Today so far first once the 14:00 update exists. The newest report is open; an older one is a closed bar below it.
 const reports = (branch: BranchBlock): Lina[] =>
     [branch.linaAfternoon, branch.linaMorning].filter(
         (lina): lina is Lina => lina !== null,
@@ -281,6 +137,8 @@ const openFirst = (code: string, index: number) =>
     )
         ? code === props.summary.activeBranchCode
         : index === 0;
+
+usePageCrumbs(() => [{ title: 'Agents' }, { title: 'Daily summary' }]);
 
 const RIZAL_SHOWN = 5;
 const showAllDue = ref<Record<string, boolean>>({});
@@ -386,112 +244,23 @@ const filled =
                     data-test="summary-branch"
                 >
                     <div class="flex min-w-0 flex-col gap-6">
-                        <section
-                            v-for="lina in reports(branch)"
+                        <template
+                            v-for="(lina, reportIndex) in reports(branch)"
                             :key="lina.slot"
-                            class="flex min-w-0 flex-col gap-3"
-                            :data-test="`lina-${lina.slot}`"
                         >
-                            <div class="flex flex-col gap-1">
-                                <div class="flex flex-wrap items-center gap-2">
-                                    <h3 class="text-base font-semibold">
-                                        {{ linaHeading(lina) }}
-                                    </h3>
-                                    <V2Chip tone="info" label="AI agent" />
-                                    <span class="text-sm text-muted-foreground"
-                                        >Lina</span
-                                    >
-                                </div>
-                                <p
-                                    class="text-[13px] leading-[18px] text-muted-foreground"
-                                >
-                                    {{
-                                        lina.builtAt
-                                            ? `Built ${formatDateTime(lina.builtAt)}.`
-                                            : 'Built.'
-                                    }}
-                                    <template v-if="lina.comparedWith">
-                                        Comparisons are with
-                                        {{ formatDate(lina.comparedWith) }}, the
-                                        same weekday last week.
-                                    </template>
-                                    <template v-else>
-                                        Half a day, so no comparison is shown.
-                                    </template>
-                                </p>
-                            </div>
-
-                            <div
-                                v-if="lina.clinic"
-                                class="grid grid-cols-2 gap-3 xl:grid-cols-4"
-                                data-test="lina-clinic"
+                            <DailyLinaReport
+                                v-if="reportIndex === 0"
+                                :lina="lina"
+                                :heading="linaHeading(lina)"
+                                include-panel-stock
+                            />
+                            <V2DisclosureBar
+                                v-else
+                                :title="`${linaHeading(lina)} · Lina, AI agent`"
                             >
-                                <V2Stat
-                                    v-for="stat in clinicStats(lina)"
-                                    :key="stat.label"
-                                    :label="stat.label"
-                                    :value="stat.value"
-                                    :detail="stat.detail"
-                                />
-                            </div>
-
-                            <div
-                                v-if="lina.doctors && lina.doctors.length > 0"
-                                class="flex flex-col gap-2"
-                                data-test="lina-doctors"
-                            >
-                                <h4 class="text-sm font-semibold">
-                                    Seen by each doctor
-                                </h4>
-                                <V2KeyValueList
-                                    :items="
-                                        lina.doctors.map((doctor) => ({
-                                            label: doctor.doctor,
-                                            value: doctorLine(doctor),
-                                        }))
-                                    "
-                                />
-                            </div>
-
-                            <div
-                                v-if="lina.money"
-                                class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
-                                data-test="lina-money"
-                            >
-                                <V2Stat
-                                    v-for="stat in moneyStats(lina)"
-                                    :key="stat.label"
-                                    :label="stat.label"
-                                    :value="stat.value"
-                                    :detail="stat.detail"
-                                />
-                            </div>
-
-                            <div
-                                v-if="lina.panel"
-                                class="flex flex-col gap-2"
-                                data-test="lina-panel"
-                            >
-                                <h4 class="text-sm font-semibold">
-                                    Panel, as of this run
-                                </h4>
-                                <V2KeyValueList
-                                    :items="panelItems(lina.panel)"
-                                />
-                            </div>
-                            <div
-                                v-if="lina.stock"
-                                class="flex flex-col gap-2"
-                                data-test="lina-stock"
-                            >
-                                <h4 class="text-sm font-semibold">
-                                    Stock, as of this run
-                                </h4>
-                                <V2KeyValueList
-                                    :items="stockItems(lina.stock)"
-                                />
-                            </div>
-                        </section>
+                                <DailyLinaReport :lina="lina" />
+                            </V2DisclosureBar>
+                        </template>
                         <p
                             v-if="!branch.linaMorning && !branch.linaAfternoon"
                             class="text-[15px] text-muted-foreground"
