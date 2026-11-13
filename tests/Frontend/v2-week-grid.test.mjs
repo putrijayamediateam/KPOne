@@ -54,6 +54,8 @@ test('entries are text, notes are words, a warning has an icon and a word', () =
     assert.match(template, /\{\{ entry\.label \}\}|entry\.label\s*\}\}/);
     assert.match(template, /row\.notes\[day\.key\]/);
     assert.match(template, /totals\[day\.key\]\?\.warning/);
+    // The page gives the warning word ("Below minimum"); the block has none of its own.
+    assert.doesNotMatch(template, /\bShort\b|Below minimum/);
     assert.match(
         template,
         /<svg[\s\S]*?aria-hidden="true"[\s\S]*?\{\{ totals\[day\.key\]\?\.warning \}\}/,
