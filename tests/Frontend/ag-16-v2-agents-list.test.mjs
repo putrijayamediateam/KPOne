@@ -32,7 +32,8 @@ test('V2 agents list: no filled button, plain words for sources, tasks and error
         /bg-primary|variant="default"/,
     );
     assert.match(v2, /tone="info" label="AI agent"/);
-    assert.match(v2, /cards="xl"/);
+    assert.match(v2, /xl:hidden/);
+    assert.match(v2, /max-xl:hidden/);
     assert.match(v2, /jobTitle\(agent\)/);
     assert.match(v2, /\\\(AI agent\\\)\$/);
 });
@@ -68,4 +69,15 @@ test('V2 agents list: the dialog says what happens, and a viewer who cannot mana
     assert.match(v2, /data-test="agents-manage-note"/);
     // The note sits outside the empty-state v-if / v-else chain, so the list still shows for a viewer.
     assert.match(v2, /v-if="agents\.length === 0"[^]*?<\/p>\s*<ul v-else/);
+});
+
+test('V2 agents list: a build agent says what Disable does, and values read left-aligned', () => {
+    const v2 = read('resources/js/pages/Agents/V2/Index.vue');
+
+    assert.match(v2, /Disable only shows it as Off in the office/);
+    assert.match(v2, /confirming\?\.kind === 'build'/);
+    assert.match(v2, /This agent runs no tasks in KPOne/);
+    assert.doesNotMatch(v2, /text-right/);
+    // Status chips keep their own width in the table.
+    assert.match(v2, /flex flex-col items-start/);
 });

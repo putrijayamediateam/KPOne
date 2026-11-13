@@ -207,30 +207,38 @@ const outline =
                                 />
                                 <span>{{
                                     agent.kind === 'build'
-                                        ? 'Build agent, shown in the office only'
+                                        ? 'Build agent. It runs no tasks, so Disable only shows it as Off in the office.'
                                         : 'Runtime agent'
                                 }}</span>
                             </p>
                             <dl
-                                class="grid max-w-lg grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-0.5 text-sm"
+                                class="grid max-w-xl grid-cols-1 gap-y-0.5 text-sm sm:grid-cols-[7.5rem_minmax(0,1fr)] sm:gap-x-4"
                             >
-                                <dt class="text-muted-foreground">
+                                <dt
+                                    class="text-[13px] text-muted-foreground max-sm:mt-1.5 max-sm:first:mt-0 sm:text-sm"
+                                >
                                     Data sources
                                 </dt>
-                                <dd class="min-w-0 text-right break-words">
+                                <dd class="min-w-0 break-words">
                                     {{ sources(agent) }}
                                 </dd>
                                 <template v-if="agent.currentTask">
-                                    <dt class="text-muted-foreground">Now</dt>
-                                    <dd class="min-w-0 text-right break-words">
+                                    <dt
+                                        class="text-[13px] text-muted-foreground max-sm:mt-1.5 max-sm:first:mt-0 sm:text-sm"
+                                    >
+                                        Now
+                                    </dt>
+                                    <dd class="min-w-0 break-words">
                                         {{ agent.currentTask }}
                                     </dd>
                                 </template>
                                 <template v-if="agent.lastStep">
-                                    <dt class="text-muted-foreground">
+                                    <dt
+                                        class="text-[13px] text-muted-foreground max-sm:mt-1.5 max-sm:first:mt-0 sm:text-sm"
+                                    >
                                         Last step
                                     </dt>
-                                    <dd class="min-w-0 text-right break-words">
+                                    <dd class="min-w-0 break-words">
                                         {{ agent.lastStep }}
                                         <span
                                             class="block text-muted-foreground"
@@ -274,78 +282,129 @@ const outline =
                             time.
                         </p>
                     </div>
-                    <V2Table
-                        label="Recent agent activity"
-                        :columns="6"
-                        cards="xl"
-                        min-width="860px"
-                        :empty="activity.length === 0"
-                        empty-message="No agent has run yet."
+                    <p
+                        v-if="activity.length === 0"
+                        class="rounded-[14px] border border-dashed border-border p-5 text-[15px] leading-[22px] text-muted-foreground xl:hidden"
                     >
-                        <template #head>
-                            <tr>
-                                <th scope="col">Agent</th>
-                                <th scope="col">Task</th>
-                                <th scope="col">Branch</th>
-                                <th scope="col">Status</th>
-                                <th scope="col" class="whitespace-nowrap">
-                                    Started
-                                </th>
-                                <th scope="col">Last step</th>
-                            </tr>
-                        </template>
-                        <template #body>
-                            <tr
-                                v-for="run in activity"
-                                :key="run.id"
-                                :data-test="`run-${run.id}`"
+                        No agent has run yet.
+                    </p>
+                    <ul v-else class="flex flex-col gap-3 xl:hidden">
+                        <li
+                            v-for="run in activity"
+                            :key="run.id"
+                            class="flex min-w-0 flex-col gap-1 rounded-[14px] border border-border bg-card p-3"
+                            :data-test="`run-card-${run.id}`"
+                        >
+                            <div
+                                class="flex flex-wrap items-center justify-between gap-x-3 gap-y-1"
                             >
-                                <td data-label="Agent" data-primary>
-                                    {{ run.agent ?? '—' }}
-                                </td>
-                                <td data-label="Task">
-                                    <div class="max-xl:text-right">
+                                <span class="text-base font-semibold">{{
+                                    run.agent ?? '—'
+                                }}</span>
+                                <V2Chip
+                                    :tone="runStatus(run.status).tone"
+                                    :label="runStatus(run.status).label"
+                                />
+                            </div>
+                            <p class="text-sm leading-5 break-words">
+                                {{ codeSentence(run.taskType) }}
+                                <span class="text-muted-foreground"
+                                    >· {{ run.branch ?? 'All branches' }} ·
+                                    {{
+                                        run.scheduled
+                                            ? 'Scheduled'
+                                            : 'Asked by staff'
+                                    }}</span
+                                >
+                            </p>
+                            <p
+                                v-if="run.errorCode"
+                                class="text-[13px] leading-[18px] text-muted-foreground"
+                            >
+                                {{ codeSentence(run.errorCode) }}
+                            </p>
+                            <p
+                                v-if="run.lastStep"
+                                class="text-sm leading-5 break-words"
+                            >
+                                <span class="text-muted-foreground"
+                                    >Last step:
+                                </span>
+                                {{ run.lastStep }}
+                            </p>
+                            <p
+                                class="text-[13px] leading-[18px] text-muted-foreground"
+                            >
+                                {{ formatDateTime(run.startedAt) }}
+                            </p>
+                        </li>
+                    </ul>
+                    <div class="max-xl:hidden">
+                        <V2Table
+                            label="Recent agent activity"
+                            :columns="5"
+                            min-width="860px"
+                            :empty="activity.length === 0"
+                            empty-message="No agent has run yet."
+                        >
+                            <template #head>
+                                <tr>
+                                    <th scope="col">Agent</th>
+                                    <th scope="col">Task</th>
+                                    <th scope="col">Status</th>
+                                    <th scope="col" class="whitespace-nowrap">
+                                        Started
+                                    </th>
+                                    <th scope="col">Last step</th>
+                                </tr>
+                            </template>
+                            <template #body>
+                                <tr
+                                    v-for="run in activity"
+                                    :key="run.id"
+                                    :data-test="`run-${run.id}`"
+                                >
+                                    <td>{{ run.agent ?? '—' }}</td>
+                                    <td>
                                         {{ codeSentence(run.taskType) }}
                                         <span
                                             class="block text-xs text-muted-foreground"
-                                            >{{
+                                            >{{ run.branch ?? 'All branches' }}
+                                            ·
+                                            {{
                                                 run.scheduled
                                                     ? 'Scheduled'
                                                     : 'Asked by staff'
                                             }}</span
                                         >
-                                    </div>
-                                </td>
-                                <td data-label="Branch">
-                                    {{ run.branch ?? 'All branches' }}
-                                </td>
-                                <td data-label="Status">
-                                    <div class="flex flex-col max-xl:items-end">
-                                        <V2Chip
-                                            :tone="runStatus(run.status).tone"
-                                            :label="runStatus(run.status).label"
-                                        />
-                                        <span
-                                            v-if="run.errorCode"
-                                            class="text-xs text-muted-foreground"
-                                            >{{
-                                                codeSentence(run.errorCode)
-                                            }}</span
-                                        >
-                                    </div>
-                                </td>
-                                <td
-                                    data-label="Started"
-                                    class="whitespace-nowrap"
-                                >
-                                    {{ formatDateTime(run.startedAt) }}
-                                </td>
-                                <td data-label="Last step">
-                                    {{ run.lastStep ?? '—' }}
-                                </td>
-                            </tr>
-                        </template>
-                    </V2Table>
+                                    </td>
+                                    <td>
+                                        <div class="flex flex-col items-start">
+                                            <V2Chip
+                                                :tone="
+                                                    runStatus(run.status).tone
+                                                "
+                                                :label="
+                                                    runStatus(run.status).label
+                                                "
+                                            />
+                                            <span
+                                                v-if="run.errorCode"
+                                                class="text-xs text-muted-foreground"
+                                                >{{
+                                                    codeSentence(run.errorCode)
+                                                }}</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td class="whitespace-nowrap">
+                                        {{ formatDateTime(run.startedAt) }}
+                                    </td>
+                                    <td>{{ run.lastStep ?? '—' }}</td>
+                                </tr>
+                            </template>
+                        </V2Table>
+                    </div>
                 </section>
             </template>
         </V2WorkLayout>
@@ -359,9 +418,13 @@ const outline =
                 : `Enable ${confirming?.displayName}?`
         "
         :description="
-            confirming?.isEnabled
-                ? 'A disabled agent starts no new tasks and makes no new suggestions. Suggestions already waiting stay in the approval inbox. Its history is kept.'
-                : 'The agent may start tasks again under its fixed rules.'
+            confirming?.kind === 'build'
+                ? confirming.isEnabled
+                    ? 'This agent runs no tasks in KPOne. Disabling it only shows it as Off in the office. Its history is kept.'
+                    : 'This agent runs no tasks in KPOne. Enabling it shows it as On in the office again.'
+                : confirming?.isEnabled
+                  ? 'A disabled agent starts no new tasks and makes no new suggestions. Suggestions already waiting stay in the approval inbox. Its history is kept.'
+                  : 'The agent may start tasks again under its fixed rules.'
         "
         :confirm-label="confirming?.isEnabled ? 'Disable' : 'Enable'"
         :tone="confirming?.isEnabled ? 'danger' : 'default'"
