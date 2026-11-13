@@ -1,0 +1,2 @@
+V2Dialog size="tall" (specimen, 14 fields, scrolled 400 px): header pinned (top 1 px = the dialog border), X 44x44 inside it and the topmost element at its centre, at 390 light, 390 dark and 1440 light.
+Guards (dirty and open, specimen): beforeunload prevented; the Inertia `before` event for a GET to another path is held (cancelled) and the question "Discard your changes?" shows with focus on Keep editing; a POST (a save) and a GET to the same path are not held. Simulated with synthetic events, not a real navigation.
