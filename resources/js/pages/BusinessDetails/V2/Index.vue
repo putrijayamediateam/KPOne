@@ -2,7 +2,6 @@
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
-import DiscardPrompt from '@/components/catalogue-v2/DiscardPrompt.vue';
 import InputError from '@/components/InputError.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
@@ -11,6 +10,7 @@ import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
+import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
@@ -310,7 +310,9 @@ const branchDirty = computed(
 const tabDirty = computed(() =>
     tab.value === 'company' ? companyDirty.value : branchDirty.value,
 );
-const pendingTab = ref<'company' | 'branches' | null>(null);
+const guard = ref<InstanceType<typeof V2LeaveGuard> | null>(null);
+// Switching tabs throws away unsaved work on the tab you leave: the shared question asks first (a clean tab switches at
+// once). Discard changes resets both forms before the switch, so the next tab starts clean.
 const askTab = (next: string) => {
     const target = next as 'company' | 'branches';
 
@@ -318,19 +320,13 @@ const askTab = (next: string) => {
         return;
     }
 
-    if (tabDirty.value) {
-        pendingTab.value = target;
-
-        return;
-    }
-
-    tab.value = target;
+    guard.value?.ask(() => {
+        tab.value = target;
+    });
 };
-const discardAndSwitch = () => {
+const discardTabChanges = () => {
     adopt();
     adoptFooter();
-    tab.value = pendingTab.value ?? tab.value;
-    pendingTab.value = null;
 };
 // Which branch the Branches tab shows. Only the active branch can be edited; another one is shown as its readiness.
 const shownBranch = ref<number | string>(props.letterhead.branchId);
@@ -1151,11 +1147,10 @@ const filledButton =
             "
         />
 
-        <DiscardPrompt
-            :open="pendingTab !== null"
-            description="You have unsaved changes on this tab. If you close now, what you entered here is lost."
-            @keep="pendingTab = null"
-            @discard="discardAndSwitch"
+        <V2LeaveGuard
+            ref="guard"
+            :dirty="tabDirty"
+            @discard="discardTabChanges"
         />
     </PageFrame>
 </template>
