@@ -64,6 +64,11 @@ final class InventoryPickerService
         if ($kind === 'skus' && $context === 'operations') {
             $query->join('inventory_items as item', fn ($join) => $join->on('item.id', '=', 'choice.inventory_item_id')->on('item.organisation_id', '=', 'choice.organisation_id'))->where('item.is_active', true);
         }
+        // V2 page 2d (Daniel): Stock setup names the item and its stock unit beside each SKU. A left join, so every SKU the
+        // references lists offered before is still offered, whatever its item's status.
+        if ($kind === 'skus' && $context === 'references') {
+            $query->leftJoin('inventory_items as item', fn ($join) => $join->on('item.id', '=', 'choice.inventory_item_id')->on('item.organisation_id', '=', 'choice.organisation_id'));
+        }
         if ($kind === 'batches') {
             $query = DB::query()->fromSub(app(InventoryBatchEligibility::class)->query($actor->organisation_id, $branch), 'choice')
                 ->join('inventory_skus as sku', 'sku.id', '=', 'choice.inventory_sku_id')
@@ -88,7 +93,7 @@ final class InventoryPickerService
         }
         [$columns, $order] = match ($kind) {
             'items' => [['choice.public_id as publicId', 'choice.code', 'choice.generic_name as genericName'], 'choice.generic_name'],
-            'skus' => [$context === 'operations' ? ['choice.public_id as publicId', 'choice.sku_code as code', 'choice.stock_unit as stockUnit', 'item.generic_name as name'] : ['choice.public_id as publicId', 'choice.sku_code as skuCode', 'choice.inventory_item_id as inventoryItemId'], 'choice.sku_code'],
+            'skus' => [$context === 'operations' ? ['choice.public_id as publicId', 'choice.sku_code as code', 'choice.stock_unit as stockUnit', 'item.generic_name as name'] : ['choice.public_id as publicId', 'choice.sku_code as skuCode', 'choice.inventory_item_id as inventoryItemId', 'choice.stock_unit as stockUnit', 'item.generic_name as itemName'], 'choice.sku_code'],
             'locations' => [$context === 'operations' ? ['choice.public_id as publicId', 'choice.name', 'choice.type', 'choice.branch_id as branchId'] : ['choice.public_id as publicId', 'choice.name', 'choice.type'], 'choice.name'],
             'medicines' => [['choice.public_id as publicId', 'choice.code', 'choice.display_name as displayName'], 'choice.display_name'],
             'branches' => [['choice.id', 'choice.name'], 'choice.name'],
@@ -103,8 +108,9 @@ final class InventoryPickerService
                     $q->orWhereRaw("choice.code ILIKE ? ESCAPE '\\'", [$like]);
                 }
                 // Owner, 2026-11-13 ("fix stock search"): an operations SKU search also matches the item's name, so
-                // typing "Paracetamol" finds its SKUs. The item is already joined for this context; same escaping.
-                if ($kind === 'skus' && $context === 'operations') {
+                // typing "Paracetamol" finds its SKUs. The item is already joined for this context; same escaping. Stock setup's
+                // references search (V2 page 2d) matches the item's name the same way.
+                if ($kind === 'skus' && in_array($context, ['operations', 'references'], true)) {
                     $q->orWhereRaw("item.generic_name ILIKE ? ESCAPE '\\'", [$like]);
                 }
             });

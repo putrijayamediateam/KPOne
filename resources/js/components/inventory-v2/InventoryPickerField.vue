@@ -16,7 +16,8 @@ import { formatDate } from '@/lib/presentation';
  * SKU, earliest expiry first as the server sends them, shown at once as choice buttons (the list is short and the order
  * matters); a held batch is left out and counted.
  */
-type Kind = 'suppliers' | 'locations' | 'skus' | 'batches';
+type Kind =
+    'suppliers' | 'locations' | 'skus' | 'batches' | 'items' | 'medicines';
 
 const props = withDefaults(
     defineProps<{
@@ -34,8 +35,14 @@ const props = withDefaults(
         location?: string;
         /** Batches only: the stock unit for that quantity. */
         unit?: string;
+        /**
+         * The server search's scope, as Classic uses it: `operations` (orders, requests, reorder levels) or `references`
+         * (Stock setup, page 2d). The server decides what each returns.
+         */
+        context?: 'operations' | 'references';
     }>(),
     {
+        context: 'operations',
         selectedLabel: '',
         error: '',
         required: false,
@@ -44,7 +51,11 @@ const props = withDefaults(
         unit: '',
     },
 );
-const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
+const emit = defineEmits<{
+    'update:modelValue': [value: string];
+    /** The chosen value's words, for a page that says it in a sentence, and a SKU's stock unit. */
+    picked: [label: string, unit: string];
+}>();
 
 const query = ref('');
 const rows = ref<InventoryPickerRow[]>([]);
@@ -66,10 +77,35 @@ const toOption = (row: InventoryPickerRow): ComboOption => {
     const id = String(row.publicId ?? row.id);
 
     if (props.kind === 'skus') {
+        // `operations` rows carry `name` and `code`; `references` rows carry `itemName` and `skuCode` (page 2d).
+        return row.skuCode
+            ? {
+                  id,
+                  label: String(row.itemName ?? row.skuCode),
+                  detail: [row.itemName ? row.skuCode : null, row.stockUnit]
+                      .filter(Boolean)
+                      .join(' · '),
+              }
+            : {
+                  id,
+                  label: String(row.name ?? row.code),
+                  detail: [row.code, row.stockUnit].filter(Boolean).join(' · '),
+              };
+    }
+
+    if (props.kind === 'items') {
         return {
             id,
-            label: String(row.name ?? row.code),
-            detail: [row.code, row.stockUnit].filter(Boolean).join(' · '),
+            label: String(row.genericName),
+            detail: String(row.code ?? ''),
+        };
+    }
+
+    if (props.kind === 'medicines') {
+        return {
+            id,
+            label: String(row.displayName),
+            detail: String(row.code ?? ''),
         };
     }
 
@@ -79,7 +115,10 @@ const toOption = (row: InventoryPickerRow): ComboOption => {
         return {
             id,
             label: String(row.name),
-            detail: `${type} · ${row.branchId == null ? 'Organisation store' : 'This branch'}`,
+            detail:
+                row.branchId === undefined
+                    ? type
+                    : `${type} · ${row.branchId == null ? 'Organisation store' : 'This branch'}`,
         };
     }
 
@@ -130,7 +169,7 @@ const search = async () => {
         const response = await requestJson<{ data: InventoryPickerRow[] }>(
             inventoryPickerUrl({
                 kind: props.kind,
-                context: 'operations',
+                context: props.context,
                 expectedBranchId: props.expectedBranchId,
                 query: query.value,
                 sku: props.kind === 'batches' ? props.sku : undefined,
@@ -191,6 +230,10 @@ const pick = (option: ComboOption) => {
         : option.label;
     query.value = '';
     emit('update:modelValue', option.id);
+    const row = rows.value.find(
+        (candidate) => String(candidate.publicId ?? candidate.id) === option.id,
+    );
+    emit('picked', option.label, String(row?.stockUnit ?? ''));
 };
 
 const clear = () => {

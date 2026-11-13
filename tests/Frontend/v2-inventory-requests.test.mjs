@@ -262,9 +262,15 @@ test("2b round 2: Daniel's changes (units, live sum, item names, batch quantitie
         block(receive, 'confirm'),
         /if\(!valid\.value\)\{tried\.value=true;/,
     );
+    // The reason line by the switched-off button says it once; the summary box speaks only when every line adds up.
+    assert.ok(
+        !receive.includes(
+            'Confirm receipt sends nothing until every line adds up',
+        ),
+    );
     assert.match(
         receive,
-        /!valid\s*\?\s*'Confirm receipt sends nothing until every line adds up/,
+        /v-if="valid"\s+class="rounded-\[14px\] border bg-muted\/40/,
     );
     assert.match(
         receive,
@@ -284,4 +290,21 @@ test("2b round 2: Daniel's changes (units, live sum, item names, batch quantitie
     );
     // Item search matches the name or the SKU code (owner, #724), and the box says so.
     assert.match(picker, /Search by name or SKU code\. Up to 25 matches\./);
+});
+
+test('2b: Confirm receipt is switched off while a line does not add up, and says why', () => {
+    const dialog = read('resources/js/components/v2/V2Dialog.vue');
+    assert.match(receive, /:confirm-disabled="!valid"/);
+    assert.match(receive, /:confirm-disabled-reason="disabledReason"/);
+    // The reason names the first line that does not add up, then what fixes it; nothing when every line adds up.
+    const reason = block(receive, 'disabledReason');
+    assert.match(reason, /if\(first<0\)\{returnundefined;\}/);
+    assert.match(reason, /doesnotadduptowhatwasdispatched/);
+    assert.match(reason, /Finishthecountstocontinue\./);
+    // A press while switched off sends nothing, and the sheet has no form, so Enter in a box sends nothing either.
+    assert.match(
+        block(dialog, 'submit'),
+        /if\(props\.confirmDisabled\)\{return;\}/,
+    );
+    assert.ok(!/<form\b/.test(dialog) && !/<form\b/.test(receive));
 });
