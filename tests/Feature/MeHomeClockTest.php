@@ -9,6 +9,7 @@ use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\ClockPhotoFixture;
 
 /**
  * DS-13: the Me home ring and week strip come from My attendance's own rows, so the Late rule (grace minutes included)
@@ -87,7 +88,7 @@ class MeHomeClockTest extends VisitTestCase
     {
         $this->selectBranch($actor);
 
-        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid()]);
+        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, $kind)]);
     }
 
     private function settings(User $actor): TestResponse
