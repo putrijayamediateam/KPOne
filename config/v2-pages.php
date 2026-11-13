@@ -46,5 +46,6 @@ return [
         'Staff/Edit',
         'Billing/Show',
         'Agents/Assistant',
+        'Agents/DailySummary',
     ],
 ];
