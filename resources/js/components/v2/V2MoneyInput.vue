@@ -5,12 +5,23 @@ import V2Field from './V2Field.vue';
 
 /**
  * Version 2 money input: a field with an "RM" prefix, a decimal keypad on a phone, the text right-aligned in tabular
- * figures, and two decimals once the person leaves the box ("12" becomes "12.00"). `modelValue` is the text of the amount
- * ("12.50", or '' when empty); the block does no maths. An empty box stays empty and is never shown as "0.00", and a
- * typed "0" or "0.00" is a valid amount (CAT-1b: free is an answer, blank is not). Something that is not an amount keeps
- * what was typed and shows "Enter an amount such as 12.50." under the field; the page's own `error` (for example from the
- * server) wins over it. The prefix is read as part of the description ("Amount in ringgit (RM)"). The server decides
- * whether an amount is allowed; this block only makes the text tidy. V2 views only.
+ * figures, and two decimals once the person leaves the box ("12" becomes "12.00").
+ *
+ * What the block emits: `modelValue` is the typed text, tidied on blur ("12.50", or '' when empty). The block does no maths
+ * and does not validate the amount: the page (and the server) own validation, ranges and what an amount may be. An empty
+ * box stays empty and is never shown as "0.00"; **empty is a legal value that the page must treat as "no price", not as
+ * zero**, and a typed "0" or "0.00" is a valid amount (CAT-1b: free is an answer, blank is not).
+ *
+ * Paste: "RM 12.50" and "1,250.50" are accepted ("1,250.50" becomes "1250.50"; commas only as thousands groups of three
+ * before one decimal point). Anything else is refused with "Enter an amount such as 12.50." and keeps what was typed:
+ * "1,25", "1.250,50", "1.234", "-5", "abc". Nothing is guessed. The page's own `error` (for example from the server) wins.
+ *
+ * Editing vs reading: after a blur the box shows "1250.00" with no thousands separator, on purpose, because separators in
+ * an editable box make editing harder. A read-only display of a price anywhere else in V2 must use grouping ("RM 1,250.00");
+ * keep the two apart.
+ *
+ * It is a text box, so the mouse wheel and the arrow keys never change the amount. The prefix is read as part of the
+ * description ("Amount in ringgit (RM)"). V2 views only.
  */
 const props = withDefaults(
     defineProps<{

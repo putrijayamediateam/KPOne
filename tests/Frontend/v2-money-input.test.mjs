@@ -39,8 +39,14 @@ test('tidyMoney: two decimals, empty stays empty, a typed zero is an amount', as
 test('tidyMoney: spaces, thousands commas and a leading RM are dropped; no floating-point maths', async () => {
     const { tidyMoney } = await loadLib();
     assert.deepEqual(tidyMoney('1,234.5'), { value: '1234.50', valid: true });
-    assert.deepEqual(tidyMoney(' RM 1 234 '), {
-        value: '1234.00',
+    assert.deepEqual(tidyMoney(' RM 1250 '), { value: '1250.00', valid: true });
+    assert.deepEqual(tidyMoney('RM12.5'), { value: '12.50', valid: true });
+    assert.deepEqual(tidyMoney('RM 1,250.50'), {
+        value: '1250.50',
+        valid: true,
+    });
+    assert.deepEqual(tidyMoney('1,250,000'), {
+        value: '1250000.00',
         valid: true,
     });
     assert.deepEqual(tidyMoney('rm0.1'), { value: '0.10', valid: true });
@@ -57,7 +63,25 @@ test('tidyMoney: spaces, thousands commas and a leading RM are dropped; no float
 test('tidyMoney: what is not an amount comes back unchanged and not valid', async () => {
     const { tidyMoney } = await loadLib();
 
-    for (const bad of ['abc', '-5', '1.234', '1.2.3', '.', '12abc', '+3']) {
+    for (const bad of [
+        'abc',
+        '-5',
+        '1.234',
+        '1.2.3',
+        '.',
+        '12abc',
+        '+3',
+        '1,25',
+        '1.250,50',
+        ',5',
+        '1,2345',
+        '1,234,56',
+        '12,50',
+        '1 250',
+        'RM 1 250',
+        '1,250.505',
+        '1,2,3',
+    ]) {
         assert.deepEqual(tidyMoney(bad), { value: bad, valid: false }, bad);
     }
 });
@@ -87,4 +111,21 @@ test('V2MoneyInput: the prefix is spoken as part of the description, the model i
     assert.match(block, /modelValue: string/);
     assert.doesNotMatch(block, /@\/components\/ui\//);
     assert.doesNotMatch(block, /parseFloat|Number\(/);
+});
+
+test('V2MoneyInput docs: empty is "no price", paste rules, the box shows no grouping, wheel and arrows never change the amount', () => {
+    assert.match(
+        block,
+        /empty is a legal value that the page must treat as "no price", not as/,
+    );
+    assert.match(block, /"1,250\.50" becomes "1250\.50"/);
+    assert.match(block, /"1,25", "1\.250,50", "1\.234", "-5", "abc"/);
+    assert.match(
+        block,
+        /read-only display of a price anywhere else in V2 must use grouping/,
+    );
+    assert.match(
+        block,
+        /mouse wheel and the arrow keys never change the amount/,
+    );
 });
