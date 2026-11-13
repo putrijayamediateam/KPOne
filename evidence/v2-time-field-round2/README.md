@@ -1,0 +1,1 @@
+V2TimeField round 2: bare ambiguous hours refused with 'Add AM or PM, such as 5 PM.' (5, 5:30, 830, 12), clear forms accepted (0830, 17:45, 5 PM), 25:00 gives the invalid message; model empty on refusal.
