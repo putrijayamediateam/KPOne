@@ -11,6 +11,7 @@ import {
     Globe,
     Search,
     Ticket,
+    UserCog,
     Users,
 } from '@lucide/vue';
 import type { Component } from 'vue';
@@ -35,7 +36,7 @@ const icons: Record<string, Component> = {
     queue: Ticket,
     reports: ChartNoAxesCombined,
     panel: ClipboardList,
-    staff: Users,
+    staff: UserCog,
     documents: FileText,
     website: Globe,
     agents: Bot,
