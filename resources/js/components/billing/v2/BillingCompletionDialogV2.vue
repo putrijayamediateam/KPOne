@@ -72,7 +72,7 @@ const submit = () => {
     <V2Dialog
         :open="open"
         :title="`Complete Visitation ${visitNumber.replace(/-/g, '\u2011')}?`"
-        description="This preserves the finalized financial evidence and closes ordinary Visit editing."
+        description="After you complete the visit, it cannot be edited. The invoice and the payments stay as they are."
         :confirm-label="processing ? 'Completing…' : 'Complete Visitation'"
         :busy="processing"
         data-testid="completion-dialog-v2"

@@ -258,8 +258,16 @@ const submit = () => {
                     class="block min-h-11 w-full rounded-[10px] border border-input bg-card px-3 text-right text-[15px] tabular-nums lg:min-h-9"
                     :disabled="busy"
                     :aria-invalid="!!errors.input_value"
+                    :aria-describedby="
+                        errors.input_value
+                            ? 'adjustment-percentage-error-v2'
+                            : undefined
+                    "
                 />
-                <InputError :message="errors.input_value" />
+                <InputError
+                    id="adjustment-percentage-error-v2"
+                    :message="errors.input_value"
+                />
             </label>
             <p class="text-[13px] text-muted-foreground">
                 Percentage uses the original subtotal, rounded once to the
@@ -310,7 +318,9 @@ const submit = () => {
             </div>
         </template>
         <label class="block space-y-1 text-sm font-medium"
-            >Reason<textarea
+            >Reason <span class="text-destructive" aria-hidden="true">*</span
+            ><span class="sr-only">(required)</span
+            ><textarea
                 v-model="form.reason"
                 maxlength="500"
                 rows="3"
@@ -329,14 +339,29 @@ const submit = () => {
                 :message="message"
             />
         </div>
+        <!-- Directly above the footer whenever the action is disabled: what is still missing (Daniel, BV2-2). -->
         <p
-            v-if="!form.reason || (!reverse && !form.value)"
+            v-if="
+                !busy &&
+                (!form.reason ||
+                    (!reverse && !form.value) ||
+                    (above && (!controls?.override || !form.confirmed)))
+            "
             class="text-[13px] text-muted-foreground"
+            data-testid="adjustment-missing"
         >
             {{
-                reverse
-                    ? 'Enter a reason to reverse the adjustment.'
-                    : 'Enter an amount and a reason to apply the adjustment.'
+                above && !controls?.override
+                    ? 'An authorised override holder is required for an adjustment above the branch limit.'
+                    : [
+                          !reverse && !form.value ? 'Enter an amount.' : '',
+                          !form.reason ? 'Enter a reason.' : '',
+                          above && !form.confirmed
+                              ? 'Tick the box to use your override authority.'
+                              : '',
+                      ]
+                          .filter(Boolean)
+                          .join(' ')
             }}
         </p>
     </V2Dialog>

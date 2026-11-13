@@ -37,6 +37,10 @@ for (const [name, classicPath, v2Path] of [
 
     test(`BV2-2 ${name} dialog: the Version 2 script is the Classic logic, unchanged`, () => {
         assert.equal(body(v2), body(classic));
+        // Byte for byte from `const props` to the end of the script (Kumar): no normalisation at all.
+        const logic = (src) =>
+            script(src).slice(script(src).indexOf('const props'));
+        assert.equal(logic(v2), logic(classic));
         // Every string and template literal in the logic, in order (no wording or URL drift).
         const strings = (src) =>
             [
@@ -79,6 +83,14 @@ test('the adjustment dialog keeps the Classic disabled and close rules', () => {
     assert.match(v2, /type="radio"/);
     assert.match(v2, /border-warning\/40 bg-warning\/10/);
     assert.match(v2, /<V2MoneyInput\b/);
+    // Whenever the action is disabled, the line above the footer names what is missing (Daniel).
+    assert.match(v2, /'Tick the box to use your override authority\.'/);
+    assert.match(v2, /'Enter an amount\.'/);
+    assert.match(v2, /'Enter a reason\.'/);
+    assert.match(
+        v2,
+        /An authorised override holder is required for an adjustment above the branch limit\./,
+    );
 });
 
 test('the completion dialog keeps the Classic post, guard and labels', () => {
@@ -89,6 +101,11 @@ test('the completion dialog keeps the Classic post, guard and labels', () => {
     assert.match(v2, /@confirm="submit"/);
     assert.match(v2, /:busy="processing"/);
     assert.match(v2, /processing \? 'Completing…' : 'Complete Visitation'/);
+    // Plain V2 wording for what completing does (behaviour unchanged).
+    assert.match(
+        v2,
+        /After you complete the visit, it cannot be edited\. The invoice and the payments stay as they are\./,
+    );
     // The visit number never breaks at its hyphen in the title (non-breaking hyphen, display only).
     assert.match(v2, /visitNumber\.replace\(\/-\/g, '\\u2011'\)/);
 });
