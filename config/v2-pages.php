@@ -22,5 +22,6 @@ return [
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
+        'QueueDisplay/Settings',
     ],
 ];
