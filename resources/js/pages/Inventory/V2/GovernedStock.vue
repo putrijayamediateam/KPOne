@@ -578,7 +578,8 @@ const errorList = computed(() =>
     Object.values(form.errors as Record<string, string>),
 );
 
-// At phone width the long list of stock stays behind its bar, so three lists don't make one long scroll (Daniel, d).
+// At phone width the counts due and the long list of stock stay behind their bars, so the cases needing a person show
+// near the top and three lists don't make one long scroll (Daniel, d).
 const wide =
     typeof window === 'undefined' ||
     window.matchMedia('(min-width: 640px)').matches;
@@ -618,153 +619,163 @@ const wide =
                 </p>
 
                 <!-- Counts due (STK-23), count mode only. -->
-                <section
+                <V2DisclosureBar
                     v-if="stock.mode === 'count' && stock.cycle"
-                    class="flex min-w-0 flex-col gap-3"
-                    aria-labelledby="v2-counts-due"
-                    data-testid="counts-due"
+                    :title="`Counts due (${stock.cycle.total})`"
+                    :default-open="wide"
+                    keep-mounted
                 >
-                    <h2 id="v2-counts-due" class="v2-section-title">
-                        Counts due ({{ stock.cycle.total }})
-                    </h2>
-                    <p class="text-sm text-muted-foreground">
-                        Class A is counted every
-                        {{ stock.cycle.intervals.A }} days, B every
-                        {{ stock.cycle.intervals.B }} and C every
-                        {{ stock.cycle.intervals.C }}, from how often the item
-                        was dispensed here in the last
-                        {{ stock.cycle.lookBackDays }} days; controlled
-                        medicines are always A. Amber: due or up to 29 days
-                        overdue. Red: 30 days or more.
-                    </p>
-                    <V2Table
-                        label="Counts due"
-                        :columns="5"
-                        cards="xl"
-                        min-width="760px"
-                        :empty="stock.cycle.rows.length === 0"
-                        empty-message="Nothing is due for counting."
+                    <section
+                        class="flex min-w-0 flex-col gap-3"
+                        aria-label="Counts due"
+                        data-testid="counts-due"
                     >
-                        <template #head>
-                            <tr>
-                                <th scope="col">Item</th>
-                                <th scope="col">Location</th>
-                                <th scope="col">Class</th>
-                                <th scope="col">Due</th>
-                                <th scope="col">
-                                    <span class="sr-only">Action</span>
-                                </th>
-                            </tr>
-                        </template>
-                        <template #body>
-                            <tr
-                                v-for="row in visibleCycleRows"
-                                :key="`${row.skuPublicId}:${row.locationPublicId}`"
-                            >
-                                <td data-label="Item" data-primary>
-                                    <span
-                                        class="block text-sm font-medium break-words"
-                                        >{{ row.item }}</span
-                                    >
-                                    <span
-                                        class="block text-xs break-words text-muted-foreground"
-                                        >{{ row.skuCode }}</span
-                                    >
-                                </td>
-                                <td data-label="Location" class="break-words">
-                                    {{ row.location }}
-                                </td>
-                                <td data-label="Class">
-                                    <V2Chip
-                                        :tone="
-                                            row.class === 'A'
-                                                ? 'info'
-                                                : 'neutral'
-                                        "
-                                        :label="`Class ${row.class}`"
-                                    />
-                                </td>
-                                <td data-label="Due">
-                                    <V2Chip
-                                        :tone="
-                                            row.overdueDays !== null &&
-                                            row.overdueDays >= 30
-                                                ? 'danger'
-                                                : 'warning'
-                                        "
-                                        :label="dueLabel(row)"
-                                    />
-                                    <span
-                                        class="mt-1 block text-xs text-muted-foreground"
-                                        >{{
-                                            row.lastCounted
-                                                ? `Last counted ${row.lastCounted}`
-                                                : 'No completed count'
-                                        }}</span
-                                    >
-                                </td>
-                                <td data-label="Action">
-                                    <V2Chip
-                                        v-if="row.open"
-                                        tone="neutral"
-                                        label="Count open"
-                                    />
-                                    <button
-                                        v-else-if="stock.canPropose"
-                                        type="button"
-                                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9"
-                                        :disabled="starting !== null"
-                                        :aria-busy="
-                                            starting ===
-                                            `${row.skuPublicId}:${row.locationPublicId}`
-                                        "
-                                        :aria-label="`Start count for ${row.item} (${row.skuCode}) at ${row.location}`"
-                                        @click="startCount(row)"
-                                    >
-                                        Start count
-                                    </button>
-                                </td>
-                            </tr>
-                        </template>
-                    </V2Table>
-                    <p
-                        v-if="!showAllDue && stock.cycle.total > dueCap"
-                        class="text-sm text-muted-foreground"
-                        data-testid="due-cap"
-                    >
-                        Showing {{ visibleCycleRows.length }} of
-                        {{ stock.cycle.total }} ·
-                        <button
-                            type="button"
-                            class="inline-flex h-11 items-center px-1 font-medium text-primary underline lg:h-9"
-                            @click="showAllDue = true"
+                        <p class="text-sm text-muted-foreground">
+                            Class A is counted every
+                            {{ stock.cycle.intervals.A }} days, B every
+                            {{ stock.cycle.intervals.B }} and C every
+                            {{ stock.cycle.intervals.C }}, from how often the
+                            item was dispensed here in the last
+                            {{ stock.cycle.lookBackDays }} days; controlled
+                            medicines are always A. Amber: due or up to 29 days
+                            overdue. Red: 30 days or more.
+                        </p>
+                        <V2Table
+                            label="Counts due"
+                            :columns="5"
+                            cards="xl"
+                            min-width="760px"
+                            :empty="stock.cycle.rows.length === 0"
+                            empty-message="Nothing is due for counting."
                         >
-                            See all
-                        </button>
-                    </p>
-                    <V2Pager
-                        v-if="showAllDue && stock.cycle.lastPage > 1"
-                        :current-page="stock.cycle.page"
-                        :last-page="stock.cycle.lastPage"
-                        :total="stock.cycle.total"
-                        :per-page="25"
-                        @change="
-                            (next) =>
-                                search(
-                                    stock.cases.page,
-                                    stock.targets.page,
-                                    next,
-                                )
-                        "
-                    />
-                    <p
-                        v-if="cycleError"
-                        role="alert"
-                        class="text-sm text-destructive"
-                    >
-                        {{ cycleError }}
-                    </p>
-                </section>
+                            <template #head>
+                                <tr>
+                                    <th scope="col">Item</th>
+                                    <th scope="col">Location</th>
+                                    <th scope="col">Class</th>
+                                    <th scope="col">Due</th>
+                                    <th scope="col">
+                                        <span class="sr-only">Action</span>
+                                    </th>
+                                </tr>
+                            </template>
+                            <template #body>
+                                <tr
+                                    v-for="row in visibleCycleRows"
+                                    :key="`${row.skuPublicId}:${row.locationPublicId}`"
+                                >
+                                    <td data-label="Item" data-primary>
+                                        <div class="min-w-0">
+                                            <span
+                                                class="block text-sm font-medium break-words"
+                                                >{{ row.item }}</span
+                                            >
+                                            <span
+                                                class="block text-xs break-words text-muted-foreground"
+                                                >{{ row.skuCode }}</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td
+                                        data-label="Location"
+                                        class="break-words"
+                                    >
+                                        {{ row.location }}
+                                    </td>
+                                    <td data-label="Class">
+                                        <V2Chip
+                                            :tone="
+                                                row.class === 'A'
+                                                    ? 'info'
+                                                    : 'neutral'
+                                            "
+                                            :label="`Class ${row.class}`"
+                                        />
+                                    </td>
+                                    <td data-label="Due">
+                                        <div class="min-w-0">
+                                            <V2Chip
+                                                :tone="
+                                                    row.overdueDays !== null &&
+                                                    row.overdueDays >= 30
+                                                        ? 'danger'
+                                                        : 'warning'
+                                                "
+                                                :label="dueLabel(row)"
+                                            />
+                                            <span
+                                                class="mt-1 block text-xs text-muted-foreground"
+                                                >{{
+                                                    row.lastCounted
+                                                        ? `Last counted ${row.lastCounted}`
+                                                        : 'No completed count'
+                                                }}</span
+                                            >
+                                        </div>
+                                    </td>
+                                    <td data-label="Action">
+                                        <V2Chip
+                                            v-if="row.open"
+                                            tone="neutral"
+                                            label="Count open"
+                                        />
+                                        <button
+                                            v-else-if="stock.canPropose"
+                                            type="button"
+                                            class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9"
+                                            :disabled="starting !== null"
+                                            :aria-busy="
+                                                starting ===
+                                                `${row.skuPublicId}:${row.locationPublicId}`
+                                            "
+                                            :aria-label="`Start count for ${row.item} (${row.skuCode}) at ${row.location}`"
+                                            @click="startCount(row)"
+                                        >
+                                            Start count
+                                        </button>
+                                    </td>
+                                </tr>
+                            </template>
+                        </V2Table>
+                        <p
+                            v-if="!showAllDue && stock.cycle.total > dueCap"
+                            class="text-sm text-muted-foreground"
+                            data-testid="due-cap"
+                        >
+                            Showing {{ visibleCycleRows.length }} of
+                            {{ stock.cycle.total }} ·
+                            <button
+                                type="button"
+                                class="inline-flex h-11 items-center px-1 font-medium text-primary underline lg:h-9"
+                                @click="showAllDue = true"
+                            >
+                                See all
+                            </button>
+                        </p>
+                        <V2Pager
+                            v-if="showAllDue && stock.cycle.lastPage > 1"
+                            :current-page="stock.cycle.page"
+                            :last-page="stock.cycle.lastPage"
+                            :total="stock.cycle.total"
+                            :per-page="25"
+                            @change="
+                                (next) =>
+                                    search(
+                                        stock.cases.page,
+                                        stock.targets.page,
+                                        next,
+                                    )
+                            "
+                        />
+                        <p
+                            v-if="cycleError"
+                            role="alert"
+                            class="text-sm text-destructive"
+                        >
+                            {{ cycleError }}
+                        </p>
+                    </section>
+                </V2DisclosureBar>
 
                 <!-- Find: scan or search, and the state chips. -->
                 <section
@@ -793,7 +804,7 @@ const wide =
                         /></label>
                         <button
                             type="submit"
-                            class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                            class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
                         >
                             Search
                         </button>
@@ -836,34 +847,42 @@ const wide =
                         <template #body>
                             <tr v-for="row in stock.cases.rows" :key="row.id">
                                 <td data-label="Case" data-primary>
-                                    <span class="block text-sm font-medium"
-                                        >{{ caseKindLabel(row.kind) }} #{{
-                                            row.id
-                                        }}</span
-                                    >
-                                    <span
-                                        class="block text-xs text-muted-foreground"
-                                        >{{
-                                            formatInventoryReason(row.reason)
-                                        }}</span
-                                    >
+                                    <div class="min-w-0">
+                                        <span class="block text-sm font-medium"
+                                            >{{ caseKindLabel(row.kind) }} #{{
+                                                row.id
+                                            }}</span
+                                        >
+                                        <span
+                                            class="block text-xs text-muted-foreground"
+                                            >{{
+                                                formatInventoryReason(
+                                                    row.reason,
+                                                )
+                                            }}</span
+                                        >
+                                    </div>
                                 </td>
                                 <td data-label="Item and batch">
-                                    <span class="block text-sm break-words">{{
-                                        nameOf(row)
-                                    }}</span>
-                                    <span
-                                        class="block text-xs break-words text-muted-foreground"
-                                        >{{ row.sku_code }} · batch
-                                        {{ row.batch_number }}</span
-                                    >
-                                    <span
-                                        v-if="row.blind"
-                                        class="block text-xs text-muted-foreground"
-                                        data-testid="blind-count"
-                                        >Blind count: the approver sees the
-                                        figures once the counts are in.</span
-                                    >
+                                    <div class="min-w-0">
+                                        <span
+                                            class="block text-sm break-words"
+                                            >{{ nameOf(row) }}</span
+                                        >
+                                        <span
+                                            class="block text-xs break-words text-muted-foreground"
+                                            >{{ row.sku_code }} · batch
+                                            {{ row.batch_number }}</span
+                                        >
+                                        <span
+                                            v-if="row.blind"
+                                            class="block text-xs text-muted-foreground"
+                                            data-testid="blind-count"
+                                            >Blind count: the approver sees the
+                                            figures once the counts are
+                                            in.</span
+                                        >
+                                    </div>
                                 </td>
                                 <td data-label="Location" class="break-words">
                                     {{ row.location }}
@@ -875,10 +894,11 @@ const wide =
                                     />
                                 </td>
                                 <td data-label="Actions">
+                                    <!-- No `busy`: the menu only opens a sheet, which shows the save in progress. V2RowMenu's
+                                         busy state left it unable to open again after a save (seen in the preview). -->
                                     <V2RowMenu
                                         :label="`Actions for ${caseKindLabel(row.kind)} #${row.id}`"
                                         :groups="caseMenu(row)"
-                                        :busy="form.processing"
                                         @select="(id) => onCaseMenu(row, id)"
                                     />
                                 </td>
@@ -936,25 +956,32 @@ const wide =
                         <template #body>
                             <tr v-for="row in stock.targets.rows" :key="row.id">
                                 <td data-label="SKU" data-primary>
-                                    <span
-                                        class="block text-sm font-medium break-words"
-                                        >{{ nameOf(row) }}</span
-                                    >
-                                    <span
-                                        v-if="itemOf(row)"
-                                        class="block text-xs break-words text-muted-foreground"
-                                        >{{ row.sku_code }}</span
-                                    >
+                                    <div class="min-w-0">
+                                        <span
+                                            class="block text-sm font-medium break-words"
+                                            >{{ nameOf(row) }}</span
+                                        >
+                                        <span
+                                            v-if="itemOf(row)"
+                                            class="block text-xs break-words text-muted-foreground"
+                                            >{{ row.sku_code }}</span
+                                        >
+                                    </div>
                                 </td>
                                 <td data-label="Batch and expiry">
-                                    <span class="block text-sm break-words">{{
-                                        row.batch_number
-                                    }}</span>
-                                    <span
-                                        class="block text-xs text-muted-foreground"
-                                        >Expires
-                                        {{ formatDate(row.expiry_date) }}</span
-                                    >
+                                    <div class="min-w-0">
+                                        <span
+                                            class="block text-sm break-words"
+                                            >{{ row.batch_number }}</span
+                                        >
+                                        <span
+                                            class="block text-xs text-muted-foreground"
+                                            >Expires
+                                            {{
+                                                formatDate(row.expiry_date)
+                                            }}</span
+                                        >
+                                    </div>
                                 </td>
                                 <td data-label="Location" class="break-words">
                                     {{ row.location }}
@@ -975,7 +1002,7 @@ const wide =
                                     <button
                                         v-if="stock.canPropose"
                                         type="button"
-                                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
                                         :aria-label="`${stock.mode === 'count' ? 'Start a count of' : 'Write off'} ${nameOf(row)}, batch ${row.batch_number}, at ${row.location}`"
                                         @click="openTarget(row)"
                                     >
@@ -1009,7 +1036,11 @@ const wide =
             :busy="form.processing"
             :dirty="hasInput && form.isDirty"
             :confirm-disabled="overOnHand !== null"
-            :confirm-disabled-reason="overOnHand ?? undefined"
+            :confirm-disabled-reason="
+                overOnHand
+                    ? 'Enter no more than is on hand to continue.'
+                    : undefined
+            "
             @update:open="closeSheet"
             @confirm="submit"
         >

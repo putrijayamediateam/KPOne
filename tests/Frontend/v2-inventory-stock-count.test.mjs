@@ -117,7 +117,12 @@ test("page 3: Daniel's plan and changes a to f", () => {
         template.indexOf('Cases and next action') <
             template.indexOf('Find stock to count'),
     );
-    assert.match(template, /:default-open="wide"/);
+    // Counts due and the stock list both sit behind bars that are closed on a phone.
+    assert.equal((template.match(/:default-open="wide"/g) ?? []).length, 2);
+    assert.match(
+        template,
+        /:title="`Counts due \(\$\{stock\.cycle\.total\}\)`"/,
+    );
     assert.match(page, /window\.matchMedia\('\(min-width: 640px\)'\)/);
     assert.match(
         template,
