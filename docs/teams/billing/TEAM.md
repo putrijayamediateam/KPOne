@@ -122,6 +122,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-23 | "Bills to collect": the pay-later collection list now shows every completed visit that still owes money, not only approved pay later: rows show Approved, Pay later, Due now and Still owed (the Billing page's Outstanding bill amount); money due now counts from the visit day and is past due from the next day ("N days since visit"); the page and its menu card are renamed (same link). Read-only. Design note: `BIL-23-DESIGN.md` | PR #538 |
 | BIL-24 | Bills to collect at scale: the list now works out only bills that can still owe money (approved pay later still to collect, or a completed visit whose invoice has a payment reversal, since a visit completes only with nothing due now and afterwards only a receipt correction can make it owe). Same output, measured on 20,000-bill fixtures. No migration. Design note: `BIL-24-DESIGN.md` | PR #556 |
 | BIL-28 | The Outstanding bill box's link on the Billing page reads "View all bills to collect at this branch", naming the page it opens (BIL-23). Wording only. | PR #553 |
+| BV2-0 | Version 2 groundwork for Patient Billing: a Version 2-only copy of the Classic workspace logic (`composables/billing/useBillingWorkspaceV2.ts`) for the coming V2 page, pinned to the Classic script by a parity test (same payloads, keys, lock versions and idempotency key). Classic is untouched; no visual change; no existing test edited | PR pending |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -261,9 +262,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 40. BIL-24 (2026-11-11, the owner in the Billing session, "start with 1"): make Bills to collect cheaper on a long history
     without changing what it shows; no index migration in this slice (recorded as the next step if needed).
 43. BIL-28 (2026-11-12, the owner in the Billing session): the link reads "View all bills to collect at this branch"; the owner approved changing the one existing assertion that pinned the old words (bil-3 test).
+44. BV2-0 (2026-11-13, owner "start all v2" via the coordinator; plan approved with conditions): the first try moved the workspace logic into a shared composable, but 7 existing tests mount or read the Classic file, so it was stopped. The coordinator chose option A: Classic stays byte-identical, the Version 2 page gets its own copy of the logic and a parity test pins the copy to Classic; Kumar reviews line by line; BV2-0 merges alone.
 
 ## 7. Open items and known limits
 
+- **Debt (BV2-0):** about 260 lines of the Patient Billing workspace logic exist twice, in Classic `components/billing/BillingWorkspace.vue` and the Version 2 copy `composables/billing/useBillingWorkspaceV2.ts`. The parity test fails if they differ, so a change to one must be made to both. A shared-composable refactor needs its own approval (it would edit 7 existing tests).
 - **Walked and tested in BIL-1 (2026-11-05):** invoice void and reissue, adjustment reversal, later settlement
   of pay-later debt on a return visit, rejected and partially accepted Panel decisions
   (`tests/Feature/Billing/MoneyFlowWalkTest.php`). All worked as the rules say.
