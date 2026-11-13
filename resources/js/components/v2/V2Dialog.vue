@@ -26,6 +26,8 @@ const props = withDefaults(
         tone?: 'default' | 'danger';
         reasonLabel?: string;
         busy?: boolean;
+        /** Only the confirm button: no Cancel (for a dialog that now only says something, with a single Close). */
+        singleAction?: boolean;
     }>(),
     {
         description: undefined,
@@ -33,6 +35,7 @@ const props = withDefaults(
         tone: 'default',
         reasonLabel: undefined,
         busy: false,
+        singleAction: false,
     },
 );
 
@@ -129,6 +132,7 @@ const submit = () => {
                     class="flex flex-col-reverse gap-2 border-t bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
                 >
                     <DialogClose
+                        v-if="!singleAction"
                         class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:h-9"
                     >
                         {{ cancelLabel }}
