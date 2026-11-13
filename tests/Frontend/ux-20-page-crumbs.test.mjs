@@ -116,9 +116,9 @@ test('UX-20 Daniel: crumb links get a 3:1 focus ring locally; long trails shorte
         crumbs,
         /:class="\{ 'max-sm:flex-nowrap': collapses && parent \}"/,
     );
-    // The shared Button is untouched (DD-74 waits for the owner).
-    assert.doesNotMatch(
+    // DD-74 (owner, 2026-11-13): the shared Button now has the same full-strength ring.
+    assert.match(
         read('resources/js/components/ui/button/index.ts'),
-        /focus-visible:ring-ring(?!\/40)/,
+        /focus-visible:ring-ring focus-visible:ring-2/,
     );
 });
