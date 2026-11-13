@@ -464,7 +464,11 @@ const tagLayout = computed(() => {
         :class="{ 'control-room max-md:min-w-[560px]': isV2 }"
         :viewBox="`0 ${-tagLayout.topPad} ${VIEW_W} ${VIEW_H + tagLayout.topPad}`"
         role="group"
-        aria-label="Agent office"
+        :aria-label="
+            isV2
+                ? 'Agent office scene. The agent list has the same information.'
+                : 'Agent office'
+        "
         data-test="office-scene"
     >
         <defs>

@@ -60,3 +60,15 @@ test('Version 2 panel says steps in plain words and wraps long card text', () =>
         /\{\{ step\.summary \}\}/,
     );
 });
+
+test('Version 2 scene group is named, Classic keeps its name', () => {
+    const scene = readFileSync(
+        'resources/js/components/agents/office/OfficeScene.vue',
+        'utf8',
+    );
+    assert.match(
+        scene,
+        /Agent office scene\. The agent list has the same information\./,
+    );
+    assert.match(scene, /: 'Agent office'/);
+});
