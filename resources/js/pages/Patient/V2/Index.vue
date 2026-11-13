@@ -64,7 +64,10 @@ const linkButton =
                     <Link
                         v-if="canSeeMergeRequests"
                         href="/patient-merges"
-                        :class="[linkButton, 'max-sm:order-2']"
+                        :class="[
+                            linkButton,
+                            'max-sm:order-2 max-sm:border-transparent max-sm:bg-transparent max-sm:text-primary',
+                        ]"
                         >Merge requests</Link
                     >
                     <Link

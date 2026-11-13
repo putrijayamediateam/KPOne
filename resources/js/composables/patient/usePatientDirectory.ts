@@ -27,9 +27,17 @@ export const PATIENT_SEARCH_TYPES = [
 export const patientHref = (number: string) =>
     '/patients/' + encodeURIComponent(number);
 
+// Sentence case for staff; the same word the search type select on this page uses for the Malaysian IC.
+const IDENTIFIER_NAMES: Record<string, string> = {
+    nric: 'NRIC',
+    passport: 'Passport',
+};
+
 export const identifierLabel = (result: PatientResult) =>
     result.identifier
-        ? result.identifier.type.toUpperCase() +
+        ? (IDENTIFIER_NAMES[result.identifier.type] ??
+              result.identifier.type.charAt(0).toUpperCase() +
+                  result.identifier.type.slice(1)) +
           ' · ' +
           result.identifier.maskedValue
         : 'None recorded';
