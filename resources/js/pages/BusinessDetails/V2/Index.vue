@@ -2,6 +2,7 @@
 import { Head, router, useForm } from '@inertiajs/vue3';
 import { computed, nextTick, onUnmounted, ref, watch } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
+import DiscardPrompt from '@/components/catalogue-v2/DiscardPrompt.vue';
 import InputError from '@/components/InputError.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
@@ -1150,15 +1151,11 @@ const filledButton =
             "
         />
 
-        <V2Dialog
+        <DiscardPrompt
             :open="pendingTab !== null"
-            title="Discard your changes?"
             description="You have unsaved changes on this tab. If you close now, what you entered here is lost."
-            confirm-label="Discard changes"
-            cancel-label="Keep editing"
-            tone="danger"
-            @update:open="(o: boolean) => !o && (pendingTab = null)"
-            @confirm="discardAndSwitch"
+            @keep="pendingTab = null"
+            @discard="discardAndSwitch"
         />
     </PageFrame>
 </template>
