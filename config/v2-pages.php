@@ -20,5 +20,7 @@ return [
         'Registration/Edit',
         'Medicine/Index',
         'ClinicManagement/Index',
+        'Queue/Index',
+        'Patient/Index',
     ],
 ];
