@@ -1,0 +1,1 @@
+Classic Staff fixes, real Classic UI (V2 off), task-owned DB. Before: Deactivate then Activate sent is_active false then false (account stayed inactive). After: false then true. Create now shows 'An active staff member cannot use an expiring assignment as primary.' for the server's assignment key.
