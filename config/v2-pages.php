@@ -28,5 +28,6 @@ return [
         'QueueDisplay/Settings',
         'Inventory/Index',
         'InventoryServicesSettings/Suppliers',
+        'Staff/Index',
     ],
 ];
