@@ -33,6 +33,7 @@ return [
         'Patient/Edit',
         'Patient/MergeRequests',
         'Patient/Create',
+        'RegistrationReview/Show',
         'BusinessDetails/Index',
         'QueueDisplay/Settings',
         'Inventory/Index',
