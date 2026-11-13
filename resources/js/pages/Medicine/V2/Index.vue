@@ -13,7 +13,11 @@ import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2Toolbar from '@/components/v2/V2Toolbar.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
-import { useMedicineForm } from '@/composables/medicine/useMedicineForm';
+import {
+    clearStash,
+    takeStash,
+    useMedicineForm,
+} from '@/composables/medicine/useMedicineForm';
 import type {
     MedicineRow,
     SetupOptions,
@@ -169,6 +173,42 @@ const syncFromUrl = () => {
     }
 };
 watch(() => page.url, syncFromUrl, { immediate: true });
+// The browser's Back button swaps the page and would drop a half-filled form. The form's data is stashed on the way
+// out; the new page instance finds it and asks first. "Keep editing" brings the form back where it was.
+const restored = ref<ReturnType<typeof takeStash>>(null);
+const confirmDiscard = () => {
+    discardOpen.value = false;
+
+    if (restored.value) {
+        restored.value = null;
+        clearStash();
+
+        return;
+    }
+
+    closeToList();
+};
+const keepEditing = () => {
+    discardOpen.value = false;
+    pendingUrl.value = null;
+
+    if (restored.value) {
+        const kept = restored.value;
+
+        restored.value = null;
+        c.restore(kept);
+        router.get(
+            '/medicines',
+            {
+                ...filterQuery(),
+                ...(kept.editing
+                    ? { edit: kept.editing.publicId }
+                    : { add: '1' }),
+            },
+            { preserveState: true, preserveScroll: true, replace: true },
+        );
+    }
+};
 const warnBeforeUnload = (event: BeforeUnloadEvent) => {
     if (c.isDirty.value) {
         event.preventDefault();
@@ -176,6 +216,13 @@ const warnBeforeUnload = (event: BeforeUnloadEvent) => {
 };
 let stopBefore: (() => void) | null = null;
 onMounted(() => {
+    const kept = takeStash();
+
+    if (kept) {
+        restored.value = kept;
+        discardOpen.value = true;
+    }
+
     window.addEventListener('beforeunload', warnBeforeUnload);
     stopBefore = router.on('before', (event) => {
         const target = new URL(
@@ -192,6 +239,7 @@ onMounted(() => {
     });
 });
 onBeforeUnmount(() => {
+    c.stashUnsaved();
     window.removeEventListener('beforeunload', warnBeforeUnload);
     stopBefore?.();
 });
@@ -647,11 +695,8 @@ const groupsLine = (items: string[]) =>
             confirm-label="Discard changes"
             cancel-label="Keep editing"
             tone="danger"
-            @update:open="$event || (pendingUrl = null)"
-            @confirm="
-                discardOpen = false;
-                closeToList();
-            "
+            @update:open="$event || keepEditing()"
+            @confirm="confirmDiscard()"
         />
     </PageFrame>
 </template>

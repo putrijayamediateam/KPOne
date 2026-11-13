@@ -163,6 +163,9 @@ test("Daniel's changes: URL state, neutral Controlled chip, always-visible save 
     assert.match(v2, /edit: row\.publicId/);
     assert.match(v2, /watch\(\(\) => page\.url, syncFromUrl/);
     assert.match(v2, /window\.history\.back\(\)/);
+    assert.match(v2, /takeStash\(\)/);
+    assert.match(v2, /c\.stashUnsaved\(\)/);
+    assert.match(formLogic, /export const takeStash/);
     assert.match(v2, /beforeunload/);
     assert.match(v2, /router\.on\('before'/);
     assert.ok(v2.includes('Discard your changes?'));
