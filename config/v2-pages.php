@@ -31,6 +31,8 @@ return [
         'Queue/Index',
         'Patient/Index',
         'Patient/Edit',
+        'Patient/Create',
+        'RegistrationReview/Show',
         'BusinessDetails/Index',
         'QueueDisplay/Settings',
         'Inventory/Index',
