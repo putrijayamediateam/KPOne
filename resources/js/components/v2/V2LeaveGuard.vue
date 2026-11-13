@@ -14,11 +14,22 @@ import V2Dialog from './V2Dialog.vue';
  * reload, a polling refresh) and everything when `dirty` is false are never held; the listeners go when the page unmounts.
  * Browser Back stays a known limit (no history trap); `beforeunload` covers reload and closing the tab. Put it once on the page: `<V2LeaveGuard :dirty="form.isDirty" />`.
  * The page decides `dirty`; after a save the redirect to the next page is part of the save and is not asked about.
+ *
+ * In-page actions: a same-path action (a tab, "Add another", opening a different record in the same page) is never caught by
+ * the router rule, so the page says so: `<V2LeaveGuard ref="guard" :dirty="form.isDirty" @discard="form.reset()" />` and a
+ * trigger does `guard.ask(() => (tab = 'x'))`. (1) While the question is open, a second click on any trigger does nothing,
+ * and the focus stays on Keep editing; (2) Esc is Keep editing; (3) a clean form runs at once and asks nothing, and a
+ * successful save followed by a tab change asks nothing (the page resets what `dirty` reads from after a save, for example
+ * `form.defaults()`); (4) `ask` is for in-page actions that throw away unsaved work (tabs, "Add another", opening a
+ * different record in the same page), never for Save; (5) after Discard changes the page resets before `run`, so the next
+ * tab starts clean (`discard` is emitted first, then `run`).
  */
 const props = defineProps<{ dirty: boolean }>();
+const emit = defineEmits<{ discard: [] }>();
 
 const open = ref(false);
 let pending: string | null = null;
+let pendingRun: (() => void) | null = null;
 
 const { leave } = useLeaveGuard(
     () => props.dirty,
@@ -28,19 +39,45 @@ const { leave } = useLeaveGuard(
     },
 );
 
+// An in-page action that throws away unsaved work: runs at once when nothing has changed, else asks first.
+const ask = (run: () => void) => {
+    if (!props.dirty) {
+        run();
+
+        return;
+    }
+
+    // The question is already open: a second click does nothing.
+    if (open.value) {
+        return;
+    }
+
+    pendingRun = run;
+    open.value = true;
+};
+
+defineExpose({ ask });
+
 const keepEditing = () => {
     pending = null;
+    pendingRun = null;
     open.value = false;
 };
 
 const discard = () => {
     const target = pending;
+    const run = pendingRun;
 
     pending = null;
+    pendingRun = null;
     open.value = false;
+    // The page resets first, so whatever comes next starts clean.
+    emit('discard');
 
     if (target) {
         leave(target);
+    } else if (run) {
+        run();
     }
 };
 </script>
