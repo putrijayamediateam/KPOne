@@ -11,8 +11,11 @@ import V2Toolbar from '@/components/v2/V2Toolbar.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import {
     PATIENT_SEARCH_TYPES,
+    hasNeither,
     identifierLabel,
+    identifierSpoken,
     patientHref,
+    phoneSpoken,
     usePatientDirectory,
 } from '@/composables/patient/usePatientDirectory';
 import type { PatientResult } from '@/composables/patient/usePatientDirectory';
@@ -174,21 +177,52 @@ const linkButton =
                                 <td data-label="DOB / sex" class="text-sm">
                                     {{ dobSex(patient) }}
                                 </td>
-                                <td data-label="Identifier" class="text-sm">
-                                    {{ identifierLabel(patient) }}
+                                <td
+                                    data-label="Identifier"
+                                    class="text-sm"
+                                    :class="
+                                        hasNeither(patient)
+                                            ? 'max-xl:!hidden'
+                                            : ''
+                                    "
+                                >
+                                    <span aria-hidden="true">{{
+                                        identifierLabel(patient)
+                                    }}</span
+                                    ><span class="sr-only">{{
+                                        identifierSpoken(patient)
+                                    }}</span>
                                 </td>
-                                <td data-label="Phone" class="text-sm">
+                                <td
+                                    data-label="Phone"
+                                    class="text-sm"
+                                    :class="
+                                        hasNeither(patient)
+                                            ? 'max-xl:!hidden'
+                                            : ''
+                                    "
+                                >
                                     <span
                                         class="flex items-center gap-1 max-xl:justify-end"
                                     >
-                                        {{
+                                        <span aria-hidden="true">{{
                                             patient.maskedPhone ??
                                             'Not recorded'
-                                        }}<WhatsAppLink
+                                        }}</span
+                                        ><span class="sr-only">{{
+                                            phoneSpoken(patient)
+                                        }}</span
+                                        ><WhatsAppLink
                                             :can-whatsapp="patient.canWhatsapp"
                                             :route-key="patient.patientNumber"
                                         />
                                     </span>
+                                </td>
+                                <td
+                                    v-if="hasNeither(patient)"
+                                    class="text-sm text-muted-foreground xl:hidden"
+                                >
+                                    No identifier or phone recorded
                                 </td>
                             </tr>
                         </template>

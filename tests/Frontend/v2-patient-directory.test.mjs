@@ -124,3 +124,17 @@ test('no console output and no raw identity names in the V2 files', () => {
         ),
     );
 });
+
+test('masks are read as words and the bullets are hidden from screen readers', () => {
+    assert.ok(logic.includes('ending in'));
+    assert.ok(
+        /aria-hidden="true">\{\{\s*identifierLabel\(patient\)/.test(page),
+    );
+    assert.ok(page.includes('identifierSpoken(patient)'));
+    assert.ok(page.includes('phoneSpoken(patient)'));
+});
+
+test('a patient with no identifier and no phone gets one muted line on cards', () => {
+    assert.ok(page.includes('No identifier or phone recorded'));
+    assert.ok(page.includes('hasNeither(patient)'));
+});

@@ -33,6 +33,23 @@ const IDENTIFIER_NAMES: Record<string, string> = {
     passport: 'Passport',
 };
 
+const identifierName = (type: string) =>
+    IDENTIFIER_NAMES[type] ?? type.charAt(0).toUpperCase() + type.slice(1);
+
+// What a screen reader says instead of the bullets: "NRIC, ending in 5555". The visual mask is aria-hidden.
+export const identifierSpoken = (result: PatientResult) =>
+    result.identifier
+        ? `${identifierName(result.identifier.type)}, ending in ${result.identifier.maskedValue.slice(-4)}`
+        : 'No identifier recorded';
+
+export const phoneSpoken = (result: PatientResult) =>
+    result.maskedPhone
+        ? `Phone ending in ${result.maskedPhone.slice(-4)}`
+        : 'No phone recorded';
+
+export const hasNeither = (result: PatientResult) =>
+    !result.identifier && !result.maskedPhone;
+
 export const identifierLabel = (result: PatientResult) =>
     result.identifier
         ? (IDENTIFIER_NAMES[result.identifier.type] ??
