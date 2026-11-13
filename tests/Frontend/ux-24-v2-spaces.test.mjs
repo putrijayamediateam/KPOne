@@ -70,3 +70,11 @@ test('UX-24 Daniel: the clock shortcut is an outline control from 1024 px, never
     // A press opens the photo dialog (the confirm step) or the Attendance page; it never posts a time itself.
     assert.doesNotMatch(clock, /router\.post|clock-in'|crypto\.randomUUID/);
 });
+
+test('UX-24: the shell defines --v2-topbar-h (the h-16 top bar; 0 in focus mode) for sticky page headers', () => {
+    assert.match(
+        shell,
+        /:style="\{ '--v2-topbar-h': focusMode \? '0px' : '4rem' \}"/,
+    );
+    assert.match(shell, /sticky top-0 z-40 flex h-16/);
+});

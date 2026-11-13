@@ -105,7 +105,13 @@ const crumbsInFrame = computed(() => placed.value.length);
 </script>
 
 <template>
-    <div class="flex min-h-screen w-full bg-background" data-test="v2-shell">
+    <!-- --v2-topbar-h: the top bar's height (h-16), so a page's sticky header can sit right under it (Liyana's
+         V2WeekGrid). 0 in focus mode, where the top bar is hidden. -->
+    <div
+        class="flex min-h-screen w-full bg-background"
+        :style="{ '--v2-topbar-h': focusMode ? '0px' : '4rem' }"
+        data-test="v2-shell"
+    >
         <div
             v-if="!focusMode"
             class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-4 lg:flex"
