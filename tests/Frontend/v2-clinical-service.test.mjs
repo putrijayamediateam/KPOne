@@ -101,6 +101,11 @@ test('V2 list: one filled page button, row menu, Back-safe address state, no nat
     assert.match(v2, /beforeunload/);
     assert.match(v2, /← Clinical services/);
     assert.ok(v2.includes('<DiscardPrompt'));
+    assert.ok(
+        v2.includes(
+            "import DiscardPrompt from '@/components/catalogue-v2/DiscardPrompt.vue'",
+        ),
+    );
     assert.ok(v2.includes("'no price'"));
     assert.match(v2, /max-xl:hidden!/);
     assert.match(v2, /data-action="open-filters"/);

@@ -2,6 +2,7 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import ConsultationTariffPanel from '@/components/catalogue/ConsultationTariffPanel.vue';
+import DiscardPrompt from '@/components/catalogue-v2/DiscardPrompt.vue';
 import ServiceForm from '@/components/clinical-service-v2/ServiceForm.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
