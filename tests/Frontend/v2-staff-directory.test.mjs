@@ -61,3 +61,17 @@ test('V2 states are words, and Create staff only shows for those who may', () =>
     assert.match(v2, /No current assignment/);
     assert.match(v2, /No staff accounts match the current filters\./);
 });
+
+test("Daniel's fixes: branch names not codes, plain role chips, neutral Inactive, a named link, a phone filter sheet", () => {
+    assert.match(v2, /assignment\.branch\.name/);
+    assert.doesNotMatch(v2, /assignment\.branch\.code/);
+    assert.match(v2, /tone="neutral"\s+plain/);
+    assert.doesNotMatch(v2, /'danger'/);
+    assert.match(v2, /:aria-label="`Open \$\{member\.name\}`"/);
+    assert.match(v2, /max-xl:after:absolute max-xl:after:inset-0/);
+    assert.match(v2, /hover:text-primary/);
+    assert.match(v2, /:more-filters="!phone"/);
+    assert.match(v2, /Filters\{\{/);
+    assert.match(v2, /v-model:open="sheetOpen"/);
+    assert.match(v2, /@click="resetFilters"/);
+});

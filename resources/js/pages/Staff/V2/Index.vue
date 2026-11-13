@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
@@ -156,6 +156,27 @@ const clearFilters = () => {
     applyFilters();
 };
 
+// Below 640px the filters live in a sheet opened by one "Filters (n)" button.
+const phone = ref(false);
+const sheetOpen = ref(false);
+let query: MediaQueryList | null = null;
+const syncPhone = () => (phone.value = !!query && !query.matches);
+
+onMounted(() => {
+    query = window.matchMedia('(min-width: 640px)');
+    syncPhone();
+    query.addEventListener('change', syncPhone);
+});
+onBeforeUnmount(() => query?.removeEventListener('change', syncPhone));
+
+const filterCount = computed(
+    () =>
+        [form.branch, form.department, form.role, form.status].filter(Boolean)
+            .length,
+);
+const resetFilters = () =>
+    Object.assign(form, { branch: '', department: '', role: '', status: '' });
+
 const btn =
     'inline-flex h-11 items-center justify-center gap-1.5 rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 lg:h-9';
 </script>
@@ -296,7 +317,7 @@ const btn =
                         v-model="form.search"
                         search-label="Search staff"
                         search-placeholder="Name, email, staff number"
-                        more-filters
+                        :more-filters="!phone"
                         @search="applyFilters()"
                         @reset="clearFilters"
                     >
@@ -319,25 +340,26 @@ const btn =
                             </div>
                         </template>
                         <template #primary>
-                            <button type="submit" :class="btn">Apply</button>
+                            <div class="flex gap-2 max-sm:w-full">
+                                <button
+                                    v-if="phone"
+                                    type="button"
+                                    :class="`${btn} flex-1`"
+                                    @click="sheetOpen = true"
+                                >
+                                    Filters{{
+                                        filterCount ? ` (${filterCount})` : ''
+                                    }}
+                                </button>
+                                <button
+                                    type="submit"
+                                    :class="`${btn} max-sm:flex-1`"
+                                >
+                                    Apply
+                                </button>
+                            </div>
                         </template>
                         <template #more>
-                            <div class="w-full sm:hidden sm:w-44">
-                                <OperationalSelect
-                                    id="staff-filter-branch-phone"
-                                    v-model="form.branch"
-                                    label="Branch"
-                                    :options="branchOptions"
-                                />
-                            </div>
-                            <div class="w-full sm:hidden sm:w-44">
-                                <OperationalSelect
-                                    id="staff-filter-role-phone"
-                                    v-model="form.role"
-                                    label="Role"
-                                    :options="roleOptions"
-                                />
-                            </div>
                             <div class="w-full sm:w-44">
                                 <OperationalSelect
                                     id="staff-filter-department"
@@ -357,6 +379,63 @@ const btn =
                         </template>
                     </V2Toolbar>
                 </form>
+
+                <V2Dialog
+                    v-model:open="sheetOpen"
+                    title="Filters"
+                    confirm-label="Apply"
+                    cancel-label="Close"
+                    @confirm="
+                        sheetOpen = false;
+                        applyFilters();
+                    "
+                >
+                    <div class="grid gap-3">
+                        <label class="grid gap-1 text-sm font-medium"
+                            >Branch
+                            <OperationalSelect
+                                id="staff-sheet-branch"
+                                v-model="form.branch"
+                                label="Branch"
+                                :options="branchOptions"
+                            />
+                        </label>
+                        <label class="grid gap-1 text-sm font-medium"
+                            >Role
+                            <OperationalSelect
+                                id="staff-sheet-role"
+                                v-model="form.role"
+                                label="Role"
+                                :options="roleOptions"
+                            />
+                        </label>
+                        <label class="grid gap-1 text-sm font-medium"
+                            >Department
+                            <OperationalSelect
+                                id="staff-sheet-department"
+                                v-model="form.department"
+                                label="Department"
+                                :options="departmentOptions"
+                            />
+                        </label>
+                        <label class="grid gap-1 text-sm font-medium"
+                            >Status
+                            <OperationalSelect
+                                id="staff-sheet-status"
+                                v-model="form.status"
+                                label="Status"
+                                :options="statusOptions"
+                            />
+                        </label>
+                        <button
+                            type="button"
+                            class="inline-flex h-11 items-center justify-center justify-self-start rounded-[10px] px-2 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                            @click="resetFilters"
+                        >
+                            Reset
+                        </button>
+                    </div>
+                </V2Dialog>
 
                 <p class="text-sm text-muted-foreground">
                     {{ staff.total }} staff account{{
@@ -383,11 +462,16 @@ const btn =
                         </tr>
                     </template>
                     <template #body>
-                        <tr v-for="member in staff.data" :key="member.id">
+                        <tr
+                            v-for="member in staff.data"
+                            :key="member.id"
+                            class="max-xl:relative max-xl:has-[a:focus-visible]:ring-2 max-xl:has-[a:focus-visible]:ring-ring max-xl:has-[a:focus-visible]:ring-offset-2 max-xl:has-[a:focus-visible]:ring-offset-background"
+                        >
                             <td data-primary data-label="Staff member">
                                 <Link
                                     :href="`/staff/${member.id}`"
-                                    class="font-medium text-foreground underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                                    :aria-label="`Open ${member.name}`"
+                                    class="font-medium text-foreground underline-offset-2 outline-none hover:text-primary hover:underline focus-visible:text-primary focus-visible:underline max-xl:after:absolute max-xl:after:inset-0 max-xl:after:content-[''] xl:focus-visible:rounded-sm xl:focus-visible:ring-2 xl:focus-visible:ring-ring xl:focus-visible:ring-offset-2 xl:focus-visible:ring-offset-background"
                                     >{{ member.name }}</Link
                                 >
                                 <div
@@ -422,9 +506,15 @@ const btn =
                                         v-for="role in member.roles"
                                         :key="role"
                                         tone="neutral"
+                                        plain
                                         :label="formatRoleLabel(role)"
                                     />
                                 </div>
+                                <span
+                                    v-if="!member.roles.length"
+                                    class="text-sm text-muted-foreground"
+                                    >No role</span
+                                >
                             </td>
                             <td data-label="Current access">
                                 <div
@@ -440,7 +530,7 @@ const btn =
                                                 : 'neutral'
                                         "
                                         :label="
-                                            assignment.branch.code +
+                                            assignment.branch.name +
                                             (assignment.isPrimary
                                                 ? ' · Primary'
                                                 : '')
@@ -456,7 +546,7 @@ const btn =
                             <td data-label="Status">
                                 <V2Chip
                                     :tone="
-                                        member.isActive ? 'success' : 'danger'
+                                        member.isActive ? 'success' : 'neutral'
                                     "
                                     :label="
                                         member.isActive ? 'Active' : 'Inactive'
