@@ -19,5 +19,8 @@ return [
         'Registration/Show',
         'Registration/Edit',
         'HR/Roster',
+        'ClinicManagement/Index',
+        'Queue/Index',
+        'Patient/Index',
     ],
 ];

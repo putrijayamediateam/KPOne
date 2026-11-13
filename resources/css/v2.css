@@ -20,6 +20,7 @@
     }
     .v2-cards-lg tbody {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 0.75rem;
     }
     .v2-cards-lg tr,
@@ -43,6 +44,9 @@
         text-align: right;
         position: static !important;
         background: transparent !important;
+    }
+    .v2-cards-lg td[data-wrap] {
+        overflow-wrap: anywhere;
     }
     .v2-cards-lg td[data-label]::before {
         content: attr(data-label);
@@ -106,6 +110,7 @@
     }
     .v2-cards-xl tbody {
         display: grid;
+        grid-template-columns: minmax(0, 1fr);
         gap: 0.75rem;
     }
     .v2-cards-xl tr,
@@ -129,6 +134,9 @@
         text-align: right;
         position: static !important;
         background: transparent !important;
+    }
+    .v2-cards-xl td[data-wrap] {
+        overflow-wrap: anywhere;
     }
     .v2-cards-xl td[data-label]::before {
         content: attr(data-label);
