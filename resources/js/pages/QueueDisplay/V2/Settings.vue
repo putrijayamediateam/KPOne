@@ -67,7 +67,11 @@ const stopBefore = router.on('before', (event) => {
     if (
         allowLeave ||
         !settingsForm.isDirty ||
-        String(visit.method).toLowerCase() !== 'get'
+        String(visit.method).toLowerCase() !== 'get' ||
+        (visit.only?.length ?? 0) > 0 ||
+        (visit.except?.length ?? 0) > 0 ||
+        visit.url.pathname + visit.url.search ===
+            window.location.pathname + window.location.search
     ) {
         return;
     }
@@ -79,15 +83,25 @@ const stopBefore = router.on('before', (event) => {
 });
 const leaveAnyway = () => {
     leaveOpen.value = false;
+    // Discard the unsaved edits first, so a branch switch cannot carry them into the other branch's form.
+    settingsForm.reset();
     allowLeave = true;
 
     if (pendingUrl) {
-        router.visit(pendingUrl);
+        router.visit(pendingUrl, {
+            preserveScroll: true,
+            onFinish: () => {
+                allowLeave = false;
+            },
+        });
+    } else {
+        allowLeave = false;
     }
 };
 const warnUnload = (event: BeforeUnloadEvent) => {
     if (settingsForm.isDirty) {
         event.preventDefault();
+        event.returnValue = '';
     }
 };
 onMounted(() => window.addEventListener('beforeunload', warnUnload));
@@ -168,10 +182,15 @@ const callModeHelp = computed(
             settingsForm.call_display_mode as 'number' | 'short_name' | 'name'
         ] ?? '',
 );
+let shownBranchId = props.branch.id;
 watch(
-    () => [props.settings, props.youtubeUrl] as const,
-    ([settings, youtubeUrl]) => {
-        if (!settingsForm.isDirty) {
+    () => [props.settings, props.youtubeUrl, props.branch.id] as const,
+    ([settings, youtubeUrl, branchId]) => {
+        const branchChanged = branchId !== shownBranchId;
+        shownBranchId = branchId;
+
+        // Another branch always replaces the whole form; the same branch keeps what the person is typing.
+        if (branchChanged || !settingsForm.isDirty) {
             settingsForm.defaults({
                 ticker_text: settings.tickerText ?? '',
                 youtube_url: youtubeUrl ?? '',
@@ -182,6 +201,7 @@ watch(
             settingsForm.reset();
         } else {
             settingsForm.lock_version = settings.lockVersion;
+            settingsForm.defaults('lock_version', settings.lockVersion);
         }
     },
 );
@@ -432,10 +452,12 @@ const removePoster = () => {
                             v-model="settingsForm.call_display_mode"
                             label="Call patients by"
                             data-testid="call-display-mode"
+                            aria-describedby="call-display-mode-help"
                             :options="callModes"
                             :error="settingsForm.errors.call_display_mode"
                         />
                         <p
+                            id="call-display-mode-help"
                             data-testid="call-display-mode-help"
                             class="text-sm text-muted-foreground"
                         >
