@@ -4,10 +4,16 @@ import { computed } from 'vue';
 /**
  * Version 2 switch row: a label, a help line, and a switch with the state in words ("On" or "Off") beside it, so the
  * state is never colour alone. The switch is a real `role="switch"` button, a 44px target below 1024px (36px from
- * 1024px), toggled by click, Space or Enter, and by clicking the label. The help line is the switch's description. A
- * disabled switch needs a reason: pass `disabledReason` and it replaces the help line, in words ("Only the Director can
- * change this"); a disabled switch with no reason warns in development. The block only emits `update:modelValue`: the
- * page saves the setting and decides who may. V2 views only.
+ * 1024px), toggled by click, Space or Enter, and by clicking the label. The accessible name is the label and the help
+ * line is the description (`aria-describedby`); the visible On/Off word is `aria-hidden`, because `aria-checked` already
+ * says it ("Require date of birth, switch, on", not "On, switch, on"). A disabled switch needs a reason: pass
+ * `disabledReason` and it replaces the help line, in words ("Only the Director can change this"); a disabled switch
+ * with no reason warns in development.
+ *
+ * The block only changes the form value (`update:modelValue`). The page decides whether it saves at once or with its own
+ * Save button. A page that saves at once must give the person a visible result ("Saved"), and a switch with a privacy
+ * or money effect (for example "Show full name on the waiting-room TV") needs the page's own confirm step. None of that
+ * is the block's job. V2 views only.
  */
 const props = withDefaults(
     defineProps<{

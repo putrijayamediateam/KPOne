@@ -55,3 +55,13 @@ test('V2SwitchRow: only emits update:modelValue and imports nothing from Classic
     assert.doesNotMatch(s, /@\/components\/ui\//);
     assert.doesNotMatch(s, /usePage|router\./);
 });
+
+test('V2SwitchRow: the On/Off word is aria-hidden and the docs say the page owns saving, the visible result and the confirm step', () => {
+    assert.match(
+        s,
+        /aria-hidden="true"\s*>\{\{ modelValue \? 'On' : 'Off' \}\}/,
+    );
+    assert.match(s, /The block only changes the form value/);
+    assert.match(s, /visible result \("Saved"\)/);
+    assert.match(s, /privacy\s+\* or money effect/);
+});
