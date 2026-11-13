@@ -107,11 +107,13 @@ const roomName = computed(
 );
 const changingRoom = ref(false);
 const updatedAt = computed(() =>
-    new Date(receivedAt.value).toLocaleTimeString('en-MY', {
-        hour: 'numeric',
-        minute: '2-digit',
-        timeZone: live.value.branch.timezone,
-    }),
+    new Date(receivedAt.value)
+        .toLocaleTimeString('en-MY', {
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZone: live.value.branch.timezone,
+        })
+        .replace(/\b(am|pm)\b/gi, (period) => period.toUpperCase()),
 );
 const filterBadge = computed(
     () =>
