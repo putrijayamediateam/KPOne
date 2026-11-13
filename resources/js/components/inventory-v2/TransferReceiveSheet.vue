@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, reactive, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import { quantityWithUnit } from '@/lib/inventory-v2-words';
 import { trimQuantity } from '@/lib/supplier-terms';
@@ -128,6 +128,28 @@ const dirty = computed(() =>
             receipt.extra !== '0',
     ),
 );
+/**
+ * The server refuses a receipt whose lines do not add up, and the shared sheet's button cannot be switched off, so a
+ * press while a line does not add up says why and moves to the first such line instead of sending (Daniel, page 2b).
+ */
+const tried = ref(false);
+const confirm = () => {
+    if (!valid.value) {
+        tried.value = true;
+        const first = errors.value.findIndex((error) => error !== null);
+        void nextTick(() =>
+            document
+                .getElementById(`v2-receive-line-${rows[first]?.linePublicId}`)
+                ?.querySelector('input')
+                ?.focus(),
+        );
+
+        return;
+    }
+
+    tried.value = false;
+    submit();
+};
 const requestClose = (open: boolean) => {
     if (!open) {
         reset();
@@ -147,7 +169,7 @@ const requestClose = (open: boolean) => {
         cancel-label="Cancel"
         :busy="busy"
         @update:open="requestClose"
-        @confirm="submit"
+        @confirm="confirm"
     >
         <div
             v-if="error"
@@ -165,6 +187,7 @@ const requestClose = (open: boolean) => {
         </p>
         <fieldset
             v-for="(receipt, index) in rows"
+            :id="`v2-receive-line-${receipt.linePublicId}`"
             :key="receipt.linePublicId"
             class="grid min-w-0 gap-3 rounded-[14px] border p-3"
         >
@@ -222,11 +245,15 @@ const requestClose = (open: boolean) => {
         </fieldset>
         <div
             class="rounded-[14px] border bg-muted/40 px-4 py-3 text-sm"
-            role="status"
+            :role="!valid && tried ? 'alert' : 'status'"
+            :class="{
+                'border-warning/60 font-medium text-warning-strong':
+                    !valid && tried,
+            }"
         >
             {{
                 !valid
-                    ? 'Finish the counts above: each line must add up to what was dispatched before you confirm.'
+                    ? 'Confirm receipt sends nothing until every line adds up to what was dispatched. Finish the counts above.'
                     : differences === 0
                       ? `Everything arrived as dispatched. Confirming adds it to ${row.destination}.`
                       : `Confirming adds only the accepted quantities to ${row.destination}. ${differences} difference${differences === 1 ? '' : 's'} will stay open until someone who did not receive this transfer resolves ${differences === 1 ? 'it' : 'them'}.`

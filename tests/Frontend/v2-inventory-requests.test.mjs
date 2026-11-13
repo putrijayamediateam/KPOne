@@ -255,8 +255,16 @@ test("2b round 2: Daniel's changes (units, live sum, item names, batch quantitie
         /accepted \+ \$\{f\(s\)\} short \+ \$\{f\(g\)\} damaged = /,
     );
     assert.match(receive, /not counted yet\./);
-    // The summary never says "everything arrived" while a line does not add up.
-    assert.match(receive, /!valid\s*\?\s*'Finish the counts above/);
+    // The summary never says "everything arrived" while a line does not add up, and a press then sends nothing.
+    assert.match(receive, /@confirm="confirm"/);
+    assert.match(
+        block(receive, 'confirm'),
+        /if\(!valid\.value\)\{tried\.value=true;/,
+    );
+    assert.match(
+        receive,
+        /!valid\s*\?\s*'Confirm receipt sends nothing until every line adds up/,
+    );
     assert.match(
         receive,
         /more than dispatched: count anything extra under Extra\./,
