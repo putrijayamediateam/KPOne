@@ -18,6 +18,7 @@ return [
         'Registration/Create',
         'Registration/Show',
         'Registration/Edit',
+        'ClinicalService/Index',
         'Dispensary/Show',
         'Medicine/Index',
         'PaymentMethods/Index',
