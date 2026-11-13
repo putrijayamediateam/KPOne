@@ -1,0 +1,222 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+
+const read = (p) =>
+    readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
+const classicPanel = read(
+    'resources/js/components/inventory/InventoryOperationsPanel.vue',
+);
+const classicReceipt = read(
+    'resources/js/components/inventory/TransferReceiptForm.vue',
+);
+const classicDifferences = read(
+    'resources/js/components/inventory/TransferDifferences.vue',
+);
+const composable = read(
+    'resources/js/composables/inventory-v2/useRequestsAndTransfers.ts',
+);
+const section = read(
+    'resources/js/components/inventory-v2/RequestsSection.vue',
+);
+const receive = read(
+    'resources/js/components/inventory-v2/TransferReceiveSheet.vue',
+);
+const differences = read(
+    'resources/js/components/inventory-v2/TransferDifferencesSheet.vue',
+);
+const picker = read(
+    'resources/js/components/inventory-v2/InventoryPickerField.vue',
+);
+
+/** The source of `const name = …` up to the next top-level `const`, without whitespace (indentation differs). */
+const block = (source, name) => {
+    const start = source.search(
+        new RegExp(`\\n[ \\t]*(?:const|type) ${name}\\b`),
+    );
+    assert.ok(start >= 0, `${name} not found`);
+    const rest = source.slice(start + 1);
+    const indent = /^[ \t]*/.exec(rest)[0];
+    const next = rest
+        .slice(indent.length)
+        .search(
+            new RegExp(
+                `\\n${indent}(?:const |type |watch|watchEffect|function |//|/\\*\\*|return \\{|\\}\\n|<\\/script>)`,
+            ),
+        );
+
+    return (
+        (next < 0 ? rest : rest.slice(0, next + indent.length))
+            .replace(/\s+/g, '')
+            // Prettier adds a trailing comma when the same code sits one level deeper.
+            .replace(/,(?=[)\]}])/g, '')
+    );
+};
+
+test('2b: the requests composable is a verbatim copy of the Classic panel logic it replaces', () => {
+    for (const name of [
+        'PendingConfirmation',
+        'requestConfirmation',
+        'confirmPendingAction',
+        'blankLine',
+        'stockRequest',
+        'dispatchBatch',
+        'canRequest',
+        'send',
+        'version',
+        'createStockRequest',
+        'addStockRequestLine',
+        'removeStockRequestLine',
+        'decideStockRequest',
+        'dispatchStockRequest',
+        'confirmStockRequestDispatch',
+        'receiveStockRequest',
+        'confirmStockRequestReceipt',
+        'resolveTransferDifference',
+        'confirmTransferDifference',
+    ]) {
+        assert.equal(block(composable, name), block(classicPanel, name), name);
+    }
+
+    assert.match(composable, /errorBag: 'inventoryOperations'/);
+});
+
+test('2b: the V2 saves send the Classic routes and payloads, closing the sheet only on success', () => {
+    // New request: the Classic payload, key for key.
+    const request = block(section, 'saveRequest');
+
+    for (const key of [
+        "'/inventory/stock-requests'",
+        'expected_branch_id:props.operations.expectedBranchId',
+        'source_location_public_id:stockRequest.source',
+        'destination_location_public_id:stockRequest.destination',
+        'sku_public_id:line.sku',
+        'quantity:line.quantity',
+        'closeSheet();',
+    ]) {
+        assert.ok(request.includes(key), key);
+    }
+
+    // Dispatch: the same body as the Classic dispatch, plus closing on success.
+    assert.equal(
+        block(section, 'saveDispatch')
+            .replace('constsaveDispatch=', 'constdispatchStockRequest=')
+            .replace(/,closeSheet\);$/, ');'),
+        block(classicPanel, 'dispatchStockRequest'),
+    );
+    // Receive and resolve: the same bodies as Classic.
+    assert.equal(
+        block(section, 'saveReceipt')
+            .replace('constsaveReceipt=', 'constreceiveStockRequest=')
+            .replace(/,closeSheet\);$/, ');'),
+        block(classicPanel, 'receiveStockRequest'),
+    );
+    assert.equal(
+        block(section, 'saveResolution').replace(
+            'constsaveResolution=',
+            'constresolveTransferDifference=',
+        ),
+        block(classicPanel, 'resolveTransferDifference'),
+    );
+    // Approve and reject go through the Classic decide, after a plain sentence.
+    assert.match(
+        section,
+        /action: \(\) => decideStockRequest\(row, 'approve'\)/,
+    );
+    assert.match(
+        section,
+        /action: \(\) => decideStockRequest\(row, 'reject'\)/,
+    );
+    assert.match(section, /destructive: true,/);
+});
+
+test('2b: the receive and differences sheets keep the Classic scripts', () => {
+    for (const name of [
+        'rows',
+        'reset',
+        'fields',
+        'errors',
+        'valid',
+        'differences',
+        'skuFor',
+        'batchFor',
+        'submit',
+    ]) {
+        assert.equal(block(receive, name), block(classicReceipt, name), name);
+    }
+
+    for (const name of [
+        'Choice',
+        'choices',
+        'blank',
+        'choice',
+        'needsReference',
+        'ready',
+        'kindLabel',
+        'submit',
+    ]) {
+        assert.equal(
+            block(differences, name),
+            block(classicDifferences, name),
+            name,
+        );
+    }
+});
+
+test("2b: row menus, sheets and wording follow Daniel's page 2 rules", () => {
+    // Groups Open, Move, Check, Danger last; the wrong branch says why instead of hiding the action.
+    const menu = block(section, 'requestMenu');
+    assert.ok(
+        menu.indexOf("label:'Open'") < menu.indexOf("label:'Move'") &&
+            menu.indexOf("label:'Move'") < menu.indexOf("label:'Check'") &&
+            menu.indexOf("label:'Check'") < menu.indexOf("label:'Danger'"),
+    );
+    assert.match(section, /Only the sending branch can dispatch this/);
+    assert.match(section, /Only the receiving branch can receive this/);
+    // Long forms are tall sheets that ask before they close.
+    assert.equal((section.match(/size="tall"/g) ?? []).length, 2);
+    assert.equal((section.match(/:dirty="dirty"/g) ?? []).length, 2);
+    assert.match(receive, /size="tall"/);
+    assert.match(receive, /:dirty="dirty"/);
+    // Said before the press.
+    assert.match(section, /Dispatching takes the stock out of/);
+    assert.match(section, /Choose a batch for every line\./);
+    assert.match(receive, /Confirming adds only the accepted quantities to/);
+    // Remove is a real 44 px button; one filled button per sheet (Resolve is outline).
+    assert.match(
+        section,
+        /class="inline-flex h-11[^"]*"\s*@click="removeStockRequestLine\(index\)"/,
+    );
+    assert.ok(!/bg-primary/.test(differences));
+    // Batches come from the server picker for one SKU, earliest expiry first, held ones left out and counted.
+    assert.match(section, /kind="batches"/);
+    assert.match(
+        picker,
+        /sku: props\.kind === 'batches' \? props\.sku : undefined/,
+    );
+    assert.match(picker, /Earliest expiry first\./);
+    assert.match(picker, /row\.held !== true/);
+});
+
+test('2b: Classic stays untouched by V2 and leaves out requests only when the V2 page asks', () => {
+    for (const source of [classicPanel, classicReceipt, classicDifferences]) {
+        assert.ok(!source.includes('inventory-v2'));
+        assert.ok(!source.includes('components/v2/'));
+    }
+
+    assert.match(classicPanel, /hideRequests\?: boolean;/);
+    assert.match(classicPanel, /v-if="!hideRequests"/);
+    // Optional boolean props with no default: false unless the V2 page passes them.
+    assert.ok(!/withDefaults[\s\S]*hideRequests/.test(classicPanel));
+    assert.ok(
+        !read('resources/js/pages/Inventory/Index.vue').includes(
+            'hide-requests',
+        ),
+    );
+    const home = read('resources/js/pages/Inventory/V2/Index.vue');
+    assert.match(
+        home,
+        /<V2DisclosureBar\s+title="Stock requests and transfers"\s+keep-mounted\s*>\s*<RequestsSection/,
+    );
+    assert.match(home, /hide-orders\s*hide-requests/);
+});

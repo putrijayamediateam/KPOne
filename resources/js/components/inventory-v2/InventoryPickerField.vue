@@ -5,13 +5,15 @@ import type { ComboOption } from '@/components/v2/V2SearchCombobox.vue';
 import { inventoryPickerUrl } from '@/lib/inventory-picker';
 import type { InventoryPickerRow } from '@/lib/inventory-picker';
 import { requestJson } from '@/lib/json-client';
+import { formatDate } from '@/lib/presentation';
 
 /**
  * Inventory V2 only: a supplier, location or SKU picker on `V2SearchCombobox`, over the same server search as the
  * Classic `InventorySearchSelect` (`GET /inventory/picker`, context `operations`, at most 25 matches). The chosen
- * value shows as text with a Clear button, never as a filled box (Daniel, page 2 plan).
+ * value shows as text with a Clear button, never as a filled box (Daniel, page 2 plan). Batches (page 2b) are for one
+ * SKU, earliest expiry first as the server sends them, and list without typing; a held batch is left out and counted.
  */
-type Kind = 'suppliers' | 'locations' | 'skus';
+type Kind = 'suppliers' | 'locations' | 'skus' | 'batches';
 
 const props = withDefaults(
     defineProps<{
@@ -23,8 +25,10 @@ const props = withDefaults(
         selectedLabel?: string;
         error?: string;
         required?: boolean;
+        /** Batches only: the SKU whose batches to list. */
+        sku?: string;
     }>(),
-    { selectedLabel: '', error: '', required: false },
+    { selectedLabel: '', error: '', required: false, sku: '' },
 );
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
@@ -65,17 +69,33 @@ const toOption = (row: InventoryPickerRow): ComboOption => {
         };
     }
 
+    if (props.kind === 'batches') {
+        return {
+            id,
+            label: String(row.batchNumber),
+            detail: row.expiryDate
+                ? `Expires ${formatDate(String(row.expiryDate))}`
+                : '',
+        };
+    }
+
     return {
         id,
         label: String(row.name),
         detail: String(row.code ?? ''),
     };
 };
+/** Held batches cannot be dispatched (the server refuses them), so they are not offered; this says how many. */
+const heldCount = computed(
+    () => rows.value.filter((row) => row.held === true).length,
+);
 
 const options = computed(() =>
     rows.value
         .filter(
-            (row) => !(props.kind === 'suppliers' && row.isActive === false),
+            (row) =>
+                !(props.kind === 'suppliers' && row.isActive === false) &&
+                row.held !== true,
         )
         .map(toOption),
 );
@@ -92,6 +112,7 @@ const search = async () => {
                 context: 'operations',
                 expectedBranchId: props.expectedBranchId,
                 query: query.value,
+                sku: props.kind === 'batches' ? props.sku : undefined,
             }),
         );
 
@@ -115,7 +136,7 @@ watch(query, (value) => {
         clearTimeout(timer);
     }
 
-    if (value.trim() === '') {
+    if (value.trim() === '' && props.kind !== 'batches') {
         rows.value = [];
 
         return;
@@ -123,6 +144,21 @@ watch(query, (value) => {
 
     timer = setTimeout(() => void search(), 250);
 });
+
+// Batches list as soon as the SKU is known, without typing (as the Classic batch select does).
+watch(
+    () => props.sku,
+    (sku) => {
+        if (props.kind === 'batches') {
+            rows.value = [];
+
+            if (sku) {
+                void search();
+            }
+        }
+    },
+    { immediate: true },
+);
 
 const pick = (option: ComboOption) => {
     chosen.value = option.detail
@@ -210,7 +246,16 @@ const errorId = `inv-picker-${Math.random().toString(36).slice(2, 8)}-error`;
                 @select="pick"
             />
             <p class="text-xs text-muted-foreground">
-                Up to 25 matches. Type to narrow.
+                {{
+                    kind === 'batches'
+                        ? 'Earliest expiry first. Up to 25 batches. Type to narrow.'
+                        : 'Up to 25 matches. Type to narrow.'
+                }}
+                <template v-if="kind === 'batches' && heldCount > 0">
+                    {{ heldCount }} held
+                    {{ heldCount === 1 ? 'batch is' : 'batches are' }} not
+                    shown.</template
+                >
             </p>
         </template>
         <p
