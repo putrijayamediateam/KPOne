@@ -12,6 +12,7 @@ const registry = read('config/v2-pages.php');
 
 test('BusinessDetails/Index is registered and the V2 page uses the V2 blocks', () => {
     assert.match(registry, /'BusinessDetails\/Index'/);
+
     for (const block of [
         '<V2WorkLayout',
         '<PageFrame',
