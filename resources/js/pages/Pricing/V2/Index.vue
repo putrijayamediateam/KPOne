@@ -418,12 +418,31 @@ const submitCharge = () => {
                     ? `Publish price for ${publish.target.value.displayName}`
                     : 'Publish price'
             "
-            description="The new price starts now and replaces the price in use. Earlier versions stay in Price history."
+            description="The new price starts now. Earlier versions stay in Price history."
             confirm-label="Publish price"
             :busy="publish.form.busy"
             @update:open="publish.open.value = $event"
             @confirm="publish.submit()"
         >
+            <div
+                v-if="publish.target.value"
+                class="rounded-[10px] border bg-muted/40 px-3 py-2 text-sm"
+                data-test="publish-current"
+            >
+                <p>
+                    <span class="text-muted-foreground">Current price</span>
+                    ·
+                    <span class="font-medium">{{
+                        priceText(publish.target.value as ChargeRow)
+                    }}</span>
+                </p>
+                <p
+                    v-if="scheduledText(publish.target.value as ChargeRow)"
+                    class="text-muted-foreground"
+                >
+                    {{ scheduledText(publish.target.value as ChargeRow) }}
+                </p>
+            </div>
             <V2Field
                 v-slot="{ id }"
                 label="Price book"
@@ -460,6 +479,15 @@ const submitCharge = () => {
                     @keydown.enter.prevent="publish.submit()"
                 />
             </V2Field>
+            <button
+                v-if="publish.form.stale"
+                type="button"
+                :class="outlineButton"
+                data-action="reload-prices"
+                @click="publish.reload()"
+            >
+                Reload prices
+            </button>
         </V2Dialog>
 
         <V2Dialog

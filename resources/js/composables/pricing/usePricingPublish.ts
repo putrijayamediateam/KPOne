@@ -10,6 +10,9 @@ import { rmToSen } from '@/lib/money';
 export const EMPTY_AMOUNT_MESSAGE =
     'Enter an amount. Type 0.00 if this is free.';
 
+export const STALE_PRICE_MESSAGE =
+    'Someone published a newer price. Reload to see it.';
+
 export type PublishableCharge = {
     publicId: string;
     displayName: string;
@@ -27,6 +30,7 @@ export function usePricingPublish(activeBranchId: number | null) {
         amount: '',
         busy: false,
         error: '',
+        stale: false,
     });
     const open = computed({
         get: () => target.value !== null,
@@ -45,6 +49,7 @@ export function usePricingPublish(activeBranchId: number | null) {
                 : '';
         form.busy = false;
         form.error = '';
+        form.stale = false;
         target.value = charge;
     };
 
@@ -77,6 +82,7 @@ export function usePricingPublish(activeBranchId: number | null) {
 
         form.busy = true;
         form.error = '';
+        form.stale = false;
         router.post(
             `/pricing/charges/${charge.publicId}/publish`,
             {
@@ -91,9 +97,12 @@ export function usePricingPublish(activeBranchId: number | null) {
                     target.value = null;
                 },
                 onError: (errors) => {
-                    form.error =
-                        Object.values(errors)[0] ??
-                        'The price could not be published.';
+                    // The server refuses with a `price` error when the price changed since this page loaded.
+                    form.stale = 'price' in errors;
+                    form.error = form.stale
+                        ? STALE_PRICE_MESSAGE
+                        : (Object.values(errors)[0] ??
+                          'The price could not be published.');
                 },
                 onFinish: () => {
                     form.busy = false;
@@ -102,5 +111,10 @@ export function usePricingPublish(activeBranchId: number | null) {
         );
     };
 
-    return { target, form, open, begin, submit };
+    const reload = () => {
+        target.value = null;
+        router.reload({ only: ['charges', 'priceBooks'] });
+    };
+
+    return { target, form, open, begin, submit, reload };
 }

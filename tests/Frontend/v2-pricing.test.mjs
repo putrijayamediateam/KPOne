@@ -101,3 +101,22 @@ test('V2 has one filled page button, native controls are not used, and dialogs a
 test('Classic keeps its own page and does not import V2 pieces', () => {
     assert.doesNotMatch(classic, /components\/v2|composables\/pricing/);
 });
+
+test('the publish dialog shows the current and scheduled price and the stale-price message (Daniel)', () => {
+    assert.match(v2, /data-test="publish-current"/);
+    assert.match(v2, /Current price/);
+    assert.match(v2, /scheduledText\(publish\.target\.value as ChargeRow\)/);
+    assert.ok(
+        publish.includes(
+            "'Someone published a newer price. Reload to see it.'",
+        ),
+    );
+    // The server refuses a changed price with a `price` error key.
+    assert.ok(
+        read(
+            'app/Domain/Visit/Billing/Services/PricePublicationService.php',
+        ).includes("withMessages(['price' =>"),
+    );
+    assert.match(publish, /form\.stale = 'price' in errors/);
+    assert.match(v2, /data-action="reload-prices"/);
+});
