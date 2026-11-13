@@ -58,44 +58,55 @@ const shortHr = (title: string) => {
         ? title
         : rest.charAt(0).toUpperCase() + rest.slice(1);
 };
-const grouped = computed<Group[]>(() =>
-    props.groups.flatMap((group) => {
-        const rows = (links: HubLink[], short: boolean): Row[] =>
-            links.map((link) => ({
-                ...link,
-                fullTitle: link.title,
-                title: short ? shortHr(link.title) : link.title,
-            }));
+const slug = (text: string) =>
+    text
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-|-$/g, '');
+// One pass: every /hr link, from whichever group holds it, goes into a single KPOne HR card placed after the first
+// group that held one; a group left empty is dropped. Keys are slugs, so they are safe list ids for aria-controls.
+const grouped = computed<Group[]>(() => {
+    const out: Group[] = [];
+    const hrRows: Row[] = [];
+    let hrAt = -1;
+
+    for (const group of props.groups) {
         const hr = group.links.filter(isHr);
         const rest = group.links.filter((link) => !isHr(link));
 
-        if (hr.length === 0 || rest.length === 0) {
-            return [
-                {
-                    key: group.title,
-                    title: group.title,
-                    icon: group.icon,
-                    links: rows(group.links, false),
-                },
-            ];
-        }
+        hrRows.push(
+            ...hr.map((link) => ({
+                ...link,
+                fullTitle: link.title,
+                title: shortHr(link.title),
+            })),
+        );
 
-        return [
-            {
-                key: group.title,
+        if (rest.length > 0) {
+            out.push({
+                key: slug(group.title),
                 title: group.title,
                 icon: group.icon,
-                links: rows(rest, false),
-            },
-            {
-                key: 'kpone-hr',
-                title: 'KPOne HR',
-                icon: 'hr',
-                links: rows(hr, true),
-            },
-        ];
-    }),
-);
+                links: rest.map((link) => ({ ...link, fullTitle: link.title })),
+            });
+        }
+
+        if (hr.length > 0 && hrAt === -1) {
+            hrAt = out.length;
+        }
+    }
+
+    if (hrRows.length > 0) {
+        out.splice(hrAt, 0, {
+            key: 'kpone-hr',
+            title: 'KPOne HR',
+            icon: 'hr',
+            links: hrRows,
+        });
+    }
+
+    return out;
+});
 
 const query = ref('');
 const words = computed(() =>
@@ -132,6 +143,11 @@ const announcement = computed(() =>
 const opened = ref<Set<string>>(new Set());
 const isOpen = (key: string) => words.value.length > 0 || opened.value.has(key);
 const toggle = (key: string) => {
+    // While a search is open every matching card is open; a tap then changes nothing.
+    if (words.value.length > 0) {
+        return;
+    }
+
     const next = new Set(opened.value);
 
     if (next.has(key)) {

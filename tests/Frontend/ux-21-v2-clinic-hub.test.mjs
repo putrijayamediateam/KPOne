@@ -55,7 +55,10 @@ test('UX-21: cards with a heading per group, 44 px rows with a 3:1 focus ring, g
         page,
         /<h2\s+class="min-w-0 flex-1 text-\[15px\] font-semibold"\s*>/,
     );
-    assert.match(page, /class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3"/);
+    assert.match(
+        page,
+        /class="grid items-start gap-4 md:grid-cols-2 xl:grid-cols-3"/,
+    );
     assert.match(
         page,
         /min-h-11[^"]*focus-visible:ring-2 focus-visible:ring-ring/,
@@ -79,6 +82,11 @@ test('UX-21: the controller relabels only for the V2 page, with the sidebar labe
 test('UX-21 Daniel: KPOne HR gets its own card with short names; the full name stays as the title', () => {
     assert.match(page, /const HR_PREFIX = \/\^KPOne HR\\s\+\/i;/);
     assert.match(page, /key: 'kpone-hr',\s+title: 'KPOne HR',/);
+    // Sofia: one HR card from every group, empty groups dropped, ids safe for aria-controls.
+    assert.match(page, /out\.splice\(hrAt, 0, \{/);
+    assert.match(page, /if \(rest\.length > 0\) \{/);
+    assert.match(page, /key: slug\(group\.title\)/);
+    assert.match(page, /\.replace\(\/\[\^a-z0-9\]\+\/g, '-'\)/);
     assert.match(page, /link\.fullTitle !== link\.title\s+\? link\.fullTitle/);
     // Search still matches the full name.
     assert.match(
