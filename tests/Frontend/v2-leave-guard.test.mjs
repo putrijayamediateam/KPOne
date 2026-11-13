@@ -150,3 +150,28 @@ test('Staff/Edit: leave guard, person crumb, plain wording', () => {
     assert.doesNotMatch(page, /Protected ownership/);
     assert.match(page, /That email is already used by another staff member\./);
 });
+
+test('V2LeaveGuard.ask: in-page actions, the five rules', () => {
+    assert.match(guard, /defineExpose\(\{ ask \}\)/);
+    // (3) a clean form runs at once and asks nothing
+    assert.match(guard, /if \(!props\.dirty\) \{\s*run\(\);\s*return;/);
+    // (1) a second click while the question is open does nothing
+    assert.match(guard, /if \(open\.value\) \{\s*return;/);
+    // (2) Esc is Keep editing (the dialog's update:open path)
+    assert.match(guard, /!value && keepEditing\(\)/);
+    // (5) the page resets (discard is emitted) before run
+    assert.ok(
+        guard.indexOf("emit('discard')") <
+            guard.indexOf('run();', guard.indexOf('const discard')),
+    );
+    // the docs carry the rules
+    for (const words of [
+        'a second click on any trigger does nothing, and the focus stays on Keep editing',
+        'Esc is Keep editing',
+        'a clean form runs at once and asks nothing, and a',
+        'never for Save',
+        'after Discard changes the page resets before `run`, so the next',
+    ]) {
+        assert.ok(guard.replace(/\s*\n\s*\*\s*/g, ' ').includes(words), words);
+    }
+});
