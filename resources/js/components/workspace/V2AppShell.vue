@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { Menu, Search, Undo2 } from '@lucide/vue';
-import { computed, ref, watchEffect } from 'vue';
+import { computed, onMounted, provide, ref, watchEffect } from 'vue';
 import { toast } from 'vue-sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -22,6 +22,11 @@ import V2JumpDialog from '@/components/workspace/V2JumpDialog.vue';
 import V2PageCrumbs from '@/components/workspace/V2PageCrumbs.vue';
 import V2ShellNav from '@/components/workspace/V2ShellNav.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
+import {
+    pageHasOwnClock,
+    TOP_BAR_CLOCK,
+    useClockShortcut,
+} from '@/composables/useClockShortcut';
 import { getInitials } from '@/composables/useInitials';
 import { providePageCrumbs } from '@/composables/usePageCrumbs';
 import type { V2Shell } from '@/types';
@@ -37,6 +42,33 @@ const props = defineProps<{ shell: V2Shell; focusMode?: boolean }>();
 const page = usePage();
 const user = computed(() => page.props.auth.user!);
 const sheetOpen = ref(false);
+
+// UX-24 (Daniel): the clock shortcut as a small outline control from 1024 px, on every V2 page except those with their
+// own Clock in (Me home, Roster, Attendance). Same server flag as before; hidden, never disabled, without it. A press
+// opens the clock-in photo dialog (the confirm step) or the Attendance page; it never records a time by itself.
+const accountMenu = computed(() => page.props.workspace?.accountMenu);
+const {
+    load: loadClock,
+    press: pressClock,
+    label: clockLabel,
+    visible: clockVisible,
+} = useClockShortcut();
+onMounted(() => {
+    if (accountMenu.value?.clock) {
+        void loadClock();
+    }
+});
+const showClock = computed(
+    () =>
+        accountMenu.value?.clock === true &&
+        clockVisible.value &&
+        !pageHasOwnClock(page.url),
+);
+// The top bar is hidden in focus mode, so the button is drawn only outside it.
+provide(
+    TOP_BAR_CLOCK,
+    computed(() => showClock.value && !props.focusMode),
+);
 const jumpOpen = ref(false);
 
 // The explicit way back to Classic: the same switch as the account menu row, through the existing endpoint.
@@ -73,7 +105,13 @@ const crumbsInFrame = computed(() => placed.value.length);
 </script>
 
 <template>
-    <div class="flex min-h-screen w-full bg-background" data-test="v2-shell">
+    <!-- --v2-topbar-h: the top bar's height (h-16), so a page's sticky header can sit right under it (Liyana's
+         V2WeekGrid). 0 in focus mode, where the top bar is hidden. -->
+    <div
+        class="flex min-h-screen w-full bg-background"
+        :style="{ '--v2-topbar-h': focusMode ? '0px' : '4rem' }"
+        data-test="v2-shell"
+    >
         <div
             v-if="!focusMode"
             class="sticky top-0 hidden h-screen w-60 shrink-0 flex-col gap-4 overflow-y-auto border-r border-sidebar-border bg-sidebar px-3 py-4 lg:flex"
@@ -83,7 +121,14 @@ const crumbsInFrame = computed(() => placed.value.length);
                 href="/"
                 class="flex items-center gap-2 px-3 text-sm font-semibold tracking-tight text-sidebar-foreground"
             >
-                <img src="/kp-mark.png" alt="" class="size-7 object-contain" />
+                <!-- A 56 px copy of the mark (4 KB instead of 758 KB), so it is there at first paint (Daniel). -->
+                <img
+                    src="/kp-mark-56.png"
+                    alt=""
+                    width="28"
+                    height="28"
+                    class="size-7 object-contain"
+                />
                 KPOne
             </Link>
             <V2ShellNav :shell="shell" />
@@ -145,6 +190,16 @@ const crumbsInFrame = computed(() => placed.value.length);
                 </button>
                 <div class="ml-auto flex shrink-0 items-center gap-2">
                     <WorkspaceBranchSwitcher />
+                    <Button
+                        v-if="showClock"
+                        variant="outline"
+                        size="sm"
+                        class="hidden h-9 lg:inline-flex"
+                        data-test="clock-shortcut"
+                        @click="pressClock()"
+                    >
+                        {{ clockLabel }}
+                    </Button>
                     <!-- Below 640 px the way back lives in the menu sheet's footer and the account menu (Daniel). -->
                     <Button
                         variant="ghost"
