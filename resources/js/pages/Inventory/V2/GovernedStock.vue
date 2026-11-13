@@ -692,7 +692,7 @@ const wide =
                                             :label="`Class ${row.class}`"
                                         />
                                     </td>
-                                    <td data-label="Due">
+                                    <td data-stack data-label="Due">
                                         <div class="min-w-0">
                                             <V2Chip
                                                 :tone="
@@ -863,7 +863,7 @@ const wide =
                                         >
                                     </div>
                                 </td>
-                                <td data-label="Item and batch">
+                                <td data-stack data-label="Item and batch">
                                     <div class="min-w-0">
                                         <span
                                             class="block text-sm break-words"
@@ -968,7 +968,7 @@ const wide =
                                         >
                                     </div>
                                 </td>
-                                <td data-label="Batch and expiry">
+                                <td data-stack data-label="Batch and expiry">
                                     <div class="min-w-0">
                                         <span
                                             class="block text-sm break-words"
@@ -1135,14 +1135,14 @@ const wide =
                 </p>
             </template>
 
-            <!-- Approve: what is being approved, then what approving does. -->
+            <!-- Approve: what approving does first, so it shows with the button on a phone (Daniel), then what is approved. -->
             <template v-if="operation === 'approved'">
-                <V2KeyValueList :items="approveRows" empty-text="Not shown" />
                 <p class="rounded-[14px] border bg-muted/40 px-4 py-3 text-sm">
                     Approving records the stock movement now. It cannot be
                     edited; a mistake is undone by a reversal, which needs its
                     own independent approval.
                 </p>
+                <V2KeyValueList :items="approveRows" empty-text="Not shown" />
             </template>
 
             <!-- Reverse: names the case it reverses. -->
@@ -1220,3 +1220,15 @@ const wide =
         </V2Dialog>
     </PageFrame>
 </template>
+
+<style scoped>
+/* Phone and tablet cards: a cell with several lines puts its label on its own line and uses the full width (Daniel, page 3). */
+@media (max-width: 1279.98px) {
+    :deep(.v2-cards-xl td[data-stack]) {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.25rem;
+        text-align: left;
+    }
+}
+</style>

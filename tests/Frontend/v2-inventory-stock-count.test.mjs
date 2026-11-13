@@ -99,6 +99,19 @@ test('page 3: blind counts hold on the V2 page too (Daniel, change b)', () => {
         /Someone else counted first\. Count again yourself;/,
     );
     assert.ok(!/quantity/.test(block(page, 'whereRows')));
+    // The Count and Recount boxes start empty: the form starts with no quantity and every sheet resets it on opening,
+    // and the box is bound only to what the person types (Daniel, page 3 review item 1).
+    assert.match(block(page, 'form'), /quantity:'',/);
+    assert.match(
+        block(page, 'showCase'),
+        /^constshowCase=|functionshowCase\(row:Case,action:string\)\{form\.reset\(\);/,
+    );
+    assert.match(
+        page,
+        /function showCase\(row: Case, action: string\) \{\n\s+form\.reset\(\);/,
+    );
+    assert.equal((template.match(/v-model="form\.quantity"/g) ?? []).length, 1);
+    assert.ok(!/:value="[^"]*quantity/.test(template));
     // The approve summary is never built for a blind case, and the targets in count mode show no on-hand column.
     assert.match(
         block(page, 'approveRows'),
@@ -117,6 +130,12 @@ test("page 3: Daniel's plan and changes a to f", () => {
         template.indexOf('Cases and next action') <
             template.indexOf('Find stock to count'),
     );
+    // Multi-line cells stack on phone cards: label on its own line, value full width.
+    assert.equal(
+        (template.match(/<td data-stack data-label=/g) ?? []).length,
+        3,
+    );
+    assert.match(page, /:deep\(\.v2-cards-xl td\[data-stack\]\)/);
     // Counts due and the stock list both sit behind bars that are closed on a phone.
     assert.equal((template.match(/:default-open="wide"/g) ?? []).length, 2);
     assert.match(
