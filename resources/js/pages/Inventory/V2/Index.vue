@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import InventoryOperationsPanel from '@/components/inventory/InventoryOperationsPanel.vue';
 import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
+import OlderRecordsSection from '@/components/inventory-v2/OlderRecordsSection.vue';
 import OrdersSection from '@/components/inventory-v2/OrdersSection.vue';
+import ReorderSection from '@/components/inventory-v2/ReorderSection.vue';
+import RequestsSection from '@/components/inventory-v2/RequestsSection.vue';
 import StockPanelBar from '@/components/inventory-v2/StockPanelBar.vue';
 import { Input } from '@/components/ui/input';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -701,13 +703,23 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                         :timezone="inventory.branchTimezone"
                     />
                 </V2DisclosureBar>
-                <StockPanelBar title="Stock requests and transfers">
-                    <InventoryOperationsPanel
+                <!-- Page 2b: stock requests and transfers on the V2 blocks. -->
+                <V2DisclosureBar
+                    title="Stock requests and transfers"
+                    keep-mounted
+                >
+                    <RequestsSection :operations="operations" />
+                </V2DisclosureBar>
+                <!-- Page 2c: reorder levels, alerts and the read-only older records; the Classic panel is no longer shown here. -->
+                <V2DisclosureBar title="Reorder levels and alerts" keep-mounted>
+                    <ReorderSection
                         :operations="operations"
-                        :receipt-memory-context="receiptMemoryContext"
-                        hide-orders
+                        :timezone="inventory.branchTimezone"
                     />
-                </StockPanelBar>
+                </V2DisclosureBar>
+                <V2DisclosureBar title="Older records (read only)">
+                    <OlderRecordsSection :operations="operations" />
+                </V2DisclosureBar>
                 <StockPanelBar
                     v-if="referenceData.canManage"
                     title="Stock setup"

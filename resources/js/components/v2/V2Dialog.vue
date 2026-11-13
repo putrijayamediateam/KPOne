@@ -9,6 +9,7 @@ import {
     DialogTitle,
 } from 'reka-ui';
 import { nextTick, ref, watch } from 'vue';
+import { useLeaveGuard } from '@/composables/useLeaveGuard';
 
 /**
  * Version 2 dialog: 18px corners, a bottom sheet below 640px, a pinned footer, and the focus trap and Esc that the
@@ -19,11 +20,30 @@ import { nextTick, ref, watch } from 'vue';
  * `size="tall"` is for long forms (a purchase order, receiving): full height on a phone, 42rem from 640px and 56rem from
  * 1024px, up to 90dvh tall, with the body scrolling and the footer staying put. Body children never shrink (`shrink-0`), so a long form scrolls instead of squashing its fields.
  *
+ * Tall sheets keep the header (title and X) pinned at the top of the scrolling body, so once the body has scrolled the X
+ * never sits on a field.
+ *
  * `dirty` is a discard guard: while it is true, every way of closing (Esc, the X, a tap on the backdrop, Cancel) first
  * asks "Discard your changes?" inside the same dialog, with "Keep editing" focused, and only closes on "Discard changes"
  * (which emits `discard`, then `update:open(false)`). Esc while the question shows means Keep editing. The page sets
  * `dirty` from its own form state, and closing the dialog from the page (after a save) is never guarded. Everything
  * behind the question is inert, so Tab cannot reach the form. Wording and buttons are the same on every V2 form.
+ *
+ * While the dialog is open and `dirty`, the guard also covers leaving the page, through the SAME mechanism as
+ * V2LeaveGuard (`useLeaveGuard`): reload and closing the tab show the browser's own warning, and an in-app link to another
+ * page (a GET visit to a different path, for example the menu) first asks the same question and goes on only after
+ * "Discard changes".
+ * (1) A same-path visit and a partial reload or a polling visit (such as the Registration and Queue live refresh) is never held;
+ * (2) a successful save never asks;
+ * (3) the listener is removed when the page or sheet unmounts, so nothing keeps asking on the next page;
+ * (4) browser Back and Forward are held too; `beforeunload` covers reload and tab close.
+ * Pages need no guard of their own for an open sheet.
+ *
+ * `confirmDisabled` switches the filled action off, and `confirmDisabledReason` says why in a muted line directly above the
+ * footer (read out politely, and named by the button's `aria-describedby`). Say what is missing, then what fixes it:
+ * "Choose a supplier to continue.", "Enter the quantity received to continue.". Use it for a state the person can see and
+ * fix (a missing choice), not for a refusal that only the server can decide; those stay as an error after pressing. While
+ * `busy` the button is natively disabled with no reason line. The reason line is always in the DOM (empty when not needed) so its text is announced when it appears; with no reason the button is still aria-disabled, and the dev console warns (a silently disabled button is a bug).
  */
 const props = withDefaults(
     defineProps<{
@@ -35,6 +55,9 @@ const props = withDefaults(
         tone?: 'default' | 'danger';
         reasonLabel?: string;
         busy?: boolean;
+        /** Switches the filled action off (an aria-disabled button that stays focusable, so a keyboard user reaches it and hears the reason; pressing it does nothing) and says why in `confirmDisabledReason`. */
+        confirmDisabled?: boolean;
+        confirmDisabledReason?: string;
         /** Only the confirm button: no Cancel (for a dialog that now only says something, with a single Close). */
         singleAction?: boolean;
         size?: 'default' | 'tall';
@@ -46,6 +69,8 @@ const props = withDefaults(
         tone: 'default',
         reasonLabel: undefined,
         busy: false,
+        confirmDisabled: false,
+        confirmDisabledReason: undefined,
         singleAction: false,
         size: 'default',
         dirty: false,
@@ -66,6 +91,19 @@ const asking = ref(false);
 const keepButton = ref<HTMLButtonElement | null>(null);
 const discardButton = ref<HTMLButtonElement | null>(null);
 let returnFocusTo: HTMLElement | null = null;
+let pendingUrl: string | null = null;
+
+// An in-app link while an open sheet is dirty: ask first. The one shared mechanism (useLeaveGuard) holds only a GET to
+// another path; the sheet's own save, a same-path or polling visit, and a clean sheet are never held.
+const { leave } = useLeaveGuard(
+    () => props.open && props.dirty,
+    (target) => {
+        pendingUrl = target;
+        returnFocusTo = document.activeElement as HTMLElement | null;
+        asking.value = true;
+        nextTick(() => keepButton.value?.focus());
+    },
+);
 
 watch(
     () => props.open,
@@ -124,17 +162,44 @@ const trapTab = (event: KeyboardEvent) => {
 };
 
 const keepEditing = () => {
+    pendingUrl = null;
     asking.value = false;
     nextTick(() => returnFocusTo?.focus());
 };
 
 const discard = () => {
+    const target = pendingUrl;
+
+    pendingUrl = null;
     asking.value = false;
     emit('discard');
     emit('update:open', false);
+
+    if (target) {
+        leave(target);
+    }
 };
 
+if (import.meta.env.DEV) {
+    watch(
+        () => [props.confirmDisabled, props.confirmDisabledReason],
+        ([disabled, why]) => {
+            if (disabled && !why) {
+                console.warn(
+                    'V2Dialog: confirmDisabled needs a confirmDisabledReason, so no one meets a silently disabled button.',
+                );
+            }
+        },
+        { immediate: true },
+    );
+}
+
 const submit = () => {
+    // aria-disabled keeps the button reachable by keyboard, so pressing it must do nothing.
+    if (props.confirmDisabled) {
+        return;
+    }
+
     if (props.reasonLabel && reason.value.trim() === '') {
         tried.value = true;
         nextTick(() => box.value?.focus());
@@ -163,7 +228,34 @@ const submit = () => {
                     class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5 [&>*]:shrink-0"
                     :inert="asking"
                 >
+                    <div
+                        v-if="size === 'tall'"
+                        data-slot="v2-dialog-header"
+                        class="sticky -top-5 z-10 -mx-5 -mt-5 flex items-start justify-between gap-2 border-b bg-card px-5 pt-5 pb-3"
+                    >
+                        <DialogTitle
+                            class="min-w-0 pt-0.5 text-lg leading-7 font-semibold"
+                            >{{ title }}</DialogTitle
+                        >
+                        <DialogClose
+                            class="-mt-2 -mr-3 inline-flex size-11 shrink-0 items-center justify-center rounded-full outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+                            aria-label="Close"
+                        >
+                            <svg
+                                class="size-4"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="2.25"
+                                stroke-linecap="round"
+                                aria-hidden="true"
+                            >
+                                <path d="M6 6l12 12M18 6 6 18" />
+                            </svg>
+                        </DialogClose>
+                    </div>
                     <DialogTitle
+                        v-else
                         class="pr-10 text-lg leading-7 font-semibold"
                         >{{ title }}</DialogTitle
                     >
@@ -210,8 +302,28 @@ const submit = () => {
                         </p>
                     </div>
                 </div>
+                <!-- Always in the DOM, so a screen reader announces the text when it appears. -->
+                <p
+                    id="v2-dialog-confirm-reason"
+                    role="status"
+                    aria-live="polite"
+                    :class="
+                        confirmDisabled && confirmDisabledReason
+                            ? 'border-t bg-card px-5 pt-3 pb-1 text-sm text-muted-foreground'
+                            : 'h-0 overflow-hidden'
+                    "
+                >
+                    <template v-if="confirmDisabled && confirmDisabledReason">{{
+                        confirmDisabledReason
+                    }}</template>
+                </p>
                 <div
-                    class="flex flex-col-reverse gap-2 border-t bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
+                    class="flex flex-col-reverse gap-2 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
+                    :class="
+                        confirmDisabled && confirmDisabledReason
+                            ? ''
+                            : 'border-t'
+                    "
                     :inert="asking"
                 >
                     <DialogClose
@@ -223,17 +335,26 @@ const submit = () => {
                     <button
                         type="button"
                         :disabled="busy"
+                        :aria-describedby="
+                            confirmDisabled && confirmDisabledReason
+                                ? 'v2-dialog-confirm-reason'
+                                : undefined
+                        "
                         :aria-disabled="
-                            reasonLabel && reason.trim() === ''
+                            confirmDisabled ||
+                            (reasonLabel && reason.trim() === '')
                                 ? 'true'
                                 : undefined
                         "
                         class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 lg:h-9"
-                        :class="
+                        :class="[
+                            confirmDisabled
+                                ? 'cursor-not-allowed opacity-50'
+                                : '',
                             tone === 'danger'
                                 ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                                : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        "
+                                : 'bg-primary text-primary-foreground hover:bg-primary/90',
+                        ]"
                         @click="submit"
                     >
                         {{ confirmLabel }}
@@ -286,6 +407,7 @@ const submit = () => {
                     </div>
                 </div>
                 <DialogClose
+                    v-if="size !== 'tall'"
                     :inert="asking"
                     class="absolute top-2.5 right-2.5 inline-flex size-11 items-center justify-center rounded-full outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
                     aria-label="Close"

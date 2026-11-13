@@ -68,7 +68,10 @@ test('V2 keeps every Classic field name, limit and the logo rules', () => {
 test('V2 has two tabs and asks before a tab with unsaved work is left', () => {
     assert.match(v2, /label: 'Company'/);
     assert.match(v2, /label: 'Branches'/);
-    assert.ok(v2.includes('<DiscardPrompt'));
+    assert.ok(v2.includes('<V2LeaveGuard'));
+    assert.ok(v2.includes(':dirty="tabDirty"'));
+    assert.ok(v2.includes('guard.value?.ask('));
+    assert.ok(!/DiscardPrompt/.test(v2));
     assert.ok(v2.includes('tabDirty'));
 });
 
