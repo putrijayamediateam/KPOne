@@ -33,9 +33,28 @@ test('V2SelectionBar reads the rail breakpoint V2WorkLayout provides; the prop i
     assert.match(s, /inject\(V2_RAIL_FROM, null\)/);
     assert.match(s, /if \(props\.railFrom\) \{\s*return props\.railFrom;/);
     assert.match(s, /layoutRailFrom \? layoutRailFrom\.value : '2xl'/);
-    assert.match(s, /effectiveRailFrom\.value === null\s*\? ''/);
-    assert.match(s, /lg: 'lg:hidden', xl: 'xl:hidden', '2xl': '2xl:hidden'/);
-    assert.match(s, /:class="hideFrom"/);
+});
+
+test('V2SelectionBar renders nothing and announces nothing while the rail shows (a media query, not CSS)', () => {
+    assert.match(s, /lg: '\(min-width: 64rem\)'/);
+    assert.match(s, /xl: '\(min-width: 80rem\)'/);
+    assert.match(s, /'2xl': '\(min-width: 96rem\)'/);
+    assert.match(
+        s,
+        /window\.matchMedia\(MIN_WIDTH\[effectiveRailFrom\.value\]\)/,
+    );
+    assert.match(s, /props\.visible && !railShowing\.value/);
+    assert.match(s, /v-if="shown"/);
+    assert.match(
+        s,
+        /shown\.value \? \(props\.announce \?\? props\.summary\) : clearedNote\.value/,
+    );
+    assert.doesNotMatch(s, /lg:hidden|xl:hidden|2xl:hidden/);
+    // The rail appearing on resize is not "selection cleared".
+    assert.match(
+        s,
+        /before && !now && !props\.visible && props\.clearedMessage/,
+    );
 });
 
 test('V2SelectionBar: sticky, under dialogs, safe-area padding, 44px then 36px, ring with offset', () => {
@@ -78,11 +97,10 @@ test('V2SelectionBar: a polite live region that stays mounted; cleared message o
     assert.match(s, /role="status" aria-live="polite"/);
     assert.match(
         s,
-        /props\.visible \? \(props\.announce \?\? props\.summary\) : clearedNote\.value/,
+        /shown\.value\s*\?\s*\(props\.announce \?\? props\.summary\)\s*:\s*clearedNote\.value/,
     );
-    assert.match(s, /if \(before && !now && props\.clearedMessage\)/);
     assert.match(s, /clearedNote\.value = ''/);
-    assert.ok(s.indexOf('aria-live="polite"') < s.indexOf('v-if="visible"'));
+    assert.ok(s.indexOf('aria-live="polite"') < s.indexOf('v-if="shown"'));
 });
 
 test('V2SelectionBar: the wrapper is display: contents so the sticky bar sticks inside the page column', () => {
@@ -91,4 +109,28 @@ test('V2SelectionBar: the wrapper is display: contents so the sticky bar sticks 
 
 test('V2SelectionBar: imports nothing from Classic ui', () => {
     assert.doesNotMatch(s, /@\/components\/ui\//);
+});
+
+test('V2SelectionBar: busy keeps the full-strength action; only a disabled action and Clear dim', () => {
+    assert.match(
+        s,
+        /actionDisabled && !busy\s*\? 'cursor-not-allowed opacity-50'/,
+    );
+    assert.match(s, /busy \? 'cursor-progress'/);
+    const action = s.slice(
+        s.indexOf(':disabled="actionDisabled || busy"'),
+        s.indexOf('@click="emit(\'action\')"'),
+    );
+    assert.doesNotMatch(action, /disabled:opacity/);
+});
+
+test('V2SelectionBar: hintTone gives warnings role=status and errors role=alert, each with its word', () => {
+    assert.match(s, /hintTone\?: 'neutral' \| 'warning' \| 'error'/);
+    assert.match(s, /hintTone: 'neutral'/);
+    assert.match(s, /'alert'/);
+    assert.match(s, /'status'/);
+    assert.match(s, />Error:\s*<\/span/);
+    assert.match(s, />Warning:\s*<\/span/);
+    assert.match(s, /text-destructive/);
+    assert.match(s, /text-warning-strong/);
 });

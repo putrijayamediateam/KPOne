@@ -1,5 +1,13 @@
 <script setup lang="ts">
-import { computed, inject, onBeforeUnmount, ref, useSlots, watch } from 'vue';
+import {
+    computed,
+    inject,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    useSlots,
+    watch,
+} from 'vue';
 import { V2_RAIL_FROM } from './railKey';
 import type { RailFrom } from './railKey';
 
@@ -12,9 +20,15 @@ import type { RailFrom } from './railKey';
  * never repeats it and the rail and the bar can never both disappear. The `railFrom` prop is only an override for a bar
  * placed outside a V2WorkLayout. From that width up the bar is hidden; a layout with no rail never hides it.
  *
+ * Rail showing means NOT rendered: from the rail width up the bar is removed from the page (a media query watches it), so
+ * it neither shows nor announces anything while the rail carries the summary and actions.
+ *
  * `visible` is the page's own condition (usually "something is ticked"). `actionDisabled` needs a reason: give `hint`
  * (text, or the `hint` slot) and it shows beside the summary ("Choose at most 20 invoices"); a disabled action with no
- * hint warns in development. `busy` keeps the label, shows a spinner, disables both buttons and sets `aria-busy`.
+ * hint warns in development. `hintTone` says what kind of message the hint is: `neutral` (muted text), `warning` (a
+ * warning notice, announced politely, warning colour with the word "Warning:" before it) or `error` (an error,
+ * announced at once with role=alert, destructive colour with the word "Error:" before it). `busy` keeps the label, shows a spinner, disables both buttons and sets `aria-busy`; the action keeps its full-strength
+ * fill and readable label (only a disabled action and Clear dim), because busy is progress, not unavailable.
  *
  * Announcements (one polite live region that stays mounted): `announce` (default: the summary) whenever it changes while
  * the bar is shown; `clearedMessage` ("Selection cleared") once when the bar goes away; nothing when it was never
@@ -36,6 +50,7 @@ const props = withDefaults(
         announce?: string;
         clearedMessage?: string;
         hint?: string;
+        hintTone?: 'neutral' | 'warning' | 'error';
         actionDisabled?: boolean;
         busy?: boolean;
     }>(),
@@ -45,6 +60,7 @@ const props = withDefaults(
         announce: undefined,
         clearedMessage: 'Selection cleared',
         hint: undefined,
+        hintTone: 'neutral',
         actionDisabled: false,
         busy: false,
     },
@@ -63,13 +79,30 @@ const effectiveRailFrom = computed<RailFrom | null>(() => {
 
     return layoutRailFrom ? layoutRailFrom.value : '2xl';
 });
-const hideFrom = computed(() =>
-    effectiveRailFrom.value === null
-        ? ''
-        : { lg: 'lg:hidden', xl: 'xl:hidden', '2xl': '2xl:hidden' }[
-              effectiveRailFrom.value
-          ],
-);
+const MIN_WIDTH: Record<RailFrom, string> = {
+    lg: '(min-width: 64rem)',
+    xl: '(min-width: 80rem)',
+    '2xl': '(min-width: 96rem)',
+};
+const railShowing = ref(false);
+let media: MediaQueryList | null = null;
+const syncRail = () => (railShowing.value = !!media && media.matches);
+const watchRail = () => {
+    media?.removeEventListener('change', syncRail);
+    media =
+        effectiveRailFrom.value && typeof window !== 'undefined'
+            ? window.matchMedia(MIN_WIDTH[effectiveRailFrom.value])
+            : null;
+    media?.addEventListener('change', syncRail);
+    syncRail();
+};
+
+onMounted(watchRail);
+watch(effectiveRailFrom, watchRail);
+onBeforeUnmount(() => media?.removeEventListener('change', syncRail));
+
+// Shown only while the page wants it AND the rail is not showing; otherwise nothing is rendered or announced.
+const shown = computed(() => props.visible && !railShowing.value);
 
 const hasHint = computed(() => Boolean(props.hint) || Boolean(slots.hint));
 
@@ -90,26 +123,23 @@ if (import.meta.env?.DEV) {
 const clearedNote = ref('');
 let clearTimer: ReturnType<typeof setTimeout> | null = null;
 
-watch(
-    () => props.visible,
-    (now, before) => {
-        if (before && !now && props.clearedMessage) {
-            clearedNote.value = props.clearedMessage;
+watch(shown, (now, before) => {
+    if (before && !now && !props.visible && props.clearedMessage) {
+        clearedNote.value = props.clearedMessage;
 
-            if (clearTimer) {
-                clearTimeout(clearTimer);
-            }
-
-            clearTimer = setTimeout(() => (clearedNote.value = ''), 2000);
-        } else if (now) {
-            clearedNote.value = '';
+        if (clearTimer) {
+            clearTimeout(clearTimer);
         }
-    },
-);
+
+        clearTimer = setTimeout(() => (clearedNote.value = ''), 2000);
+    } else if (now) {
+        clearedNote.value = '';
+    }
+});
 onBeforeUnmount(() => clearTimer && clearTimeout(clearTimer));
 
 const spoken = computed(() =>
-    props.visible ? (props.announce ?? props.summary) : clearedNote.value,
+    shown.value ? (props.announce ?? props.summary) : clearedNote.value,
 );
 
 const ring =
@@ -122,10 +152,9 @@ const ring =
             {{ spoken }}
         </div>
         <div
-            v-if="visible"
+            v-if="shown"
             data-slot="v2-selection-bar"
             class="sticky bottom-0 z-10 -mx-4 flex flex-col gap-3 border-t bg-background px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:flex-row sm:items-center sm:justify-between"
-            :class="hideFrom"
             :aria-busy="busy"
         >
             <div class="min-w-0">
@@ -134,9 +163,29 @@ const ring =
                 </p>
                 <p
                     v-if="hasHint"
-                    class="text-sm leading-5 text-muted-foreground"
+                    class="text-sm leading-5"
+                    :class="
+                        hintTone === 'error'
+                            ? 'text-destructive'
+                            : hintTone === 'warning'
+                              ? 'text-warning-strong'
+                              : 'text-muted-foreground'
+                    "
+                    :role="
+                        hintTone === 'error'
+                            ? 'alert'
+                            : hintTone === 'warning'
+                              ? 'status'
+                              : undefined
+                    "
                     data-slot="v2-selection-bar-hint"
                 >
+                    <span v-if="hintTone === 'error'" class="font-medium"
+                        >Error:
+                    </span>
+                    <span v-else-if="hintTone === 'warning'" class="font-medium"
+                        >Warning:
+                    </span>
                     <slot name="hint">{{ hint }}</slot>
                 </p>
             </div>
@@ -154,8 +203,14 @@ const ring =
                 <button
                     type="button"
                     :disabled="actionDisabled || busy"
-                    class="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50 lg:h-9"
-                    :class="ring"
+                    class="inline-flex h-11 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 lg:h-9"
+                    :class="[
+                        ring,
+                        actionDisabled && !busy
+                            ? 'cursor-not-allowed opacity-50'
+                            : '',
+                        busy ? 'cursor-progress' : '',
+                    ]"
                     @click="emit('action')"
                 >
                     <svg
