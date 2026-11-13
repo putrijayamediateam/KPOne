@@ -209,12 +209,9 @@ Server checks stay the authority; hiding a control is a usability aid only.
 
 - **V2 follow-ups (2026-11-13):** the shared selects still look Classic in places and are logged as DD-83 (the Order
   unit field and the Panel prices editor on the Clinical Service form; the registration type and branch selects on
-  Business details); swap Business details to V2StickyBar `always` and the V2Picker; the page-level discard prompt
-  (`components/catalogue-v2/DiscardPrompt.vue`) is kept for same-path, Back and tab cases because V2LeaveGuard holds only
-  different-path visits (waiting for Daniel's call: use V2LeaveGuard for the different-path case only); the Price history
-  time note says "the branch's time zone" because the page has no zone name, so a small server prop with the branch zone
-  is a separate item; Back on Medicine and Clinical Service shows a short flash of the previous page because Inertia swaps
-  the page before our handlers can stop it.
+  Business details); swap Business details to V2StickyBar `always` and the V2Picker. Done since: the page-level discard
+  prompt is deleted and the pages use `V2LeaveGuard.ask()` (#727), and Price history gets the branch time zone as a
+  server prop (batch 21).
 
 ## 8. Rules (every task)
 
