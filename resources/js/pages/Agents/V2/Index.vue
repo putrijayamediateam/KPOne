@@ -159,6 +159,13 @@ const outline =
                         </p>
                     </div>
                     <p
+                        v-if="agents.length > 0 && !canManage"
+                        class="text-[13px] leading-[18px] text-muted-foreground"
+                        data-test="agents-manage-note"
+                    >
+                        Only a Director can enable or disable an agent.
+                    </p>
+                    <p
                         v-if="agents.length === 0"
                         class="rounded-[14px] border border-dashed border-border p-5 text-[15px] leading-[22px] text-muted-foreground"
                     >
@@ -353,7 +360,7 @@ const outline =
         "
         :description="
             confirming?.isEnabled
-                ? 'A disabled agent starts no new tasks. Its history is kept.'
+                ? 'A disabled agent starts no new tasks and makes no new suggestions. Suggestions already waiting stay in the approval inbox. Its history is kept.'
                 : 'The agent may start tasks again under its fixed rules.'
         "
         :confirm-label="confirming?.isEnabled ? 'Disable' : 'Enable'"

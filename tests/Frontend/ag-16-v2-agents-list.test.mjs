@@ -57,3 +57,15 @@ test('dataSourceLabel names every contract data source and never shows a raw cod
 
     assert.match(lib, /replaceAll\('\.', ' '\)\.replaceAll\('_', ' '\)/);
 });
+
+test('V2 agents list: the dialog says what happens, and a viewer who cannot manage is told who can', () => {
+    const v2 = read('resources/js/pages/Agents/V2/Index.vue');
+
+    assert.match(v2, /makes no new suggestions/);
+    assert.match(v2, /Suggestions already waiting stay in the approval inbox/);
+    assert.match(v2, /v-if="agents\.length > 0 && !canManage"/);
+    assert.match(v2, /Only a Director can enable or disable an agent\./);
+    assert.match(v2, /data-test="agents-manage-note"/);
+    // The note sits outside the empty-state v-if / v-else chain, so the list still shows for a viewer.
+    assert.match(v2, /v-if="agents\.length === 0"[^]*?<\/p>\s*<ul v-else/);
+});
