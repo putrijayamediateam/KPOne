@@ -1,0 +1,1 @@
+V2Picker round 2: phone Close (44 px), visible count line (cap: 'Showing the first 25. Type to narrow.'), popover flips above at 1440x700 (panel fully on screen), Clear returns focus to the trigger. Count line contrast 7.61:1 light.
