@@ -16,6 +16,7 @@ const props = defineProps<{
     status: string;
     statusId: string;
     disabled?: boolean;
+    multiple?: boolean;
 }>();
 
 const emit = defineEmits<{ change: [event: Event] }>();
@@ -44,6 +45,7 @@ defineExpose({
             class="sr-only"
             tabindex="-1"
             aria-hidden="true"
+            :multiple="multiple"
             :disabled="disabled"
             @change="emit('change', $event)"
         />

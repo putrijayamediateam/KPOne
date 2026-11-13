@@ -70,6 +70,14 @@ final class InventoryBatchEligibility
         }
     }
 
+    /** TIDY-4: a hold reason in words, as the batch hold screen shows it (never the stored code). */
+    private const HOLD_REASON_WORDS = [
+        'suspected_quality_issue' => 'suspected quality issue',
+        'recall' => 'recall',
+        'damaged' => 'damaged',
+        'other_safety' => 'other safety concern',
+    ];
+
     /**
      * Why a batch is not usable at a branch, in the same words dispensing uses, or null when it is usable (STK-37:
      * stock moves share this rule). Without branch holds, a branch hold is ignored: stock in an organisation store
@@ -87,7 +95,7 @@ final class InventoryBatchEligibility
             'inactive_sku' => 'the stock SKU is inactive', 'inactive_item' => 'the inventory item is inactive',
             'unavailable_status' => 'the batch status is not available', 'expiry' => 'the batch expiry must be after the branch-local current date',
             'recalled' => 'the batch is under a recall at every branch',
-            'held' => 'the batch is held at this branch ('.$row->hold_reason.')', default => 'the inventory reference is unavailable',
+            'held' => 'the batch is held at this branch ('.(self::HOLD_REASON_WORDS[$row->hold_reason] ?? 'held').')', default => 'the inventory reference is unavailable',
         };
     }
 
