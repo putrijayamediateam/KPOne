@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Queue V2 sketch</title>
+<style>
+:root{--bg:#f4f6fb;--fg:#161a24;--card:#fff;--muted:#eaeef7;--mfg:#4a5468;--primary:#0a56d1;--pfg:#fff;--brand:#e8337f;--success:#0b6b34;--warning:#7d4400;--warnbg:#fff4e0;--danger:#b3261e;--dangerbg:#fdecea;--border:#d5dbe9;--shadow:0 8px 24px -8px rgb(22 26 36/.18)}
+@media (prefers-color-scheme:dark){:root{--bg:#12141a;--fg:#f3f5fa;--card:#1c1f27;--muted:#262a35;--mfg:#b0b8cc;--primary:#6ba6ff;--pfg:#0b1a33;--brand:#ff86ae;--success:#6fdc9a;--warning:#f0b35c;--warnbg:#33260f;--danger:#ff8a80;--dangerbg:#35161a;--border:#323747;--shadow:0 8px 24px -8px rgb(0 0 0/.6)}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+h1,h2,h3,p{margin:0}
+.wrap{max-width:1500px;margin:0 auto;padding:16px}
+.note{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-bottom:20px}
+.note h2{font-size:16px;margin-bottom:8px}.note p{margin:6px 0;color:var(--mfg)}.note b{color:var(--fg)}
+.label{font-size:12px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:var(--mfg);margin:24px 0 8px}
+.frame{border:1px dashed var(--border);border-radius:14px;padding:16px;background:var(--bg);overflow:hidden}
+.f1440{width:1440px;max-width:none;zoom:1}
+.f390{width:390px;padding:16px 12px}
+.scroller{overflow-x:auto}
+/* page */
+.title{font-size:30px;line-height:36px;font-weight:700;letter-spacing:-.01em}
+.desc{color:var(--mfg);margin-top:2px}
+.head{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:14px}
+.logo{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--brand);margin-right:8px}
+.live{display:flex;align-items:center;gap:8px;color:var(--mfg);font-size:13px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--success);box-shadow:0 0 0 3px color-mix(in srgb,var(--success) 25%,transparent)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;height:36px;padding:0 16px;border-radius:10px;border:1px solid var(--border);background:var(--card);color:var(--fg);font:500 14px system-ui;white-space:nowrap;cursor:pointer}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--pfg)}
+.btn.ghost{border-color:transparent;background:transparent;color:var(--primary)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.icon{width:36px;padding:0}
+/* tabs */
+.tabs{display:flex;gap:4px;background:var(--muted);border-radius:999px;padding:4px;width:max-content;max-width:100%;overflow-x:auto;scrollbar-width:none}
+.tab{height:36px;display:inline-flex;align-items:center;gap:6px;padding:0 16px;border-radius:999px;white-space:nowrap;color:var(--mfg)}
+.tab small{font-size:12px;font-variant-numeric:tabular-nums}
+.tab.on{background:var(--card);color:var(--primary);font-weight:500;box-shadow:0 0 0 1px var(--border)}
+.tabrow{display:flex;align-items:center;gap:12px;justify-content:space-between;flex-wrap:wrap}
+.count{font-size:13px;color:var(--mfg)}
+/* room strip */
+.strip{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px;margin-top:12px;padding:8px 12px;border:1px solid var(--border);border-radius:14px;background:var(--card)}
+.strip.warn{border-color:color-mix(in srgb,var(--warning) 50%,var(--border));background:var(--warnbg)}
+.strip .k{font-weight:600}.strip .h{color:var(--mfg);font-size:13px}
+.strip.warn .h{color:var(--warning)}
+.sel{height:36px;border:1px solid var(--border);border-radius:10px;background:var(--card);padding:0 12px;display:inline-flex;align-items:center;gap:8px;min-width:150px;justify-content:space-between;color:var(--fg)}
+.sel::after{content:"";width:6px;height:6px;border-right:2px solid var(--mfg);border-bottom:2px solid var(--mfg);transform:rotate(45deg) translateY(-2px)}
+/* toolbar */
+.tb{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:12px}
+.search{flex:1 1 260px;position:relative;min-width:0}
+.search input{width:100%;height:36px;border:1px solid var(--border);border-radius:10px;background:var(--card);color:var(--fg);padding:0 12px 0 34px;font:15px system-ui}
+.search::before{content:"";position:absolute;left:12px;top:11px;width:9px;height:9px;border:2px solid var(--mfg);border-radius:50%}
+.tb .grow{flex:1}
+.soundbtn{gap:8px}
+.sw{width:30px;height:18px;border-radius:99px;background:var(--primary);position:relative;display:inline-block}
+.sw::after{content:"";position:absolute;right:2px;top:2px;width:14px;height:14px;border-radius:50%;background:var(--pfg)}
+.sw.off{background:var(--border)}.sw.off::after{right:auto;left:2px;background:var(--card)}
+/* table */
+.tbl{margin-top:12px;border:1px solid var(--border);border-radius:14px;background:var(--card);overflow:visible;position:relative}
+table{border-collapse:collapse;width:100%}
+th{font-size:12px;text-align:left;font-weight:600;color:var(--mfg);padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+.sec td{background:var(--muted);font-size:13px;font-weight:600;padding:8px 12px;color:var(--fg)}
+.sec small{font-weight:400;color:var(--mfg);margin-left:8px}
+.qn{font-size:18px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.qn.c{color:var(--mfg)}
+.pn{font-weight:600}.sub{font-size:12px;color:var(--mfg)}
+.clamp{max-width:170px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--mfg)}
+.chip{display:inline-flex;align-items:center;gap:6px;min-height:24px;padding:2px 10px;border-radius:99px;border:1px solid var(--border);background:var(--card);font-size:12px;font-weight:500;line-height:1.3;white-space:nowrap}
+.chip i{width:8px;height:8px;border-radius:50%;background:var(--mfg)}
+.chip.info i{background:var(--primary)}.chip.success i{background:var(--success)}.chip.warning i{background:var(--warning)}.chip.danger i{background:var(--danger)}
+.chips{display:flex;flex-wrap:wrap;gap:4px}
+.ring{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:13px;font-variant-numeric:tabular-nums}
+.ring svg{width:36px;height:36px;transform:rotate(-90deg)}
+.ring .w{font-size:12px}.ring.long .w{color:var(--warning)}.ring.vlong .w{color:var(--danger);font-weight:600}
+.wa{display:inline-flex;width:28px;height:28px;border-radius:50%;background:#25d366;color:#fff;align-items:center;justify-content:center;font-size:12px;font-weight:700;vertical-align:middle;margin-left:6px}
+tr.focus td{background:color-mix(in srgb,var(--primary) 6%,transparent)}
+.menuwrap{position:relative;display:inline-block}
+.menu{position:absolute;right:0;top:40px;z-index:5;width:250px;background:var(--card);border:1px solid var(--border);border-radius:12px;box-shadow:var(--shadow);padding:6px}
+.menu div{padding:8px 10px;border-radius:8px;font-size:14px;min-height:34px;display:flex;align-items:center}
+.menu div:hover{background:var(--muted)}
+.menu .sep{height:1px;padding:0;min-height:0;margin:4px 0;background:var(--border)}
+.menu .dng{color:var(--danger)}
+.menu .pri{color:var(--primary);font-weight:600}
+.menu .hd{font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:var(--mfg);min-height:0;padding:6px 10px 2px}
+/* pager */
+.pager{display:flex;align-items:center;gap:8px;justify-content:flex-end;margin-top:8px;font-size:13px;color:var(--mfg);flex-wrap:wrap}
+.pager .btn{height:32px;padding:0 12px}
+.pagers{display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-top:4px}
+.foot{font-size:13px;color:var(--mfg);margin-top:8px;text-align:center}
+/* cards */
+.cards{display:grid;gap:12px;margin-top:12px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:4px 12px}
+.card .r{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:8px 0;text-align:right}
+.card .r>span:first-child{color:var(--mfg);font-size:13px;text-align:left}
+.card .top{display:flex;justify-content:space-between;align-items:center;padding:8px 0}
+.card .top .nm{font-size:16px;font-weight:600}
+.card .act{display:flex;gap:8px;padding:8px 0 10px}
+.card .act .btn{flex:1;height:44px}
+.card .act .btn.icon{flex:0 0 44px;width:44px}
+.f390 .btn,.f390 .sel,.f390 .search input{height:44px}
+.f390 .tab{height:44px}
+.f390 .tb .btn{flex:1}
+.sechd{margin:16px 0 0;font-weight:600;font-size:13px;display:flex;justify-content:space-between}
+.sechd small{font-weight:400;color:var(--mfg)}
+/* dialog */
+.dlg{width:420px;max-width:100%;background:var(--card);border:1px solid var(--border);border-radius:14px;box-shadow:var(--shadow);padding:20px}
+.dlg h3{font-size:18px;margin-bottom:4px}.dlg p{color:var(--mfg);margin-bottom:12px}
+.dlg .row{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+.map{width:100%;font-size:13px;border:1px solid var(--border);border-radius:14px;background:var(--card);overflow:hidden}
+.map td,.map th{padding:6px 12px}
+.flex{display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="note">
+<h2>Consultation queue, Version 2 sketch (Yasmin, Queue &amp; TV)</h2>
+<p>Static sketch only. Same page shell, tokens (cobalt primary, pink only for the logo dot and accents), hairlines and 14 px cards as Registration V2. Synthetic data. 1440 px table first, then the 390 px card list. Light and dark follow the system setting.</p>
+<p><b>Question 1, Call next: toolbar button or a card above the table?</b> <b>Pick: toolbar button</b>, the one filled cobalt button, at the right end of the toolbar (a full-width 44 px button at the top of the toolbar group on a phone). Reason: it is a frequent action that must sit in the same spot while rows reorder under it, a card above the table pushes the board down by 80 px on every refresh and competes with the room strip. The confirm dialog already names the patient (A-number, name, Urgent or Carry-over label), so the board does not need a "next up" card. The reason it is disabled (no room chosen, doctor busy, nobody ready) shows as one muted line under the toolbar and as the button's accessible description, and the button stays focusable. For Director and CA Supervisor the existing Doctor select is the target, so Apply then Call next works without a second picker.</p>
+<p><b>Question 2, My room today: quiet strip or toolbar chip?</b> <b>Pick: quiet strip</b>, one hairline card between the tabs and the toolbar, doctors only. Reason: it carries a select, a hint ("The TV shows this room...") and a warning state ("Call In stays blocked until you choose a room") that need words, which a chip cannot hold at 390 px. It turns warning-tinted only while no room is chosen, so on a normal day it is a single quiet line. A chip would hide the very state that blocks Call In.</p>
+<p>Number cells never wrap (nowrap, tabular figures). Targets are 44 px below 1024 px, 36 px above. Wait ring: grey under 30 min, amber from 30, red from 60, with words "long wait" and "very long wait" so colour is never the only signal.</p>
+</div>
+
+<div class="label">Desktop 1440 px (scrolls sideways in this preview if your window is narrower)</div>
+<div class="scroller">
+<div class="frame f1440">
+
+<div class="head">
+ <div>
+  <h1 class="title"><span class="logo"></span>Consultation queue</h1>
+  <p class="desc">Cheras · Call in, follow and hand off every consultation.</p>
+ </div>
+ <div class="live"><span class="dot"></span>Live · every 3 seconds</div>
+</div>
+
+<div class="tabrow">
+ <div class="tabs" role="tablist" aria-label="Queue status">
+  <span class="tab on">All active <small>14</small></span>
+  <span class="tab">Waiting <small>8</small></span>
+  <span class="tab">Serving now <small>3</small></span>
+  <span class="tab">Consultation completed <small>41</small></span>
+ </div>
+ <span class="count">6 visible entries · Clinician scope</span>
+</div>
+
+<div class="strip">
+ <span class="k">My room today</span>
+ <span class="sel">Consultation Room 2</span>
+ <button class="btn">Save room</button>
+ <span class="h">The TV shows this room when you call a patient.</span>
+ <span class="grow" style="flex:1"></span>
+ <span class="h">Before a room is chosen this strip turns amber: "Call In stays blocked until you choose a room." With no rooms set up: "This branch has no rooms yet. The TV says counter."</span>
+</div>
+
+<form class="tb">
+ <label class="search"><input placeholder="Patient name or exact Queue number" aria-label="Search"></label>
+ <span class="sel" style="width:176px">All doctors</span>
+ <span class="sel" style="width:176px">All urgency</span>
+ <button class="btn" type="button">Apply</button>
+ <button class="btn ghost" type="button">Reset</button>
+ <span class="grow"></span>
+ <button class="btn soundbtn" type="button" aria-pressed="true"><span class="sw"></span>Sound on</button>
+ <button class="btn primary" type="button">Call next</button>
+</form>
+<p class="sub" style="margin-top:6px;text-align:right">Call next is available: your next patient is shown for confirmation. (Example disabled line: "Call next is off: choose your room first.")</p>
+
+<div class="tbl" id="deskTbl"></div>
+
+<div class="pagers">
+ <div class="pager"><span>Waiting today · page 1 of 2</span><button class="btn" disabled>Previous today</button><button class="btn">Next today</button></div>
+ <div class="pager"><span>Carry-over · page 1 of 1</span><button class="btn" disabled>Previous carry-over</button><button class="btn" disabled>Next carry-over</button></div>
+</div>
+<p class="foot">Showing the latest 25 of 41 <span class="sub">(on the Serving now and Consultation completed tabs; shown here for reference)</span></p>
+<p class="foot" style="margin-top:2px">Failure state: "Live refresh paused. Showing last successful results. Press Search to try again." appears as a warning line under the toolbar.</p>
+
+</div></div>
+
+<div class="label">Phone 390 px (rows become cards, 44 px targets)</div>
+<div class="flex">
+<div class="frame f390">
+ <h1 class="title" style="font-size:24px;line-height:30px"><span class="logo"></span>Consultation queue</h1>
+ <p class="desc">Cheras</p>
+ <div class="live" style="margin:6px 0 10px"><span class="dot"></span>Live · every 3 seconds</div>
+
+ <div class="tabs" style="width:100%"><span class="tab on">All active <small>14</small></span><span class="tab">Waiting <small>8</small></span><span class="tab">Serving now <small>3</small></span><span class="tab">Completed <small>41</small></span></div>
+ <p class="count" style="margin-top:6px">6 visible entries · Clinician scope</p>
+
+ <div class="strip warn" style="flex-direction:column;align-items:stretch">
+  <span class="k">My room today</span>
+  <span class="sel" style="width:100%">Choose a room</span>
+  <button class="btn" style="width:100%">Save room</button>
+  <span class="h">Call In stays blocked until you choose a room.</span>
+ </div>
+
+ <form class="tb" style="flex-direction:column;align-items:stretch">
+  <button class="btn primary" type="button" style="order:-1">Call next</button>
+  <label class="search"><input placeholder="Patient name or Queue number"></label>
+  <span class="sel">All doctors</span>
+  <span class="sel">All urgency</span>
+  <div style="display:flex;gap:8px"><button class="btn" type="button">Apply</button><button class="btn ghost" type="button">Reset</button></div>
+  <button class="btn soundbtn" type="button"><span class="sw off"></span>Sound off</button>
+ </form>
+
+ <div class="cards" id="cardList"></div>
+ <div class="pager" style="justify-content:space-between"><span>Waiting today · 1 of 2</span><span><button class="btn" disabled>Previous</button> <button class="btn">Next</button></span></div>
+ <div class="pager" style="justify-content:space-between"><span>Carry-over · 1 of 1</span><span><button class="btn" disabled>Previous</button> <button class="btn" disabled>Next</button></span></div>
+ <p class="foot">Showing the latest 25 of 41</p>
+</div>
+
+<div style="display:grid;gap:16px;max-width:520px">
+ <div>
+  <p class="label" style="margin-top:0">Call next confirm dialog</p>
+  <div class="dlg">
+   <h3>Call A-014 Nur Aisyah Test?</h3>
+   <p>Next in your queue. <span class="chip warning"><i></i>Carry-over</span> shown for a previous-day patient, <span class="chip danger"><i></i>Urgent</span> for urgent. If the next patient changes while this is open, the dialog shows the new patient and holds Call for one second.</p>
+   <div class="row"><button class="btn">Cancel</button><button class="btn primary">Call A-014</button></div>
+  </div>
+ </div>
+ <div>
+  <p class="label" style="margin-top:0">Other row dialogs (same V2 dialog shell)</p>
+  <p class="sub">Call this patient? (out-of-order reasons: urgent or at the door) · Call to a treatment room (room select) · Cancel Visit (reason) · Not ready to call: set, clear, doctor override with reason · Treatment progress: 8 steps, start, done, cancel with reason "Entered in error".</p>
+ </div>
+</div>
+</div>
+
+<div class="label">Where every function in section A of the classic list lives</div>
+<table class="map">
+<tr><th>#</th><th>Function</th><th>Home in this sketch</th></tr>
+<tr><td>1</td><td>Tabs with counts</td><td>Pill tabs under the title; scroll on phones</td></tr>
+<tr><td>2</td><td>Live refresh, backoff, pause when hidden</td><td>"Live · every 3 seconds" line beside the title; failure line under the toolbar</td></tr>
+<tr><td>3</td><td>Search, doctor, urgency, Apply, Reset</td><td>Toolbar (stacked on phones)</td></tr>
+<tr><td>4</td><td>My room today</td><td>Quiet strip above the toolbar, warning tint until a room is chosen</td></tr>
+<tr><td>5</td><td>Counts line, scope label</td><td>Right of the tab row</td></tr>
+<tr><td>6</td><td>Sound toggle, ready and treatment toasts</td><td>Toolbar toggle button; toasts unchanged</td></tr>
+<tr><td>7</td><td>Call next and its dialog and disabled reasons</td><td>Toolbar primary button, dialog shown above, reason line under the toolbar</td></tr>
+<tr><td>8</td><td>Row content</td><td>Queue number, patient + KP + WhatsApp icon, arrived, doctor, payment + Panel note, notes, wait ring or serving time, status chips</td></tr>
+<tr><td>9</td><td>Row actions menu</td><td>"..." menu (open on the urgent row), filtered by state</td></tr>
+<tr><td>10</td><td>Dialogs</td><td>Same V2 dialog shell; Call next shown as the example</td></tr>
+<tr><td>11</td><td>Two pagers, carry-over section</td><td>Two labelled pagers; carry-over as its own section header inside the table</td></tr>
+<tr><td>12</td><td>"Showing the latest 25 of N"</td><td>Muted centred line under the pagers</td></tr>
+<tr><td>13</td><td>Refused-action message, busy state</td><td>Error line under the toolbar; other row buttons disabled while one runs</td></tr>
+<tr><td>14</td><td>Empty states, paused refresh</td><td>Empty row text per tab; warning line as in 2</td></tr>
+</table>
+
+</div>
+
+<script>
+const rows=[
+ {sec:'Today'},
+ {n:'A-014',name:'Nur Aisyah Test',kp:'KP-000214',arr:'10:42 AM',doc:'Dr. Test One',pay:'Self-pay',notes:'Fever 2 days, cough',min:12,st:[['neutral','Waiting']]},
+ {n:'A-009',name:'Tan Mei Ling Test',kp:'KP-000187',arr:'10:13 AM',doc:'Dr. Test One',pay:'Panel · Alpha Care',note:'Letter pending',notes:'Chest tightness',min:41,focus:1,menu:1,st:[['danger','Urgent'],['neutral','Waiting']]},
+ {n:'A-004',name:'Ravi Kumar Test',kp:'KP-000102',arr:'9:21 AM',doc:'Dr. Test Two',pay:'Panel · Beta TPA',notes:'Review blood test',min:74,st:[['neutral','Waiting'],['warning','Not ready to call · Awaiting Panel confirmation']]},
+ {n:'A-011',name:'Siti Hajar Test',kp:'KP-000199',arr:'9:55 AM',doc:'Dr. Test One',pay:'Self-pay',notes:'Wheezing',serving:'Serving 18 min',st:[['info','Serving now'],['success','Nebuliser done · ready to resume']]},
+ {n:'A-006',name:'Lim Wei Test',kp:'KP-000150',arr:'9:30 AM',doc:'Dr. Test One',pay:'Self-pay',notes:'Follow up wound',held:'On hold 26 min',st:[['warning','On hold']]},
+ {sec:'Carry-over',sub:'Waiting since a previous day. Shown with the original queued time.'},
+ {n:'A-092',name:'Aminah Test',kp:'KP-000090',arr:'Yesterday 4:50 PM',doc:'Dr. Test Two',pay:'Self-pay',notes:'Left before being called',carry:1,min:null,st:[['neutral','Waiting'],['neutral','Returned']]}
+];
+function ring(m){
+ if(m==null)return '<span class="ring"><span class="w sub">Yesterday</span></span>';
+ const lvl=m>=60?'vlong':m>=30?'long':'ok';
+ const col=lvl=='vlong'?'var(--danger)':lvl=='long'?'var(--warning)':'var(--mfg)';
+ const f=Math.min(m/60,1)*94.25;
+ const words=lvl=='vlong'?' · very long wait':lvl=='long'?' · long wait':'';
+ return `<span class="ring ${lvl}"><svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="var(--border)" stroke-width="3"/><circle cx="18" cy="18" r="15" fill="none" stroke="${col}" stroke-width="3" stroke-linecap="round" stroke-dasharray="${f} 94.25"/></svg><span>${m} min<span class="w">${words}</span></span></span>`;
+}
+const chip=(t,l)=>`<span class="chip ${t}"><i></i>${l}</span>`;
+const dur=r=>r.serving?`<span class="sub" style="font-size:13px;color:var(--fg)">${r.serving}</span>`:r.held?`<span class="sub" style="font-size:13px;color:var(--warning)">${r.held}</span>`:ring(r.min);
+const menu=`<div class="menu" role="menu"><div class="hd">Visit</div><div>View visit</div><div>View patient</div><div>Edit visit</div><div>Treatment progress…</div><div class="sep"></div><div class="hd">Queue</div><div class="pri">Call In</div><div>Mark "Not ready to call"…</div><div class="sep"></div><div class="dng">Cancel Visit…</div><div class="sub" style="display:block;min-height:0;padding:6px 10px">Items depend on state: Send to Waiting, Call again, Call to treatment room, Open Consultation, Call to Dispensary, Dispense, Open Dispensary, Clear not-ready, Call in anyway (doctor).</div></div>`;
+// desktop
+let h='<table><thead><tr><th>Queue no.</th><th>Patient</th><th>Arrived</th><th>Doctor</th><th>Payment</th><th>Visit notes</th><th>Wait / Serving</th><th>Status</th><th><span style="position:absolute;left:-9999px">Actions</span></th></tr></thead><tbody>';
+rows.forEach(r=>{
+ if(r.sec){h+=`<tr class="sec"><td colspan="9">${r.sec}${r.sub?`<small>${r.sub}</small>`:''}</td></tr>`;return;}
+ h+=`<tr class="${r.focus?'focus':''}"><td><span class="qn ${r.carry?'c':''}">${r.n}</span></td><td><span class="pn">${r.name}</span><span class="wa" title="WhatsApp">W</span><div class="sub">${r.kp}</div></td><td style="white-space:nowrap">${r.arr}</td><td>${r.doc}</td><td>${r.pay}${r.note?`<div class="sub">${r.note}</div>`:''}</td><td><div class="clamp">${r.notes}</div></td><td>${dur(r)}</td><td><div class="chips">${r.st.map(s=>chip(s[0],s[1])).join('')}</div></td><td style="text-align:right;white-space:nowrap"><span class="menuwrap"><button class="btn icon" aria-label="Actions">…</button>${r.menu?menu:''}</span></td></tr>`;
+});
+h+='</tbody></table>';
+document.getElementById('deskTbl').innerHTML=h;
+// cards
+let c='';
+rows.forEach(r=>{
+ if(r.sec){c+=`<div class="sechd"><span>${r.sec}</span></div>${r.sub?`<p class="sub">${r.sub}</p>`:''}`;return;}
+ c+=`<div class="card"><div class="top"><span class="qn ${r.carry?'c':''}">${r.n}</span><span class="chips" style="justify-content:flex-end">${r.st.map(s=>chip(s[0],s[1])).join('')}</span></div>
+ <div class="r" style="padding-top:0"><span class="pn" style="font-size:16px;color:var(--fg)">${r.name}<span class="wa">W</span></span><span class="sub">${r.kp}</span></div>
+ <div class="r"><span>Wait</span><span>${dur(r)}</span></div>
+ <div class="r"><span>Arrived</span><span>${r.arr}</span></div>
+ <div class="r"><span>Doctor</span><span>${r.doc}</span></div>
+ <div class="r"><span>Payment</span><span>${r.pay}${r.note?`<div class="sub">${r.note}</div>`:''}</span></div>
+ <div class="r"><span>Visit notes</span><span class="sub" style="color:var(--fg)">${r.notes}</span></div>
+ <div class="act"><button class="btn ${r.serving?'':'primary'}" ${r.held||r.st.some(s=>s[1].startsWith('Not ready'))?'disabled':''}>${r.serving?'Open Consultation':r.held?'Resume in consultation':'Call In'}</button><button class="btn icon" aria-label="Actions">…</button></div></div>`;
+});
+document.getElementById('cardList').innerHTML=c;
+</script>
+</body>
+</html>
