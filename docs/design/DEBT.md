@@ -90,6 +90,7 @@ own PR and tells B.E.R.N.I.S.S (formerly LUCY). See [REVIEW.md](REVIEW.md) for h
 | DD-78 | Patient details (V2): the Merge panel and Change history are V2 copies/wrappers of Classic components | Time-boxed: the wrapped parts keep Classic logic; the deeper merge restyle moves to the Patient merges page (page 6 of the Patients area) | 18 | Patients and Registration | Minor | Patient details V2 review (2026-11-13) | Open |
 | DD-79 | Native time inputs in V2 forms (Roster opening hours, Add shift) | Native time boxes show "--:-- --" and the browser's clock icon; replace with a shared V2 time field with a plain echo ("= 8:00 AM") | 19 | Staff Experience (shared component) | Minor | HR V2 Roster review (2026-11-13) | Open |
 | DD-80 | Me home (V2 shell, UX-24 part 1): peach-to-blue hero gradient and four pastel tiles (leave blue, claims pink, roster green, attendance yellow) | Pastel fills break the V2 look (cobalt on bluish grey, colour only for status); use neutral cards with a cobalt icon and a quiet hero with no gradient; do not copy the pastel tile pattern to any other page | 20 | Staff Experience / HR (Me home content) | Minor | UX-24 review (2026-11-13) | Open |
+| DD-83 | Classic-look selects and panels inside Version 2 settings pages: Registration type and Branch (Business details), Order unit and Category (Clinical services), Branch and Assignment type (Staff detail assignment dialog), and the Classic Consultation tariff panel (two filled buttons at 1440 px) | Time-boxed: move the selects to V2Picker (#679) and build the tariff panel on V2MoneyInput in a closed disclosure with an outline save; Billing's refund form is tracked separately by Billing | 18 | Catalogue & settings / Staff Experience | Minor | BV2-1, Business details and Clinical services reviews (2026-11-13) | Open |
 
 ## Not debt (out of scope, owner-approved)
 
@@ -145,3 +146,5 @@ receipt and drug-label print layouts.
 - 2026-11-13: DD-74 marked Fixed (#640, merged in batch #648 as cbad21a).
 - 2026-11-13: DD-78 (Patient details V2 wrapped Merge and Change history) and DD-79 (native time inputs in V2 forms) added, both time-boxed.
 - 2026-11-13: DD-80 added (Me home pastel tiles and hero gradient in the V2 shell); fix with the Me page's own PR or UX-24 part 2.
+- 2026-11-13: DD-83 added (Classic-look selects and the Classic tariff panel inside V2 settings pages, time-boxed to V2Picker and V2MoneyInput). DD-81 and DD-82 are Billing's (the Classic refund form and its two overlapping explainers inside V2 Billing), recorded by the Billing team.
+- 2026-11-13: batch 14 (#683) merged, including DD-80.
