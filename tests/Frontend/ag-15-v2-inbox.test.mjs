@@ -10,7 +10,7 @@ test('the V2 approval inbox is registered and keeps the Classic routes, payload 
     const v2 = read('resources/js/pages/Agents/V2/Inbox.vue');
     assert.match(v2, /\/agents\/inbox\/\$\{current\.proposal\.id\}\/\$\{current\.action\}/);
     assert.match(v2, /lock_version: current\.proposal\.lockVersion, reason/);
-    assert.match(v2, /AI agents suggest; you decide\. Approving records the/);
+    assert.match(v2, /AI agents suggest; you decide\. Approving only records your/);
     assert.match(v2, /data-test="inbox-notice"/);
     assert.match(v2, /PER_PAGE = 20/);
 });

@@ -72,6 +72,7 @@ const deciding = ref<{
 } | null>(null);
 const processing = ref(false);
 const error = ref('');
+const refused = ref(false);
 const open = (proposal: ProposalRow, action: 'approve' | 'reject') => {
     deciding.value = { proposal, action };
     error.value = '';
@@ -81,6 +82,13 @@ const dialogOpen = computed({
     set: (value: boolean) => {
         if (!value) {
             deciding.value = null;
+
+            if (refused.value) {
+                refused.value = false;
+                router.reload({
+                    only: ['proposals', 'counts', 'pagination'],
+                });
+            }
         }
     },
 });
@@ -116,11 +124,10 @@ const submit = (reason: string | null) => {
                     deciding.value = { ...deciding.value, proposal: fresh };
                 }
 
-                error.value =
-                    errors.reason ??
-                    errors.lock_version ??
-                    errors.status ??
-                    'This decision was not saved.';
+                refused.value = Boolean(errors.lock_version ?? errors.status);
+                error.value = refused.value
+                    ? 'Someone has already decided this, or it changed meanwhile. The list was updated.'
+                    : (errors.reason ?? 'This decision was not saved.');
             },
             onFinish: () => {
                 processing.value = false;
@@ -140,15 +147,53 @@ const decidedLine = (proposal: ProposalRow) =>
     `${proposal.status === 'approved' ? 'Approved' : proposal.status === 'rejected' ? 'Rejected' : 'Closed'} by ${proposal.decidedBy ?? 'a staff member'} · ${formatDateTime(proposal.decidedAt)}`;
 const lineValue = (proposal: ProposalRow, label: string) =>
     proposal.lines.find((line) => line.label === label)?.value ?? null;
-const headline = (proposal: ProposalRow) => lineValue(proposal, 'Item');
+// "Paracetamol (DEMO-PARA500)": the name is the heading, the code a muted line under it.
+const itemParts = (proposal: ProposalRow) => {
+    const item = lineValue(proposal, 'Item');
+    const match = item === null ? null : /^(.*) \(([^()]+)\)$/.exec(item);
+
+    return match
+        ? { name: match[1], code: match[2] }
+        : { name: item, code: null };
+};
 const place = (proposal: ProposalRow) => lineValue(proposal, 'Location');
-const detailLines = (proposal: ProposalRow) =>
-    proposal.lines.filter(
-        (line) => line.label !== 'Item' && line.label !== 'Location',
+// "120 tablet" reads "120 tablets"; a count of 1 stays as it is.
+const pluralise = (text: string) =>
+    text.replace(
+        /\b(\d+(?:\.\d+)?) ([a-z]{4,})\b/g,
+        (whole, count: string, unit: string) =>
+            Number(count) === 1 || unit.endsWith('s')
+                ? whole
+                : `${count} ${unit}s`,
     );
-// Staff-readable values: an ISO date reads "20 Jan 2027", a code reads as a name.
-const shown = (value: string) =>
-    /^\d{4}-\d{2}-\d{2}$/.test(value) ? formatDate(value) : plainValue(value);
+const detailLines = (proposal: ProposalRow) => {
+    const lines = proposal.lines.filter(
+        (line) =>
+            line.label !== 'Item' &&
+            line.label !== 'Location' &&
+            line.label !== 'Days left',
+    );
+    const days = lineValue(proposal, 'Days left');
+
+    return lines.map((line) =>
+        line.label === 'Expires' && days !== null
+            ? {
+                  label: line.label,
+                  value: `${line.value}\u0000${Number(days) < 0 ? `${Math.abs(Number(days))} days ago` : `${days} days left`}`,
+              }
+            : line,
+    );
+};
+// Staff-readable values: an ISO date reads "20 Jan 2027", a code reads as a name, "120 tablet" as "120 tablets".
+const shown = (value: string) => {
+    const [first, extra] = value.split('\u0000');
+    const text = /^\d{4}-\d{2}-\d{2}$/.test(first)
+        ? formatDate(first)
+        : pluralise(plainValue(first));
+
+    return extra ? `${text} · ${extra}` : text;
+};
+const labelShown = (label: string) => pluralise(label);
 const outline =
     'inline-flex h-11 flex-1 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:flex-none lg:h-9';
 </script>
@@ -165,9 +210,14 @@ const outline =
                     class="text-[15px] leading-[22px] text-muted-foreground"
                     data-test="inbox-notice"
                 >
-                    AI agents suggest; you decide. Approving records the
-                    decision only: nothing in stock changes. Act on an approved
-                    suggestion from the Inventory screens.
+                    AI agents suggest; you decide. Approving only records your
+                    decision. It changes nothing in stock.
+                </p>
+                <p
+                    v-if="tab === 'approved'"
+                    class="text-[13px] leading-[18px] text-muted-foreground"
+                >
+                    Act on an approved suggestion from the Inventory screens.
                 </p>
 
                 <V2Tabs
@@ -216,14 +266,22 @@ const outline =
                                 >
                             </p>
                             <p
-                                v-if="headline(proposal)"
-                                class="text-sm leading-5 font-medium break-words"
+                                v-if="itemParts(proposal).name"
+                                class="text-sm leading-5 break-words"
                             >
-                                {{ headline(proposal) }}
+                                <span class="font-medium">{{
+                                    itemParts(proposal).name
+                                }}</span>
                                 <span
-                                    v-if="place(proposal)"
-                                    class="block font-normal text-muted-foreground"
-                                    >{{ place(proposal) }}</span
+                                    v-if="
+                                        itemParts(proposal).code || place(proposal)
+                                    "
+                                    class="block text-muted-foreground"
+                                    >{{
+                                        [itemParts(proposal).code, place(proposal)]
+                                            .filter(Boolean)
+                                            .join(' · ')
+                                    }}</span
                                 >
                             </p>
                             <dl
@@ -234,7 +292,7 @@ const outline =
                                     :key="line.label"
                                 >
                                     <dt class="text-muted-foreground">
-                                        {{ line.label }}
+                                        {{ labelShown(line.label) }}
                                     </dt>
                                     <dd class="min-w-0 text-right break-words">
                                         {{ shown(line.value) }}
@@ -249,6 +307,14 @@ const outline =
                                 <template v-if="proposal.reason">
                                     · Reason: {{ proposal.reason }}
                                 </template>
+                            </p>
+                            <p
+                                v-if="proposal.status === 'pending' && !proposal.canDecide"
+                                :id="`why-${proposal.id}`"
+                                class="text-[13px] leading-[18px] text-muted-foreground"
+                                data-test="cannot-decide"
+                            >
+                                You cannot decide this one: you may only see it, or you started the run that made it. Someone else must decide.
                             </p>
                             <div
                                 v-if="proposal.canDecide"
@@ -293,7 +359,7 @@ const outline =
         :description="
             deciding?.action === 'reject'
                 ? 'Say briefly why. Do not enter patient details.'
-                : 'Approving records your decision only. Nothing in stock changes.'
+                : 'This records your decision. It does not change stock.'
         "
         :confirm-label="deciding?.action === 'reject' ? 'Reject' : 'Approve'"
         :tone="deciding?.action === 'reject' ? 'danger' : 'default'"
