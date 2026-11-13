@@ -197,14 +197,17 @@ final class TreatmentUsageService
             ->when($needle, fn ($q) => $q->where(fn ($w) => $w->where('s.sku_code', 'ilike', $needle)->orWhere('i.generic_name', 'ilike', $needle)->orWhere('b.batch_number', 'ilike', $needle)->orWhere('u.usage_number', 'ilike', $needle)))
             ->orderByDesc('u.id')
             ->paginate(25, ['u.id', 'u.usage_number', 'u.kind', 'u.reason', 'u.quantity', 'u.base_unit', 'u.recorder_user_id', 'u.created_at', 's.sku_code', 'i.generic_name as item_name',
-                'b.batch_number', 'b.expiry_date', 'l.name as location', 'room.name as room', 'r.id as reversal_id', 'r.reason as reversal_reason', 'r.actor_user_id as reversed_by', 'r.created_at as reversed_at'], 'page', (int) ($data['page'] ?? 1));
+                'b.batch_number', 'b.expiry_date', 'l.name as location', 'room.name as room', 'r.id as reversal_id', 'r.reason as reversal_reason', 'r.actor_user_id as reversed_by', 'r.created_at as reversed_at',
+                // V2 page 4 (Daniel): whether reverse() would refuse because a governed count or write-off was posted for
+                // this batch here since the entry; the same rule as reverse(), read only, so the row can say so before the press.
+                DB::raw("EXISTS (SELECT 1 FROM stock_movements m WHERE m.organisation_id = u.organisation_id AND m.reference_type = 'inventory_governed_case' AND m.id > u.movement_id AND m.inventory_sku_id = u.inventory_sku_id AND m.inventory_batch_id = u.inventory_batch_id AND (m.source_location_id = u.inventory_location_id OR m.destination_location_id = u.inventory_location_id)) AS later_governed")], 'page', (int) ($data['page'] ?? 1));
         $local = fn (?string $at): ?string => $at === null ? null : CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('j M Y, g:i A');
         // TIDY-4: who recorded and who reversed, in words (BIL-2 staff-visibility rule), not ids.
         $name = app(InventoryStaffNames::class)->resolver($actor, [...collect($entries->items())->pluck('recorder_user_id'), ...collect($entries->items())->pluck('reversed_by')]);
         $rows = array_map(function (stdClass $row) use ($actor, $canReverse, $local, $name): array {
             $mine = (int) $row->recorder_user_id === $actor->id;
 
-            return [...(array) $row, 'recordedAt' => $local($row->created_at), 'reversedAt' => $local($row->reversed_at), 'recordedByYou' => $mine, 'recorded_by_name' => $name($row->recorder_user_id), 'reversed_by_name' => $name($row->reversed_by),
+            return [...(array) $row, 'later_governed' => (bool) $row->later_governed, 'recordedAt' => $local($row->created_at), 'reversedAt' => $local($row->reversed_at), 'recordedByYou' => $mine, 'recorded_by_name' => $name($row->recorder_user_id), 'reversed_by_name' => $name($row->reversed_by),
                 'canReverse' => $canReverse && $row->reversal_id === null && ! $mine];
         }, $entries->items());
 
