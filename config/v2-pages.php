@@ -37,5 +37,6 @@ return [
         'Staff/Index',
         'Staff/Show',
         'Staff/Create',
+        'Staff/Edit',
     ],
 ];
