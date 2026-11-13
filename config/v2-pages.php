@@ -38,6 +38,8 @@ return [
         'InventoryServicesSettings/MedicineDetails',
         'RegistrationSettings/Index',
         'ConsultationSettings/Index',
+        'Pricing/PriceCheck',
+        'Pricing/PriceHistory',
         'Staff/Show',
         'Staff/Create',
         'Staff/Edit',
