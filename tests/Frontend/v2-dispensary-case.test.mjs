@@ -173,13 +173,26 @@ test('no second filled button: every Button is outline or ghost, and both scan b
     );
 });
 
-test('the reason Complete is blocked shows in the summary and, on phones, above the bar', () => {
+test('the reason Complete is blocked is tied to both buttons, and on phones sits in the bar under the button (Hakim)', () => {
+    assert.match(template(v2), /id="dispensary-complete-blocked-reason"/);
+    assert.match(template(v2), /id="dispensary-complete-blocked-reason-phone"/);
+    assert.match(template(v2), /:aria-describedby="primaryDescribedBy"/);
+    assert.match(template(v2), /:aria-describedby="primaryBarDescribedBy"/);
+    const bar = template(v2).slice(
+        template(v2).indexOf('<V2StickyBar'),
+        template(v2).indexOf('</V2StickyBar>'),
+    );
+    assert.ok(bar.includes('dispensary-complete-blocked-reason-phone'));
+});
+
+test('an error is brought into view and focused; the Verify dialog stays open while completing (Hakim)', () => {
     assert.match(
         template(v2),
-        /data-testid="dispensary-complete-blocked-reason"/,
+        /ref="actionErrorRef"\s+role="alert"\s+tabindex="-1"/,
     );
     assert.match(
-        template(v2),
-        /v-if="primaryAction === 'complete' && completeBlockedReason"\s+class="text-\[13px\] text-muted-foreground sm:hidden"/,
+        v2,
+        /scrollIntoView\(\{\s+block: 'center',\s+behavior: reduce \? 'auto' : 'smooth',/,
     );
+    assert.match(v2, /\(confirming = open \|\| completing\)/);
 });

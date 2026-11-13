@@ -1323,6 +1323,20 @@ const callNeedsRoom = computed(
 // Phones: Call patient, Return to Doctor and Print all labels go in an "Actions" menu (Daniel, condition 2).
 const actionGroups = computed<RowMenuGroup[]>(() => {
     const groups: RowMenuGroup[] = [];
+
+    if (props.dispensary.can.return) {
+        groups.push({
+            label: 'Move',
+            items: [
+                {
+                    id: 'return',
+                    label: 'Return to Doctor',
+                    allowed: !busy.value,
+                },
+            ],
+        });
+    }
+
     const call = [];
 
     if (props.dispensary.tvCall?.canCall) {
@@ -1353,19 +1367,6 @@ const actionGroups = computed<RowMenuGroup[]>(() => {
         });
     }
 
-    if (props.dispensary.can.return) {
-        groups.push({
-            label: 'Case',
-            items: [
-                {
-                    id: 'return',
-                    label: 'Return to Doctor',
-                    allowed: !busy.value,
-                },
-            ],
-        });
-    }
-
     return groups;
 });
 const onAction = (id: string) => {
@@ -1384,6 +1385,36 @@ const otcOptions = [
     { value: 'none', label: 'Patient reports no allergy' },
     { value: 'has_allergy', label: 'Patient reports an allergy' },
 ];
+// Hakim: an error can appear far above the sticky bar on a phone; bring it into view and focus it.
+const actionErrorRef = ref<HTMLElement | null>(null);
+watch(actionError, (message) => {
+    if (!message) {
+        return;
+    }
+
+    void nextTick(() => {
+        const reduce = window.matchMedia?.(
+            '(prefers-reduced-motion: reduce)',
+        ).matches;
+
+        actionErrorRef.value?.scrollIntoView({
+            block: 'center',
+            behavior: reduce ? 'auto' : 'smooth',
+        });
+        actionErrorRef.value?.focus({ preventScroll: true });
+    });
+});
+// Hakim: tie the reason Complete is blocked to the button, for screen readers.
+const primaryDescribedBy = computed(() =>
+    primaryAction.value === 'complete' && completeBlockedReason.value
+        ? 'dispensary-complete-blocked-reason'
+        : undefined,
+);
+const primaryBarDescribedBy = computed(() =>
+    primaryAction.value === 'complete' && completeBlockedReason.value
+        ? 'dispensary-complete-blocked-reason-phone'
+        : undefined,
+);
 const outlineButton =
     'inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 lg:h-9';
 const filledButton =
@@ -1656,8 +1687,10 @@ const filledButton =
 
                 <p
                     v-if="actionError"
+                    ref="actionErrorRef"
                     role="alert"
-                    class="rounded-[10px] border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+                    tabindex="-1"
+                    class="rounded-[10px] border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 >
                     {{ actionError }}
                 </p>
@@ -2715,23 +2748,28 @@ const filledButton =
                     </div>
                 </section>
 
-                <p
-                    v-if="primaryAction === 'complete' && completeBlockedReason"
-                    class="text-[13px] text-muted-foreground sm:hidden"
-                    data-testid="dispensary-complete-blocked-reason-phone"
-                >
-                    {{ completeBlockedReason }}
-                </p>
                 <V2StickyBar v-if="primaryAction">
                     <button
                         type="button"
                         :class="filledButton"
                         :aria-disabled="primaryDisabled"
+                        :aria-describedby="primaryBarDescribedBy"
                         data-testid="dispensary-primary-bar"
                         @click="runPrimary"
                     >
                         {{ primaryLabel }}
                     </button>
+                    <p
+                        v-if="
+                            primaryAction === 'complete' &&
+                            completeBlockedReason
+                        "
+                        id="dispensary-complete-blocked-reason-phone"
+                        class="mt-2 !h-auto text-[13px] text-muted-foreground"
+                        data-testid="dispensary-complete-blocked-reason-phone"
+                    >
+                        {{ completeBlockedReason }}
+                    </p>
                 </V2StickyBar>
             </template>
             <template #rail>
@@ -2741,6 +2779,7 @@ const filledButton =
                         type="button"
                         :class="filledButton"
                         :aria-disabled="primaryDisabled"
+                        :aria-describedby="primaryDescribedBy"
                         data-testid="dispensary-primary"
                         @click="runPrimary"
                     >
@@ -2801,6 +2840,7 @@ const filledButton =
                             primaryAction === 'complete' &&
                             completeBlockedReason
                         "
+                        id="dispensary-complete-blocked-reason"
                         class="!h-auto text-[13px] text-muted-foreground"
                         data-testid="dispensary-complete-blocked-reason"
                     >
@@ -2821,7 +2861,7 @@ const filledButton =
             :confirm-label="completing ? 'Completing…' : 'Confirm and complete'"
             :busy="completing"
             data-testid="dispensary-verify"
-            @update:open="(open: boolean) => (confirming = open)"
+            @update:open="(open: boolean) => (confirming = open || completing)"
             @confirm="confirmComplete"
         >
             <div class="flex flex-col gap-3 text-sm">
