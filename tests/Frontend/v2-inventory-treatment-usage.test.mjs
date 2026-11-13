@@ -79,7 +79,7 @@ test("page 4: Daniel's checks (sentence, one action, no over-on-hand, reverse na
     assert.match(template, /of \{\{ activeEntry\.item_name \}\} back into/);
     assert.match(template, /An entry can be reversed once\./);
     // An unusable batch points to Write-off instead of Record, in words.
-    assert.match(template, /href="\/inventory\/writeoffs"/);
+    assert.match(template, /\/inventory\/writeoffs\?q=/);
     assert.match(template, /ineligibleBatchLabels\[/);
     // One sheet, one filled action, dirty guard on Record; staff fall back to "Staff member".
     assert.equal((template.match(/<V2Dialog/g) ?? []).length, 1);
@@ -87,4 +87,42 @@ test("page 4: Daniel's checks (sentence, one action, no over-on-hand, reverse na
     assert.match(page, /row\.recorded_by_name \?\?\s+'Staff member'/);
     // Multi-line cells stack on cards.
     assert.match(page, /:deep\(\.v2-cards-xl td\[data-stack\]\)/);
+});
+
+test("page 4: Daniel's plan additions (reverse-only view, privacy, blocked reversal, Write-off link)", () => {
+    // A reverse-only person sees no Record section, and Entries opens for them, so the page never starts empty.
+    assert.match(template, /<section\s+v-if="usage\.canRecord"/);
+    assert.match(template, /:default-open="wide \|\| !usage\.canRecord"/);
+    // 1) Privacy: the sheet has no free-text box; the quantity is the only typed field, and nothing is a textarea.
+    const sheet = template.slice(template.indexOf('<V2Dialog'));
+    assert.equal((sheet.match(/<input\b/g) ?? []).length, 1);
+    assert.match(sheet, /<input\s+v-model="form\.quantity"/);
+    assert.ok(!/<textarea\b/.test(template));
+    // 2) A later governed count or write-off blocks the reversal: the row says so instead of offering Reverse.
+    assert.match(
+        template,
+        /A later stock count or\s+write-off came after this entry,\s+so it cannot be reversed\s+here\./,
+    );
+    assert.match(template, /row\.canReverse &&\s+!laterGoverned\(row\)/);
+    assert.match(block(page, 'laterGoverned'), /later_governed\?:boolean/);
+    // An entry already reversed keeps its line (it comes first).
+    assert.ok(
+        template.indexOf('The stock was put') <
+            template.indexOf('A later stock count or'),
+    );
+    // 4) Use Write-off opens page 3's write-off mode with the batch searched.
+    assert.match(
+        template,
+        /:href="`\/inventory\/writeoffs\?q=\$\{encodeURIComponent\(row\.batch_number\)\}`"/,
+    );
+    // 3) The over-on-hand figure comes from the row the sheet opened from.
+    assert.match(
+        block(page, 'overOnHand'),
+        /consthave=transferQuantityThousandths\(row\.on_hand\)/,
+    );
+    // 5) Reverse: the box is neutral; only the confirm button is destructive.
+    assert.match(
+        sheet,
+        /<p class="rounded-\[14px\] border bg-muted\/40 px-4 py-3 text-sm">\s+Puts/,
+    );
 });

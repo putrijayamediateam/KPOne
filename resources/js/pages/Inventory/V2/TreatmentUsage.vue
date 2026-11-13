@@ -317,6 +317,9 @@ const errorList = computed(() =>
         Boolean(message),
     ),
 );
+/** A governed count or write-off came after the entry here, so the server would refuse the reversal (Daniel, page 4). */
+const laterGoverned = (row: EntryRow) =>
+    (row as { later_governed?: boolean }).later_governed === true;
 const kindChip = (row: EntryRow) =>
     row.reversal_id
         ? { tone: 'neutral' as const, label: 'Reversed' }
@@ -478,7 +481,7 @@ const wide =
                                             "
                                         />
                                         <Link
-                                            href="/inventory/writeoffs"
+                                            :href="`/inventory/writeoffs?q=${encodeURIComponent(row.batch_number)}`"
                                             class="inline-flex h-11 items-center text-sm font-medium whitespace-nowrap text-primary hover:underline lg:h-9"
                                             >Use Write-off</Link
                                         >
@@ -632,6 +635,15 @@ const wide =
                                                 back.</span
                                             >
                                             <span
+                                                v-else-if="laterGoverned(row)"
+                                                class="block text-xs font-medium text-warning-strong"
+                                                data-testid="reverse-blocked"
+                                                >A later stock count or
+                                                write-off came after this entry,
+                                                so it cannot be reversed
+                                                here.</span
+                                            >
+                                            <span
                                                 v-else-if="
                                                     usage.canReverse &&
                                                     row.recordedByYou
@@ -644,7 +656,10 @@ const wide =
                                     </td>
                                     <td data-label="Action">
                                         <button
-                                            v-if="row.canReverse"
+                                            v-if="
+                                                row.canReverse &&
+                                                !laterGoverned(row)
+                                            "
                                             type="button"
                                             class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap text-destructive hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
                                             :aria-label="`Reverse ${row.usage_number}`"
@@ -757,9 +772,7 @@ const wide =
 
             <!-- Reverse: names the entry, then why. -->
             <template v-if="operation === 'reverse' && activeEntry">
-                <p
-                    class="rounded-[14px] border border-destructive/40 bg-destructive/5 px-4 py-3 text-sm"
-                >
+                <p class="rounded-[14px] border bg-muted/40 px-4 py-3 text-sm">
                     Puts
                     {{
                         quantityWithUnit(
