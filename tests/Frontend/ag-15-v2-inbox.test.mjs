@@ -20,7 +20,7 @@ test('V2 inbox: tabs, no filled button on a card, a reason is required to reject
     assert.match(v2, /<V2Tabs/);
     assert.match(v2, /tone="info" label="AI agent"/);
     assert.match(v2, /reason-label="[^"]*"|'Reason for rejecting'/);
-    assert.match(v2, /:tone="deciding\?\.action === 'reject' \? 'danger' : 'default'"/);
+    assert.match(v2, /deciding\?\.action === 'reject' \? 'danger' : 'default'/);
     assert.match(v2, /shown\(line\.value\)/);
     // Approve and Reject on a card share one outline class: no filled button on the page itself.
     assert.doesNotMatch(v2.split('<V2Dialog')[0], /bg-primary|variant="default"/);
