@@ -71,7 +71,7 @@ test('no native confirm or select and one filled button outside dialogs', () => 
     assert.ok(!/(^|[^\w@'.])confirm\(/.test(code));
     assert.ok(!/<select\b/.test(page + merge));
     // The only bg-primary button on the page is Edit patient (and the dialog confirms are inside V2Dialog).
-    assert.equal((page.match(/bg-primary(?!\/)/g) ?? []).length, 1);
+    assert.equal((page.match(/\bbg-primary\b(?!\/)/g) ?? []).length, 1);
     assert.ok(!/\bbg-primary\b(?!\/)/.test(merge));
 });
 
