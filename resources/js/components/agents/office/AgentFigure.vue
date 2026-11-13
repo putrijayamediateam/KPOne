@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import type { Avatar, FeedAgent } from './office-layout';
-import { LIGHT_COLOURS, LIGHT_LABELS } from './office-layout';
+import {
+    BUBBLE_GAP_PX,
+    LIGHT_COLOURS,
+    LIGHT_LABELS,
+    tagBottom,
+    tagBox,
+    tagName,
+} from './office-layout';
 
 const props = defineProps<{
     agent: FeedAgent;
@@ -12,6 +19,12 @@ const props = defineProps<{
     walking: boolean;
     selected: boolean;
     bubble: string | null;
+    /** Version 2 look: the readable tag, its AI agent chip, leader line and bigger bubble. Classic keeps the old tag. */
+    v2?: boolean;
+    tagScale?: number;
+    tagDx?: number;
+    tagDy?: number;
+    showRole?: boolean;
 }>();
 
 const emit = defineEmits<{ select: [code: string] }>();
@@ -44,6 +57,30 @@ const tagWidth = computed(() =>
 );
 const bubbleWidth = computed(() =>
     props.bubble ? Math.min(210, props.bubble.length * 5.3 + 18) : 0,
+);
+const f = computed(() => props.tagScale ?? 1);
+const box = computed(() =>
+    tagBox(props.agent.displayName, props.showRole ?? false),
+);
+const roleText = computed(() =>
+    props.agent.jobTitle.replace(/ \(AI agent\)$/, ''),
+);
+const chipText = computed(() =>
+    props.agent.isEnabled ? 'AI agent' : 'AI agent · Off',
+);
+const chipWidth = computed(() => chipText.value.length * 6.4 + 18);
+/** The tag is drawn at its real pixel size: its group is scaled by 1 / scene scale, anchored at its bottom centre. */
+const tagTransform = computed(
+    () =>
+        `translate(${props.tagDx ?? 0} ${tagBottom(props.seated, f.value) + (props.tagDy ?? 0)}) scale(${f.value})`,
+);
+const bubbleWidthV2 = computed(() =>
+    props.bubble ? Math.min(240, props.bubble.length * 6.6 + 22) : 0,
+);
+/** The bubble floats BUBBLE_GAP_PX above the tag's top edge, its tail pointing down at the agent's desk. */
+const bubbleTransform = computed(
+    () =>
+        `translate(${props.tagDx ?? 0} ${tagBottom(props.seated, f.value) + (props.tagDy ?? 0) - (box.value.h + BUBBLE_GAP_PX) * f.value}) scale(${f.value})`,
 );
 const label = computed(
     () =>
@@ -272,57 +309,162 @@ const pants = '#334155';
             </g>
         </g>
 
-        <!-- Name tag: always says "AI agent". -->
-        <g
-            class="tag"
-            :transform="`translate(${-tagWidth / 2} ${seated ? -84 : -93})`"
-        >
-            <rect
-                class="tag-bg"
-                x="0"
-                y="0"
-                :width="tagWidth"
-                height="27"
-                rx="7"
+        <template v-if="v2">
+            <line
+                v-if="(tagDy ?? 0) < -4 || Math.abs(tagDx ?? 0) > 4"
+                class="tag-leader"
+                :x1="tagDx ?? 0"
+                :y1="tagBottom(seated, f) + (tagDy ?? 0)"
+                x2="0"
+                :y2="seated ? -49 : -60"
             />
-            <circle
-                class="light"
-                :class="{ pulse: agent.isEnabled && agent.light !== 'grey' }"
-                cx="10"
-                cy="10"
-                r="4"
-                :fill="agent.isEnabled ? LIGHT_COLOURS[agent.light] : '#64748b'"
-            />
-            <text class="tag-name" x="19" y="13.5">{{
-                agent.displayName
-            }}</text>
-            <text class="tag-sub" x="19" y="23">
-                {{ agent.isEnabled ? 'AI agent' : 'AI agent · Off' }}
-            </text>
-        </g>
 
-        <!-- The agent's newest message. -->
-        <g v-if="bubble" :transform="`translate(-24 ${seated ? -114 : -123})`">
-            <g class="bubble">
+            <!-- Name tag: the name on one line, the role (not on phones) and the AI agent chip on its own row. -->
+            <g
+                class="tag tag-v2"
+                :transform="tagTransform"
+                :data-test="`office-tag-${agent.code}`"
+            >
                 <rect
+                    class="tag-bg"
+                    :x="-box.w / 2"
+                    :y="-box.h"
+                    :width="box.w"
+                    :height="box.h"
+                    rx="9"
+                />
+                <circle
+                    class="light"
+                    :class="{
+                        pulse: agent.isEnabled && agent.light !== 'grey',
+                    }"
+                    :cx="-box.w / 2 + 14"
+                    :cy="-box.h + 16"
+                    r="4.5"
+                    :fill="
+                        agent.isEnabled ? LIGHT_COLOURS[agent.light] : '#64748b'
+                    "
+                />
+                <text
+                    class="tag-name"
+                    :x="-box.w / 2 + 26"
+                    :y="-box.h + 21"
+                    data-test="office-tag-name"
+                    >{{ tagName(agent.displayName) }}</text
+                >
+                <text
+                    v-if="showRole ?? false"
+                    class="tag-sub"
+                    :x="-box.w / 2 + 26"
+                    :y="-box.h + 38"
+                    >{{
+                        roleText.length > 22
+                            ? `${roleText.slice(0, 21)}…`
+                            : roleText
+                    }}</text
+                >
+                <g :transform="`translate(${-box.w / 2 + 10} ${-24})`">
+                    <rect
+                        class="tag-chip"
+                        x="0"
+                        y="0"
+                        :width="chipWidth"
+                        height="18"
+                        rx="9"
+                    />
+                    <text
+                        class="tag-chip-text"
+                        :x="chipWidth / 2"
+                        y="12.5"
+                        text-anchor="middle"
+                        >{{ chipText }}</text
+                    >
+                </g>
+            </g>
+
+            <!-- The agent's newest message, 12 px above the tag, its tail pointing at the agent. -->
+            <g v-if="bubble" :transform="bubbleTransform">
+                <g class="bubble bubble-v2">
+                    <rect
+                        :x="-bubbleWidthV2 / 2"
+                        y="-31"
+                        :width="bubbleWidthV2"
+                        height="25"
+                        rx="12"
+                        class="bubble-bg"
+                    />
+                    <path d="M-5 -6.5 L0 0 L5 -6.5 Z" class="bubble-bg" />
+                    <text
+                        x="0"
+                        y="-14.5"
+                        text-anchor="middle"
+                        class="bubble-text"
+                    >
+                        {{ bubble }}
+                    </text>
+                </g>
+            </g>
+        </template>
+        <template v-else>
+            <!-- Name tag: always says "AI agent". -->
+            <g
+                class="tag"
+                :transform="`translate(${-tagWidth / 2} ${seated ? -84 : -93})`"
+            >
+                <rect
+                    class="tag-bg"
                     x="0"
                     y="0"
-                    :width="bubbleWidth"
-                    height="22"
-                    rx="10"
-                    class="bubble-bg"
+                    :width="tagWidth"
+                    height="27"
+                    rx="7"
                 />
-                <path :d="`M19 21.5 L24 28 L29 21.5 Z`" class="bubble-bg" />
-                <text
-                    :x="bubbleWidth / 2"
-                    y="14.5"
-                    text-anchor="middle"
-                    class="bubble-text"
-                >
-                    {{ bubble }}
+                <circle
+                    class="light"
+                    :class="{
+                        pulse: agent.isEnabled && agent.light !== 'grey',
+                    }"
+                    cx="10"
+                    cy="10"
+                    r="4"
+                    :fill="
+                        agent.isEnabled ? LIGHT_COLOURS[agent.light] : '#64748b'
+                    "
+                />
+                <text class="tag-name" x="19" y="13.5">{{
+                    agent.displayName
+                }}</text>
+                <text class="tag-sub" x="19" y="23">
+                    {{ agent.isEnabled ? 'AI agent' : 'AI agent · Off' }}
                 </text>
             </g>
-        </g>
+
+            <!-- The agent's newest message. -->
+            <g
+                v-if="bubble"
+                :transform="`translate(-24 ${seated ? -114 : -123})`"
+            >
+                <g class="bubble">
+                    <rect
+                        x="0"
+                        y="0"
+                        :width="bubbleWidth"
+                        height="22"
+                        rx="10"
+                        class="bubble-bg"
+                    />
+                    <path :d="`M19 21.5 L24 28 L29 21.5 Z`" class="bubble-bg" />
+                    <text
+                        :x="bubbleWidth / 2"
+                        y="14.5"
+                        text-anchor="middle"
+                        class="bubble-text"
+                    >
+                        {{ bubble }}
+                    </text>
+                </g>
+            </g>
+        </template>
 
         <g
             v-if="mood === 'failed'"
@@ -560,5 +702,29 @@ const pants = '#334155';
     .figure {
         animation: none !important;
     }
+}
+.tag-v2 .tag-name {
+    font-size: 13px;
+}
+.tag-v2 .tag-sub {
+    font-size: 11px;
+}
+.tag-leader {
+    stroke: var(--office-tag-border);
+    stroke-width: 1;
+    stroke-dasharray: 3 3;
+}
+.tag-chip {
+    fill: var(--office-chip);
+    stroke: var(--office-chip-border);
+}
+.tag-chip-text {
+    fill: var(--office-chip-text);
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+.bubble-v2 .bubble-text {
+    font-size: 12px;
 }
 </style>

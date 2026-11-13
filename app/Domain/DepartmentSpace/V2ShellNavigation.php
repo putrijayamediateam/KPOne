@@ -140,6 +140,13 @@ final class V2ShellNavigation
             ? ['key' => $spaces[$currentKey]['key'], 'title' => $spaces[$currentKey]['title'], 'href' => $spaces[$currentKey]['href']]
             : null;
 
+        // Daniel (2026-11-13): pages in the Management space (Staff, Branches, Access control, the settings pages) are the
+        // pages listed on the Clinic management hub, so their crumb reads "Clinic management" and goes back to the hub,
+        // matching its title. The sidebar item and the space home keep "Management".
+        if ($current !== null && $current['key'] === 'management') {
+            $current = ['key' => 'management', 'title' => 'Clinic management', 'href' => route('clinic-management.index', absolute: false)];
+        }
+
         return ['groups' => $groups, 'more' => $more, 'current' => $current];
     }
 

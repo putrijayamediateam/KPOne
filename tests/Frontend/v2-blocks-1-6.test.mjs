@@ -155,12 +155,18 @@ test('V2 muted text reaches 4.5:1 on the muted fill and on the page, light and d
 
 test('V2WorkLayout: railFrom puts the rail beside the main panel from lg or from 2xl, with a collapsed slot below 2xl', () => {
     const s = v2('V2WorkLayout');
-    assert.match(s, /railFrom\?: 'lg' \| '2xl'/);
+    assert.match(s, /railFrom\?: RailFrom/);
+    assert.match(
+        read('resources/js/components/v2/railKey.ts'),
+        /RailFrom = 'lg' \| 'xl' \| '2xl'/,
+    );
+    assert.match(s, /xl:grid-cols-\[minmax\(0,1fr\)_18rem\]/);
     assert.match(s, /2xl:grid-cols-\[minmax\(0,1fr\)_18rem\]/);
     assert.match(s, /hidden 2xl:flex/);
     assert.match(s, /\$slots\['rail-collapsed'\]/);
     assert.match(s, /name="rail-collapsed"/);
-    assert.match(s, /class="2xl:hidden"/);
+    assert.match(s, /'xl:hidden' : '2xl:hidden'/);
+    assert.match(s, /provide\(\s*V2_RAIL_FROM/);
     // The default is unchanged: the rail sits beside the main panel from lg.
     assert.match(s, /railFrom: 'lg'/);
     assert.match(s, /lg:grid-cols-\[minmax\(0,1fr\)_21rem\]/);
@@ -202,4 +208,50 @@ test('V2WorkLayout: eyebrow is a muted line above the title, outside the heading
     assert.match(s, /v-if="eyebrow"/);
     assert.match(s, /text-muted-foreground"\s*>\s*\{\{ eyebrow \}\}/);
     assert.ok(s.indexOf('{{ eyebrow }}') < s.indexOf('<h1'));
+});
+
+test('V2DisclosureBar: keepMounted keeps the panel in the DOM, hidden, while closed', () => {
+    const s = v2('V2DisclosureBar');
+    assert.match(s, /keepMounted\?: boolean/);
+    assert.match(s, /keepMounted: false/);
+    assert.match(s, /v-if="keepMounted \|\| open"/);
+    assert.match(s, /:hidden="!open"/);
+    assert.doesNotMatch(s, /v-show/);
+});
+
+test('V2Table: the empty state cell has no padding and the empty block is never wider than its cell', () => {
+    const s = v2('V2Table');
+    assert.match(s, /<td :colspan="columns" class="!p-0">/);
+    assert.match(s, /sticky left-0 flex min-h-28 max-w-full flex-col/);
+});
+
+test('V2 table cards: the card grid column can shrink (minmax(0, 1fr)), so an empty state cannot widen the page', () => {
+    const css = read('resources/css/v2.css');
+    assert.equal(
+        (css.match(/grid-template-columns: minmax\(0, 1fr\);/g) ?? []).length >=
+            2,
+        true,
+    );
+    assert.match(
+        css,
+        /\.v2-cards-lg tbody \{\s*display: grid;\s*grid-template-columns: minmax\(0, 1fr\);/,
+    );
+    assert.match(
+        css,
+        /\.v2-cards-xl tbody \{\s*display: grid;\s*grid-template-columns: minmax\(0, 1fr\);/,
+    );
+});
+
+test('V2 table cards: only a cell marked data-wrap breaks a long unbreakable value (overflow-wrap: anywhere); ordinary cells never split words or numbers', () => {
+    const css = read('resources/css/v2.css');
+    assert.match(
+        css,
+        /\.v2-cards-lg td\[data-wrap\] \{\s*overflow-wrap: anywhere;/,
+    );
+    assert.match(
+        css,
+        /\.v2-cards-xl td\[data-wrap\] \{\s*overflow-wrap: anywhere;/,
+    );
+    assert.doesNotMatch(css, /\.v2-cards-(lg|xl) td \{\s*overflow-wrap/);
+    assert.match(read('resources/js/components/v2/V2Table.vue'), /data-wrap/);
 });

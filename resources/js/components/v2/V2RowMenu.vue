@@ -27,6 +27,7 @@ export type RowMenuItem = {
     tone?: 'default' | 'danger';
     href?: string;
 };
+/** `label` may be '' for a one-group menu: no heading is rendered then. */
 export type RowMenuGroup = { label: string; items: RowMenuItem[] };
 
 defineProps<{
@@ -84,12 +85,16 @@ const emit = defineEmits<{ select: [id: string] }>();
                 :side-offset="6"
                 class="v2-menu z-50 max-w-[min(20rem,calc(100vw-2rem))] min-w-60 rounded-[14px] border border-border bg-popover p-1.5 text-popover-foreground dark:border-foreground/20"
             >
-                <template v-for="(group, index) in groups" :key="group.label">
+                <template
+                    v-for="(group, index) in groups"
+                    :key="`${index}-${group.label}`"
+                >
                     <DropdownMenuSeparator
                         v-if="index > 0"
                         class="mx-1 my-1.5 h-px bg-border"
                     />
                     <DropdownMenuLabel
+                        v-if="group.label"
                         class="px-2.5 pt-1.5 pb-1 text-xs font-medium text-muted-foreground"
                     >
                         {{ group.label }}
