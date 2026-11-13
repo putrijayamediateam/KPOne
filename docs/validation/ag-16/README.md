@@ -1,6 +1,6 @@
 # AG-16: Version 2 AI agents list, review shots
 
-Code under review: branch `feature/ag-16-v2-agents-list`, head `03528cd9` (cut from `main` 06a407bf). Classic page
+Code under review: branch `feature/ag-16-v2-agents-list`, head `b0a5d63d` (cut from `main` 06a407bf). Classic page
 `Agents/Index.vue` is unchanged.
 
 - Real Version 2 shell, switched on through `SpacePreferenceService` for the demo accounts.
@@ -20,6 +20,14 @@ Code under review: branch `feature/ag-16-v2-agents-list`, head `03528cd9` (cut f
 | 3. Activity table at 1440 and as cards at 390 | `agents-1440-*.jpg`, `agents-390-*.jpg` (and 320, 768, 1024, 1280) |
 | 5. Empty state (no agents and no activity) | `agents-empty-{1440,1024,390}-{light,dark}.jpg` |
 | Earlier full set | `agents-{320,390,768,1024,1280,1440}-{light,dark}.jpg`, `agents-dialog-{390,1440}-{light,dark}.jpg` |
+
+## Second review pass (Daniel's four changes)
+
+1. Activity cards at 390 are now 120 to 142 px tall (was about 270): the branch moved into the task line.
+2. The build agent (Nadia) keeps its button because the server accepts it and the Office then shows it dimmed and "Off".
+   The card line and the dialog say exactly that: `agents-card-build-*.jpg`, `agents-build-dialog-*.jpg`.
+3. Values are left-aligned: labels sit above values on phones and values start at a fixed column from 640 px. No `text-right` remains.
+4. Status chips keep content width in the table (measured 70 to 151 px, not column width).
 
 ## Measured
 
