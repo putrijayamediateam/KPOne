@@ -1,0 +1,1 @@
+Round 2 for V2Dialog (#678). Specimen: tall dialog, 12 fields, dirty. All inputs measured 44 px at 390 and 1440. Contrast from pixels: question line 7.61:1 light / 8.30:1 dark; Discard changes text 6.54:1 light / 8.03:1 dark; title 19.4:1 / 15.1:1.
