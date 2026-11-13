@@ -8,6 +8,7 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Inventory\Models\StockMovement;
 use App\Domain\Organisation\Inventory\Models\StockRequest;
 use App\Domain\Organisation\Inventory\Services\InventoryOperationsDirectoryService;
+use App\Domain\Organisation\Inventory\Services\InventoryPickerService;
 use App\Domain\Organisation\Inventory\Services\StockRequestService as Service;
 use App\Domain\Organisation\Inventory\Services\StockUnitQuantity;
 use App\Domain\Organisation\Models\Branch;
@@ -21,6 +22,7 @@ use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Spatie\Permission\Models\Role;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\TransferShortageFixture;
 
@@ -433,6 +435,41 @@ class TransferShortageTest extends VisitTestCase
             $this->assertStringContainsString('needs exactly one open difference', $e->getMessage());
         }
         $this->assertSame(0, DB::table('inventory_transfer_receipt_lines')->where('stock_request_id', $g['request']->id)->count());
+    }
+
+    public function test_directory_request_lines_name_the_item_and_its_stock_unit(): void
+    {
+        // V2 page 2b (Daniel): a person counting a transfer must see what the item is, not only its SKU code.
+        $g = $this->fixture()->dispatched('4.000');
+        $line = collect(app(InventoryOperationsDirectoryService::class)->directory($g['supervisor'])['stockRequests'])->firstWhere('publicId', $g['request']->public_id)['lines'][0];
+        $item = DB::table('inventory_items')->where('id', $g['sku']->inventory_item_id)->value('generic_name');
+
+        $row = collect(app(InventoryOperationsDirectoryService::class)->directory($g['supervisor'])['stockRequests'])->firstWhere('publicId', $g['request']->public_id);
+        $this->assertSame([$item, $g['sku']->stock_unit, '4.000'], [$line['item'], $line['stockUnit'], $line['dispatchedQuantity']]);
+        $this->assertSame($g['location']->public_id, $row['sourcePublicId']);
+    }
+
+    public function test_batch_picker_says_how_much_of_each_batch_is_at_a_location_of_this_branch(): void
+    {
+        $g = $this->fixture()->dispatched('4.000', '20.000');
+        app(BranchAccessService::class)->select($g['supervisor'], $this->branch);
+        $picker = app(InventoryPickerService::class);
+
+        $here = $picker->choices($g['supervisor'], $this->branch, 'batches', 'operations', sku: $g['sku']->public_id, location: $g['location']->public_id);
+        $row = collect($here)->firstWhere('publicId', $g['batch']->public_id);
+        $this->assertSame('16.000', StockUnitQuantity::format(StockUnitQuantity::scaled((string) $row['onHand'])));
+        // Without a location the rows are as before, with no quantity.
+        $plain = $picker->choices($g['supervisor'], $this->branch, 'batches', 'operations', sku: $g['sku']->public_id);
+        $this->assertArrayNotHasKey('onHand', collect($plain)->firstWhere('publicId', $g['batch']->public_id));
+        $this->assertSame(array_column($plain, 'publicId'), array_column($here, 'publicId'));
+
+        // A location of another branch is not found.
+        $other = new Branch;
+        $other->forceFill(['organisation_id' => $this->branch->organisation_id, 'code' => 'SYN-ONHAND-B', 'name' => 'Synthetic On-hand Branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
+        $elsewhere = $g['destination']->replicate();
+        $elsewhere->forceFill(['public_id' => (string) Str::uuid(), 'branch_id' => $other->id, 'code' => 'ONHAND-'.Str::upper(Str::random(6))])->save();
+        $this->expectException(NotFoundHttpException::class);
+        $picker->choices($g['supervisor'], $this->branch, 'batches', 'operations', sku: $g['sku']->public_id, location: $elsewhere->public_id);
     }
 
     public function test_directory_shows_differences_and_who_may_resolve_without_names(): void

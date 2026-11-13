@@ -80,6 +80,7 @@ test('the dialog is mounted once in each layout', () => {
         'AdminLayout.vue',
         'ClinicLayout.vue',
         'SpacePassThroughLayout.vue',
+        'V2Layout.vue',
     ]) {
         const source = read(`resources/js/layouts/${layout}`);
         assert.equal(
@@ -181,4 +182,12 @@ test('changing the day, branch or tab is a fresh visit, so a shown photo hides a
     const visit = attendance.match(/const visit = [\s\S]*?\);\n/)[0];
     assert.match(visit, /router\.get\(/);
     assert.doesNotMatch(visit, /preserveState/);
+});
+
+test('unmounting the dialog also resets the shared clock photo flow', () => {
+    const unmount = dialog.slice(dialog.indexOf('onBeforeUnmount(() => {'));
+    assert.match(
+        unmount.slice(0, unmount.indexOf('});')),
+        /resetClockPhoto\(\);/,
+    );
 });

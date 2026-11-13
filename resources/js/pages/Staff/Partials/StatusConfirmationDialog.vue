@@ -20,11 +20,16 @@ const props = defineProps<{
 }>();
 const open = ref(false);
 const form = useForm({ is_active: !props.isActive });
-const submit = () =>
-    form.patch(`/staff/${props.staffId}/status`, {
+// The form is made once, but the account's state changes after each save: always send the opposite of what the page
+// shows now (otherwise Activate straight after Deactivate would send "false" again and change nothing).
+const submit = () => {
+    form.is_active = !props.isActive;
+
+    return form.patch(`/staff/${props.staffId}/status`, {
         preserveScroll: true,
         onSuccess: () => (open.value = false),
     });
+};
 </script>
 
 <template>

@@ -25,6 +25,7 @@ Edit visit pages.
 - [ ] Title 24 px on phones and 30 px from 1024 (`V2WorkLayout`). One description line. The crumb sits above the title through
       `PageFrame` / `usePageCrumbs`, never a link row.
 - [ ] A rail only from 1536 px. Below that, the rail content becomes one disclosure bar above the table (Registration: needs attention).
+- [ ] Forms and detail pages with a side column: the rail starts at 1280 px at the earliest (never at 1024: the sidebar leaves the main column too narrow); below it the rail content is the last card of the main column, and the action is the sticky bar at every width below the rail.
 - [ ] Tables become cards below 1280 px when a sidebar is showing. No Actions column pushed out of view at 1024 or 1280.
 - [ ] A phone card is 250 px or less for a normal row. Label and value in two columns, values right-aligned, nothing empty.
       Show a field only when it has something to say (Payment only for Panel).
@@ -63,3 +64,15 @@ Edit visit pages.
 
 The title and gutter, the one filled button, the 1024 and 390 layouts, the menu and dialog states, the words, dark mode, and that
 Classic is untouched. A page that adds a new block, a new rail, a new table pattern, or touches the shared shell is a full review.
+
+## Settings switches
+
+A switch row only changes the form value. The page decides whether it saves at once or with its own Save. A page that saves at once must show a visible result ("Saved"). A switch with a privacy or money effect (for example showing full patient names on the waiting-room TV) needs the page's own confirm dialog that says who sees what or what changes.
+
+## Money, times and dates
+
+A money box states the amount with an RM prefix and shows two decimals after blur; paste rules never guess ("1,25" is refused, not read as 125.00). A read-only price elsewhere on the page groups thousands ("RM 1,250.00"). A disabled price box shows the reason as text. A time field never guesses AM or PM: a bare hour such as "5" is refused with "Add AM or PM" unless the text is clearly 24-hour. Any date that decides access or money shows the chosen date in words under the field ("From 13 Nov 2026"); native "mm/dd/yyyy" boxes are not enough alone.
+
+## Rails and buttons
+
+Inside a rail, never switch layout by viewport width: use a container query or stack the rows (name line, then chips). A name gets the full width of its line and wraps by word. A button's words say what it does ("Show in list"), not a bare "View". A page's one filled action appears exactly once at every width: in the header or in the sticky bar, never both. If the header carries the action from 640 px, the page passes hideFrom so the bar disappears at the same width.

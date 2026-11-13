@@ -220,6 +220,12 @@ const rowsWithMenu = computed(() =>
     })),
 );
 const attention = computed(() => needsAttention(rows.value));
+// The Payment column is only there when a row on screen is a Panel visit or carries a Panel note.
+const hasPanelRow = computed(() =>
+    rows.value.some(
+        (visit) => /panel/i.test(visit.coverageLabel) || !!visit.panelNote,
+    ),
+);
 const sheetOpen = ref(false);
 const viewRow = (visitNumber: string) => {
     const row = document.querySelector<HTMLElement>(
@@ -487,12 +493,21 @@ const filterBadge = computed(
                     >
                         <template #head>
                             <tr>
-                                <th scope="col">Patient</th>
-                                <th scope="col">Arrived</th>
+                                <th scope="col" class="xl:min-w-48">Patient</th>
+                                <th scope="col" class="whitespace-nowrap">
+                                    Arrived
+                                </th>
                                 <th scope="col">Doctor and notes</th>
-                                <th scope="col">Payment</th>
-                                <th scope="col">Status and wait</th>
-                                <th scope="col" class="text-right">Actions</th>
+                                <th v-if="hasPanelRow" scope="col">Payment</th>
+                                <th scope="col" class="xl:min-w-40">
+                                    Status and wait
+                                </th>
+                                <th
+                                    scope="col"
+                                    class="w-px text-right whitespace-nowrap"
+                                >
+                                    Actions
+                                </th>
                             </tr>
                         </template>
                         <template #body>
@@ -508,7 +523,11 @@ const filterBadge = computed(
                                 "
                                 @click="rowClick($event, item.visit)"
                             >
-                                <td data-label="Patient" data-primary>
+                                <td
+                                    data-label="Patient"
+                                    data-primary
+                                    class="xl:min-w-48"
+                                >
                                     <span class="block text-sm font-medium">{{
                                         item.visit.patientName
                                     }}</span>
@@ -563,7 +582,7 @@ const filterBadge = computed(
                                     </span>
                                 </td>
                                 <td
-                                    class="max-w-56 min-w-0 text-sm max-xl:max-w-none max-xl:justify-start max-xl:!text-left"
+                                    class="min-w-0 text-sm max-xl:max-w-none max-xl:justify-start max-xl:!text-left xl:max-w-32"
                                 >
                                     <span class="min-w-0 xl:contents">
                                         <span
@@ -591,6 +610,7 @@ const filterBadge = computed(
                                     </span>
                                 </td>
                                 <td
+                                    v-if="hasPanelRow"
                                     data-label="Payment"
                                     class="text-sm xl:whitespace-nowrap"
                                     :class="
@@ -604,12 +624,16 @@ const filterBadge = computed(
                                     <span
                                         class="max-xl:min-w-0 max-xl:text-right max-xl:break-words xl:contents"
                                     >
-                                        <span class="block">{{
-                                            item.visit.coverageLabel
-                                        }}</span>
+                                        <span
+                                            class="block xl:max-w-36 xl:truncate"
+                                            :title="item.visit.coverageLabel"
+                                            >{{
+                                                item.visit.coverageLabel
+                                            }}</span
+                                        >
                                         <span
                                             v-if="item.visit.panelNote"
-                                            class="block max-w-56 truncate text-xs text-muted-foreground max-xl:line-clamp-1 max-xl:max-w-none max-xl:break-words max-xl:whitespace-normal"
+                                            class="block max-w-36 truncate text-xs text-muted-foreground max-xl:line-clamp-1 max-xl:max-w-none max-xl:break-words max-xl:whitespace-normal"
                                             :title="item.visit.panelNote"
                                             >{{ item.visit.panelNote }}</span
                                         >
@@ -674,7 +698,7 @@ const filterBadge = computed(
                                         </div>
                                         <p
                                             v-if="item.visit.callHold?.active"
-                                            class="max-w-56 truncate text-xs text-muted-foreground max-xl:text-right"
+                                            class="max-w-36 truncate text-xs text-muted-foreground max-xl:text-right"
                                             :title="
                                                 item.visit.callHold.reason ??
                                                 undefined
@@ -697,7 +721,10 @@ const filterBadge = computed(
                                         >
                                     </div>
                                 </td>
-                                <td data-actions class="text-right">
+                                <td
+                                    data-actions
+                                    class="text-right xl:w-px xl:whitespace-nowrap"
+                                >
                                     <div
                                         class="flex items-center justify-end gap-1 max-xl:gap-2 max-xl:[&_[data-slot=v2-row-menu]]:flex-1"
                                     >

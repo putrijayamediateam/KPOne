@@ -412,6 +412,10 @@ final class StockRequestService
     /** @return array{InventoryLocation,InventoryLocation} */
     private function lockLocations(User $actor, string $sourcePublicId, string $destinationPublicId): array
     {
+        // The same location twice is a mistake the person can fix, so it gets a reason, not a "not found" page.
+        if ($sourcePublicId !== '' && $sourcePublicId === $destinationPublicId) {
+            throw ValidationException::withMessages(['destination_location_public_id' => 'Choose a different location from the one you take from.']);
+        }
         $locations = InventoryLocation::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->whereIn('public_id', [$sourcePublicId, $destinationPublicId])->orderBy('id')->lockForUpdate()->get();
         $source = $locations->firstWhere('public_id', $sourcePublicId);
         $destination = $locations->firstWhere('public_id', $destinationPublicId);

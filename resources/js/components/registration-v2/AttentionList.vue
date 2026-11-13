@@ -5,7 +5,10 @@ import type { AttentionItem } from '@/lib/registration-v2';
 
 /**
  * The "needs attention" list of the Version 2 Registration board: one row per patient, the helper line once at the
- * top, at most 5 rows and then "Show all N". Counted from the visits on screen only (the helper says so).
+ * top, at most 5 rows and then "Show all N". Counted from the visits on screen only (the helper says so). A row always
+ * stacks (name and wait text on line 1 with "Show in list" at the end, the chip on line 2), because the list sits in a narrow
+ * rail: a name gets the full width of its line and wraps by word, never by letter. Every row is on the current page, so
+ * "Show in list" always has a row to scroll to.
  */
 const props = defineProps<{ items: AttentionItem[] }>();
 defineEmits<{ view: [visitNumber: string] }>();
@@ -27,30 +30,40 @@ const shown = computed(() =>
             <li
                 v-for="item in shown"
                 :key="item.id"
-                class="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-1 px-4 py-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]"
+                class="flex flex-col gap-1 px-4 py-2"
             >
-                <p class="min-w-0 text-sm break-words">
-                    <span class="font-medium"
-                        >{{ item.label }} {{ item.patientName }}</span
-                    >
-                    <span v-if="item.waitText" class="text-muted-foreground">
-                        · {{ item.waitText }}</span
-                    >
-                </p>
-                <V2Chip
-                    v-if="item.notReadyReason"
-                    class="max-sm:col-span-2 max-sm:row-start-2 max-sm:justify-self-start"
-                    tone="warning"
-                    :label="`Not ready — ${item.notReadyReason}`"
-                />
-                <button
-                    type="button"
-                    class="inline-flex h-11 items-center text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none max-sm:col-start-2 max-sm:row-start-1 lg:h-9"
-                    :aria-label="`View ${item.label} ${item.patientName}`"
-                    @click="$emit('view', item.visitNumber)"
+                <div
+                    class="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-x-3"
                 >
-                    View
-                </button>
+                    <p class="min-w-0 text-sm break-words">
+                        <span class="font-medium"
+                            >{{ item.label }} {{ item.patientName }}</span
+                        >
+                        <span
+                            v-if="item.waitText"
+                            class="text-muted-foreground"
+                        >
+                            · {{ item.waitText }}</span
+                        >
+                    </p>
+                    <button
+                        type="button"
+                        class="inline-flex h-11 items-center text-sm font-medium whitespace-nowrap text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                        :aria-label="`Show ${item.label} ${item.patientName} in the list`"
+                        @click="$emit('view', item.visitNumber)"
+                    >
+                        Show in list
+                    </button>
+                </div>
+                <p
+                    v-if="item.notReadyReason"
+                    class="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground"
+                >
+                    <V2Chip tone="warning" label="Not ready" />
+                    <span class="min-w-0 break-words">{{
+                        item.notReadyReason
+                    }}</span>
+                </p>
             </li>
         </ul>
         <button

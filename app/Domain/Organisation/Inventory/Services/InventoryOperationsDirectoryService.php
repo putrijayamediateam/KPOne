@@ -37,7 +37,7 @@ final class InventoryOperationsDirectoryService
         $purchaseOrderLines = $this->purchaseOrderLines($organisationId, array_values($purchaseOrders->pluck('id')->map(fn (mixed $id): int => (int) $id)->all()));
         $stockRequests = DB::table('inventory_stock_requests as request')->join('inventory_locations as source', 'source.id', '=', 'request.source_location_id')->join('inventory_locations as destination', 'destination.id', '=', 'request.destination_location_id')
             ->where('request.organisation_id', $organisationId)->where(fn (Builder $query) => $query->where('request.requesting_branch_id', $branch->id)->orWhere('source.branch_id', $branch->id)->orWhere('destination.branch_id', $branch->id))->orderByDesc('request.created_at')->limit(50)
-            ->get(['request.id', 'request.public_id as publicId', 'request.request_number as number', 'request.status', 'request.lock_version as lockVersion', 'source.name as source', 'destination.name as destination', 'request.created_at as createdAt',
+            ->get(['request.id', 'request.public_id as publicId', 'request.request_number as number', 'request.status', 'request.lock_version as lockVersion', 'source.name as source', 'source.public_id as sourcePublicId', 'destination.name as destination', 'request.created_at as createdAt',
                 'request.requesting_branch_id', 'source.branch_id as source_branch_id', 'destination.branch_id as destination_branch_id'])
             // STK-31: a request can go to another branch; say which end this branch is (mirrors StockRequestService; the server decides).
             ->map(function (object $row) use ($branch, $mayUseWarehouse): object {
@@ -120,9 +120,11 @@ final class InventoryOperationsDirectoryService
      */
     private function requestLines(int $organisationId, array $stockRequestIds): array
     {
-        return $this->groupLines(DB::table('inventory_stock_request_lines as line')->join('inventory_skus as sku', 'sku.id', '=', 'line.inventory_sku_id')->leftJoin('inventory_batches as batch', 'batch.id', '=', 'line.inventory_batch_id')
+        // V2 page 2b (Daniel): the item's name and stock unit, read only, so the person dispatching or counting a transfer
+        // sees "Paracetamol 500 mg tablet" and "5 units", not only the SKU code. Purchase order lines already carry both.
+        return $this->groupLines(DB::table('inventory_stock_request_lines as line')->join('inventory_skus as sku', 'sku.id', '=', 'line.inventory_sku_id')->join('inventory_items as item', 'item.id', '=', 'sku.inventory_item_id')->leftJoin('inventory_batches as batch', 'batch.id', '=', 'line.inventory_batch_id')
             ->where('line.organisation_id', $organisationId)->whereIn('line.stock_request_id', $stockRequestIds)->orderBy('line.stock_request_id')->orderBy('line.id')
-            ->get(['line.stock_request_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'line.requested_quantity as requestedQuantity', 'line.dispatched_quantity as dispatchedQuantity', 'line.received_quantity as receivedQuantity', 'batch.batch_number as batch']));
+            ->get(['line.stock_request_id as parentId', 'line.public_id as publicId', 'sku.public_id as skuPublicId', 'sku.sku_code as sku', 'line.requested_quantity as requestedQuantity', 'line.dispatched_quantity as dispatchedQuantity', 'line.received_quantity as receivedQuantity', 'batch.batch_number as batch', 'sku.stock_unit as stockUnit', 'item.generic_name as item']));
     }
 
     /**
@@ -215,8 +217,8 @@ final class InventoryOperationsDirectoryService
             ->leftJoin('inventory_stock_balances as balance', fn ($join) => $join->on('balance.organisation_id', '=', 'reorder.organisation_id')->on('balance.inventory_location_id', '=', 'reorder.inventory_location_id')->on('balance.inventory_sku_id', '=', 'reorder.inventory_sku_id'))
             ->leftJoin('inventory_batches as batch', 'batch.id', '=', 'balance.inventory_batch_id')->where('reorder.organisation_id', $organisationId)->whereIn('reorder.inventory_location_id', $locationIds)
             ->where('location.is_active', true)->where('location.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('sku.is_active', true)->where('item.is_active', true)
-            ->groupBy(['reorder.id', 'location.name', 'sku.sku_code', 'item.generic_name', 'reorder.reorder_level', 'reorder.max_level'])->havingRaw($availableQuantity.' <= reorder.reorder_level', [$localDate])
-            ->orderByRaw('sku.sku_code COLLATE "C"')->orderBy('reorder.id')->limit(100)->selectRaw('location.name as location, sku.sku_code as sku, item.generic_name as item, reorder.reorder_level as "reorderLevel", reorder.max_level as "maxLevel", '.$availableQuantity.' as "availableQuantity"', [$localDate])->get()->map(fn ($row): array => (array) $row)->all());
+            ->groupBy(['reorder.id', 'location.name', 'sku.sku_code', 'sku.stock_unit', 'item.generic_name', 'reorder.reorder_level', 'reorder.max_level'])->havingRaw($availableQuantity.' <= reorder.reorder_level', [$localDate])
+            ->orderByRaw('sku.sku_code COLLATE "C"')->orderBy('reorder.id')->limit(100)->selectRaw('location.name as location, sku.sku_code as sku, sku.stock_unit as "stockUnit", item.generic_name as item, reorder.reorder_level as "reorderLevel", reorder.max_level as "maxLevel", '.$availableQuantity.' as "availableQuantity"', [$localDate])->get()->map(fn ($row): array => (array) $row)->all());
     }
 
     /**
@@ -232,6 +234,6 @@ final class InventoryOperationsDirectoryService
             ->where('balance.organisation_id', $organisationId)->whereIn('balance.inventory_location_id', $locationIds)->where('balance.quantity', '>', 0)
             ->where('location.is_active', true)->where('location.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('sku.is_active', true)->where('item.is_active', true)
             ->where('batch.status', 'available')->whereDate('batch.expiry_date', '>', $today)->whereDate('batch.expiry_date', '<=', $until)
-            ->orderBy('batch.expiry_date')->orderByRaw('sku.sku_code COLLATE "C"')->orderBy('balance.id')->limit(100)->get(['sku.sku_code as sku', 'batch.batch_number as batch', 'batch.expiry_date as expiryDate', 'balance.quantity', 'location.name as location'])->map(fn ($row): array => (array) $row)->all());
+            ->orderBy('batch.expiry_date')->orderByRaw('sku.sku_code COLLATE "C"')->orderBy('balance.id')->limit(100)->get(['sku.sku_code as sku', 'sku.stock_unit as stockUnit', 'item.generic_name as item', 'batch.batch_number as batch', 'batch.expiry_date as expiryDate', 'balance.quantity', 'location.name as location'])->map(fn ($row): array => (array) $row)->all());
     }
 }

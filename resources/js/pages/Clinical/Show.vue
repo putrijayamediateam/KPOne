@@ -4,6 +4,7 @@ import {
     AlertTriangle,
     ArrowLeft,
     ClipboardCheck,
+    ExternalLink,
     LoaderCircle,
     Megaphone,
     Plus,
@@ -541,43 +542,67 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                 </p>
             </div>
             <div
-                class="flex flex-wrap items-center justify-end gap-2 text-right text-xs text-muted-foreground"
+                class="flex flex-wrap items-center justify-end gap-2 text-right text-xs text-muted-foreground max-sm:justify-start max-sm:text-left"
             >
-                <a
+                <Button
                     v-if="
                         page.props.auth.permissions.includes(
                             'medical_certificates.view.own',
                         )
                     "
-                    :href="`/visits/${clinical.visit.visitNumber}/medical-certificates`"
-                    target="_blank"
-                    rel="noopener"
-                    class="rounded-md border bg-card px-3 py-2 text-xs"
-                    >Medical certificates (new tab)</a
+                    variant="outline"
+                    size="sm"
+                    as-child
                 >
-                <a
+                    <a
+                        :href="`/visits/${clinical.visit.visitNumber}/medical-certificates`"
+                        target="_blank"
+                        rel="noopener"
+                        >Medical certificates<ExternalLink
+                            class="size-3.5"
+                            aria-hidden="true"
+                        /><span class="sr-only">(opens in a new tab)</span></a
+                    ></Button
+                >
+                <Button
                     v-if="
                         page.props.auth.permissions.includes(
                             'referrals.view.own',
                         )
                     "
-                    :href="`/visits/${clinical.visit.visitNumber}/referrals`"
-                    target="_blank"
-                    rel="noopener"
-                    class="rounded-md border bg-card px-3 py-2 text-xs"
-                    >Referral letters (new tab)</a
+                    variant="outline"
+                    size="sm"
+                    as-child
                 >
-                <a
+                    <a
+                        :href="`/visits/${clinical.visit.visitNumber}/referrals`"
+                        target="_blank"
+                        rel="noopener"
+                        >Referral letters<ExternalLink
+                            class="size-3.5"
+                            aria-hidden="true"
+                        /><span class="sr-only">(opens in a new tab)</span></a
+                    ></Button
+                >
+                <Button
                     v-if="
                         page.props.auth.permissions.includes(
                             'attendance_documents.view.own',
                         )
                     "
-                    :href="`/visits/${clinical.visit.visitNumber}/attendance`"
-                    target="_blank"
-                    rel="noopener"
-                    class="rounded-md border bg-card px-3 py-2 text-xs"
-                    >Attendance confirmation (new tab)</a
+                    variant="outline"
+                    size="sm"
+                    as-child
+                >
+                    <a
+                        :href="`/visits/${clinical.visit.visitNumber}/attendance`"
+                        target="_blank"
+                        rel="noopener"
+                        >Attendance confirmation<ExternalLink
+                            class="size-3.5"
+                            aria-hidden="true"
+                        /><span class="sr-only">(opens in a new tab)</span></a
+                    ></Button
                 >
                 <WaitingPatientsButton
                     v-if="
@@ -762,12 +787,17 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                             <div
                                 class="flex shrink-0 flex-col items-end gap-2 text-right text-xs text-muted-foreground"
                             >
-                                <Link
+                                <Button
                                     v-if="canViewPatient"
-                                    :href="`/patients/${encodeURIComponent(clinical.patient.patientNumber)}`"
-                                    class="inline-flex h-7 items-center rounded-md border px-2 text-[12px] text-foreground"
-                                    >View profile</Link
+                                    variant="outline"
+                                    as-child
+                                    class="h-11 text-foreground lg:h-9"
                                 >
+                                    <Link
+                                        :href="`/patients/${encodeURIComponent(clinical.patient.patientNumber)}`"
+                                        >View profile</Link
+                                    >
+                                </Button>
                                 <span
                                     >Queue No:
                                     {{ clinical.queue.queueNumber }}</span
@@ -1322,36 +1352,30 @@ const changeHoldState = (action: 'hold' | 'resume') => {
                     aria-label="Consultation panels"
                     class="flex gap-2 rounded-md border bg-card p-1"
                 >
-                    <button
+                    <Button
                         type="button"
-                        :aria-current="
-                            workspaceTab === 'treatment' ? 'page' : undefined
+                        size="sm"
+                        :variant="
+                            workspaceTab === 'treatment' ? 'secondary' : 'ghost'
                         "
-                        :class="[
-                            'rounded px-3 py-2 text-sm font-medium',
-                            workspaceTab === 'treatment'
-                                ? 'bg-muted'
-                                : 'text-muted-foreground',
-                        ]"
+                        :aria-pressed="workspaceTab === 'treatment'"
+                        class="h-11 lg:h-9"
                         @click="workspaceTab = 'treatment'"
                     >
                         Treatment plan
-                    </button>
-                    <button
+                    </Button>
+                    <Button
                         type="button"
-                        :aria-current="
-                            workspaceTab === 'history' ? 'page' : undefined
+                        size="sm"
+                        :variant="
+                            workspaceTab === 'history' ? 'secondary' : 'ghost'
                         "
-                        :class="[
-                            'rounded px-3 py-2 text-sm font-medium',
-                            workspaceTab === 'history'
-                                ? 'bg-muted'
-                                : 'text-muted-foreground',
-                        ]"
+                        :aria-pressed="workspaceTab === 'history'"
+                        class="h-11 lg:h-9"
                         @click="workspaceTab = 'history'"
                     >
                         Patient history
-                    </button>
+                    </Button>
                 </nav>
                 <div
                     v-show="workspaceTab === 'treatment'"

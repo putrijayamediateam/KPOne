@@ -251,3 +251,29 @@ test('a cancellation reason over 500 characters is refused with a message, never
     assert.match(dialogs, /Keep the reason to 500 characters or fewer\./);
     assert.doesNotMatch(dialogs, /cancellationReason\.slice\(0, 500\)/);
 });
+
+test('the attention list never uses a multi-column row (it lives only in the narrow rail and the phone sheet)', () => {
+    const list = readFileSync(
+        'resources/js/components/queue-v2/QueueAttentionList.vue',
+        'utf8',
+    );
+
+    assert.doesNotMatch(list, /grid-cols-\[minmax\(0,1fr\)_auto_auto\]/);
+    assert.doesNotMatch(list, /sm:grid-cols/);
+    assert.match(list, /grid-cols-\[minmax\(0,1fr\)_auto\]/);
+    assert.match(list, /Show in list/);
+    assert.match(list, /in the list`/);
+    assert.doesNotMatch(list, />\s*View\s*</);
+});
+
+test('a long flag reason is plain text beside a short chip, never inside a wrapping pill', () => {
+    const lib = readFileSync('resources/js/lib/queue-v2.ts', 'utf8');
+    const list = readFileSync(
+        'resources/js/components/queue-v2/QueueAttentionList.vue',
+        'utf8',
+    );
+
+    assert.match(lib, /label: 'Not ready',\s*detail: row\.callHold\.reason/);
+    assert.doesNotMatch(lib, /Not ready —/);
+    assert.match(list, /chip\.detail/);
+});

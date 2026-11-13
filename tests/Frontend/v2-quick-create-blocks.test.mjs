@@ -76,3 +76,31 @@ test('V2OptionGroup uses aria-pressed consistently (every option is a pressed bu
     assert.doesNotMatch(s, /role="radio"/);
     assert.match(s, /:aria-pressed=/);
 });
+
+test('V2StickyBar reads the rail breakpoint from V2WorkLayout; the prop overrides; no rail keeps sm:hidden; always never hides', () => {
+    const bar = v2('V2StickyBar');
+    assert.match(bar, /inject\(V2_RAIL_FROM, null\)/);
+    assert.match(bar, /props\.railFrom \?\? layoutRailFrom\?\.value \?\? null/);
+    assert.match(bar, /from === null\s*\? 'sm:hidden'/);
+    assert.match(bar, /lg: 'lg:hidden', xl: 'xl:hidden', '2xl': '2xl:hidden'/);
+    assert.match(bar, /if \(props\.always\) \{\s*return '';/);
+    assert.match(
+        bar,
+        /railFrom\?: RailFrom;\s+always\?: boolean;\s+hideFrom\?: 'sm' \| RailFrom;/,
+    );
+    assert.match(bar, /:class="hideClass"/);
+});
+
+test('V2StickyBar: the row is capped to form width, right-aligned from 640px with natural-width buttons, stacked full-width below', () => {
+    const bar = v2('V2StickyBar');
+    assert.match(bar, /data-slot="v2-sticky-bar-row"/);
+    assert.match(
+        bar,
+        /flex w-full max-w-3xl flex-col gap-2 sm:flex-row sm:justify-end/,
+    );
+    assert.match(
+        bar,
+        /\[&>\*\]:h-11 \[&>\*\]:w-full sm:\[&>\*\]:w-auto sm:\[&>\*\]:min-w-40/,
+    );
+    assert.match(bar, /pb-\[max\(0\.75rem,env\(safe-area-inset-bottom\)\)\]/);
+});

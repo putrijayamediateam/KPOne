@@ -38,7 +38,11 @@ test('V2Dialog: 18px corners, a phone bottom sheet, a pinned footer, a required 
     assert.match(s, /aria-label="Close"/);
     assert.match(s, /size-11/);
     assert.match(s, /h-11[^'"]*lg:h-9/);
-    assert.doesNotMatch(code('V2Dialog'), /fetch\(|axios|router|usePage/);
+    assert.doesNotMatch(code('V2Dialog'), /fetch\(|axios|usePage/);
+    // No routing of its own: the open-sheet leave guard is the one shared mechanism (`useLeaveGuard`).
+    assert.doesNotMatch(code('V2Dialog'), /router\./);
+    assert.doesNotMatch(s, /from '@inertiajs\/vue3'/);
+    assert.match(s, /useLeaveGuard\(/);
 });
 
 test('The new blocks import nothing from the Classic ui components', () => {
@@ -129,4 +133,113 @@ test('V2Dialog: Confirm stays at full opacity when aria-disabled; aria-described
         /:aria-describedby="[^"]*'v2-dialog-reason-error'[^"]*undefined/,
     );
     assert.doesNotMatch(s, /\n\s*aria-describedby="v2-dialog-reason-error"/);
+});
+
+test('V2DateRange: a plain-date echo ("1 Nov 2026 to 13 Nov 2026") on by default, announced politely, formatted without a time zone', () => {
+    const s = v2('V2DateRange');
+    assert.match(s, /echo\?: boolean/);
+    assert.match(s, /echo: true/);
+    assert.match(s, /data-slot="v2-date-range-echo"/);
+    assert.match(s, /role="status"\s+aria-live="polite"/);
+    assert.match(s, /data-slot="v2-date-range-spoken"/);
+    assert.match(s, /setTimeout\(speakNow, 1200\)/);
+    assert.match(s, /@focusout="speakNow"/);
+    // The visible echo is not itself a live region: only the delayed spoken copy is.
+    assert.match(
+        s,
+        /data-slot="v2-date-range-echo"[^>]*aria-hidden="true"|aria-hidden="true"[^>]*data-slot="v2-date-range-echo"/s,
+    );
+    assert.match(s, /`\$\{from\} to \$\{to\}`/);
+    assert.match(s, /`From \$\{from\}`/);
+    assert.match(s, /`Up to \$\{to\}`/);
+    assert.doesNotMatch(s, /new Date|Intl\.|toLocale/);
+});
+
+test('V2Dialog size="tall": full height on a phone, 42rem from 640px, 56rem from 1024px, up to 90dvh', () => {
+    const s = v2('V2Dialog');
+    assert.match(s, /size\?: 'default' \| 'tall'/);
+    assert.match(s, /size: 'default'/);
+    assert.match(
+        s,
+        /max-sm:inset-0 max-sm:h-dvh max-sm:rounded-none sm:max-h-\[90dvh\] sm:max-w-2xl lg:max-w-\[56rem\]/,
+    );
+    // The default size keeps its bottom sheet.
+    assert.match(
+        s,
+        /max-h-\[90dvh\] max-sm:inset-x-0 max-sm:bottom-0 max-sm:rounded-t-\[18px\] sm:max-w-lg/,
+    );
+});
+
+test('V2Dialog dirty guard: every close path asks first, Keep editing is focused, Esc on the question means keep, the rest is inert', () => {
+    const s = v2('V2Dialog');
+    assert.match(s, /dirty\?: boolean/);
+    assert.match(s, /dirty: false/);
+    assert.match(s, /<DialogRoot :open="open" @update:open="onOpenChange">/);
+    assert.match(s, /if \(asking\.value\) \{\s*keepEditing\(\);/);
+    assert.match(s, /if \(props\.dirty\) \{/);
+    assert.match(s, /keepButton\.value\?\.focus\(\)/);
+    assert.match(s, /Discard your changes\?/);
+    assert.match(s, />\s*Keep editing\s*</);
+    assert.match(s, />\s*Discard changes\s*</);
+    assert.match(s, /role="alertdialog"/);
+    assert.match(s, /discard: \[\]/);
+    assert.equal((s.match(/:inert="asking"/g) ?? []).length, 3);
+    // A close from the page (after a save) is not guarded: the guard only sits on the dialog's own close paths.
+    assert.doesNotMatch(
+        s,
+        /watch\(\s*\(\) => props\.open,[\s\S]{0,200}asking\.value = true/,
+    );
+});
+
+test('V2Dialog discard question keeps Tab and Shift+Tab inside its two buttons (the page behind is inert)', () => {
+    const s = v2('V2Dialog');
+    assert.match(s, /@keydown="trapTab"/);
+    assert.match(s, /ref="discardButton"/);
+    assert.match(s, /event\.shiftKey && document\.activeElement === first/);
+    assert.match(s, /!event\.shiftKey && document\.activeElement === last/);
+});
+
+test('V2Dialog: tall sheets pin the header (title and X); the open-sheet guard is the shared one; the four points are written', () => {
+    const s = v2('V2Dialog');
+    assert.match(s, /data-slot="v2-dialog-header"/);
+    assert.match(s, /sticky -top-5 z-10 -mx-5 -mt-5/);
+    assert.match(s, /v-if="size !== 'tall'"/);
+    assert.match(s, /props\.open && props\.dirty/);
+    assert.match(s, /useLeaveGuard\(/);
+    assert.match(
+        s,
+        /\(1\) A same-path visit and a partial reload or a polling visit \(such as the Registration and Queue live/,
+    );
+    assert.match(s, /\(2\) a successful save never asks/);
+    assert.match(
+        s,
+        /\(3\) the listener is removed when the page or sheet unmounts/,
+    );
+    assert.match(
+        s,
+        /\(4\) browser Back and Forward are held too; `beforeunload` covers reload and tab close\./,
+    );
+});
+
+test('V2Dialog: confirmDisabled switches the filled action off and says why above the footer', () => {
+    const d = read('resources/js/components/v2/V2Dialog.vue');
+    assert.match(d, /confirmDisabled\?: boolean;/);
+    assert.match(d, /confirmDisabledReason\?: string;/);
+    // focusable (aria-disabled, not native disabled) and pressing does nothing
+    assert.match(d, /:disabled="busy"/);
+    assert.match(d, /confirmDisabled \|\|/);
+    assert.match(d, /if \(props\.confirmDisabled\) \{\s*return;/);
+    // the status region is always in the DOM; no reason gives a dev warning
+    assert.match(d, /aria-live="polite"/);
+    assert.doesNotMatch(d, /<p\s+v-if="confirmDisabled/);
+    assert.match(d, /confirmDisabled needs a confirmDisabledReason/);
+    assert.match(d, /id="v2-dialog-confirm-reason"/);
+    assert.match(d, /role="status"/);
+    assert.match(d, /'v2-dialog-confirm-reason'/);
+    // the reason line sits above the footer row
+    assert.ok(
+        d.indexOf('id="v2-dialog-confirm-reason"') <
+            d.indexOf('sm:flex-row sm:justify-end'),
+    );
+    assert.match(d, /Choose a supplier to continue\./);
 });

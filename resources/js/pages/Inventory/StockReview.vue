@@ -176,8 +176,8 @@ watch(
             </p>
             <p v-if="k === 'expired'" class="text-sm font-medium">
                 Always listed while stock remains, including held or unavailable
-                stock. Disposal is deferred to STK-5; an acknowledgement does
-                not prove disposal.
+                stock. Record any disposal through Stock count and Write-off; an
+                acknowledgement does not prove disposal.
             </p>
             <p class="text-sm text-muted-foreground">
                 {{ review.lists[k].total }} matching items · Page

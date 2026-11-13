@@ -5,8 +5,10 @@ import { compileTemplate, parse } from '@vue/compiler-sfc';
 
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const source = read('resources/js/pages/HR/Roster.vue');
-const template = parse(source).descriptor.template.content;
+const page = read('resources/js/pages/HR/Roster.vue');
+// The page's state and actions moved to useRosterPage (shared with the Version 2 page); read both.
+const source = `${page}\n${read('resources/js/composables/hr/useRosterPage.ts')}`;
+const template = parse(page).descriptor.template.content;
 
 test('HR-1 roster page compiles with one page header and the three tabs', () => {
     assert.deepEqual(

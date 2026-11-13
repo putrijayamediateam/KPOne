@@ -96,9 +96,9 @@ class HandleInertiaRequests extends Middleware
                 'defaultUrl' => route('workspace', absolute: false),
                 'canEnterClinic' => $canEnterClinic,
                 'spaces' => $spaces,
-                // UX-17: the Version 2 sidebar, built only for a person who switched on "Try the new layout".
-                // A closure, so JSON polls never build it: Inertia resolves it only when it renders a page.
-                'shell' => $spaces['enabled'] ? fn () => app(V2ShellNavigation::class)->for($user, $request->path()) : null,
+                // UX-17 and UX-24: the Version 2 sidebar, sent with every page that renders in V2 (the switch on, or a
+                // /spaces page) and never with a Classic one. A closure, so JSON polls never build it.
+                'shell' => app(UiVersionResolver::class)->isV2($user, $request) ? fn () => app(V2ShellNavigation::class)->for($user, $request->path()) : null,
                 'accountMenu' => app(AccountMenuLinks::class)->for($user),
                 'navigation' => [
                     'clinicManagement' => app(ClinicManagementNavigation::class)->hasDestinations($user),

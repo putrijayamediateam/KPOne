@@ -199,10 +199,12 @@ final class TreatmentUsageService
             ->paginate(25, ['u.id', 'u.usage_number', 'u.kind', 'u.reason', 'u.quantity', 'u.base_unit', 'u.recorder_user_id', 'u.created_at', 's.sku_code', 'i.generic_name as item_name',
                 'b.batch_number', 'b.expiry_date', 'l.name as location', 'room.name as room', 'r.id as reversal_id', 'r.reason as reversal_reason', 'r.actor_user_id as reversed_by', 'r.created_at as reversed_at'], 'page', (int) ($data['page'] ?? 1));
         $local = fn (?string $at): ?string => $at === null ? null : CarbonImmutable::parse($at)->setTimezone($branch->timezone)->format('j M Y, g:i A');
-        $rows = array_map(function (stdClass $row) use ($actor, $canReverse, $local): array {
+        // TIDY-4: who recorded and who reversed, in words (BIL-2 staff-visibility rule), not ids.
+        $name = app(InventoryStaffNames::class)->resolver($actor, [...collect($entries->items())->pluck('recorder_user_id'), ...collect($entries->items())->pluck('reversed_by')]);
+        $rows = array_map(function (stdClass $row) use ($actor, $canReverse, $local, $name): array {
             $mine = (int) $row->recorder_user_id === $actor->id;
 
-            return [...(array) $row, 'recordedAt' => $local($row->created_at), 'reversedAt' => $local($row->reversed_at), 'recordedByYou' => $mine,
+            return [...(array) $row, 'recordedAt' => $local($row->created_at), 'reversedAt' => $local($row->reversed_at), 'recordedByYou' => $mine, 'recorded_by_name' => $name($row->recorder_user_id), 'reversed_by_name' => $name($row->reversed_by),
                 'canReverse' => $canReverse && $row->reversal_id === null && ! $mine];
         }, $entries->items());
 

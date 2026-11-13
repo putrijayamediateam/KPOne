@@ -255,3 +255,14 @@ test('V2 table cards: only a cell marked data-wrap breaks a long unbreakable val
     assert.doesNotMatch(css, /\.v2-cards-(lg|xl) td \{\s*overflow-wrap/);
     assert.match(read('resources/js/components/v2/V2Table.vue'), /data-wrap/);
 });
+
+test('V2WorkLayout railBelow: default hide is unchanged; stack-top and stack-bottom keep the rail rendered once', () => {
+    const s = v2('V2WorkLayout');
+    assert.match(s, /railBelow\?: 'hide' \| 'stack-top' \| 'stack-bottom'/);
+    assert.match(s, /railBelow: 'hide'/);
+    assert.match(s, /hidden 2xl:flex/);
+    assert.match(s, /hidden xl:flex/);
+    assert.match(s, /order-first xl:order-none/);
+    assert.match(s, /order-first 2xl:order-none/);
+    assert.match(s, /railBelow === 'hide'/);
+});

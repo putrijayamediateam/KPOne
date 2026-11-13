@@ -9,7 +9,7 @@ import {
     Settings,
     ShieldCheck,
 } from '@lucide/vue';
-import { computed, onMounted } from 'vue';
+import { computed, inject, onMounted } from 'vue';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -17,7 +17,10 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
-import { useClockShortcut } from '@/composables/useClockShortcut';
+import {
+    TOP_BAR_CLOCK,
+    useClockShortcut,
+} from '@/composables/useClockShortcut';
 import { retireAuthenticationHistoryForLogout } from '@/lib/inertia-auth-history-boundary';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
@@ -39,12 +42,26 @@ const accountMenu = computed(() => page.props.workspace?.accountMenu);
 // The top-bar button exists only in the space shell, from 1024 px. This row is its twin: it hides exactly where the
 // button shows (the shell, from 1024 px) and shows everywhere else, so the two are never visible together.
 const inSpaceShell = computed(() => page.url.startsWith('/spaces'));
+// UX-24: the V2 top bar has the same button from 1024 px on every V2 page except the pages with their own Clock in.
+// Read from the V2 shell, so it is true only where the top-bar button is actually drawn (false in Classic and in focus mode).
+const topBarClock = inject(
+    TOP_BAR_CLOCK,
+    computed(() => false),
+);
 const {
     load: loadClock,
     press: pressClock,
     label: clockLabel,
     visible: clockVisible,
 } = useClockShortcut();
+// UX-24 (Daniel): the menu row is gone once the menu closes, so pass the menu's own button (still open while the row is
+// selected); focus goes back to it after the photo dialog closes, instead of to the page.
+const pressClockAfterMenu = () =>
+    pressClock(
+        document.querySelector<HTMLElement>(
+            '[aria-haspopup="menu"][aria-expanded="true"]',
+        ),
+    );
 onMounted(() => {
     if (accountMenu.value?.clock) {
         void loadClock();
@@ -74,9 +91,9 @@ const switchSpaces = (enabled: boolean) =>
         <DropdownMenuItem
             v-if="accountMenu?.clock && clockVisible"
             class="cursor-pointer max-lg:min-h-11"
-            :class="{ 'lg:hidden': inSpaceShell }"
+            :class="{ 'lg:hidden': inSpaceShell || topBarClock }"
             data-test="clock-shortcut-row"
-            @select="pressClock()"
+            @select="pressClockAfterMenu"
         >
             <Clock class="mr-2 h-4 w-4" />{{ clockLabel }}
         </DropdownMenuItem>

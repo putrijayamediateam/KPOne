@@ -15,6 +15,7 @@ use App\Domain\Organisation\Inventory\Models\StockRequest;
 use App\Domain\Organisation\Inventory\Services\InventoryAuthorityService;
 use App\Domain\Organisation\Inventory\Services\InventoryControlService;
 use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
+use App\Domain\Organisation\Inventory\Services\InventoryPickerService;
 use App\Domain\Organisation\Inventory\Services\InventoryReferenceAdministrationService;
 use App\Domain\Organisation\Inventory\Services\LegacyStockPath;
 use App\Domain\Organisation\Inventory\Services\ProcurementService;
@@ -513,6 +514,64 @@ class InventoryOperationsTest extends ClinicalTestCase
         $this->assertSame(StockRequest::STATUS_REJECTED, $other->status);
     }
 
+    public function test_a_stock_request_from_a_location_to_itself_is_refused_with_a_message(): void
+    {
+        // Found on the V2 Inventory page (2b): the same location twice gave a bare "not found" page instead of a reason.
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $fixture = $this->inventoryFixture($supervisor, 'SAME-LOC');
+        $attributes = ['expected_branch_id' => $this->branch->id, 'source_location_public_id' => $fixture['location']->public_id, 'destination_location_public_id' => $fixture['location']->public_id, 'lines' => [['sku_public_id' => $fixture['sku']->public_id, 'quantity' => '1.000']]];
+        $requestCount = StockRequest::query()->count();
+        $auditCount = DB::table('audit_logs')->count();
+
+        $this->expectValidation(fn () => app(StockRequestService::class)->create($supervisor, $attributes), 'destination_location_public_id');
+        $this->post(route('inventory.stock-requests.store'), $attributes)
+            ->assertRedirect(route('inventory.index'))
+            ->assertSessionHasErrors(['destination_location_public_id' => 'Choose a different location from the one you take from.']);
+
+        $this->assertSame($requestCount, StockRequest::query()->count());
+        $this->assertSame($auditCount, DB::table('audit_logs')->count());
+    }
+
+    public function test_operations_sku_search_also_matches_the_item_name(): void
+    {
+        // Owner, 2026-11-13: "fix stock search". Typing the medicine's name found nothing; only the SKU code matched.
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $fixture = $this->inventoryFixture($supervisor, 'NAMESEARCH');
+        $picker = app(InventoryPickerService::class);
+        $ids = fn (string $search, string $context = 'operations') => array_column($picker->choices($supervisor, $this->branch, 'skus', $context, $search), 'publicId');
+
+        // The item's name, in any letter case, finds the SKU; the SKU code still does.
+        $this->assertContains($fixture['sku']->public_id, $ids('synthetic namesearch item'));
+        $this->assertContains($fixture['sku']->public_id, $ids('NAMESEARCH-SKU'));
+        // Wildcards stay literal: a "%" or "_" in the search matches only those characters.
+        $this->assertNotContains($fixture['sku']->public_id, $ids('Synthetic%Item'));
+        $this->assertNotContains($fixture['sku']->public_id, $ids('Synthetic_NAMESEARCH'));
+        // Same result shape as before.
+        $row = collect($picker->choices($supervisor, $this->branch, 'skus', 'operations', 'namesearch item'))->firstWhere('publicId', $fixture['sku']->public_id);
+        $this->assertSame(['publicId', 'code', 'stockUnit', 'name'], array_keys($row));
+    }
+
+    public function test_references_sku_rows_name_the_item_and_unit_and_keep_skus_of_inactive_items(): void
+    {
+        // V2 page 2d (Daniel): Stock setup names the item and its stock unit beside each SKU, and finds it by the item name.
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $fixture = $this->inventoryFixture($supervisor, 'REFNAME');
+        $picker = app(InventoryPickerService::class);
+        $row = fn (string $search) => collect($picker->choices($supervisor, $this->branch, 'skus', 'references', $search))->firstWhere('publicId', $fixture['sku']->public_id);
+
+        $this->assertSame(['publicId', 'skuCode', 'inventoryItemId', 'stockUnit', 'itemName'], array_keys($row('REFNAME-SKU')));
+        $this->assertSame($fixture['sku']->stock_unit, $row('REFNAME-SKU')['stockUnit']);
+        $this->assertSame($fixture['sku']->item->generic_name, $row('REFNAME-SKU')['itemName']);
+        $this->assertNotNull($row('synthetic refname item'));
+        $this->assertNull($row('Synthetic%Item'));
+        // A left join: the SKU of an inactive item is still offered, as before.
+        DB::table('inventory_items')->where('id', $fixture['sku']->inventory_item_id)->update(['is_active' => false]);
+        $this->assertNotNull($row('REFNAME-SKU'));
+    }
+
     public function test_stock_request_branch_source_cannot_be_overridden_by_warehouse_authority(): void
     {
         $supervisor = $this->actor('ca_supervisor');
@@ -796,6 +855,23 @@ class InventoryOperationsTest extends ClinicalTestCase
             ->has('operations.stockRequests', 2)
             ->has('operations.stocktakes', 2));
         $this->assertSame(['inventory_purchase_order_lines' => 1, 'inventory_stock_request_lines' => 1, 'inventory_stocktake_lines' => 1], $lineQueries);
+    }
+
+    public function test_low_stock_and_expiring_rows_name_the_item_and_its_stock_unit(): void
+    {
+        // V2 page 2c (Daniel): every quantity on the alert lists carries its unit, and each row names the item.
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $fixture = $this->inventoryFixture($supervisor, 'P2C-ALERT');
+        app(InventoryMovementService::class)->openingBalance($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id, 'sku_public_id' => $fixture['sku']->public_id, 'batch_public_id' => $fixture['batch']->public_id, 'quantity' => '2.000']);
+        app(InventoryControlService::class)->setReorderLevel($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id, 'sku_public_id' => $fixture['sku']->public_id, 'reorder_level' => '5.000', 'expected_lock_version' => null, 'idempotency_key' => (string) Str::uuid()]);
+        $fixture['batch']->forceFill(['expiry_date' => now()->setTimezone($this->branch->timezone)->addDays(30)->toDateString()])->save();
+
+        $this->get(route('inventory.index'))->assertOk()->assertInertia(fn ($page) => $page
+            ->where('operations.lowStock.0.item', 'Synthetic P2C-ALERT Item')
+            ->where('operations.lowStock.0.stockUnit', 'unit')
+            ->where('operations.expiringBatches.0.item', 'Synthetic P2C-ALERT Item')
+            ->where('operations.expiringBatches.0.stockUnit', 'unit'));
     }
 
     public function test_adjustment_and_reorder_visibility_preserve_nonnegative_and_expiry_rules(): void

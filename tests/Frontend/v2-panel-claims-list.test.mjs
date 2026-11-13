@@ -281,7 +281,7 @@ test('the selection never hides an error or the Panel rule', () => {
     assert.match(bar, /aria-live="polite"/);
     // "Create N claims" opens a dialog holding the date, remarks, rules and errors; Confirm runs the Classic logic.
     assert.match(page, /bulkDialogOpen/);
-    assert.match(page, /@confirm="createSelectedClaims\(\)"/);
+    assert.match(page, /@confirm="confirmBulk\(\)"/);
     assert.match(page, /Each invoice gets its own Submitted claim/);
     assert.match(page, /\(across pages\)/);
 });

@@ -190,6 +190,12 @@ All in the contract; the main ones:
     10 minutes instead of about 19. The static checks and migration steps would run in both jobs or in a small
     first job they both wait for.
 11. **Ask KPOne age (AG-7):** decided 2026-11-05: no patient age in ai_read (see Owner decisions).
+12. **Follow-ups from the V2 inbox review (AG-15, 2026-11-13):** (a) the inbox sends one `canDecide` flag with no reason, so a card the
+    viewer cannot decide says "you may only see it, or you started the run that made it"; a reason field from the server would let
+    the card say exactly "You started this run" (the Lead UI/UX Designer accepted the combined line for now). (b) The inbox sends a decider
+    as `Staff #<id>` for anyone but the viewer; the V2 page shows "another staff member" instead, and a real name needs the staff-visibility
+    rule (BIL-2) applied on the server. (c) Repeating the same decision on a decided card counts as success; only a conflicting decision is
+    refused (accepted).
 
 ## History
 

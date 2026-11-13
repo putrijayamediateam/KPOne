@@ -46,6 +46,7 @@ type EntryRow = {
     quantity: string;
     base_unit: string;
     recorder_user_id: number;
+    recorded_by_name?: string | null;
     sku_code: string;
     item_name: string;
     batch_number: string;
@@ -55,6 +56,7 @@ type EntryRow = {
     reversal_id: number | null;
     reversal_reason: string | null;
     reversed_by: number | null;
+    reversed_by_name?: string | null;
     recordedAt: string;
     reversedAt: string | null;
     recordedByYou: boolean;
@@ -352,12 +354,12 @@ watch(
                 <p class="text-sm text-muted-foreground">
                     {{ usageKindLabels[row.kind] ?? row.kind }}:
                     {{ usageReasonLabels[row.reason] ?? row.reason }} · recorded
-                    {{ row.recordedAt }} by staff #{{ row.recorder_user_id }}
+                    {{ row.recordedAt }} by
+                    {{ row.recorded_by_name ?? 'Staff member' }}
                 </p>
                 <p v-if="row.reversal_id" class="text-sm text-muted-foreground">
-                    Reversed {{ row.reversedAt }} by staff #{{
-                        row.reversed_by
-                    }}:
+                    Reversed {{ row.reversedAt }} by
+                    {{ row.reversed_by_name ?? 'Staff member' }}:
                     {{
                         usageReversalLabels[row.reversal_reason ?? ''] ??
                         row.reversal_reason

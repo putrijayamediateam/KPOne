@@ -9,6 +9,7 @@ import { DateField } from '@/components/ui/date-field';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2DateField from '@/components/v2/V2DateField.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
@@ -124,6 +125,28 @@ const current = computed(() =>
 );
 
 const bulkDialogOpen = ref(false);
+// Daniel: an unreadable or empty submitted date sends nothing; the field says why.
+const dateInvalid = ref(false);
+const dateTried = ref(false);
+watch(bulkDialogOpen, (open) => {
+    if (open) {
+        dateTried.value = false;
+    }
+});
+const dateError = computed(() =>
+    dateTried.value && (dateInvalid.value || bulk.submittedDate === '')
+        ? 'Enter the submitted date, day first, such as 13 Nov 2026.'
+        : undefined,
+);
+const confirmBulk = () => {
+    if (dateInvalid.value || bulk.submittedDate === '') {
+        dateTried.value = true;
+
+        return;
+    }
+
+    createSelectedClaims();
+};
 watch(
     () => selectedRows.value.length,
     (count) => {
@@ -469,6 +492,7 @@ const selection = computed(() => {
                     :columns="8"
                     cards="xl"
                     min-width="860px"
+                    class="panel-cards"
                     data-testid="invoice-cards"
                     :empty="work.eligible.data.length === 0"
                     :empty-message="`${
@@ -497,7 +521,7 @@ const selection = computed(() => {
                                     />
                                 </label>
                             </th>
-                            <th scope="col">Patient name</th>
+                            <th scope="col" class="min-w-36">Patient name</th>
                             <th scope="col">Invoice no</th>
                             <th scope="col" class="text-right">Amount</th>
                             <th scope="col">Status</th>
@@ -514,7 +538,7 @@ const selection = computed(() => {
                                 selected[row.allocationId] ? 'bg-primary/5' : ''
                             "
                         >
-                            <td data-select>
+                            <td data-select class="pc-sel">
                                 <label
                                     class="inline-flex min-h-11 min-w-11 items-center justify-center gap-2"
                                 >
@@ -534,14 +558,19 @@ const selection = computed(() => {
                                                 toggleRow(row, value === true)
                                         "
                                     />
-                                    <span
-                                        v-if="lockedReason(row)"
-                                        class="max-w-52 text-xs font-normal text-muted-foreground xl:hidden"
-                                        >{{ lockedReason(row) }}</span
-                                    >
                                 </label>
                             </td>
-                            <td data-label="Patient name" data-primary>
+                            <td
+                                v-if="lockedReason(row)"
+                                class="pc-lock text-xs text-muted-foreground xl:hidden"
+                            >
+                                {{ lockedReason(row) }}
+                            </td>
+                            <td
+                                data-label="Patient name"
+                                data-primary
+                                class="pc-name"
+                            >
                                 <span class="block text-sm font-medium">{{
                                     row.patientName
                                 }}</span>
@@ -551,7 +580,7 @@ const selection = computed(() => {
                                     {{ visitTypeLabel(row.visitType) }}</span
                                 >
                             </td>
-                            <td data-label="Invoice no" class="text-sm">
+                            <td data-label="Invoice no" class="pc-id text-sm">
                                 <span
                                     class="block font-mono text-xs max-xl:text-right"
                                     >{{ row.invoiceNumber }}</span
@@ -563,11 +592,11 @@ const selection = computed(() => {
                             </td>
                             <td
                                 data-label="Amount"
-                                class="text-right text-sm whitespace-nowrap"
+                                class="pc-amt text-right text-sm whitespace-nowrap"
                             >
                                 {{ myr(row.amountSen) }}
                             </td>
-                            <td data-label="Status">
+                            <td data-label="Status" class="pc-status">
                                 <V2Chip
                                     :tone="invoiceChip(row.overdue).tone"
                                     :label="invoiceChip(row.overdue).label"
@@ -585,32 +614,28 @@ const selection = computed(() => {
                                 >
                             </td>
                             <td
-                                data-label="Visit date"
-                                class="text-sm whitespace-nowrap xl:hidden"
-                            >
-                                {{ row.visitDate }}
-                            </td>
-                            <td
                                 data-label="Due date"
-                                class="text-sm whitespace-nowrap xl:hidden"
+                                class="pc-due text-sm whitespace-nowrap xl:hidden"
                             >
-                                {{ row.dueDate }}
+                                Due {{ row.dueDate }}
                             </td>
                             <td
-                                v-if="row.doctorName"
-                                data-label="Doctor"
-                                class="text-sm xl:hidden"
+                                data-label="Visit"
+                                class="pc-note truncate text-sm text-muted-foreground xl:hidden"
                             >
-                                {{ row.doctorName }}
+                                Visit {{ row.visitDate
+                                }}<template v-if="row.remarkNote">
+                                    · {{ row.remarkNote }}</template
+                                >
                             </td>
                             <td
                                 data-label="Remark note"
-                                class="max-w-44 text-sm max-xl:max-w-none max-xl:!text-right xl:truncate"
-                                :class="row.remarkNote ? '' : 'max-xl:!hidden'"
+                                class="max-w-24 text-sm max-xl:!hidden xl:truncate"
+                                :title="row.remarkNote || undefined"
                             >
                                 {{ row.remarkNote }}
                             </td>
-                            <td data-actions class="text-right">
+                            <td data-actions class="pc-act text-right">
                                 <div
                                     class="flex items-center justify-end gap-2 max-xl:justify-between"
                                 >
@@ -641,6 +666,7 @@ const selection = computed(() => {
                     :columns="8"
                     cards="xl"
                     min-width="860px"
+                    class="panel-cards"
                     data-testid="claim-cards"
                     :empty="work.claims.data.length === 0"
                     empty-message="No claims match. Create a claim from the Pending or Overdue tab, or change the tab, date range or filters."
@@ -667,7 +693,7 @@ const selection = computed(() => {
                                     />
                                 </label>
                             </th>
-                            <th scope="col">Patient name</th>
+                            <th scope="col" class="min-w-36">Patient name</th>
                             <th scope="col">Claim no</th>
                             <th scope="col" class="text-right">Amount</th>
                             <th scope="col">Status</th>
@@ -684,7 +710,7 @@ const selection = computed(() => {
                                 packSelected[row.publicId] ? 'bg-primary/5' : ''
                             "
                         >
-                            <td data-select>
+                            <td data-select class="pc-sel">
                                 <label
                                     class="inline-flex min-h-11 min-w-11 items-center justify-center gap-2"
                                 >
@@ -712,14 +738,19 @@ const selection = computed(() => {
                                                 )
                                         "
                                     />
-                                    <span
-                                        v-if="packLockedReason(row)"
-                                        class="max-w-52 text-xs font-normal text-muted-foreground xl:hidden"
-                                        >{{ packLockedReason(row) }}</span
-                                    >
                                 </label>
                             </td>
-                            <td data-label="Patient name" data-primary>
+                            <td
+                                v-if="packLockedReason(row)"
+                                class="pc-lock text-xs text-muted-foreground xl:hidden"
+                            >
+                                {{ packLockedReason(row) }}
+                            </td>
+                            <td
+                                data-label="Patient name"
+                                data-primary
+                                class="pc-name"
+                            >
                                 <span class="block text-sm font-medium">{{
                                     row.patientName
                                 }}</span>
@@ -729,7 +760,7 @@ const selection = computed(() => {
                                     {{ row.invoiceNumber }}</span
                                 >
                             </td>
-                            <td data-label="Claim no" class="text-sm">
+                            <td data-label="Claim no" class="pc-id text-sm">
                                 <span
                                     class="block font-mono text-xs max-xl:text-right"
                                     >{{ row.claimNo }}</span
@@ -741,11 +772,11 @@ const selection = computed(() => {
                             </td>
                             <td
                                 data-label="Amount"
-                                class="text-right text-sm whitespace-nowrap"
+                                class="pc-amt text-right text-sm whitespace-nowrap"
                             >
                                 {{ myr(row.claimAmountSen) }}
                             </td>
-                            <td data-label="Status">
+                            <td data-label="Status" class="pc-status">
                                 <V2Chip
                                     :tone="claimChipTone(row.status)"
                                     :label="row.status"
@@ -763,34 +794,50 @@ const selection = computed(() => {
                             </td>
                             <td
                                 data-label="Date"
-                                class="text-sm whitespace-nowrap xl:hidden"
+                                class="pc-due text-sm whitespace-nowrap xl:hidden"
                             >
                                 {{ row.createdAt }}
                             </td>
                             <td
-                                v-if="row.updatedBy"
-                                data-label="Updated by"
-                                class="text-sm xl:hidden"
+                                v-if="row.updatedBy || row.remarks"
+                                data-label="Note"
+                                class="pc-note truncate text-sm text-muted-foreground xl:hidden"
                             >
-                                {{ row.updatedBy }}
+                                <template v-if="row.updatedBy"
+                                    >Updated by {{ row.updatedBy }}</template
+                                ><template v-if="row.updatedBy && row.remarks">
+                                    · </template
+                                ><template v-if="row.remarks">{{
+                                    row.remarks
+                                }}</template>
                             </td>
                             <td
                                 data-label="Remarks"
-                                class="max-w-44 text-sm max-xl:max-w-none max-xl:!text-right xl:truncate"
-                                :class="row.remarks ? '' : 'max-xl:!hidden'"
+                                class="max-w-24 text-sm max-xl:!hidden xl:truncate"
+                                :title="row.remarks || undefined"
                             >
                                 {{ row.remarks }}
                             </td>
-                            <td data-actions class="text-right">
-                                <V2RowMenu
-                                    :label="`Actions for claim ${row.claimNo}`"
-                                    :groups="
-                                        claimMenuGroups(
-                                            row.showUrl,
-                                            canMarkSubmitted(row.status),
-                                        )
-                                    "
-                                />
+                            <td data-actions class="pc-act text-right">
+                                <div
+                                    class="flex items-center justify-end gap-2 max-xl:justify-between"
+                                >
+                                    <Link
+                                        :href="row.showUrl"
+                                        class="inline-flex h-11 flex-1 items-center justify-center rounded-[10px] border border-border bg-card px-3 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none xl:hidden"
+                                        :aria-label="`View claim ${row.claimNo}`"
+                                        >View claim</Link
+                                    >
+                                    <V2RowMenu
+                                        :label="`Actions for claim ${row.claimNo}`"
+                                        :groups="
+                                            claimMenuGroups(
+                                                row.showUrl,
+                                                canMarkSubmitted(row.status),
+                                            )
+                                        "
+                                    />
+                                </div>
                             </td>
                         </tr>
                     </template>
@@ -871,7 +918,7 @@ const selection = computed(() => {
             :title="`Create ${selectedRows.length} claim${selectedRows.length === 1 ? '' : 's'}`"
             :confirm-label="`Create ${selectedRows.length} claim${selectedRows.length === 1 ? '' : 's'}`"
             :busy="bulk.busy"
-            @confirm="createSelectedClaims()"
+            @confirm="confirmBulk()"
         >
             <div class="grid gap-3">
                 <p class="text-[13px] text-muted-foreground">
@@ -882,15 +929,16 @@ const selection = computed(() => {
                     claimed, no claim is created. At most {{ bulkMax }} invoices
                     at a time.
                 </p>
-                <label class="grid min-w-0 gap-1 text-sm font-medium"
-                    >Submitted date
-                    <DateField
-                        v-model="bulk.submittedDate"
-                        :min="minSubmittedDate || undefined"
-                        :max="work.branch.today"
-                        :echo="false"
-                    />
-                </label>
+                <V2DateField
+                    v-model="bulk.submittedDate"
+                    label="Submitted date"
+                    subject="Submitted date"
+                    required
+                    :min="minSubmittedDate || undefined"
+                    :max="work.branch.today"
+                    :error="dateError"
+                    @update:invalid="(value) => (dateInvalid = value)"
+                />
                 <label class="grid min-w-0 gap-1 text-sm font-medium"
                     >Remarks (optional)
                     <input
@@ -945,3 +993,77 @@ const selection = computed(() => {
         </V2Dialog>
     </PageFrame>
 </template>
+
+<style>
+/* Panel Claims cards (below 1280 px): about 250 px a card. The checkbox sits beside the name; the invoice or claim
+   number, amount and status follow; one muted line carries the visit date and note; one row holds the actions. These
+   rules win over the shared V2 card rows (which are !important) and only touch this page's tables. */
+@media (max-width: 1279.98px) {
+    .panel-cards tbody tr {
+        display: grid !important;
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        column-gap: 0.5rem;
+        row-gap: 0;
+        align-items: center;
+        padding: 0.5rem 0.75rem 0.75rem;
+    }
+    .panel-cards tbody td {
+        display: block !important;
+        min-width: 0;
+        padding: 0.125rem 0 !important;
+        text-align: left;
+    }
+    .panel-cards tbody td::before {
+        content: none !important;
+    }
+    .panel-cards .pc-sel {
+        grid-column: 1;
+        grid-row: 1;
+        min-height: 44px;
+    }
+    .panel-cards .pc-name {
+        grid-column: 2 / 4;
+        grid-row: 1;
+        order: 0;
+    }
+    .panel-cards .pc-id {
+        grid-column: 1 / 3;
+        grid-row: 2;
+    }
+    .panel-cards .pc-amt {
+        grid-column: 3;
+        grid-row: 2;
+        text-align: right;
+        font-weight: 600;
+    }
+    .panel-cards .pc-status {
+        grid-column: 1 / 3;
+        grid-row: 3;
+    }
+    .panel-cards .pc-due {
+        grid-column: 3;
+        grid-row: 3;
+        text-align: right;
+    }
+    .panel-cards .pc-note {
+        grid-column: 1 / 4;
+        grid-row: 4;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .panel-cards .pc-lock {
+        grid-column: 1 / 4;
+        grid-row: 5;
+    }
+    .panel-cards .pc-act {
+        grid-column: 1 / 4;
+        grid-row: 6;
+        padding-top: 0.5rem !important;
+    }
+    .panel-cards .pc-id span,
+    .panel-cards .pc-id span:first-child {
+        text-align: left !important;
+    }
+}
+</style>

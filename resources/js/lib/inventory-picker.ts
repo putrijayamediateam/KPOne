@@ -15,6 +15,8 @@ export function inventoryPickerUrl(input: {
     expectedBranchId: number;
     query: string;
     sku?: string;
+    /** Batches only (V2 page 2b): also return how much of each batch is at this location. */
+    location?: string;
 }): string {
     const params = new URLSearchParams({
         kind: input.kind,
@@ -26,6 +28,10 @@ export function inventoryPickerUrl(input: {
 
     if (input.sku) {
         params.set('sku', input.sku);
+    }
+
+    if (input.location) {
+        params.set('location', input.location);
     }
 
     return `/inventory/picker?${params}`;

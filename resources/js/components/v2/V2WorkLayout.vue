@@ -7,6 +7,12 @@ import type { RailFrom } from './railKey';
  * the main panel: `lg` (from 1024 px; below that the rail goes under the main panel), `xl` (from 1280 px) or `2xl` (from 1536 px,
  * 18rem wide; for a page that has a sidebar next to it). With `xl` or `2xl`, below that width the rail is not shown and the
  * `rail-collapsed` slot is shown above the main panel instead (for example a V2DisclosureBar, "3 need attention").
+ * `railBelow` (only with `xl` or `2xl`) says what happens to the rail below that width: `hide` (the default, as above),
+ * `stack-top` (the rail stays, ABOVE the main panel) or `stack-bottom` (the rail stays, BELOW it). With a stack option the
+ * rail is rendered ONCE and never remounts when the window crosses the breakpoint (browser zoom, resizing, rotating a
+ * tablet), so an open dialog or typed text inside it is not lost; `rail-collapsed` is not shown. Blocks that hide when
+ * the rail is beside the main panel (V2SelectionBar, V2StickyBar) still appear below the breakpoint, because a stacked
+ * rail is not in view at the bottom of a long list.
  * `eyebrow` is a small muted line above the title (for example "Visit" above "KPV-00000008"), so an identifier does not
  * read as a person. It is not part of the heading. The sidebar and the crumb belong to the V2 shell, not to this.
  */
@@ -18,6 +24,7 @@ const props = withDefaults(
         railLabel?: string;
         railWidth?: 'narrow' | 'default';
         railFrom?: RailFrom;
+        railBelow?: 'hide' | 'stack-top' | 'stack-bottom';
     }>(),
     {
         description: undefined,
@@ -25,6 +32,7 @@ const props = withDefaults(
         railLabel: 'Details',
         railWidth: 'default',
         railFrom: 'lg',
+        railBelow: 'hide',
     },
 );
 
@@ -78,7 +86,11 @@ provide(
         >
             <main class="flex min-w-0 flex-col gap-4">
                 <div
-                    v-if="railFrom !== 'lg' && $slots['rail-collapsed']"
+                    v-if="
+                        railFrom !== 'lg' &&
+                        railBelow === 'hide' &&
+                        $slots['rail-collapsed']
+                    "
                     :class="railFrom === 'xl' ? 'xl:hidden' : '2xl:hidden'"
                 >
                     <slot name="rail-collapsed" />
@@ -90,11 +102,20 @@ provide(
                 :aria-label="railLabel"
                 class="min-w-0 flex-col gap-4"
                 :class="
-                    railFrom === '2xl'
-                        ? 'hidden 2xl:flex'
-                        : railFrom === 'xl'
-                          ? 'hidden xl:flex'
-                          : 'flex'
+                    railFrom === 'lg'
+                        ? 'flex'
+                        : railBelow === 'hide'
+                          ? railFrom === '2xl'
+                              ? 'hidden 2xl:flex'
+                              : 'hidden xl:flex'
+                          : [
+                                'flex',
+                                railBelow === 'stack-top'
+                                    ? railFrom === '2xl'
+                                        ? 'order-first 2xl:order-none'
+                                        : 'order-first xl:order-none'
+                                    : '',
+                            ]
                 "
             >
                 <slot name="rail" />
