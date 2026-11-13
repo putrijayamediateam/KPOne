@@ -99,7 +99,9 @@ const correction = useForm({
 const acceptance = useForm({
     lock_version: props.intake.lockVersion,
     idempotency_key: props.visitOptions.idempotencyKey,
-    resolution: 'match',
+    // With no duplicate candidate there is nothing to match, so the review starts on creating a new patient.
+    resolution:
+        props.intake.duplicateCandidates.length === 0 ? 'create' : 'match',
     guardian_choice: '',
     guardian_relationship: [
         'mother',
@@ -253,7 +255,14 @@ const accept = () => {
 
     acceptance.post(`/registration-review/${props.intake.publicId}/accept`, {
         preserveScroll: true,
-        onError: focusInvalidField,
+        onError: (errors) => {
+            // Someone may have registered this person after the page loaded: reload the candidates so they show.
+            if (errors.duplicate_override) {
+                router.reload({ only: ['intake'] });
+            }
+
+            focusInvalidField();
+        },
     });
 };
 const selectCandidate = (patientNumber: string) => {
@@ -1141,21 +1150,36 @@ const confirmReject = () => {
                                     />
                                 </template>
                             </V2Field>
-                            <label
-                                v-else
-                                class="flex min-h-11 cursor-pointer items-start gap-3 rounded-[10px] border p-3 text-sm"
-                            >
-                                <input
-                                    v-model="acceptance.duplicate_override"
-                                    type="checkbox"
-                                    class="mt-0.5 size-5 shrink-0"
-                                />
-                                <span
-                                    >Confirm creation only after duplicate
-                                    review. The server still enforces exact
-                                    identifier uniqueness.</span
+                            <template v-else>
+                                <label
+                                    v-if="
+                                        intake.duplicateCandidates.length ||
+                                        acceptance.errors.duplicate_override
+                                    "
+                                    class="flex min-h-11 cursor-pointer items-start gap-3 rounded-[10px] border p-3 text-sm"
                                 >
-                            </label>
+                                    <input
+                                        v-model="acceptance.duplicate_override"
+                                        type="checkbox"
+                                        class="mt-0.5 size-5 shrink-0"
+                                    />
+                                    <span
+                                        >I reviewed the possible duplicates
+                                        above and this is a different
+                                        person.</span
+                                    >
+                                </label>
+                                <p
+                                    v-if="acceptance.errors.duplicate_override"
+                                    role="alert"
+                                    class="text-sm text-destructive"
+                                >
+                                    A possible duplicate was found when you
+                                    pressed accept. Check the Patient directory,
+                                    tick the box if this is a different person,
+                                    then accept again.
+                                </p>
+                            </template>
                         </div>
                     </V2FormCard>
 
