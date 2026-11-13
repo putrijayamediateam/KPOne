@@ -604,9 +604,13 @@ const filterBadge = computed(
                                     <span
                                         class="max-xl:min-w-0 max-xl:text-right max-xl:break-words xl:contents"
                                     >
-                                        <span class="block">{{
-                                            item.visit.coverageLabel
-                                        }}</span>
+                                        <span
+                                            class="block xl:max-w-56 xl:truncate"
+                                            :title="item.visit.coverageLabel"
+                                            >{{
+                                                item.visit.coverageLabel
+                                            }}</span
+                                        >
                                         <span
                                             v-if="item.visit.panelNote"
                                             class="block max-w-56 truncate text-xs text-muted-foreground max-xl:line-clamp-1 max-xl:max-w-none max-xl:break-words max-xl:whitespace-normal"
