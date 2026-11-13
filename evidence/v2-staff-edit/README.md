@@ -1,0 +1,1 @@
+Staff edit (V2) in the real app as the demo Director (task-owned DB). Blank name refused with 'The name field is required.'; valid save returns to the detail page ('Staff profile updated.'). PATCH body identical to Classic. 1440 light, 390 light and dark; no sideways scroll.
