@@ -1,6 +1,11 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue';
-import { cellKeyAction, clampIndex, entryKeyAction } from '@/lib/v2-week-grid';
+import {
+    cellKeyAction,
+    clampIndex,
+    entryKeyAction,
+    keepUnits,
+} from '@/lib/v2-week-grid';
 
 /**
  * Version 2 week grid: people as rows and the seven days as columns from 1280 px, one card per day below 1280 px.
@@ -312,7 +317,7 @@ const button =
                                 <span
                                     v-if="row.notes?.[day.key]"
                                     class="text-[13px] font-medium"
-                                    >{{ row.notes[day.key] }}</span
+                                    >{{ keepUnits(row.notes[day.key]) }}</span
                                 >
                                 <span
                                     v-if="row.warnings?.[day.key]"
@@ -332,7 +337,7 @@ const button =
                                             d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01"
                                         />
                                     </svg>
-                                    {{ row.warnings[day.key] }}
+                                    {{ keepUnits(row.warnings[day.key]) }}
                                 </span>
                                 <button
                                     v-if="
@@ -428,7 +433,7 @@ const button =
                         >
                             <span class="flex flex-col gap-1">
                                 <span class="tabular-nums">{{
-                                    totals[day.key]?.text
+                                    keepUnits(totals[day.key]?.text ?? '')
                                 }}</span>
                                 <span
                                     v-if="totals[day.key]?.warning"
@@ -448,7 +453,11 @@ const button =
                                             d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01"
                                         />
                                     </svg>
-                                    {{ totals[day.key]?.warning }}
+                                    {{
+                                        keepUnits(
+                                            totals[day.key]?.warning ?? '',
+                                        )
+                                    }}
                                 </span>
                             </span>
                         </td>
@@ -470,7 +479,7 @@ const button =
                         v-if="totals?.[day.key]"
                         class="flex items-center gap-2 text-[13px] text-muted-foreground"
                     >
-                        {{ totals[day.key].text }}
+                        {{ keepUnits(totals[day.key].text) }}
                         <span
                             v-if="totals[day.key].warning"
                             class="inline-flex items-center gap-1 font-medium text-foreground"
@@ -487,7 +496,7 @@ const button =
                             >
                                 <path d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01" />
                             </svg>
-                            {{ totals[day.key].warning }}
+                            {{ keepUnits(totals[day.key].warning ?? '') }}
                         </span>
                     </span>
                 </div>
@@ -508,14 +517,14 @@ const button =
                     >
                         <path d="M12 3 2 20h20L12 3Zm0 6v5m0 3v.01" />
                     </svg>
-                    {{ warning }}
+                    {{ keepUnits(warning) }}
                 </p>
                 <p
                     v-for="note in dayNotes(day.key)"
                     :key="note"
                     class="text-[13px] text-muted-foreground"
                 >
-                    {{ note }}
+                    {{ keepUnits(note) }}
                 </p>
                 <p
                     v-if="dayItems(day.key).length === 0"

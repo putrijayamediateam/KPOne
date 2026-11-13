@@ -175,6 +175,18 @@ test('cell keys: arrows, Home and End move inside the grid; Enter opens one entr
     assert.deepEqual(cellKeyAction('x', at, size, 1, true), { kind: 'none' });
 });
 
+test('a number and its unit never split across lines; other words still wrap', async () => {
+    const { keepUnits } = await loadLib();
+    assert.equal(keepUnits('Rest under 11 h'), 'Rest under 11\u00a0h');
+    assert.equal(
+        keepUnits('Planned 48 h this week'),
+        'Planned 48\u00a0h this week',
+    );
+    assert.equal(keepUnits('5 on shift'), '5 on shift');
+    assert.equal(keepUnits('On leave (half day)'), 'On leave (half day)');
+    assert.ok((template.match(/keepUnits\(/g) ?? []).length >= 8);
+});
+
 test("entry keys: Tab and Shift+Tab move between a cell's entries, Escape goes back, and nothing traps focus", async () => {
     const { entryKeyAction } = await loadLib();
 

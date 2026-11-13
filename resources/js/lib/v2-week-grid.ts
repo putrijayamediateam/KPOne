@@ -88,3 +88,7 @@ export const entryKeyAction = (
         ? { kind: 'focus', index: index + 1 }
         : { kind: 'leave' };
 };
+
+/** A number and its unit never split across lines ("11 h", "30 min", "48 h"); the rest of the words still wrap. */
+export const keepUnits = (text: string): string =>
+    text.replace(/(\d) (h|min|mins|hours?|days?|%)(?=\b|$)/g, '$1 $2');
