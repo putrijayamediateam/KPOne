@@ -19,6 +19,7 @@ return [
         'Registration/Show',
         'Registration/Edit',
         'Dispensary/Show',
+        'Medicine/Index',
         'PaymentMethods/Index',
         'Pricing/Index',
         'Agents/Inbox',
