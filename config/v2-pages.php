@@ -36,6 +36,8 @@ return [
         'InventoryServicesSettings/Suppliers',
         'Staff/Index',
         'InventoryServicesSettings/MedicineDetails',
+        'RegistrationSettings/Index',
+        'ConsultationSettings/Index',
         'Staff/Show',
         'Staff/Create',
         'Staff/Edit',
