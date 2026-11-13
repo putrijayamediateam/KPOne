@@ -2,6 +2,7 @@
 import { usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref, watch } from 'vue';
 import InventoryPickerField from '@/components/inventory-v2/InventoryPickerField.vue';
+import ReceiveSheet from '@/components/inventory-v2/ReceiveSheet.vue';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
@@ -293,6 +294,15 @@ const orderMenu = (row: DocumentRow): RowMenuGroup[] => {
         props.operations.permissions.createPurchaseOrders
             ? [{ id: 'edit', label: 'Edit draft', allowed: !busy.value }]
             : []),
+        ...(purchaseAction(row, 'receive')
+            ? [
+                  {
+                      id: 'receive',
+                      label: 'Receive goods',
+                      allowed: canPurchase(row, 'receive') && !busy.value,
+                  },
+              ]
+            : []),
         ...(purchaseAction(row, 'submit')
             ? [
                   {
@@ -374,6 +384,8 @@ const orderMenu = (row: DocumentRow): RowMenuGroup[] => {
 const onOrderMenu = (row: DocumentRow, id: string) => {
     if (id === 'lines') {
         openSheet('lines', row);
+    } else if (id === 'receive') {
+        receiveRow.value = row;
     } else if (id === 'edit') {
         openSheet('edit-draft', row);
     } else if (id === 'submit') {
@@ -384,6 +396,16 @@ const onOrderMenu = (row: DocumentRow, id: string) => {
         openShortClose(row);
     }
 };
+
+// Receive against an order (the verified receiving form as a V2 sheet).
+const receiveRow = ref<DocumentRow | null>(null);
+const receiving = computed(() =>
+    receiveRow.value
+        ? (props.operations.purchaseOrders.find(
+              (row) => row.publicId === receiveRow.value?.publicId,
+          ) ?? null)
+        : null,
+);
 
 const statusTone = (row: DocumentRow) =>
     row.closeKind === 'short' || row.status === 'cancelled'
@@ -855,6 +877,16 @@ const shortCloseRow = computed(() => shortClose.row);
             }}</span>
         </label>
     </V2Dialog>
+
+    <ReceiveSheet
+        v-if="receiving"
+        :key="`${receiving.publicId}-${receiving.lockVersion}`"
+        :row="receiving"
+        :branch-id="operations.expectedBranchId"
+        :nonce="receiptMemoryContext.sessionNonce"
+        :open="true"
+        @close="receiveRow = null"
+    />
 
     <!-- "Discard what you typed?" before a sheet with values closes. -->
     <V2Dialog
