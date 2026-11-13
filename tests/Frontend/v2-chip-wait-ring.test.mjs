@@ -94,3 +94,8 @@ test('V2 chip dots and ring strokes reach 3:1 on the card in the Version 2 look,
         }
     }
 });
+
+test('V2Chip: plain drops the dot for a label chip such as a role', () => {
+    assert.match(chip, /plain\?: boolean/);
+    assert.match(chip, /v-if="!plain"/);
+});
