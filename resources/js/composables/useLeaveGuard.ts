@@ -56,8 +56,8 @@ export function useLeaveGuard(
 
     onBeforeUnmount(() => {
         stop();
-        stopPop();
         window.removeEventListener('beforeunload', warnOnUnload);
+        stopPop();
     });
 
     const leave = (target: string) => {

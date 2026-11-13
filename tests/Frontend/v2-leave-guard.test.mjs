@@ -48,10 +48,7 @@ test('useLeaveGuard: router.on before cancels a held visit; beforeunload; both l
         c,
         /\(3\) the listener is removed when the page or sheet unmounts/,
     );
-    assert.match(
-        c,
-        /\(4\) browser Back stays a known limit, with `beforeunload` for reload and tab close\./,
-    );
+    assert.match(c, /\(4\) browser Back and Forward are held too/);
 });
 
 test('holdTarget: held only for a GET to another path while dirty; a poll, a reload and a save are never held', async () => {

@@ -36,7 +36,7 @@ import { useLeaveGuard } from '@/composables/useLeaveGuard';
  * (1) A same-path visit and a partial reload or a polling visit (such as the Registration and Queue live refresh) is never held;
  * (2) a successful save never asks;
  * (3) the listener is removed when the page or sheet unmounts, so nothing keeps asking on the next page;
- * (4) browser Back stays a known limit, with `beforeunload` for reload and tab close.
+ * (4) browser Back and Forward are held too; `beforeunload` covers reload and tab close.
  * Pages need no guard of their own for an open sheet.
  */
 const props = withDefaults(
