@@ -977,3 +977,19 @@
     width: 16px;
     height: 16px;
 }
+/* UX-24: a space home inside the V2 shell (Me and Management in part 1). The shell draws the sidebar and top bar, so the
+   space is a plain block in the content column, with the page frame's side padding (16 px, 32 px from 1024 px). */
+.space-shell[data-v2-frame] {
+    display: block;
+    min-height: 0;
+    background: transparent;
+    font-family: inherit;
+}
+.space-shell[data-v2-frame] .space-main {
+    padding: 24px 16px;
+}
+@media (min-width: 1024px) {
+    .space-shell[data-v2-frame] .space-main {
+        padding: 24px 32px;
+    }
+}

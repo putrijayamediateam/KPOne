@@ -15,6 +15,7 @@ import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useClockShortcut } from '@/composables/useClockShortcut';
 import { useScrollStrip } from '@/composables/useScrollStrip';
 import SpacePassThroughLayout from '@/layouts/SpacePassThroughLayout.vue';
+import { V2_FRAMED_SPACES } from '@/lib/v2-spaces';
 import { waitingTone } from '@/lib/waiting-time';
 
 type Space = { key: string; title: string };
@@ -418,12 +419,27 @@ onMounted(() => {
         void loadClock();
     }
 });
+
+// UX-24 part 1 (Daniel, 2026-11-13): Me home and Management sit in the V2 shell (its sidebar, search, branch switcher,
+// Back to Classic and account menu replace this page's own), content in the page frame with a V2 header. The other
+// spaces keep this page's own chrome until part 2. The teams' blocks below are unchanged.
+// The shell itself is drawn by SpacePassThroughLayout, so this page keeps its markup; here it only drops its own chrome.
+const v2Shell = computed(() =>
+    V2_FRAMED_SPACES.includes(props.space.key)
+        ? (page.props.workspace?.shell ?? null)
+        : null,
+);
 </script>
 
 <template>
     <Head :title="space.title" />
-    <div class="space-shell" :class="{ 'is-bare': bare }">
+    <div
+        class="space-shell"
+        :class="{ 'is-bare': bare }"
+        :data-v2-frame="v2Shell ? '' : undefined"
+    >
         <div
+            v-if="!v2Shell"
             ref="side"
             class="space-side"
             :style="fadeStyle"
@@ -460,8 +476,15 @@ onMounted(() => {
             class="fixed inset-0 z-40 bg-black/30 sm:hidden"
             aria-hidden="true"
         />
-        <main id="main-content" class="space-main" tabindex="-1">
-            <div class="space-top">
+        <main
+            id="main-content"
+            class="space-main"
+            :class="{
+                'mx-auto w-full max-w-7xl': v2Shell,
+            }"
+            tabindex="-1"
+        >
+            <div v-if="!v2Shell" class="space-top">
                 <label
                     v-if="branches?.active"
                     class="space-branch"
@@ -512,7 +535,44 @@ onMounted(() => {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <div class="space-head">
+            <header
+                v-if="v2Shell"
+                class="flex flex-wrap items-start justify-between gap-3"
+                data-test="v2-space-head"
+            >
+                <h1 class="v2-page-title">{{ space.title }}</h1>
+                <div
+                    v-if="
+                        primaryAction ||
+                        (accountMenu?.clock &&
+                            clockVisible &&
+                            space.key !== 'me')
+                    "
+                    class="flex flex-wrap items-center gap-2 max-[359px]:flex-col max-[359px]:items-stretch max-sm:w-full [&>*]:max-sm:grow"
+                >
+                    <Link
+                        v-if="primaryAction"
+                        :href="primaryAction.href"
+                        class="inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none lg:h-9"
+                        >{{ primaryAction.title }}</Link
+                    >
+                    <!-- Phones and tablets: the clock shortcut sits here, not in the top bar (Daniel). -->
+                    <button
+                        v-if="
+                            accountMenu?.clock &&
+                            clockVisible &&
+                            space.key !== 'me'
+                        "
+                        type="button"
+                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:hidden"
+                        data-test="v2-space-clock"
+                        @click="pressClock()"
+                    >
+                        {{ clockLabel }}
+                    </button>
+                </div>
+            </header>
+            <div v-else class="space-head">
                 <h1 class="space-title">{{ space.title }}</h1>
                 <Link
                     v-if="primaryAction"
@@ -649,7 +709,8 @@ onMounted(() => {
                             <strong>{{ pharmacy.stockWatch.expiring }}</strong>
                             <span class="space-muted"
                                 >expiring in
-                                {{ pharmacy.stockWatch.windowDays }} days</span
+                                {{ pharmacy.stockWatch.windowDays }}
+                                days</span
                             >
                         </li>
                         <li>
@@ -1174,7 +1235,8 @@ onMounted(() => {
                             "
                             class="space-muted"
                         >
-                            Showing {{ consultation.waiting.rows.length }} of
+                            Showing
+                            {{ consultation.waiting.rows.length }} of
                             {{ consultation.waiting.total }} ·
                             <Link
                                 :href="consultation.waiting.seeAllHref"
@@ -1391,7 +1453,9 @@ onMounted(() => {
                         </p>
                     </template>
                 </section>
-                <p v-if="panel.note" class="space-muted">{{ panel.note }}</p>
+                <p v-if="panel.note" class="space-muted">
+                    {{ panel.note }}
+                </p>
                 <section
                     v-if="panel.links.length"
                     class="space-card"
