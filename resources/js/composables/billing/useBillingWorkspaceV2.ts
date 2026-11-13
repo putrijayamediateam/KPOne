@@ -33,6 +33,10 @@ export function useBillingWorkspaceV2(props: {
     ];
     const page = usePage();
     const busy = ref(false);
+    // BIL-25 (Siti): a reversed receipt is a settled correction, so it stays grey.
+    // 'reversed' has no tone in presentation.ts today; this keeps it grey if one is added.
+    const receiptTone = (status: string) =>
+        status === 'reversed' ? ('neutral' as const) : undefined;
     const contextCleared = ref(false);
     const completionOpen = ref(false);
     const paymentOpen = ref(false);
@@ -285,6 +289,7 @@ export function useBillingWorkspaceV2(props: {
         invoiceTabs,
         page,
         busy,
+        receiptTone,
         contextCleared,
         completionOpen,
         paymentOpen,
