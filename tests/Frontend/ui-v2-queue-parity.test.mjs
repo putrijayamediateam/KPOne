@@ -241,3 +241,13 @@ test('a dialog never closes while its request is running and never outlives a br
         /onBeforeUnmount\(\(\) => \{[\s\S]*?emit\('dialog', false\)/,
     );
 });
+
+test('a cancellation reason over 500 characters is refused with a message, never cut silently', () => {
+    const dialogs = read(
+        'resources/js/components/queue-v2/QueueRowDialogs.vue',
+    );
+
+    assert.match(dialogs, /cancellationReason\.length > 500/);
+    assert.match(dialogs, /Keep the reason to 500 characters or fewer\./);
+    assert.doesNotMatch(dialogs, /cancellationReason\.slice\(0, 500\)/);
+});

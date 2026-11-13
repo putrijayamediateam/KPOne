@@ -122,6 +122,13 @@ const cancel = (cancellationReason: string | null) => {
         return;
     }
 
+    // The shared V2 reason box has no length limit; say so instead of cutting the reason silently.
+    if (cancellationReason.length > 500) {
+        error.value = 'Keep the reason to 500 characters or fewer.';
+
+        return;
+    }
+
     busy.value = true;
     emit('busy', true);
     error.value = '';
@@ -132,7 +139,7 @@ const cancel = (cancellationReason: string | null) => {
             expected_branch_id: props.branchId,
             lock_version: entry.visitLockVersion,
             queue_lock_version: entry.queueLockVersion,
-            cancellation_reason: cancellationReason.slice(0, 500),
+            cancellation_reason: cancellationReason,
         },
         {
             preserveScroll: true,
