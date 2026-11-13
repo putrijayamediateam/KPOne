@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Photos\ClockPhotoLabels;
 use App\Domain\HR\Roster\Models\RosterShift;
 use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Identity\Models\StaffBranchAssignment;
@@ -69,7 +70,9 @@ final class AttendancePageService
             ->whereDate('local_date', '<=', $weekStart->addDays(6)->toDateString())->orderBy('clock_in_at')->get();
         $shifts = $this->days->shifts($actor->organisation_id, [$actor->id], $from, $weekStart->addDays(6));
         $waiting = $this->waiting($sessions);
-        $rows = collect($this->days->rows($actor->organisation_id, $sessions, $shifts, $waiting));
+        $photos = app(ClockPhotoLabels::class)->forSessions($sessions, $actor);
+        $rows = collect($this->days->rows($actor->organisation_id, $sessions, $shifts, $waiting))
+            ->map(fn (array $r): array => [...$r, 'photos' => $r['session'] === null ? null : ($photos[$r['session']['publicId']] ?? null)]);
         $week = $rows->filter(fn (array $r): bool => $r['date'] >= $weekStart->toDateString())->values();
         $settings = $this->settings->forDate($actor->organisation_id, $today);
         $earliest = $settings === null ? $today->toDateString() : $today->subDays($settings->correctionDays)->toDateString();
@@ -164,9 +167,12 @@ final class AttendancePageService
         // HR-16a: the location result of each press, in plain words (never a position or a distance).
         $locations = $this->location->labels(array_values(array_map('intval', $sessions->pluck('id')->all())));
         $sessionIds = $sessions->pluck('id', 'public_id');
+        // HR-PHOTO: other people's photos stay behind Show (needsShow); nothing is opened or recorded until it is pressed.
+        $photos = app(ClockPhotoLabels::class)->forSessions($sessions, $actor);
         $rows = array_map(fn (array $r): array => [...$r, 'person' => (string) (isset($people[$r['userId']]) ? $people[$r['userId']]->name : 'Staff member'),
             'overtimeChoice' => $r['session'] === null ? null : ($choices[$r['session']['publicId']] ?? null), 'week' => $weeks[$r['userId']] ?? null,
-            'location' => $r['session'] === null ? null : ($locations[(int) ($sessionIds[$r['session']['publicId']] ?? 0)] ?? null)], $rows);
+            'location' => $r['session'] === null ? null : ($locations[(int) ($sessionIds[$r['session']['publicId']] ?? 0)] ?? null),
+            'photos' => $r['session'] === null ? null : ($photos[$r['session']['publicId']] ?? null)], $rows);
         $pending = AttendanceCorrection::query()->where('organisation_id', $actor->organisation_id)->where('status', 'pending')->orderBy('id')->limit(100)->get();
         $flagged = count(array_filter($rows, fn (array $r): bool => $r['flags'] !== []));
         $staffIds = StaffBranchAssignment::query()->where('branch_id', $branch->id)->whereDate('valid_from', '<=', $date->toDateString())

@@ -1,5 +1,6 @@
 import { router } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
+import { useClockPhoto } from '@/composables/useClockPhoto';
 import { requestJson } from '@/lib/json-client';
 
 type ClockState = {
@@ -20,7 +21,10 @@ const clock = reactive({
     needsAttendancePage: false,
 });
 
-/** The clock shortcut reads the same state as My attendance, and opens the Attendance page. It presses nothing. */
+/**
+ * The clock shortcut reads the same state as My attendance. HR-PHOTO: a press opens the shared camera dialog (the
+ * dialog posts the press with its photo); a branch that checks location still goes to the Attendance page first.
+ */
 export function useClockShortcut() {
     const load = async () => {
         try {
@@ -37,12 +41,20 @@ export function useClockShortcut() {
         }
     };
 
-    /**
-     * The shortcut never presses. Clock in and Clock out need HR's photo step, so for now it opens the Attendance page,
-     * where the press and its checks live; it will open the photo clock dialog when that exists.
-     */
+    const { open } = useClockPhoto();
     const press = () => {
-        router.visit(ATTENDANCE);
+        if (clock.needsAttendancePage) {
+            router.visit(ATTENDANCE);
+
+            return;
+        }
+
+        open(clock.state === 'in' ? 'out' : 'in', {
+            onDone: () => {
+                void load();
+                router.reload();
+            },
+        });
     };
 
     const label = computed(() =>
