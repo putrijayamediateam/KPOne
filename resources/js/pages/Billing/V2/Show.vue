@@ -71,7 +71,6 @@ const {
     reversalOpen,
     reversalReceipt,
     updateDialog,
-    clearEntry,
     openEntry,
     openReversal,
     error,
@@ -163,6 +162,28 @@ const setPanel = (id: string | null) => {
         (option) => option.value !== '' && String(option.value) === id,
     );
     form.panel_id = (match?.value ?? '') as string;
+};
+// "Discard changes" in a V2Dialog clears only that dialog's own fields, like Classic's Cancel kept the rest: the
+// idempotency key and other forms on the page (a Governed correction reason) are untouched, and nothing is cleared
+// while a request is still running.
+const discardEntry = (kind: 'payment' | 'responsibility' | 'reversal') => {
+    if (busy.value) {
+        return;
+    }
+
+    if (kind === 'payment') {
+        Object.assign(form, { amount: '', method: '', reference: '' });
+    } else if (kind === 'responsibility') {
+        Object.assign(form, {
+            responsibility_amount: '',
+            reason: '',
+            panel_id: '',
+            member_reference: '',
+            due_date: '',
+        });
+    } else {
+        Object.assign(form, { reason: '', recording_error_only: false });
+    }
 };
 const dueParts = computed(() =>
     billingDueParts(props.billing.invoice?.state ?? null),
@@ -499,13 +520,18 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         :key="receipt.publicId"
                         class="p-4"
                     >
-                        <div class="flex justify-between gap-2">
-                            <span class="font-semibold">{{
-                                receipt.method
-                            }}</span
-                            ><span class="tabular-nums">{{
-                                myr(receipt.amountSen)
-                            }}</span>
+                        <!-- Rail-safe: the method takes the free width and wraps by word; the amount never shrinks. -->
+                        <div
+                            class="flex items-start justify-between gap-2"
+                            data-testid="rail-payment-row"
+                        >
+                            <span
+                                class="min-w-0 font-semibold [overflow-wrap:break-word]"
+                                >{{ receipt.method }}</span
+                            ><span
+                                class="shrink-0 whitespace-nowrap tabular-nums"
+                                >{{ myr(receipt.amountSen) }}</span
+                            >
                         </div>
                         <p class="mt-1 text-[13px] text-muted-foreground">
                             {{ receipt.number }} ·
@@ -1144,7 +1170,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                 :busy="busy || !form.method || !billing.can.pay"
                 :dirty="!!(form.amount || form.reference)"
                 @update:open="updateDialog('payment', $event)"
-                @discard="clearEntry"
+                @discard="discardEntry('payment')"
                 @confirm="payment"
             >
                 <dl
@@ -1171,57 +1197,59 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                 <p v-if="error" role="alert" class="text-sm text-destructive">
                     {{ error }}
                 </p>
-                <p class="text-[13px] text-muted-foreground">
-                    {{
-                        isCompleted
-                            ? 'Outstanding receivable: this governed settlement is separate from the completed Visit record.'
-                            : 'For money the patient pays now. Panel responsibility is recorded separately.'
-                    }}
-                </p>
-                <V2MoneyInput
-                    v-model="form.amount"
-                    label="Amount received"
-                    :hint="dueHint"
-                    required
-                />
-                <Button
-                    v-if="
-                        dueNowText &&
-                        (!isCompleted ||
-                            (billing.invoice?.state.due_now ?? 0) > 0)
-                    "
-                    type="button"
-                    variant="outline"
-                    class="h-11 w-fit text-[13px] lg:h-9"
-                    @click="form.amount = dueNowText"
-                >
-                    Use amount due (RM {{ dueNowText }})
-                </Button>
-                <V2Picker
-                    :model-value="form.method || null"
-                    label="Payment method"
-                    :options="methodPicks"
-                    placeholder="Choose a payment method"
-                    required
-                    @update:model-value="form.method = $event ?? ''"
-                />
-                <label class="block text-[15px]"
-                    >Transaction reference (no card details)<input
-                        v-model="form.reference"
-                        class="billing-input-v2"
-                        maxlength="100"
-                        autocomplete="off"
-                /></label>
-                <p
-                    v-if="!form.method"
-                    class="text-[13px] text-muted-foreground"
-                >
-                    {{
-                        isCompleted
-                            ? 'Choose a payment method to enable Settle Outstanding Balance.'
-                            : 'Choose a payment method to enable Add Payment.'
-                    }}
-                </p>
+                <template v-if="billing.can.pay">
+                    <p class="text-[13px] text-muted-foreground">
+                        {{
+                            isCompleted
+                                ? 'Outstanding receivable: this governed settlement is separate from the completed Visit record.'
+                                : 'For money the patient pays now. Panel responsibility is recorded separately.'
+                        }}
+                    </p>
+                    <V2MoneyInput
+                        v-model="form.amount"
+                        label="Amount received"
+                        :hint="dueHint"
+                        required
+                    />
+                    <Button
+                        v-if="
+                            dueNowText &&
+                            (!isCompleted ||
+                                (billing.invoice?.state.due_now ?? 0) > 0)
+                        "
+                        type="button"
+                        variant="outline"
+                        class="h-11 w-fit text-[13px] lg:h-9"
+                        @click="form.amount = dueNowText"
+                    >
+                        Use amount due (RM {{ dueNowText }})
+                    </Button>
+                    <V2Picker
+                        :model-value="form.method || null"
+                        label="Payment method"
+                        :options="methodPicks"
+                        placeholder="Choose a payment method"
+                        required
+                        @update:model-value="form.method = $event ?? ''"
+                    />
+                    <label class="block text-[15px]"
+                        >Transaction reference (no card details)<input
+                            v-model="form.reference"
+                            class="billing-input-v2"
+                            maxlength="100"
+                            autocomplete="off"
+                    /></label>
+                    <p
+                        v-if="!form.method"
+                        class="text-[13px] text-muted-foreground"
+                    >
+                        {{
+                            isCompleted
+                                ? 'Choose a payment method to enable Settle Outstanding Balance.'
+                                : 'Choose a payment method to enable Add Payment.'
+                        }}
+                    </p>
+                </template>
             </V2Dialog>
 
             <V2Dialog
@@ -1232,7 +1260,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         ? 'Panel responsibility'
                         : 'Pay later'
                 "
-                description="This request needs approval and is not a cash receipt."
+                description="Pay by Panel or pay later. This request needs approval and is not a cash receipt."
                 :confirm-label="
                     responsibilityKind === 'panel'
                         ? 'Propose Panel responsibility'
@@ -1246,7 +1274,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                 "
                 :dirty="!!(form.responsibility_amount || form.reason)"
                 @update:open="updateDialog('responsibility', $event)"
-                @discard="clearEntry"
+                @discard="discardEntry('responsibility')"
                 @confirm="propose(responsibilityKind)"
             >
                 <p v-if="error" role="alert" class="text-sm text-destructive">
@@ -1373,7 +1401,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                 "
                 :dirty="!!form.reason"
                 @update:open="updateDialog('reversal', $event)"
-                @discard="clearEntry"
+                @discard="discardEntry('reversal')"
                 @confirm="reversalReceipt && reverse(reversalReceipt)"
             >
                 <p v-if="reversalReceipt" class="tabular-nums">
