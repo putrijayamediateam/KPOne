@@ -57,3 +57,13 @@ test('Staff/Create round 2: plain required lines, errors clear on edit, plain si
     assert.doesNotMatch(page, /OAuth|Bootstrap|pre-provisioning/);
     assert.match(page, /<V2StickyBar>/);
 });
+
+test('Staff/Create: plain card lines and the real password rule in words', () => {
+    assert.match(page, /The person will sign in with their work email\./);
+    assert.doesNotMatch(page, /Public registration|Organisation ownership/);
+    // StoreStaffRequest: Password::min(12)->mixedCase()->letters()->numbers()->symbols()
+    assert.match(
+        page,
+        /At least 12 characters, with capital and small letters, a number and a symbol\./,
+    );
+});

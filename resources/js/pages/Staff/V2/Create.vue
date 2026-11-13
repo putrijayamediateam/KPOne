@@ -147,7 +147,7 @@ const border = (error?: string) =>
                     <V2FormCard
                         :step="1"
                         title="Identity"
-                        description="Use the staff member's KPOne work identity. Public registration remains disabled."
+                        description="The person will sign in with their work email."
                     >
                         <V2Field
                             v-slot="{ id, describedBy }"
@@ -205,6 +205,7 @@ const border = (error?: string) =>
                             <V2Field
                                 v-slot="{ id, describedBy }"
                                 label="Temporary password"
+                                hint="At least 12 characters, with capital and small letters, a number and a symbol."
                                 :error="errorFor('password')"
                             >
                                 <input
@@ -232,11 +233,7 @@ const border = (error?: string) =>
                         </template>
                     </V2FormCard>
 
-                    <V2FormCard
-                        :step="2"
-                        title="Employment"
-                        description="Organisation ownership is assigned from your authorised KPOne context, not from this form."
-                    >
+                    <V2FormCard :step="2" title="Employment">
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Staff number"
