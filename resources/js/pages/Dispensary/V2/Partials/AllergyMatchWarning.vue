@@ -57,14 +57,14 @@ onMounted(() => {
         </p>
         <label
             :for="fieldId"
-            class="-mx-2 mt-2 flex min-h-11 w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-md px-2 font-medium hover:bg-destructive/10 lg:min-h-9 lg:gap-2"
+            class="-mx-2 mt-2 flex min-h-11 w-[calc(100%+1rem)] cursor-pointer items-center gap-3 rounded-md px-2 font-medium hover:bg-destructive/10 lg:gap-2"
             data-testid="allergy-confirmation-row"
         >
             <input
                 :id="fieldId"
                 v-model="confirmed"
                 type="checkbox"
-                class="size-6 shrink-0 accent-destructive lg:size-4"
+                class="size-6 shrink-0 accent-destructive"
                 data-field="allergy-confirmation"
             />
             I have checked with the patient or doctor

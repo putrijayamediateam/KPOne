@@ -270,7 +270,7 @@ test('lines: a save with an unticked allergy match is aria-disabled with the rea
     assert.match(template(v2), />Save this line</);
 });
 
-test('the V2 allergy warning: icon and "Allergy match:" words, 44 px row with a 24 px box, announced only after load', () => {
+test('the V2 allergy warning: icon and "Allergy match:" words, 44 px row at every width with a 24 px box, announced only after load', () => {
     const warning = read(
         'resources/js/pages/Dispensary/V2/Partials/AllergyMatchWarning.vue',
     );
@@ -280,10 +280,9 @@ test('the V2 allergy warning: icon and "Allergy match:" words, 44 px row with a 
     );
     assert.match(warning, /Allergy match:/);
     assert.match(warning, /flex min-h-11 w-\[calc\(100%\+1rem\)\]/);
-    assert.match(
-        warning,
-        /class="size-6 shrink-0 accent-destructive lg:size-4"/,
-    );
+    // Daniel: the whole tick row is the 44 px target from 1024 too.
+    assert.ok(!/lg:min-h-9/.test(warning));
+    assert.match(warning, /class="size-6 shrink-0 accent-destructive"/);
     assert.match(warning, /if \(props\.announce\) \{/);
     assert.equal(
         (template(v2).match(/:announce="pageReady"/g) ?? []).length,
@@ -328,4 +327,66 @@ test('the same refusal pressed twice scrolls and focuses again: the error watche
     await nextTick();
     assert.equal(sync, 1, 'sync runs for the second press');
     assert.equal(pre, 0, 'the default pre flush would miss it');
+});
+
+test('no native selects: Batch and FEFO use OperationalSelect, the batch wraps in the field and the list (Daniel)', () => {
+    assert.ok(!/<select\b/.test(template(v2)));
+    assert.equal(
+        (template(v2).match(/:options="fefoOptions"/g) ?? []).length,
+        2,
+    );
+    assert.equal((template(v2).match(/batchOptions\(/g) ?? []).length, 2);
+    assert.equal(
+        (template(v2).match(/:content-avoid-collisions="false"/g) ?? []).length,
+        2,
+    );
+    assert.match(
+        v2,
+        /whitespace-normal data-\[size=default\]:h-auto lg:min-h-9 \*:data-\[slot=select-value\]:line-clamp-none/,
+    );
+    // pointAtBatch (Classic's, unchanged) still finds the batch field by data-batch-select.
+    assert.match(template(v2), /:data-batch-select="item\.publicId"/);
+    assert.match(template(v2), /data-batch-select="add"/);
+    assert.match(v2, /disabled: stock\.held/);
+});
+
+test('scan to check sits behind a closed "Check by scan" bar that stays mounted (Daniel)', () => {
+    assert.match(v2, /const checkScanOpen = ref\(false\);/);
+    assert.match(
+        template(v2),
+        /v-show="checkScanOpen"\s+id="dispensary-check-scan-panel"/,
+    );
+    assert.match(template(v2), /aria-controls="dispensary-check-scan-panel"/);
+    const panel = template(v2).slice(
+        template(v2).indexOf('id="dispensary-check-scan-panel"'),
+    );
+    assert.ok(panel.indexOf('context="dispensary"') < 400);
+});
+
+test('words, not data: "No known allergies" in sentence case and read-only quantities like "10 tablets" (Daniel)', () => {
+    const dialog = template(v2).slice(
+        template(v2).indexOf('title="Verify before completing"'),
+    );
+    assert.match(dialog, /'No known allergies'/);
+    assert.ok(
+        !/formatStatusLabel\(dispensary\.allergySafety\.status\)/.test(dialog),
+    );
+    assert.equal((template(v2).match(/readQuantity\(/g) ?? []).length, 2);
+    assert.ok(!/\{\{ item\.quantityOrdered \}\}/.test(template(v2)));
+});
+
+test('a refusal shows in words next to the filled button (bar or rail), and that copy is the one focused (Daniel)', () => {
+    for (const ref of ['actionErrorBarRef', 'actionErrorRailRef']) {
+        assert.match(
+            template(v2),
+            new RegExp(`ref="${ref}"\\s+role="alert"\\s+tabindex="-1"`),
+        );
+    }
+
+    assert.match(
+        template(v2),
+        /v-if="actionError && !primaryAction"\s+ref="actionErrorRef"/,
+    );
+    assert.match(v2, /node\.offsetParent !== null/);
+    assert.match(v2, /shownActionError\(\)\?\.focus\(/);
 });

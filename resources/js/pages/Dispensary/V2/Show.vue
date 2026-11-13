@@ -9,6 +9,7 @@
 import { Head, router, usePage } from '@inertiajs/vue3';
 import {
     CheckCircle2,
+    ChevronDown,
     LoaderCircle,
     Megaphone,
     Plus,
@@ -1174,6 +1175,40 @@ const inputClass = 'mt-1 h-9 w-full rounded-md border px-2';
 // DSP-17: brand line colour only (not the error look); replaces the focus ring while shown.
 const batchHintClass =
     'border-brand ring-2 ring-brand ring-offset-2 ring-offset-background focus-visible:ring-brand';
+// Daniel: scan to check opens from a closed bar; opening puts the cursor in the box for the next handheld scan.
+const checkScanOpen = ref(false);
+const toggleCheckScan = async () => {
+    checkScanOpen.value = !checkScanOpen.value;
+
+    if (checkScanOpen.value) {
+        await nextTick();
+        document.getElementById('scan-dispensary-check')?.focus();
+    }
+};
+// Daniel: V2 has no native selects. Batch and FEFO use OperationalSelect; the batch text wraps in the field and in the
+// list (quantity, expiry and batch number never cut), since the batch is the stock-safety choice.
+const fefoOptions = [
+    { value: '', label: 'No exception' },
+    { value: 'earlier_batch_damaged', label: 'Earlier batch damaged' },
+    {
+        value: 'earlier_batch_insufficient',
+        label: 'Earlier batch insufficient',
+    },
+    { value: 'earlier_batch_held', label: 'Earlier batch held' },
+    { value: 'other_approved', label: 'Other approved' },
+];
+const batchOptions = (
+    target: string,
+    availability: Availability[],
+    unit: string,
+) =>
+    availability.map((stock, index) => ({
+        value: index,
+        label: `${matchesBox(target, index) ? 'Matches the box · ' : ''}${batchOptionText(stock, unit)}`,
+        disabled: stock.held,
+    }));
+const selectTriggerClass =
+    'mt-1 h-auto min-h-11 w-full py-2 text-left whitespace-normal data-[size=default]:h-auto lg:min-h-9 *:data-[slot=select-value]:line-clamp-none';
 
 // Plain words for an earlier partial dispense, never the stored code (Daniel, guide section 15).
 const exceptionStatusLabels: Record<string, string> = {
@@ -1305,6 +1340,47 @@ const quantityText = (quantity: string | null) =>
         : quantity.includes('.')
           ? quantity.replace(/\.?0+$/, '')
           : quantity;
+// Daniel: read-only quantities read as words ("10 tablets"); the fields keep the exact thousandths.
+const countUnits = new Set([
+    'tablet',
+    'capsule',
+    'sachet',
+    'bottle',
+    'tube',
+    'vial',
+    'ampoule',
+    'strip',
+    'box',
+    'pack',
+    'piece',
+    'patch',
+    'suppository',
+    'lozenge',
+    'service',
+    'session',
+]);
+const readQuantity = (
+    quantity: string | number | null | undefined,
+    unit: string | null | undefined,
+) => {
+    const amount = quantityText(
+        quantity === null || quantity === undefined ? null : String(quantity),
+    );
+    const word = (unit ?? '').trim();
+
+    if (word === '') {
+        return amount;
+    }
+
+    const plural =
+        amount !== '1' && countUnits.has(word.toLowerCase())
+            ? word.toLowerCase().endsWith('x')
+                ? `${word}es`
+                : `${word}s`
+            : word;
+
+    return `${amount} ${plural}`;
+};
 const batchText = (item: Item) =>
     (item.allocations ?? [])
         .map((allocation) => allocation.batchNumber)
@@ -1407,6 +1483,17 @@ const otcOptions = [
 // Hakim: an error can appear far above the sticky bar on a phone; bring it into view and focus it. The focus waits one
 // task so it lands after a closing dialog has handed focus back to its trigger (a failed Complete closes Verify).
 const actionErrorRef = ref<HTMLElement | null>(null);
+// Daniel: a refusal (for example Complete refused: stock short, a batch held or expired) shows in words next to the
+// filled button, in the phone and tablet bar or in the rail, whichever is on screen; the top alert is only for a page
+// with no filled action.
+const actionErrorBarRef = ref<HTMLElement | null>(null);
+const actionErrorRailRef = ref<HTMLElement | null>(null);
+const shownActionError = () =>
+    [
+        actionErrorBarRef.value,
+        actionErrorRailRef.value,
+        actionErrorRef.value,
+    ].find((node) => node !== null && node.offsetParent !== null) ?? null;
 watch(
     actionError,
     (message) => {
@@ -1420,11 +1507,11 @@ watch(
                     '(prefers-reduced-motion: reduce)',
                 ).matches;
 
-                actionErrorRef.value?.scrollIntoView({
+                shownActionError()?.scrollIntoView({
                     block: 'center',
                     behavior: reduce ? 'auto' : 'smooth',
                 });
-                actionErrorRef.value?.focus({ preventScroll: true });
+                shownActionError()?.focus({ preventScroll: true });
             }, 0),
         );
     },
@@ -1744,7 +1831,7 @@ const filledButton =
                 </div>
 
                 <p
-                    v-if="actionError"
+                    v-if="actionError && !primaryAction"
                     ref="actionErrorRef"
                     role="alert"
                     tabindex="-1"
@@ -1760,17 +1847,54 @@ const filledButton =
                     {{ unsavedCount }} line{{ unsavedCount === 1 ? '' : 's' }}
                     not saved yet. Save each line to confirm it, then complete.
                 </div>
-                <ScanInput
+                <!-- Daniel: scan to check (DSP-11) sits behind a closed "Check by scan" bar so the lines are not pushed
+                     down. The panel stays mounted (v-show), so a wrong-medicine warning and the scan status survive closing. -->
+                <section
                     v-if="dispensary.can.update && visibleItems.length"
-                    context="dispensary"
-                    refocus-key="dispensary-check"
-                    lookup-variant="outline"
-                    :accept="acceptScan"
-                    :describe="describeScan"
-                    data-testid="dispensary-scan"
-                    @keydown.enter.capture="clearLineHint"
-                    @found="markScanned"
-                />
+                    class="rounded-[14px] border bg-card"
+                    data-testid="dispensary-check-scan"
+                >
+                    <button
+                        type="button"
+                        :aria-expanded="checkScanOpen"
+                        aria-controls="dispensary-check-scan-panel"
+                        class="flex min-h-11 w-full items-center justify-between gap-3 rounded-[14px] px-4 py-2 text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:min-h-9"
+                        data-action="check-by-scan"
+                        @click="toggleCheckScan"
+                    >
+                        <span class="flex min-w-0 items-center gap-2"
+                            ><ScanLine
+                                class="size-4 shrink-0"
+                                aria-hidden="true"
+                            />Check by scan
+                            <span class="font-normal text-muted-foreground"
+                                >{{ scanChecked }} of
+                                {{ scanTotal }} checked</span
+                            ></span
+                        >
+                        <ChevronDown
+                            class="size-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none"
+                            :class="checkScanOpen ? 'rotate-180' : ''"
+                            aria-hidden="true"
+                        />
+                    </button>
+                    <div
+                        v-show="checkScanOpen"
+                        id="dispensary-check-scan-panel"
+                        class="border-t p-3"
+                    >
+                        <ScanInput
+                            context="dispensary"
+                            refocus-key="dispensary-check"
+                            lookup-variant="outline"
+                            :accept="acceptScan"
+                            :describe="describeScan"
+                            data-testid="dispensary-scan"
+                            @keydown.enter.capture="clearLineHint"
+                            @found="markScanned"
+                        />
+                    </div>
+                </section>
                 <p
                     v-if="dispensary.can.update && visibleItems.length"
                     role="status"
@@ -1839,10 +1963,12 @@ const filledButton =
                                 class="mt-2 text-xs text-muted-foreground"
                             >
                                 Doctor ordered
-                                <strong class="text-foreground"
-                                    >{{ item.quantityOrdered }}
-                                    {{ item.unit }}</strong
-                                >
+                                <strong class="text-foreground">{{
+                                    readQuantity(
+                                        item.quantityOrdered,
+                                        item.unit,
+                                    )
+                                }}</strong>
                             </p>
                             <p
                                 v-if="
@@ -2202,41 +2328,42 @@ const filledButton =
                                     }}</span
                                 ></label
                             >
-                            <label class="sm:col-span-2"
-                                >Batch<select
-                                    v-model.number="
-                                        forms[item.publicId].availabilityIndex
-                                    "
-                                    :class="[
-                                        inputClass,
-                                        batchHint === item.publicId &&
-                                            batchHintClass,
-                                    ]"
-                                    :aria-describedby="`batch-selected-${item.publicId}`"
-                                    :data-batch-select="item.publicId"
-                                    @change="clearBatchHint(item.publicId)"
+                            <div class="sm:col-span-2">
+                                <span :id="`batch-label-${item.publicId}`"
+                                    >Batch</span
                                 >
-                                    <option
-                                        v-for="(
-                                            stock, index
-                                        ) in item.availability"
-                                        :key="stock.batchPublicId"
-                                        :value="index"
-                                        :disabled="stock.held"
-                                    >
-                                        {{
-                                            matchesBox(item.publicId, index)
-                                                ? 'Matches the box · '
-                                                : ''
-                                        }}{{
-                                            batchOptionText(
-                                                stock,
+                                <div :data-batch-select="item.publicId">
+                                    <OperationalSelect
+                                        v-model="
+                                            forms[item.publicId]
+                                                .availabilityIndex
+                                        "
+                                        label="Batch"
+                                        :labelledby="`batch-label-${item.publicId}`"
+                                        :describedby="`batch-selected-${item.publicId}`"
+                                        :options="
+                                            batchOptions(
+                                                item.publicId,
+                                                item.availability,
                                                 item.sku?.unit ?? item.unit,
                                             )
-                                        }}
-                                    </option>
-                                </select></label
-                            >
+                                        "
+                                        :content-avoid-collisions="false"
+                                        :trigger-class="
+                                            [
+                                                selectTriggerClass,
+                                                batchHint === item.publicId &&
+                                                    batchHintClass,
+                                            ]
+                                                .filter(Boolean)
+                                                .join(' ')
+                                        "
+                                        @update:model-value="
+                                            clearBatchHint(item.publicId)
+                                        "
+                                    />
+                                </div>
+                            </div>
                             <p
                                 :id="`batch-selected-${item.publicId}`"
                                 class="text-xs text-muted-foreground sm:col-span-full"
@@ -2271,26 +2398,19 @@ const filledButton =
                                     )
                                 }}
                             </p>
-                            <label class="grid gap-2 sm:col-span-2"
-                                >FEFO exception reason (later batch only)<select
-                                    v-model="forms[item.publicId].fefoReason"
-                                    :class="inputClass"
+                            <div class="sm:col-span-2">
+                                <span :id="`fefo-label-${item.publicId}`"
+                                    >FEFO exception reason (later batch
+                                    only)</span
                                 >
-                                    <option value="">No exception</option>
-                                    <option value="earlier_batch_damaged">
-                                        Earlier batch damaged
-                                    </option>
-                                    <option value="earlier_batch_insufficient">
-                                        Earlier batch insufficient
-                                    </option>
-                                    <option value="earlier_batch_held">
-                                        Earlier batch held
-                                    </option>
-                                    <option value="other_approved">
-                                        Other approved
-                                    </option>
-                                </select></label
-                            >
+                                <OperationalSelect
+                                    v-model="forms[item.publicId].fefoReason"
+                                    label="FEFO exception reason (later batch only)"
+                                    :labelledby="`fefo-label-${item.publicId}`"
+                                    :options="fefoOptions"
+                                    :trigger-class="selectTriggerClass"
+                                />
+                            </div>
                             <p
                                 class="text-xs text-muted-foreground sm:col-span-2"
                             >
@@ -2868,38 +2988,35 @@ const filledButton =
                                 }}</span
                             ></label
                         >
-                        <label class="sm:col-span-2"
-                            >Batch<select
-                                v-model.number="addForm.availabilityIndex"
-                                :class="[
-                                    inputClass,
-                                    batchHint === 'add' && batchHintClass,
-                                ]"
-                                aria-describedby="batch-selected-add"
-                                data-batch-select="add"
-                                @change="clearBatchHint('add')"
-                            >
-                                <option
-                                    v-for="(
-                                        stock, index
-                                    ) in chosen.availability"
-                                    :key="stock.batchPublicId"
-                                    :value="index"
-                                    :disabled="stock.held"
-                                >
-                                    {{
-                                        matchesBox('add', index)
-                                            ? 'Matches the box · '
-                                            : ''
-                                    }}{{
-                                        batchOptionText(
-                                            stock,
+                        <div class="sm:col-span-2">
+                            <span id="batch-label-add">Batch</span>
+                            <div data-batch-select="add">
+                                <OperationalSelect
+                                    v-model="addForm.availabilityIndex"
+                                    label="Batch"
+                                    labelledby="batch-label-add"
+                                    describedby="batch-selected-add"
+                                    :options="
+                                        batchOptions(
+                                            'add',
+                                            chosen.availability,
                                             chosen.sku?.unit ?? chosen.unit,
                                         )
-                                    }}
-                                </option>
-                            </select></label
-                        >
+                                    "
+                                    :content-avoid-collisions="false"
+                                    :trigger-class="
+                                        [
+                                            selectTriggerClass,
+                                            batchHint === 'add' &&
+                                                batchHintClass,
+                                        ]
+                                            .filter(Boolean)
+                                            .join(' ')
+                                    "
+                                    @update:model-value="clearBatchHint('add')"
+                                />
+                            </div>
+                        </div>
                         <p
                             id="batch-selected-add"
                             class="text-xs text-muted-foreground sm:col-span-full"
@@ -2931,26 +3048,18 @@ const filledButton =
                                 )
                             }}
                         </p>
-                        <label class="grid gap-2 sm:col-span-full"
-                            >FEFO exception reason (later batch only)<select
-                                v-model="addForm.fefoReason"
-                                :class="inputClass"
+                        <div class="sm:col-span-full">
+                            <span id="fefo-label-add"
+                                >FEFO exception reason (later batch only)</span
                             >
-                                <option value="">No exception</option>
-                                <option value="earlier_batch_damaged">
-                                    Earlier batch damaged
-                                </option>
-                                <option value="earlier_batch_insufficient">
-                                    Earlier batch insufficient
-                                </option>
-                                <option value="earlier_batch_held">
-                                    Earlier batch held
-                                </option>
-                                <option value="other_approved">
-                                    Other approved
-                                </option>
-                            </select></label
-                        >
+                            <OperationalSelect
+                                v-model="addForm.fefoReason"
+                                label="FEFO exception reason (later batch only)"
+                                labelledby="fefo-label-add"
+                                :options="fefoOptions"
+                                :trigger-class="selectTriggerClass"
+                            />
+                        </div>
                         <p
                             class="text-xs text-muted-foreground sm:col-span-full"
                         >
@@ -3058,13 +3167,17 @@ const filledButton =
                                     class="mt-2 text-xs text-muted-foreground"
                                 >
                                     Doctor ordered
-                                    <strong class="text-foreground"
-                                        >{{ line.quantityOrdered }}
-                                        {{ line.unit }}</strong
-                                    >
+                                    <strong class="text-foreground">{{
+                                        readQuantity(
+                                            line.quantityOrdered,
+                                            line.unit,
+                                        )
+                                    }}</strong>
                                     · confirmed
                                     <strong class="text-foreground">{{
-                                        line.original.quantity ?? '0.000'
+                                        quantityText(
+                                            line.original.quantity ?? '0',
+                                        )
                                     }}</strong>
                                 </p>
                                 <p
@@ -3378,6 +3491,16 @@ const filledButton =
                         {{ primaryLabel }}
                     </button>
                     <p
+                        v-if="actionError"
+                        ref="actionErrorBarRef"
+                        role="alert"
+                        tabindex="-1"
+                        class="mt-2 rounded-[10px] border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        data-testid="dispensary-action-error-bar"
+                    >
+                        {{ actionError }}
+                    </p>
+                    <p
                         v-if="
                             primaryAction === 'complete' &&
                             completeBlockedReason
@@ -3403,6 +3526,16 @@ const filledButton =
                     >
                         {{ primaryLabel }}
                     </button>
+                    <p
+                        v-if="actionError && primaryAction"
+                        ref="actionErrorRailRef"
+                        role="alert"
+                        tabindex="-1"
+                        class="mt-2 rounded-[10px] border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-destructive outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        data-testid="dispensary-action-error-rail"
+                    >
+                        {{ actionError }}
+                    </p>
                     <OperationalSelect
                         v-if="
                             dispensary.tvCall?.canCall &&
@@ -3502,7 +3635,9 @@ const filledButton =
                     {{
                         allergyNames.length
                             ? allergyNames.join(', ')
-                            : formatStatusLabel(dispensary.allergySafety.status)
+                            : allergyState === 'none'
+                              ? 'No known allergies'
+                              : 'Not recorded'
                     }}
                 </p>
                 <ul class="flex flex-col divide-y rounded-[10px] border">
