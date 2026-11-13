@@ -703,10 +703,10 @@ test('V2 Visit page and Edit visit: same routes, payload keys, permissions and r
 
 test('a long Panel note cannot widen a phone card', () => {
     // Found at 390 and 320 px with a 490-character Panel note (overflow 11 and 81 px): the Payment cell was nowrap and
-    // the note was never wrapped in card mode. In cards the cell wraps and the note shows at most two lines.
+    // the note was never wrapped in card mode. In cards the cell wraps and the note shows one line.
     assert.ok(page.includes('text-sm xl:whitespace-nowrap'));
     assert.ok(!/class="text-sm whitespace-nowrap"/.test(page));
-    assert.ok(page.includes('max-xl:line-clamp-2'));
+    assert.ok(page.includes('max-xl:line-clamp-1'));
     assert.ok(page.includes('max-xl:max-w-none'));
     assert.ok(page.includes('max-xl:break-words'));
 });

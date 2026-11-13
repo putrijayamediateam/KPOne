@@ -609,7 +609,7 @@ const filterBadge = computed(
                                         }}</span>
                                         <span
                                             v-if="item.visit.panelNote"
-                                            class="block max-w-56 truncate text-xs text-muted-foreground max-xl:line-clamp-2 max-xl:max-w-none max-xl:break-words max-xl:whitespace-normal"
+                                            class="block max-w-56 truncate text-xs text-muted-foreground max-xl:line-clamp-1 max-xl:max-w-none max-xl:break-words max-xl:whitespace-normal"
                                             :title="item.visit.panelNote"
                                             >{{ item.visit.panelNote }}</span
                                         >
