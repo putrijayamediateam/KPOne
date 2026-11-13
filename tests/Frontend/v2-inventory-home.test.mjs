@@ -135,10 +135,10 @@ test('V2 Inventory home: same props, the Classic hold label rule, and the Classi
         home,
         /formatInventoryHoldLabel\(formatInventoryReason\(row\.holdReason\)\)/,
     );
-    assert.match(
-        page,
-        /<InventoryOperationsPanel\s+:operations="operations"\s+:receipt-memory-context="receiptMemoryContext"/,
-    );
+    // Page 2c: the Classic Operations panel is no longer on the V2 home; its parts are V2 sections.
+    assert.ok(!page.includes('<InventoryOperationsPanel'));
+    assert.match(page, /<ReorderSection\s+:operations="operations"/);
+    assert.match(page, /<OlderRecordsSection :operations="operations" \/>/);
     assert.match(
         page,
         /<InventoryReferenceDataPanel\s+:reference-data="referenceData"/,
@@ -195,7 +195,7 @@ test("V2 Inventory home: Daniel's verdict (kept-mounted stock panels, filter wor
     assert.match(bar, /max-width: 1023\.98px/);
     assert.ok(!bar.includes("type='submit'"), 'submits are flattened too');
     assert.match(bar, /min-height: 2\.75rem/);
-    assert.equal((page.match(/<StockPanelBar/g) ?? []).length, 2);
+    assert.equal((page.match(/<StockPanelBar/g) ?? []).length, 1);
     // "2 filters applied" beside Clear, "Filters (2)" on the phone button; no "extra filters".
     assert.match(page, /appliedFilters === 1\s*\?\s*'filter'\s*:\s*'filters'/);
     assert.ok(!page.includes('extra\n'));

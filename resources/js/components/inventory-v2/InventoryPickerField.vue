@@ -316,7 +316,7 @@ const errorId = `inv-picker-${Math.random().toString(36).slice(2, 8)}-error`;
             <p class="text-xs text-muted-foreground">
                 {{
                     kind === 'skus'
-                        ? 'Search by SKU code. Up to 25 matches.'
+                        ? 'Search by name or SKU code. Up to 25 matches.'
                         : 'Up to 25 matches. Type to narrow.'
                 }}
             </p>
