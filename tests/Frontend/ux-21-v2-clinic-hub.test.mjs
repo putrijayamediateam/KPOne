@@ -50,7 +50,11 @@ test('UX-21: "Find a page" filters the server links in the browser only, with a 
 });
 
 test('UX-21: cards with a heading per group, 44 px rows with a 3:1 focus ring, grid 1/2/3 columns', () => {
-    assert.match(page, /:aria-labelledby="`hub-group-\$\{index\}`"/);
+    assert.match(page, /:aria-label="group\.title"/);
+    assert.match(
+        page,
+        /<h2\s+class="min-w-0 flex-1 text-\[15px\] font-semibold"\s*>/,
+    );
     assert.match(page, /class="grid gap-4 md:grid-cols-2 xl:grid-cols-3"/);
     assert.match(
         page,
@@ -70,4 +74,33 @@ test('UX-21: the controller relabels only for the V2 page, with the sidebar labe
         /if \(\$ui->pageFor\('ClinicManagement\/Index'\) !== 'ClinicManagement\/Index'\) \{/,
     );
     assert.match(controller, /V2ShellNavigation::label\(\$link\['title'\]\)/);
+});
+
+test('UX-21 Daniel: KPOne HR gets its own card with short names; the full name stays as the title', () => {
+    assert.match(page, /const HR_PREFIX = \/\^KPOne HR\\s\+\/i;/);
+    assert.match(page, /key: 'kpone-hr',\s+title: 'KPOne HR',/);
+    assert.match(page, /link\.fullTitle !== link\.title\s+\? link\.fullTitle/);
+    // Search still matches the full name.
+    assert.match(
+        page,
+        /`\$\{link\.fullTitle\} \$\{link\.description\} \$\{group\.title\}`/,
+    );
+});
+
+test('UX-21 Daniel: below 640 px each card is a closed disclosure with its count; a search opens the matches', () => {
+    assert.match(page, /<h2 class="sm:hidden">/);
+    assert.match(page, /:aria-expanded="isOpen\(group\.key\)"/);
+    assert.match(page, /:aria-controls="`hub-list-\$\{group\.key\}`"/);
+    assert.match(page, /'max-sm:hidden': !isOpen\(group\.key\)/);
+    assert.match(
+        page,
+        /words\.value\.length > 0 \|\| opened\.value\.has\(key\)/,
+    );
+    assert.match(page, /· \{\{ group\.links\.length \}\}/);
+});
+
+test('UX-21 Daniel: search results are announced politely ("2 pages found")', () => {
+    assert.match(page, /`\$\{pageCount\(matchCount\.value\)\} found`/);
+    assert.match(page, /'No pages found'/);
+    assert.match(page, /role="status"/);
 });

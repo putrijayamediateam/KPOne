@@ -3,6 +3,7 @@ import { Head, Link } from '@inertiajs/vue3';
 import {
     Archive,
     Bot,
+    Briefcase,
     Building2,
     ChartNoAxesCombined,
     ChevronRight,
@@ -40,19 +41,73 @@ const icons: Record<string, Component> = {
     documents: FileText,
     website: Globe,
     agents: Bot,
+    hr: Briefcase,
 };
+
+// Daniel (2026-11-13), V2 only: the KPOne HR pages get their own card instead of filling "Staff and branches", and drop
+// the repeated "KPOne HR" prefix inside it (the full name stays as the row's title). Same links; Classic is unchanged.
+type Row = HubLink & { fullTitle: string };
+type Group = { key: string; title: string; icon: string; links: Row[] };
+const HR_PREFIX = /^KPOne HR\s+/i;
+const isHr = (link: HubLink) =>
+    link.href === '/hr' || link.href.startsWith('/hr/');
+const shortHr = (title: string) => {
+    const rest = title.replace(HR_PREFIX, '');
+
+    return rest === title || rest === ''
+        ? title
+        : rest.charAt(0).toUpperCase() + rest.slice(1);
+};
+const grouped = computed<Group[]>(() =>
+    props.groups.flatMap((group) => {
+        const rows = (links: HubLink[], short: boolean): Row[] =>
+            links.map((link) => ({
+                ...link,
+                fullTitle: link.title,
+                title: short ? shortHr(link.title) : link.title,
+            }));
+        const hr = group.links.filter(isHr);
+        const rest = group.links.filter((link) => !isHr(link));
+
+        if (hr.length === 0 || rest.length === 0) {
+            return [
+                {
+                    key: group.title,
+                    title: group.title,
+                    icon: group.icon,
+                    links: rows(group.links, false),
+                },
+            ];
+        }
+
+        return [
+            {
+                key: group.title,
+                title: group.title,
+                icon: group.icon,
+                links: rows(rest, false),
+            },
+            {
+                key: 'kpone-hr',
+                title: 'KPOne HR',
+                icon: 'hr',
+                links: rows(hr, true),
+            },
+        ];
+    }),
+);
 
 const query = ref('');
 const words = computed(() =>
     query.value.trim().toLowerCase().split(/\s+/).filter(Boolean),
 );
 const shown = computed(() =>
-    props.groups
+    grouped.value
         .map((group) => ({
             ...group,
             links: group.links.filter((link) => {
                 const text =
-                    `${link.title} ${link.description} ${group.title}`.toLowerCase();
+                    `${link.fullTitle} ${link.description} ${group.title}`.toLowerCase();
 
                 return words.value.every((word) => text.includes(word));
             }),
@@ -64,6 +119,29 @@ const pageCount = (count: number) =>
 const matchCount = computed(() =>
     shown.value.reduce((sum, group) => sum + group.links.length, 0),
 );
+// Spoken politely after each change to the search (Daniel: "2 pages found").
+const announcement = computed(() =>
+    words.value.length === 0
+        ? ''
+        : matchCount.value === 0
+          ? 'No pages found'
+          : `${pageCount(matchCount.value)} found`,
+);
+
+// Below 640 px each card is a closed disclosure ("In-clinic · 11", like Inventory); a search opens the matching cards.
+const opened = ref<Set<string>>(new Set());
+const isOpen = (key: string) => words.value.length > 0 || opened.value.has(key);
+const toggle = (key: string) => {
+    const next = new Set(opened.value);
+
+    if (next.has(key)) {
+        next.delete(key);
+    } else {
+        next.add(key);
+    }
+
+    opened.value = next;
+};
 </script>
 
 <template>
@@ -92,9 +170,7 @@ const matchCount = computed(() =>
                     />
                 </div>
                 <p id="hub-find-result" class="sr-only" role="status">
-                    <template v-if="words.length > 0">{{
-                        pageCount(matchCount)
-                    }}</template>
+                    {{ announcement }}
                 </p>
 
                 <p
@@ -111,13 +187,43 @@ const matchCount = computed(() =>
                     data-test="hub-groups"
                 >
                     <section
-                        v-for="(group, index) in shown"
-                        :key="group.title"
-                        :aria-labelledby="`hub-group-${index}`"
+                        v-for="group in shown"
+                        :key="group.key"
+                        :aria-label="group.title"
                         class="flex min-w-0 flex-col rounded-[14px] border bg-card"
                     >
+                        <!-- Below 640 px: a closed disclosure with the count, opened by a tap or by a search. -->
+                        <h2 class="sm:hidden">
+                            <button
+                                type="button"
+                                class="flex min-h-11 w-full items-center gap-3 rounded-[14px] px-4 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                                :aria-expanded="isOpen(group.key)"
+                                :aria-controls="`hub-list-${group.key}`"
+                                data-test="hub-group-toggle"
+                                @click="toggle(group.key)"
+                            >
+                                <component
+                                    :is="icons[group.icon] ?? Building2"
+                                    class="size-5 shrink-0 text-muted-foreground"
+                                    aria-hidden="true"
+                                />
+                                <span
+                                    class="min-w-0 flex-1 text-[15px] font-semibold"
+                                    >{{ group.title }}
+                                    <span
+                                        class="font-normal text-muted-foreground"
+                                        >· {{ group.links.length }}</span
+                                    ></span
+                                >
+                                <ChevronRight
+                                    class="size-4 shrink-0 text-muted-foreground transition-transform motion-reduce:transition-none"
+                                    :class="{ 'rotate-90': isOpen(group.key) }"
+                                    aria-hidden="true"
+                                />
+                            </button>
+                        </h2>
                         <header
-                            class="flex items-center gap-3 border-b px-4 py-3"
+                            class="flex items-center gap-3 border-b px-4 py-3 max-sm:hidden"
                         >
                             <component
                                 :is="icons[group.icon] ?? Building2"
@@ -125,7 +231,6 @@ const matchCount = computed(() =>
                                 aria-hidden="true"
                             />
                             <h2
-                                :id="`hub-group-${index}`"
                                 class="min-w-0 flex-1 text-[15px] font-semibold"
                             >
                                 {{ group.title }}
@@ -135,13 +240,25 @@ const matchCount = computed(() =>
                                 >{{ pageCount(group.links.length) }}</span
                             >
                         </header>
-                        <ul class="divide-y p-1.5">
+                        <ul
+                            :id="`hub-list-${group.key}`"
+                            class="divide-y p-1.5"
+                            :class="{
+                                'max-sm:hidden': !isOpen(group.key),
+                                'max-sm:border-t': isOpen(group.key),
+                            }"
+                        >
                             <li
                                 v-for="link in group.links"
-                                :key="`${link.href}|${link.title}`"
+                                :key="`${link.href}|${link.fullTitle}`"
                             >
                                 <Link
                                     :href="link.href"
+                                    :title="
+                                        link.fullTitle !== link.title
+                                            ? link.fullTitle
+                                            : undefined
+                                    "
                                     class="group flex min-h-11 items-center gap-3 rounded-[10px] px-2.5 py-2 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
                                 >
                                     <span class="min-w-0 flex-1">
