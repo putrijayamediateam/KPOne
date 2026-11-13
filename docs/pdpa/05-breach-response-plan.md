@@ -50,6 +50,16 @@ person, a backup copy exposed.
 - A deactivated account is rejected immediately, including active sessions.
 - `kpone:read` queries are audited by hash.
 
+## Downloaded HR files (owner decision 2026-11-11, 08 item 14)
+
+- Only the HR Manager and the Director download the payroll bank file and the accountant file, and KPOne records each
+  download (who, when, which run and file; never the contents).
+- The files come password-protected. Send the password by a different channel from the file.
+- Keep downloaded files only in one locked company folder. After sending to the bank or the accountant, delete the
+  copies on the laptop and in email. Never forward a file unprotected.
+- A lost laptop or a mis-sent email holding one of these files is a breach: follow the steps above, and use KPOne's
+  download record to say which run and which file were involved.
+
 ## Where KPOne does not help (decide)
 
 - No automatic alert to anyone. Decide who watches for odd access **[DECIDE]**.

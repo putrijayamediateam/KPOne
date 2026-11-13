@@ -42,7 +42,7 @@ If volume grows, ask for a reviewed export tool later.
 
 - Stop optional uses (for example WhatsApp contact): note it on the patient's record or in the request log **[DECIDE how to flag it, since KPOne has no contact-preference field]**.
 - **Deleting a patient record is not offered.** Medical and tax rules usually require you to keep it. Explain this to the requester **[CONFIRM]**.
-- For a job applicant: HR deletes the application (retention purge or on request).
+- For a job applicant: the applicant can delete their own application from their private link (owner, 2026-11-11; it clears the same values as the retention purge, with any talent-pool copy). At the Offered stage, or without the link, HR deletes it on request.
 - For a staff member who has left: keep what the law requires, delete the rest after the period in 04.
 
 ## Do not
