@@ -1,0 +1,1 @@
+Staff edit V2, extra refusals (real app, task-owned DB): plain lines and clearing per field; 'The email has already been taken.' (server words, nothing saved); greater authority: HR Manager saving a CA who gained Director after the page loaded gets HTTP 403 and nothing changes (Inertia's 403 page, as Classic; DD-84).
