@@ -103,7 +103,7 @@ final class ProposalInbox
         return match ($proposal->type) {
             'inventory.restock_suggestion' => [...$lines, $location(),
                 ['label' => 'Now in stock', 'value' => $qty('current_quantity').$unit], ['label' => 'Reorder level', 'value' => $qty('reorder_level').$unit],
-                ['label' => 'Suggested order', 'value' => $qty('suggested_quantity').$unit]],
+                ['label' => isset($p['max_level']) ? 'Fill to maximum ('.$qty('max_level').$unit.')' : 'Suggested order', 'value' => $qty('suggested_quantity').$unit]],
             'inventory.expiry_warning' => [...$lines, $location(), ['label' => 'Batch', 'value' => $names['batches'][$p['batch_public_id']] ?? 'Unknown batch'],
                 ['label' => 'Quantity', 'value' => $qty('quantity').$unit], ['label' => 'Expires', 'value' => (string) $p['expiry_date']],
                 ['label' => 'Days left', 'value' => (string) $p['days_left']],
