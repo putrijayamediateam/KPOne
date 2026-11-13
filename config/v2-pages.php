@@ -36,5 +36,6 @@ return [
         'InventoryServicesSettings/Suppliers',
         'Staff/Index',
         'Staff/Show',
+        'Staff/Create',
     ],
 ];
