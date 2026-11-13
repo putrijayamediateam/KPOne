@@ -180,7 +180,10 @@ test('the checks panel: first three days open, "Show all days", no repeated chip
     assert.doesNotMatch(checks, /label="Check"/);
     assert.match(checks, /Below minimum staffing/);
     assert.match(checks, /<V2Dialog/);
-    assert.match(template, /label="Below minimum"/);
+    assert.match(
+        script,
+        /warning: isShort\(d\.date\) \? 'Below minimum' : undefined/,
+    );
     assert.doesNotMatch(template, /label="Short"/);
 });
 
@@ -213,8 +216,11 @@ test('Session is an option group; a day row opens the editor on a tap; My roster
         template,
         /<V2OptionGroup\s+v-model="shiftForm\.session_type"/,
     );
-    assert.match(template, /planner\.can\.edit &&\s+openEdit\(item\.shift\)/);
-    assert.match(template, /@click\.stop="openEdit\(item\.shift\)"/);
+    assert.match(
+        template,
+        /<V2WeekGrid[\s\S]*?:editable="planner\.can\.edit"[\s\S]*?@open="openShift"/,
+    );
+    assert.match(script, /if \(shift\) \{\s*openEdit\(shift\);/);
     assert.match(template, /max-w-\[40rem\]/);
 });
 
