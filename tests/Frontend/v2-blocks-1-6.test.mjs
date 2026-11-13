@@ -155,12 +155,18 @@ test('V2 muted text reaches 4.5:1 on the muted fill and on the page, light and d
 
 test('V2WorkLayout: railFrom puts the rail beside the main panel from lg or from 2xl, with a collapsed slot below 2xl', () => {
     const s = v2('V2WorkLayout');
-    assert.match(s, /railFrom\?: 'lg' \| '2xl'/);
+    assert.match(s, /railFrom\?: RailFrom/);
+    assert.match(
+        read('resources/js/components/v2/railKey.ts'),
+        /RailFrom = 'lg' \| 'xl' \| '2xl'/,
+    );
+    assert.match(s, /xl:grid-cols-\[minmax\(0,1fr\)_18rem\]/);
     assert.match(s, /2xl:grid-cols-\[minmax\(0,1fr\)_18rem\]/);
     assert.match(s, /hidden 2xl:flex/);
     assert.match(s, /\$slots\['rail-collapsed'\]/);
     assert.match(s, /name="rail-collapsed"/);
-    assert.match(s, /class="2xl:hidden"/);
+    assert.match(s, /'xl:hidden' : '2xl:hidden'/);
+    assert.match(s, /provide\(\s*V2_RAIL_FROM/);
     // The default is unchanged: the rail sits beside the main panel from lg.
     assert.match(s, /railFrom: 'lg'/);
     assert.match(s, /lg:grid-cols-\[minmax\(0,1fr\)_21rem\]/);
