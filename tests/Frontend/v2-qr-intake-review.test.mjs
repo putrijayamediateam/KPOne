@@ -18,7 +18,6 @@ test('V2 sends the same requests and keeps the same form keys as Classic', () =>
         '/guardian-contact?patient_number=${encodeURIComponent(patientNumber)}',
         'lock_version: props.intake.lockVersion',
         'idempotency_key: props.visitOptions.idempotencyKey',
-        "resolution: 'match'",
         'guardian_choice',
         'guardian_lock_version',
         'duplicate_override: false',
@@ -99,4 +98,33 @@ test('V2 blocks Save on an unreadable date and says what is missing before Accep
     assert.ok(page.includes('Relationship: not chosen yet.'));
     // Only the dialog's confirm is red: the trigger stays an outline button.
     assert.ok(!/border border-destructive px-4/.test(page));
+});
+
+test('V2 starts on Create new patient only when there is no duplicate candidate', () => {
+    assert.match(
+        page,
+        /resolution:\s*props\.intake\.duplicateCandidates\.length === 0\s*\?\s*'create'\s*:\s*'match'/,
+    );
+    // Classic keeps its own default: nothing is preselected there.
+    assert.ok(classic.includes("resolution: 'match'"));
+    // The payload keeps the same key; the person can still choose Match.
+    assert.ok(page.includes('v-model="acceptance.resolution"'));
+    assert.ok(
+        page.includes("{ value: 'match', label: 'Match existing patient' }"),
+    );
+});
+
+test('V2 hides the duplicate tick with no candidate and reloads them after a duplicate refusal', () => {
+    assert.ok(
+        loose(page).includes(
+            loose(
+                'intake.duplicateCandidates.length || acceptance.errors.duplicate_override',
+            ),
+        ),
+    );
+    assert.ok(page.includes('if (errors.duplicate_override)'));
+    assert.ok(page.includes("router.reload({ only: ['intake'] })"));
+    assert.ok(page.includes('I reviewed the possible duplicates'));
+    assert.ok(!/Confirm creation only after duplicate/.test(page));
+    assert.ok(!/server still enforces/i.test(page));
 });
