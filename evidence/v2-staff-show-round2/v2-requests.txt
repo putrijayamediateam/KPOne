@@ -1,0 +1,7 @@
+PUT /staff/13/roles {"roles":[]}
+PUT /staff/13/roles {"roles":["ca_supervisor","finance_officer"]}
+PUT /staff/13/roles {"roles":["ca_supervisor"]}
+POST /staff/13/branch-assignments {"branch_id":3,"assignment_type":"temporary","is_primary":false,"valid_from":"2026-11-13","valid_until":""}
+PATCH /staff/13/branch-assignments/20/end {"valid_until":"2026-11-13"}
+PATCH /staff/13/status {"is_active":false}
+PATCH /staff/13/status {"is_active":true}
