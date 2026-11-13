@@ -463,12 +463,17 @@ onMounted(() => {
                             <button
                                 v-if="!osReducedMotion"
                                 type="button"
-                                class="inline-flex min-h-11 items-center rounded-[10px] border border-slate-400/30 px-3 text-xs font-medium text-slate-200 outline-none hover:bg-slate-400/10 focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
+                                class="inline-flex min-h-11 items-center rounded-[10px] border border-slate-400/30 px-3 text-xs font-medium text-slate-200 outline-none hover:bg-slate-400/10 focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-sky-300/60 aria-pressed:bg-sky-300/15 aria-pressed:font-semibold lg:min-h-9"
                                 :aria-pressed="motionOff"
                                 data-test="office-motion"
                                 @click="toggleMotion"
                             >
-                                Pause motion
+                                <span
+                                    v-if="motionOff"
+                                    aria-hidden="true"
+                                    class="mr-1"
+                                    >✓</span
+                                >Pause motion
                             </button>
                             <span class="text-xs text-[#8d9bb3]">
                                 <span class="md:hidden"
@@ -862,12 +867,14 @@ onMounted(() => {
                 <button
                     v-if="!osReducedMotion"
                     type="button"
-                    class="inline-flex min-h-11 items-center rounded-full border px-3 py-1 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:min-h-9"
+                    class="inline-flex min-h-11 items-center rounded-full border px-3 py-1 outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring aria-pressed:border-brand aria-pressed:bg-brand/10 aria-pressed:font-semibold lg:min-h-9"
                     :aria-pressed="motionOff"
                     data-test="office-motion"
                     @click="toggleMotion"
                 >
-                    Pause motion
+                    <span v-if="motionOff" aria-hidden="true" class="mr-1"
+                        >✓</span
+                    >Pause motion
                 </button>
                 <span
                     v-if="paused"
