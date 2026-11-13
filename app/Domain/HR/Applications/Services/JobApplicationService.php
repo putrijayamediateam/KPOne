@@ -485,22 +485,7 @@ final class JobApplicationService
                                 || ($poolSince !== null && TalentPool::until($row, $poolDays) !== null)) {
                                 return null;
                             }
-                            DB::table('hr_job_applications')->where('id', $row->id)->update(['name_encrypted' => null, 'phone_encrypted' => null,
-                                'email_encrypted' => null, 'message_encrypted' => null, 'details_encrypted' => null, 'cv_path' => null, 'status_token_hash' => null, 'purged_at' => now()->utc(),
-                                'lock_version' => (int) $row->lock_version + 1, 'updated_at' => now()->utc()]);
-                            DB::table('hr_job_screenings')->where('application_id', $row->id)->whereNotNull('note_encrypted')->update(['note_encrypted' => null]);
-                            // HR-17e: an open staff-account request is cancelled first, with the reason recorded, so the Staff page
-                            // never lists a blank request (Suresh, HR-17e m3); then its name and email go with the application's.
-                            if (DB::table('hr_staff_account_requests')->where('application_id', $row->id)->where('status', 'open')
-                                ->update(['status' => 'cancelled', 'closed_at' => now()->utc(), 'updated_at' => now()->utc()]) > 0) {
-                                DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
-                                    'action' => 'account_cancelled', 'created_at' => now()->utc()]);
-                            }
-                            DB::table('hr_staff_account_requests')->where('application_id', $row->id)->whereNull('purged_at')
-                                ->update(['name_encrypted' => null, 'email_encrypted' => null, 'purged_at' => now()->utc(), 'updated_at' => now()->utc()]);
-                            DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
-                                'action' => 'purged', 'created_at' => now()->utc()]);
-                            $this->support->audit->record('hr.applications.purged', null, ['application_id' => (int) $row->id], null, null, $organisationId);
+                            $this->erase($row, $organisationId, 'hr.applications.purged');
 
                             return (string) $row->cv_path;
                         }, 3);
@@ -569,5 +554,31 @@ final class JobApplicationService
         abort_if(! $row instanceof \stdClass, 404);
 
         return $row;
+    }
+
+    /**
+     * Clears every personal value of one locked application (the purge's erasure, and HR-13 self-service deletion): the
+     * name, phone, email, message, form answers, CV path, private link hash, screening notes and the name and email on a
+     * staff-account request (an open one is cancelled first). The row, its step and its events stay. The caller deletes
+     * the CV file after the transaction commits.
+     */
+    public function erase(\stdClass $row, int $organisationId, string $auditEvent): void
+    {
+        DB::table('hr_job_applications')->where('id', $row->id)->update(['name_encrypted' => null, 'phone_encrypted' => null,
+            'email_encrypted' => null, 'message_encrypted' => null, 'details_encrypted' => null, 'cv_path' => null, 'status_token_hash' => null, 'purged_at' => now()->utc(),
+            'lock_version' => (int) $row->lock_version + 1, 'updated_at' => now()->utc()]);
+        DB::table('hr_job_screenings')->where('application_id', $row->id)->whereNotNull('note_encrypted')->update(['note_encrypted' => null]);
+        // HR-17e: an open staff-account request is cancelled first, with the reason recorded, so the Staff page
+        // never lists a blank request (Suresh, HR-17e m3); then its name and email go with the application's.
+        if (DB::table('hr_staff_account_requests')->where('application_id', $row->id)->where('status', 'open')
+            ->update(['status' => 'cancelled', 'closed_at' => now()->utc(), 'updated_at' => now()->utc()]) > 0) {
+            DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
+                'action' => 'account_cancelled', 'created_at' => now()->utc()]);
+        }
+        DB::table('hr_staff_account_requests')->where('application_id', $row->id)->whereNull('purged_at')
+            ->update(['name_encrypted' => null, 'email_encrypted' => null, 'purged_at' => now()->utc(), 'updated_at' => now()->utc()]);
+        DB::table('hr_job_application_events')->insert(['organisation_id' => $organisationId, 'application_id' => $row->id,
+            'action' => 'purged', 'created_at' => now()->utc()]);
+        $this->support->audit->record($auditEvent, null, ['application_id' => (int) $row->id], null, null, $organisationId);
     }
 }
