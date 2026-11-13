@@ -548,12 +548,7 @@ const selection = computed(() => {
                                 <span
                                     class="block text-xs font-normal text-muted-foreground"
                                     >{{ row.visitNumber }} ·
-                                    {{ visitTypeLabel(row.visitType)
-                                    }}<template v-if="row.doctorName">
-                                        <span class="max-xl:hidden">
-                                            · {{ row.doctorName }}</span
-                                        ></template
-                                    ></span
+                                    {{ visitTypeLabel(row.visitType) }}</span
                                 >
                             </td>
                             <td data-label="Invoice no" class="text-sm">
