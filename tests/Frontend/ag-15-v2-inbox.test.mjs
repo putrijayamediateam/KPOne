@@ -34,6 +34,7 @@ test('V2 inbox: tabs, no filled button on a card, a reason is required to reject
         v2.split('<V2Dialog')[0],
         /bg-primary|variant="default"/,
     );
+
     for (const text of ['Pending holds', 'Approved holds', 'Rejected holds']) {
         assert.ok(v2.includes(text));
     }
