@@ -471,9 +471,21 @@ const btn =
                                 <Link
                                     :href="`/staff/${member.id}`"
                                     :aria-label="`Open ${member.name}`"
-                                    class="font-medium text-foreground underline-offset-2 outline-none hover:text-primary hover:underline focus-visible:text-primary focus-visible:underline max-xl:after:absolute max-xl:after:inset-0 max-xl:after:content-[''] xl:focus-visible:rounded-sm xl:focus-visible:ring-2 xl:focus-visible:ring-ring xl:focus-visible:ring-offset-2 xl:focus-visible:ring-offset-background"
+                                    class="font-medium text-primary underline-offset-2 outline-none hover:underline focus-visible:underline max-xl:pr-8 max-xl:after:absolute max-xl:after:inset-0 max-xl:after:content-[''] xl:focus-visible:rounded-sm xl:focus-visible:ring-2 xl:focus-visible:ring-ring xl:focus-visible:ring-offset-2 xl:focus-visible:ring-offset-background"
                                     >{{ member.name }}</Link
                                 >
+                                <svg
+                                    class="pointer-events-none size-5 text-muted-foreground max-xl:absolute max-xl:top-4 max-xl:right-3 xl:hidden"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    aria-hidden="true"
+                                >
+                                    <path d="m9 6 6 6-6 6" />
+                                </svg>
                                 <div
                                     class="mt-0.5 text-sm font-normal [overflow-wrap:anywhere] text-muted-foreground"
                                 >

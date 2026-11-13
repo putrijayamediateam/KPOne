@@ -69,9 +69,20 @@ test("Daniel's fixes: branch names not codes, plain role chips, neutral Inactive
     assert.doesNotMatch(v2, /'danger'/);
     assert.match(v2, /:aria-label="`Open \$\{member\.name\}`"/);
     assert.match(v2, /max-xl:after:absolute max-xl:after:inset-0/);
-    assert.match(v2, /hover:text-primary/);
+    assert.match(v2, /hover:underline/);
     assert.match(v2, /:more-filters="!phone"/);
     assert.match(v2, /Filters\{\{/);
     assert.match(v2, /v-model:open="sheetOpen"/);
     assert.match(v2, /@click="resetFilters"/);
+});
+
+test('Daniel round 3: the name is a link in the link colour at rest, and a phone card shows a chevron', () => {
+    assert.match(v2, /font-medium text-primary underline-offset-2/);
+    assert.doesNotMatch(v2, /font-medium text-foreground underline-offset-2/);
+    assert.match(v2, /<path d="m9 6 6 6-6 6" \/>/);
+    assert.match(v2, /max-xl:absolute max-xl:top-4 max-xl:right-3 xl:hidden/);
+    assert.match(
+        v2,
+        /Filters\{\{\s*filterCount \? ` \(\$\{filterCount\}\)` : ''/,
+    );
 });
