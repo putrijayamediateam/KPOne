@@ -23,6 +23,7 @@ return [
         'Pricing/Index',
         'Agents/Inbox',
         'Patient/Show',
+        'HR/Roster',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
