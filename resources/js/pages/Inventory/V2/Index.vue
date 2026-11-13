@@ -712,7 +712,10 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                 </V2DisclosureBar>
                 <!-- Page 2c: reorder levels, alerts and the read-only older records; the Classic panel is no longer shown here. -->
                 <V2DisclosureBar title="Reorder levels and alerts" keep-mounted>
-                    <ReorderSection :operations="operations" />
+                    <ReorderSection
+                        :operations="operations"
+                        :timezone="inventory.branchTimezone"
+                    />
                 </V2DisclosureBar>
                 <V2DisclosureBar title="Older records (read only)">
                     <OlderRecordsSection :operations="operations" />

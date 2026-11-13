@@ -5,6 +5,7 @@ import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import { useReorderLevel } from '@/composables/inventory-v2/useReorderLevel';
+import { quantityWithUnit } from '@/lib/inventory-v2-words';
 import { formatDate } from '@/lib/presentation';
 import { trimQuantity } from '@/lib/supplier-terms';
 import type { InventoryOperations } from '@/types/inventory-operations';
@@ -14,7 +15,11 @@ import type { InventoryOperations } from '@/types/inventory-operations';
  * level form as a short sheet. Same request, lock version, idempotency key and saved-level lookup as the Classic panel
  * (`useReorderLevel` is a copy of its logic). The sheet closes only after a successful save.
  */
-const props = defineProps<{ operations: InventoryOperations }>();
+const props = defineProps<{
+    operations: InventoryOperations;
+    /** The branch time zone, so "in N days" counts from the branch's today. */
+    timezone: string;
+}>();
 
 const {
     busy,
@@ -114,6 +119,35 @@ const saveReorder = () => {
 };
 
 const n = (value: unknown) => trimQuantity(String(value ?? '0'));
+const units = (value: unknown, unit: unknown) =>
+    quantityWithUnit(String(value ?? '0'), String(unit ?? ''));
+/**
+ * Show "100", not "100.000", in the boxes (Daniel): formatted once, when the copied Classic loader has filled them.
+ * The server accepts "100", so the value sent is the same quantity.
+ */
+watch(
+    () => reorder.loading,
+    (loading, wasLoading) => {
+        if (wasLoading && !loading && !reorder.loadFailed) {
+            reorder.level = reorder.level === '' ? '' : n(reorder.level);
+            reorder.max = reorder.max === '' ? '' : n(reorder.max);
+        }
+    },
+);
+const branchToday = () =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: props.timezone }).format(
+        new Date(),
+    );
+/** "in 22 days", "tomorrow", "today": how long is left, from the branch's today (Daniel, 2c change 3). */
+const daysLeft = (expiry: string) => {
+    const days = Math.round(
+        (Date.parse(`${expiry}T00:00:00Z`) -
+            Date.parse(`${branchToday()}T00:00:00Z`)) /
+            86_400_000,
+    );
+
+    return days <= 0 ? 'today' : days === 1 ? 'tomorrow' : `in ${days} days`;
+};
 </script>
 
 <template>
@@ -170,10 +204,11 @@ const n = (value: unknown) => trimQuantity(String(value ?? '0'));
                             <div class="flex flex-wrap items-center gap-1.5">
                                 <V2Chip
                                     tone="warning"
-                                    :label="`${n(row.availableQuantity)} left`"
+                                    :label="`${units(row.availableQuantity, row.stockUnit)} left`"
                                 />
                                 <span class="text-sm text-muted-foreground"
-                                    >reorder at {{ n(row.reorderLevel)
+                                    >Below reorder level of
+                                    {{ units(row.reorderLevel, row.stockUnit)
                                     }}<template v-if="row.maxLevel !== null">
                                         · fill to
                                         {{ n(row.maxLevel) }}</template
@@ -218,21 +253,28 @@ const n = (value: unknown) => trimQuantity(String(value ?? '0'));
                         <td data-label="Item and batch" data-primary>
                             <div class="min-w-0">
                                 <span class="block font-medium break-words">{{
-                                    row.sku
+                                    row.item ?? row.sku
                                 }}</span>
                                 <span
                                     class="block text-xs break-words text-muted-foreground"
-                                    >Batch {{ row.batch }}</span
+                                    >{{ row.item ? `${row.sku} · ` : '' }}Batch
+                                    {{ row.batch }}</span
                                 >
                             </div>
                         </td>
                         <td data-label="Expires">
-                            <span class="whitespace-nowrap">{{
+                            <span class="block whitespace-nowrap">{{
                                 formatDate(row.expiryDate)
                             }}</span>
+                            <span
+                                class="block text-xs font-medium text-warning-strong"
+                                >{{ daysLeft(row.expiryDate) }}</span
+                            >
                         </td>
                         <td data-label="Location">{{ row.location }}</td>
-                        <td data-label="In stock">{{ n(row.quantity) }}</td>
+                        <td data-label="In stock">
+                            {{ units(row.quantity, row.stockUnit) }}
+                        </td>
                     </tr>
                 </template>
             </V2Table>

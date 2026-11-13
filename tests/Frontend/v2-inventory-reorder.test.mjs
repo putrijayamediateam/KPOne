@@ -98,3 +98,28 @@ test('2c: the V2 home shows the reorder and older-records sections', () => {
     );
     assert.ok(!home.includes('<InventoryOperationsPanel'));
 });
+
+test("2c: Daniel's changes (units, item names, days left, whole numbers in the boxes)", () => {
+    // Every quantity carries its unit; the chip and the line say what it means.
+    assert.match(
+        section,
+        /units\(row\.availableQuantity, row\.stockUnit\)\} left`/,
+    );
+    assert.match(section, /Below reorder level of/);
+    assert.match(section, /units\(row\.quantity, row\.stockUnit\)/);
+    // Expiring rows name the item, with the SKU code and batch under it, and how long is left.
+    assert.match(section, /row\.item \?\? row\.sku/);
+    assert.match(section, /daysLeft\(row\.expiryDate\)/);
+    assert.match(section, /`in \$\{days\} days`/);
+    assert.match(section, /timeZone: props\.timezone/);
+    assert.match(home, /:timezone="inventory\.branchTimezone"/);
+    // "100", not "100.000", once the copied loader has filled the boxes; the loader itself is unchanged.
+    assert.match(
+        section,
+        /reorder\.level = reorder\.level === '' \? '' : n\(reorder\.level\);/,
+    );
+    assert.equal(
+        block(composable, 'loadReorderLevel'),
+        block(classicPanel, 'loadReorderLevel'),
+    );
+});
