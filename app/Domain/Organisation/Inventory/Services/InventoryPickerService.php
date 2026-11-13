@@ -27,19 +27,20 @@ final class InventoryPickerService
         $branch = app(BranchAccessService::class)->activeBranch($actor);
         abort_unless($actor->is_active && $actor->can('inventory.view.branch'), 403);
         abort_unless($branch && $branch->organisation_id === $actor->organisation_id, 404);
-        $data = Validator::make($input + ['context' => 'references', 'q' => '', 'limit' => self::DEFAULT_LIMIT, 'sku' => null], [
+        $data = Validator::make($input + ['context' => 'references', 'q' => '', 'limit' => self::DEFAULT_LIMIT, 'sku' => null, 'location' => null], [
             'expected_branch_id' => ['required', 'integer', 'in:'.$branch->id],
             'kind' => ['required', Rule::in(self::KINDS)], 'context' => ['required', Rule::in(['references', 'operations', 'directory'])],
             'q' => ['nullable', 'string', 'max:100'], 'limit' => ['required', 'integer', 'min:1', 'max:'.self::MAX_LIMIT], 'sku' => ['nullable', 'uuid'],
+            'location' => ['nullable', 'uuid'],
         ])->validate();
 
-        return ['data' => $this->choices($actor, $branch, $data['kind'], $data['context'], (string) ($data['q'] ?? ''), (int) $data['limit'], $data['sku']), 'limit' => (int) $data['limit']];
+        return ['data' => $this->choices($actor, $branch, $data['kind'], $data['context'], (string) ($data['q'] ?? ''), (int) $data['limit'], $data['sku'], $data['location']), 'limit' => (int) $data['limit']];
     }
 
     /** Caller has already authorised Inventory and selected the effective branch.
      * @return list<array<string,mixed>>
      */
-    public function choices(User $actor, Branch $branch, string $kind, string $context = 'references', string $search = '', int $limit = self::DEFAULT_LIMIT, ?string $sku = null): array
+    public function choices(User $actor, Branch $branch, string $kind, string $context = 'references', string $search = '', int $limit = self::DEFAULT_LIMIT, ?string $sku = null, ?string $location = null): array
     {
         abort_unless($actor->is_active && $actor->can('inventory.view.branch') && $actor->organisation_id === $branch->organisation_id, 403);
         $limit = max(1, min(self::MAX_LIMIT, $limit));
@@ -70,6 +71,20 @@ final class InventoryPickerService
             if ($sku !== null) {
                 $query->where('sku.public_id', $sku);
             }
+            // V2 page 2b: how much of each batch sits at one location of this branch (or the organisation store), so a
+            // person dispatching can see it before choosing. Batches stay listed and ordered as before.
+            if ($location !== null) {
+                $locationId = DB::table('inventory_locations')->where('organisation_id', $actor->organisation_id)->where('public_id', $location)->where('is_active', true)
+                    // The same rule as the locations list: the organisation store only for references or warehouse holders.
+                    ->where(function (Builder $q) use ($actor, $branch, $context): void {
+                        $q->where('branch_id', $branch->id);
+                        if ($context === 'references' || ($context === 'operations' && $actor->can(ProcurementService::WAREHOUSE_PERMISSION))) {
+                            $q->orWhereNull('branch_id');
+                        }
+                    })->value('id');
+                abort_unless($locationId !== null, 404);
+                $query->leftJoin('inventory_stock_balances as here', fn ($join) => $join->on('here.inventory_batch_id', '=', 'choice.id')->where('here.inventory_location_id', (int) $locationId)->where('here.organisation_id', $actor->organisation_id));
+            }
         }
         [$columns, $order] = match ($kind) {
             'items' => [['choice.public_id as publicId', 'choice.code', 'choice.generic_name as genericName'], 'choice.generic_name'],
@@ -96,6 +111,9 @@ final class InventoryPickerService
         }
         if ($kind === 'batches') {
             $query->orderBy('choice.expiry_date');
+            if ($location !== null) {
+                $columns[] = DB::raw('COALESCE(here.quantity, 0) as "onHand"');
+            }
         }
         $collation = DB::getDriverName() === 'pgsql' ? '"C"' : 'BINARY';
 

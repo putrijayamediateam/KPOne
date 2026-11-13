@@ -234,9 +234,12 @@ const chipTone = computed(() => {
     }
 });
 
+// Safety net (Rashid and Sofia, #670 review): a layout change unmounts the dialog, so the shared flow is reset too and
+// can never leave the dialog reopening or a press refused.
 onBeforeUnmount(() => {
     stopStream();
     clearPreview();
+    resetClockPhoto();
 });
 </script>
 
