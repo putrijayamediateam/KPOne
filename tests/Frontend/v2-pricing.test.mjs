@@ -92,7 +92,7 @@ test('V2 has one filled page button, native controls are not used, and dialogs a
     assert.equal((v2.match(/filledButton,/g) ?? []).length, 1);
     assert.doesNotMatch(v2, /<select[\s>]/);
     assert.doesNotMatch(v2, /type="file"/);
-    assert.equal((v2.match(/<V2Dialog/g) ?? []).length, 4);
+    assert.equal((v2.match(/<V2Dialog/g) ?? []).length, 5);
     assert.ok(v2.includes('tone="danger"'));
     assert.ok(v2.includes('cards="xl"'));
     assert.ok(v2.includes('data-actions'));
@@ -119,4 +119,19 @@ test('the publish dialog shows the current and scheduled price and the stale-pri
     );
     assert.match(publish, /form\.stale = 'price' in errors/);
     assert.match(v2, /data-action="reload-prices"/);
+});
+
+test('phones get one "Filters (n)" sheet and the deactivate confirm uses plain words (Daniel)', () => {
+    assert.match(v2, /data-action="open-filters"/);
+    assert.match(
+        v2,
+        /Filters\{\{\s*filterCount \? ` \(\$\{filterCount\}\)` : ''/,
+    );
+    assert.match(v2, /applied/);
+    assert.match(v2, /data-action="reset-filters"/);
+    assert.ok(
+        v2.includes(
+            'It will not be offered on new invoices. Existing invoices are not changed. You can activate it again.',
+        ),
+    );
 });

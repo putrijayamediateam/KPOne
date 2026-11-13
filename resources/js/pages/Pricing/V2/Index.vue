@@ -96,6 +96,14 @@ const filtered = computed(() => {
                 (statusFilter.value === 'active') === charge.isActive),
     );
 });
+const filterCount = computed(
+    () => [typeFilter.value, statusFilter.value].filter(Boolean).length,
+);
+const sheetOpen = ref(false);
+const resetFilters = () => {
+    typeFilter.value = '';
+    statusFilter.value = '';
+};
 const noPrice = computed(() =>
     props.charges.filter(
         (charge) =>
@@ -289,7 +297,7 @@ const submitCharge = () => {
                     search-placeholder="Charge name or code"
                 >
                     <template #filters>
-                        <div class="w-full sm:w-44">
+                        <div class="hidden w-44 sm:block">
                             <OperationalSelect
                                 v-model="typeFilter"
                                 label="Type"
@@ -299,7 +307,7 @@ const submitCharge = () => {
                                 ]"
                             />
                         </div>
-                        <div class="w-full sm:w-40">
+                        <div class="hidden w-40 sm:block">
                             <OperationalSelect
                                 v-model="statusFilter"
                                 label="Status"
@@ -311,12 +319,41 @@ const submitCharge = () => {
                             />
                         </div>
                     </template>
+                    <template #primary>
+                        <button
+                            type="button"
+                            :class="[outlineButton, 'sm:hidden']"
+                            data-action="open-filters"
+                            @click="sheetOpen = true"
+                        >
+                            Filters{{ filterCount ? ` (${filterCount})` : '' }}
+                        </button>
+                    </template>
                 </V2Toolbar>
 
-                <p class="text-[13px] text-muted-foreground">
-                    {{ filtered.length }}
-                    {{ filtered.length === 1 ? 'charge' : 'charges' }}
-                </p>
+                <div
+                    class="flex flex-wrap items-center gap-x-3 text-[13px] text-muted-foreground"
+                >
+                    <p>
+                        {{ filtered.length }}
+                        {{ filtered.length === 1 ? 'charge' : 'charges' }}
+                    </p>
+                    <template v-if="filterCount">
+                        <p>
+                            {{ filterCount }}
+                            {{ filterCount === 1 ? 'filter' : 'filters' }}
+                            applied
+                        </p>
+                        <button
+                            type="button"
+                            class="inline-flex h-11 items-center rounded-[10px] px-2 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                            data-action="reset-filters"
+                            @click="resetFilters"
+                        >
+                            Reset
+                        </button>
+                    </template>
+                </div>
 
                 <V2Table
                     label="Charges"
@@ -491,13 +528,54 @@ const submitCharge = () => {
         </V2Dialog>
 
         <V2Dialog
+            v-model:open="sheetOpen"
+            title="Filters"
+            confirm-label="Show charges"
+            cancel-label="Close"
+            @confirm="sheetOpen = false"
+        >
+            <div class="grid gap-3">
+                <V2Field v-slot="{ id }" label="Type">
+                    <OperationalSelect
+                        :id="id"
+                        v-model="typeFilter"
+                        label="Type"
+                        :options="[
+                            { value: '', label: 'All types' },
+                            ...typeOptions,
+                        ]"
+                    />
+                </V2Field>
+                <V2Field v-slot="{ id }" label="Status">
+                    <OperationalSelect
+                        :id="id"
+                        v-model="statusFilter"
+                        label="Status"
+                        :options="[
+                            { value: '', label: 'Any status' },
+                            { value: 'active', label: 'Active' },
+                            { value: 'inactive', label: 'Inactive' },
+                        ]"
+                    />
+                </V2Field>
+                <button
+                    type="button"
+                    :class="outlineButton"
+                    @click="resetFilters"
+                >
+                    Reset filters
+                </button>
+            </div>
+        </V2Dialog>
+
+        <V2Dialog
             :open="toDeactivate !== null"
             :title="
                 toDeactivate
                     ? `Deactivate ${toDeactivate.displayName}?`
                     : 'Deactivate charge?'
             "
-            description="An inactive charge can no longer be billed. Its prices and history are kept."
+            description="It will not be offered on new invoices. Existing invoices are not changed. You can activate it again."
             confirm-label="Deactivate charge"
             tone="danger"
             :busy="toggling"
