@@ -182,7 +182,7 @@ const scopeText = computed(() => {
 });
 
 const filled =
-    'inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 max-sm:w-full lg:h-9';
+    'inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground outline-none hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 max-sm:w-full lg:h-9 xl:mt-[26px]';
 </script>
 
 <template>
@@ -256,7 +256,7 @@ const filled =
 
                     <section
                         aria-label="Branch and date"
-                        class="grid min-w-0 gap-3 rounded-[14px] border border-border bg-card p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-end"
+                        class="grid min-w-0 gap-3 rounded-[14px] border border-border bg-card p-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] xl:items-start"
                     >
                         <V2Field v-slot="{ id }" label="Branch">
                             <OperationalSelect
