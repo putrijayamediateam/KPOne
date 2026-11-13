@@ -5,10 +5,10 @@ import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import TreatmentProgressActions from '@/components/queue/TreatmentProgressActions.vue';
-import TreatmentProgressBadge from '@/components/queue/TreatmentProgressBadge.vue';
 import CallNextV2 from '@/components/queue-v2/CallNextV2.vue';
 import QueueAttentionList from '@/components/queue-v2/QueueAttentionList.vue';
 import QueueRowDialogs from '@/components/queue-v2/QueueRowDialogs.vue';
+import TreatmentChipV2 from '@/components/queue-v2/TreatmentChipV2.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
@@ -490,7 +490,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                         }}</span
                                     >
                                     <span
-                                        class="block truncate text-xs text-muted-foreground max-xl:break-words max-xl:whitespace-normal"
+                                        class="block truncate text-xs text-muted-foreground max-xl:line-clamp-1 max-xl:break-all max-xl:whitespace-normal"
                                         :title="
                                             item.row.visitNotes ??
                                             'No reason recorded'
@@ -581,7 +581,7 @@ const rowClick = (event: MouseEvent, row: PatientBoardRow) => {
                                             "
                                             data-testid="call-readiness-badge"
                                         />
-                                        <TreatmentProgressBadge
+                                        <TreatmentChipV2
                                             :progress="
                                                 item.row.treatmentProgress
                                             "
