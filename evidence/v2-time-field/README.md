@@ -1,0 +1,1 @@
+V2TimeField specimen: echo while typing (= 8:00 AM / = 5:00 PM), tidy on blur, invalid text keeps the typed text with an error and empties the model, empty stays empty, page reset replaces text, polite announcement after blur. 390 dark, 1440 light.
