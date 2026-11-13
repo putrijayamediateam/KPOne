@@ -720,7 +720,7 @@ const inputClass =
                             "
                         />
 
-                        <V2StickyBar v-if="primary">
+                        <V2StickyBar v-if="primary" hide-from="sm">
                             <button
                                 type="button"
                                 :class="primaryButton"

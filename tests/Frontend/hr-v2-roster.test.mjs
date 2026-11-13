@@ -295,3 +295,8 @@ test('rest lines become per-day warnings on the grid, for one day and for a run 
         },
     });
 });
+
+test('the header carries the filled action from 640 px, so the sticky bar hides from 640 px (one filled action)', () => {
+    assert.match(template, /<V2StickyBar v-if="primary" hide-from="sm">/);
+    assert.match(template, /:class="\[primaryButton, 'max-sm:hidden'\]"/);
+});
