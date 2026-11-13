@@ -49,3 +49,8 @@ every width tried. Every agent section carries the "AI agent" chip as words (Dir
 - The shell's "Clock in" button in the top bar is the HR feature, not part of this page.
 - Opened by the author: rich Director 390 light (default), rich CA Supervisor 390 light (default); the first review pass opened Director 1440 light,
   Director 390 dark, CA Supervisor 390 light and the no-report 1440 dark. The other files were produced by the same script and not opened this pass.
+
+## Round 3 (head 75ede439)
+- Low stock now reads "7 items, by location" (Daniel's tweak).
+- Own checks: Finance Officer 1440/390 (money, Panel and stock shown, no Faris block); CA Supervisor 1440/390 (no RM, net sales or Panel); Director dark 1440/1024/390; Director 360 and 320 light. No page overflow, no clipped stat in any of them.
+- Limits: seeded runs read "Scheduled" (seed artefact); only the synthetic 8 Nov day has non-zero money.
