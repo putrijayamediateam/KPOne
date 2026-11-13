@@ -130,3 +130,23 @@ test('V2Dialog: Confirm stays at full opacity when aria-disabled; aria-described
     );
     assert.doesNotMatch(s, /\n\s*aria-describedby="v2-dialog-reason-error"/);
 });
+
+test('V2DateRange: a plain-date echo ("1 Nov 2026 to 13 Nov 2026") on by default, announced politely, formatted without a time zone', () => {
+    const s = v2('V2DateRange');
+    assert.match(s, /echo\?: boolean/);
+    assert.match(s, /echo: true/);
+    assert.match(s, /data-slot="v2-date-range-echo"/);
+    assert.match(s, /role="status"\s+aria-live="polite"/);
+    assert.match(s, /data-slot="v2-date-range-spoken"/);
+    assert.match(s, /setTimeout\(speakNow, 1200\)/);
+    assert.match(s, /@focusout="speakNow"/);
+    // The visible echo is not itself a live region: only the delayed spoken copy is.
+    assert.match(
+        s,
+        /data-slot="v2-date-range-echo"[^>]*aria-hidden="true"|aria-hidden="true"[^>]*data-slot="v2-date-range-echo"/s,
+    );
+    assert.match(s, /`\$\{from\} to \$\{to\}`/);
+    assert.match(s, /`From \$\{from\}`/);
+    assert.match(s, /`Up to \$\{to\}`/);
+    assert.doesNotMatch(s, /new Date|Intl\.|toLocale/);
+});
