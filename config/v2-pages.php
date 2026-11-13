@@ -38,5 +38,6 @@ return [
         'Staff/Show',
         'Staff/Create',
         'Staff/Edit',
+        'Billing/Show',
     ],
 ];
