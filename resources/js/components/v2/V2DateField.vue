@@ -54,7 +54,7 @@ const props = withDefaults(
         disabled: false,
         min: undefined,
         max: undefined,
-        placeholder: '13 Nov 2026',
+        placeholder: 'e.g. 13 Nov 2026',
         weekday: false,
         subject: undefined,
     },
