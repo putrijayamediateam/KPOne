@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router, useForm } from '@inertiajs/vue3';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
@@ -31,7 +31,7 @@ type PaymentMethodRow = {
     lockVersion: number;
 };
 
-defineProps<{ methods: PaymentMethodRow[] }>();
+const props = defineProps<{ methods: PaymentMethodRow[] }>();
 
 usePageCrumbs(() => [
     { title: 'Clinic management', href: '/clinic-management' },
@@ -157,6 +157,33 @@ const saveEdit = () => {
 
 // --- status
 const toDeactivate = ref<PaymentMethodRow | null>(null);
+// The server does not refuse or warn when the last active method of a kind is deactivated, so V2 says it in words.
+const deactivateWarning = computed(() => {
+    const method = toDeactivate.value;
+
+    if (!method || !method.isActive) {
+        return null;
+    }
+
+    const active = props.methods.filter((item) => item.isActive);
+
+    if (active.length === 1) {
+        return 'This is the only active payment method. Checkout will have no payment option.';
+    }
+
+    const isCash = method.classification === 'cash';
+    const sameKind = active.filter(
+        (item) => (item.classification === 'cash') === isCash,
+    );
+
+    if (sameKind.length === 1) {
+        return isCash
+            ? 'This is the only active Cash method. Checkout will have no cash option.'
+            : 'This is the only active Non-cash method. Checkout will have no non-cash option.';
+    }
+
+    return null;
+});
 const busyId = ref<number | null>(null);
 const changeStatus = (method: PaymentMethodRow) => {
     busyId.value = method.id;
@@ -215,10 +242,10 @@ const onMenu = (method: PaymentMethodRow, id: string) => {
             <template #main>
                 <V2DisclosureBar title="How classification affects reports">
                     <p class="text-sm">
-                        Classification changes apply to reports generated from
-                        now on, including past periods. Stored payments and
-                        receipts never change. Not classified is counted as
-                        Non-cash in reports.
+                        This changes the Cash and Non-cash totals in every
+                        report you run from now on, including past dates.
+                        Receipts already recorded are not changed. Not
+                        classified counts as Non-cash.
                     </p>
                 </V2DisclosureBar>
                 <V2Table
@@ -235,7 +262,9 @@ const onMenu = (method: PaymentMethodRow, id: string) => {
                             <th scope="col" class="min-w-40 whitespace-nowrap">
                                 Classification
                             </th>
-                            <th scope="col">Reference</th>
+                            <th scope="col" class="whitespace-nowrap">
+                                Transaction reference
+                            </th>
                             <th scope="col" class="text-right">Order</th>
                             <th scope="col">Status</th>
                             <th scope="col" class="text-right">Actions</th>
@@ -248,12 +277,29 @@ const onMenu = (method: PaymentMethodRow, id: string) => {
                             :data-method="method.code"
                         >
                             <td data-label="Method" data-primary>
-                                <span class="block text-sm font-medium">{{
-                                    method.name
-                                }}</span>
+                                <span
+                                    class="flex flex-wrap items-center gap-x-2 gap-y-1"
+                                >
+                                    <span class="text-sm font-medium">{{
+                                        method.name
+                                    }}</span>
+                                    <V2Chip
+                                        class="xl:hidden"
+                                        :tone="
+                                            method.isActive
+                                                ? 'success'
+                                                : 'neutral'
+                                        "
+                                        :label="
+                                            method.isActive
+                                                ? 'Active'
+                                                : 'Inactive'
+                                        "
+                                    />
+                                </span>
                                 <span
                                     class="block text-xs text-muted-foreground"
-                                    >{{ method.code }}</span
+                                    >Code: {{ method.code }}</span
                                 >
                                 <span
                                     v-if="method.description"
@@ -271,15 +317,20 @@ const onMenu = (method: PaymentMethodRow, id: string) => {
                                     :label="classificationLabel(method)"
                                 />
                             </td>
-                            <td data-label="Reference">
+                            <td data-label="Transaction reference">
                                 {{
-                                    method.requiresReference ? 'Required' : 'No'
+                                    method.requiresReference
+                                        ? 'Required'
+                                        : 'Not required'
                                 }}
                             </td>
-                            <td data-label="Order" class="text-right">
+                            <td
+                                data-label="Order"
+                                class="text-right max-xl:hidden"
+                            >
                                 {{ method.sortOrder }}
                             </td>
-                            <td data-label="Status">
+                            <td data-label="Status" class="max-xl:hidden">
                                 <V2Chip
                                     :tone="
                                         method.isActive ? 'success' : 'neutral'
@@ -449,7 +500,7 @@ const onMenu = (method: PaymentMethodRow, id: string) => {
                     ? `Change classification for ${classifying.name}`
                     : 'Change classification'
             "
-            description="Not classified counts as Non-cash. Reports use the current classification; stored receipts are unchanged."
+            description="This changes the Cash and Non-cash totals in every report you run from now on, including past dates. Receipts already recorded are not changed. Not classified counts as Non-cash."
             confirm-label="Save classification"
             :busy="classificationForm.processing"
             @update:open="$event || (classifying = null)"
@@ -484,6 +535,14 @@ const onMenu = (method: PaymentMethodRow, id: string) => {
             :busy="busyId !== null"
             @update:open="toDeactivate = $event ? toDeactivate : null"
             @confirm="toDeactivate && changeStatus(toDeactivate)"
-        />
+        >
+            <p
+                v-if="deactivateWarning"
+                class="border-l-4 border-warning pl-3 text-sm font-medium"
+                data-test="deactivate-warning"
+            >
+                {{ deactivateWarning }}
+            </p>
+        </V2Dialog>
     </PageFrame>
 </template>
