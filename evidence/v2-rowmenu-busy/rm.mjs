@@ -1,0 +1,11 @@
+import { chromium } from '/opt/node-tools/node_modules/playwright/index.mjs';
+const b=await chromium.launch(); const p=await b.newPage({viewport:{width:600,height:400}});
+await p.goto('http://127.0.0.1:8783/index.html'); await p.waitForTimeout(300);
+const open=()=>p.getByRole('menuitem').count(); const t=()=>p.locator('[data-slot=v2-row-menu]');
+await t().click(); await p.waitForTimeout(200); console.log('1 opens before busy:',await open());
+await p.evaluate(()=>window.__busy(true)); await p.waitForTimeout(200); console.log('2 busy closes it: items',await open(),'| trigger disabled',await t().isDisabled(),'| label',await t().getAttribute('aria-label'));
+await p.evaluate(()=>window.__busy(false)); await p.waitForTimeout(200); console.log('3 after busy ends, still closed: items',await open());
+await t().click(); await p.waitForTimeout(200); console.log('4 opens again after busy true->false:',await open());
+await p.keyboard.press('Escape'); await p.waitForTimeout(150); console.log('5 Esc closes:',await open());
+await p.evaluate(()=>window.__busy(true)); await p.evaluate(()=>window.__busy(false)); await t().click(); await p.waitForTimeout(200); console.log('6 busy again, then opens:',await open());
+await b.close();
