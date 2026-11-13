@@ -364,7 +364,10 @@ const removePoster = () => {
                         </template>
                         <template #body>
                             <tr v-for="room in rooms" :key="room.id">
-                                <td data-label="Name" class="font-medium">
+                                <td
+                                    data-label="Name"
+                                    class="font-medium [overflow-wrap:anywhere]"
+                                >
                                     {{ room.name }}
                                 </td>
                                 <td data-label="Type">
