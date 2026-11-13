@@ -235,7 +235,7 @@ const outline =
                 <V2Tabs
                     :model-value="tab"
                     :tabs="tabs"
-                    aria-label="Suggestion status"
+                    ariaLabel="Suggestion status"
                     data-test="inbox-tabs"
                     @update:model-value="selectTab"
                 />
