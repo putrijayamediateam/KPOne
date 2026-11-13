@@ -252,5 +252,8 @@ test('2a: the V2 home shows the orders section in a bar that keeps its forms, an
         home,
         /<V2DisclosureBar title="Orders and receiving" keep-mounted>\s*<OrdersSection/,
     );
-    assert.match(home, /<InventoryOperationsPanel[\s\S]*?hide-orders\s*\/>/);
+    assert.match(
+        home,
+        /<InventoryOperationsPanel[\s\S]*?hide-orders[\s\S]*?\/>/,
+    );
 });

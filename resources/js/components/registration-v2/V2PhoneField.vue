@@ -15,9 +15,11 @@ const props = withDefaults(
         country?: string;
         error?: string;
         required?: boolean;
+        label?: string;
+        emptyLabel?: string;
         unchangedValue?: string;
     }>(),
-    { country: 'MY', required: false },
+    { country: 'MY', required: false, label: 'Phone', emptyLabel: '' },
 );
 const emit = defineEmits<{
     'update:modelValue': [value: string];
@@ -37,18 +39,26 @@ const message = computed(
             : ''),
 );
 const names = new Intl.DisplayNames(['en'], { type: 'region' });
-const options = getCountries()
+const countryOptions = getCountries()
     .map((code) => ({
         value: code,
         label: `${names.of(code) ?? code} (+${getCountryCallingCode(code)})`,
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
+const options = computed(() =>
+    props.country === ''
+        ? [
+              { value: '', label: props.emptyLabel || 'Choose a country' },
+              ...countryOptions,
+          ]
+        : countryOptions,
+);
 </script>
 
 <template>
     <div class="flex min-w-0 flex-col gap-1.5">
         <label :for="id" class="text-sm font-medium"
-            >Phone
+            >{{ label }}
             <span v-if="required" class="text-destructive" aria-hidden="true"
                 >*</span
             ></label
