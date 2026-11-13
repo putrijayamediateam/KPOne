@@ -25,7 +25,6 @@ const props = defineProps<{
 }>();
 
 usePageCrumbs(() => [
-    { title: 'Patients', href: '/patients' },
     {
         title: props.patient.patientNumber,
         href: '/patients/' + encodeURIComponent(props.patient.patientNumber),
