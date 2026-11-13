@@ -154,9 +154,9 @@ test('V2Dialog dirty guard: every close path asks first, Keep editing is focused
     assert.match(s, /if \(asking\.value\) \{\s*keepEditing\(\);/);
     assert.match(s, /if \(props\.dirty\) \{/);
     assert.match(s, /keepButton\.value\?\.focus\(\)/);
-    assert.match(s, /Discard what you typed\?/);
+    assert.match(s, /Discard your changes\?/);
     assert.match(s, />\s*Keep editing\s*</);
-    assert.match(s, />\s*Discard\s*</);
+    assert.match(s, />\s*Discard changes\s*</);
     assert.match(s, /role="alertdialog"/);
     assert.match(s, /discard: \[\]/);
     assert.equal((s.match(/:inert="asking"/g) ?? []).length, 3);

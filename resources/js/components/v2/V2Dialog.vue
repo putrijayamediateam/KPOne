@@ -17,10 +17,10 @@ import { nextTick, ref, watch } from 'vue';
  * Confirm button the destructive one, and Cancel is outline. The page decides what Confirm does.
  *
  * `size="tall"` is for long forms (a purchase order, receiving): full height on a phone, 42rem from 640px and 56rem from
- * 1024px, up to 90dvh tall, with the body scrolling and the footer staying put.
+ * 1024px, up to 90dvh tall, with the body scrolling and the footer staying put. Body children never shrink (`shrink-0`), so a long form scrolls instead of squashing its fields.
  *
  * `dirty` is a discard guard: while it is true, every way of closing (Esc, the X, a tap on the backdrop, Cancel) first
- * asks "Discard what you typed?" inside the same dialog, with "Keep editing" focused, and only closes on "Discard"
+ * asks "Discard your changes?" inside the same dialog, with "Keep editing" focused, and only closes on "Discard changes"
  * (which emits `discard`, then `update:open(false)`). Esc while the question shows means Keep editing. The page sets
  * `dirty` from its own form state, and closing the dialog from the page (after a save) is never guarded. Everything
  * behind the question is inert, so Tab cannot reach the form. Wording and buttons are the same on every V2 form.
@@ -157,7 +157,7 @@ const submit = () => {
                 "
             >
                 <div
-                    class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5"
+                    class="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-5 [&>*]:shrink-0"
                     :inert="asking"
                 >
                     <DialogTitle
@@ -241,40 +241,44 @@ const submit = () => {
                     role="alertdialog"
                     aria-labelledby="v2-dialog-discard-title"
                     aria-describedby="v2-dialog-discard-text"
-                    class="absolute inset-0 z-10 flex flex-col justify-end gap-3 bg-card p-5 sm:justify-center"
+                    class="absolute inset-0 z-10 flex flex-col justify-end bg-black/50 sm:justify-center sm:p-5"
                     @keydown="trapTab"
                 >
-                    <h3
-                        id="v2-dialog-discard-title"
-                        class="text-lg leading-7 font-semibold"
-                    >
-                        Discard what you typed?
-                    </h3>
-                    <p
-                        id="v2-dialog-discard-text"
-                        class="text-sm leading-5 text-muted-foreground"
-                    >
-                        If you close now, what you entered here is lost.
-                    </p>
                     <div
-                        class="flex flex-col-reverse gap-2 pt-2 pb-[max(0rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
+                        class="flex flex-col gap-3 border-t bg-card p-5 sm:mx-auto sm:w-full sm:max-w-sm sm:rounded-[14px] sm:border"
                     >
-                        <button
-                            ref="discardButton"
-                            type="button"
-                            class="inline-flex h-11 items-center justify-center rounded-[10px] bg-destructive px-4 text-sm font-medium text-destructive-foreground outline-none hover:bg-destructive/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:h-9"
-                            @click="discard"
+                        <h3
+                            id="v2-dialog-discard-title"
+                            class="text-lg leading-7 font-semibold"
                         >
-                            Discard
-                        </button>
-                        <button
-                            ref="keepButton"
-                            type="button"
-                            class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:h-9"
-                            @click="keepEditing"
+                            Discard your changes?
+                        </h3>
+                        <p
+                            id="v2-dialog-discard-text"
+                            class="text-sm leading-5 text-muted-foreground"
                         >
-                            Keep editing
-                        </button>
+                            If you close now, what you entered here is lost.
+                        </p>
+                        <div
+                            class="flex flex-col-reverse gap-2 pt-2 pb-[max(0rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
+                        >
+                            <button
+                                ref="discardButton"
+                                type="button"
+                                class="inline-flex h-11 items-center justify-center rounded-[10px] bg-destructive px-4 text-sm font-medium text-destructive-foreground outline-none hover:bg-destructive/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:h-9"
+                                @click="discard"
+                            >
+                                Discard changes
+                            </button>
+                            <button
+                                ref="keepButton"
+                                type="button"
+                                class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background lg:h-9"
+                                @click="keepEditing"
+                            >
+                                Keep editing
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <DialogClose
