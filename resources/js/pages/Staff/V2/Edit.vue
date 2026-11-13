@@ -3,7 +3,9 @@ import { Head, Link, useForm } from '@inertiajs/vue3';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
+import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
+import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import type { StaffDetail, StaffOptions } from '@/types';
 
 defineOptions({
@@ -23,6 +25,12 @@ const form = useForm({
     department_id: props.staff.departmentId ?? '',
 });
 
+usePageCrumbs(() => [
+    { title: 'Clinic management', href: '/clinic-management' },
+    { title: 'Staff', href: '/staff' },
+    { title: props.staff.name, href: `/staff/${props.staff.id}` },
+]);
+
 const submit = () => form.patch(`/staff/${props.staff.id}`);
 
 const rawError = (key: string) =>
@@ -38,6 +46,10 @@ const PLAIN: Record<string, string> = {
 
 const errorFor = (key: string): string | undefined => {
     const message = rawError(key);
+
+    if (key === 'email' && message && /has already been taken/.test(message)) {
+        return 'That email is already used by another staff member.';
+    }
 
     return message !== undefined &&
         PLAIN[key] &&
@@ -59,16 +71,14 @@ const border = (error?: string) =>
 <template>
     <Head :title="`Edit ${staff.name}`" />
     <PageFrame width="wide">
+        <V2LeaveGuard :dirty="form.isDirty" />
         <V2WorkLayout
             title="Edit staff profile"
-            description="Identity and employment fields only. Roles, status and branches are managed separately."
+            description="Identity and employment only. Roles, status and branches are changed on the person's own page."
         >
             <template #main>
                 <form class="max-w-3xl" @submit.prevent="submit">
-                    <V2FormCard
-                        :title="staff.name"
-                        description="Protected ownership and access attributes are not accepted by this form."
-                    >
+                    <V2FormCard :title="staff.name">
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Full name"
