@@ -21,6 +21,7 @@ return [
         'PaymentMethods/Index',
         'Pricing/Index',
         'Agents/Inbox',
+        'Patient/Show',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',

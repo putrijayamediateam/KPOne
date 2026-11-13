@@ -13,6 +13,8 @@ const props = withDefaults(
         routeKey: string;
         compact?: boolean;
         context?: 'patient' | 'claim' | 'visit';
+        // V2: names the person, e.g. "Open WhatsApp chat with Suria Lim". Without it the label is unchanged.
+        label?: string;
     }>(),
     { context: 'patient' },
 );
@@ -48,7 +50,7 @@ const warning =
                             target="_blank"
                             rel="noopener noreferrer"
                             referrerpolicy="no-referrer"
-                            aria-label="Open WhatsApp chat"
+                            :aria-label="label ?? 'Open WhatsApp chat'"
                             :title="warning"
                         >
                             <svg
