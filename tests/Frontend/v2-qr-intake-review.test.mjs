@@ -85,3 +85,18 @@ test('V2 keeps the privacy rules: names only in the summary, no values logged', 
     assert.ok(/role="alert"/.test(page));
     assert.ok(page.includes('are not used for WhatsApp'));
 });
+
+test('V2 blocks Save on an unreadable date and says what is missing before Accept', () => {
+    assert.ok(page.includes('V2DateField'));
+    assert.ok(page.includes('@update:invalid'));
+    assert.match(page, /if \(dobInvalid\.value\)/);
+    assert.ok(
+        page.includes('Choose Match or Create for the duplicate to continue.'),
+    );
+    assert.ok(page.includes('Tick the coverage confirmation to continue.'));
+    assert.ok(page.includes('v2-accept-reason-rail'));
+    assert.ok(page.includes('v2-accept-reason-bar'));
+    assert.ok(page.includes('Relationship: not chosen yet.'));
+    // Only the dialog's confirm is red: the trigger stays an outline button.
+    assert.ok(!/border-destructive/.test(page));
+});

@@ -20,6 +20,8 @@ import type { VisitReasonOption } from '@/components/visit/VisitReasonPicker.vue
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import type { GuardianInput } from '@/lib/guardian-contact';
 import { requestJson } from '@/lib/json-client';
+import { ageOn } from '@/lib/patient-v2';
+import { formatDate } from '@/lib/presentation';
 
 /**
  * Version 2 QR intake review (shown only in V2; Classic is `pages/RegistrationReview/Show.vue`, untouched). Same props,
@@ -233,12 +235,21 @@ const reject = () =>
         lock_version: props.intake.lockVersion,
         category: rejectionCategory.value,
     });
-const saveCorrection = () =>
+const saveCorrection = () => {
+    if (dobInvalid.value) {
+        return;
+    }
+
     correction.patch(`/registration-review/${props.intake.publicId}/correct`, {
         preserveScroll: true,
         onSuccess: afterSave,
     });
+};
 const accept = () => {
+    if (acceptBlocker.value) {
+        return;
+    }
+
     if (guardianLookupBusy.value || guardianLookupError.value) {
         return;
     }
@@ -470,6 +481,57 @@ const patientNumberError = computed(() => {
         ? 'Enter the patient number to match, or choose Create new patient.'
         : message;
 });
+const dobInvalid = ref(false);
+const dobWords = computed(() => {
+    const age = ageOn(correction.date_of_birth);
+
+    if (age === null) {
+        return 'Date of birth not entered.';
+    }
+
+    return `Born ${formatDate(correction.date_of_birth)} · age ${age}${
+        age < 18
+            ? ' · a guardian contact is required'
+            : ' · no guardian contact is needed'
+    }`;
+});
+const relationshipNotChosen = computed(() => !acceptance.guardian_relationship);
+
+// The first thing still missing before Accept can work. The server stays the authority; this only says what to do next.
+const acceptBlocker = computed(() => {
+    if (!canMutate.value) {
+        return 'This intake can no longer be accepted.';
+    }
+
+    if (acceptance.resolution === 'match' && !acceptance.patient_number) {
+        return 'Choose Match or Create for the duplicate to continue.';
+    }
+
+    if (!acceptance.coverage_type) {
+        return 'Choose the verified coverage to continue.';
+    }
+
+    if (acceptance.coverage_type === 'panel' && !acceptance.panel_id) {
+        return 'Choose the verified Panel to continue.';
+    }
+
+    if (!acceptance.coverage_verified) {
+        return 'Tick the coverage confirmation to continue.';
+    }
+
+    if (
+        !medicineOnly.value &&
+        (!acceptance.assigned_doctor_user_id ||
+            acceptance.visit_reason_public_ids.length === 0)
+    ) {
+        return 'Choose the doctor and at least one visit reason to continue.';
+    }
+
+    return '';
+});
+const acceptDisabled = computed(
+    () => !!acceptBlocker.value || acceptance.processing,
+);
 const rejectOpen = ref(false);
 const rejectLabel = (category: string) =>
     category.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase());
@@ -509,6 +571,10 @@ const confirmReject = () => {
 
             <template #main>
                 <div class="flex min-w-0 flex-col gap-4">
+                    <p class="text-[13px] text-muted-foreground xl:hidden">
+                        No patient, visit or queue record is created until
+                        acceptance commits.
+                    </p>
                     <p
                         v-if="actionError"
                         role="alert"
@@ -559,7 +625,11 @@ const confirmReject = () => {
                                 <V2DateField
                                     v-model="correction.date_of_birth"
                                     label="Date of birth"
+                                    :hint="dobWords"
                                     :error="correction.errors.date_of_birth"
+                                    @update:invalid="
+                                        (value: boolean) => (dobInvalid = value)
+                                    "
                                 />
                                 <V2Field
                                     label="Nationality (2-letter country code)"
@@ -966,6 +1036,12 @@ const confirmReject = () => {
                                         acceptance.errors.guardian_lock_version
                                     "
                                 />
+                                <p
+                                    v-if="relationshipNotChosen"
+                                    class="text-[13px] text-muted-foreground"
+                                >
+                                    Relationship: not chosen yet.
+                                </p>
                                 <p class="text-[13px] text-muted-foreground">
                                     Guardian details never replace the patient's
                                     own contact and are not used for WhatsApp.
@@ -1174,7 +1250,7 @@ const confirmReject = () => {
                             <div>
                                 <button
                                     type="button"
-                                    class="inline-flex h-11 items-center justify-center rounded-[10px] border border-destructive px-4 text-sm font-medium text-destructive hover:bg-destructive/10 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9"
+                                    class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9"
                                     :disabled="actionProcessing"
                                     @click="rejectOpen = true"
                                 >
@@ -1188,8 +1264,13 @@ const confirmReject = () => {
                         <button
                             type="submit"
                             form="v2-review-accept"
-                            :class="primaryButton"
-                            :disabled="!canMutate || acceptance.processing"
+                            :class="[
+                                primaryButton,
+                                acceptDisabled ? 'opacity-50' : '',
+                            ]"
+                            :aria-disabled="acceptDisabled"
+                            aria-describedby="v2-accept-reason-bar"
+                            :disabled="acceptance.processing"
                         >
                             {{
                                 acceptance.processing
@@ -1197,6 +1278,13 @@ const confirmReject = () => {
                                     : 'Accept and add to queue'
                             }}
                         </button>
+                        <p
+                            v-if="acceptBlocker"
+                            id="v2-accept-reason-bar"
+                            class="text-center text-[13px] text-muted-foreground sm:text-right"
+                        >
+                            {{ acceptBlocker }}
+                        </p>
                     </V2StickyBar>
                 </div>
             </template>
@@ -1206,8 +1294,13 @@ const confirmReject = () => {
                     <button
                         type="submit"
                         form="v2-review-accept"
-                        :class="primaryButton"
-                        :disabled="!canMutate || acceptance.processing"
+                        :class="[
+                            primaryButton,
+                            acceptDisabled ? 'opacity-50' : '',
+                        ]"
+                        :aria-disabled="acceptDisabled"
+                        aria-describedby="v2-accept-reason-rail"
+                        :disabled="acceptance.processing"
                     >
                         {{
                             acceptance.processing
@@ -1215,6 +1308,13 @@ const confirmReject = () => {
                                 : 'Accept and add to queue'
                         }}
                     </button>
+                    <p
+                        v-if="acceptBlocker"
+                        id="v2-accept-reason-rail"
+                        class="text-[13px] text-muted-foreground"
+                    >
+                        {{ acceptBlocker }}
+                    </p>
                     <p class="text-[13px] text-muted-foreground">
                         No patient, visit or queue record is created until
                         acceptance commits.
