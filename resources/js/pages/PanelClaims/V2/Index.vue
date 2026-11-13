@@ -131,6 +131,7 @@ const dateTried = ref(false);
 watch(bulkDialogOpen, (open) => {
     if (open) {
         dateTried.value = false;
+        dateInvalid.value = false;
     }
 });
 const dateError = computed(() =>
@@ -169,6 +170,8 @@ const selection = computed(() => {
 
         return {
             title: `${count} invoice${count === 1 ? '' : 's'} selected`,
+            panel: selectedPanel.value ?? '',
+            money: myr(selectedTotalSen.value),
             detail: `${selectedPanel.value} · ${myr(selectedTotalSen.value)}`,
             primaryLabel: `Create ${count} claim${count === 1 ? '' : 's'}`,
             clearLabel: 'Clear selection',
@@ -196,6 +199,8 @@ const selection = computed(() => {
 
         return {
             title: `${count} claim${count === 1 ? '' : 's'} selected${packAcrossPages.value ? ' (across pages)' : ''}`,
+            panel: packPanel.value ?? '',
+            money: myr(packTotalSen.value),
             detail: `${packPanel.value} · ${myr(packTotalSen.value)}`,
             primaryLabel: 'Print pack',
             clearLabel: 'Clear',
@@ -526,7 +531,12 @@ const selection = computed(() => {
                             <th scope="col" class="text-right">Amount</th>
                             <th scope="col">Status</th>
                             <th scope="col">Dates</th>
-                            <th scope="col">Remark note</th>
+                            <th
+                                scope="col"
+                                class="max-[1399px]:hidden 2xl:hidden"
+                            >
+                                Remark note
+                            </th>
                             <th scope="col" class="text-right">Actions</th>
                         </tr>
                     </template>
@@ -582,7 +592,7 @@ const selection = computed(() => {
                             </td>
                             <td data-label="Invoice no" class="pc-id text-sm">
                                 <span
-                                    class="block font-mono text-xs max-xl:text-right"
+                                    class="block font-mono text-xs whitespace-nowrap max-xl:text-right"
                                     >{{ row.invoiceNumber }}</span
                                 >
                                 <span
@@ -622,6 +632,7 @@ const selection = computed(() => {
                             <td
                                 data-label="Visit"
                                 class="pc-note truncate text-sm text-muted-foreground xl:hidden"
+                                :title="row.remarkNote || undefined"
                             >
                                 Visit {{ row.visitDate
                                 }}<template v-if="row.remarkNote">
@@ -630,7 +641,7 @@ const selection = computed(() => {
                             </td>
                             <td
                                 data-label="Remark note"
-                                class="max-w-24 text-sm max-xl:!hidden xl:truncate"
+                                class="max-w-24 text-sm max-[1399px]:!hidden max-xl:!hidden min-[1400px]:max-w-52 xl:truncate 2xl:!hidden"
                                 :title="row.remarkNote || undefined"
                             >
                                 {{ row.remarkNote }}
@@ -762,7 +773,8 @@ const selection = computed(() => {
                             </td>
                             <td data-label="Claim no" class="pc-id text-sm">
                                 <span
-                                    class="block font-mono text-xs max-xl:text-right"
+                                    class="block font-mono text-xs whitespace-nowrap max-xl:text-right"
+                                    ><span class="xl:hidden">Claim </span
                                     >{{ row.claimNo }}</span
                                 >
                                 <span
@@ -813,7 +825,7 @@ const selection = computed(() => {
                             </td>
                             <td
                                 data-label="Remarks"
-                                class="max-w-24 text-sm max-xl:!hidden xl:truncate"
+                                class="max-w-24 text-sm max-xl:!hidden min-[1400px]:max-w-52 xl:truncate 2xl:max-w-24"
                                 :title="row.remarks || undefined"
                             >
                                 {{ row.remarks }}
@@ -880,15 +892,32 @@ const selection = computed(() => {
                     :secondary-label="selection?.clearLabel"
                     :busy="selection?.busy"
                     :hint-tone="
-                        selection?.notices.length ? 'warning' : 'neutral'
+                        selection?.errors.length
+                            ? 'error'
+                            : selection?.notices.length
+                              ? 'warning'
+                              : 'neutral'
                     "
                     :data-testid="selection?.testId"
                     @action="selection?.primary()"
                     @secondary="selection?.clear()"
                 >
+                    <template #summary>
+                        {{ selection?.title }} ·
+                        <span class="whitespace-nowrap">{{
+                            selection?.panel
+                        }}</span>
+                        ·
+                        <span class="whitespace-nowrap">{{
+                            selection?.money
+                        }}</span>
+                    </template>
                     <template #hint>
                         <span :id="selection?.ruleId">{{
-                            selection?.notices[0] ?? selection?.ruleLine
+                            selection?.errors[0] ??
+                            (selection?.notices.length
+                                ? `${selection.ruleLine} ${selection.notices[0]}`
+                                : selection?.ruleLine)
                         }}</span>
                     </template>
                 </V2SelectionBar>
@@ -904,6 +933,9 @@ const selection = computed(() => {
                     :clear-label="selection.clearLabel"
                     :busy="selection.busy"
                     :rule-line="selection.ruleLine"
+                    :rule-id="selection.ruleId"
+                    :test-id="selection.testId"
+                    :primary-test-id="selection.primaryTestId"
                     :notices="selection.notices"
                     :errors="selection.errors"
                     :label="selection.ariaLabel"
@@ -970,6 +1002,13 @@ const selection = computed(() => {
             "
         >
             <div class="grid gap-3">
+                <button
+                    type="button"
+                    class="inline-flex h-11 items-center self-start rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                    @click="resetFilters"
+                >
+                    Reset
+                </button>
                 <PanelClaimFilterFields
                     :draft="draft"
                     :invoice-mode="invoiceMode"
@@ -982,13 +1021,6 @@ const selection = computed(() => {
                     @go="go"
                     @update:range="setRange"
                 />
-                <button
-                    type="button"
-                    class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium text-primary hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                    @click="resetFilters"
-                >
-                    Reset
-                </button>
             </div>
         </V2Dialog>
     </PageFrame>

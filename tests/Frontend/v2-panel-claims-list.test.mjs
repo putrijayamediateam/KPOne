@@ -274,7 +274,11 @@ test('the selection never hides an error or the Panel rule', () => {
     assert.match(selection, /aria-busy/);
     assert.match(selection, /Loader2/);
     // The shared bar shows the rule (or the maximum note, as a warning) in its hint and keeps the pack rule id.
-    assert.match(page, /selection\?\.notices\[0\] \?\? selection\?\.ruleLine/);
+    assert.match(page, /selection\?\.errors\[0\]/);
+    assert.match(
+        page,
+        /\$\{selection\.ruleLine\} \$\{selection\.notices\[0\]\}/,
+    );
     assert.match(page, /:id="selection\?\.ruleId"/);
     assert.match(bar, /hintTone/);
     assert.match(bar, /aria-busy/);
