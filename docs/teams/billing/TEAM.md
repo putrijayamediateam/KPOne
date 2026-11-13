@@ -116,10 +116,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-16 | Correct a receipt recorded in error on a completed visit, in one step: a Finance Officer who did not record it reverses it and records what was really received; only money not received becomes due (owner decisions). Never a refund. Append-only `payment_corrections` evidence (migration `2026_11_12_400100`), no new permission. Design note: `BIL-16-DESIGN.md` | PR #415 |
 | BIL-17 | Billing page display fixes: a fully paid pay-later reads "Paid in full · nothing left to collect"; voided invoices stay visible (number, total, who and when, receipts; never the reason); the "Use amount due" shortcut also shows on a completed visit with money due; the pay-later list notes money due now (paid first). Display only. Design note: `BIL-17-DESIGN.md` | PR #431 |
 | BIL-18 | Pay-later list on phones and summary wording: below 1024 px the pay-later collection list is cards (amount and past-due chip first, the due-now note beside it, a 44 px Open billing); the Billing, Invoice and Visit history summary row "Approved pay later" reads "Pay later still owed" (prints unchanged). Layout and wording only. Design note: `BIL-18-DESIGN.md` | PR #471 |
+| BIL-19 | "Recorded by" on the completed-visit Invoice page: each receipt shows when it was received and who recorded it, by the BIL-2 name rule ("Staff member" when the viewer may not see the name); prints unchanged. Display only. Design note: `BIL-19-DESIGN.md` | PR #493 |
 | BIL-20 | PostgreSQL race tests for receipt corrections (BIL-16): two people correcting one receipt at once record one correction (one reversal, one replacement, one audit; the other is refused), and a correction racing a refund on the same receipt never both win, with no deadlock (both lock the patient and visit, then the invoice and the receipt); both orders are also forced in turn, and the same request sent twice at once records one correction. The race test cleanup also removes payment corrections. Test only. | PR #474 |
+| BIL-21 | Staff names by the branch day: a branch-level viewer sees a staff member's name while that person is assigned to the branch on the branch's own calendar day, as branch access already decides it. Between 00:00 and 08:00 Kuala Lumpur time the UTC date used to keep yesterday's leaver named and today's new starter hidden. One shared Access file (`StaffAccessService`), also used by the staff directory, Dispensary returns, patient history and Panel screens, and by who a branch-level viewer may open in the staff directory (`StaffPolicy`); their tests pass unchanged. | PR #491 |
 | BIL-23 | "Bills to collect": the pay-later collection list now shows every completed visit that still owes money, not only approved pay later: rows show Approved, Pay later, Due now and Still owed (the Billing page's Outstanding bill amount); money due now counts from the visit day and is past due from the next day ("N days since visit"); the page and its menu card are renamed (same link). Read-only. Design note: `BIL-23-DESIGN.md` | PR #538 |
-| BIL-24 | Bills to collect at scale: the list now works out only bills that can still owe money (approved pay later still to collect, or a completed visit whose invoice has a payment reversal, since a visit completes only with nothing due now and afterwards only a receipt correction can make it owe). Same output, measured on 20,000-bill fixtures. No migration. Design note: `BIL-24-DESIGN.md` | PR pending |
+| BIL-24 | Bills to collect at scale: the list now works out only bills that can still owe money (approved pay later still to collect, or a completed visit whose invoice has a payment reversal, since a visit completes only with nothing due now and afterwards only a receipt correction can make it owe). Same output, measured on 20,000-bill fixtures. No migration. Design note: `BIL-24-DESIGN.md` | PR #556 |
 | BIL-26 | "Review required" on Bills to collect: a bill whose invoice is on hold for a correction or has out-of-date source (the Outstanding bills "Review required before settlement" rule) shows a neutral "Review required" tag beside Still owed on the phone card and in the table, with a help sentence when one is on the page; amounts and Open billing unchanged. Sent as a side list of visit numbers, so the pinned row fields stay. Read-only | PR pending |
+| BIL-28 | The Outstanding bill box's link on the Billing page reads "View all bills to collect at this branch", naming the page it opens (BIL-23). Wording only. | PR #553 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -250,6 +253,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 37. BIL-18 (2026-11-10, the owner through B.E.R.N.I.S.S, "i want to start all that"): take Daniel's two Billing debt
     items, the pay-later list on phones and the "Approved pay later" summary row wording; layout and wording only.
     The owner also approved changing the existing assertion so the past-due chip reads "1 day" / "N days" (2026-11-10).
+38. BIL-19 (2026-11-10, the owner in the Billing session, "start with 1"): show "Recorded by" on the completed-visit
+    Invoice page, by the BIL-2 name rule.
 39. BIL-23 "Bills to collect" (2026-11-11, the owner in the Billing session): list every completed visit that still
     owes money (pay later plus money due now, the Outstanding bill amount); money due now is past due from the day
     after the visit ("N days since visit"); rename the page "Bills to collect", same link; the one existing assertion
@@ -257,6 +262,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 40. BIL-24 (2026-11-11, the owner in the Billing session, "start with 1"): make Bills to collect cheaper on a long history
     without changing what it shows; no index migration in this slice (recorded as the next step if needed).
 42. BIL-26 (2026-11-12, the owner in the Billing session, "start with 1" on a "Check bill" tag): Siti chose the wording "Review required" (the Billing page and Outstanding bills already use it for the same state; "Check bill" could read as "check the amount with the patient") and a neutral tone so amber stays for past due.
+43. BIL-28 (2026-11-12, the owner in the Billing session): the link reads "View all bills to collect at this branch"; the owner approved changing the one existing assertion that pinned the old words (bil-3 test).
 
 ## 7. Open items and known limits
 
@@ -283,12 +289,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Physical printer test of invoice and receipt still outstanding.
 - No tax or e-Invoice fields (accountant first).
 - BNPL provider fee and settlement tracking parked for the finance phase.
-- Receipt "Recorded by" names (BIL-2) are not on the completed-visit Invoice page, only on the Billing page and
-  Manage payments. The stock receiving screen still shows "Receiver: staff #ID"; that screen belongs to the
+- Receipt "Recorded by" names (BIL-2) show on the Billing page, Manage payments and, since BIL-19, the completed-visit
+  Invoice page; never on prints. The stock receiving screen still shows "Receiver: staff #ID"; that screen belongs to the
   Inventory team.
-- Staff name visibility (activity log and receipts) compares branch assignment dates with the UTC date, so
-  between 00:00 and 08:00 Kuala Lumpur time an assignment starting that day is not yet visible to branch-level
-  viewers (existing behaviour of `StaffAccessService`).
+- Staff name visibility (`StaffAccessService`) uses the branch's own calendar day since BIL-21. Still on the UTC date,
+  outside Billing: the staff directory's branch filter and its assignment state label (`StaffDirectoryService`), and
+  `StaffBranchAssignment::effectiveAt()` called without a date (primary-branch checks). Raised for their owner.
 - The pay-later collection list (BIL-3) is not audited per view, like the Finance / Billing work list and the
   Registration board; it shows patient name and KP number only. Payments are still recorded on each patient's
   Billing page.
@@ -298,11 +304,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   its totals include money due now while its rows show the pay-later part only (`remainingSen`), so a due-now-only
   bill reads RM 0.00 there until the space adds the `dueNow` map. Told the DS session; their file, their change.
 - Bills to collect (BIL-23) lists completed visits that owe money and approved pay later (also on open visits); an
-  open visit's own due-now money is not listed (it is being paid at the counter). The Billing page's "View all
-  pay-later to collect" link keeps its wording (pinned by an existing assertion). Since BIL-26 a bill on hold for
-  correction or with stale source shows a neutral "Review required" tag (a side list, so the pinned row fields stay).
-  The Billing department space (DS team) builds its pay-later card and overdue answers from the rows only, so it does
-  not show the tag yet; the side list `reviewRequired` is there for it to use (their file, their change). An open visit with pay later and unpaid money due no longer shows the "also due now" note (that money
+  open visit's own due-now money is not listed (it is being paid at the counter). Since BIL-28 the Billing page's
+  link reads "View all bills to collect at this branch". Since BIL-26 a bill on hold for correction or with stale
+  source shows a neutral "Review required" tag (a side list, so the pinned row fields stay). The Billing department
+  space (DS team) builds its pay-later card and overdue answers from the rows only, so it does not show the tag yet;
+  the side list `reviewRequired` is there for it to use (their file, their change). An open visit with pay later and
+  unpaid money due no longer shows the "also due now" note (that money
   is being paid at the counter). If an invoice's evidence did not reconcile, the list floors its due-now money at
   zero instead of refusing, as the Billing page would. Performance (BIL-24): only bills that can still owe money are
   worked out (approved pay later still to collect, or a completed visit whose invoice has a payment reversal). On a
