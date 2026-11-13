@@ -45,6 +45,7 @@ type HistoryRow = {
     action: string;
     state: string;
     actor_user_id: number;
+    actor_name?: string | null;
     reason_code: string | null;
     reference: string | null;
     credit_amount_sen: number | null;
@@ -737,7 +738,7 @@ watch(
                             supplierReturnHistoryLabels[step.action] ??
                             step.action
                         }}
-                        by staff #{{ step.actor_user_id }} ·
+                        by {{ step.actor_name ?? 'Staff member' }} ·
                         {{ step.created_at }}
                         <span v-if="step.reason_code">
                             ·
