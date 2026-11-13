@@ -19,6 +19,7 @@ return [
         'Registration/Show',
         'Registration/Edit',
         'PaymentMethods/Index',
+        'Pricing/Index',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
