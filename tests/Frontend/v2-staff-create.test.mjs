@@ -11,7 +11,8 @@ test('Staff/Create is registered for V2, one form, one rail, no Classic ui block
     assert.match(read('config/v2-pages.php'), /'Staff\/Create'/);
     assert.match(page, /<V2WorkLayout/);
     assert.match(page, /rail-below="stack-bottom"/);
-    assert.match(page, /form\.post\('\/staff'\)/);
+    assert.match(page, /form\.post\('\/staff', \{/);
+    assert.match(page, /form\.reset\('password', 'password_confirmation'\)/);
     assert.doesNotMatch(
         page,
         /components\/ui\/(button|card|badge|dialog|date-field)/,
@@ -40,4 +41,19 @@ test('Staff/Create sends the same fields as Classic and shows the rule refusal u
 
     assert.match(page, /errorFor\('assignment'\)/);
     assert.match(page, /echoDate\(assignment\.valid_from, 'From'\)/);
+});
+
+test('Staff/Create round 2: plain required lines, errors clear on edit, plain sign-in words, sticky action bar', () => {
+    assert.match(page, /Enter the full name\./);
+    assert.match(page, /Choose a department\./);
+    assert.match(page, /Choose a branch\./);
+    assert.match(page, /Choose at least one role\./);
+    assert.match(page, /field is required/);
+    assert.match(page, /clear\('name'\)/);
+    assert.match(page, /form\.clearErrors\('roles'\)/);
+    assert.match(page, /Google sign-in only/);
+    assert.match(page, /Temporary password/);
+    assert.match(page, /never\s+shown again/);
+    assert.doesNotMatch(page, /OAuth|Bootstrap|pre-provisioning/);
+    assert.match(page, /<V2StickyBar>/);
 });

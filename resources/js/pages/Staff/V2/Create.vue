@@ -5,6 +5,7 @@ import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
+import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import { echoDate } from '@/lib/v2-date-echo';
@@ -64,25 +65,59 @@ const form = useForm<{
     assignments: [blankAssignment(true)],
 });
 
-const toggleRole = (role: string, checked: boolean) =>
-    (form.roles = checked
+const toggleRole = (role: string, checked: boolean) => {
+    form.clearErrors('roles');
+    form.roles = checked
         ? [...form.roles, role]
-        : form.roles.filter((item) => item !== role));
+        : form.roles.filter((item) => item !== role);
+};
 
-const makePrimary = (index: number) =>
-    form.assignments.forEach(
+const makePrimary = (index: number) => {
+    form.clearErrors('assignment' as never);
+
+    return form.assignments.forEach(
         (assignment, assignmentIndex) =>
             (assignment.is_primary = index === assignmentIndex),
     );
+};
 
-const errorFor = (key: string) =>
+const rawError = (key: string) =>
     (form.errors as Record<string, string | undefined>)[key];
 
-const submit = () => form.post('/staff');
+// V2 shows a plain line instead of a raw field name ("The department id field is required."). Real rule refusals (an
+// expiring primary, a role you may not grant, an email already used) keep the server's own words.
+const PLAIN: Array<[RegExp, string]> = [
+    [/^name$/, 'Enter the full name.'],
+    [/^email$/, 'Enter the work email.'],
+    [/^department_id$/, 'Choose a department.'],
+    [/^assignments\.\d+\.branch_id$/, 'Choose a branch.'],
+    [/^roles$/, 'Choose at least one role.'],
+];
+
+const errorFor = (key: string): string | undefined => {
+    const message = rawError(key);
+
+    if (message === undefined) {
+        return undefined;
+    }
+
+    const plain = PLAIN.find(([pattern]) => pattern.test(key));
+
+    return plain && /field is required\.?$/.test(message) ? plain[1] : message;
+};
+
+// A field's error goes as soon as the person edits that field; what is still wrong stays.
+const clear = (...keys: string[]) => form.clearErrors(...(keys as never[]));
+
+// The typed password is never kept after a refusal: the two boxes are emptied and the person types it again.
+const submit = () =>
+    form.post('/staff', {
+        onError: () => form.reset('password', 'password_confirmation'),
+    });
 
 const signInOptions = [
-    { value: 'google_only', label: 'Google-only pre-provisioning' },
-    { value: 'password', label: 'Bootstrap password' },
+    { value: 'google_only', label: 'Google sign-in only' },
+    { value: 'password', label: 'Temporary password' },
 ];
 
 const control =
@@ -117,28 +152,30 @@ const border = (error?: string) =>
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Full name"
-                            :error="form.errors.name"
+                            :error="errorFor('name')"
                         >
                             <input
                                 :id="id"
                                 v-model="form.name"
+                                @input="clear('name')"
                                 autocomplete="off"
                                 :aria-describedby="describedBy"
-                                :class="[control, border(form.errors.name)]"
+                                :class="[control, border(errorFor('name'))]"
                             />
                         </V2Field>
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Work email"
-                            :error="form.errors.email"
+                            :error="errorFor('email')"
                         >
                             <input
                                 :id="id"
                                 v-model="form.email"
+                                @input="clear('email')"
                                 type="email"
                                 autocomplete="off"
                                 :aria-describedby="describedBy"
-                                :class="[control, border(form.errors.email)]"
+                                :class="[control, border(errorFor('email'))]"
                             />
                         </V2Field>
                         <V2OptionGroup
@@ -155,12 +192,11 @@ const border = (error?: string) =>
                                 v-if="
                                     form.credential_strategy === 'google_only'
                                 "
-                                >No OAuth token is stored. First link still
-                                requires a verified matching Google
-                                email.</template
+                                >The person signs in with Google. Their Google
+                                email must match the work email above.</template
                             ><template v-else
-                                >Enter it once. KPOne hashes it immediately and
-                                never returns or audits it.</template
+                                >You set a temporary password once. It is never
+                                shown again.</template
                             >
                         </p>
                         <template
@@ -168,18 +204,19 @@ const border = (error?: string) =>
                         >
                             <V2Field
                                 v-slot="{ id, describedBy }"
-                                label="Bootstrap password"
-                                :error="form.errors.password"
+                                label="Temporary password"
+                                :error="errorFor('password')"
                             >
                                 <input
                                     :id="id"
                                     v-model="form.password"
+                                    @input="clear('password')"
                                     type="password"
                                     autocomplete="new-password"
                                     :aria-describedby="describedBy"
                                     :class="[
                                         control,
-                                        border(form.errors.password),
+                                        border(errorFor('password')),
                                     ]"
                                 />
                             </V2Field>
@@ -203,45 +240,48 @@ const border = (error?: string) =>
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Staff number"
-                            :error="form.errors.staff_number"
+                            :error="errorFor('staff_number')"
                         >
                             <input
                                 :id="id"
                                 v-model="form.staff_number"
+                                @input="clear('staff_number')"
                                 :aria-describedby="describedBy"
                                 :class="[
                                     control,
-                                    border(form.errors.staff_number),
+                                    border(errorFor('staff_number')),
                                 ]"
                             />
                         </V2Field>
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Job title"
-                            :error="form.errors.job_title"
+                            :error="errorFor('job_title')"
                         >
                             <input
                                 :id="id"
                                 v-model="form.job_title"
+                                @input="clear('job_title')"
                                 :aria-describedby="describedBy"
                                 :class="[
                                     control,
-                                    border(form.errors.job_title),
+                                    border(errorFor('job_title')),
                                 ]"
                             />
                         </V2Field>
                         <V2Field
                             v-slot="{ id, describedBy }"
                             label="Department"
-                            :error="form.errors.department_id"
+                            :error="errorFor('department_id')"
                         >
                             <select
                                 :id="id"
                                 v-model="form.department_id"
+                                @change="clear('department_id')"
                                 :aria-describedby="describedBy"
                                 :class="[
                                     control,
-                                    border(form.errors.department_id),
+                                    border(errorFor('department_id')),
                                 ]"
                             >
                                 <option value="" disabled>
@@ -301,6 +341,12 @@ const border = (error?: string) =>
                                 <select
                                     :id="id"
                                     v-model="assignment.branch_id"
+                                    @change="
+                                        clear(
+                                            `assignments.${index}.branch_id`,
+                                            'assignment',
+                                        )
+                                    "
                                     :aria-describedby="describedBy"
                                     :class="[
                                         control,
@@ -327,6 +373,7 @@ const border = (error?: string) =>
                                 <select
                                     :id="id"
                                     v-model="assignment.assignment_type"
+                                    @change="clear('assignment')"
                                     :class="[control, 'border-input']"
                                 >
                                     <option value="permanent">Permanent</option>
@@ -354,6 +401,12 @@ const border = (error?: string) =>
                                 <input
                                     :id="id"
                                     v-model="assignment.valid_from"
+                                    @input="
+                                        clear(
+                                            `assignments.${index}.valid_from`,
+                                            'assignment',
+                                        )
+                                    "
                                     type="date"
                                     :aria-describedby="describedBy"
                                     :class="[
@@ -383,6 +436,12 @@ const border = (error?: string) =>
                                 <input
                                     :id="id"
                                     v-model="assignment.valid_until"
+                                    @input="
+                                        clear(
+                                            `assignments.${index}.valid_until`,
+                                            'assignment',
+                                        )
+                                    "
                                     type="date"
                                     :aria-describedby="describedBy"
                                     :class="[
@@ -400,14 +459,14 @@ const border = (error?: string) =>
                         <p
                             v-if="
                                 errorFor('assignment') ||
-                                form.errors.assignments
+                                rawError('assignments')
                             "
                             role="alert"
                             class="text-sm text-destructive"
                         >
                             {{
                                 errorFor('assignment') ??
-                                form.errors.assignments
+                                rawError('assignments')
                             }}
                         </p>
                         <button
@@ -418,6 +477,22 @@ const border = (error?: string) =>
                             Add assignment
                         </button>
                     </V2FormCard>
+
+                    <Link
+                        href="/staff"
+                        :class="[outline, 'self-start xl:hidden']"
+                        >Cancel</Link
+                    >
+
+                    <V2StickyBar>
+                        <button
+                            type="submit"
+                            :class="filled"
+                            :disabled="form.processing"
+                        >
+                            Create staff
+                        </button>
+                    </V2StickyBar>
                 </template>
 
                 <template #rail>
@@ -448,11 +523,11 @@ const border = (error?: string) =>
                             </label>
                         </fieldset>
                         <p
-                            v-if="form.errors.roles"
+                            v-if="errorFor('roles')"
                             role="alert"
                             class="text-sm text-destructive"
                         >
-                            {{ form.errors.roles }}
+                            {{ errorFor('roles') }}
                         </p>
                     </V2FormCard>
 
@@ -472,7 +547,7 @@ const border = (error?: string) =>
                         </p>
                     </V2FormCard>
 
-                    <div class="flex flex-col gap-2 sm:flex-row xl:flex-col">
+                    <div class="hidden flex-col gap-2 xl:flex">
                         <button
                             type="submit"
                             :class="[filled, 'sm:flex-1']"
