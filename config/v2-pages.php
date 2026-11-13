@@ -28,5 +28,6 @@ return [
         'BusinessDetails/Index',
         'QueueDisplay/Settings',
         'Inventory/Index',
+        'Staff/Index',
     ],
 ];
