@@ -3,6 +3,7 @@ import { usePage } from '@inertiajs/vue3';
 import { useMediaQuery } from '@vueuse/core';
 import { computed } from 'vue';
 import AppShell from '@/components/AppShell.vue';
+import ClockPhotoDialog from '@/components/hr/attendance/ClockPhotoDialog.vue';
 import { Toaster } from '@/components/ui/sonner';
 import V2AppShell from '@/components/workspace/V2AppShell.vue';
 import WorkspaceHeader from '@/components/workspace/WorkspaceHeader.vue';
@@ -59,5 +60,7 @@ const toastPlacement = computed(() =>
             </div>
         </template>
         <Toaster v-bind="toastPlacement" />
+        <!-- HR-PHOTO: one camera flow for every Clock in and Clock out button on these pages. -->
+        <ClockPhotoDialog />
     </AppShell>
 </template>

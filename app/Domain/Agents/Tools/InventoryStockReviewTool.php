@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\DB;
  * `inventory.stock_review`: low-stock, expiring (90 days) and expired counts per SKU at one branch.
  * Uses the same rules as the Stock review page (InventoryStockReviewService); the list totals are
  * proven equal to that page's totals by test. `rows` (AG-6) lists each low-stock SKU and location with its
- * reorder level, and each expiring or expired batch at its location, by public id, for the inventory analyst.
+ * reorder level (and `maxLevel`, null when none is set, STK-30), and each expiring or expired batch at its location, by public id, for the inventory analyst.
  */
 final class InventoryStockReviewTool implements SystemReadableTool
 {
@@ -54,7 +54,8 @@ final class InventoryStockReviewTool implements SystemReadableTool
             $totals[$kind] = $rows->count();
             foreach ($rows as $row) {
                 $detail[$kind === 'low_stock' ? 'lowStock' : $kind][] = $kind === 'low_stock'
-                    ? ['sku' => $row->sku_public_id, 'location' => $row->location_public_id, 'quantity' => $this->quantity($row->quantity), 'reorderLevel' => $this->quantity($row->reorder_level)]
+                    ? ['sku' => $row->sku_public_id, 'location' => $row->location_public_id, 'quantity' => $this->quantity($row->quantity), 'reorderLevel' => $this->quantity($row->reorder_level),
+                        'maxLevel' => $row->max_level === null ? null : $this->quantity($row->max_level)]
                     : ['sku' => $row->sku_public_id, 'batch' => $row->batch_public_id, 'location' => $row->location_public_id, 'quantity' => $this->quantity($row->quantity), 'expiryDate' => (string) $row->expiry_date];
                 $sku = $skus[$row->sku_id] ?? ['sku' => $row->sku_public_id, 'skuCode' => $row->sku_code, 'item' => $row->item, 'stockUnit' => $row->stock_unit,
                     'lowStockLocations' => 0, 'expiringBatches' => 0, 'expiringQuantity' => 0, 'expiredBatches' => 0, 'expiredQuantity' => 0];
@@ -105,7 +106,7 @@ final class InventoryStockReviewTool implements SystemReadableTool
                 ->where('r.organisation_id', $organisationId)->where('l.organisation_id', $organisationId)->where('s.organisation_id', $organisationId)->where('i.organisation_id', $organisationId)
                 ->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('l.type', '<>', InventoryLocation::TYPE_DISPENSARY_RETURNS)->where('s.is_active', true)->where('i.is_active', true)
                 ->where('r.reorder_level', '>', 0)->whereRaw('COALESCE(t.eligible, 0) <= r.reorder_level')
-                ->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, COALESCE(t.eligible, 0) as quantity, l.public_id as location_public_id, r.reorder_level');
+                ->selectRaw('s.id as sku_id, s.public_id as sku_public_id, s.sku_code, i.generic_name as item, s.stock_unit, COALESCE(t.eligible, 0) as quantity, l.public_id as location_public_id, r.reorder_level, r.max_level');
         }
         $query = DB::table('inventory_stock_balances as r')
             ->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')
