@@ -1117,7 +1117,11 @@ const confirmReject = () => {
                                 v-else
                                 class="rounded-[10px] bg-muted p-3 text-sm text-muted-foreground"
                             >
-                                No soft or exact duplicate candidate was found.
+                                {{
+                                    acceptance.errors.duplicate_override
+                                        ? 'The check at accept found a possible match that is not listed here.'
+                                        : 'No soft or exact duplicate candidate was found.'
+                                }}
                             </p>
 
                             <V2OptionGroup
@@ -1175,9 +1179,9 @@ const confirmReject = () => {
                                     class="text-sm text-destructive"
                                 >
                                     A possible duplicate was found when you
-                                    pressed accept. Check the Patient directory,
-                                    tick the box if this is a different person,
-                                    then accept again.
+                                    pressed accept. Review it above, tick the
+                                    box if this is a different person, then
+                                    accept again.
                                 </p>
                             </template>
                         </div>
