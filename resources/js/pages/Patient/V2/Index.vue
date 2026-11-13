@@ -15,7 +15,9 @@ import {
     patientHref,
     usePatientDirectory,
 } from '@/composables/patient/usePatientDirectory';
+import type { PatientResult } from '@/composables/patient/usePatientDirectory';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
+import { formatDate } from '@/lib/presentation';
 
 /**
  * Version 2 Patient directory (shown only in V2; Classic is `pages/Patient/Index.vue`, untouched). Same props, same
@@ -37,6 +39,14 @@ const {
     perPage,
     search,
 } = usePatientDirectory();
+
+const dobSex = (patient: PatientResult) => {
+    const sex = patient.sex ?? '';
+
+    return `${
+        patient.dateOfBirth ? formatDate(patient.dateOfBirth) : 'Not recorded'
+    } · ${sex.charAt(0).toUpperCase()}${sex.slice(1)}`;
+};
 
 const linkButton =
     'inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9';
@@ -156,8 +166,7 @@ const linkButton =
                                     />
                                 </td>
                                 <td data-label="DOB / sex" class="text-sm">
-                                    {{ patient.dateOfBirth ?? 'Not recorded' }}
-                                    · {{ patient.sex }}
+                                    {{ dobSex(patient) }}
                                 </td>
                                 <td data-label="Identifier" class="text-sm">
                                     {{ identifierLabel(patient) }}

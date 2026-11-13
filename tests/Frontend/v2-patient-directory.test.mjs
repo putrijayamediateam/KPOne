@@ -64,6 +64,7 @@ test('the V2 page keeps the Classic props, links and permission rules', () => {
     assert.ok(page.includes(':can-whatsapp="patient.canWhatsapp"'));
     assert.ok(page.includes(':route-key="patient.patientNumber"'));
     assert.ok(page.includes('<MergedFromNote'));
+    assert.ok(page.includes('dobSex(patient)'));
     assert.ok(/maskedPhone\s+\?\?\s+'Not recorded'/.test(page));
 });
 
