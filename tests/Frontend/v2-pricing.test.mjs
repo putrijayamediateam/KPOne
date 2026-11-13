@@ -172,3 +172,14 @@ test('phone header: New charge full width, the other two as a text-link row; car
     assert.match(v2, /max-sm:hidden/);
     assert.match(v2, /max-xl:hidden/);
 });
+
+test('a stale price shows in its own alert, never on the amount field; Reload keeps the typed amount and never publishes (Daniel)', () => {
+    assert.match(v2, /data-test="publish-stale"/);
+    assert.match(v2, /publish\.form\.priceBook && !publish\.form\.stale/);
+    // Reload re-reads the charge from the fresh props and keeps the book and amount; it never posts a price.
+    const reload = publish.slice(publish.indexOf('const reload = () => {'));
+    assert.match(reload, /router\.reload\(/);
+    assert.match(reload, /target\.value = fresh;/);
+    assert.doesNotMatch(reload, /router\.post|submit\(/);
+    assert.doesNotMatch(reload, /form\.amount =|form\.priceBook =/);
+});

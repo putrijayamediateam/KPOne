@@ -23,7 +23,11 @@ export type PublishableCharge = {
     } | null;
 };
 
-export function usePricingPublish(activeBranchId: number | null) {
+export function usePricingPublish(
+    activeBranchId: number | null,
+    findCharge: (publicId: string) => PublishableCharge | undefined = () =>
+        undefined,
+) {
     const target = ref<PublishableCharge | null>(null);
     const form = reactive({
         priceBook: '',
@@ -110,9 +114,25 @@ export function usePricingPublish(activeBranchId: number | null) {
         );
     };
 
+    // After a stale refusal: fetch the newest prices, keep the typed book and amount, show the new current price, and
+    // wait. Nothing is published for the person; they press Publish again.
     const reload = () => {
-        target.value = null;
-        router.reload({ only: ['charges', 'priceBooks'] });
+        const id = target.value?.publicId;
+
+        router.reload({
+            only: ['charges', 'priceBooks'],
+            onSuccess: () => {
+                const fresh = id ? findCharge(id) : undefined;
+
+                if (fresh) {
+                    target.value = fresh;
+                    form.error = '';
+                    form.stale = false;
+                } else {
+                    target.value = null;
+                }
+            },
+        });
     };
 
     return { target, form, open, begin, submit, reload };

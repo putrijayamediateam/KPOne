@@ -179,7 +179,9 @@ const onMenu = (charge: ChargeRow, id: string) => {
 };
 
 // --- publish price
-const publish = usePricingPublish(activeBranchId);
+const publish = usePricingPublish(activeBranchId, (publicId) =>
+    props.charges.find((charge) => charge.publicId === publicId),
+);
 const activeBooks = computed(() =>
     props.priceBooks.filter((book) => book.isActive),
 );
@@ -549,12 +551,30 @@ const submitCharge = () => {
                     {{ bookScheduled }}
                 </p>
             </div>
+            <div
+                v-if="publish.form.stale"
+                role="alert"
+                class="flex flex-col gap-2 rounded-[10px] border border-destructive px-3 py-2 text-sm"
+                data-test="publish-stale"
+            >
+                <p class="text-destructive">{{ publish.form.error }}</p>
+                <button
+                    type="button"
+                    :class="outlineButton"
+                    data-action="reload-prices"
+                    @click="publish.reload()"
+                >
+                    Reload prices
+                </button>
+            </div>
             <V2Field
                 v-slot="{ id }"
                 label="Price book"
                 required
                 :error="
-                    publish.form.error && !publish.form.priceBook
+                    publish.form.error &&
+                    !publish.form.stale &&
+                    !publish.form.priceBook
                         ? publish.form.error
                         : undefined
                 "
@@ -570,7 +590,11 @@ const submitCharge = () => {
                 v-slot="{ id, describedBy, invalid }"
                 label="Amount (RM)"
                 required
-                :error="publish.form.priceBook ? publish.form.error : undefined"
+                :error="
+                    publish.form.priceBook && !publish.form.stale
+                        ? publish.form.error
+                        : undefined
+                "
             >
                 <input
                     :id="id"
@@ -585,15 +609,6 @@ const submitCharge = () => {
                     @keydown.enter.prevent="publish.submit()"
                 />
             </V2Field>
-            <button
-                v-if="publish.form.stale"
-                type="button"
-                :class="outlineButton"
-                data-action="reload-prices"
-                @click="publish.reload()"
-            >
-                Reload prices
-            </button>
         </V2Dialog>
 
         <V2Dialog
