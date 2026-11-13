@@ -3,6 +3,7 @@ import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Field from '@/components/v2/V2Field.vue';
+import { formatDate } from '@/lib/presentation';
 import type { StaffAssignment, StaffBranch } from '@/types';
 
 /**
@@ -45,6 +46,13 @@ const errorOf = (key: string) =>
 
 const endError = (key: string) =>
     (endForm.errors as Record<string, string | undefined>)[key];
+
+// The date decides when branch access starts and ends, and the box shows the browser's own format (11/13/2026 can be
+// misread as 13/11): say the chosen date in plain words under each field.
+const echo = (value: string, lead: string, tail = '') =>
+    /^\d{4}-\d{2}-\d{2}$/.test(value)
+        ? `${lead} ${formatDate(value)}${tail}`
+        : undefined;
 
 const close = () => emit('update:open', false);
 
@@ -140,6 +148,7 @@ const input =
         <V2Field
             v-slot="{ id, describedBy }"
             label="Valid from"
+            :hint="echo(form.valid_from, 'From')"
             :error="form.errors.valid_from"
         >
             <input
@@ -158,6 +167,10 @@ const input =
         <V2Field
             v-slot="{ id, describedBy }"
             label="Valid through (inclusive)"
+            :hint="
+                echo(form.valid_until, 'Through', ', inclusive') ??
+                'No end date'
+            "
             :error="form.errors.valid_until"
         >
             <input
@@ -200,6 +213,7 @@ const input =
             <V2Field
                 v-slot="{ id, describedBy }"
                 label="Access valid through (inclusive)"
+                :hint="echo(endForm.valid_until, 'Through', ', inclusive')"
                 :error="endForm.errors.valid_until"
             >
                 <input

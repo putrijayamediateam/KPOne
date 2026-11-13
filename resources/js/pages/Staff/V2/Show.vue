@@ -9,8 +9,9 @@ import V2Chip from '@/components/v2/V2Chip.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
 import V2KeyValueList from '@/components/v2/V2KeyValueList.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
-import { formatAuditEventLabel, formatRoleLabel } from '@/lib/displayLabels';
+import { formatRoleLabel } from '@/lib/displayLabels';
 import { formatDate, formatDateTime } from '@/lib/presentation';
+import { describeStaffEvent } from '@/lib/v2-staff-history';
 import type { StaffAssignment, StaffDetail, StaffOptions } from '@/types';
 
 defineOptions({
@@ -52,6 +53,23 @@ const signInLabel = (configuration: StaffDetail['signInConfiguration']) =>
         google_awaiting_first_sign_in: 'Google · Awaiting first sign-in',
         google_linked: 'Google · Linked',
     })[configuration];
+
+// In words: "Ended 12 Nov 2026", "Starts 1 Jan 2027", "From 1 Jan 2026, no end date".
+const when = (assignment: StaffAssignment) => {
+    if (assignment.state === 'ended') {
+        return `Ended ${date(assignment.validUntil)} (from ${date(assignment.validFrom)})`;
+    }
+
+    if (assignment.state === 'future') {
+        return assignment.validUntil
+            ? `Starts ${date(assignment.validFrom)}, through ${date(assignment.validUntil)} (inclusive)`
+            : `Starts ${date(assignment.validFrom)}, no end date`;
+    }
+
+    return assignment.validUntil
+        ? `${date(assignment.validFrom)} to ${date(assignment.validUntil)} (inclusive)`
+        : `From ${date(assignment.validFrom)}, no end date`;
+};
 
 const stateTone = {
     current: 'success',
@@ -116,8 +134,8 @@ const button =
                     :class="[
                         button,
                         staff.isActive
-                            ? 'border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                            : 'border-transparent bg-primary text-primary-foreground hover:bg-primary/90',
+                            ? 'border-destructive text-destructive hover:bg-destructive/10'
+                            : 'border-primary text-primary hover:bg-primary/10',
                     ]"
                     @click="statusOpen = true"
                 >
@@ -198,14 +216,7 @@ const button =
                                     class="mt-1 text-[13px] text-muted-foreground"
                                 >
                                     {{ label(assignment.assignmentType) }} ·
-                                    <template v-if="assignment.validUntil"
-                                        >{{ date(assignment.validFrom) }} to
-                                        {{ date(assignment.validUntil) }}
-                                        (inclusive)</template
-                                    ><template v-else
-                                        >From {{ date(assignment.validFrom) }},
-                                        no end date</template
-                                    >
+                                    {{ when(assignment) }}
                                 </p>
                             </div>
                             <div
@@ -290,9 +301,8 @@ const button =
                     <p
                         class="rounded-[10px] bg-muted p-3 text-[13px] text-muted-foreground"
                     >
-                        Actual access is evaluated server-side from identity,
-                        role permissions, organisation scope and effective
-                        branch assignments.
+                        What this person can open depends on their roles and the
+                        branches they are assigned to.
                     </p>
                 </V2FormCard>
 
@@ -309,14 +319,14 @@ const button =
                         >
                             <p class="text-sm font-medium">
                                 {{
-                                    formatAuditEventLabel(
+                                    describeStaffEvent(
                                         entry.event,
                                         entry.roleNames,
+                                        entry.actor,
                                     )
                                 }}
                             </p>
                             <p class="text-[13px] text-muted-foreground">
-                                {{ entry.actor ?? 'System' }} ·
                                 <span class="whitespace-nowrap">{{
                                     date(entry.occurredAt)
                                 }}</span>

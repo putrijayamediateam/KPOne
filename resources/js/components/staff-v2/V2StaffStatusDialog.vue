@@ -13,11 +13,15 @@ const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 
 const form = useForm({ is_active: !props.isActive });
 
-const confirm = () =>
-    form.patch(`/staff/${props.staffId}/status`, {
+// The form is made once, but the page's state changes after each save: always send the opposite of what the page shows now.
+const confirm = () => {
+    form.is_active = !props.isActive;
+
+    return form.patch(`/staff/${props.staffId}/status`, {
         preserveScroll: true,
         onSuccess: () => emit('update:open', false),
     });
+};
 </script>
 
 <template>
