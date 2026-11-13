@@ -150,6 +150,22 @@ const confirm = () => {
     tried.value = false;
     submit();
 };
+/**
+ * Confirm receipt is switched off while a line does not add up (V2Dialog confirmDisabled): the reason line names the
+ * first such line, then what fixes it. Enter in a count box sends nothing (the sheet has no form).
+ */
+const disabledReason = computed(() => {
+    const first = errors.value.findIndex((error) => error !== null);
+
+    if (first < 0) {
+        return undefined;
+    }
+
+    const name = props.row.lines[first]?.item ?? skuFor(first);
+    const more = errors.value.filter((error) => error !== null).length - 1;
+
+    return `${name} does not add up to what was dispatched${more > 0 ? `, and ${more} more line${more === 1 ? '' : 's'}` : ''}. Finish the counts to continue.`;
+});
 const requestClose = (open: boolean) => {
     if (!open) {
         reset();
@@ -168,6 +184,8 @@ const requestClose = (open: boolean) => {
         confirm-label="Confirm receipt"
         cancel-label="Cancel"
         :busy="busy"
+        :confirm-disabled="!valid"
+        :confirm-disabled-reason="disabledReason"
         @update:open="requestClose"
         @confirm="confirm"
     >
@@ -243,20 +261,16 @@ const requestClose = (open: boolean) => {
                 {{ errors[index] }}
             </p>
         </fieldset>
+        <!-- While a line does not add up, the reason line by Confirm receipt says so once (Daniel); this box speaks only after. -->
         <div
+            v-if="valid"
             class="rounded-[14px] border bg-muted/40 px-4 py-3 text-sm"
-            :role="!valid && tried ? 'alert' : 'status'"
-            :class="{
-                'border-warning/60 font-medium text-warning-strong':
-                    !valid && tried,
-            }"
+            role="status"
         >
             {{
-                !valid
-                    ? 'Confirm receipt sends nothing until every line adds up to what was dispatched. Finish the counts above.'
-                    : differences === 0
-                      ? `Everything arrived as dispatched. Confirming adds it to ${row.destination}.`
-                      : `Confirming adds only the accepted quantities to ${row.destination}. ${differences} difference${differences === 1 ? '' : 's'} will stay open until someone who did not receive this transfer resolves ${differences === 1 ? 'it' : 'them'}.`
+                differences === 0
+                    ? `Everything arrived as dispatched. Confirming adds it to ${row.destination}.`
+                    : `Confirming adds only the accepted quantities to ${row.destination}. ${differences} difference${differences === 1 ? '' : 's'} will stay open until someone who did not receive this transfer resolves ${differences === 1 ? 'it' : 'them'}.`
             }}
         </div>
     </V2Dialog>
