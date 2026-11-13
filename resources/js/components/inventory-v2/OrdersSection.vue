@@ -81,7 +81,6 @@ watch(operationError, (value) => {
 type Sheet = 'supplier' | 'purchase-order' | 'edit-draft' | 'lines' | null;
 const sheet = ref<Sheet>(null);
 const sheetRow = ref<DocumentRow | null>(null);
-const discardOpen = ref(false);
 
 const dirty = computed(() => {
     if (sheet.value === 'supplier') {
@@ -135,21 +134,15 @@ const openSheet = (
 const closeSheet = () => {
     sheet.value = null;
     sheetRow.value = null;
-    discardOpen.value = false;
 };
-/** Esc, the X, the backdrop and Cancel all come here: typed values are never lost by one stray tap. */
+/**
+ * Esc, the X, the backdrop and Cancel: a sheet with typed values first asks "Discard your changes?" (V2Dialog `dirty`),
+ * so this only runs once the person chose to discard, or when nothing was typed.
+ */
 const requestClose = (open: boolean) => {
-    if (open) {
-        return;
+    if (!open) {
+        discard();
     }
-
-    if (dirty.value) {
-        discardOpen.value = true;
-
-        return;
-    }
-
-    closeSheet();
 };
 const discard = () => {
     if (sheet.value === 'supplier') {
@@ -612,6 +605,7 @@ const shortCloseRow = computed(() => shortClose.row);
     <!-- Add supplier (short form). -->
     <V2Dialog
         :open="sheet === 'supplier'"
+        :dirty="dirty"
         title="Add supplier"
         confirm-label="Add supplier"
         cancel-label="Cancel"
@@ -653,6 +647,8 @@ const shortCloseRow = computed(() => shortClose.row);
     <!-- New purchase order (long form). -->
     <V2Dialog
         :open="sheet === 'purchase-order'"
+        size="tall"
+        :dirty="dirty"
         title="New purchase order"
         description="Saved as a draft. Submit it for approval when it is ready."
         confirm-label="Save draft"
@@ -753,6 +749,8 @@ const shortCloseRow = computed(() => shortClose.row);
     <!-- Edit draft. -->
     <V2Dialog
         :open="sheet === 'edit-draft' && !!sheetRow"
+        size="tall"
+        :dirty="dirty"
         :title="`Edit draft ${sheetRow?.number ?? ''}`"
         confirm-label="Save changes"
         cancel-label="Cancel"
@@ -788,7 +786,8 @@ const shortCloseRow = computed(() => shortClose.row);
                 v-for="line in sheetRow.lines"
                 :key="line.publicId"
                 class="grid gap-1.5 text-sm font-medium"
-                >{{ line.sku }}: quantity (stock units)
+                >{{ line.item ? `${line.item} (${line.sku})` : line.sku }}:
+                quantity (stock units)
                 <input
                     v-model="
                         purchaseOrderEdits[sheetRow.publicId].quantities[
@@ -823,7 +822,9 @@ const shortCloseRow = computed(() => shortClose.row);
                 :key="line.publicId"
                 class="px-3 py-2.5"
             >
-                <p class="font-medium break-words">{{ line.sku }}</p>
+                <p class="font-medium break-words">
+                    {{ line.item ? `${line.item} (${line.sku})` : line.sku }}
+                </p>
                 <p class="text-sm text-muted-foreground">
                     {{ lineProgress(sheetRow, line) }}
                 </p>
@@ -892,16 +893,5 @@ const shortCloseRow = computed(() => shortClose.row);
         :nonce="receiptMemoryContext.sessionNonce"
         :open="true"
         @close="receiveRow = null"
-    />
-
-    <!-- "Discard what you typed?" before a sheet with values closes. -->
-    <V2Dialog
-        v-model:open="discardOpen"
-        title="Discard what you typed?"
-        description="The values in this form will be lost."
-        confirm-label="Discard"
-        cancel-label="Keep editing"
-        tone="danger"
-        @confirm="discard"
     />
 </template>

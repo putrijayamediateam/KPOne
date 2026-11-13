@@ -175,26 +175,17 @@ watch(
 
 // ---- V2 only -------------------------------------------------------------------------------------------------------
 const summary = ref<HTMLElement | null>(null);
-const discardOpen = ref(false);
+// A receipt with typed values asks "Discard your changes?" first (V2Dialog `dirty`); this runs after Discard.
 const requestClose = (open: boolean) => {
-    if (open) {
-        return;
+    if (!open) {
+        form.reset();
+        form.clearErrors();
+        emit('close');
     }
-
-    if (form.isDirty) {
-        discardOpen.value = true;
-
-        return;
-    }
-
-    emit('close');
 };
-const discard = () => {
-    discardOpen.value = false;
-    form.reset();
-    form.clearErrors();
-    emit('close');
-};
+/** "Paracetamol 500 mg tablet (PV20-01)": the item first, its code after; the code alone if the name is missing. */
+const lineName = (line: InventoryDocument['lines'][number]) =>
+    line.item ? `${line.item} (${line.sku})` : line.sku;
 const outcomes = [
     { value: 'accepted', label: 'Accepted' },
     { value: 'quarantined', label: 'Quarantined' },
@@ -232,7 +223,7 @@ const stockSummary = computed(() =>
 
         if (accepted > 0) {
             parts.push(
-                `adds ${accepted} ${plural(accepted, unit)} of ${source?.sku} to ${props.row.destination}`,
+                `adds ${accepted} ${plural(accepted, unit)} of ${source?.item ?? source?.sku} to ${props.row.destination}`,
             );
         }
 
@@ -259,6 +250,8 @@ const needsApproval = computed(() =>
 <template>
     <V2Dialog
         :open="open"
+        size="tall"
+        :dirty="form.isDirty"
         :title="`Receive ${row.number}`"
         :description="`${row.supplier} · to ${row.destination}`"
         confirm-label="Post receipt"
@@ -285,6 +278,9 @@ const needsApproval = computed(() =>
         <ScanInput
             context="receiving"
             :refocus-key="`v2-receiving-${row.publicId}`"
+            lookup-variant="outline"
+            help="Scanning only finds the line on this order. It doesn't fill in or save anything."
+            hide-unavailable-camera
             :accept="onOrder"
             @found="highlight"
         />
@@ -309,7 +305,7 @@ const needsApproval = computed(() =>
             }"
         >
             <legend class="max-w-full px-1 text-sm font-medium wrap-anywhere">
-                {{ row.lines[index].sku }}
+                {{ lineName(row.lines[index]) }}
                 <span
                     v-if="scannedLine === line.line_public_id"
                     class="ml-1 rounded-full bg-muted px-2 py-0.5 text-xs whitespace-nowrap"
@@ -479,14 +475,4 @@ const needsApproval = computed(() =>
             Request exception approval
         </button>
     </V2Dialog>
-
-    <V2Dialog
-        v-model:open="discardOpen"
-        title="Discard what you typed?"
-        description="The lots and quantities in this receipt will be lost."
-        confirm-label="Discard"
-        cancel-label="Keep editing"
-        tone="danger"
-        @confirm="discard"
-    />
 </template>

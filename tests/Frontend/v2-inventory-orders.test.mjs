@@ -177,9 +177,12 @@ test("2a: row menus, confirms, discard guard and cost wording follow Daniel's pa
         reviews,
         /Needs a different CA Supervisor, Finance Officer or Director/,
     );
-    // Closing a sheet with typed values asks first.
-    assert.match(section, /title="Discard what you typed\?"/);
-    assert.match(receive, /title="Discard what you typed\?"/);
+    // Closing a sheet with typed values asks first (the shared V2Dialog guard), and the long forms are tall sheets.
+    assert.equal((section.match(/:dirty="dirty"/g) ?? []).length, 3);
+    assert.match(receive, /:dirty="form\.isDirty"/);
+    assert.equal((section.match(/size="tall"/g) ?? []).length, 2);
+    assert.match(receive, /size="tall"/);
+    assert.ok(!/Discard what you typed/.test(section + receive));
     assert.match(section, /@update:open="requestClose"/);
     // The estimated cost stays an input with its Classic meaning; no cost is displayed.
     assert.match(
