@@ -43,7 +43,7 @@ import { useLeaveGuard } from '@/composables/useLeaveGuard';
  * footer (read out politely, and named by the button's `aria-describedby`). Say what is missing, then what fixes it:
  * "Choose a supplier to continue.", "Enter the quantity received to continue.". Use it for a state the person can see and
  * fix (a missing choice), not for a refusal that only the server can decide; those stay as an error after pressing. While
- * `busy` the button is disabled with no reason line.
+ * `busy` the button is natively disabled with no reason line. The reason line is always in the DOM (empty when not needed) so its text is announced when it appears; with no reason the button is still aria-disabled, and the dev console warns (a silently disabled button is a bug).
  */
 const props = withDefaults(
     defineProps<{
@@ -55,7 +55,7 @@ const props = withDefaults(
         tone?: 'default' | 'danger';
         reasonLabel?: string;
         busy?: boolean;
-        /** Switches the filled action off (a real disabled button) and says why in `confirmDisabledReason`. */
+        /** Switches the filled action off (an aria-disabled button that stays focusable, so a keyboard user reaches it and hears the reason; pressing it does nothing) and says why in `confirmDisabledReason`. */
         confirmDisabled?: boolean;
         confirmDisabledReason?: string;
         /** Only the confirm button: no Cancel (for a dialog that now only says something, with a single Close). */
@@ -180,7 +180,26 @@ const discard = () => {
     }
 };
 
+if (import.meta.env.DEV) {
+    watch(
+        () => [props.confirmDisabled, props.confirmDisabledReason],
+        ([disabled, why]) => {
+            if (disabled && !why) {
+                console.warn(
+                    'V2Dialog: confirmDisabled needs a confirmDisabledReason, so no one meets a silently disabled button.',
+                );
+            }
+        },
+        { immediate: true },
+    );
+}
+
 const submit = () => {
+    // aria-disabled keeps the button reachable by keyboard, so pressing it must do nothing.
+    if (props.confirmDisabled) {
+        return;
+    }
+
     if (props.reasonLabel && reason.value.trim() === '') {
         tried.value = true;
         nextTick(() => box.value?.focus());
@@ -283,13 +302,20 @@ const submit = () => {
                         </p>
                     </div>
                 </div>
+                <!-- Always in the DOM, so a screen reader announces the text when it appears. -->
                 <p
-                    v-if="confirmDisabled && confirmDisabledReason"
                     id="v2-dialog-confirm-reason"
                     role="status"
-                    class="border-t bg-card px-5 pt-3 pb-1 text-sm text-muted-foreground"
+                    aria-live="polite"
+                    :class="
+                        confirmDisabled && confirmDisabledReason
+                            ? 'border-t bg-card px-5 pt-3 pb-1 text-sm text-muted-foreground'
+                            : 'h-0 overflow-hidden'
+                    "
                 >
-                    {{ confirmDisabledReason }}
+                    <template v-if="confirmDisabled && confirmDisabledReason">{{
+                        confirmDisabledReason
+                    }}</template>
                 </p>
                 <div
                     class="flex flex-col-reverse gap-2 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
@@ -308,23 +334,27 @@ const submit = () => {
                     </DialogClose>
                     <button
                         type="button"
-                        :disabled="busy || confirmDisabled"
+                        :disabled="busy"
                         :aria-describedby="
                             confirmDisabled && confirmDisabledReason
                                 ? 'v2-dialog-confirm-reason'
                                 : undefined
                         "
                         :aria-disabled="
-                            reasonLabel && reason.trim() === ''
+                            confirmDisabled ||
+                            (reasonLabel && reason.trim() === '')
                                 ? 'true'
                                 : undefined
                         "
                         class="inline-flex h-11 items-center justify-center rounded-[10px] px-4 text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 lg:h-9"
-                        :class="
+                        :class="[
+                            confirmDisabled
+                                ? 'cursor-not-allowed opacity-50'
+                                : '',
                             tone === 'danger'
                                 ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                                : 'bg-primary text-primary-foreground hover:bg-primary/90'
-                        "
+                                : 'bg-primary text-primary-foreground hover:bg-primary/90',
+                        ]"
                         @click="submit"
                     >
                         {{ confirmLabel }}

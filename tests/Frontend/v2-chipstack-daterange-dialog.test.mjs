@@ -225,7 +225,14 @@ test('V2Dialog: confirmDisabled switches the filled action off and says why abov
     const d = read('resources/js/components/v2/V2Dialog.vue');
     assert.match(d, /confirmDisabled\?: boolean;/);
     assert.match(d, /confirmDisabledReason\?: string;/);
-    assert.match(d, /:disabled="busy \|\| confirmDisabled"/);
+    // focusable (aria-disabled, not native disabled) and pressing does nothing
+    assert.match(d, /:disabled="busy"/);
+    assert.match(d, /confirmDisabled \|\|/);
+    assert.match(d, /if \(props\.confirmDisabled\) \{\s*return;/);
+    // the status region is always in the DOM; no reason gives a dev warning
+    assert.match(d, /aria-live="polite"/);
+    assert.doesNotMatch(d, /<p\s+v-if="confirmDisabled/);
+    assert.match(d, /confirmDisabled needs a confirmDisabledReason/);
     assert.match(d, /id="v2-dialog-confirm-reason"/);
     assert.match(d, /role="status"/);
     assert.match(d, /'v2-dialog-confirm-reason'/);
