@@ -798,6 +798,23 @@ class InventoryOperationsTest extends ClinicalTestCase
         $this->assertSame(['inventory_purchase_order_lines' => 1, 'inventory_stock_request_lines' => 1, 'inventory_stocktake_lines' => 1], $lineQueries);
     }
 
+    public function test_low_stock_and_expiring_rows_name_the_item_and_its_stock_unit(): void
+    {
+        // V2 page 2c (Daniel): every quantity on the alert lists carries its unit, and each row names the item.
+        $supervisor = $this->actor('ca_supervisor');
+        $this->selectBranch($supervisor);
+        $fixture = $this->inventoryFixture($supervisor, 'P2C-ALERT');
+        app(InventoryMovementService::class)->openingBalance($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id, 'sku_public_id' => $fixture['sku']->public_id, 'batch_public_id' => $fixture['batch']->public_id, 'quantity' => '2.000']);
+        app(InventoryControlService::class)->setReorderLevel($supervisor, ['expected_branch_id' => $this->branch->id, 'location_public_id' => $fixture['location']->public_id, 'sku_public_id' => $fixture['sku']->public_id, 'reorder_level' => '5.000', 'expected_lock_version' => null, 'idempotency_key' => (string) Str::uuid()]);
+        $fixture['batch']->forceFill(['expiry_date' => now()->setTimezone($this->branch->timezone)->addDays(30)->toDateString()])->save();
+
+        $this->get(route('inventory.index'))->assertOk()->assertInertia(fn ($page) => $page
+            ->where('operations.lowStock.0.item', 'Synthetic P2C-ALERT Item')
+            ->where('operations.lowStock.0.stockUnit', 'unit')
+            ->where('operations.expiringBatches.0.item', 'Synthetic P2C-ALERT Item')
+            ->where('operations.expiringBatches.0.stockUnit', 'unit'));
+    }
+
     public function test_adjustment_and_reorder_visibility_preserve_nonnegative_and_expiry_rules(): void
     {
         $supervisor = $this->actor('ca_supervisor');
