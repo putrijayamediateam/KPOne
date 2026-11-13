@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, router, usePage } from '@inertiajs/vue3';
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
+import DiscardPrompt from '@/components/catalogue-v2/DiscardPrompt.vue';
 import InputError from '@/components/InputError.vue';
 import MedicineForm from '@/components/medicine-v2/MedicineForm.vue';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -24,7 +25,6 @@ import type {
 } from '@/composables/medicine/useMedicineForm';
 import { useMedicineRowActions } from '@/composables/medicine/useMedicineRowActions';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
-import DiscardPrompt from '@/components/catalogue-v2/DiscardPrompt.vue';
 
 /**
  * Version 2 Medicine Catalogue (shown only in V2; Classic is `pages/Medicine/Index.vue`, untouched). Same props, same
