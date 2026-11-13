@@ -400,8 +400,15 @@ const totals = computed(() => {
                                 >
                                     {{ payment.receiptNumber }} ·
                                     {{ payment.receivedAt }}
+                                    <span class="v2:hidden"
+                                        >·
+                                        <span class="capitalize">{{
+                                            payment.status
+                                        }}</span></span
+                                    >
                                 </div>
-                                <div class="mt-1">
+                                <!-- BIL-25: the badge shows only in Version 2; Classic keeps the plain status above. -->
+                                <div class="mt-1 hidden v2:block">
                                     <StatusBadge
                                         :status="payment.status"
                                         :tone="receiptTone(payment.status)"

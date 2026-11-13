@@ -1039,10 +1039,16 @@ const reverse = (receipt: Receipt) =>
                                 }}</span>
                             </div>
                             <div class="mt-1 text-[11px] text-muted-foreground">
-                                {{ receipt.number }} ·
-                                {{ receipt.receivedAt }}
+                                {{ receipt.number }} · {{ receipt.receivedAt }}
+                                <span class="v2:hidden"
+                                    >·
+                                    <span class="capitalize">{{
+                                        receipt.status
+                                    }}</span></span
+                                >
                             </div>
-                            <div class="mt-1">
+                            <!-- BIL-25: the badge shows only in Version 2; Classic keeps the plain status above. -->
+                            <div class="mt-1 hidden v2:block">
                                 <StatusBadge
                                     :status="receipt.status"
                                     :tone="receiptTone(receipt.status)"
@@ -1050,7 +1056,7 @@ const reverse = (receipt: Receipt) =>
                             </div>
                             <p
                                 v-if="receipt.refundedSen"
-                                class="mt-1 text-xs text-muted-foreground tabular-nums"
+                                class="text-xs text-muted-foreground tabular-nums v2:mt-1"
                                 data-testid="payment-refunded"
                             >
                                 Refunded {{ myr(receipt.refundedSen) }} ·
@@ -1061,7 +1067,7 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="mt-1 text-[11px] break-words text-muted-foreground"
+                                class="text-[11px] break-words text-muted-foreground v2:mt-1"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>

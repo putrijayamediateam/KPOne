@@ -14,42 +14,46 @@ const readOnlyList = workspace
     .split('v-if="!manage && billing.payments.length"')[1]
     .split('</ul>')[0];
 
-test('both read-only receipt lists show a status badge, not plain text', () => {
+test('Version 2 shows a status badge; Classic keeps the plain status text (owner decision 2026-11-13)', () => {
     for (const [name, row, field] of [
         ['Invoice', invoiceRow, 'payment'],
         ['Billing', readOnlyList, 'receipt'],
     ]) {
-        assert.ok(row.includes('<StatusBadge'), `${name} uses StatusBadge`);
+        const flat = row.replace(/\s+/g, ' ');
+        assert.ok(
+            flat.includes(
+                `{{ ${field}.receivedAt }} <span class="v2:hidden" >· <span class="capitalize">{{ ${field}.status }}</span></span >`,
+            ),
+            `${name}: Classic keeps "time · status" as plain text, hidden in Version 2`,
+        );
         assert.match(
             row,
             new RegExp(
-                `:status="${field}\\.status"\\s+:tone="receiptTone\\(${field}\\.status\\)"`,
+                `<div class="mt-1 hidden v2:block">\\s*<StatusBadge\\s+:status="${field}\\.status"\\s+:tone="receiptTone\\(${field}\\.status\\)"`,
             ),
-            `${name} passes the receipt tone`,
-        );
-        assert.doesNotMatch(
-            row,
-            /class="capitalize"/,
-            `${name} drops the plain text`,
-        );
-        assert.doesNotMatch(
-            row,
-            /receivedAt \}\} ·/,
-            `${name} drops the trailing separator`,
+            `${name}: the badge row shows only in Version 2`,
         );
     }
 });
 
-test('the badge sits on its own row before the refunded line', () => {
+test('the badge sits on its own row before the refunded line, with Version 2-only spacing', () => {
     for (const row of [invoiceRow, readOnlyList]) {
         const badge = row.indexOf('<StatusBadge');
         assert.ok(badge > row.indexOf('receivedAt }}'));
         assert.ok(badge < row.indexOf('payment-refunded'));
-        assert.ok(
-            row.lastIndexOf('<div class="mt-1">', badge) >
-                row.indexOf('receivedAt }}'),
-        );
     }
+
+    // Classic spacing of the read-only Billing list is unchanged; the gap under the badge is Version 2 only.
+    assert.ok(
+        readOnlyList.includes(
+            'class="text-xs text-muted-foreground tabular-nums v2:mt-1"',
+        ),
+    );
+    assert.ok(
+        readOnlyList.includes(
+            'class="text-[11px] break-words text-muted-foreground v2:mt-1"',
+        ),
+    );
 });
 
 test('a reversed receipt stays grey on every Billing receipt badge', () => {
