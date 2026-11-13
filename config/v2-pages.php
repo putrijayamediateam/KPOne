@@ -34,6 +34,8 @@ return [
         'Inventory/Index',
         'InventoryServicesSettings/Suppliers',
         'Staff/Index',
+        'Pricing/PriceCheck',
+        'Pricing/PriceHistory',
         'Staff/Show',
     ],
 ];
