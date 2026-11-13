@@ -154,11 +154,33 @@ const checkCount = computed(() => {
 });
 const rulesNotSet = computed(() => planner.value?.compliance?.setUp === false);
 const rulesRotation = computed(() => !!planner.value?.compliance);
-const checkTitle = computed(() =>
-    checkCount.value === 1
-        ? '1 thing to check before approval'
-        : `${checkCount.value} things to check before approval`,
+// Only a draft or a week waiting for approval has an approval ahead. On any other week the same live checks are
+// notes, worked out against today's rules, so the words never claim something is waiting (Daniel, WeekGrid review 2).
+const awaitingApproval = computed(
+    () =>
+        shown.value?.status === 'draft' || shown.value?.status === 'submitted',
 );
+const checksLabel = computed(() =>
+    awaitingApproval.value ? 'Check before approval' : 'Notes on this week',
+);
+const checkTitle = computed(() => {
+    const n = checkCount.value;
+
+    if (awaitingApproval.value) {
+        return n === 1
+            ? '1 thing to check before approval'
+            : `${n} things to check before approval`;
+    }
+
+    const week =
+        shown.value?.status === 'approved'
+            ? 'this approved week'
+            : 'this version';
+
+    return n === 1
+        ? `1 thing to note on ${week}`
+        : `${n} things to note on ${week}`;
+});
 
 // The rail's fade shows only while there is more to scroll to (Daniel, round 2).
 const railBox = ref<HTMLElement | null>(null);
@@ -230,7 +252,7 @@ const inputClass =
             title="Roster"
             description="Your shifts, and the week plan for each branch."
             rail-from="2xl"
-            rail-label="Check before approval"
+            :rail-label="checksLabel"
         >
             <template #actions>
                 <div
@@ -324,7 +346,7 @@ const inputClass =
                     :style="railMask"
                     tabindex="0"
                     role="region"
-                    aria-label="Check before approval"
+                    :aria-label="checksLabel"
                     data-test="roster-warnings"
                     @scroll.passive="updateRail"
                 >
@@ -333,6 +355,7 @@ const inputClass =
                         :warnings="checks"
                         :compliance="planner.compliance"
                         :branch="planner.branch.name"
+                        :awaiting-approval="awaitingApproval"
                     />
                 </div>
             </template>
@@ -569,7 +592,9 @@ const inputClass =
                             :title="
                                 checkCount > 0
                                     ? checkTitle
-                                    : 'Checks before approval'
+                                    : awaitingApproval
+                                      ? 'Checks before approval'
+                                      : 'Notes on this week'
                             "
                             :tone="checkCount > 0 ? 'warning' : 'neutral'"
                         >
@@ -577,6 +602,7 @@ const inputClass =
                                 :warnings="checks"
                                 :compliance="planner.compliance"
                                 :branch="planner.branch.name"
+                                :awaiting-approval="awaitingApproval"
                             />
                         </V2DisclosureBar>
 

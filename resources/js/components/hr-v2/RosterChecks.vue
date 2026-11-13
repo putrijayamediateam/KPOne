@@ -14,6 +14,8 @@ const props = defineProps<{
     warnings: string[];
     compliance: Compliance | null;
     branch: string;
+    /** False on an approved or replaced week: nothing waits for approval, so the words are notes, never checks. */
+    awaitingApproval?: boolean;
 }>();
 
 const grouped = computed(() => groupChecks(props.warnings));
@@ -77,7 +79,11 @@ const textLink =
             aria-labelledby="checks-other"
             class="flex flex-col gap-2"
         >
-            <h3 id="checks-other" class="font-semibold">Other checks</h3>
+            <h3 id="checks-other" class="font-semibold">
+                {{
+                    awaitingApproval === false ? 'Other notes' : 'Other checks'
+                }}
+            </h3>
             <ul class="flex flex-col gap-1">
                 <li v-for="line in grouped.other" :key="line">{{ line }}</li>
             </ul>

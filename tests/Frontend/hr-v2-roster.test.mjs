@@ -113,7 +113,7 @@ test('V2 blocks, crumb and the rail from 1536 px with a disclosure bar below it'
     assert.match(script, /transparent, black 2rem/);
     assert.match(
         template,
-        /tabindex="0"\s+role="region"\s+aria-label="Check before approval"/,
+        /tabindex="0"\s+role="region"\s+:aria-label="checksLabel"/,
     );
 });
 
@@ -216,4 +216,32 @@ test('Session is an option group; a day row opens the editor on a tap; My roster
     assert.match(template, /planner\.can\.edit &&\s+openEdit\(item\.shift\)/);
     assert.match(template, /@click\.stop="openEdit\(item\.shift\)"/);
     assert.match(template, /max-w-\[40rem\]/);
+});
+
+test('an approved or replaced week reads as notes, never as waiting for approval', () => {
+    assert.match(
+        script,
+        /shown\.value\?\.status === 'draft' \|\| shown\.value\?\.status === 'submitted'/,
+    );
+    assert.match(script, /things to note on \$\{week\}/);
+    assert.match(script, /'this approved week'/);
+    assert.match(template, /:rail-label="checksLabel"/);
+});
+
+test('the checks panel says "Other notes", not "Other checks", when nothing waits for approval', () => {
+    const panel = readFileSync(
+        new URL(
+            '../../resources/js/components/hr-v2/RosterChecks.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+    assert.match(
+        panel,
+        /awaitingApproval === false \? 'Other notes' : 'Other checks'/,
+    );
+    assert.equal(
+        (template.match(/:awaiting-approval="awaitingApproval"/g) ?? []).length,
+        2,
+    );
 });
