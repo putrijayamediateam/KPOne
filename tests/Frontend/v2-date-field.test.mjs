@@ -76,19 +76,17 @@ test('readDate: impossible dates name the date; nothing is guessed', async () =>
     assert.match(msg('29 Feb 2000'), /^OK 2000-02-29$/);
     assert.equal(
         msg('11/13/2026'),
-        'Enter the day first, such as 13/11/2026 or 13 Nov 2026.',
+        'Type the date day first, such as 13 Dec 2026.',
+    );
+    assert.equal(
+        msg('12/13/2026'),
+        'Type the date day first, such as 13 Dec 2026.',
     );
     assert.equal(msg('32/13/2026'), 'Enter a real date such as 13 Nov 2026.');
     assert.equal(msg('0 Nov 2026'), 'Enter a real date such as 13 Nov 2026.');
     assert.equal(msg('13/0/2026'), 'Enter a real date such as 13 Nov 2026.');
-    assert.equal(
-        msg('13/11/26'),
-        'Type the year in four digits, such as 13 Nov 2026.',
-    );
-    assert.equal(
-        msg('13 Nov 202'),
-        'Type the year in four digits, such as 13 Nov 2026.',
-    );
+    assert.equal(msg('13/11/26'), 'Type the full year, such as 2026.');
+    assert.equal(msg('13 Nov 202'), 'Type the full year, such as 2026.');
 
     for (const bad of [
         '',
@@ -134,6 +132,11 @@ test('V2DateField: ISO model, empty on bad text, clear when optional, calendar b
     assert.match(s, /!required && !disabled && modelValue !== ''/);
     assert.match(s, /`Clear \$\{label\}`/);
     assert.match(s, /showPicker\(\)/);
+    assert.match(s, /weekday: false/);
+    assert.match(s, /props\.weekday \?/);
+    assert.match(s, /subject: undefined/);
+    assert.match(s, /Choose a date for/);
+    assert.match(s, /NEVER reads month-first/);
     assert.match(s, /aria-hidden="true"\s+data-slot="v2-date-echo"/);
     assert.match(s, /role="status" aria-live="polite"/);
     assert.match(s, /type="text"/);

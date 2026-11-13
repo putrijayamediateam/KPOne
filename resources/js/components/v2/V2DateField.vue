@@ -6,14 +6,20 @@ import V2Field from './V2Field.vue';
 /**
  * Version 2 date field: a text box that replaces the browser's own date input, whose box shows "11/13/2026" (US order)
  * and can be misread in Malaysia ("13/11" or "11/13"?). Type or pick a date; when the person leaves the box it becomes
- * "13 Nov 2026", and while they type a plain echo shows what will be saved ("= Fri 13 Nov 2026"), weekday included so a
- * leave or roster date can be checked at a glance.
+ * "13 Nov 2026", and while they type a plain echo shows what will be saved in words ("= 11 Dec 2026" for "11/12/2026").
+ * The box and the echo always show the English month, even when a Bahasa Melayu month was typed.
  *
- * DAY FIRST, always. Accepted: "13 Nov 2026", "13/11/2026", "13-11-2026", "13.11.2026", "13112026" and month names in
- * English and Bahasa Melayu ("5 Mei 2027", "25 Dis 2026"). Nothing is guessed: the year must have four digits; a
- * month-first date ("11/13/2026") is refused and asked day first; an impossible date is refused by name ("There is no
- * 31 Nov.", "There is no 29 Feb in 2027."); outside the optional `min` and `max` the box says
- * "Choose a date on or after 1 Jan 2026." (or "before").
+ * `weekday` (off by default) adds the weekday to the echo ("= Fri 13 Nov 2026"): turn it on for dates people plan around
+ * (roster, leave, appointments); leave it off for a date of birth or an expiry, where it is noise.
+ *
+ * DAY FIRST, always: the box NEVER reads month-first. When both numbers are 12 or less ("11/12/2026") it is the 11th of
+ * December, and the echo says so in words. Accepted: "13 Nov 2026", "13/11/2026", "13-11-2026", "13.11.2026", "13112026" and month names in
+ * English and Bahasa Melayu ("5 Mei 2027", "25 Dis 2026"). Nothing is guessed: the year must have four digits (a
+ * two-digit year is refused: "Type the full year, such as 2026."); a date that only works month-first ("12/13/2026") is
+ * refused: "Type the date day first, such as 13 Dec 2026."; an impossible date is refused by name ("There is no 31 Nov.",
+ * "There is no 29 Feb in 2027."). Outside the optional `min` and `max` (inclusive, ISO) the box says why with the limit as a
+ * date: "Choose a date on or after 1 Jan 2026."; pass `subject` ("Expiry") and it reads "Expiry must be on or after
+ * 13 Nov 2026." The block never guesses the subject. For "after" rather than "on or after", pass the next day as `min`.
  *
  * `modelValue` is ISO "YYYY-MM-DD" or '' (the same value as a native date input, so a page only swaps the tag). It is
  * updated when the person leaves the box, presses Enter, picks from the calendar or presses Clear. If the text is not a
@@ -38,6 +44,8 @@ const props = withDefaults(
         min?: string;
         max?: string;
         placeholder?: string;
+        weekday?: boolean;
+        subject?: string;
     }>(),
     {
         hint: undefined,
@@ -47,6 +55,8 @@ const props = withDefaults(
         min: undefined,
         max: undefined,
         placeholder: '13 Nov 2026',
+        weekday: false,
+        subject: undefined,
     },
 );
 
@@ -96,7 +106,7 @@ const echo = computed(() => {
 
     return r.date.display === text.value.trim()
         ? ''
-        : `= ${r.date.weekday} ${r.date.display}`;
+        : `= ${props.weekday ? `${r.date.weekday} ` : ''}${r.date.display}`;
 });
 
 const shownError = computed(
@@ -122,7 +132,7 @@ const commit = () => {
         return;
     }
 
-    const range = rangeProblem(r.date.iso, props.min, props.max);
+    const range = rangeProblem(r.date.iso, props.min, props.max, props.subject);
 
     if (range) {
         typedProblem.value = range;
@@ -205,7 +215,7 @@ const picked = () => {
             <button
                 v-if="canPick && !disabled"
                 type="button"
-                :aria-label="`Choose date for ${label}`"
+                :aria-label="`Choose a date for ${label}`"
                 class="inline-flex size-11 shrink-0 items-center justify-center rounded-[10px] border border-input bg-card outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring lg:size-9"
                 @click="openCalendar"
             >

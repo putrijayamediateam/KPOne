@@ -42,8 +42,8 @@ const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 export const EXAMPLE = '13 Nov 2026';
 export const MSG_FORMAT = `Enter a date such as ${EXAMPLE}.`;
-export const MSG_YEAR = `Type the year in four digits, such as ${EXAMPLE}.`;
-export const MSG_DAY_FIRST = `Enter the day first, such as 13/11/2026 or ${EXAMPLE}.`;
+export const MSG_YEAR = 'Type the full year, such as 2026.';
+export const MSG_DAY_FIRST = 'Type the date day first, such as 13 Dec 2026.';
 export const MSG_REAL = `Enter a real date such as ${EXAMPLE}.`;
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -164,18 +164,24 @@ export function fromIso(value: string): ParsedDate | null {
 export const displayFromIso = (value: string): string =>
     fromIso(value)?.display ?? '';
 
-/** The message when `iso` is outside the optional limits, else undefined. */
+/**
+ * The message when `iso` is outside the optional limits, else undefined. With a `subject` the page names the thing
+ * ("Expiry"): "Expiry must be on or after 13 Nov 2026."; without one: "Choose a date on or after 13 Nov 2026."
+ */
 export function rangeProblem(
     iso: string,
     min?: string,
     max?: string,
+    subject?: string,
 ): string | undefined {
+    const lead = subject ? `${subject} must be` : 'Choose a date';
+
     if (min && iso < min) {
-        return `Choose a date on or after ${displayFromIso(min)}.`;
+        return `${lead} on or after ${displayFromIso(min)}.`;
     }
 
     if (max && iso > max) {
-        return `Choose a date on or before ${displayFromIso(max)}.`;
+        return `${lead} on or before ${displayFromIso(max)}.`;
     }
 
     return undefined;
