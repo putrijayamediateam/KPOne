@@ -152,7 +152,7 @@ export const doctorLine = (
         .filter(Boolean)
         .join(' · ');
 
-// Units follow what the server counts: low stock is one row per item at a location; expiring and expired are batches.
+// Units follow what the server counts: low stock is one row per item at a location ("by location"); expiring and expired are batches.
 export const panelItems = (panel: NonNullable<Lina['panel']>) => [
     {
         label: 'Invoices not claimed yet',
@@ -166,7 +166,7 @@ export const panelItems = (panel: NonNullable<Lina['panel']>) => [
 export const stockItems = (stock: NonNullable<Lina['stock']>) => [
     {
         label: 'Low stock',
-        value: `${plural(stock.lowStock, 'item')}, counted per location`,
+        value: `${plural(stock.lowStock, 'item')}, by location`,
     },
     {
         label: 'Expiring within 90 days',

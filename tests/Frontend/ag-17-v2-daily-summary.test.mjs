@@ -107,10 +107,7 @@ test('V2 daily summary: plain words, units from what the server counts, a crumb 
     assert.match(helpers, /'After reversals'/);
     assert.doesNotMatch(helpers, /'Net'/);
     // Low stock is one row per item at a location; expiring and expired are batches; counts due is item and location.
-    assert.match(
-        helpers,
-        /plural\(stock\.lowStock, 'item'\)\}, counted per location/,
-    );
+    assert.match(helpers, /plural\(stock\.lowStock, 'item'\)\}, by location/);
     assert.match(helpers, /plural\(stock\.expiring, 'batch', 'batches'\)/);
     assert.match(helpers, /plural\(stock\.expired, 'batch', 'batches'\)/);
     assert.match(v2, /plural\(rizal\.countsDue, 'count'\)/);
