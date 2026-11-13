@@ -201,3 +201,16 @@ test('2a: Classic stays untouched by V2', () => {
         assert.ok(!source.includes('components/v2/'));
     }
 });
+
+test('2a: the Classic panel leaves out suppliers and purchase orders only when the V2 page asks', () => {
+    assert.match(classicPanel, /hideOrders\?: boolean;/);
+    assert.match(
+        classicPanel,
+        /v-if="operations\.permissions\.manageSuppliers && !hideOrders"/,
+    );
+    assert.match(classicPanel, /v-if="!hideOrders"/);
+    // Classic Inventory never passes it.
+    assert.ok(
+        !read('resources/js/pages/Inventory/Index.vue').includes('hide-orders'),
+    );
+});
