@@ -208,7 +208,6 @@ const fieldClass =
     <PageFrame width="wide">
         <V2WorkLayout
             :title="patient.identity.fullName"
-            :eyebrow="`Patient · ${patient.patientNumber}`"
             description="Patient record, shared by every branch."
         >
             <template #actions>
@@ -564,6 +563,13 @@ const fieldClass =
                         @keydown.enter.prevent="submitIdentifier"
                     />
                 </label>
+                <p class="-mt-2 text-xs text-muted-foreground">
+                    {{
+                        identifierForm.identifier_type === 'nric'
+                            ? 'For example 900101-01-5555'
+                            : 'Passport number'
+                    }}
+                </p>
                 <InputError :message="identifierError()" />
             </div>
         </V2Dialog>

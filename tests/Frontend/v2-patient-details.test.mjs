@@ -174,3 +174,9 @@ test('only the Classic identifier messages are shown, so a server message cannot
 test('the pending request line keeps a space between the verb and the KP number', () => {
     assert.ok(/\{\{ ' '\s*\}\}<span class="font-mono">/.test(merge));
 });
+
+test('no eyebrow repeats the crumb, and the identifier dialog hints the format without echoing', () => {
+    assert.ok(!page.includes(':eyebrow='));
+    assert.ok(page.includes('For example 900101-01-5555'));
+    assert.ok(page.includes("'Passport number'"));
+});
