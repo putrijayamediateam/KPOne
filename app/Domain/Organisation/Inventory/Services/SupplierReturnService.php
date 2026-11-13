@@ -421,7 +421,9 @@ final class SupplierReturnService
         $rows = [];
         foreach ($returns->items() as $row) {
             $requester = (int) $row->requester_user_id === $actor->id;
-            $rows[] = [...(array) $row, 'history' => $histories->get($row->id, collect())->map(fn (object $step): array => [...(array) $step, 'actor_name' => $name($step->actor_user_id)])->values()->all(),
+            $rows[] = [...(array) $row, 'history' => $histories->get($row->id, collect())->map(fn (object $step): array => [...(array) $step, 'actor_name' => $name($step->actor_user_id),
+                // The stored UTC time in the branch's own time, as staff read it ("12 Nov 2026, 6:00 PM").
+                'at_local' => CarbonImmutable::parse($step->created_at)->setTimezone($branch->timezone)->format('j M Y, g:i A')])->values()->all(),
                 'canDecide' => $canApprove && $row->state === 'awaiting_approval' && ! $requester,
                 'canDispatch' => $canRequest && $row->state === 'approved',
                 'canCredit' => $canApprove && $row->state === 'dispatched',
