@@ -455,7 +455,7 @@ const submitCharge = () => {
                             </td>
                             <td
                                 data-label="Type"
-                                class="whitespace-nowrap max-xl:hidden"
+                                class="whitespace-nowrap max-xl:hidden!"
                             >
                                 {{ typeLabel(charge.type) }}
                             </td>
@@ -484,7 +484,7 @@ const submitCharge = () => {
                                     >
                                 </div>
                             </td>
-                            <td data-label="Status" class="max-xl:hidden">
+                            <td data-label="Status" class="max-xl:hidden!">
                                 <V2Chip
                                     :tone="
                                         charge.isActive ? 'success' : 'neutral'
