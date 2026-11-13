@@ -628,7 +628,7 @@ const shortCloseRow = computed(() => shortClose.row);
                 v-model="supplier.code"
                 required
                 maxlength="64"
-                class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                 :aria-invalid="!!fieldError('code')"
             />
             <span v-if="fieldError('code')" class="text-sm text-destructive">{{
@@ -641,7 +641,7 @@ const shortCloseRow = computed(() => shortClose.row);
                 v-model="supplier.name"
                 required
                 maxlength="200"
-                class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                 :aria-invalid="!!fieldError('name')"
             />
             <span v-if="fieldError('name')" class="text-sm text-destructive">{{
@@ -696,7 +696,7 @@ const shortCloseRow = computed(() => shortClose.row);
                 :expected-branch-id="operations.expectedBranchId"
                 :error="fieldError(`lines.${index}.sku_public_id`)"
             />
-            <div class="grid gap-3 sm:grid-cols-2">
+            <div class="grid items-start gap-3 sm:grid-cols-2">
                 <label class="grid gap-1.5 text-sm font-medium"
                     >Quantity (stock units)
                     <span class="sr-only">(required)</span>
@@ -704,7 +704,7 @@ const shortCloseRow = computed(() => shortClose.row);
                         v-model="line.quantity"
                         inputmode="decimal"
                         required
-                        class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                        class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                     />
                     <span
                         v-if="fieldError(`lines.${index}.quantity`)"
@@ -721,7 +721,7 @@ const shortCloseRow = computed(() => shortClose.row);
                         min="0"
                         step="0.01"
                         :aria-describedby="`v2-po-estimate-${line.key}`"
-                        class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                        class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                     />
                     <span
                         :id="`v2-po-estimate-${line.key}`"
@@ -797,7 +797,7 @@ const shortCloseRow = computed(() => shortClose.row);
                     "
                     inputmode="decimal"
                     required
-                    class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                    class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                 />
             </label>
         </template>
@@ -875,7 +875,7 @@ const shortCloseRow = computed(() => shortClose.row);
                 v-model="shortClose.note"
                 rows="3"
                 maxlength="500"
-                class="rounded-[10px] border border-input bg-card px-3 py-2 text-base md:text-[15px]"
+                class="w-full min-w-0 rounded-[10px] border border-input bg-card px-3 py-2 text-base md:text-[15px]"
                 :aria-invalid="!!shortCloseNoteError"
             />
             <span v-if="shortCloseNoteError" class="text-sm text-destructive">{{

@@ -295,7 +295,7 @@ const needsApproval = computed(() =>
                 v-model="form.delivery_reference"
                 maxlength="120"
                 required
-                class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                 :aria-invalid="!!form.errors.delivery_reference"
             />
         </label>
@@ -344,7 +344,7 @@ const needsApproval = computed(() =>
                         v-model="line.physical_quantity"
                         inputmode="decimal"
                         required
-                        class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                        class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                     />
                 </label>
                 <label class="flex min-h-11 items-center gap-2 text-sm"
@@ -370,7 +370,7 @@ const needsApproval = computed(() =>
                                 v-model="entry.batch_number"
                                 maxlength="100"
                                 required
-                                class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                                class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                             />
                         </label>
                         <label class="grid gap-1.5 text-sm font-medium"
@@ -379,7 +379,7 @@ const needsApproval = computed(() =>
                                 v-model="entry.expiry_date"
                                 type="date"
                                 required
-                                class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                                class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                             />
                             <span
                                 v-if="entry.expiry_date"
@@ -394,7 +394,7 @@ const needsApproval = computed(() =>
                                 v-model="entry.quantity"
                                 inputmode="decimal"
                                 required
-                                class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                                class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                             />
                         </label>
                         <label
@@ -407,7 +407,7 @@ const needsApproval = computed(() =>
                                 inputmode="decimal"
                                 min="0"
                                 step="0.01"
-                                class="h-11 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
+                                class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px]"
                             />
                             <span
                                 class="text-xs font-normal text-muted-foreground"
