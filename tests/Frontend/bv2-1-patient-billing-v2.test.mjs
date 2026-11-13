@@ -204,8 +204,8 @@ test('the right column starts at 1280 px; the main action is never missing at an
     assert.match(page, /<V2WorkLayout[^>]*rail-from="xl"/);
     assert.match(page, /rail-label="Payment summary"/);
     assert.doesNotMatch(page, /xl:grid-cols-/);
-    // V2StickyBar shows below 640 px for now, so the header button shows from 640 px (no width without the action).
-    assert.match(page, /\[primaryButton, 'max-sm:hidden'\]/);
+    // V2StickyBar reads the layout's rail breakpoint (shown below 1280 px), so the header button shows from 1280 px.
+    assert.match(page, /\[primaryButton, 'max-xl:hidden'\]/);
     assert.match(page, /<V2StickyBar\s+v-if="primary"/);
     // The payment summary is defined once and placed by width, never twice: above the work below 1280 px, the rail from it.
     assert.match(page, /useMediaQuery\('\(min-width: 1280px\)'\)/);
@@ -248,32 +248,68 @@ test('status words come from the one status map; the shortfall uses warning toke
     assert.match(page, /border-warning\/40 bg-warning\/10/);
 });
 
-test('the three entry dialogs keep the Classic actions and fields under the Version 2 wrapper', () => {
-    for (const call of [
-        '@click="payment"',
-        '@click="propose(\'panel\')"',
-        '@click="propose(\'deferment\')"',
-        '@click="reversalReceipt && reverse(reversalReceipt)"',
+test('the three entry dialogs are V2Dialogs with the Classic calls and disabled conditions', () => {
+    assert.equal(page.match(/<V2Dialog\b/g).length, 3);
+    // Money dialogs are tall: the footer with the action is pinned and never scrolls away.
+    assert.equal(page.match(/size="tall"/g).length, 2);
+
+    for (const [v2, classicCall] of [
+        ['@confirm="payment"', '@click="payment"'],
+        [
+            '@confirm="propose(responsibilityKind)"',
+            '@click="propose(\'panel\')"',
+        ],
+        [
+            '@confirm="reversalReceipt && reverse(reversalReceipt)"',
+            '@click="reversalReceipt && reverse(reversalReceipt)"',
+        ],
     ]) {
-        assert.ok(page.includes(call), call);
-        assert.ok(classic.includes(call), `Classic has ${call}`);
+        assert.ok(page.includes(v2), v2);
+        assert.ok(classic.includes(classicCall), `Classic has ${classicCall}`);
     }
+
+    // Disabled exactly when Classic disables the button (V2Dialog's busy disables Confirm).
+    assert.match(
+        page,
+        /:busy="busy \|\| !form\.method \|\| !billing\.can\.pay"/,
+    );
+    assert.match(classic, /:disabled="busy \|\| !form\.method"/);
+    assert.match(
+        page,
+        /:busy="\s*busy \|\|\s*!form\.reason \|\|\s*!form\.recording_error_only \|\|\s*!reversalReceipt\s*"/,
+    );
+    assert.match(page, /tone="danger"/);
+    // Closing while busy is still refused by the copied logic.
+    assert.equal(page.match(/@update:open="updateDialog\('/g).length, 3);
 
     for (const model of [
         'form.amount',
-        'form.method',
         'form.reference',
         'form.responsibility_amount',
-        'form.panel_id',
         'form.member_reference',
         'form.due_date',
+        'form.reason',
         'form.recording_error_only',
     ]) {
         assert.ok(page.includes(`v-model="${model}"`), model);
     }
 
-    assert.equal(page.match(/class="billing-entry-v2 /g).length, 3);
-    // No secondary-filled button: Cancel is outline, the main action filled.
+    assert.equal(page.match(/<V2MoneyInput\b/g).length, 2);
+    assert.match(page, /label="Amount received"/);
+    // Pickers keep the Classic form values, so payloads are unchanged.
+    assert.match(page, /@update:model-value="form\.method = \$event \?\? ''"/);
+    assert.match(
+        page,
+        /form\.panel_id = \(match\?\.value \?\? ''\) as string;/,
+    );
+    assert.doesNotMatch(
+        page,
+        /OperationalSelect|from '@\/components\/ui\/dialog'/,
+    );
     assert.doesNotMatch(page, /variant="secondary"/);
-    assert.match(page, /min-height: 44px;/);
+    // The bottom bar never shows through a dialog's scrim.
+    assert.match(
+        page,
+        /body\[data-billing-v2\]:has\(\[role='dialog'\]\) \[data-slot='v2-sticky-bar'\] \{\s*visibility: hidden;/,
+    );
 });

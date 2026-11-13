@@ -18,22 +18,16 @@ import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogHeader,
-    DialogTitle,
-} from '@/components/ui/dialog';
-import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { PageFrame } from '@/components/ui/page-frame';
-import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2Dialog from '@/components/v2/V2Dialog.vue';
+import V2MoneyInput from '@/components/v2/V2MoneyInput.vue';
+import V2Picker from '@/components/v2/V2Picker.vue';
 import V2RowMenu from '@/components/v2/V2RowMenu.vue';
 import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
@@ -77,6 +71,7 @@ const {
     reversalOpen,
     reversalReceipt,
     updateDialog,
+    clearEntry,
     openEntry,
     openReversal,
     error,
@@ -147,6 +142,28 @@ const chip = (status: string, tone?: 'neutral') => {
     };
 };
 
+const dueHint = computed(() =>
+    props.billing.invoice
+        ? `Due now ${myr(props.billing.invoice.state.due_now)}`
+        : undefined,
+);
+// The pickers take string ids; the form keeps the Classic values, so payloads are unchanged.
+const methodPicks = computed(() =>
+    methodOptions.value
+        .filter((option) => option.value !== '')
+        .map((option) => ({ id: String(option.value), label: option.label })),
+);
+const panelPicks = computed(() =>
+    panelOptions.value
+        .filter((option) => option.value !== '')
+        .map((option) => ({ id: String(option.value), label: option.label })),
+);
+const setPanel = (id: string | null) => {
+    const match = panelOptions.value.find(
+        (option) => option.value !== '' && String(option.value) === id,
+    );
+    form.panel_id = (match?.value ?? '') as string;
+};
 const dueParts = computed(() =>
     billingDueParts(props.billing.invoice?.state ?? null),
 );
@@ -560,7 +577,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                     <button
                         v-if="primary"
                         type="button"
-                        :class="[primaryButton, 'max-sm:hidden']"
+                        :class="[primaryButton, 'max-xl:hidden']"
                         :disabled="busy"
                         data-testid="billing-primary"
                         @click="primary.run()"
@@ -1113,356 +1130,274 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
             </V2WorkLayout>
         </PageFrame>
 
-        <!-- The three entry dialogs keep their Classic fields under a Version 2 wrapper until BV2-2 (V2Dialog). -->
+        <!-- The three entry dialogs on V2Dialog (Daniel, BV2-1 round 2): bottom sheet on a phone, tall with a pinned
+             footer so the action never scrolls away. Same calls, payloads and disabled conditions as Classic. -->
         <div data-testid="billing-inline-forms">
-            <Dialog
+            <V2Dialog
                 :open="paymentOpen"
+                size="tall"
+                title="Record new payment"
+                description="Patient receipts are separate from approved Panel responsibility and pay later."
+                :confirm-label="
+                    isCompleted ? 'Settle Outstanding Balance' : 'Add Payment'
+                "
+                :busy="busy || !form.method || !billing.can.pay"
+                :dirty="!!(form.amount || form.reference)"
                 @update:open="updateDialog('payment', $event)"
-                ><DialogContent
-                    class="billing-entry-v2 max-h-[90dvh] overflow-y-auto rounded-[18px] text-[15px] sm:max-w-2xl"
-                    :show-close-button="!busy"
-                    @escape-key-down="busy && $event.preventDefault()"
-                    @interact-outside="busy && $event.preventDefault()"
-                    ><DialogHeader
-                        ><DialogTitle>Record new payment</DialogTitle
-                        ><DialogDescription
-                            >Patient receipts are separate from approved Panel
-                            responsibility and pay later.</DialogDescription
-                        ></DialogHeader
-                    >
-                    <dl
-                        v-if="billing.invoice"
-                        class="grid grid-cols-2 gap-2 rounded-[10px] border bg-muted p-3 text-[13px]"
-                    >
-                        <dt>Invoice Total</dt>
-                        <dd class="text-right tabular-nums">
-                            {{ myr(billing.invoice.state.total) }}
-                        </dd>
-                        <dt>Self-pay received</dt>
-                        <dd class="text-right tabular-nums">
-                            {{ myr(billing.invoice.state.self_pay) }}
-                        </dd>
-                        <dt>Outstanding</dt>
-                        <dd class="text-right tabular-nums">
-                            {{ myr(outstandingSen(billing.invoice.state)) }}
-                        </dd>
-                        <dt>Due Now</dt>
-                        <dd class="text-right font-semibold tabular-nums">
-                            {{ myr(billing.invoice.state.due_now) }}
-                        </dd>
-                    </dl>
-                    <p v-if="error" role="alert" class="text-destructive">
-                        {{ error }}
-                    </p>
-                    <div v-if="billing.can.pay">
-                        <h3 class="font-semibold">
-                            {{
-                                isCompleted
-                                    ? 'Outstanding Receivable'
-                                    : 'Record Payment'
-                            }}
-                        </h3>
-                        <p
-                            v-if="isCompleted"
-                            class="text-[13px] text-muted-foreground"
-                        >
-                            This governed settlement is separate from the
-                            completed Visit record.
-                        </p>
-                    </div>
-                    <template v-if="billing.can.pay"
-                        ><p class="text-[13px] text-muted-foreground">
-                            For money the patient pays now. Panel responsibility
-                            is recorded separately.
-                        </p>
-                        <label class="block"
-                            >Amount received (MYR)<input
-                                v-model="form.amount"
-                                inputmode="decimal"
-                                class="billing-input-v2"
-                                autocomplete="off"
-                        /></label>
-                        <Button
-                            v-if="
-                                dueNowText &&
-                                (!isCompleted ||
-                                    (billing.invoice?.state.due_now ?? 0) > 0)
-                            "
-                            type="button"
-                            variant="outline"
-                            class="h-auto min-h-11 w-fit text-[13px] lg:min-h-9"
-                            @click="form.amount = dueNowText"
-                        >
-                            Use amount due (RM {{ dueNowText }})
-                        </Button>
-                        <label
-                            id="payment-method-label-v2"
-                            class="block"
-                            for="payment-method-v2"
-                            >Payment method</label
-                        >
-                        <OperationalSelect
-                            id="payment-method-v2"
-                            labelledby="payment-method-label-v2"
-                            v-model="form.method"
-                            :options="methodOptions"
-                            label="Payment method"
-                            placeholder="Select method"
-                        />
-                        <label class="block"
-                            >Transaction reference (no card details)<input
-                                v-model="form.reference"
-                                class="billing-input-v2"
-                                maxlength="100"
-                                autocomplete="off"
-                        /></label>
-                        <p
-                            v-if="!form.method"
-                            class="text-[13px] text-muted-foreground"
-                        >
-                            {{
-                                isCompleted
-                                    ? 'Choose a payment method to enable Settle Outstanding Balance.'
-                                    : 'Choose a payment method to enable Add Payment.'
-                            }}
-                        </p></template
-                    >
-                    <DialogFooter
-                        ><Button
-                            type="button"
-                            variant="outline"
-                            :disabled="busy"
-                            @click="updateDialog('payment', false)"
-                            >Cancel</Button
-                        ><Button
-                            v-if="billing.can.pay"
-                            type="button"
-                            :disabled="busy || !form.method"
-                            @click="payment"
-                            >{{
-                                isCompleted
-                                    ? 'Settle Outstanding Balance'
-                                    : 'Add Payment'
-                            }}</Button
-                        ></DialogFooter
-                    ></DialogContent
-                ></Dialog
+                @discard="clearEntry"
+                @confirm="payment"
             >
-            <Dialog
+                <dl
+                    v-if="billing.invoice"
+                    class="grid grid-cols-2 gap-x-3 gap-y-1 rounded-[10px] border bg-muted p-3 text-[13px]"
+                >
+                    <dt>Invoice total</dt>
+                    <dd class="text-right tabular-nums">
+                        {{ myr(billing.invoice.state.total) }}
+                    </dd>
+                    <dt>Self-pay received</dt>
+                    <dd class="text-right tabular-nums">
+                        {{ myr(billing.invoice.state.self_pay) }}
+                    </dd>
+                    <dt>Outstanding</dt>
+                    <dd class="text-right tabular-nums">
+                        {{ myr(outstandingSen(billing.invoice.state)) }}
+                    </dd>
+                    <dt class="font-semibold">Due now</dt>
+                    <dd class="text-right font-semibold tabular-nums">
+                        {{ myr(billing.invoice.state.due_now) }}
+                    </dd>
+                </dl>
+                <p v-if="error" role="alert" class="text-sm text-destructive">
+                    {{ error }}
+                </p>
+                <p class="text-[13px] text-muted-foreground">
+                    {{
+                        isCompleted
+                            ? 'Outstanding receivable: this governed settlement is separate from the completed Visit record.'
+                            : 'For money the patient pays now. Panel responsibility is recorded separately.'
+                    }}
+                </p>
+                <V2MoneyInput
+                    v-model="form.amount"
+                    label="Amount received"
+                    :hint="dueHint"
+                    required
+                />
+                <Button
+                    v-if="
+                        dueNowText &&
+                        (!isCompleted ||
+                            (billing.invoice?.state.due_now ?? 0) > 0)
+                    "
+                    type="button"
+                    variant="outline"
+                    class="h-11 w-fit text-[13px] lg:h-9"
+                    @click="form.amount = dueNowText"
+                >
+                    Use amount due (RM {{ dueNowText }})
+                </Button>
+                <V2Picker
+                    :model-value="form.method || null"
+                    label="Payment method"
+                    :options="methodPicks"
+                    placeholder="Choose a payment method"
+                    required
+                    @update:model-value="form.method = $event ?? ''"
+                />
+                <label class="block text-[15px]"
+                    >Transaction reference (no card details)<input
+                        v-model="form.reference"
+                        class="billing-input-v2"
+                        maxlength="100"
+                        autocomplete="off"
+                /></label>
+                <p
+                    v-if="!form.method"
+                    class="text-[13px] text-muted-foreground"
+                >
+                    {{
+                        isCompleted
+                            ? 'Choose a payment method to enable Settle Outstanding Balance.'
+                            : 'Choose a payment method to enable Add Payment.'
+                    }}
+                </p>
+            </V2Dialog>
+
+            <V2Dialog
                 :open="responsibilityOpen"
+                size="tall"
+                :title="
+                    responsibilityKind === 'panel'
+                        ? 'Panel responsibility'
+                        : 'Pay later'
+                "
+                description="This request needs approval and is not a cash receipt."
+                :confirm-label="
+                    responsibilityKind === 'panel'
+                        ? 'Propose Panel responsibility'
+                        : 'Request pay later'
+                "
+                :busy="
+                    busy ||
+                    !(responsibilityKind === 'panel'
+                        ? billing.can.panelPropose
+                        : billing.can.deferPropose)
+                "
+                :dirty="!!(form.responsibility_amount || form.reason)"
                 @update:open="updateDialog('responsibility', $event)"
-                ><DialogContent
-                    class="billing-entry-v2 max-h-[90dvh] overflow-y-auto rounded-[18px] text-[15px] sm:max-w-lg"
-                    :show-close-button="!busy"
-                    @escape-key-down="busy && $event.preventDefault()"
-                    @interact-outside="busy && $event.preventDefault()"
-                    ><DialogHeader
-                        ><DialogTitle>{{
-                            responsibilityKind === 'panel'
-                                ? 'Panel responsibility'
-                                : 'Pay later'
-                        }}</DialogTitle
-                        ><DialogDescription
-                            >Pay by Panel or pay later. This request needs
-                            approval and is not a cash
-                            receipt.</DialogDescription
-                        ></DialogHeader
-                    >
-                    <p v-if="error" role="alert" class="text-destructive">
-                        {{ error }}
-                    </p>
-                    <div class="space-y-2">
-                        <details
-                            v-if="
-                                responsibilityKind === 'panel' &&
-                                billing.can.panelPropose
-                            "
-                            class="my-2 text-[13px]"
-                        >
-                            <summary
-                                class="flex min-h-11 cursor-pointer items-center lg:min-h-0"
-                            >
-                                Panel approval steps
-                            </summary>
-                            <ol
-                                class="my-2 list-decimal space-y-1 pl-5 text-[13px] text-muted-foreground"
-                                data-testid="panel-steps"
-                            >
-                                <li>Enter the amount the Panel will cover.</li>
-                                <li>
-                                    Add the reason or the Panel confirmation
-                                    reference.
-                                </li>
-                                <li>
-                                    Choose the verified Panel and add the member
-                                    reference if the Panel needs one.
-                                </li>
-                                <li>Press Propose Panel responsibility.</li>
-                                <li>
-                                    Someone with Panel approval rights presses
-                                    Approve. Due Now then drops by the Panel
-                                    amount.
-                                </li>
-                                <li>
-                                    Collect any remaining balance under Record
-                                    Payment, then Complete Visitation.
-                                </li>
-                            </ol>
-                        </details>
-                        <label class="block"
-                            >Amount the Panel or pay later will cover
-                            (MYR)<input
-                                v-model="form.responsibility_amount"
-                                inputmode="decimal"
-                                class="billing-input-v2"
-                                autocomplete="off"
-                        /></label>
-                        <Button
-                            v-if="dueNowText && !isCompleted"
-                            type="button"
-                            variant="outline"
-                            class="mb-2 h-auto min-h-11 w-fit text-[13px] lg:min-h-9"
-                            @click="form.responsibility_amount = dueNowText"
-                        >
-                            Use amount due (RM {{ dueNowText }})
-                        </Button>
-                        <label class="block"
-                            >Reason / verification evidence<textarea
-                                v-model="form.reason"
-                                maxlength="500"
-                                class="billing-input-v2"
-                            />
-                        </label>
-                        <template
-                            v-if="
-                                responsibilityKind === 'panel' &&
-                                billing.can.panelPropose
-                            "
-                            ><label
-                                id="verified-panel-label-v2"
-                                class="block"
-                                for="verified-panel-v2"
-                                >Verified Panel</label
-                            >
-                            <OperationalSelect
-                                id="verified-panel-v2"
-                                labelledby="verified-panel-label-v2"
-                                v-model="form.panel_id"
-                                :options="panelOptions"
-                                label="Verified Panel"
-                                placeholder="Select Panel"
-                            />
-                            <label class="block"
-                                >Member reference (if required)<input
-                                    v-model="form.member_reference"
-                                    class="billing-input-v2"
-                                    maxlength="100"
-                            /></label>
-                            <p class="text-[13px] text-muted-foreground">
-                                This only sends the request for approval. The
-                                Panel amount counts after it is approved.
-                            </p></template
-                        ><template
-                            v-if="
-                                responsibilityKind === 'deferment' &&
-                                billing.can.deferPropose
-                            "
-                            ><p class="mt-3 text-[13px] text-muted-foreground">
-                                Pay later: the patient pays on the due date. It
-                                needs approval and is not a cash receipt.
-                            </p>
-                            <label class="mt-2 block"
-                                >Pay later due date<DateField
-                                    v-model="form.due_date"
-                            /></label>
-                        </template>
-                    </div>
-                    <DialogFooter
-                        ><Button
-                            type="button"
-                            variant="outline"
-                            :disabled="busy"
-                            @click="updateDialog('responsibility', false)"
-                            >Cancel</Button
-                        ><Button
-                            v-if="
-                                responsibilityKind === 'panel' &&
-                                billing.can.panelPropose
-                            "
-                            type="button"
-                            :disabled="busy"
-                            @click="propose('panel')"
-                            >Propose Panel responsibility</Button
-                        ><Button
-                            v-if="
-                                responsibilityKind === 'deferment' &&
-                                billing.can.deferPropose
-                            "
-                            type="button"
-                            :disabled="busy"
-                            @click="propose('deferment')"
-                            >Request pay later</Button
-                        ></DialogFooter
-                    ></DialogContent
-                ></Dialog
+                @discard="clearEntry"
+                @confirm="propose(responsibilityKind)"
             >
-            <Dialog
-                :open="reversalOpen"
-                @update:open="updateDialog('reversal', $event)"
-                ><DialogContent
-                    class="billing-entry-v2 rounded-[18px] text-[15px]"
-                    :show-close-button="!busy"
-                    @escape-key-down="busy && $event.preventDefault()"
-                    @interact-outside="busy && $event.preventDefault()"
-                    ><DialogHeader
-                        ><DialogTitle>Reverse recording error</DialogTitle
-                        ><DialogDescription
-                            >Recording errors only. No refunds or
-                            post-completion accounting
-                            correction.</DialogDescription
-                        ></DialogHeader
+                <p v-if="error" role="alert" class="text-sm text-destructive">
+                    {{ error }}
+                </p>
+                <details
+                    v-if="
+                        responsibilityKind === 'panel' &&
+                        billing.can.panelPropose
+                    "
+                    class="text-[13px]"
+                >
+                    <summary
+                        class="inline-flex min-h-11 cursor-pointer list-none items-center gap-1 rounded-[10px] border border-border px-3 font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9 [&::-webkit-details-marker]:hidden"
                     >
-                    <p v-if="reversalReceipt" class="tabular-nums">
-                        {{ reversalReceipt.number }} ·
-                        {{ myr(reversalReceipt.amountSen) }}
-                    </p>
-                    <p v-if="error" role="alert" class="text-destructive">
-                        {{ error }}
-                    </p>
-                    <label class="block"
-                        >Reason<textarea
-                            v-model="form.reason"
-                            maxlength="500"
-                            class="billing-input-v2"
+                        Panel approval steps
+                        <ChevronDown
+                            class="size-4 transition-transform [details[open]_&]:rotate-180"
+                            aria-hidden="true"
                         />
-                    </label>
-                    <label class="flex min-h-11 items-center gap-2"
-                        ><input
-                            v-model="form.recording_error_only"
-                            type="checkbox"
-                        />No real refund: recording error only</label
-                    ><DialogFooter
-                        ><Button
-                            type="button"
-                            variant="outline"
-                            :disabled="busy"
-                            @click="updateDialog('reversal', false)"
-                            >Cancel</Button
-                        ><Button
-                            type="button"
-                            variant="destructive"
-                            :disabled="
-                                busy ||
-                                !form.reason ||
-                                !form.recording_error_only ||
-                                !reversalReceipt
-                            "
-                            @click="reversalReceipt && reverse(reversalReceipt)"
-                            >Reverse recording error</Button
-                        ></DialogFooter
-                    ></DialogContent
-                ></Dialog
+                    </summary>
+                    <ol
+                        class="my-2 list-decimal space-y-1 pl-5 text-muted-foreground"
+                        data-testid="panel-steps"
+                    >
+                        <li>Enter the amount the Panel will cover.</li>
+                        <li>
+                            Add the reason or the Panel confirmation reference.
+                        </li>
+                        <li>
+                            Choose the verified Panel and add the member
+                            reference if the Panel needs one.
+                        </li>
+                        <li>Press Propose Panel responsibility.</li>
+                        <li>
+                            Someone with Panel approval rights presses Approve.
+                            Due now then drops by the Panel amount.
+                        </li>
+                        <li>
+                            Collect any remaining balance with Record new
+                            payment, then Complete Visitation.
+                        </li>
+                    </ol>
+                </details>
+                <V2MoneyInput
+                    v-model="form.responsibility_amount"
+                    :label="
+                        responsibilityKind === 'panel'
+                            ? 'Amount the Panel will cover'
+                            : 'Amount to pay later'
+                    "
+                    :hint="dueHint"
+                    required
+                />
+                <Button
+                    v-if="dueNowText && !isCompleted"
+                    type="button"
+                    variant="outline"
+                    class="h-11 w-fit text-[13px] lg:h-9"
+                    @click="form.responsibility_amount = dueNowText"
+                >
+                    Use amount due (RM {{ dueNowText }})
+                </Button>
+                <label class="block text-[15px]"
+                    >Reason or verification evidence<textarea
+                        v-model="form.reason"
+                        maxlength="500"
+                        class="billing-input-v2"
+                    />
+                </label>
+                <template
+                    v-if="
+                        responsibilityKind === 'panel' &&
+                        billing.can.panelPropose
+                    "
+                >
+                    <V2Picker
+                        :model-value="
+                            form.panel_id ? String(form.panel_id) : null
+                        "
+                        label="Verified Panel"
+                        :options="panelPicks"
+                        placeholder="Choose a Panel"
+                        @update:model-value="setPanel"
+                    />
+                    <label class="block text-[15px]"
+                        >Member reference (if the Panel needs one)<input
+                            v-model="form.member_reference"
+                            class="billing-input-v2"
+                            maxlength="100"
+                    /></label>
+                    <p class="text-[13px] text-muted-foreground">
+                        This only sends the request for approval. The Panel
+                        amount counts after it is approved.
+                    </p>
+                </template>
+                <template
+                    v-if="
+                        responsibilityKind === 'deferment' &&
+                        billing.can.deferPropose
+                    "
+                >
+                    <p class="text-[13px] text-muted-foreground">
+                        Pay later: the patient pays on the due date. It needs
+                        approval and is not a cash receipt.
+                    </p>
+                    <label class="block text-[15px]"
+                        >Pay later due date<DateField v-model="form.due_date"
+                    /></label>
+                </template>
+            </V2Dialog>
+
+            <V2Dialog
+                :open="reversalOpen"
+                title="Reverse recording error"
+                description="Recording errors only. No refunds or post-completion accounting correction."
+                confirm-label="Reverse recording error"
+                tone="danger"
+                :busy="
+                    busy ||
+                    !form.reason ||
+                    !form.recording_error_only ||
+                    !reversalReceipt
+                "
+                :dirty="!!form.reason"
+                @update:open="updateDialog('reversal', $event)"
+                @discard="clearEntry"
+                @confirm="reversalReceipt && reverse(reversalReceipt)"
             >
+                <p v-if="reversalReceipt" class="tabular-nums">
+                    {{ reversalReceipt.number }} ·
+                    {{ myr(reversalReceipt.amountSen) }}
+                </p>
+                <p v-if="error" role="alert" class="text-sm text-destructive">
+                    {{ error }}
+                </p>
+                <label class="block text-[15px]"
+                    >Reason<textarea
+                        v-model="form.reason"
+                        maxlength="500"
+                        class="billing-input-v2"
+                    />
+                </label>
+                <label class="flex min-h-11 items-center gap-2 text-[15px]"
+                    ><input
+                        v-model="form.recording_error_only"
+                        type="checkbox"
+                        class="size-4"
+                    />No real refund: recording error only</label
+                >
+            </V2Dialog>
         </div>
     </template>
 </template>
@@ -1523,6 +1458,10 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
             min-height: 44px;
         }
     }
+}
+/* While any dialog is open, the bottom bar must not show through the scrim (Daniel, BV2-1 round 2). */
+body[data-billing-v2]:has([role='dialog']) [data-slot='v2-sticky-bar'] {
+    visibility: hidden;
 }
 body[data-billing-v2]
     .billing-v2-page
