@@ -62,3 +62,24 @@ test('V2 quick answers: the scope line starts with a capital', () => {
 
     assert.match(v2, /scope\.branch\.charAt\(0\)\.toUpperCase\(\)/);
 });
+
+test("V2 quick answers: the date box is the V2 date field with the server's own range words and blocks an unreadable date", () => {
+    const v2 = page();
+
+    assert.match(
+        v2,
+        /import V2DateField from '@\/components\/v2\/V2DateField\.vue'/,
+    );
+    assert.doesNotMatch(v2, /components\/ui\/date-field/);
+    assert.match(
+        v2,
+        /<V2DateField[\s\S]*?v-model="date"[\s\S]*?subject="The date"/,
+    );
+    assert.match(v2, /:max="today"/);
+    assert.match(v2, /min="2020-01-01"/);
+    assert.match(v2, /:min-message="dateLimitMessage"/);
+    assert.match(v2, /:max-message="dateLimitMessage"/);
+    assert.match(v2, /'Choose a date from 1 Jan 2020 up to today\.'/);
+    assert.match(v2, /usesDate && !date/);
+    assert.match(v2, /usesDate\.value && !date\.value/);
+});
