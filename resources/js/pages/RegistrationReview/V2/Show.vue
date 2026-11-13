@@ -462,6 +462,14 @@ const summary = computed(() => [
         : []),
 ]);
 
+// A plain sentence for the "required" refusal; the server's own words for anything else.
+const patientNumberError = computed(() => {
+    const message = acceptance.errors.patient_number;
+
+    return message && /is required/i.test(message)
+        ? 'Enter the patient number to match, or choose Create new patient.'
+        : message;
+});
 const rejectOpen = ref(false);
 const rejectLabel = (category: string) =>
     category.replaceAll('_', ' ').replace(/^./, (c) => c.toUpperCase());
@@ -1028,7 +1036,7 @@ const confirmReject = () => {
                             <V2Field
                                 v-if="acceptance.resolution === 'match'"
                                 label="Patient number"
-                                :error="acceptance.errors.patient_number"
+                                :error="patientNumberError"
                             >
                                 <template
                                     #default="{ id, describedBy, invalid }"
@@ -1140,20 +1148,6 @@ const confirmReject = () => {
                                 </p>
                             </div>
                         </V2FormCard>
-
-                        <V2StickyBar>
-                            <button
-                                type="submit"
-                                :class="primaryButton"
-                                :disabled="!canMutate || acceptance.processing"
-                            >
-                                {{
-                                    acceptance.processing
-                                        ? 'Accepting…'
-                                        : 'Accept and add to queue'
-                                }}
-                            </button>
-                        </V2StickyBar>
                     </form>
 
                     <V2FormCard v-if="canMutate" title="Other outcomes">
@@ -1189,6 +1183,21 @@ const confirmReject = () => {
                             </div>
                         </div>
                     </V2FormCard>
+
+                    <V2StickyBar>
+                        <button
+                            type="submit"
+                            form="v2-review-accept"
+                            :class="primaryButton"
+                            :disabled="!canMutate || acceptance.processing"
+                        >
+                            {{
+                                acceptance.processing
+                                    ? 'Accepting…'
+                                    : 'Accept and add to queue'
+                            }}
+                        </button>
+                    </V2StickyBar>
                 </div>
             </template>
 
