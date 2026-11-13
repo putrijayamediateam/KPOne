@@ -148,20 +148,15 @@ watch(
         </div>
         <section class="space-y-2 rounded-lg border bg-card p-4 text-sm">
             <p>
-                One base stock unit per SKU. Quantities use exactly up to three
-                decimal places. Input → base uses factor 1.000 only. Non-base
-                units, unsupported conversions, precision loss and overflow are
-                refused; stored purchase/conversion labels are never guessed.
+                Each SKU has one base stock unit, with up to 3 decimals. Other
+                units and conversions are refused.
             </p>
             <p>
-                Reference managers verify the existing base unit. An independent
-                checker must sign each opening; the recorder cannot sign their
-                own count. This page never changes a recorded count.
-            </p>
-            <p>
-                Transfers and treatment-room consumption are outside the pilot.
-                Responsible clinician, FEFO and regulated-item questions remain
-                open.
+                Someone other than the person who recorded an opening must sign
+                it off. This page never changes a count. Open questions
+                (responsible clinician, FEFO, regulated items) are in the
+                pharmacist review pack that goes with the pilot papers, not in
+                KPOne.
             </p>
         </section>
         <p
