@@ -309,3 +309,23 @@ test('scan to add (Classic DSP-12, kept for parity): outline 44 px controls belo
         /result\.status !== 'found' \|\| !result\.sku\.active\) \{\s+show\(scanMessage\(result, props\.context\), true\);/,
     );
 });
+
+test('the same refusal pressed twice scrolls and focuses again: the error watcher runs sync (Hakim)', async () => {
+    assert.match(
+        v2,
+        /watch\(\s*actionError,[\s\S]*?\{ flush: 'sync' \},\s*\);/,
+    );
+    assert.match(v2, /actionError\.value = null;/);
+    // Vue's semantics, as the page uses them: clear, then set the same text in one tick.
+    const { ref, watch, nextTick } = await import('vue');
+    const error = ref('Tick the allergy check first.');
+    let sync = 0;
+    let pre = 0;
+    watch(error, (message) => message && sync++, { flush: 'sync' });
+    watch(error, (message) => message && pre++);
+    error.value = null;
+    error.value = 'Tick the allergy check first.';
+    await nextTick();
+    assert.equal(sync, 1, 'sync runs for the second press');
+    assert.equal(pre, 0, 'the default pre flush would miss it');
+});

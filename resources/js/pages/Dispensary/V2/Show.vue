@@ -1407,25 +1407,31 @@ const otcOptions = [
 // Hakim: an error can appear far above the sticky bar on a phone; bring it into view and focus it. The focus waits one
 // task so it lands after a closing dialog has handed focus back to its trigger (a failed Complete closes Verify).
 const actionErrorRef = ref<HTMLElement | null>(null);
-watch(actionError, (message) => {
-    if (!message) {
-        return;
-    }
+watch(
+    actionError,
+    (message) => {
+        if (!message) {
+            return;
+        }
 
-    void nextTick(() =>
-        window.setTimeout(() => {
-            const reduce = window.matchMedia?.(
-                '(prefers-reduced-motion: reduce)',
-            ).matches;
+        void nextTick(() =>
+            window.setTimeout(() => {
+                const reduce = window.matchMedia?.(
+                    '(prefers-reduced-motion: reduce)',
+                ).matches;
 
-            actionErrorRef.value?.scrollIntoView({
-                block: 'center',
-                behavior: reduce ? 'auto' : 'smooth',
-            });
-            actionErrorRef.value?.focus({ preventScroll: true });
-        }, 0),
-    );
-});
+                actionErrorRef.value?.scrollIntoView({
+                    block: 'center',
+                    behavior: reduce ? 'auto' : 'smooth',
+                });
+                actionErrorRef.value?.focus({ preventScroll: true });
+            }, 0),
+        );
+    },
+    // Hakim: sync, so clearing the error and setting the same text again in one tick still runs (a second press of
+    // "Save all" with the same refusal); the callback only schedules the scroll and focus.
+    { flush: 'sync' },
+);
 // Hakim: tie the reason Complete is blocked to the button, for screen readers.
 const primaryDescribedBy = computed(() =>
     primaryAction.value === 'complete' && completeBlockedReason.value
