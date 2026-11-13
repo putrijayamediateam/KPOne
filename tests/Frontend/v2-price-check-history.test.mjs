@@ -92,6 +92,14 @@ test("Daniel's round 1: real Details buttons, a colour key, words in the subtitl
     assert.ok(historyV2.includes('const words = (code: string) =>'));
 });
 
+test('Price history V2 names the branch time zone when the server sends it, and falls back to words when it does not', () => {
+    assert.ok(historyV2.includes('timezone?: string;'));
+    assert.ok(historyV2.includes('${city} time.'));
+    assert.ok(historyV2.includes("replaceAll('_', ' ')"));
+    assert.ok(historyV2.includes("Times are in the branch's time zone."));
+    assert.ok(historyV2.includes('{{ timesNote }}'));
+});
+
 test('Classic pages import nothing from V2', () => {
     assert.ok(!/\/V2\//.test(checkClassic));
     assert.ok(!/\/V2\//.test(historyClassic));

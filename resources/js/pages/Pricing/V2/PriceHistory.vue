@@ -31,6 +31,8 @@ type Row = {
 const props = defineProps<{
     filters: { book: string | null };
     from: 'price-check' | null;
+    // The zone the times are shown in (the active branch's), for example "Asia/Kuala_Lumpur".
+    timezone?: string;
     result: {
         charge: {
             publicId: string;
@@ -105,6 +107,20 @@ const subtitle = computed(() => {
     ]
         .filter(Boolean)
         .join(' · ');
+});
+// "Asia/Kuala_Lumpur" reads as "Kuala Lumpur time"; a zone without a city (for example "UTC") is named as it is.
+const timesNote = computed(() => {
+    const zone = props.timezone?.trim();
+
+    if (!zone) {
+        return "Times are in the branch's time zone.";
+    }
+
+    const city = zone.includes('/')
+        ? (zone.split('/').pop() ?? zone).replaceAll('_', ' ')
+        : zone;
+
+    return `Times are in ${city} time.`;
 });
 const rm = (sen: number) =>
     `RM ${Math.floor(sen / 100)}.${String(sen % 100).padStart(2, '0')}`;
@@ -183,7 +199,7 @@ const emptyDescription = computed(() =>
                 </div>
 
                 <p class="text-sm text-muted-foreground" data-test="times-note">
-                    Times are in the branch's time zone.
+                    {{ timesNote }}
                 </p>
 
                 <V2Table
