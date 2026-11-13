@@ -132,6 +132,7 @@ const linkButton =
                     <V2Table
                         label="Patients"
                         :columns="4"
+                        cards="xl"
                         :empty="!results.length"
                         empty-message="No matching patient records."
                         :loading="loading && !results.length"
@@ -173,7 +174,7 @@ const linkButton =
                                 </td>
                                 <td data-label="Phone" class="text-sm">
                                     <span
-                                        class="flex items-center gap-1 max-lg:justify-end"
+                                        class="flex items-center gap-1 max-xl:justify-end"
                                     >
                                         {{
                                             patient.maskedPhone ??
