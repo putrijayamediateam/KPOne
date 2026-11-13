@@ -119,6 +119,12 @@ const linkButton =
                     <InputError :message="error" />
                 </form>
 
+                <p class="text-[13px] text-muted-foreground" role="status">
+                    <template v-if="searched"
+                        >{{ total }} matching
+                        {{ total === 1 ? 'record' : 'records' }}</template
+                    >
+                </p>
                 <p
                     v-if="!searched"
                     class="rounded-[14px] border border-dashed p-10 text-center text-sm text-muted-foreground"
@@ -128,10 +134,6 @@ const linkButton =
                 </p>
 
                 <template v-else>
-                    <p class="text-[13px] text-muted-foreground" role="status">
-                        {{ total }} matching
-                        {{ total === 1 ? 'record' : 'records' }}
-                    </p>
                     <V2Table
                         label="Patients"
                         :columns="4"

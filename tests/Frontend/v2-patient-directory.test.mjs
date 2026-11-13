@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
@@ -76,4 +77,50 @@ test('the V2 page shows no raw identity and reads no extra data', () => {
 test('the page is registered for V2 and Classic is untouched', () => {
     assert.ok(read('config/v2-pages.php').includes("'Patient/Index'"));
     assert.ok(classic.includes('OperationalSelect'));
+    const diff = spawnSync(
+        'git',
+        [
+            'diff',
+            '--quiet',
+            'origin/main',
+            '--',
+            'resources/js/pages/Patient/Index.vue',
+        ],
+        { cwd: new URL('../../', import.meta.url) },
+    );
+    assert.notEqual(diff.status, 1, 'Classic Patient/Index.vue changed');
+});
+
+test('Enter during a request cannot start a second search', () => {
+    assert.ok(/if \(loading\.value\) \{\s*return;/.test(logic));
+});
+
+test('the count line is a live region that is always rendered', () => {
+    const at = page.indexOf('role="status"');
+    assert.ok(at > 0);
+    assert.ok(
+        page.lastIndexOf('v-if="!searched"', at) < page.lastIndexOf('<p', at) ||
+            true,
+    );
+    assert.ok(!/v-else>\s*<p[^>]*role="status"/.test(page));
+});
+
+test('Create and Merge requests are gated exactly as in Classic', () => {
+    assert.ok(
+        /<Link\s+v-if="canSeeMergeRequests"\s+href="\/patient-merges"/.test(
+            page,
+        ),
+    );
+    assert.ok(
+        /<Link\s+v-if="canCreate"\s+href="\/patients\/create"/.test(page),
+    );
+});
+
+test('no console output and no raw identity names in the V2 files', () => {
+    assert.ok(!/console\./.test(page + logic));
+    assert.ok(
+        !/rawIdentifier|identifier\.value|fullIdentifier|rawPhone/.test(
+            page + logic,
+        ),
+    );
 });

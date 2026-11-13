@@ -62,6 +62,10 @@ export const usePatientDirectory = () => {
     const searched = ref(false);
 
     const search = async (page = 1) => {
+        if (loading.value) {
+            return;
+        }
+
         loading.value = true;
         error.value = '';
 
