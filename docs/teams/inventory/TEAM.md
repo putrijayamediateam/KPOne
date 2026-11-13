@@ -128,6 +128,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 | STK-36 | Pharmacist review pack for the controlled register and FEFO, `docs/pilot/inventory/PHARMACIST-REVIEW-PACK.md` (docs) | #619 |
 | STK-37 | Stock moves use the STK-2 usable-batch rule: dispatch always; a direct transfer too, except between returns locations and within a branch into a store that is neither a dispensary nor returns (the STK-25 quarantine shelf) | #624 |
 | STK-33 | Stock health (`/inventory/stock-health`): days on hand, turnover and expiry loss per SKU and location, quantities only | #626 |
+| DD-75, DD-76 | Inventory task links: three groups side by side from 1024 px, folding groups with a count on phones (44 px summaries); a two-line Pilot readiness card pointing to the pharmacist review pack | #629 |
+| DD tiles | Inventory summary tiles (SKUs with stock, Total batches, Expired batches) stay in one row at every width, sentence case; fits 320 px | #633 (in batch #634) |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -263,6 +265,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     ('No import' → 'No balance correction'); the STK-33 Inventory task link pin (adds '/inventory/stock-health');
     and, in STK-21, `SupplierInvoiceTest` closing its part-received order through the real short close instead of
     raw SQL (setup only).
+41. Approved changes to existing tests (B.E.R.N.I.S.S for the owner, 2026-11-12): in DD-75, the DD-12 task link pin
+    expects each link twice (`[...grouped, ...grouped]`), once in the desktop groups and once in the phone groups.
+    The compact tiles (#633, Daniel's OK) changed no existing assertion; they add one test.
 
 ## 7. Open items and known limits
 
@@ -379,6 +384,7 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
    the owner chooses an option and, for a valuation or export, the accountant's written policy exists.
 7. **The 2026-11-11 programme (section 6 item 32), status on 2026-11-12:**
    - Merged: STK-12 to STK-26, STK-30, STK-30b, STK-31, STK-33 to STK-37, STK-15b and STK-15c (section 5).
+     Design follow-ups merged: DD-75 and DD-76 (#629) and the compact summary tiles (#633).
      STK-37 was added on 2026-11-12 from a gap found while writing STK-36.
    - Parked by B.E.R.N.I.S.S until the accountant's cost policy exists: STK-27 (cost policy and weighted
      average cost), STK-28 (stock value, COGS, margin and RM losses) and STK-29 (monthly journal summary CSV).
