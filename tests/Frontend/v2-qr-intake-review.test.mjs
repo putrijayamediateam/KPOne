@@ -113,3 +113,18 @@ test('V2 starts on Create new patient only when there is no duplicate candidate'
         page.includes("{ value: 'match', label: 'Match existing patient' }"),
     );
 });
+
+test('V2 hides the duplicate tick with no candidate and reloads them after a duplicate refusal', () => {
+    assert.ok(
+        loose(page).includes(
+            loose(
+                'intake.duplicateCandidates.length || acceptance.errors.duplicate_override',
+            ),
+        ),
+    );
+    assert.ok(page.includes('if (errors.duplicate_override)'));
+    assert.ok(page.includes("router.reload({ only: ['intake'] })"));
+    assert.ok(page.includes('I reviewed the possible duplicates'));
+    assert.ok(!/Confirm creation only after duplicate/.test(page));
+    assert.ok(!/server still enforces/i.test(page));
+});
