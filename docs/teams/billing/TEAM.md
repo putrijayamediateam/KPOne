@@ -124,6 +124,7 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-25 | Receipt status badges: on the Invoice page and the read-only Billing payments list a receipt's status is the coloured status badge (Posted green, Reversed neutral grey) on its own row under the receipt number and time, instead of plain grey text; the manage-list badges use the same local tone. Version 2 only (owner decision 2026-11-13): Classic keeps the plain status text. Frontend only | PR #636 |
 | BIL-26 | "Review required" on Bills to collect: a bill whose invoice is on hold for a correction or has out-of-date source (the Outstanding bills "Review required before settlement" rule) shows a neutral "Review required" tag beside Still owed on the phone card and in the table, with a help sentence when one is on the page; amounts and Open billing unchanged. Sent as a side list of visit numbers, so the pinned row fields stay. Read-only | PR #639 |
 | BIL-28 | The Outstanding bill box's link on the Billing page reads "View all bills to collect at this branch", naming the page it opens (BIL-23). Wording only. | PR #553 |
+| BV2-0 | Version 2 groundwork for Patient Billing: a Version 2-only copy of the Classic workspace logic (`composables/billing/useBillingWorkspaceV2.ts`) for the coming V2 page, pinned to the Classic script by a parity test (same payloads, keys, lock versions and idempotency key). Classic is untouched; no visual change; no existing test edited | PR #650 |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -265,9 +266,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 41. BIL-25 receipt status badges (2026-11-11, the owner in the Billing session, "start with 1"; Siti's design, Daniel OK 2026-11-12): Reversed stays neutral grey (a settled correction, nothing to do), set locally in Billing so the shared status map, which HR also uses for 'reversed', is unchanged. On 2026-11-13 the owner chose "Version 2 only" for it: the badges show only with "Try the new layout"; Classic keeps the plain text.
 42. BIL-26 (2026-11-12, the owner in the Billing session, "start with 1" on a "Check bill" tag): Siti chose the wording "Review required" (the Billing page and Outstanding bills already use it for the same state; "Check bill" could read as "check the amount with the patient") and a neutral tone so amber stays for past due.
 43. BIL-28 (2026-11-12, the owner in the Billing session): the link reads "View all bills to collect at this branch"; the owner approved changing the one existing assertion that pinned the old words (bil-3 test).
+44. BV2-0 (2026-11-13, owner "start all v2" via the coordinator; plan approved with conditions): the first try moved the workspace logic into a shared composable, but 7 existing tests would break (they mount or read the Classic file), so it was stopped. The coordinator chose option A: Classic stays byte-identical, the Version 2 page gets its own copy of the logic and a parity test pins the copy to Classic; Kumar reviews line by line; BV2-0 merges alone.
 
 ## 7. Open items and known limits
 
+- **Debt (BV2-0):** about 260 lines of the Patient Billing workspace logic exist twice, in Classic `components/billing/BillingWorkspace.vue` and the Version 2 copy `composables/billing/useBillingWorkspaceV2.ts`. The parity test fails if they differ, so a change to one must be made to both. A shared-composable refactor needs its own approval (7 existing tests would break and need edits).
 - **Walked and tested in BIL-1 (2026-11-05):** invoice void and reissue, adjustment reversal, later settlement
   of pay-later debt on a return visit, rejected and partially accepted Panel decisions
   (`tests/Feature/Billing/MoneyFlowWalkTest.php`). All worked as the rules say.
