@@ -125,3 +125,16 @@ test('moving the saved mode to short or full names asks first; room names show i
     assert.match(v2, /\/ 60/);
     assert.match(v2, /Deactivate \$\{deactivating\.name\}\?/);
 });
+
+test('Save and leave goes through the privacy confirm before it saves and leaves', () => {
+    const body = v2.slice(v2.indexOf('const saveAndLeave'));
+    const fn = body.slice(0, body.indexOf('const warnUnload'));
+
+    assert.match(
+        fn,
+        /if \(needsPrivacyConfirm\.value\) \{\s*privacyOpen\.value = true;\s*return;\s*\}/,
+    );
+    assert.match(fn, /leaveTarget = pendingUrl/);
+    assert.match(v2, /@confirm="performSave\(leaveAfterSave\)"/);
+    assert.match(v2, /if \(!value\) \{\s*leaveTarget = null;/);
+});

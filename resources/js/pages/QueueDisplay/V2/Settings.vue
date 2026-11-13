@@ -101,8 +101,19 @@ const leaveAnyway = () => {
         allowLeave = false;
     }
 };
+// "Save and leave" never skips the privacy step: it goes through the same confirm as Save, then saves and leaves.
+let leaveTarget: string | null = null;
+const leaveAfterSave = () => {
+    const target = leaveTarget;
+    leaveTarget = null;
+
+    if (target) {
+        router.visit(target, { preserveScroll: true });
+    }
+};
 const saveAndLeave = () => {
     leaveOpen.value = false;
+    leaveTarget = pendingUrl;
 
     if (needsPrivacyConfirm.value) {
         privacyOpen.value = true;
@@ -110,17 +121,7 @@ const saveAndLeave = () => {
         return;
     }
 
-    const target = pendingUrl;
-    performSave(() => {
-        if (target) {
-            router.visit(target, {
-                preserveScroll: true,
-                onFinish: () => {
-                    allowLeave = false;
-                },
-            });
-        }
-    });
+    performSave(leaveAfterSave);
 };
 const warnUnload = (event: BeforeUnloadEvent) => {
     if (settingsForm.isDirty) {
@@ -789,8 +790,16 @@ const removePoster = () => {
         confirm-label="Save screen content"
         cancel-label="Cancel"
         :busy="settingsForm.processing"
-        @update:open="(value) => (privacyOpen = value)"
-        @confirm="performSave()"
+        @update:open="
+            (value) => {
+                privacyOpen = value;
+
+                if (!value) {
+                    leaveTarget = null;
+                }
+            }
+        "
+        @confirm="performSave(leaveAfterSave)"
     />
 
     <V2Dialog
