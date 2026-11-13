@@ -76,3 +76,14 @@ test('V2OptionGroup uses aria-pressed consistently (every option is a pressed bu
     assert.doesNotMatch(s, /role="radio"/);
     assert.match(s, /:aria-pressed=/);
 });
+
+test('V2StickyBar reads the rail breakpoint from V2WorkLayout; the prop overrides; no rail keeps sm:hidden; always never hides', () => {
+    const bar = v2('V2StickyBar');
+    assert.match(bar, /inject\(V2_RAIL_FROM, null\)/);
+    assert.match(bar, /props\.railFrom \?\? layoutRailFrom\?\.value \?\? null/);
+    assert.match(bar, /from === null\s*\? 'sm:hidden'/);
+    assert.match(bar, /lg: 'lg:hidden', xl: 'xl:hidden', '2xl': '2xl:hidden'/);
+    assert.match(bar, /if \(props\.always\) \{\s*return '';/);
+    assert.match(bar, /railFrom\?: RailFrom; always\?: boolean/);
+    assert.match(bar, /:class="hideFrom"/);
+});
