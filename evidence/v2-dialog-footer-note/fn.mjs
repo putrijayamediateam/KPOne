@@ -1,0 +1,8 @@
+import { chromium } from '/opt/node-tools/node_modules/playwright/index.mjs';
+const b=await chromium.launch();
+const run=async(name,w,h,qs,focus)=>{ const p=await b.newPage({viewport:{width:w,height:h},deviceScaleFactor:2}); await p.goto('http://127.0.0.1:8785/index.html'+qs); await p.waitForTimeout(400);
+ if(focus){ await p.locator('#Quantity').focus(); await p.waitForTimeout(200); await p.locator('#Quantity').scrollIntoViewIfNeeded(); await p.waitForTimeout(200); }
+ const r=await p.evaluate(()=>{ const note=document.querySelector('[data-slot=v2-dialog-footer-note]'); const body=document.querySelector('[role=dialog] .overflow-y-auto'); const btn=[...document.querySelectorAll('[role=dialog] button')].find(x=>/Save receipt/.test(x.textContent)); const q=document.getElementById('Quantity'); const rc=e=>e.getBoundingClientRect(); const n=rc(note),bd=rc(body),bt=rc(btn),qq=rc(q); return {noteInFooter: !body.contains(note), noteAboveButtons: n.bottom<=bt.top+1, bodyEndsAboveNote: bd.bottom<=n.top+1, qtyOverlapsNote: !(qq.bottom<=n.top||qq.top>=n.bottom), qtyVisible: qq.top>=bd.top&&qq.bottom<=bd.bottom, noteH:Math.round(n.height), borderTop:getComputedStyle(note).borderTopWidth, bodyScrolls: body.scrollHeight>body.clientHeight}; });
+ console.log(name,JSON.stringify(r)); await p.screenshot({path:`/tmp/fn/${name}.png`}); await p.close(); };
+await run('390-light',390,844,'',false); await run('390-dark',390,844,'?theme=dark',false); await run('390-keyboard-open',390,430,'',true); await run('390-keyboard-reason',390,430,'?reason=1',true); await run('1440-light',1440,900,'',false); await run('1440-dark',1440,900,'?theme=dark',false);
+await b.close();
