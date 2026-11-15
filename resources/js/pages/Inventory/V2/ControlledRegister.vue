@@ -17,7 +17,8 @@ type Row = {
     medicine: string;
     skuCode: string;
     stockUnit: string;
-    balance: string;
+    balance: string | null;
+    blind: boolean;
     status: 'checked' | 'moved_since' | 'never' | 'no_longer_controlled';
     lastCheckedOn: string | null;
     lastOutcome: 'matches' | 'differs' | null;
@@ -129,9 +130,14 @@ const unbroken = (code: string) => code.replaceAll('-', '‑');
                                 data-label="On hand"
                                 class="text-right text-sm whitespace-nowrap tabular-nums"
                             >
-                                {{
+                                <span
+                                    v-if="row.blind"
+                                    class="font-normal whitespace-normal text-muted-foreground"
+                                    >Shown after your count</span
+                                >
+                                <template v-else>{{
                                     quantityWithUnit(row.balance, row.stockUnit)
-                                }}
+                                }}</template>
                             </td>
                             <td data-label="Check">
                                 <V2Chip
