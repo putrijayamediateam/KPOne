@@ -190,6 +190,8 @@ final class ControlledRegisterService
             'lines' => ['page' => $page, 'lastPage' => $all ? 1 : $lastPage, 'total' => $total, 'rows' => $lines],
             'balanceNow' => $blind ? null : self::quantity((int) ($scope()->selectRaw($this->delta().' as total', $this->bind($branch))->value('total') ?? 0)),
             'controlled' => $controlled, 'newestMovementId' => $newest, 'newestCheckSequence' => $last === null ? 0 : (int) $last->sequence, 'movementsSinceCheck' => $scope()->where('movement.id', '>', $after)->count(),
+            // STK-40: refused tries since the last recorded check (shown under the count box), ids and codes only.
+            'attemptsSinceCheck' => count(array_filter($refusedAt, fn (string $at): bool => $at > ($checkedAt === [] ? '' : (string) end($checkedAt)))),
             'checks' => array_values($checks->map(fn (stdClass $check): array => [
                 'publicId' => $check->public_id, 'sequence' => (int) $check->sequence, 'outcome' => $check->outcome, 'reason' => $check->reason, 'note' => $check->note,
                 'ledger' => $blind ? null : self::quantity(StockUnitQuantity::scaled((string) $check->ledger_quantity, true)),

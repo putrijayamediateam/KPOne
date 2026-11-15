@@ -206,8 +206,11 @@ final class ControlledRegisterBlindCountTest extends VisitTestCase
             $this->travel(1)->seconds();
             $this->actingAs($second)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, $guess))->assertSessionHasErrors('reason');
         }
+        // Before the next check, the two tries show as "since the last check".
+        $this->assertSame(2, $this->page($second, $sku)['attemptsSinceCheck']);
         $this->travel(1)->seconds();
         $this->actingAs($second)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '10'))->assertSessionHasNoErrors();
+        $this->assertSame(0, $this->page($second, $sku)['attemptsSinceCheck']);
 
         $checks = $this->page($second, $sku)['checks'];
         $this->assertSame([2, 0], [$checks[0]['attempts'], $checks[1]['attempts']]);
