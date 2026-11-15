@@ -162,3 +162,36 @@ test("page 5: Daniel's checklist (sentences, blocked reasons, destructive sheets
     // Request sections behind bars, open on wide screens only.
     assert.match(template, /:default-open="wide"/);
 });
+
+test("page 5, Daniel's round 2: no native select or checkbox, codes never break, plain server quantities", () => {
+    assert.ok(!template.includes('<select'));
+    assert.ok(!template.includes('type="checkbox"'));
+    assert.match(template, /<Checkbox\s/);
+    assert.match(template, /<OperationalSelect\s/);
+    assert.match(template, /min-h-11 min-w-11/);
+    // The quantity box shows "9", like the line above it.
+    assert.match(template, /:value="draftQuantity\(lot\.id\)"/);
+
+    // SKU, return, group, delivery and batch codes use non-breaking hyphens.
+    for (const code of [
+        'row.return_number',
+        'group.groupNumber',
+        'row.sku_code',
+        'lot.sku_code',
+        'line.sku_code',
+    ]) {
+        assert.match(
+            template,
+            new RegExp(`unbroken\\(\\s*${code.replace('.', '\\.')}\\s*\\)`),
+            code,
+        );
+    }
+
+    assert.match(script, /value: unbroken\(row\.return_number\)/);
+    // Status stays on one line from 1280.
+    assert.equal((template.match(/class="w-56">Status/g) ?? []).length, 2);
+    // "6.000 unit" from the server shows as "6 units".
+    assert.match(script, /const plainError = /);
+    assert.match(template, /plainError\(lotError\(lot\.id\)\)/);
+    assert.match(template, /class="v2-section-title text-lg font-semibold"/);
+});

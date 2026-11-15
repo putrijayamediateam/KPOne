@@ -2,7 +2,9 @@
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { computed, nextTick, ref, watch } from 'vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
+import { Checkbox } from '@/components/ui/checkbox';
 import { PageFrame } from '@/components/ui/page-frame';
+import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
@@ -684,15 +686,18 @@ const lotRows = computed<KeyValueItem[]>(() => {
 
     return lot
         ? [
-              { label: 'Item', value: `${itemOf(lot)} · ${lot.sku_code}` },
+              {
+                  label: 'Item',
+                  value: `${itemOf(lot)} · ${unbroken(lot.sku_code)}`,
+              },
               {
                   label: 'Batch',
-                  value: `${lot.batch_number} (expires ${formatDate(lot.expiry_date)})`,
+                  value: `${unbroken(lot.batch_number)} (expires ${formatDate(lot.expiry_date)})`,
               },
               { label: 'Location', value: lot.location },
               {
                   label: 'Supplier',
-                  value: `${lot.supplier} · delivery ${lot.delivery_reference}`,
+                  value: `${lot.supplier} · delivery ${unbroken(lot.delivery_reference)}`,
               },
               {
                   label: 'Can return',
@@ -706,11 +711,14 @@ const returnRows = computed<KeyValueItem[]>(() => {
 
     return row
         ? [
-              { label: 'Return', value: row.return_number },
-              { label: 'Item', value: `${itemOf(row)} · ${row.sku_code}` },
+              { label: 'Return', value: unbroken(row.return_number) },
+              {
+                  label: 'Item',
+                  value: `${itemOf(row)} · ${unbroken(row.sku_code)}`,
+              },
               {
                   label: 'Batch',
-                  value: `${row.batch_number} (expires ${formatDate(row.expiry_date)})`,
+                  value: `${unbroken(row.batch_number)} (expires ${formatDate(row.expiry_date)})`,
               },
               {
                   label: 'Quantity',
@@ -719,7 +727,7 @@ const returnRows = computed<KeyValueItem[]>(() => {
               { label: 'Location', value: row.location },
               {
                   label: 'Supplier',
-                  value: `${row.supplier} · delivery ${row.delivery_reference}`,
+                  value: `${row.supplier} · delivery ${unbroken(row.delivery_reference)}`,
               },
               { label: 'Reason', value: reasonLabel(row.reason) },
               { label: 'Supplier reference', value: row.supplier_reference },
@@ -733,11 +741,11 @@ const groupRows = computed<KeyValueItem[]>(() => {
         ? [
               {
                   label: 'Return',
-                  value: `${group.groupNumber} · ${group.lines.length} lots`,
+                  value: `${unbroken(group.groupNumber)} · ${group.lines.length} lots`,
               },
               {
                   label: 'Supplier',
-                  value: `${group.supplier} · delivery ${group.deliveryReference}`,
+                  value: `${group.supplier} · delivery ${unbroken(group.deliveryReference)}`,
               },
               { label: 'Total', value: groupTotalWords.value.join(' + ') },
           ]
@@ -756,7 +764,9 @@ const errorList = computed(() =>
         form.errors.retry_key,
         form.errors.receipt_lot_id,
         form.errors.expected_branch_id,
-    ].filter((message): message is string => Boolean(message)),
+    ]
+        .filter((message): message is string => Boolean(message))
+        .map((message) => plainError(message) ?? message),
 );
 const hasInput = computed(() =>
     ['request', 'dispatched', 'credit_recorded'].includes(operation.value),
@@ -778,6 +788,22 @@ const chooseDeliveryValue = (value: string | null) => {
 const wide =
     typeof window === 'undefined' ||
     window.matchMedia('(min-width: 640px)').matches;
+/** Reason choices for the lot rows, for the shared select. */
+const reasonSelectOptions = computed(() =>
+    props.returns.reasons.map((reason) => ({
+        value: reason,
+        label: reasonLabel(reason),
+    })),
+);
+/** Server text keeps Classic's "6.000 unit"; show it as "6 units" (the server message is unchanged). */
+const plainError = (message: string | undefined) =>
+    message?.replace(
+        /\b(\d+\.\d{3}) ([a-z]+)\b/g,
+        (_, value: string, unit: string) => quantityWithUnit(value, unit),
+    );
+/** A lot's quantity box shows "9", not "9.000", like the line above it; what is sent is unchanged in meaning. */
+const draftQuantity = (lotId: number) =>
+    trimQuantity(String(drafts.value[lotId]?.quantity ?? ''));
 </script>
 
 <template>
@@ -844,7 +870,10 @@ const wide =
                     class="flex min-w-0 flex-col gap-3"
                     aria-labelledby="v2-returns"
                 >
-                    <h2 id="v2-returns" class="v2-section-title">
+                    <h2
+                        id="v2-returns"
+                        class="v2-section-title text-lg font-semibold"
+                    >
                         Returns and next action
                     </h2>
 
@@ -863,7 +892,7 @@ const wide =
                                     <th scope="col">Return</th>
                                     <th scope="col">Lots</th>
                                     <th scope="col">Supplier</th>
-                                    <th scope="col">Status</th>
+                                    <th scope="col" class="w-56">Status</th>
                                     <th scope="col">
                                         <span class="sr-only">Actions</span>
                                     </th>
@@ -881,7 +910,9 @@ const wide =
                                         >
                                             <span
                                                 class="font-mono text-sm whitespace-nowrap"
-                                                >{{ group.groupNumber }}</span
+                                                >{{
+                                                    unbroken(group.groupNumber)
+                                                }}</span
                                             >
                                             <V2Chip
                                                 tone="neutral"
@@ -908,7 +939,10 @@ const wide =
                                                 of {{ itemOf(line) }}
                                                 <span
                                                     class="block text-xs text-muted-foreground"
-                                                    >{{ line.sku_code }} · batch
+                                                    >{{
+                                                        unbroken(line.sku_code)
+                                                    }}
+                                                    · batch
                                                     {{
                                                         unbroken(
                                                             line.batch_number,
@@ -931,7 +965,9 @@ const wide =
                                                 class="block text-xs text-muted-foreground"
                                                 >Delivery
                                                 {{
-                                                    group.deliveryReference
+                                                    unbroken(
+                                                        group.deliveryReference,
+                                                    )
                                                 }}</span
                                             >
                                         </div>
@@ -939,6 +975,7 @@ const wide =
                                     <td data-stack data-label="Status">
                                         <div class="min-w-0">
                                             <V2Chip
+                                                class="whitespace-nowrap"
                                                 :tone="stateTone(group.state)"
                                                 :label="
                                                     supplierReturnStateLabels[
@@ -1004,7 +1041,7 @@ const wide =
                                 <th scope="col">Return</th>
                                 <th scope="col">Quantity and item</th>
                                 <th scope="col">Supplier</th>
-                                <th scope="col">Status</th>
+                                <th scope="col" class="w-56">Status</th>
                                 <th scope="col">
                                     <span class="sr-only">Actions</span>
                                 </th>
@@ -1018,7 +1055,7 @@ const wide =
                                 <td data-label="Return" data-primary>
                                     <span
                                         class="font-mono text-sm whitespace-nowrap"
-                                        >{{ row.return_number }}</span
+                                        >{{ unbroken(row.return_number) }}</span
                                     >
                                 </td>
                                 <td data-stack data-label="Quantity and item">
@@ -1035,7 +1072,8 @@ const wide =
                                         >
                                         <span
                                             class="block text-xs break-words text-muted-foreground"
-                                            >{{ row.sku_code }} · batch
+                                            >{{ unbroken(row.sku_code) }} ·
+                                            batch
                                             {{ unbroken(row.batch_number) }} ·
                                             {{ row.location }} ·
                                             {{ reasonLabel(row.reason) }}</span
@@ -1049,7 +1087,8 @@ const wide =
                                         }}</span>
                                         <span
                                             class="block text-xs text-muted-foreground"
-                                            >Delivery {{ row.delivery_reference
+                                            >Delivery
+                                            {{ unbroken(row.delivery_reference)
                                             }}<template
                                                 v-if="row.supplier_reference"
                                             >
@@ -1064,6 +1103,7 @@ const wide =
                                 <td data-stack data-label="Status">
                                     <div class="min-w-0">
                                         <V2Chip
+                                            class="whitespace-nowrap"
                                             :tone="stateTone(row.state)"
                                             :label="
                                                 supplierReturnStateLabels[
@@ -1151,7 +1191,7 @@ const wide =
                                             >
                                             <span
                                                 class="block text-xs break-words text-muted-foreground"
-                                                >{{ lot.sku_code }} ·
+                                                >{{ unbroken(lot.sku_code) }} ·
                                                 {{ lot.location }}</span
                                             >
                                         </div>
@@ -1193,8 +1233,12 @@ const wide =
                                             <span
                                                 class="block text-xs text-muted-foreground"
                                                 >Delivery
-                                                {{ lot.delivery_reference }} ·
-                                                received
+                                                {{
+                                                    unbroken(
+                                                        lot.delivery_reference,
+                                                    )
+                                                }}
+                                                · received
                                                 {{
                                                     quantityWithUnit(
                                                         lot.received_quantity,
@@ -1333,19 +1377,28 @@ const wide =
                                     {{ lot.batch_number }}
                                 </legend>
                                 <label
-                                    class="flex min-h-11 min-w-0 items-start gap-3 text-sm"
+                                    class="flex min-w-0 items-start gap-1 text-sm"
                                     :data-testid="`lot-pick-${lot.id}`"
-                                    ><input
-                                        v-model="drafts[lot.id].include"
-                                        type="checkbox"
-                                        class="mt-1 size-5 shrink-0"
-                                    /><span class="min-w-0 break-words"
+                                    ><span
+                                        class="-mt-3 -ml-3 inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center"
+                                        ><Checkbox
+                                            :model-value="
+                                                drafts[lot.id].include
+                                            "
+                                            :aria-label="`Return ${itemOf(lot)}, batch ${lot.batch_number}`"
+                                            @update:model-value="
+                                                (value) =>
+                                                    (drafts[lot.id].include =
+                                                        value === true)
+                                            " /></span
+                                    ><span class="min-w-0 break-words"
                                         ><span class="block font-medium">{{
                                             itemOf(lot)
                                         }}</span>
                                         <span
                                             class="block text-xs text-muted-foreground"
-                                            >{{ lot.sku_code }} · batch
+                                            >{{ unbroken(lot.sku_code) }} ·
+                                            batch
                                             {{ unbroken(lot.batch_number) }} ·
                                             expires
                                             {{ formatDate(lot.expiry_date) }} ·
@@ -1363,7 +1416,7 @@ const wide =
                                     class="flex min-w-0 flex-col gap-1.5 text-sm font-medium"
                                     >Quantity ({{ lot.stock_unit }})
                                     <input
-                                        v-model="drafts[lot.id].quantity"
+                                        :value="draftQuantity(lot.id)"
                                         inputmode="decimal"
                                         :disabled="!drafts[lot.id].include"
                                         :aria-invalid="
@@ -1382,31 +1435,39 @@ const wide =
                                                 ? 'border-destructive'
                                                 : 'border-input'
                                         "
+                                        @input="
+                                            drafts[lot.id].quantity = (
+                                                $event.target as HTMLInputElement
+                                            ).value
+                                        "
                                 /></label>
-                                <label
+                                <div
                                     class="flex min-w-0 flex-col gap-1.5 text-sm font-medium"
-                                    >Reason
-                                    <select
-                                        v-model="drafts[lot.id].reason"
-                                        :disabled="!drafts[lot.id].include"
-                                        class="h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base disabled:opacity-50 md:text-[15px]"
+                                >
+                                    <span :id="`lot-reason-${lot.id}`"
+                                        >Reason</span
                                     >
-                                        <option
-                                            v-for="reason in returns.reasons"
-                                            :key="reason"
-                                            :value="reason"
-                                        >
-                                            {{ reasonLabel(reason) }}
-                                        </option>
-                                    </select>
-                                </label>
+                                    <OperationalSelect
+                                        :model-value="drafts[lot.id].reason"
+                                        label="Reason"
+                                        :labelledby="`lot-reason-${lot.id}`"
+                                        :options="reasonSelectOptions"
+                                        :disabled="!drafts[lot.id].include"
+                                        trigger-class="h-11 w-full"
+                                        @update:model-value="
+                                            (value) =>
+                                                (drafts[lot.id].reason =
+                                                    String(value))
+                                        "
+                                    />
+                                </div>
                                 <p
                                     v-if="lotError(lot.id)"
                                     :id="`lot-error-${lot.id}`"
                                     role="alert"
                                     class="text-sm text-destructive sm:col-span-3"
                                 >
-                                    {{ lotError(lot.id) }}
+                                    {{ plainError(lotError(lot.id)) }}
                                 </p>
                             </fieldset>
                             <label
@@ -1428,10 +1489,12 @@ const wide =
                                 class="text-sm text-destructive"
                             >
                                 {{
-                                    groupErrors.supplier_reference ??
-                                    groupErrors.lines ??
-                                    groupErrors.retry_key ??
-                                    groupErrors.goods_receipt_id
+                                    plainError(
+                                        groupErrors.supplier_reference ??
+                                            groupErrors.lines ??
+                                            groupErrors.retry_key ??
+                                            groupErrors.goods_receipt_id,
+                                    )
                                 }}
                             </p>
                             <p
@@ -1516,7 +1579,7 @@ const wide =
                         {{ quantityWithUnit(line.quantity, line.base_unit) }} of
                         {{ itemOf(line) }}
                         <span class="block text-xs text-muted-foreground"
-                            >{{ line.sku_code }} · batch
+                            >{{ unbroken(line.sku_code) }} · batch
                             {{ unbroken(line.batch_number) }} ·
                             {{ reasonLabel(line.reason) }}</span
                         >
