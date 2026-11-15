@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
 import { TriangleAlert } from '@lucide/vue';
-import { computed, onBeforeUnmount, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -55,6 +55,7 @@ const page = usePage();
 const open = ref(false);
 const saved = ref(false);
 const loaded = ref(true);
+const consentRow = ref<HTMLElement | null>(null);
 const startInvalid = ref(false);
 const endInvalid = ref(false);
 const baseline = ref('');
@@ -99,6 +100,9 @@ const edit = (action: string, document: Document | null = null) => {
     endInvalid.value = false;
     form.action = action;
     form.document_id = document?.id ?? null;
+    // A void is permanent, so it starts with no category picked (Classic starts on "Dates corrected"; this is a deliberate,
+    // stricter difference for Void only). Replace keeps Classic's default.
+    form.change_reason = action === 'void' ? '' : 'dates_corrected';
     form.expected_branch_id = props.certificates.branchId;
     form.lock_version = props.certificates.lockVersion;
     form.idempotency_key = crypto.randomUUID();
@@ -127,6 +131,20 @@ watch(open, (value) => {
         clear();
     }
 });
+// When the reason first gets text, bring the consent tick into view, right under the sentence that asks for it.
+watch(
+    () => form.reason !== '',
+    (hasReason) => {
+        if (hasReason) {
+            nextTick(() =>
+                consentRow.value?.scrollIntoView({
+                    block: 'nearest',
+                    behavior: 'smooth',
+                }),
+            );
+        }
+    },
+);
 watch(
     [
         () => props.certificates.branchId,
@@ -187,7 +205,7 @@ const dialogTitle = computed(() =>
 // Why the filled button is off, in words (the person can fix each).
 const missing = computed(() => {
     if (form.action === 'void') {
-        return undefined;
+        return form.change_reason ? undefined : 'Pick a reason to continue.';
     }
 
     if (
@@ -548,6 +566,7 @@ const errorKeys = [
                 </p>
                 <label
                     v-if="form.reason"
+                    ref="consentRow"
                     class="flex min-h-11 items-start gap-3 py-1 text-sm"
                 >
                     <Checkbox

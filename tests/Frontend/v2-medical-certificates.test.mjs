@@ -177,3 +177,30 @@ test('V2 hides the day count until both dates are valid', () => {
     assert.ok(/v-if="datesValid"[^>]*>\{\{days\}\}inclusiveday\(s\)/.test(p));
     assert.ok(p.includes('!startInvalid.value&&!endInvalid.value'));
 });
+
+test('V2 void starts with no category and Confirm void is off until one is picked; replace keeps the Classic default', () => {
+    const p = flat(page);
+
+    assert.ok(
+        p.includes(
+            "form.change_reason = action === 'void' ? '' : 'dates_corrected';",
+        ),
+    );
+    assert.ok(
+        p.includes(
+            "form.change_reason ? undefined : 'Pick a reason to continue.'",
+        ),
+    );
+    // Classic's default stays "Dates corrected" (replace keeps it for parity).
+    assert.ok(
+        tight(classic).includes(tight("change_reason: 'dates_corrected',")),
+    );
+});
+
+test('V2 brings the consent tick into view when the reason first gets text', () => {
+    const p = flat(page);
+
+    assert.ok(p.includes('ref="consentRow"'));
+    assert.ok(p.includes("block: 'nearest'"));
+    assert.ok(p.includes("form.reason !== ''"));
+});
