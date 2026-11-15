@@ -201,7 +201,8 @@ export type BillingPage = {
         | 'reverse'
         | 'void'
         | 'complete'
-        | 'print',
+        | 'print'
+        | 'printInvoice',
         boolean
     >;
 };
@@ -239,4 +240,7 @@ export type IssuedCopy = {
     issuedBy: string;
     prints: number;
     latest: boolean;
+    /** PCA-1: false for a Panel patient's invoice copy (view only). */
+    reprintable?: boolean;
+    viewUrl?: string | null;
 };

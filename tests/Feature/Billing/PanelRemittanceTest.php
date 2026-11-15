@@ -63,14 +63,15 @@ class PanelRemittanceTest extends BillingTestCase
             ->where('remittances.data.0.amountSen', 4000)->has('remittances.data.0.splits', 2));
     }
 
-    public function test_finance_officer_may_record_a_split_payment_without_panel_claims_access(): void
+    public function test_finance_officer_may_record_a_split_payment_and_open_panel_claims(): void
     {
         $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
         [$claim] = $this->decidedClaims($panel, [3000]);
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance, $this->branch);
 
-        $this->get(route('panel-claims.index'))->assertForbidden();
+        // PCA-1 (owner decision 2026-11-13): Finance Officers now open Panel Claims too.
+        $this->get(route('panel-claims.index'))->assertOk();
         $this->get(route('panel-invoices.index'))->assertInertia(fn (Assert $page) => $page->where('can.recordRemittances', true));
         $this->get(route('panel-remittances.index', ['panel' => $panel->code]))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->has('openClaims', 1));

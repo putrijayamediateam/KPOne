@@ -90,6 +90,8 @@ export type VisitHistoryFinancial = {
         printUrl: string | null;
     }>;
     printUrl: string | null;
+    /** PCA-1: the actor may print, but a Panel patient never gets a printed invoice. */
+    panelNoInvoicePrint?: boolean;
 };
 
 export type VisitHistoryPage = {

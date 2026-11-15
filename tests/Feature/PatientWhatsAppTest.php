@@ -175,7 +175,8 @@ class PatientWhatsAppTest extends BillingTestCase
         foreach (array_keys(PermissionCatalogue::roles()) as $role) {
             $actor = $role === 'panel_officer' ? $officer : $this->actor($role);
             $this->selectBranch($actor);
-            $this->get($url)->assertStatus($role === 'panel_officer' ? 302 : 403);
+            // PCA-1 (owner decision 2026-11-13): Finance Officer and Director now hold the claim identity view.
+            $this->get($url)->assertStatus(in_array($role, ['panel_officer', 'finance_officer', 'director'], true) ? 302 : 403);
         }
         $otherBranch = Branch::query()->where('organisation_id', $this->organisation->id)->where('id', '!=', $this->branch->id)->firstOrFail();
         $otherOfficer = $this->actor('panel_officer', $otherBranch);
@@ -183,8 +184,9 @@ class PatientWhatsAppTest extends BillingTestCase
         $this->get($url)->assertNotFound();
         $this->selectBranch($officer);
         $this->get(route('patients.whatsapp', ['context' => 'patient', 'key' => $visit->patient->patient_number]))->assertForbidden();
+        // PCA-1 (owner decision 2026-11-13): Finance Officers hold the claim identity view, so the link opens.
         $this->selectBranch($finance);
-        $this->get($url)->assertForbidden();
+        $this->get($url)->assertRedirect('https://wa.me/60123456789');
         $this->selectBranch($officer);
         $officer->syncRoles(['marketing']);
         $this->get($url)->assertForbidden();
