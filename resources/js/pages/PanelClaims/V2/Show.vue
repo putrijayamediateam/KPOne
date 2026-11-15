@@ -498,18 +498,14 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                     :public-id="claim.publicId"
                     class="rounded-[14px] border bg-card p-4"
                 />
-                <div
+                <PanelAdjustmentPanel
                     v-if="panelAdjustment"
-                    class="rounded-[14px] border bg-card"
-                >
-                    <PanelAdjustmentPanel
-                        :adjustment="panelAdjustment"
-                        :claim="adjustmentClaim"
-                        :can-claim-only="claim.canEditAmount"
-                        class="border-0"
-                        @claim-only="open = 'amount'"
-                    />
-                </div>
+                    :adjustment="panelAdjustment"
+                    :claim="adjustmentClaim"
+                    :can-claim-only="claim.canEditAmount"
+                    class="rounded-[14px] bg-card"
+                    @claim-only="open = 'amount'"
+                />
                 <p
                     v-if="packError"
                     role="alert"

@@ -245,6 +245,7 @@ const signed = (dir: string, value: number) =>
                 <h4 class="font-medium">Change the amount</h4>
                 <div class="flex flex-wrap gap-2">
                     <Button
+                        class="max-lg:min-h-11"
                         v-if="adjustment.canRequest"
                         variant="outline"
                         data-testid="panel-adjustment-open"
@@ -252,6 +253,7 @@ const signed = (dir: string, value: number) =>
                         >Adjust Panel amount: changes the invoice</Button
                     >
                     <Button
+                        class="max-lg:min-h-11"
                         v-if="canClaimOnly"
                         variant="outline"
                         data-testid="panel-adjustment-claim-only"
@@ -288,6 +290,7 @@ const signed = (dir: string, value: number) =>
                         >, Status {{ formatStatusLabel(child.statusKey) }}</span
                     >
                     <Button
+                        class="max-lg:min-h-11"
                         v-if="child.url"
                         variant="outline"
                         size="sm"
@@ -305,6 +308,7 @@ const signed = (dir: string, value: number) =>
             class="flex flex-wrap gap-2"
         >
             <Button
+                class="max-lg:min-h-11"
                 v-if="adjustment.claimUrl"
                 variant="outline"
                 size="sm"
@@ -314,6 +318,7 @@ const signed = (dir: string, value: number) =>
                 ></Button
             >
             <Button
+                class="max-lg:min-h-11"
                 v-if="adjustment.canRequest"
                 variant="outline"
                 size="sm"
@@ -352,6 +357,7 @@ const signed = (dir: string, value: number) =>
             </p>
             <div class="flex flex-wrap gap-2">
                 <Button
+                    class="max-lg:min-h-11"
                     v-if="adjustment.waiting.canConfirm"
                     :disabled="busy"
                     data-testid="panel-adjustment-confirm"
@@ -359,6 +365,7 @@ const signed = (dir: string, value: number) =>
                     >Confirm adjustment</Button
                 >
                 <Button
+                    class="max-lg:min-h-11"
                     v-if="adjustment.waiting.canWithdraw"
                     variant="outline"
                     :disabled="busy"
@@ -497,12 +504,14 @@ const signed = (dir: string, value: number) =>
                     </p>
                     <div class="flex gap-2">
                         <Button
+                            class="max-lg:min-h-11"
                             variant="outline"
                             :disabled="busy"
                             @click="open = false"
                             >Cancel</Button
                         >
                         <Button
+                            class="max-lg:min-h-11"
                             :disabled="!ready || busy"
                             data-testid="panel-adjustment-submit"
                             @click="submit"

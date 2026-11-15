@@ -102,6 +102,11 @@ final class PanelClaimPackService
                 $panelAdjustment = $shown?->panel_adjustment_sen ?? 0;
                 $claimAmount = $earlier ? $shown->claim_amount_sen : (int) $claim->claim_amount_sen;
                 $parent = $claim->parent_claim_id === null ? null : PanelClaim::query()->find($claim->parent_claim_id);
+                if ($parent !== null) {
+                    // A supplementary claim asks only for its adjustment: no invoice lines, totals or unclaimed balance.
+                    $invoiceTotal = $claimAmount;
+                    $panelAdjustment = 0;
+                }
                 $own = $claim->panel_claim_adjustment_id === null ? null : PanelClaimAdjustment::query()->find($claim->panel_claim_adjustment_id);
                 $identifier = $identifiers->get($claim->patient_id);
                 $submittedAt = $submitted->get($claim->id)?->occurred_at;

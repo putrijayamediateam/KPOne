@@ -527,9 +527,7 @@ const print = () => window.print();
                         </div>
                         <!-- PNL-16: what the Panel is not asked for; who pays it is not stated (patient, pay later or already paid). -->
                         <div
-                            v-if="
-                                unclaimedSen(claim) > 0 && !claim.supplementary
-                            "
+                            v-if="unclaimedSen(claim) > 0"
                             data-testid="pack-unclaimed-balance"
                         >
                             <dt>Balance not claimed from the Panel</dt>
