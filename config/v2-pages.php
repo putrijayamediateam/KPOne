@@ -56,6 +56,7 @@ return [
         'Inventory/TreatmentUsage',
         'Agents/Office',
         'Inventory/GovernedStock',
+        'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
         'MedicalCertificates/Index',
     ],
