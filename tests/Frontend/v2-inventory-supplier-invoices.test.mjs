@@ -203,3 +203,20 @@ test("page 6: Daniel's checklist (sentences, blocked reasons, own record, sheets
     assert.match(tflat, /:dirty="decision\.note\.trim\(\) !== ''"/);
     assert.equal((template.match(/cards="xl"/g) ?? []).length, 1);
 });
+
+test("page 6, Daniel's round 2: picking Other brings the note into view with focus; codes share one style", () => {
+    assert.match(
+        flat(script),
+        /const showNote = .*?decision\.reason !== 'other'.*?getElementById\('decision-note'\).*?scrollIntoView\(\{ block: 'nearest' \}\).*focus\(\)/,
+    );
+    assert.match(tflat, /reasonError = ''; showNote\(\);/);
+    // The PO code uses the same monospace style as the invoice number.
+    assert.equal(
+        (
+            template.match(
+                /font-mono (text-sm )?\[overflow-wrap:anywhere\]/g,
+            ) ?? []
+        ).length,
+        2,
+    );
+});

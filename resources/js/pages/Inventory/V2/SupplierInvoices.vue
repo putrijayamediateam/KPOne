@@ -524,6 +524,18 @@ const decisionSentence = computed(() =>
         ? 'The difference is accepted and the invoice is ready to pay outside KPOne. Stock does not change. This cannot be undone.'
         : 'The invoice goes back to the supplier. A corrected copy can be recorded under the same number. Stock does not change.',
 );
+/** "Other" needs a note: bring the box into view and put the cursor in it, so the footer's request is visible. */
+const showNote = () => {
+    if (decision.reason !== 'other') {
+        return;
+    }
+
+    void nextTick(() => {
+        const note = document.getElementById('decision-note');
+        note?.scrollIntoView({ block: 'nearest' });
+        note?.focus();
+    });
+};
 const decisionBlocked = computed<string | null>(() => {
     if (!decision.reason) {
         return 'Pick a reason to continue.';
@@ -872,7 +884,7 @@ const decisionBlocked = computed<string | null>(() => {
                                     <td data-stack data-label="Order">
                                         <div class="min-w-0 text-sm">
                                             <span
-                                                class="block [overflow-wrap:anywhere]"
+                                                class="block font-mono [overflow-wrap:anywhere]"
                                                 >{{
                                                     unbroken(
                                                         invoice.orderNumber,
@@ -1096,6 +1108,7 @@ const decisionBlocked = computed<string | null>(() => {
                         (value) => {
                             decision.reason = value ?? '';
                             reasonError = '';
+                            showNote();
                         }
                     "
                 />
