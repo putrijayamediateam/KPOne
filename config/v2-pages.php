@@ -56,6 +56,7 @@ return [
         'Agents/Office',
         'Inventory/GovernedStock',
         'Inventory/SupplierReturns',
+        'MedicalCertificates/Index',
     ],
 
     /*
