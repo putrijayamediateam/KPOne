@@ -26,7 +26,7 @@ type Line = {
     what: string;
     in: string | null;
     out: string | null;
-    balance: string;
+    balance: string | null;
     batch: string | null;
     location: string;
     reference: string;
@@ -38,8 +38,9 @@ type Check = {
     outcome: 'matches' | 'differs';
     reason: string | null;
     note: string | null;
-    ledger: string;
-    counted: string;
+    ledger: string | null;
+    counted: string | null;
+    difference: string | null;
     checkedBy: string;
     checkedOn: string;
 };
@@ -53,10 +54,11 @@ type Register = {
         stockUnit: string;
     };
     filters: { from: string; to: string; label: string };
-    opening: string;
-    closing: string;
+    opening: string | null;
+    closing: string | null;
     lines: { page: number; lastPage: number; total: number; rows: Line[] };
-    balanceNow: string;
+    balanceNow: string | null;
+    blind: boolean;
     controlled: boolean;
     newestMovementId: number;
     newestCheckSequence: number;
@@ -108,9 +110,15 @@ const form = reactive({
 });
 const errors = ref<Record<string, string>>({});
 const busy = ref(false);
+// STK-40: a blind checker never sees the balance; the server says when the count differs and a reason is needed.
+const toldDiffers = ref(false);
 const differs = computed(() => {
+    if (props.register.blind) {
+        return toldDiffers.value;
+    }
+
     const counted = milli(form.counted);
-    const ledger = milli(props.register.balanceNow);
+    const ledger = milli(props.register.balanceNow ?? '');
 
     return counted !== null && ledger !== null && counted !== ledger;
 });
@@ -120,6 +128,13 @@ watch(differs, (value) => {
         form.note = '';
     }
 });
+// A new count needs the server to say again whether it differs.
+watch(
+    () => form.counted,
+    () => {
+        toldDiffers.value = false;
+    },
+);
 
 const submit = () => {
     errors.value = {};
@@ -176,6 +191,11 @@ const submit = () => {
             onError: (bag) => {
                 errors.value = bag as Record<string, string>;
 
+                // STK-40: when counting blind, the server is what says the count differs.
+                if (bag.reason && props.register.blind) {
+                    toldDiffers.value = true;
+                }
+
                 // A stale page or an earlier key needs a fresh one after the reload.
                 if (
                     bag.seen_movement_id ||
@@ -198,6 +218,15 @@ const formError = computed(
 );
 
 // ---- V2 only below this line ----
+// STK-40: the count less the register, with a sign and a real minus ("+2", "\u22121.5", "0"), as Classic.
+const difference = (value: string | null) =>
+    value === null
+        ? '—'
+        : value.startsWith('-')
+          ? `\u2212${quantityWithUnit(value.slice(1), unit.value)}`
+          : value === '0'
+            ? 'none'
+            : `+${quantityWithUnit(value, unit.value)}`;
 usePageCrumbs(() => [
     { title: 'Inventory', href: '/inventory' },
     { title: 'Controlled register', href: '/inventory/controlled-register' },
@@ -285,7 +314,11 @@ watch(
         <V2LeaveGuard :dirty="dirty" />
         <V2WorkLayout
             :title="register.sku.medicine"
-            :description="`${register.sku.skuCode} · ${register.branchName} · on hand now ${quantityWithUnit(register.balanceNow, register.sku.stockUnit)}`"
+            :description="
+                register.blind
+                    ? `${register.sku.skuCode} · ${register.branchName} · on hand shown after your count`
+                    : `${register.sku.skuCode} · ${register.branchName} · on hand now ${quantityWithUnit(register.balanceNow, register.sku.stockUnit)}`
+            "
         >
             <template #main>
                 <p
@@ -332,7 +365,15 @@ watch(
                     >
                         Show
                     </button>
+                    <p
+                        v-if="register.blind"
+                        class="flex min-h-11 items-center text-sm text-muted-foreground lg:min-h-9"
+                        data-testid="cd-print-after"
+                    >
+                        Print the register after your count.
+                    </p>
                     <a
+                        v-else
                         :href="printHref"
                         class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
                         data-testid="cd-print"
@@ -350,7 +391,18 @@ watch(
                     >
                         Movements ({{ register.lines.total }})
                     </h2>
-                    <p class="text-sm text-muted-foreground">
+                    <p
+                        v-if="register.blind"
+                        class="rounded-[14px] border bg-muted/40 p-3 text-sm"
+                        data-testid="cd-blind-note"
+                    >
+                        Quantities are hidden until you record your count, so
+                        your check does not depend on the register.
+                        <span class="block text-xs text-muted-foreground">{{
+                            register.filters.label
+                        }}</span>
+                    </p>
+                    <p v-else class="text-sm text-muted-foreground">
                         Balance at the start:
                         <span
                             class="font-medium text-foreground tabular-nums"
@@ -487,12 +539,20 @@ watch(
                                 ? '1 movement'
                                 : `${register.movementsSinceCheck} movements`
                         }}
-                        since the last check. Count what is physically on hand
-                        at this branch and compare it with the register:
-                        <span
-                            class="font-medium text-foreground tabular-nums"
-                            >{{ words(register.balanceNow) }}</span
-                        >.
+                        since the last check.
+                        <template v-if="register.blind"
+                            >Count what is physically on hand at this branch.
+                            The register's balance appears after you record your
+                            count.</template
+                        >
+                        <template v-else
+                            >Count what is physically on hand at this branch and
+                            compare it with the register:
+                            <span
+                                class="font-medium text-foreground tabular-nums"
+                                >{{ words(register.balanceNow) }}</span
+                            >.</template
+                        >
                     </p>
                     <p
                         v-if="recorded !== null"
@@ -677,9 +737,16 @@ watch(
                                     {{ check.checkedBy }}</span
                                 >
                             </div>
-                            <p class="tabular-nums">
+                            <p
+                                v-if="check.ledger === null"
+                                class="text-muted-foreground"
+                            >
+                                Quantities shown after your count.
+                            </p>
+                            <p v-else class="tabular-nums">
                                 Register {{ words(check.ledger) }} · counted
-                                {{ words(check.counted) }}
+                                {{ words(check.counted) }} · difference
+                                {{ difference(check.difference) }}
                             </p>
                             <p
                                 v-if="check.reason"
