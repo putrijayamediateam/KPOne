@@ -60,7 +60,8 @@ final class PanelClaimService
             ->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
         $this->requireClaimable($allocation, $invoice);
 
-        if (PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->exists()) {
+        // PCA-2: one original claim per Panel share; supplementary claims are created only by a confirmed adjustment.
+        if (PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->where('claim_kind', 'original')->exists()) {
             throw ValidationException::withMessages(['claim' => 'A claim pack already exists for this approved Panel allocation.']);
         }
 
@@ -90,11 +91,13 @@ final class PanelClaimService
             'branch_name_snapshot' => $branch->name,
             'visit_date' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
             'invoice_total_sen' => app(FinancialLedger::class)->chargedBeforeCredits($invoice),
-            'claim_amount_sen' => $allocation->amount_sen,
+            'claim_amount_sen' => PanelShare::effective($allocation),
             'status' => 'prepared',
             'lock_version' => 1,
             'created_by_user_id' => $actor->id,
         ], $attributes))->save();
+
+        PanelShare::recordVersion($claim, $actor, null);
 
         foreach ($lines as $index => $line) {
             $copy = new PanelClaimLine;
@@ -630,7 +633,7 @@ final class PanelClaimService
     {
         if ($allocation->status !== 'approved' || (int) $allocation->current_invoice_guard !== $invoice->id
             || $invoice->status !== 'finalized' || $invoice->correction_hold || $invoice->source_stale
-            || $allocation->amount_sen < 1 || $allocation->amount_sen > app(FinancialLedger::class)->chargedBeforeCredits($invoice)) {
+            || PanelShare::effective($allocation) < 1 || PanelShare::effective($allocation) > app(FinancialLedger::class)->chargedBeforeCredits($invoice)) {
             throw ValidationException::withMessages(['claim' => 'Only a current approved Panel allocation on an eligible finalized Invoice can be claimed.']);
         }
     }
