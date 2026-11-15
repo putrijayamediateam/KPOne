@@ -51,6 +51,7 @@ return [
         'Billing/Show',
         'Agents/Assistant',
         'Agents/DailySummary',
+        'Inventory/TreatmentUsage',
         'Agents/Office',
         'Inventory/GovernedStock',
         'Inventory/SupplierReturns',
