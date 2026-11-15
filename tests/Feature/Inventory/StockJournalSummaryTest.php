@@ -14,6 +14,7 @@ use App\Domain\Visit\Billing\Services\BillingBuilderService;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\OtcDispensaryFixtures;
@@ -126,7 +127,7 @@ final class StockJournalSummaryTest extends VisitTestCase
         $response = $this->actingAs($t['director'])->get(route('inventory.stock-value.journal', ['branch' => (string) $this->branch->id, 'month' => $t['this']]))->assertOk();
         $this->assertStringContainsString('text/csv', (string) $response->headers->get('Content-Type'));
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
-        $this->assertStringContainsString('kpone-stock-journal-'.$t['this'].'-branch-'.$this->branch->id.'.csv', (string) $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('kpone-stock-journal-'.$t['this'].'-to-date-branch-'.$this->branch->id.'.csv', (string) $response->headers->get('Content-Disposition'));
         $csv = $response->getContent();
         $this->assertStringStartsWith("\xEF\xBB\xBF", (string) $csv);
         $this->assertStringContainsString('not professional accounting advice', (string) $csv);
@@ -159,5 +160,23 @@ final class StockJournalSummaryTest extends VisitTestCase
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'inventory.valuation.journal_exported')->count());
         // The report page offers the download only for one calendar month (frontend), and the route is Director only.
         $this->get(route('inventory.stock-value'))->assertOk()->assertInertia(fn (Assert $page) => $page->component('Inventory/StockValue'));
+    }
+
+    public function test_a_journal_that_does_not_balance_is_refused_and_a_running_month_is_month_to_date(): void
+    {
+        StockJournalSummaryService::ensureBalanced(0);
+        try {
+            StockJournalSummaryService::ensureBalanced(1);
+            $this->fail('An unbalanced journal was accepted.');
+        } catch (ValidationException $e) {
+            $this->assertSame(['journal' => ['The journal does not balance, so no file was made.']], $e->errors());
+        }
+
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $month = now($this->branch->timezone)->format('Y-m');
+        $response = $this->get(route('inventory.stock-value.journal', ['branch' => (string) $this->branch->id, 'month' => $month]))->assertOk();
+        $this->assertStringContainsString('kpone-stock-journal-'.$month.'-to-date-branch-', (string) $response->headers->get('Content-Disposition'));
+        $this->assertStringContainsString('(month to date, up to '.now($this->branch->timezone)->toDateString().')', (string) $response->getContent());
     }
 }

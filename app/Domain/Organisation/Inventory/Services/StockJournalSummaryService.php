@@ -99,6 +99,8 @@ final class StockJournalSummaryService
         $closingValue = $value($closing);
 
         $lines = array_fill_keys(array_keys(self::LINES), 0);
+        /** @var array<string, true> $otherTypes */
+        $otherTypes = [];
         $period = DB::table('stock_movements')->where('organisation_id', $organisationId)
             ->where('occurred_at', '>=', $start->toDateTimeString())->where('occurred_at', '<=', $end->toDateTimeString())->orderBy('id')->get(['id', 'movement_type']);
         foreach ($period as $row) {
@@ -115,7 +117,11 @@ final class StockJournalSummaryService
             if ($in === $out) {
                 continue; // inside the scope, or nothing to do with it
             }
-            $lines[$this->line((string) $row->movement_type, $in)] += (int) $m['value_milli_sen'];
+            $line = $this->line((string) $row->movement_type, $in);
+            $lines[$line] += (int) $m['value_milli_sen'];
+            if (in_array($line, ['other_in', 'other_out'], true)) {
+                $otherTypes[(string) $row->movement_type] = true;
+            }
         }
 
         // Supplier credit difference: credit notes recorded this month against the cost the returned stock left at. It
@@ -139,7 +145,9 @@ final class StockJournalSummaryService
             'openingMilliSen' => $openingValue, 'closingMilliSen' => $closingValue, 'debitsMilliSen' => $debits, 'creditsMilliSen' => $credits,
             // Exactly zero by construction; the test proves it.
             'checkMilliSen' => $openingValue + $debits - $credits - $closingValue,
-            'uncostedSkus' => $uncosted > 0, 'includesTransit' => $all,
+            'uncostedSkus' => $uncosted > 0, 'includesTransit' => $all, 'otherTypes' => array_keys($otherTypes),
+            // A month still running is "month to date", up to now.
+            'toDate' => $first->endOfMonth()->greaterThan(CarbonImmutable::now($zone)), 'upTo' => CarbonImmutable::parse($end)->setTimezone($zone)->toDateString(),
         ];
     }
 
@@ -152,6 +160,7 @@ final class StockJournalSummaryService
     public function csv(User $actor, Branch $active, array $query): array
     {
         $s = $this->summary($actor, $active, $query);
+        self::ensureBalanced((int) $s['checkMilliSen']);
         $sen = fn (int $milli): string => ReportCsv::money(WeightedAverageCostService::sen($milli));
         $rows = [];
         $n = 0;
@@ -162,8 +171,13 @@ final class StockJournalSummaryService
             }
             $n++;
             $comesIn = in_array($key, ['purchases', 'opening', 'transfers_in', 'patient_returns', 'count_gains', 'other_in'], true);
-            $rows[] = [(string) $n, $s['monthEnd'], $description, $comesIn ? self::INVENTORY : $account, $sen($amount), '', ''];
-            $rows[] = [(string) $n, $s['monthEnd'], $description, $comesIn ? $account : self::INVENTORY, '', $sen($amount), ''];
+            $note = match ($key) {
+                'patient_returns' => 'Returned medicine is quarantined in the patient returns location and is not usable.',
+                'other_in', 'other_out' => 'Movement types: '.implode(', ', $s['otherTypes']).'.',
+                default => '',
+            };
+            $rows[] = [(string) $n, $s['monthEnd'], $description, $comesIn ? self::INVENTORY : $account, $sen($amount), '', $note];
+            $rows[] = [(string) $n, $s['monthEnd'], $description, $comesIn ? $account : self::INVENTORY, '', $sen($amount), $note];
         }
         if ($s['creditDifference']['milliSen'] !== 0) {
             $n++;
@@ -187,19 +201,30 @@ final class StockJournalSummaryService
             $rows[] = ['', $s['monthEnd'], 'Note: some stock has no cost recorded and is left out of every value', '', '', '', ''];
         }
         if ($s['includesTransit']) {
-            $rows[] = ['', $s['monthEnd'], 'Note: All branches includes stock in transit; transfers between branches net to zero and are left out', '', '', '', ''];
+            $rows[] = ['', $s['monthEnd'], 'Note: All branches counts stock in transit between branches in the opening and closing values, so transfers between branches net to zero and are left out', '', '', '', ''];
         }
 
         $metadata = [
             ["Management report — cost policy to be confirmed by the clinic's accountant. ".WeightedAverageCostService::DISCLAIMER],
             ['No real accounting system receives this file.'],
-            ['Scope', $s['scopeLabel']], ['Month', $s['month']], ['Generated', CarbonImmutable::now($s['zone'])->format('j M Y, g:i A').' ('.$s['zone'].')'],
+            ['Scope', $s['scopeLabel']], ['Month', $s['month'].($s['toDate'] ? ' (month to date, up to '.$s['upTo'].')' : ' (full month)')], ['Generated', CarbonImmutable::now($s['zone'])->format('j M Y, g:i A').' ('.$s['zone'].')'],
         ];
         $csv = ReportCsv::encode(['Line', 'Date', 'Description', 'Account', 'Debit (RM)', 'Credit (RM)', 'Note'], $rows, $metadata);
         abort_if($this->audit->record('inventory.valuation.journal_exported', null, ['scope' => $s['scope'] === 'all' ? 'all' : 'branch',
             'branch_id' => $s['scope'] === 'all' ? null : (int) $s['scope'], 'month' => $s['month'], 'rows' => count($rows)], $actor, $active) === null, 503, 'The download could not be recorded, so it was not sent.');
 
-        return ['filename' => 'kpone-stock-journal-'.$s['month'].'-'.($s['scope'] === 'all' ? 'all-branches' : 'branch-'.$s['scope']).'.csv', 'csv' => $csv];
+        return ['filename' => 'kpone-stock-journal-'.$s['month'].($s['toDate'] ? '-to-date' : '').'-'.($s['scope'] === 'all' ? 'all-branches' : 'branch-'.$s['scope']).'.csv', 'csv' => $csv];
+    }
+
+    /**
+     * A journal whose check line is not exactly zero is never handed over: no audit row, no file (Daniel). The check is
+     * exact by construction, so this only fires if the cost engine ever loses or makes value.
+     */
+    public static function ensureBalanced(int $checkMilliSen): void
+    {
+        if ($checkMilliSen !== 0) {
+            throw ValidationException::withMessages(['journal' => 'The journal does not balance, so no file was made.']);
+        }
     }
 
     /** Which line a movement in or out of scope belongs to. */
