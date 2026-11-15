@@ -407,13 +407,13 @@ final class SupplierReturnService
         $latest = DB::table('inventory_supplier_return_actions')->select('return_id')->selectRaw('MAX(lock_version) as version')->groupBy('return_id');
         $returns = DB::table('inventory_supplier_returns as r')->joinSub($latest, 'latest', 'latest.return_id', '=', 'r.id')
             ->join('inventory_supplier_return_actions as a', fn ($j) => $j->on('a.return_id', '=', 'r.id')->on('a.lock_version', '=', 'latest.version'))
-            ->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')->join('inventory_batches as b', 'b.id', '=', 'r.inventory_batch_id')
+            ->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')->join('inventory_items as itm', 'itm.id', '=', 's.inventory_item_id')->join('inventory_batches as b', 'b.id', '=', 'r.inventory_batch_id')
             ->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')->join('inventory_suppliers as sup', 'sup.id', '=', 'r.supplier_id')
             ->join('inventory_receipt_delivery_evidence as d', 'd.goods_receipt_id', '=', 'r.goods_receipt_id')
             ->where('r.organisation_id', $actor->organisation_id)->where('r.branch_id', $branch->id)->whereNull('r.group_id')
             ->when($needle, fn ($q) => $q->where(fn ($w) => $w->where('s.sku_code', 'ilike', $needle)->orWhere('b.batch_number', 'ilike', $needle)->orWhere('sup.name', 'ilike', $needle)->orWhere('r.return_number', 'ilike', $needle)->orWhere('d.delivery_reference', 'ilike', $needle)))
             ->orderByDesc('r.id')
-            ->paginate(25, ['r.id', 'r.public_id', 'r.return_number', 'r.quantity', 'r.base_unit', 'r.reason', 'r.supplier_reference', 'r.requester_user_id', 'r.created_at', 'a.state', 'a.lock_version', 's.sku_code', 'b.batch_number', 'b.expiry_date', 'l.name as location', 'sup.name as supplier', 'd.delivery_reference'], 'page', (int) ($data['page'] ?? 1));
+            ->paginate(25, ['r.id', 'r.public_id', 'r.return_number', 'r.quantity', 'r.base_unit', 'r.reason', 'r.supplier_reference', 'r.requester_user_id', 'r.created_at', 'a.state', 'a.lock_version', 's.sku_code', 'itm.generic_name as item', 'b.batch_number', 'b.expiry_date', 'l.name as location', 'sup.name as supplier', 'd.delivery_reference'], 'page', (int) ($data['page'] ?? 1));
         $histories = DB::table('inventory_supplier_return_actions')->whereIn('return_id', $returns->pluck('id'))->orderBy('lock_version')
             ->get(['id', 'return_id', 'action', 'state', 'actor_user_id', 'reason_code', 'reference', 'credit_amount_sen', 'lock_version', 'movement_id', 'created_at'])->groupBy('return_id');
         // TIDY-4: who did each step, in words (BIL-2 staff-visibility rule), not an id.
@@ -437,13 +437,13 @@ final class SupplierReturnService
                 ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('inventory_supplier_return_actions as ca')->whereColumn('ca.return_id', 'cr.id')->whereIn('ca.state', ['rejected', 'cancelled']))
                 ->groupBy('cr.receipt_lot_id');
             $query = $this->returnableLots($actor, $branch)->join('inventory_suppliers as sup', 'sup.id', '=', 'delivery.supplier_id')
-                ->join('inventory_batches as b', 'b.id', '=', 'lot.inventory_batch_id')->join('inventory_skus as s', 's.id', '=', 'b.inventory_sku_id')
+                ->join('inventory_batches as b', 'b.id', '=', 'lot.inventory_batch_id')->join('inventory_skus as s', 's.id', '=', 'b.inventory_sku_id')->join('inventory_items as itm', 'itm.id', '=', 's.inventory_item_id')
                 ->join('inventory_locations as l', 'l.id', '=', 'po.destination_location_id')
                 ->leftJoinSub($committed, 'committed', 'committed.receipt_lot_id', '=', 'lot.id')
                 ->leftJoin('inventory_stock_balances as bal', fn ($j) => $j->on('bal.inventory_location_id', '=', 'po.destination_location_id')->on('bal.inventory_batch_id', '=', 'lot.inventory_batch_id')->on('bal.inventory_sku_id', '=', 's.id'))
                 ->whereRaw('lot.quantity - COALESCE(committed.committed, 0) > 0')
                 ->when($needle, fn ($q) => $q->where(fn ($w) => $w->where('s.sku_code', 'ilike', $needle)->orWhere('b.batch_number', 'ilike', $needle)->orWhere('sup.name', 'ilike', $needle)->orWhere('delivery.delivery_reference', 'ilike', $needle)));
-            $paged = $query->orderByDesc('lot.id')->paginate(25, ['lot.id', 'lot.quantity as received_quantity', 'lot.outcome', 's.sku_code', 's.stock_unit', 'b.batch_number', 'b.expiry_date', 'l.name as location', 'sup.name as supplier', 'delivery.delivery_reference', 'delivery.received_at', DB::raw('COALESCE(committed.committed, 0) as committed_quantity'), DB::raw('COALESCE(bal.quantity, 0) as on_hand')], 'lots_page', (int) ($data['lots_page'] ?? 1));
+            $paged = $query->orderByDesc('lot.id')->paginate(25, ['lot.id', 'lot.quantity as received_quantity', 'lot.outcome', 's.sku_code', 'itm.generic_name as item', 's.stock_unit', 'b.batch_number', 'b.expiry_date', 'l.name as location', 'sup.name as supplier', 'delivery.delivery_reference', 'delivery.received_at', DB::raw('COALESCE(committed.committed, 0) as committed_quantity'), DB::raw('COALESCE(bal.quantity, 0) as on_hand')], 'lots_page', (int) ($data['lots_page'] ?? 1));
             $lots = ['rows' => array_map(fn (stdClass $row): array => [...(array) $row, 'returnable' => StockUnitQuantity::format(max(0, min(StockUnitQuantity::scaled((string) $row->received_quantity) - StockUnitQuantity::scaled((string) $row->committed_quantity, true), StockUnitQuantity::scaled((string) $row->on_hand, true))))], $paged->items()), 'total' => $paged->total(), 'page' => $paged->currentPage(), 'lastPage' => $paged->lastPage()];
         }
 
@@ -484,9 +484,9 @@ final class SupplierReturnService
             ->orderByDesc('g.id')->paginate(10, ['g.id', 'g.group_number', 'g.requester_user_id', 'g.created_at', 'sup.name as supplier', 'd.delivery_reference'], 'groups_page', $page);
         /** @var list<stdClass> $items */
         $items = $paged->items();
-        $lines = DB::table('inventory_supplier_returns as r')->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')->join('inventory_batches as b', 'b.id', '=', 'r.inventory_batch_id')
+        $lines = DB::table('inventory_supplier_returns as r')->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')->join('inventory_items as itm', 'itm.id', '=', 's.inventory_item_id')->join('inventory_batches as b', 'b.id', '=', 'r.inventory_batch_id')
             ->whereIn('r.group_id', array_map(fn (stdClass $g): int => (int) $g->id, $items))->orderBy('r.id')
-            ->get(['r.id', 'r.group_id', 'r.return_number', 'r.quantity', 'r.base_unit', 'r.reason', 's.sku_code', 'b.batch_number', 'b.expiry_date'])->groupBy('group_id');
+            ->get(['r.id', 'r.group_id', 'r.return_number', 'r.quantity', 'r.base_unit', 'r.reason', 's.sku_code', 'itm.generic_name as item', 'b.batch_number', 'b.expiry_date'])->groupBy('group_id');
         $history = DB::table('inventory_supplier_return_actions as a')->join('inventory_supplier_returns as r', 'r.id', '=', 'a.return_id')
             ->whereIn('r.group_id', array_map(fn (stdClass $g): int => (int) $g->id, $items))->orderBy('a.return_id')->orderBy('a.lock_version')
             ->get(['r.group_id', 'a.return_id', 'a.action', 'a.state', 'a.reason_code', 'a.reference', 'a.credit_amount_sen', 'a.lock_version', 'a.created_at'])->groupBy('group_id');
@@ -526,11 +526,11 @@ final class SupplierReturnService
             ->whereNotExists(fn ($q) => $q->selectRaw('1')->from('inventory_supplier_return_actions as ca')->whereColumn('ca.return_id', 'cr.id')->whereIn('ca.state', ['rejected', 'cancelled']))
             ->groupBy('cr.receipt_lot_id');
         $rows = $this->returnableLots($actor, $branch)->where('receipt.id', $goodsReceiptId)
-            ->join('inventory_batches as b', 'b.id', '=', 'lot.inventory_batch_id')->join('inventory_skus as s', 's.id', '=', 'b.inventory_sku_id')
+            ->join('inventory_batches as b', 'b.id', '=', 'lot.inventory_batch_id')->join('inventory_skus as s', 's.id', '=', 'b.inventory_sku_id')->join('inventory_items as itm', 'itm.id', '=', 's.inventory_item_id')
             ->leftJoinSub($committed, 'committed', 'committed.receipt_lot_id', '=', 'lot.id')
             ->leftJoin('inventory_stock_balances as bal', fn ($j) => $j->on('bal.inventory_location_id', '=', 'po.destination_location_id')->on('bal.inventory_batch_id', '=', 'lot.inventory_batch_id')->on('bal.inventory_sku_id', '=', 's.id'))
             ->orderBy('lot.id')->limit(100)
-            ->get(['lot.id', 's.sku_code', 's.stock_unit', 'b.batch_number', 'b.expiry_date', 'lot.quantity as received_quantity', DB::raw('COALESCE(committed.committed, 0) as committed_quantity'), DB::raw('COALESCE(bal.quantity, 0) as on_hand')]);
+            ->get(['lot.id', 's.sku_code', 'itm.generic_name as item', 's.stock_unit', 'b.batch_number', 'b.expiry_date', 'lot.quantity as received_quantity', DB::raw('COALESCE(committed.committed, 0) as committed_quantity'), DB::raw('COALESCE(bal.quantity, 0) as on_hand')]);
 
         return array_values(array_map(fn (stdClass $row): array => [...(array) $row, 'returnable' => StockUnitQuantity::format(max(0, min(StockUnitQuantity::scaled((string) $row->received_quantity) - StockUnitQuantity::scaled((string) $row->committed_quantity, true), StockUnitQuantity::scaled((string) $row->on_hand, true))))], $rows->all()));
     }

@@ -230,6 +230,24 @@ final class SupplierReturnGroupTest extends VisitTestCase
         $this->assertSame(['approved', 'approved'], $this->states($groupId));
     }
 
+    public function test_every_list_names_the_item_read_only(): void
+    {
+        // V2 page 5 (Daniel): the sheets say "5 tablets of Paracetamol", so each lot, return and group line carries the
+        // item's generic name. Read only: no rule, quantity or state changes.
+        $f = $this->delivery();
+        $item = (string) DB::table('inventory_items')->where('id', $f['sku']->inventory_item_id)->value('generic_name');
+        $this->as($f['receiver']);
+        $page = $this->actingAs($f['receiver'])->get(route('inventory.supplier-returns', ['delivery' => $f['receipt']->id]))->assertOk()->viewData('page')['props']['returns'];
+        $this->assertSame([$item], array_values(array_unique(array_column($page['deliveryLots'], 'item'))));
+        $this->assertSame([$item], array_values(array_unique(array_map(fn ($row) => ((array) $row)['item'], $page['lots']['rows']))));
+
+        $this->actingAs($f['receiver'])->post(route('inventory.supplier-return-groups.store'), $this->request($f, ['1.000', '1.000']))->assertRedirect(route('inventory.supplier-returns'));
+        $this->actingAs($f['receiver'])->post(route('inventory.supplier-returns.store'), ['expected_branch_id' => $this->branch->id, 'retry_key' => (string) Str::uuid(), 'receipt_lot_id' => $f['lots'][2]->id, 'unit' => $f['sku']->stock_unit, 'quantity' => '1.000', 'reason' => 'damaged'])->assertRedirect(route('inventory.supplier-returns'));
+        $page = $this->actingAs($this->as($f['finance']))->get(route('inventory.supplier-returns'))->assertOk()->viewData('page')['props']['returns'];
+        $this->assertSame([$item, $item], array_column($page['groups']['rows'][0]['lines'], 'item'));
+        $this->assertSame($item, ((array) $page['returns']['rows'][0])['item']);
+    }
+
     public function test_a_credit_reference_used_by_one_group_is_refused_for_another_group_and_a_single_return(): void
     {
         $f = $this->delivery();
