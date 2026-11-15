@@ -182,7 +182,10 @@ services as a named demo account, so permissions, branch checks, locks and audit
   primary assignment through `BranchAssignmentService` and ends their assignment at the old branch (dated
   yesterday); provisions `demo.ca_supervisor2@kpone.test` (CA Supervisor at CHERAS, same presentation password)
   through `StaffProvisioningService`; saves demo Business details using the clinic's public Cheras address and
-  the CHERAS invoice and receipt footer "This is a computer-generated document. No signature is required."
+  the CHERAS invoice and receipt footer "This is a computer-generated document. No signature is required.", and
+  sets the Klinik Putrijaya mark (`public/kp-mark.png`, also used by the TV) as the Business details logo through
+  `BusinessDetailsService`, so every demo MC, referral, attendance letter, invoice and receipt shows it (needs the PHP
+  GD extension; a logo that is already set is never replaced)
 - As `demo.ca_supervisor@kpone.test`: creates a CHERAS dispensary location, a General consultation tariff, three
   clinical services and six generic medicines (one SKU each, stock unit equal to dispensing unit) with published
   Self-pay and default Panel prices; verifies each SKU's base stock unit; records 200 units of opening stock per
