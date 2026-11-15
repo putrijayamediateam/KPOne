@@ -251,6 +251,7 @@ const crumbsInFrame = computed(() => placed.value.length);
 
             <V2RefusedNotice
                 v-if="openDialogs === 0"
+                scroll-into-view
                 class="mx-4 mt-4 md:mx-6"
             />
 

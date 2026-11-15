@@ -80,3 +80,19 @@ test('DD-84 notice: icon plus words, alert role, Reload only on 419, no Classic 
     assert.match(d, /openDialogs\.value\+\+/);
     assert.match(d, /openDialogs\.value--/);
 });
+
+test('DD-84 notice: on a page it is brought into view without moving focus, smooth unless reduced motion; a dialog one is not', () => {
+    const n = read('resources/js/components/v2/V2RefusedNotice.vue');
+    const shell = read('resources/js/components/workspace/V2AppShell.vue');
+    const d = read('resources/js/components/v2/V2Dialog.vue');
+    assert.match(n, /scrollIntoView\?: boolean/);
+    assert.match(n, /watch\(refused,/);
+    assert.match(n, /\.scrollIntoView\(\{/);
+    assert.match(n, /prefers-reduced-motion: reduce/);
+    assert.match(n, /behavior: reduced \? 'auto' : 'smooth'/);
+    // focus is never moved
+    assert.doesNotMatch(n, /\.focus\(/);
+    // only the page-level notice asks for it; the dialog copy does not
+    assert.match(shell, /<V2RefusedNotice[\s\S]*?scroll-into-view/);
+    assert.doesNotMatch(d, /scroll-into-view/);
+});
