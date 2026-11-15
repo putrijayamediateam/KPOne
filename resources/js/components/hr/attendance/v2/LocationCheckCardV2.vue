@@ -2,7 +2,7 @@
 // Version 2 location check card (Director only), HR V2 Attendance PR 2: the same form and request as Classic through
 // useLocationCheckSettings. Off at every branch until turned on (the pilot branch stays off by the owner's decision).
 // It reports unsaved changes; the page decides whether its Save is the filled one (Daniel: one at a time, top first).
-import { computed, watch } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
@@ -52,6 +52,28 @@ const dirty = computed(() => snapshot(form) !== snapshot(baseline()));
 watch(dirty, (value) => emit('dirty', value), { immediate: true });
 const reset = () => Object.assign(form, baseline());
 defineExpose({ reset, dirty });
+
+// Choosing another branch refills the fields from it, so typed edits would be lost: ask first (Suresh m1).
+const pendingBranch = ref<string | null>(null);
+const chooseBranch = (value: string | number) => {
+    const next = String(value);
+
+    if (next === form.branchId) {
+        return;
+    }
+
+    if (dirty.value) {
+        pendingBranch.value = next;
+
+        return;
+    }
+
+    form.branchId = next;
+};
+const switchBranch = () => {
+    form.branchId = pendingBranch.value ?? '';
+    pendingBranch.value = null;
+};
 </script>
 
 <template>
@@ -91,10 +113,11 @@ defineExpose({ reset, dirty });
                     >
                     <OperationalSelect
                         id="v2-location-branch"
-                        v-model="form.branchId"
+                        :model-value="form.branchId"
                         :options="branchOptions"
                         label="Branch"
                         placeholder="Choose a branch"
+                        @update:model-value="chooseBranch"
                     />
                     <p
                         v-if="errors.branch_id"
@@ -247,6 +270,15 @@ defineExpose({ reset, dirty });
             :busy="form.processing"
             @update:open="form.confirmOff = $event"
             @confirm="put(false)"
+        />
+        <V2Dialog
+            :open="pendingBranch !== null"
+            title="Discard your changes to this branch?"
+            description="Choosing another branch fills the fields from that branch. What you typed here is not saved."
+            confirm-label="Discard and switch"
+            tone="danger"
+            @update:open="(open: boolean) => !open && (pendingBranch = null)"
+            @confirm="switchBranch"
         />
     </V2FormCard>
 </template>

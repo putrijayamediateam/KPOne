@@ -16,14 +16,8 @@ import type { LocationCheckCard } from './types';
 
 const props = defineProps<{ card: LocationCheckCard }>();
 
-const {
-    errors,
-    form,
-    branch,
-    branchOptions,
-    blockedBy,
-    put,
-} = useLocationCheckSettings(props);
+const { errors, form, branch, branchOptions, blockedBy, put } =
+    useLocationCheckSettings(props);
 </script>
 
 <template>

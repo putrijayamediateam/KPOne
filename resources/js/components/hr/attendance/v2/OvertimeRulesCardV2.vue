@@ -16,6 +16,7 @@ const props = defineProps<{
     today: string;
     primary: boolean;
     othersAbove: boolean;
+    othersBelow?: boolean;
 }>();
 const emit = defineEmits<{ dirty: [value: boolean] }>();
 
@@ -57,10 +58,19 @@ defineExpose({ reset, dirty });
         :description="
             card.current
                 ? `In force since ${card.current.effectiveFrom}.`
-                : 'Not set up yet. The rates below are suggestions and no role is ticked; nothing counts until you save.'
+                : 'Not set up yet. The rates below are KPOne defaults and no role is ticked; nothing counts until you save.'
         "
         data-test="v2-overtime-rules"
     >
+        <p
+            v-if="!card.current"
+            class="mb-4 text-[13px] text-muted-foreground"
+            data-test="overtime-defaults-label"
+        >
+            Rates 1.5x, 2x and 3x: set by KPOne defaults at the owner's
+            instruction; not professional advice. Check against current law
+            before real pay.
+        </p>
         <form class="flex flex-col gap-4" @submit.prevent="save">
             <fieldset class="flex flex-col gap-2">
                 <legend class="mb-1 text-sm font-medium">
@@ -206,6 +216,14 @@ defineExpose({ reset, dirty });
                     class="text-[13px] text-muted-foreground"
                 >
                     You also have unsaved changes above.
+                </p>
+                <p
+                    v-if="dirty && othersBelow"
+                    class="text-[13px] text-muted-foreground"
+                    data-test="overtime-others-below"
+                >
+                    Saving here reloads the page, so the unsaved changes below
+                    are lost.
                 </p>
             </div>
         </form>

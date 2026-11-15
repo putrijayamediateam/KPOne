@@ -178,7 +178,8 @@ const resetRules = () => {
 };
 // PR 2 (Daniel): three Settings cards, each with its own named Save, dirty guard and busy state, but only ONE filled
 // Save at a time: the first card from the top that has changes (or has never been saved) keeps it. A card below a
-// changed one shows an outline Save and "You also have unsaved changes above". The leave guard covers all three.
+// changed one shows an outline Save and "You also have unsaved changes above"; a changed card with changes below says
+// that saving reloads the page and loses them (Suresh m2). The leave guard covers all three.
 const overtimeDirty = ref(false);
 const locationDirty = ref(false);
 const overtimeCard = ref<InstanceType<typeof OvertimeRulesCardV2> | null>(null);
@@ -1315,6 +1316,17 @@ const numberClass =
                                                 : 'Save attendance rules'
                                         }}
                                     </button>
+                                    <p
+                                        v-if="
+                                            rulesDirty &&
+                                            (overtimeDirty || locationDirty)
+                                        "
+                                        class="mt-1.5 text-[13px] text-muted-foreground"
+                                        data-test="rules-others-below"
+                                    >
+                                        Saving here reloads the page, so the
+                                        unsaved changes below are lost.
+                                    </p>
                                 </div>
                             </form>
                             <div
@@ -1342,7 +1354,8 @@ const numberClass =
                             :card="attendance.settings.overtime"
                             :today="attendance.settings.today"
                             :primary="filledCard === 'overtime'"
-                            :others-above="rulesDirty"
+                            :others-above="filledCard === 'rules'"
+                            :others-below="locationDirty"
                             @dirty="overtimeDirty = $event"
                         />
                         <LocationCheckCardV2
@@ -1350,7 +1363,10 @@ const numberClass =
                             ref="locationCard"
                             :card="attendance.settings.location"
                             :primary="filledCard === 'location'"
-                            :others-above="rulesDirty || overtimeDirty"
+                            :others-above="
+                                filledCard === 'rules' ||
+                                filledCard === 'overtime'
+                            "
                             @dirty="locationDirty = $event"
                         />
                     </section>

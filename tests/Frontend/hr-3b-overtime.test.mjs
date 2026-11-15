@@ -127,6 +127,13 @@ test('the summary is on screen only, with a table from 1024 px and cards below',
     assert.doesNotMatch(source.summary, /csv|download|export/i);
 });
 
+test('the Summary composable offers no CSV, download or file either (HR V2 Attendance PR 2)', () => {
+    const composable = read(
+        'resources/js/composables/hr/useSummaryTab.ts',
+    ).replace(/export function/g, '');
+    assert.doesNotMatch(composable, /csv|download|blob/i);
+});
+
 test('overtime settings tick no role by default and say no money is worked out', () => {
     assert.match(
         source.settings,
