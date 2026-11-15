@@ -425,4 +425,7 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
      credit columns, a check line that must be exactly 0.00 (an unbalanced journal is refused), and one audit row per
      download. The supplier credit difference sits between Stock losses and Accounts payable (a credit note does not
      move the average); All branches counts stock in transit, so transfers net to zero (B.E.R.N.I.S.S for the owner).
+     For the accountant's review (Daniel, readability, not built): a header line "Lines are dated at the end of the
+     period shown."; and the memo amounts (opening, closing, check) in their own "Memo (RM)" column or block rather
+     than in the Note column.
    - Parked until there is real usage history: STK-32 (seasonal usage forecast).
