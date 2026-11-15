@@ -24,6 +24,7 @@ use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\InvoiceBillToService;
 use App\Domain\Visit\Billing\Services\InvoiceNoteService;
 use App\Domain\Visit\Billing\Services\OutstandingBillService;
+use App\Domain\Visit\Billing\Services\PanelInvoicePrinting;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonInterface;
@@ -350,6 +351,7 @@ class VisitHistoryService
         $recorders = app(StaffAccessService::class)->visibleUsers($actor)
             ->whereIn('id', $payments->pluck('recorded_by_user_id')->filter()->unique())->pluck('name', 'id');
         $canPrint = $actor->can('billing.print.branch');
+        $panelPrintBlocked = PanelInvoicePrinting::blocked($visit, $invoice);
         $refunded = FinancialLedger::approvedRefundsByPayment($payments->pluck('id'));
 
         return [
@@ -378,7 +380,9 @@ class VisitHistoryService
                 'recordedBy' => (string) ($recorders[$payment->recorded_by_user_id] ?? 'Staff member'),
                 'printUrl' => $canPrint ? route('billing.receipt', [$visit, $invoice, $payment]) : null,
             ])->all(),
-            'printUrl' => $canPrint ? route('billing.print', [$visit, $invoice]) : null,
+            // PCA-1: a Panel patient never gets a printed invoice; receipts above still print.
+            'printUrl' => $canPrint && ! $panelPrintBlocked ? route('billing.print', [$visit, $invoice]) : null,
+            'panelNoInvoicePrint' => $canPrint && $panelPrintBlocked,
         ];
     }
 

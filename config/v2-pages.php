@@ -55,6 +55,7 @@ return [
         'Inventory/TreatmentUsage',
         'Agents/Office',
         'Inventory/GovernedStock',
+        'Inventory/SupplierReturns',
         'Visits/History',
     ],
 ];

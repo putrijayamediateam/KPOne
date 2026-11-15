@@ -132,7 +132,8 @@ class PanelClaimPackTest extends BillingTestCase
         $panel = Panel::factory()->create(['organisation_id' => $this->organisation->id]);
         [$claim] = $this->submittedClaims($panel, 1);
 
-        foreach (['ca', 'ca_supervisor', 'finance_officer', 'director', 'administrator'] as $role) {
+        // PCA-1: Director and Finance Officer may print packs (owner decision 2026-11-13).
+        foreach (['ca', 'ca_supervisor', 'administrator'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor, $this->branch);
             $this->get(route('panel-claims.pack', ['claims' => [$claim->public_id]]))->assertForbidden();
