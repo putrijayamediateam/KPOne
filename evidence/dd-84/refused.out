@@ -1,0 +1,12 @@
+1440 dark form 403: notice 1 | text "You don't have permission to do this. Nothing was changed." | reload button 0 | raw modal 0 | typed kept Edited 403
+1440 dark dialog 403: in-dialog notice 1 | text "You don't have permission to do this. Nothing was changed." | reload 0 | notices on page total 1 | dialog still open 1 | raw modal 0
+1440 dark form 419: notice 1 | text "This page was open too long, so nothing was saved. Reload the page and try again.\n\nReload page" | reload button 1 | raw modal 0 | typed kept Edited 419
+1440 dark dialog 419: in-dialog notice 1 | text "This page was open too long, so nothing was saved. Reload the page and try again.\n\nReload page" | reload 1 | notices on page total 1 | dialog still open 1 | raw modal 0
+390 light form 403: notice 1 | text "You don't have permission to do this. Nothing was changed." | reload button 0 | raw modal 0 | typed kept Edited 403
+390 light dialog 403: in-dialog notice 1 | text "You don't have permission to do this. Nothing was changed." | reload 0 | notices on page total 1 | dialog still open 1 | raw modal 0
+390 light form 419: notice 1 | text "This page was open too long, so nothing was saved. Reload the page and try again.\n\nReload page" | reload button 1 | raw modal 0 | typed kept Edited 419
+390 light dialog 419: in-dialog notice 1 | text "This page was open too long, so nothing was saved. Reload the page and try again.\n\nReload page" | reload 1 | notices on page total 1 | dialog still open 1 | raw modal 0
+390 dark form 403: notice 1 | text "You don't have permission to do this. Nothing was changed." | reload button 0 | raw modal 0 | typed kept Edited 403
+390 dark dialog 403: in-dialog notice 1 | text "You don't have permission to do this. Nothing was changed." | reload 0 | notices on page total 1 | dialog still open 1 | raw modal 0
+390 dark form 419: notice 1 | text "This page was open too long, so nothing was saved. Reload the page and try again.\n\nReload page" | reload button 1 | raw modal 0 | typed kept Edited 419
+390 dark dialog 419: in-dialog notice 1 | text "This page was open too long, so nothing was saved. Reload the page and try again.\n\nReload page" | reload 1 | notices on page total 1 | dialog still open 1 | raw modal 0
