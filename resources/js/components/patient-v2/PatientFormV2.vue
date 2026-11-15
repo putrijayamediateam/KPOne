@@ -146,6 +146,8 @@ watch(
 );
 
 // The date of birth decides minor or adult, so it is shown in words under the box and follows the Guardian card.
+// While the date box shows its own error the words under it stay hidden (they would say "not entered").
+const dobBoxError = ref(false);
 const dobWords = computed(() => {
     const age = ageOn(fields.date_of_birth, props.guardianToday);
 
@@ -202,14 +204,21 @@ const inputClass =
                     v-model="fields.date_of_birth"
                     label="Date of birth"
                     subject="Date of birth"
-                    :hint="dobWords"
+                    :hint="
+                        dobBoxError || err('date_of_birth')
+                            ? undefined
+                            : dobWords
+                    "
                     :error="err('date_of_birth')"
                     :required="
                         !!newPatient && !!requirements?.requireDateOfBirth
                     "
                     :max="guardianToday"
                     @update:invalid="
-                        (value: boolean) => emit('dobInvalid', value)
+                        (value: boolean) => {
+                            dobBoxError = value;
+                            emit('dobInvalid', value);
+                        }
                     "
                 />
                 <V2Field
