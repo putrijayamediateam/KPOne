@@ -24,6 +24,7 @@ return [
         'ClinicalService/Index',
         'Dispensary/Show',
         'Dispensary/Completed',
+        'Dispensary/ReturnsToCheck',
         'Medicine/Index',
         'PaymentMethods/Index',
         'Pricing/Index',
