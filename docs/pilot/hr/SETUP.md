@@ -12,8 +12,8 @@ PDPA review; nothing here is production approval.
 | Clock-in photo retention | **7 years, DRAFT** ("to confirm" stays on screen). | The privacy review |
 | Leave types and entitlements | "Use KPOne defaults" in Leave > Settings (Employment Act 1955 minimums; annual leave pro-rated by completed months for joiners and leavers, s.60E(1A)), labelled "Set by KPOne defaults at the owner's instruction; not professional advice". | The clinic's own leave policy |
 | Overtime rates | 1.5x, 2x and 3x (KPOne defaults, same label). HR ticks the roles that may claim. | The clinic's own policy |
-| Statutory tables (EPF, SOCSO, EIS, HRD) | Entered from the official KWSP, PERKESO and HRD Corp schedules with the source and the date they apply from, never from memory, then checked by a second person. | The accountant's confirmation |
-| MTD | LHDN's published method, labelled as a draft. | The accountant's confirmation |
+| Statutory tables (EPF, SOCSO, EIS, HRD) | Entered from the official KWSP, PERKESO and HRD Corp schedules with the source and the date they apply from, never from memory, then checked by a second person. | A check against current law (official KWSP/PERKESO/HRD Corp/LHDN schedules) |
+| MTD | LHDN's published method, labelled as a draft. | A check against current law (official KWSP/PERKESO/HRD Corp/LHDN schedules) |
 
 ## People
 

@@ -2098,7 +2098,7 @@ follow the RPT-01 safety rules.
 ### 14.6 Screens (Hui Min; Daniel's early look folded in)
 
 - One page, `/hr/payroll`, with tabs Runs, Pay profiles, Tables and Settings for preparers, and Exports for exporters. Payslips sit on My HR details for everyone.
-- **The accountant line** under the header on every payroll page: the shared muted component from HR-4, with these words.
+- **The check line** under the header on every payroll page: the shared muted component from HR-4. Its words (2026-11-15, owner's draft defaults, no accountant): "Set by KPOne defaults at the owner's instruction; check against current law (official KWSP/PERKESO/HRD Corp/LHDN schedules) before real use. Synthetic data only."
 - **Runs:**
   - one card per run, with its status chip: Draft neutral; Waiting for approval neutral; Approved success; Locked success with the date; Returned neutral with the reason.
   - The run page is a table from 1024 px (person, earnings, deductions, refunds, employee contributions, net, warnings), with a total row, and cards below.
