@@ -39,6 +39,10 @@ import { useLeaveGuard } from '@/composables/useLeaveGuard';
  * (4) browser Back and Forward are held too; `beforeunload` covers reload and tab close.
  * Pages need no guard of their own for an open sheet.
  *
+ * The named slot `footer-note` puts a short note (a decision sentence, a total) in the pinned footer, between the reason line
+ * and the buttons, with the same padding as the reason line and a top border. It is OUTSIDE the scrolling body, so the note
+ * never covers a field and the body scrolls above it. Rendered only when given; no change for existing callers.
+ *
  * `confirmDisabled` switches the filled action off, and `confirmDisabledReason` says why in a muted line directly above the
  * footer (read out politely, and named by the button's `aria-describedby`). Say what is missing, then what fixes it:
  * "Choose a supplier to continue.", "Enter the quantity received to continue.". Use it for a state the person can see and
@@ -317,10 +321,24 @@ const submit = () => {
                         confirmDisabledReason
                     }}</template>
                 </p>
+                <!-- Optional note in the pinned footer (outside the scrolling body), so a decision sentence never covers a field. -->
+                <div
+                    v-if="$slots['footer-note']"
+                    data-slot="v2-dialog-footer-note"
+                    class="shrink-0 bg-card px-5 pt-3 pb-1 text-sm"
+                    :class="
+                        confirmDisabled && confirmDisabledReason
+                            ? ''
+                            : 'border-t'
+                    "
+                >
+                    <slot name="footer-note" />
+                </div>
                 <div
                     class="flex flex-col-reverse gap-2 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
                     :class="
-                        confirmDisabled && confirmDisabledReason
+                        (confirmDisabled && confirmDisabledReason) ||
+                        $slots['footer-note']
                             ? ''
                             : 'border-t'
                     "
