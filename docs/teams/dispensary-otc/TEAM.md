@@ -317,6 +317,10 @@ coordinator at the owner's request (2026-11-05); the designer was added by owner
   read only the consultation queue, so OTC visits are absent from them; Insights has no visit-type filter.
 - **Name mode on the TV** shows full names to the waiting room; privacy review before go-live.
 - **SMOKE-1** findings touching this area: none open (S1-007 fixed in DARK-1).
+- **V2 Returns to check wording (#828, Daniel 2026-11-15):** the own-return note reads "You recorded this return, so
+  another CA Supervisor must check it." because in v1 only a CA Supervisor checks a return. When the Finance Officer
+  and the Director become checkers (the DSP-7b open item), change this sentence in `Dispensary/V2/ReturnsToCheck.vue`
+  and its test. Classic still says "You recorded this. Another CA Supervisor must check it." (owner: keep Classic as is).
 
 ## 8. Rules (every task)
 
