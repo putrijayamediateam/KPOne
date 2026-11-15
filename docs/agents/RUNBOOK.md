@@ -38,8 +38,9 @@ branch Director** do the two-person steps, including deciding agent suggestions 
   shows why they cannot decide.
 - An approval records the decision only. It changes no stock and sends nothing; the restock, expiry or transfer is still
   done by hand through the normal stock screens.
-- **Not decided yet:** whether agents are switched on in week one of the pilot. Until the owner decides, do not tell
-  branch staff to rely on them.
+- **Week one of the pilot (owner decision, relayed by the coordinator, 2026-11-15):** agents are on, with the **Daily
+  summary only**, so staff learn it without relying on it. Do not tell branch staff to base stock or money decisions on
+  it. The scheduled run proof (the 07:00 and 14:00 runs on the pilot server) is a pilot item.
 
 ## If a section failed
 
