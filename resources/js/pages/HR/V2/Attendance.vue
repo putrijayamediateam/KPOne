@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import ClockPhotoNotice from '@/components/hr/attendance/ClockPhotoNotice.vue';
 import ClockPhotoThumb from '@/components/hr/attendance/ClockPhotoThumb.vue';
 import LocationCheckSettings from '@/components/hr/attendance/LocationCheckSettings.vue';
@@ -19,6 +19,7 @@ import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
+import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
@@ -116,6 +117,45 @@ const decisionLine = computed(() =>
 const pressWord = computed(() => (clock.consentFor === 'out' ? 'out' : 'in'));
 const flagsOf = (r: Row) => r.flags.length > 0 || r.correctionWaiting;
 
+// Settings (Daniel): the attendance rules card's Save is filled only while the card has changes, and unsaved changes
+// are guarded on a tab change (an in-page visit) as well as on leaving the page.
+const rulesValue = () =>
+    JSON.stringify([
+        settingsForm.grace_minutes,
+        settingsForm.forgotten_window_minutes,
+        settingsForm.correction_days,
+        settingsForm.effective_from,
+    ]);
+const rulesSaved = ref(rulesValue());
+watch(
+    () => props.attendance.settings,
+    () => (rulesSaved.value = rulesValue()),
+);
+const rulesDirty = computed(
+    () =>
+        props.attendance.tab === 'settings' &&
+        rulesValue() !== rulesSaved.value,
+);
+const resetRules = () => {
+    const [grace, window, days, from] = JSON.parse(
+        rulesSaved.value,
+    ) as string[];
+    Object.assign(settingsForm, {
+        grace_minutes: grace,
+        forgotten_window_minutes: window,
+        correction_days: days,
+        effective_from: from,
+    });
+};
+const guard = ref<InstanceType<typeof V2LeaveGuard> | null>(null);
+const changeTab = (tab: string) =>
+    guard.value ? guard.value.ask(() => selectTab(tab)) : selectTab(tab);
+
+// A rejection needs a reason: the filled Reject stays reachable but does nothing until one is picked (Daniel).
+const decisionBlocked = computed(
+    () => !decision.approve && decision.reason === '',
+);
+
 const button =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:min-h-9';
 const ghostButton =
@@ -146,7 +186,7 @@ const numberClass =
                         :model-value="attendance.tab"
                         :tabs="tabs"
                         ariaLabel="Attendance sections"
-                        @update:model-value="selectTab"
+                        @update:model-value="changeTab"
                     />
 
                     <p
@@ -297,7 +337,7 @@ const numberClass =
                                     attendance.my.refusal &&
                                     !errors.clock
                                 "
-                                class="text-sm"
+                                class="text-sm text-muted-foreground"
                                 data-test="clock-refusal"
                             >
                                 {{ attendance.my.refusal }}
@@ -1132,7 +1172,9 @@ const numberClass =
                                 <div>
                                     <button
                                         type="submit"
-                                        :class="primaryButton"
+                                        :class="
+                                            rulesDirty ? primaryButton : button
+                                        "
                                         :disabled="settingsForm.processing"
                                     >
                                         {{
@@ -1175,6 +1217,7 @@ const numberClass =
                 </div>
             </template>
         </V2WorkLayout>
+        <V2LeaveGuard ref="guard" :dirty="rulesDirty" @discard="resetRules" />
 
         <!-- Clock out (only Clock out asks) -->
         <V2Dialog
@@ -1243,6 +1286,8 @@ const numberClass =
             "
             :tone="decision.approve ? 'default' : 'danger'"
             :busy="decision.processing"
+            :confirm-disabled="decisionBlocked"
+            confirm-disabled-reason="Pick a reason to continue."
             @update:open="decision.open = $event"
             @confirm="confirmDecision"
         >

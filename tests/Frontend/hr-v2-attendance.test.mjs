@@ -131,7 +131,12 @@ test('one filled action per tab: Clock in or out on My attendance, Save on Setti
         template.indexOf('<!-- Overtime and Summary'),
     );
     assert.doesNotMatch(review, /primaryButton|clockButton/);
-    assert.equal((template.match(/:class="primaryButton"/g) ?? []).length, 1);
+    // The Settings Save is filled only while its card has changes (Daniel).
+    assert.doesNotMatch(template, /:class="primaryButton"/);
+    assert.match(
+        template,
+        /:class="\s*rulesDirty \? primaryButton : button\s*"/,
+    );
     assert.match(template, /'Save attendance rules'/);
 });
 
@@ -168,4 +173,23 @@ test('Overtime, Summary and the two settings cards show their current components
     ]) {
         assert.ok(template.includes(name), name);
     }
+});
+
+test("Daniel's build notes: muted refusal, red Reject that needs a reason, guarded settings, no native select", () => {
+    assert.match(
+        template,
+        /class="text-sm text-muted-foreground"\s+data-test="clock-refusal"/,
+    );
+    assert.match(template, /:confirm-disabled="decisionBlocked"/);
+    assert.match(
+        template,
+        /confirm-disabled-reason="Pick a reason to continue\."/,
+    );
+    assert.match(script, /!decision\.approve && decision\.reason === ''/);
+    assert.match(
+        template,
+        /<V2LeaveGuard ref="guard" :dirty="rulesDirty" @discard="resetRules" \/>/,
+    );
+    assert.match(script, /guard\.value\.ask\(\(\) => selectTab\(tab\)\)/);
+    assert.doesNotMatch(template, /<select\b/);
 });
