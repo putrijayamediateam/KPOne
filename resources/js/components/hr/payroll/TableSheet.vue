@@ -217,8 +217,19 @@ const rowError = (i: number, field: string) =>
                         v-model="form.sourceNote"
                         maxlength="200"
                         rows="2"
+                        aria-describedby="table-source-hint"
                         :aria-invalid="!!errors.source_note"
                     />
+                    <p
+                        id="table-source-hint"
+                        class="text-xs text-muted-foreground"
+                        data-test="table-source-hint"
+                    >
+                        Copy the figures from the official KWSP, PERKESO or HRD
+                        Corp schedule, never from memory. Name the schedule and
+                        its date. A second person checks the table before it
+                        counts.
+                    </p>
                     <InputError :message="errors.source_note" />
                 </div>
 

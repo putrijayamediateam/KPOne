@@ -42,7 +42,8 @@ final class LeaveSettingsService
             if ($type->exists && $changed === []) {
                 return $type;
             }
-            $type->forceFill([...$values, 'organisation_id' => $actor->organisation_id, 'updated_by_user_id' => $actor->id,
+            // HR-DEFAULTS: once HR changes a type that KPOne's defaults added, it is the clinic's own type.
+            $type->forceFill([...$values, 'set_by_defaults' => false, 'organisation_id' => $actor->organisation_id, 'updated_by_user_id' => $actor->id,
                 'lock_version' => $type->exists ? $type->lock_version + 1 : 1])->save();
             $this->support->audit->record($id === false ? 'hr.leave.type_created' : 'hr.leave.type_updated', $type, ['leave_type_code' => $type->code, 'changed_fields' => $changed], $actor);
 
@@ -324,6 +325,17 @@ final class LeaveSettingsService
             DB::table('hr_public_holidays')->where('id', $row->id)->delete();
             $this->support->audit->record('hr.leave.holiday_removed', $branch, ['holiday_id' => $row->id, 'holiday_date' => $date->toDateString()], $actor, $branch);
         }, 3);
+    }
+
+    /** @return list<string> "typeId:role" or "typeId:u{userId}" keys whose latest row KPOne's defaults wrote (HR-DEFAULTS). */
+    public function defaultEntitlementKeys(int $organisationId, int $year): array
+    {
+        $latest = [];
+        foreach (DB::table('hr_leave_entitlements')->where('organisation_id', $organisationId)->where('year', $year)->orderBy('id')->get(['leave_type_id', 'role', 'user_id', 'set_by_defaults']) as $row) {
+            $latest[$row->leave_type_id.':'.($row->role ?? 'u'.$row->user_id)] = (bool) $row->set_by_defaults;
+        }
+
+        return array_keys(array_filter($latest));
     }
 
     /** @return list<int> Active staff of the organisation who hold a human role, in id order. */

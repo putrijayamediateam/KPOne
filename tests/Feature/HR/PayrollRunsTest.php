@@ -486,7 +486,7 @@ class PayrollRunsTest extends VisitTestCase
         // apart, because rows are grouped by the worker, not the name (Suresh, S2).
         DB::table('users')->where('id', $cara->user_id)->update(['name' => $aina->user->name]);
         $csv = $this->unzip((string) $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']), self::FILE_PASSWORD)->assertOk()->getContent(), 'payroll-accountant-2026-11.csv');
-        $this->assertStringContainsString("To confirm with the clinic's accountant before real use. Synthetic data only.", $csv);
+        $this->assertStringContainsString("Set by KPOne defaults at the owner's instruction; check against current law (official KWSP/PERKESO/HRD Corp/LHDN schedules) before real use. Synthetic data only.", $csv);
         $rows = $this->csvRows($csv);
         $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '2600.00'], $rows);
         $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '1500.00'], $rows);
