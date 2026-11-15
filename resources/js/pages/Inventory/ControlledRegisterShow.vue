@@ -57,6 +57,7 @@ type Register = {
     newestMovementId: number;
     newestCheckSequence: number;
     movementsSinceCheck: number;
+    attemptsSinceCheck: number;
     checks: Check[];
     can: { check: boolean };
     checkBlockedReason: string | null;
@@ -513,6 +514,17 @@ const difference = (value: string | null) =>
                     "
                 />
                 <InputError id="cd-counted-error" :message="errors.counted" />
+                <p
+                    v-if="register.attemptsSinceCheck > 0"
+                    class="text-sm text-muted-foreground"
+                    data-testid="cd-attempts-since"
+                >
+                    {{
+                        register.attemptsSinceCheck === 1
+                            ? '1 earlier attempt since the last check'
+                            : `${register.attemptsSinceCheck} earlier attempts since the last check`
+                    }}
+                </p>
                 <template v-if="differs">
                     <p
                         class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
@@ -625,8 +637,8 @@ const difference = (value: string | null) =>
                     >
                         {{
                             check.attempts === 1
-                                ? '1 earlier attempt'
-                                : `${check.attempts} earlier attempts`
+                                ? '1 earlier attempt before this check'
+                                : `${check.attempts} earlier attempts before this check`
                         }}
                     </p>
                     <p

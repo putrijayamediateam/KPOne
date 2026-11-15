@@ -115,9 +115,16 @@ test('STK-40: in both layouts a check shows "N earlier attempts" only when there
         );
         assert.match(
             t,
-            /check\.attempts === 1 \? '1 earlier attempt' : `\$\{check\.attempts\} earlier attempts`/,
+            /check\.attempts === 1 \? '1 earlier attempt before this check' : `\$\{check\.attempts\} earlier attempts before this check`/,
             name,
         );
         assert.match(flat(script(source)), /attempts: number;/, name);
+        // Under the count box: tries since the last check, in words only.
+        assert.match(
+            t,
+            /v-if="register\.attemptsSinceCheck > 0"[^>]*data-testid="cd-attempts-since"/,
+            name,
+        );
+        assert.match(t, /'1 earlier attempt since the last check'/, name);
     }
 });
