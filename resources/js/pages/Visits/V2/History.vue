@@ -6,8 +6,8 @@ import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
+import HistoryMoneyCard from '@/components/visits-v2/HistoryMoneyCard.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
-import { myr } from '@/types/billing';
 import type { VisitHistoryPage } from '@/types/visitHistory';
 
 /**
@@ -68,18 +68,6 @@ const changeLabel = (state: string, source: string) =>
             : '';
 const statusLabel = (value: string | null) =>
     value ? value.replaceAll('_', ' ') : 'Not recorded';
-const totals = computed(() => {
-    const state = props.history.financial?.state;
-
-    return state
-        ? ([
-              ['Total', state.total],
-              ['Self-pay received', state.self_pay],
-              ['Panel responsibility', state.panel],
-              ['Pay later still owed', state.deferred],
-          ] as Array<[string, number]>)
-        : [];
-});
 const vitals = computed(() => {
     const v = props.history.consultation?.vitals;
 
@@ -126,7 +114,7 @@ const linkButton =
             eyebrow="Visit"
             :title="`Completed visit ${history.visit.visitNumber}`"
             rail-from="xl"
-            rail-below="stack-bottom"
+            rail-below="hide"
             rail-label="Invoice"
         >
             <template #actions>
@@ -222,6 +210,13 @@ const linkButton =
                             <dd>{{ text(history.visit.completedAt) }}</dd>
                         </dl>
                     </section>
+                </div>
+
+                <div
+                    data-testid="history-financial-inline"
+                    class="min-w-0 xl:hidden"
+                >
+                    <HistoryMoneyCard :history="history" />
                 </div>
 
                 <section :class="card">
@@ -567,7 +562,7 @@ const linkButton =
                             </p>
                             <ul
                                 v-else
-                                class="grid gap-1 text-sm [&_button]:h-auto [&_button]:max-w-full [&_button]:text-left [&_button]:break-all [&_button]:whitespace-normal"
+                                class="grid gap-1 text-sm [&_button]:h-auto [&_button]:min-h-11 [&_button]:max-w-full [&_button]:text-left [&_button]:break-all [&_button]:whitespace-normal"
                             >
                                 <li v-if="history.financial?.printUrl">
                                     <IssuePrintButton
@@ -601,102 +596,7 @@ const linkButton =
 
             <template #rail>
                 <div data-testid="history-financial" class="grid min-w-0 gap-4">
-                    <section v-if="history.financial" :class="card">
-                        <div class="flex items-center justify-between gap-2">
-                            <h2
-                                class="min-w-0 text-base font-semibold break-all"
-                            >
-                                Invoice {{ history.financial.invoiceNumber }}
-                            </h2>
-                            <span
-                                class="text-xs text-muted-foreground capitalize"
-                                >{{ history.financial.status }}</span
-                            >
-                        </div>
-                        <ul
-                            v-if="history.financial.lines.length"
-                            class="mt-2 divide-y text-sm"
-                        >
-                            <li
-                                v-for="(line, index) in history.financial.lines"
-                                :key="index"
-                                class="flex justify-between gap-2 py-2 max-sm:flex-col max-sm:gap-0.5 sm:items-baseline"
-                            >
-                                <span class="min-w-0 break-words">
-                                    {{ line.name }}
-                                    <span
-                                        class="text-xs whitespace-nowrap text-muted-foreground"
-                                        >{{ line.quantity }} ×
-                                        {{ myr(line.unitPriceSen) }}</span
-                                    >
-                                </span>
-                                <span class="whitespace-nowrap tabular-nums">{{
-                                    myr(line.totalSen)
-                                }}</span>
-                            </li>
-                        </ul>
-                        <p v-else class="mt-2 text-xs text-muted-foreground">
-                            Totals only for your access.
-                        </p>
-                        <dl
-                            class="mt-3 grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-sm"
-                        >
-                            <template
-                                v-for="[label, amount] in totals"
-                                :key="label"
-                            >
-                                <dt class="text-muted-foreground">
-                                    {{ label }}
-                                </dt>
-                                <dd class="whitespace-nowrap tabular-nums">
-                                    {{ myr(amount) }}
-                                </dd>
-                            </template>
-                            <dt class="font-semibold">Due now</dt>
-                            <dd
-                                class="font-semibold whitespace-nowrap tabular-nums"
-                            >
-                                {{ myr(history.financial.state.due_now) }}
-                            </dd>
-                        </dl>
-                        <div
-                            v-if="history.financial.payments.length"
-                            class="mt-3 border-t pt-2 text-sm"
-                        >
-                            <p
-                                class="mb-1 text-xs font-semibold text-muted-foreground uppercase"
-                            >
-                                Payments
-                            </p>
-                            <ul class="grid gap-1">
-                                <li
-                                    v-for="payment in history.financial
-                                        .payments"
-                                    :key="payment.receiptNumber"
-                                    class="flex justify-between gap-2"
-                                >
-                                    <span class="min-w-0 break-words"
-                                        >{{ payment.method }} ·
-                                        {{ payment.receiptNumber }}</span
-                                    >
-                                    <span
-                                        class="whitespace-nowrap tabular-nums"
-                                        >{{ myr(payment.amountSen) }}</span
-                                    >
-                                </li>
-                            </ul>
-                        </div>
-                    </section>
-                    <section
-                        v-else
-                        :class="[card, 'text-sm text-muted-foreground']"
-                    >
-                        {{
-                            history.canSeeFinancial
-                                ? 'No invoice was issued for this visit.'
-                                : 'Billing details are not shown for your role.'
-                        }}
-                    </section>
+                    <HistoryMoneyCard :history="history" />
                 </div>
             </template>
         </V2WorkLayout>
