@@ -8,8 +8,10 @@ import {
     DialogRoot,
     DialogTitle,
 } from 'reka-ui';
-import { nextTick, ref, watch } from 'vue';
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue';
 import { useLeaveGuard } from '@/composables/useLeaveGuard';
+import { openDialogs, refused } from '@/lib/v2-refused-request';
+import V2RefusedNotice from './V2RefusedNotice.vue';
 
 /**
  * Version 2 dialog: 18px corners, a bottom sheet below 640px, a pinned footer, and the focus trap and Esc that the
@@ -205,6 +207,29 @@ if (import.meta.env.DEV) {
     );
 }
 
+// While a sheet is open it shows a refused-request notice (403 or 419) itself; the page-level one stays hidden (DD-84).
+let counted = false;
+watch(
+    () => props.open,
+    (isOpen) => {
+        if (isOpen && !counted) {
+            openDialogs.value++;
+            counted = true;
+        } else if (!isOpen && counted) {
+            openDialogs.value--;
+            counted = false;
+        }
+    },
+    { immediate: true },
+);
+onBeforeUnmount(() => {
+    if (counted) {
+        openDialogs.value--;
+        counted = false;
+    }
+});
+const noticeShown = computed(() => props.open && refused.value !== null);
+
 const submit = () => {
     // aria-disabled keeps the button reachable by keyboard, so pressing it must do nothing.
     if (props.confirmDisabled) {
@@ -313,6 +338,12 @@ const submit = () => {
                         </p>
                     </div>
                 </div>
+                <div
+                    v-if="noticeShown"
+                    class="shrink-0 border-t bg-card px-5 pt-3 pb-1"
+                >
+                    <V2RefusedNotice />
+                </div>
                 <!-- Always in the DOM, so a screen reader announces the text when it appears. -->
                 <p
                     id="v2-dialog-confirm-reason"
@@ -345,7 +376,8 @@ const submit = () => {
                     class="flex flex-col-reverse gap-2 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
                     :class="
                         (confirmDisabled && confirmDisabledReason) ||
-                        $slots['footer-note']
+                        $slots['footer-note'] ||
+                        noticeShown
                             ? ''
                             : 'border-t'
                     "
