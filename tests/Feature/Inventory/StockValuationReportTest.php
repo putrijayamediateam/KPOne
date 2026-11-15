@@ -36,6 +36,16 @@ final class StockValuationReportTest extends VisitTestCase
         $this->assertSame(['director'], Role::query()->whereHas('permissions', fn ($q) => $q->where('name', StockValuationReportService::PERMISSION))->pluck('name')->all());
     }
 
+    public function test_the_inventory_home_offers_the_link_to_the_director_only(): void
+    {
+        foreach (['director' => true, 'ca_supervisor' => false, 'finance_officer' => false, 'ca' => false, 'administrator' => false] as $role => $expected) {
+            $user = $this->actor($role);
+            $this->selectBranch($user);
+            $this->get(route('inventory.index'))->assertOk()
+                ->assertInertia(fn (Assert $page) => $page->where('referenceData.canViewStockValue', $expected));
+        }
+    }
+
     public function test_every_other_role_is_refused(): void
     {
         foreach (['ca', 'ca_supervisor', 'finance_officer', 'administrator', 'technical_admin', 'panel_officer'] as $role) {
