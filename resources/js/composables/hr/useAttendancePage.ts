@@ -16,6 +16,7 @@ import type {
     OvertimeOptions,
     OvertimeSettingsCard,
     OvertimeTabData,
+    PhotoStorageCard,
     SummaryTabData,
     WeekHours,
 } from '@/components/hr/attendance/types';
@@ -157,6 +158,7 @@ export type AttendanceProps = {
             }[];
             overtime: OvertimeSettingsCard;
             location: LocationCheckCard | null;
+            photoStorage?: PhotoStorageCard;
         } | null;
         overtime: OvertimeTabData | null;
         summary: SummaryTabData | null;

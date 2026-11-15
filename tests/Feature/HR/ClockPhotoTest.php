@@ -2,12 +2,14 @@
 
 namespace Tests\Feature\HR;
 
+use App\Console\Commands\PurgeAttendanceRecords;
 use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockPhoto;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
 use App\Domain\HR\Attendance\Photos\ClockPhotoLabels;
 use App\Domain\HR\Attendance\Photos\ClockPhotoService;
+use App\Domain\HR\Attendance\Services\AttendanceRetentionPurge;
 use App\Domain\HR\Roster\Models\RosterVersion;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -234,6 +236,110 @@ class ClockPhotoTest extends VisitTestCase
         $this->assertSame(1, DB::table('hr_clock_capture_tokens')->where('id', $kept->capture_token_id)->count());
         $this->assertSame(['30 1 * * *'], collect(app(Schedule::class)->events())
             ->filter(fn ($e): bool => str_contains((string) $e->command, 'hr-clock-photos:purge'))->pluck('expression')->values()->all());
+    }
+
+    public function test_the_dry_run_reports_exactly_what_the_purge_then_deletes_and_deletes_nothing_itself(): void
+    {
+        // HR-PHOTO-STORAGE. PostgreSQL checks the 7 years against its own clock, so this works in real time like the purge test.
+        $real = CarbonImmutable::createFromTimestamp(time(), 'UTC');
+        $this->travelTo($real->subYears(7)->subDays(30));
+        $ca = $this->actor('ca');
+        $this->selectBranch($ca);
+        $this->press('in', ClockPhotoFixture::press($this, 'in'))->assertSessionHasNoErrors();
+        $this->travelTo($real->subYears(7)->subDays(30)->addHours(6));
+        $this->press('out', ClockPhotoFixture::press($this, 'out'))->assertSessionHasNoErrors();
+        // A session that falls due next month, and today's, which is kept.
+        $this->travelTo($real->subYears(7)->addDays(20));
+        $this->press('in', ClockPhotoFixture::press($this, 'in'))->assertSessionHasNoErrors();
+        $this->travelTo($real->subYears(7)->addDays(20)->addHours(5));
+        $this->press('out', ClockPhotoFixture::press($this, 'out'))->assertSessionHasNoErrors();
+        $this->travelBack();
+        $this->press('in', ClockPhotoFixture::press($this, 'in'))->assertSessionHasNoErrors();
+
+        $old = ClockPhoto::query()->orderBy('id')->take(2)->get();
+        $expectedBytes = (int) $old->sum(fn (ClockPhoto $p): int => $p->bytes + $p->thumb_bytes);
+        $disk = Storage::disk(ClockPhotoService::DISK);
+        $before = ['photos' => ClockPhoto::query()->count(), 'sessions' => DB::table('hr_clock_sessions')->count(),
+            'events' => DB::table('hr_clock_events')->count(), 'notices' => DB::table('hr_clock_photo_notices')->count(),
+            'audit' => DB::table('audit_logs')->count(), 'files' => $disk->allFiles('hr-clock-photos')];
+
+        $preview = app(AttendanceRetentionPurge::class)->preview();
+        $this->assertSame(1, $preview['due']['sessions']);
+        $this->assertSame(2, $preview['due']['photos']);
+        $this->assertSame($expectedBytes, $preview['due']['photo_bytes']);
+        $this->assertNotNull($preview['next_due']);
+        // The next thing to fall due is the session clocked 7 years less 20 days ago, 7 years and a day later.
+        $this->assertSame($real->subYears(7)->addDays(20)->addYears(7)->addDay()->toDateString(),
+            CarbonImmutable::parse((string) $preview['next_due'])->toDateString());
+        $this->assertContains($real->addDays(21)->format('Y-m'), array_column($preview['months'], 'month'));
+
+        $this->artisan('hr-attendance:purge', ['--dry-run' => true])
+            ->expectsOutputToContain('Dry run: nothing is deleted. Attendance records are kept 7 years (draft, to confirm).')
+            ->expectsOutputToContain('Next falls due')
+            ->assertSuccessful();
+
+        // Nothing changed: rows, files and the audit trail are exactly as before.
+        $this->assertSame($before, ['photos' => ClockPhoto::query()->count(), 'sessions' => DB::table('hr_clock_sessions')->count(),
+            'events' => DB::table('hr_clock_events')->count(), 'notices' => DB::table('hr_clock_photo_notices')->count(),
+            'audit' => DB::table('audit_logs')->count(), 'files' => $disk->allFiles('hr-clock-photos')]);
+
+        // The real purge deletes exactly what the dry run counted.
+        $counts = app(AttendanceRetentionPurge::class)->purgeExpired();
+        $this->assertSame($preview['due']['sessions'], $counts['sessions']);
+        $this->assertSame($before['photos'] - $preview['due']['photos'], ClockPhoto::query()->count());
+        $this->assertSame(0, app(AttendanceRetentionPurge::class)->preview()['due']['photos']);
+        // The schedule is untouched: the purge still runs daily.
+        $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
+            ->filter(fn ($e): bool => str_contains((string) $e->command, 'hr-attendance:purge'))->pluck('expression')->values()->all());
+    }
+
+    public function test_the_storage_card_shows_counts_only_to_the_settings_viewers(): void
+    {
+        // HR-PHOTO-STORAGE. Photos in November, December, January and February, then one this month (March 2027).
+        $zone = $this->branch->timezone;
+        $this->travelTo(CarbonImmutable::parse('2026-11-01 08:00', $zone)); // the accounts start before the first photo
+        $ca = $this->actor('ca');
+        $hr = $this->actor('hr_manager');
+        foreach (['2026-11-20', '2026-12-10', '2026-12-17', '2027-01-15', '2027-02-20', '2027-03-08'] as $day) {
+            $this->travelTo(CarbonImmutable::parse("{$day} 09:00", $zone));
+            $this->selectBranch($ca);
+            $this->press('in', ClockPhotoFixture::press($this, 'in'))->assertSessionHasNoErrors();
+            $this->travelTo(CarbonImmutable::parse("{$day} 13:00", $zone));
+            $this->press('out', ClockPhotoFixture::press($this, 'out'))->assertSessionHasNoErrors();
+        }
+        $bytes = (int) ClockPhoto::query()->get()->sum(fn (ClockPhoto $p): int => $p->bytes + $p->thumb_bytes);
+        // Three full months (December to February): 8 photos, so about 3 a month.
+        $window = (int) ClockPhoto::query()->where('created_at', '>=', CarbonImmutable::parse('2026-12-01', $zone)->utc())
+            ->where('created_at', '<', CarbonImmutable::parse('2027-03-01', $zone)->utc())->get()->sum(fn (ClockPhoto $p): int => $p->bytes + $p->thumb_bytes);
+
+        $this->selectBranch($hr);
+        $audits = DB::table('audit_logs')->count();
+        $this->get(route('hr.attendance.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page
+            ->where('attendance.settings.photoStorage.photos', 12)
+            ->where('attendance.settings.photoStorage.bytes', $bytes)
+            ->where('attendance.settings.photoStorage.oldest', '20 Nov 2026')
+            ->where('attendance.settings.photoStorage.thisMonth', 2)
+            ->where('attendance.settings.photoStorage.perMonth', 3)
+            ->where('attendance.settings.photoStorage.perMonthSize', PurgeAttendanceRecords::size((int) round($window / 3)))
+            ->where('attendance.settings.photoStorage.forecastRetention', PurgeAttendanceRecords::size(84 * (int) round($window / 3)))
+            ->where('attendance.settings.photoStorage.forecastMonths', 3)
+            ->where('attendance.settings.photoStorage.retentionYears', 7)
+            ->where('attendance.settings.photoStorage.earliestDelete', '21 Nov 2033')
+            ->where('attendance.settings.photoStorage.draft', true)
+            // Counts only: no names, photo ids or per-person figures anywhere on the card.
+            ->where('attendance.settings.photoStorage', fn ($card): bool => ! str_contains((string) json_encode($card), $ca->name)
+                && ! str_contains((string) json_encode($card), (string) ClockPhoto::query()->value('public_id'))));
+        $this->assertSame($audits, DB::table('audit_logs')->count()); // reading the card writes nothing
+
+        // Seen on 20 December 2026 the oldest photo (20 November) does not cover three full months: no forecast yet.
+        $this->travelTo(CarbonImmutable::parse('2026-12-20 09:00', $zone));
+        $this->get(route('hr.attendance.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page
+            ->where('attendance.settings.photoStorage.perMonth', null)->where('attendance.settings.photoStorage.forecastOneYear', null));
+
+        // Staff without the Settings tab never get the card.
+        $this->travelTo(CarbonImmutable::parse('2027-03-08 15:00', $zone));
+        $this->selectBranch($ca);
+        $this->get(route('hr.attendance.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page->where('attendance.settings', null));
     }
 
     public function test_pages_show_your_own_photo_and_keep_anyone_elses_behind_show(): void
