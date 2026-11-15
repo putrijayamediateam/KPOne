@@ -79,6 +79,8 @@ class PostgresQueueRegressionTest extends TestCase
             DB::table('audit_logs')->where('organisation_id', $this->organisationId)->delete();
             DB::table('consultation_holds')->where('organisation_id', $this->organisationId)->delete();
             DB::table('clinical_encounters')->where('organisation_id', $this->organisationId)->delete();
+            $this->purgeTreatmentSteps($this->organisationId);
+            DB::table('otc_queue_entries')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_call_holds')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_calls')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_entries')->where('organisation_id', $this->organisationId)->delete();
@@ -354,6 +356,7 @@ class PostgresQueueRegressionTest extends TestCase
     {
         [$organisation, $branches, $actors, $doctor] = $this->fixture();
         $actors[1]->givePermissionTo(Permission::findOrCreate('queue.call_hold.set.branch', 'web'));
+        $this->assignToBranch($actors[1], $branches[0]);
         $visit = $this->visit($organisation, $branches[0], $actors[0], $doctor);
         $entry = $this->enter($actors[0], $visit);
         $workers = [
@@ -366,6 +369,8 @@ class PostgresQueueRegressionTest extends TestCase
         $output = $this->workerOutput($workers);
         $this->assertSame(1, substr_count($output, 'CALLED') + substr_count($output, 'FLAGGED'), $output);
         $this->assertSame(1, substr_count($output, 'REFUSED'), $output);
+        // Both workers were authorised (no 'authorization' refusal), so the loser lost the race, not a permission check.
+        $this->assertStringNotContainsString('REFUSED authorization', $output);
         $active = DB::table('queue_call_holds')->where('queue_entry_id', $entry->id)->whereNull('closed_at')->count();
         $this->assertFalse($entry->refresh()->status === QueueEntry::STATUS_SERVING && $active > 0, 'Serving with an active not-ready flag');
     }
@@ -389,6 +394,48 @@ class PostgresQueueRegressionTest extends TestCase
             Visit::query()->whereKey($visit->id)->where('status', Visit::STATUS_CANCELLED)->exists()
             && QueueEntry::query()->where('visit_id', $visit->id)->whereIn('status', [QueueEntry::STATUS_WAITING, QueueEntry::STATUS_SERVING])->exists(),
         );
+    }
+
+    /** B2: two OTC patients are sent to the B-number list at once. */
+    public function test_two_otc_patients_sent_at_once_get_distinct_b_numbers_and_one_entry_each(): void
+    {
+        [$organisation, $branches, $actors, $doctor] = $this->fixture();
+        $visits = [$this->visit($organisation, $branches[0], $actors[0], $doctor), $this->visit($organisation, $branches[0], $actors[1], $doctor)];
+        foreach ($visits as $visit) {
+            $visit->forceFill(['visit_type' => 'otc', 'assigned_doctor_user_id' => null])->save();
+        }
+        $workers = [
+            $this->worker(['otc-enter', (string) $actors[0]->id, $visits[0]->visit_number, (string) $branches[0]->id]),
+            $this->worker(['otc-enter', (string) $actors[1]->id, $visits[1]->visit_number, (string) $branches[0]->id]),
+        ];
+
+        $this->runTogetherWhileParentBlocks($workers, fn () => DB::statement('LOCK TABLE queue_number_counters IN ACCESS EXCLUSIVE MODE'));
+
+        $this->assertSame(1, substr_count($this->workerOutput($workers), 'OTC_ENTERED 1'));
+        $this->assertSame(1, substr_count($this->workerOutput($workers), 'OTC_ENTERED 2'));
+        $this->assertSame([1, 2], DB::table('otc_queue_entries')->where('organisation_id', $organisation->id)->pluck('queue_number')->sort()->values()->all());
+    }
+
+    /** B2: two CAs start different treatment steps on the same Serving patient at once (Q-2c: one step in progress). */
+    public function test_two_cas_starting_a_treatment_step_on_one_patient_start_exactly_one(): void
+    {
+        [$organisation, $branches, $actors, $doctor] = $this->fixture();
+        foreach ($actors as $actor) {
+            $actor->givePermissionTo(Permission::findOrCreate('queue.treatment_progress.set.branch', 'web'));
+            $this->assignToBranch($actor, $branches[0]);
+        }
+        [$visit] = $this->pilotServing($organisation, $branches[0], $actors[0], $doctor);
+        $workers = [
+            $this->worker(['step-start', (string) $actors[0]->id, $visit->visit_number, (string) $branches[0]->id, 'nebuliser']),
+            $this->worker(['step-start', (string) $actors[1]->id, $visit->visit_number, (string) $branches[0]->id, 'ecg']),
+        ];
+
+        $this->runTogetherWhileParentBlocks($workers, fn () => Visit::query()->whereKey($visit->id)->lockForUpdate()->firstOrFail());
+
+        $output = $this->workerOutput($workers);
+        $this->assertSame(1, substr_count($output, 'STEP_STARTED'), $output);
+        $this->assertSame(1, substr_count($output, 'REFUSED'), $output);
+        $this->assertSame(1, DB::table('queue_treatment_steps')->where('organisation_id', $organisation->id)->where('state', 'started')->count());
     }
 
     private function pilotServing(Organisation $organisation, Branch $branch, User $actor, User $doctor): array
@@ -443,6 +490,17 @@ class PostgresQueueRegressionTest extends TestCase
         }
 
         return [$organisation, $branches, $actors, $doctor, $profile, $assignment, $administrator];
+    }
+
+    /** A staff profile with a current assignment, which the transactional actor lock requires. */
+    private function assignToBranch(User $user, Branch $branch): void
+    {
+        $profile = new StaffProfile;
+        $profile->forceFill(['user_id' => $user->id, 'department_id' => null])->save();
+        StaffBranchAssignmentBootstrapper::create($profile, $branch, [
+            'assignment_type' => 'temporary', 'is_primary' => false,
+            'valid_from' => now()->subDay()->toDateString(), 'valid_until' => now()->addDay()->toDateString(),
+        ]);
     }
 
     private function additionalDoctor(Organisation $organisation, Branch $branch): array
@@ -696,6 +754,24 @@ class PostgresQueueRegressionTest extends TestCase
         return implode('', array_map(fn ($worker) => $worker['process']->getOutput(), $workers));
     }
 
+    /** The step tables are append-only (PostgreSQL refuses delete), so a throw-away test organisation disables the user triggers to clear them. */
+    private function purgeTreatmentSteps(int $organisationId): void
+    {
+        $tables = ['queue_treatment_step_events', 'queue_treatment_step_commands', 'queue_treatment_steps'];
+        try {
+            foreach ($tables as $table) {
+                DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
+            }
+            DB::table('queue_treatment_step_events')->whereIn('treatment_step_id', DB::table('queue_treatment_steps')->where('organisation_id', $organisationId)->select('id'))->delete();
+            DB::table('queue_treatment_step_commands')->where('organisation_id', $organisationId)->delete();
+            DB::table('queue_treatment_steps')->where('organisation_id', $organisationId)->delete();
+        } finally {
+            foreach ($tables as $table) {
+                DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");
+            }
+        }
+    }
+
     private function tearDownOrganisationOnly(): void
     {
         if ($this->organisationId === null) {
@@ -705,6 +781,8 @@ class PostgresQueueRegressionTest extends TestCase
         DB::table('audit_logs')->where('organisation_id', $id)->delete();
         DB::table('consultation_holds')->where('organisation_id', $id)->delete();
         DB::table('clinical_encounters')->where('organisation_id', $id)->delete();
+        $this->purgeTreatmentSteps($id);
+        DB::table('otc_queue_entries')->where('organisation_id', $id)->delete();
         DB::table('queue_call_holds')->where('organisation_id', $id)->delete();
         DB::table('queue_calls')->where('organisation_id', $id)->delete();
         DB::table('queue_entries')->where('organisation_id', $id)->delete();

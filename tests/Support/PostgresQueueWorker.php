@@ -6,7 +6,9 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Clinical\Services\ConsultationHoldService;
 use App\Domain\Queue\Readiness\CallHoldService;
 use App\Domain\Queue\Services\CallNextService;
+use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Queue\Services\QueueEntryService;
+use App\Domain\Queue\Treatment\TreatmentStepService;
 use App\Domain\Visit\Models\Visit;
 use App\Domain\Visit\Services\VisitAdministrationService;
 use App\Models\User;
@@ -80,6 +82,40 @@ try {
             fwrite(STDOUT, "ENTERED {$entry->queue_number}".PHP_EOL);
         } catch (ValidationException|AuthorizationException) {
             fwrite(STDOUT, 'REJECTED'.PHP_EOL);
+        }
+        exit(0);
+    }
+
+    if ($mode === 'otc-enter' && count($argv) === 6) {
+        // B2: send an OTC visit to the B-number waiting list.
+        [, , $actorId, $visitNumber, $branchId] = $argv;
+        app('session')->start();
+        session([BranchAccessService::SESSION_KEY => (int) $branchId]);
+        $visit = Visit::query()->where('visit_number', $visitNumber)->firstOrFail();
+        try {
+            $entry = app(OtcQueueService::class)->enter(User::query()->findOrFail((int) $actorId), $visit, ['expected_branch_id' => (int) $branchId]);
+            fwrite(STDOUT, 'OTC_ENTERED '.$entry->queue_number.PHP_EOL);
+        } catch (ValidationException|AuthorizationException) {
+            fwrite(STDOUT, 'REJECTED'.PHP_EOL);
+        }
+        exit(0);
+    }
+
+    if ($mode === 'step-start' && count($argv) === 7) {
+        // B2: a CA starts a treatment step on a Serving patient.
+        [, , $actorId, $visitNumber, $branchId, $stepCode] = $argv;
+        app('session')->start();
+        session([BranchAccessService::SESSION_KEY => (int) $branchId]);
+        $visit = Visit::query()->where('visit_number', $visitNumber)->firstOrFail();
+        try {
+            app(TreatmentStepService::class)->start(User::query()->findOrFail((int) $actorId), $visit, [
+                'expected_branch_id' => (int) $branchId,
+                'step_code' => $stepCode,
+                'idempotency_key' => (string) Str::uuid(),
+            ]);
+            fwrite(STDOUT, 'STEP_STARTED'.PHP_EOL);
+        } catch (ValidationException|AuthorizationException $error) {
+            fwrite(STDOUT, 'REFUSED '.$error::class.' '.$error->getMessage().PHP_EOL);
         }
         exit(0);
     }
