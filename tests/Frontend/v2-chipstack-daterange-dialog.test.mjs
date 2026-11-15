@@ -243,3 +243,18 @@ test('V2Dialog: confirmDisabled switches the filled action off and says why abov
     );
     assert.match(d, /Choose a supplier to continue\./);
 });
+
+test('V2Dialog: singleActionStyle outline gives an info sheet the footer-Cancel look; the default stays filled', () => {
+    const d = read('resources/js/components/v2/V2Dialog.vue');
+    assert.match(d, /singleActionStyle\?: 'filled' \| 'outline';/);
+    assert.match(d, /singleActionStyle: 'filled'/);
+    assert.match(
+        d,
+        /singleAction && singleActionStyle === 'outline'[\s\S]*?border border-border bg-card text-foreground hover:bg-muted/,
+    );
+    // the filled classes are still there for the default and for danger
+    assert.match(d, /bg-primary text-primary-foreground hover:bg-primary\/90/);
+    assert.match(d, /bg-destructive text-destructive-foreground/);
+    // it still submits, and no page sets the prop yet (the owners decide)
+    assert.match(d, /@click="submit"/);
+});
