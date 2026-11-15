@@ -6,8 +6,8 @@ import V2Dialog from '@/components/v2/V2Dialog.vue';
 /**
  * Version 2 "Unsaved clinical work" dialog (Classic: `components/clinical/UnsavedClinicalWorkDialog.vue`, untouched).
  * Same props and events: this is purely presentational, the page owns the save and hold calls. "Save and hold" is the
- * one filled button (the recommended choice), "Discard and hold" is an outline button inside the body, and Cancel
- * keeps the doctor on the consultation.
+ * one filled button (the recommended choice), "Discard and hold" is a destructive outline button inside the body (never
+ * a filled red one), and Cancel keeps the doctor on the consultation.
  */
 const props = defineProps<{
     open: boolean;
@@ -35,8 +35,10 @@ const joinWithAnd = (items: string[]): string => {
 
     return list.charAt(0).toUpperCase() + list.slice(1);
 };
+// The sentence says what each choice does to the unsaved text, so nobody has to guess.
 const description = computed(
-    () => `${joinWithAnd(props.unsavedItems)} not saved yet.`,
+    () =>
+        `${joinWithAnd(props.unsavedItems)} not saved yet. Save and hold keeps your text. Discard and hold deletes it.`,
 );
 </script>
 
@@ -58,7 +60,7 @@ const description = computed(
         <Button
             type="button"
             variant="outline"
-            class="h-11 w-full sm:w-fit lg:h-9"
+            class="h-11 w-full border-destructive/50 text-destructive hover:bg-destructive/10 hover:text-destructive sm:w-fit lg:h-9"
             :disabled="processing"
             @click="emit('hold-without-saving')"
             >{{

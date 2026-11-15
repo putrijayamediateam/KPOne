@@ -12,6 +12,8 @@ const props = defineProps<{
     modelValue: string;
     tabs: Tab[];
     ariaLabel: string;
+    /** Optional: gives each tab `id="{prefix}-tab-{value}"` and `aria-controls="{prefix}-panel-{value}"` for the page's tabpanels. */
+    idPrefix?: string;
 }>();
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
@@ -98,6 +100,10 @@ const move = (event: KeyboardEvent, index: number) => {
                 :key="tab.value"
                 type="button"
                 role="tab"
+                :id="idPrefix ? `${idPrefix}-tab-${tab.value}` : undefined"
+                :aria-controls="
+                    idPrefix ? `${idPrefix}-panel-${tab.value}` : undefined
+                "
                 :aria-selected="tab.value === modelValue"
                 :tabindex="tab.value === modelValue ? 0 : -1"
                 :disabled="tab.disabled"

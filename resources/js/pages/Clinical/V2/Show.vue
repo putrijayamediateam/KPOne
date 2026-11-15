@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import {
     AlertTriangle,
     ArrowLeft,
@@ -12,8 +12,10 @@ import {
     Trash2,
     UserRound,
 } from '@lucide/vue';
+import { onBeforeUnmount, ref } from 'vue';
 import DiagnosisPresetPicker from '@/components/clinical/DiagnosisPresetPicker.vue';
 import WaitingPatientsButton from '@/components/clinical/WaitingPatientsButton.vue';
+import ConsultationMoreMenu from '@/components/clinical-v2/ConsultationMoreMenu.vue';
 import UnsavedWorkDialogV2 from '@/components/clinical-v2/UnsavedWorkDialogV2.vue';
 import InputError from '@/components/InputError.vue';
 import HeldCallNext from '@/components/queue/HeldCallNext.vue';
@@ -32,13 +34,12 @@ import { OperationalSelect } from '@/components/ui/select';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Field from '@/components/v2/V2Field.vue';
+import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
 import WorkspaceBranchSwitcher from '@/components/workspace/WorkspaceBranchSwitcher.vue';
 import { useConsultationV2 } from '@/composables/clinical/useConsultationV2';
 import type { ConsultationV2Props } from '@/composables/clinical/useConsultationV2';
-
-type NumericInput = number | string | null;
 import { getInitials } from '@/composables/useInitials';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
@@ -79,6 +80,7 @@ const {
     adoptLatestRecord,
     treatmentPlanPanelRef,
     unsavedItems,
+    hasUnsavedWork,
     unsavedWorkOpen,
     unsavedWorkProcessing,
     unsavedWorkAction,
@@ -105,6 +107,77 @@ const {
     save,
     changeHoldState,
 } = useConsultationV2(props);
+
+// Unsaved clinical work (the record form and the treatment plan draft) is guarded on every way out of this page.
+// V2LeaveGuard holds a link or button to another page (Back to My Queue, the menu) and browser Back, and warns on
+// reload or closing the tab. Switching branch is a POST, which the shared rule never holds, so it is held here and asked
+// through the same dialog. Hold has its own question (Save and hold / Discard and hold). Call again, the treatment-room
+// call and the treatment step keep the page and the unsaved text, so they ask nothing.
+const leaveGuard = ref<InstanceType<typeof V2LeaveGuard> | null>(null);
+let replaying = false;
+const stopBranchGuard = router.on('before', (event) => {
+    const visit = event.detail.visit;
+
+    if (
+        replaying ||
+        !hasUnsavedWork.value ||
+        form.processing ||
+        String(visit.method).toLowerCase() === 'get'
+    ) {
+        return;
+    }
+
+    if (
+        new URL(visit.url.toString(), window.location.origin).pathname !==
+        '/branch-context'
+    ) {
+        return;
+    }
+
+    leaveGuard.value?.ask(() => {
+        replaying = true;
+        router.post('/branch-context', visit.data as Record<string, never>, {
+            preserveScroll: true,
+            onFinish: () => (replaying = false),
+        });
+    });
+
+    return false;
+});
+onBeforeUnmount(stopBranchGuard);
+const discardUnsaved = () => {
+    form.reset();
+    form.clearErrors();
+    treatmentPlanPanelRef.value?.discardDraft();
+};
+const documentLinks = () =>
+    [
+        [
+            'medical_certificates.view.own',
+            'mc',
+            'Medical certificates',
+            'medical-certificates',
+        ],
+        ['referrals.view.own', 'referral', 'Referral letters', 'referrals'],
+        [
+            'attendance_documents.view.own',
+            'attendance',
+            'Attendance confirmation',
+            'attendance',
+        ],
+    ]
+        .filter(([permission]) =>
+            page.props.auth.permissions.includes(permission),
+        )
+        .map(([, id, label, path]) => ({
+            id,
+            label,
+            href: `/visits/${props.clinical.visit.visitNumber}/${path}`,
+        }));
+const callRoom = (roomId: number) => {
+    treatmentRoomId.value = roomId;
+    callToTreatment();
+};
 
 const tabs = [
     { value: 'treatment', label: 'Treatment plan' },
@@ -160,7 +233,7 @@ const saveStatus = () =>
         : form.recentlySuccessful
           ? 'Saved.'
           : form.isDirty
-            ? 'Unsaved changes'
+            ? 'You have unsaved changes'
             : 'Clinical record is up to date.';
 </script>
 
@@ -168,6 +241,11 @@ const saveStatus = () =>
     <Head title="Clinical Encounter" />
     <PageFrame width="wide">
         <div class="flex min-w-0 flex-col gap-4">
+            <V2LeaveGuard
+                ref="leaveGuard"
+                :dirty="hasUnsavedWork && !form.processing"
+                @discard="discardUnsaved"
+            />
             <header class="flex flex-col gap-3">
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
                     <Link
@@ -193,7 +271,7 @@ const saveStatus = () =>
                         "
                         :label="statusLabel()"
                     />
-                    <span class="text-[13px] text-muted-foreground"
+                    <span class="text-[13px] text-muted-foreground tabular-nums"
                         >{{ waitedDurationLabel(waitedMinutes) }} · Active
                         {{ clinical.hold.activeMinutes }} min · Held
                         {{ clinical.hold.heldMinutes }} min</span
@@ -226,7 +304,7 @@ const saveStatus = () =>
                             )
                         "
                         variant="outline"
-                        class="h-11 lg:h-9"
+                        class="h-11 max-sm:hidden lg:h-9"
                         as-child
                     >
                         <a
@@ -248,7 +326,7 @@ const saveStatus = () =>
                             )
                         "
                         variant="outline"
-                        class="h-11 lg:h-9"
+                        class="h-11 max-sm:hidden lg:h-9"
                         as-child
                     >
                         <a
@@ -270,7 +348,7 @@ const saveStatus = () =>
                             )
                         "
                         variant="outline"
-                        class="h-11 lg:h-9"
+                        class="h-11 max-sm:hidden lg:h-9"
                         as-child
                     >
                         <a
@@ -315,12 +393,31 @@ const saveStatus = () =>
                         <Megaphone class="size-4" aria-hidden="true" /> Call
                         again
                     </Button>
+                    <div class="sm:hidden">
+                        <ConsultationMoreMenu
+                            v-if="
+                                documentLinks().length ||
+                                (clinical.queue.canRecall &&
+                                    (treatmentRooms?.length ?? 0) > 0)
+                            "
+                            :documents="documentLinks()"
+                            :rooms="
+                                clinical.queue.canRecall
+                                    ? (treatmentRooms ?? [])
+                                    : []
+                            "
+                            :rooms-disabled="
+                                recallProcessing || callNextProcessing
+                            "
+                            @room="callRoom"
+                        />
+                    </div>
                     <div
                         v-if="
                             clinical.queue.canRecall &&
                             (treatmentRooms?.length ?? 0) > 0
                         "
-                        class="flex flex-col gap-1"
+                        class="flex flex-col gap-1 max-sm:hidden"
                     >
                         <div class="flex flex-wrap items-center gap-2">
                             <OperationalSelect
@@ -366,7 +463,7 @@ const saveStatus = () =>
                     </div>
                     <InputError
                         v-if="recallError && !treatmentError"
-                        class="max-w-56"
+                        class="w-full max-w-prose"
                         :message="recallError"
                     />
                     <div class="contents">
@@ -393,7 +490,7 @@ const saveStatus = () =>
                         @click="requestHold"
                     >
                         <PauseCircle class="size-4" aria-hidden="true" /> On
-                        hold
+                        Hold
                     </Button>
                     <Button
                         v-if="clinical.hold.canResume"
@@ -404,7 +501,7 @@ const saveStatus = () =>
                         @click="changeHoldState('resume')"
                     >
                         <PlayCircle class="size-4" aria-hidden="true" /> Resume
-                        consultation
+                        Consultation
                     </Button>
                     <div
                         class="ml-auto flex shrink-0 items-center gap-2"
@@ -746,7 +843,9 @@ const saveStatus = () =>
                                         @update:model-value="
                                             (value) =>
                                                 (form.vitals[field.key] =
-                                                    value as NumericInput)
+                                                    value === ''
+                                                        ? ''
+                                                        : Number(value))
                                         "
                                         :inputmode="field.mode"
                                         type="number"
@@ -820,9 +919,7 @@ const saveStatus = () =>
                                     <Button
                                         type="submit"
                                         class="h-11 max-sm:hidden lg:h-9"
-                                        :variant="
-                                            form.isDirty ? 'default' : 'outline'
-                                        "
+                                        variant="outline"
                                         :disabled="saveDisabled()"
                                     >
                                         <LoaderCircle
@@ -982,9 +1079,13 @@ const saveStatus = () =>
                         v-model="workspaceTab"
                         :tabs="tabs"
                         ariaLabel="Consultation panels"
+                        id-prefix="consultation"
                     />
                     <div
                         v-show="workspaceTab === 'treatment'"
+                        id="consultation-panel-treatment"
+                        role="tabpanel"
+                        aria-labelledby="consultation-tab-treatment"
                         class="consultation-dense"
                         data-testid="consultation-treatment-pane"
                     >
@@ -1001,6 +1102,9 @@ const saveStatus = () =>
                     </div>
                     <div
                         v-show="workspaceTab === 'history'"
+                        id="consultation-panel-history"
+                        role="tabpanel"
+                        aria-labelledby="consultation-tab-history"
                         data-testid="consultation-history-pane"
                         class="consultation-dense min-h-0 rounded-[14px] border bg-card p-4 lg:h-[calc(100dvh-12rem)] lg:[&>div]:h-full"
                     >
@@ -1015,7 +1119,7 @@ const saveStatus = () =>
             <V2StickyBar>
                 <Button
                     type="button"
-                    :variant="form.isDirty ? 'default' : 'outline'"
+                    variant="outline"
                     :disabled="saveDisabled()"
                     @click="save"
                 >
