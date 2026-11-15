@@ -825,7 +825,10 @@ const wide =
                     class="flex min-w-0 flex-col gap-3"
                     aria-labelledby="v2-cases"
                 >
-                    <h2 id="v2-cases" class="v2-section-title">
+                    <h2
+                        id="v2-cases"
+                        class="v2-section-title text-lg font-semibold"
+                    >
                         Cases and next action
                     </h2>
                     <V2Table
