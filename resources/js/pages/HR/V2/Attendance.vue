@@ -727,8 +727,7 @@ const numberClass =
                                 >
                                     <button
                                         type="button"
-                                        :class="button"
-                                        aria-label="Previous day"
+                                        :class="[button, 'gap-1.5']"
                                         @click="
                                             visit({
                                                 branch: attendance.review
@@ -738,8 +737,9 @@ const numberClass =
                                             })
                                         "
                                     >
-                                        ‹<span class="max-sm:sr-only">
-                                            Previous day</span
+                                        <span aria-hidden="true">‹</span
+                                        ><span class="max-sm:sr-only"
+                                            >Previous day</span
                                         >
                                     </button>
                                     <V2DateField
@@ -759,8 +759,7 @@ const numberClass =
                                     />
                                     <button
                                         type="button"
-                                        :class="button"
-                                        aria-label="Next day"
+                                        :class="[button, 'gap-1.5']"
                                         @click="
                                             visit({
                                                 branch: attendance.review
@@ -771,8 +770,8 @@ const numberClass =
                                         "
                                     >
                                         <span class="max-sm:sr-only"
-                                            >Next day </span
-                                        >›
+                                            >Next day</span
+                                        ><span aria-hidden="true">›</span>
                                     </button>
                                 </div>
                                 <button
@@ -1384,9 +1383,7 @@ const numberClass =
                     v-if="correction.kind !== 'set_out'"
                     class="grid gap-3 sm:grid-cols-2"
                 >
-                    <legend class="mb-1.5 text-sm font-medium">
-                        Clock-in <span aria-hidden="true">*</span>
-                    </legend>
+                    <legend class="mb-1.5 text-sm font-medium">Clock-in</legend>
                     <V2DateField
                         :model-value="inParts.date"
                         label="Date"
@@ -1406,7 +1403,7 @@ const numberClass =
                     class="grid gap-3 sm:grid-cols-2"
                 >
                     <legend class="mb-1.5 text-sm font-medium">
-                        Clock-out <span aria-hidden="true">*</span>
+                        Clock-out
                     </legend>
                     <V2DateField
                         :model-value="outParts.date"
