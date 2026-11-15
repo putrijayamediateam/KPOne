@@ -76,7 +76,7 @@ test('a table from 1280 px and cards below it, each with a named Open case link'
 test('the own-return note is visible text under the state, and on cards above Open case', () => {
     assert.match(
         v2,
-        /const ownNote = 'You recorded this return, so someone else must check it\.';/,
+        /const ownNote =\s*'You recorded this return, so another CA Supervisor must check it\.';/,
     );
     assert.equal(
         (template(v2).match(/data-testid="return-own-note"/g) ?? []).length,
@@ -89,6 +89,15 @@ test('the own-return note is visible text under the state, and on cards above Op
     );
     assert.ok(card.indexOf('return-own-note') < card.indexOf('openLabel(row)'));
     assert.ok(!/title="\{\{|:title="ownNote/.test(v2), 'never only a tooltip');
+    // Daniel: a wider State column so the note wraps to two lines at 1440, not three.
+    assert.match(
+        template(v2),
+        /<th scope="col" class="w-64 text-right">\s*State/,
+    );
+    assert.match(
+        template(v2),
+        /class="block max-w-64 text-\[13px\] text-muted-foreground"/,
+    );
 });
 
 test('Controlled and the state are dot-and-word chips; quantities read as unit words; codes unbroken', () => {

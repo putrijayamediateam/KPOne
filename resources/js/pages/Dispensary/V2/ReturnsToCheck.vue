@@ -63,7 +63,8 @@ usePageCrumbs(() => [
     { title: 'Returns to check' },
 ]);
 const help = `Medicine returns waiting for a check at ${props.returns.branchName}, oldest first.`;
-const ownNote = 'You recorded this return, so someone else must check it.';
+const ownNote =
+    'You recorded this return, so another CA Supervisor must check it.';
 // The server pages by 25 (DispensaryReturnService::returnsToCheck).
 const perPage = 25;
 const amount = (row: Row) => quantityWords(row.quantity, row.unit);
@@ -113,7 +114,7 @@ const outlineButton =
                                     </th>
                                     <th scope="col">Reason / Condition</th>
                                     <th scope="col">Recorded by</th>
-                                    <th scope="col" class="text-right">
+                                    <th scope="col" class="w-64 text-right">
                                         State
                                     </th>
                                 </tr>
@@ -175,7 +176,7 @@ const outlineButton =
                                             />
                                             <span
                                                 v-if="row.recordedByMe"
-                                                class="block max-w-56 text-[13px] text-muted-foreground"
+                                                class="block max-w-64 text-[13px] text-muted-foreground"
                                                 data-testid="return-own-note"
                                                 >{{ ownNote }}</span
                                             >
