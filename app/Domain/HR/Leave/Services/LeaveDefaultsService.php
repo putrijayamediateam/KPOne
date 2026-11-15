@@ -18,8 +18,10 @@ use Illuminate\Validation\ValidationException;
  *
  * Annual, sick and hospitalisation leave count against a yearly balance by length of service at 1 January of the
  * year. Hospitalisation is 60 days a year including sick leave, so its balance is 60 less the sick figure in force
- * (HR's own, or the default). Service runs back through employment periods that join up. Someone who joins or leaves
- * during the year gets annual leave by completed months (s.60E(1A)); sick leave is not pro-rated. Maternity
+ * (HR's own, or the default). Service runs back through employment periods that join up. Annual leave goes by completed
+ * months for a leaver (s.60E(1A)) and, as KPOne's default (common practice), for a joiner; sick leave is not pro-rated.
+ * A later press re-plans the person rows KPOne itself wrote, so pressing again after a join or a leave updates them.
+ * Maternity
  * (98 days a confinement) and paternity (7 days a birth) are not yearly figures, so they are paid types without a
  * balance and the approver checks the days. Nothing is granted here; "Give this year's entitlement" still does that.
  */
@@ -127,6 +129,7 @@ final class LeaveDefaultsService
             ->mapWithKeys(fn (User $u): array => [$u->id => array_values(array_intersect($u->roles->pluck('name')->all(), RosterPermissions::HUMAN_ROLES))])->all();
         $key = fn (string $code, string $who): ?string => isset($typeIds[$code]) ? $typeIds[$code].':'.$who : null;
         $has = fn (?string $k): bool => $k !== null && array_key_exists($k, $current);
+        $ours = fn (?string $k): bool => $k !== null && in_array($k, $defaultKeys, true);
         $full = 2 * self::HOSPITAL_TOTAL_DAYS;
 
         // Role rows: the first tier where the role has none; hospitalisation follows the role's sick figure.
@@ -158,9 +161,6 @@ final class LeaveDefaultsService
             $counts['crossing'] += $s !== null && $s['crossing'] ? 1 : 0;
             $months = $s['months'] ?? 12;
             $counts['prorated'] += $months < 12 ? 1 : 0;
-            if ($tier === 0 && $months === 12) {
-                continue;
-            }
             $mine = $roles[$id] ?? [];
             // What the grant would give from the roles alone (it takes the largest role row), and the HR part of it.
             $fromRoles = fn (string $code): int => $mine === [] ? 0 : max(array_map(fn (string $r): int => $roleValue[$code][$r] ?? 0, $mine));
@@ -175,6 +175,15 @@ final class LeaveDefaultsService
 
                 return $values === [] ? null : max($values);
             };
+            // A person row KPOne's defaults wrote earlier is not an HR figure: a later press re-plans it (after a join, a
+            // leave or a new service tier) and appends a new row only when the figure changed. Without one, a row is
+            // written only when it differs from what the roles already give.
+            $write = function (string $code, ?string $k, int $value, int $fromRolesValue) use (&$rows, $typeIds, $id, $has, $current): void {
+                $changed = $has($k) ? $current[(string) $k] !== $value : $value !== $fromRolesValue;
+                if ($changed) {
+                    $rows[] = ['leave_type_id' => $typeIds[$code] ?? 0, 'role' => null, 'user_id' => $id, 'halves' => $value];
+                }
+            };
             $sick = null;
             foreach (['ANNUAL', 'SICK'] as $code) {
                 $k = $key($code, 'u'.$id);
@@ -182,23 +191,19 @@ final class LeaveDefaultsService
                 if ($code === 'ANNUAL' && $months < 12) {
                     $target = self::prorate(self::TIERS[$code][$tier], $months) * 2;
                 }
-                if ($has($k)) {
-                    $value = $current[(string) $k]; // a person row already there stays as it is
-                } elseif (($hr = $fromHr($code)) !== null && $hr >= $target) {
-                    $value = $fromRoles($code);    // HR's own role figure already gives at least the tier
+                if ($has($k) && ! $ours($k)) {
+                    $value = $current[(string) $k]; // a person row HR entered stays as it is
                 } else {
-                    if ($target !== $fromRoles($code)) {
-                        $rows[] = ['leave_type_id' => $typeIds[$code] ?? 0, 'role' => null, 'user_id' => $id, 'halves' => $target];
-                    }
-                    $value = $target;
+                    // HR's own role figure stands when it already gives at least the target; otherwise the target.
+                    $value = ($hr = $fromHr($code)) !== null && $hr >= $target ? $fromRoles($code) : $target;
+                    $write($code, $k, $value, $fromRoles($code));
                 }
                 $sick = $code === 'SICK' ? $value : $sick;
             }
             // Hospitalisation: 60 days less the sick figure this person will have, unless HR set its own figure.
             $k = $key('HOSPITAL', 'u'.$id);
-            $target = max(0, $full - (int) $sick);
-            if (! $has($k) && $fromHr('HOSPITAL') === null && $target !== $fromRoles('HOSPITAL')) {
-                $rows[] = ['leave_type_id' => $typeIds['HOSPITAL'] ?? 0, 'role' => null, 'user_id' => $id, 'halves' => $target];
+            if (! $has($k) || $ours($k)) {
+                $write('HOSPITAL', $k, $fromHr('HOSPITAL') === null ? max(0, $full - (int) $sick) : $fromRoles('HOSPITAL'), $fromRoles('HOSPITAL'));
             }
         }
 
@@ -251,7 +256,7 @@ final class LeaveDefaultsService
             }
             $ends = $date($periods[$j]->ends_on);
             $start = $date((string) $periods[$i]->starts_on);
-            // s.60E(1A): completed months of service in the year, for someone who joins or leaves during it.
+            // Completed months of service in the year: s.60E(1A) for a leaver, KPOne's default for a joiner.
             $from = $start->greaterThan($jan) ? $start : $jan;
             $to = ($ends === null || $ends->greaterThan($dec) ? $dec : $ends)->addDay();
             $months = min(12, max(0, (int) $from->diffInMonths($to)));
@@ -268,8 +273,8 @@ final class LeaveDefaultsService
     }
 
     /**
-     * Employment Act 1955 s.60E(1A): with less than 12 months of service in the year, annual leave is in proportion to
-     * the completed months; a fraction of a day under one half is dropped and one half or more counts as a day.
+     * Annual leave in proportion to the completed months of service in the year (Employment Act 1955 s.60E(1A) for a
+     * leaver; KPOne's default for a joiner); a fraction of a day under one half is dropped, one half or more is a day.
      */
     public static function prorate(int $days, int $months): int
     {

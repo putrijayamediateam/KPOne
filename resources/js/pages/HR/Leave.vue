@@ -2981,9 +2981,12 @@ const calendarDays = computed(() =>
                         approver checks the days.
                     </li>
                     <li>
-                        Someone who joins or leaves during the year gets annual
-                        leave by completed months (Employment Act section
-                        60E(1A)); sick leave is not pro-rated.
+                        Annual leave by completed months for someone who leaves
+                        during the year (Employment Act section 60E(1A)) and, as
+                        KPOne's default, for someone who joins during it. It
+                        uses the dates in the staff file when you press; press
+                        again after a join or a leave to update them. Sick leave
+                        is not pro-rated.
                     </li>
                     <li>No carry-forward.</li>
                 </ul>

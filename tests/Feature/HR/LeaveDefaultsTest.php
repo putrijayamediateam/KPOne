@@ -145,6 +145,38 @@ class LeaveDefaultsTest extends VisitTestCase
         $this->get(route('hr.leave.index', ['tab' => 'settings', 'year' => 2027]))->assertInertia(fn (Assert $page) => $page->where('leave.settings.defaults.prorated', 2));
     }
 
+    public function test_a_later_press_updates_only_the_rows_kpone_wrote(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $doctor = $this->staffSince('resident_doctor', '2018-01-01'); // 9 years: 16, 22, 38
+        $other = $this->staffSince('ca', '2020-01-01');               // 7 years
+        $this->defaults($hr)->assertSessionHasNoErrors();
+        $types = LeaveType::query()->pluck('id', 'code');
+        $this->assertSame(32, $this->row($types['ANNUAL'], $doctor));
+        // HR enters its own figure for the other person; a later press must never touch it.
+        $this->selectBranch($hr);
+        $this->put(route('hr.leave.entitlements.save'), ['year' => 2027, 'rows' => [['leave_type_id' => $types['ANNUAL'], 'user_id' => $other->id, 'days' => '25']]])->assertSessionHasNoErrors();
+        $otherRows = DB::table('hr_leave_entitlements')->where('leave_type_id', $types['ANNUAL'])->where('user_id', $other->id)->count();
+
+        // The doctor's leaving date is recorded after the press, and someone joins in May.
+        $period = DB::table('hr_employment_periods as p')->join('hr_workers as w', 'w.id', '=', 'p.worker_id')->where('w.user_id', $doctor->id)->value('p.id');
+        DB::table('hr_employment_periods')->where('id', $period)->update(['ends_on' => '2027-09-30', 'end_reason' => 'resigned', 'lock_version' => 2]);
+        $joiner = $this->staffSince('ca', '2027-05-10'); // 7 completed months: 8 x 7/12 = 4.67, so 5 days
+
+        $this->defaults($hr)->assertSessionHasNoErrors();
+        $this->assertSame(24, $this->row($types['ANNUAL'], $doctor), '16 x 9/12 = 12 days');
+        $this->assertSame(44, $this->row($types['SICK'], $doctor), 'Sick leave is unchanged, so no new row.');
+        $this->assertSame(1, DB::table('hr_leave_entitlements')->where('leave_type_id', $types['SICK'])->where('user_id', $doctor->id)->count());
+        $this->assertSame(10, $this->row($types['ANNUAL'], $joiner));
+        $this->assertSame(50, $this->row($types['ANNUAL'], $other));
+        $this->assertSame($otherRows, DB::table('hr_leave_entitlements')->where('leave_type_id', $types['ANNUAL'])->where('user_id', $other->id)->count());
+
+        // A third press with nothing new adds nothing.
+        $rows = DB::table('hr_leave_entitlements')->count();
+        $this->defaults($hr)->assertSessionHasNoErrors();
+        $this->assertSame($rows, DB::table('hr_leave_entitlements')->count());
+    }
+
     public function test_hospitalisation_follows_the_sick_figure_hr_entered(): void
     {
         $hr = $this->actor('hr_manager');

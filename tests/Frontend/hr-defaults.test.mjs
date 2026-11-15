@@ -37,8 +37,9 @@ test('every default carries the owner-instruction label, and the dialog lists wh
     assert.match(leave, /Check by hand:/);
     assert.match(
         leave,
-        /gets annual\s+leave by completed months \(Employment Act section\s+60E\(1A\)\)/,
+        /leaves\s+during the year \(Employment Act section 60E\(1A\)\) and, as\s+KPOne's default, for someone who joins during it/,
     );
+    assert.match(leave, /press\s+again after a join or a leave to update them/);
     assert.doesNotMatch(leave, /full year's days/);
     assert.match(leave, /no employment start date in their staff file/);
 });
