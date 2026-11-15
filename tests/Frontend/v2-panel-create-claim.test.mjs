@@ -139,3 +139,19 @@ test('review fixes: one above-invoice note, no restating helper text, 44 px Remo
     assert.match(page, /was not added: /);
     assert.match(page, /chooser\.value\?\.clear\(\)/);
 });
+
+test('after a partial failure the V2 claim page shows the same PC-02 recovery error as Classic', () => {
+    const v2Show = read('resources/js/pages/PanelClaims/V2/Show.vue');
+    const showLogic = read(
+        'resources/js/composables/panel-claims/usePanelClaimShow.ts',
+    );
+    // The recovery error is the server's `file` error on the claim page the failed upload redirects to.
+    assert.match(
+        read('resources/js/pages/PanelClaims/Show.vue'),
+        /page\.props\.errors\?\.file/,
+    );
+    assert.match(showLogic, /page\.props\.errors\?\.file/);
+    assert.match(v2Show, /error \|\| uploadRecoveryError/);
+    // Each photo's Remove button carries the file name in its accessible name.
+    assert.match(page, /`Remove \$\{file\.name\}`/);
+});
