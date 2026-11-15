@@ -6,18 +6,19 @@ const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
 const page = read('resources/js/pages/Agents/Office.vue');
+const v2page = read('resources/js/pages/Agents/V2/Office.vue');
 const scene = read('resources/js/components/agents/office/OfficeScene.vue');
 const figure = read('resources/js/components/agents/office/AgentFigure.vue');
 
 test('the control room look is Version 2 only: Classic keeps the original office', () => {
     // The page chooses by the one shared rule.
-    assert.match(page, /useUiVersion/);
-    assert.match(page, /<template v-if="isV2">/);
-    assert.match(page, /<template v-else>/);
+    assert.match(read('config/v2-pages.php'), /'Agents\/Office'/);
+    assert.doesNotMatch(page, /useUiVersion|isV2/);
+    assert.match(v2page, /V2WorkLayout/);
     // Classic keeps its sheet and its desktop test; Version 2 has its own side panel.
     assert.match(page, /<Sheet/);
     assert.match(page, /isDesktop/);
-    assert.match(page, /data-test="office-panel"/);
+    assert.match(v2page, /data-test="office-panel"/);
 });
 
 test('the scene applies the control room class, tag layout and LEDs only under Version 2', () => {
@@ -45,21 +46,14 @@ test('the figure draws the original name tag and bubble unless it is told it is 
 });
 
 test('Version 2 panel says steps in plain words and wraps long card text', () => {
-    const page = readFileSync('resources/js/pages/Agents/Office.vue', 'utf8');
-    const v2 = page.slice(
-        page.indexOf('<template v-if="isV2">'),
-        page.indexOf('<template v-else>'),
-    );
-    assert.match(page, /const plainStep = /);
+    const v2 = readFileSync('resources/js/pages/Agents/V2/Office.vue', 'utf8');
+    assert.match(v2, /const plainStep = /);
     assert.match(v2, /plainStep\(step\.summary\)/);
     assert.match(v2, /plainStep\(\s*agent\.currentTask/);
     assert.match(v2, /line-clamp-3/);
     assert.match(v2, /rounded-lg border border-border bg-muted\/40/);
     // Classic keeps the raw summary.
-    assert.match(
-        page.slice(page.indexOf('<template v-else>')),
-        /\{\{ step\.summary \}\}/,
-    );
+    assert.match(page, /\{\{ step\.summary \}\}/);
 });
 
 test('Version 2 scene group is named, Classic keeps its name', () => {

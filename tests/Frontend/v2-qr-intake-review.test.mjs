@@ -128,3 +128,14 @@ test('V2 hides the duplicate tick with no candidate and reloads them after a dup
     assert.ok(!/Confirm creation only after duplicate/.test(page));
     assert.ok(!/server still enforces/i.test(page));
 });
+
+test('V2 explains a refusal the list does not show, and sends the person to the candidate above otherwise', () => {
+    assert.ok(
+        page.includes(
+            'The check at accept found a possible match that is not listed here.',
+        ),
+    );
+    assert.ok(page.includes('No soft or exact duplicate candidate was found.'));
+    assert.ok(loose(page).includes(loose('Review it above, tick the box')));
+    assert.ok(!page.includes('Check the Patient directory'));
+});

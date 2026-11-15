@@ -6,7 +6,13 @@ const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
 test('the agent office offers a Pause motion button that stops the scene movement, not the live data', () => {
-    const office = read('resources/js/pages/Agents/Office.vue');
+    const office = [
+        'resources/js/pages/Agents/Office.vue',
+        'resources/js/pages/Agents/V2/Office.vue',
+        'resources/js/components/agents/office/useAgentOffice.ts',
+    ]
+        .map(read)
+        .join('\n');
     const scene = read('resources/js/components/agents/office/OfficeScene.vue');
 
     // One button in each of the two layouts, a real toggle button.

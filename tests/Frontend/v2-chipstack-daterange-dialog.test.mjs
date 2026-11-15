@@ -243,3 +243,36 @@ test('V2Dialog: confirmDisabled switches the filled action off and says why abov
     );
     assert.match(d, /Choose a supplier to continue\./);
 });
+
+test('V2Dialog: singleActionStyle outline gives an info sheet the footer-Cancel look; the default stays filled', () => {
+    const d = read('resources/js/components/v2/V2Dialog.vue');
+    assert.match(d, /singleActionStyle\?: 'filled' \| 'outline';/);
+    assert.match(d, /singleActionStyle: 'filled'/);
+    assert.match(
+        d,
+        /singleAction && singleActionStyle === 'outline'[\s\S]*?border border-border bg-card text-foreground hover:bg-muted/,
+    );
+    // the filled classes are still there for the default and for danger
+    assert.match(d, /bg-primary text-primary-foreground hover:bg-primary\/90/);
+    assert.match(d, /bg-destructive text-destructive-foreground/);
+    // it still submits, and no page sets the prop yet (the owners decide)
+    assert.match(d, /@click="submit"/);
+});
+
+test('V2Dialog: the footer-note slot is in the pinned footer, outside the scroll body and before the buttons', () => {
+    const d = read('resources/js/components/v2/V2Dialog.vue');
+    assert.match(d, /v-if="\$slots\['footer-note'\]"/);
+    assert.match(d, /<slot name="footer-note" \/>/);
+    const note = d.indexOf('<slot name="footer-note" />');
+    const reason = d.indexOf('id="v2-dialog-confirm-reason"');
+    const buttons = d.indexOf('sm:flex-row sm:justify-end');
+    // between the reason line and the buttons
+    assert.ok(reason > 0 && note > reason && note < buttons);
+    // not inside the scroll body: the body's closing tag comes before the note
+    const body = d.indexOf('overflow-y-auto');
+    assert.ok(body > 0 && body < reason);
+    const bodyClose = d.lastIndexOf('</div>', reason);
+    assert.ok(bodyClose > body && bodyClose < note);
+    // pinned: it never shrinks, and the footer border is dropped so there is one divider
+    assert.match(d, /data-slot="v2-dialog-footer-note"[\s\S]*?shrink-0/);
+});

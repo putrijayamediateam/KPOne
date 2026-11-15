@@ -98,6 +98,7 @@ const requestClose = (open: boolean) => {
         description="Each resolution is permanent and recorded against your account. The original receipt is kept."
         confirm-label="Done"
         single-action
+        single-action-style="outline"
         :busy="busy"
         @update:open="requestClose"
         @confirm="emit('close')"
