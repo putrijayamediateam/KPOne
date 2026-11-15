@@ -7,6 +7,7 @@ use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Photos\ClockPhotoLabels;
+use App\Domain\HR\Attendance\Photos\ClockPhotoStorageReport;
 use App\Domain\HR\Roster\Models\RosterShift;
 use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Identity\Models\StaffBranchAssignment;
@@ -19,7 +20,7 @@ use Illuminate\Support\Collection;
 final class AttendancePageService
 {
     public function __construct(private BranchAccessService $branches, private AttendanceDays $days, private AttendanceSettingsService $settings, private OvertimePageService $overtime, private AttendanceTotals $totals,
-        private LocationCheckService $location) {}
+        private LocationCheckService $location, private ClockPhotoStorageReport $photoStorage) {}
 
     /**
      * @param  array<string, mixed>  $query
@@ -49,7 +50,9 @@ final class AttendancePageService
             'summary' => $canReview && $tab === 'summary' ? $this->overtime->summaryTab($actor, $query) : null,
             'settings' => $canReview && $tab === 'settings' ? [...$this->settingsPage($actor), 'overtime' => $this->overtime->settingsCard($actor),
                 // HR-16a: only the Director turns the location check on or off.
-                'location' => $actor->can(ClockPermissions::LOCATION_MANAGE) ? $this->location->settingsCard($actor) : null] : null,
+                'location' => $actor->can(ClockPermissions::LOCATION_MANAGE) ? $this->location->settingsCard($actor) : null,
+                // HR-PHOTO-STORAGE: counts only, for the same viewers as the Settings tab (Director, HR Manager).
+                'photoStorage' => $this->photoStorage->card($actor->organisation_id)] : null,
         ];
     }
 
