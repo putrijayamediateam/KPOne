@@ -79,5 +79,6 @@ return [
     'public_pages' => [
         'PublicCheckIn/Show',
         'PublicCheckIn/Status',
+        'Visits/History',
     ],
 ];
