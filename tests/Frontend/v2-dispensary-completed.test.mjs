@@ -61,3 +61,10 @@ test('the page says it is read only, and shows the patient and when it was compl
     assert.match(template(v2), /Completed \{\{ dispensary\.completedAt \}\}/);
     assert.match(v2, /\{ title: 'Dispensary completed' \}/);
 });
+
+test("the reused returns section keeps Classic's 44 px controls below 1024 (Hakim)", () => {
+    const rule =
+        'max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11';
+    assert.ok(classic.includes(rule), 'Classic carries the rule');
+    assert.ok(v2.includes(`class="${rule}"`), 'V2 wraps the section in it');
+});

@@ -115,10 +115,17 @@ const outlineButton =
                     </p>
                 </section>
 
-                <MedicineReturnsSection
+                <!-- Hakim: the Classic returns section relies on Classic's page rule for 44 px controls below 1024; keep it. -->
+                <div
                     v-if="returns && returns.lines.length"
-                    :returns="returns"
-                />
+                    class="max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
+                    data-testid="completed-returns"
+                >
+                    <MedicineReturnsSection
+                        v-if="returns && returns.lines.length"
+                        :returns="returns"
+                    />
+                </div>
             </template>
         </V2WorkLayout>
     </PageFrame>
