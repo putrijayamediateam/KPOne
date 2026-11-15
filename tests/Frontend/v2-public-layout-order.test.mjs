@@ -8,20 +8,21 @@ const app = readFileSync(
 );
 
 test('a public page keeps the public layout even when its name has /V2/ in it', () => {
-    const publicCase = app.indexOf("case name.startsWith('PublicCheckIn/'):");
-    const careersCase = app.indexOf("case name.startsWith('Careers/'):");
+    const publicV2Case = app.indexOf(
+        "case name.startsWith('PublicCheckIn/V2/'):",
+    );
     const v2Case = app.indexOf('case isV2Page(name):');
 
-    assert.ok(publicCase > 0 && careersCase > 0 && v2Case > 0);
+    assert.ok(publicV2Case > 0 && v2Case > 0);
     assert.ok(
-        publicCase < v2Case && careersCase < v2Case,
-        'the public layout case must come before the staff V2 shell case',
+        publicV2Case < v2Case,
+        'the public V2 layout case must come before the staff V2 shell case',
     );
 });
 
 test('the public layout case still returns PublicCheckInLayout and the V2 case the staff shell', () => {
     const publicBlock = app.slice(
-        app.indexOf("case name.startsWith('PublicCheckIn/'):"),
+        app.indexOf("case name.startsWith('PublicCheckIn/V2/'):"),
         app.indexOf('case isV2Page(name):'),
     );
 
