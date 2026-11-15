@@ -49,6 +49,13 @@ const canViewMedicalCertificates = computed(
         permissions.value.includes('medical_certificates.view.branch') &&
         props.visit.visitType === 'consultation',
 );
+const visitTypeLabel = computed(() =>
+    props.visit.visitType === 'otc'
+        ? 'OTC'
+        : props.visit.visitType === 'consultation'
+          ? 'Consultation'
+          : props.visit.visitType,
+);
 const cancelOpen = ref(false);
 const cancelForm = useForm({
     expected_branch_id: page.props.branchContext?.active?.id ?? 0,
@@ -127,6 +134,8 @@ const primaryButton =
             :title="visit.visitNumber"
             :description="`${visit.branch.name} · ${formatDateTime(visit.registeredAt, visit.branch.timezone)}`"
             rail-width="narrow"
+            rail-from="xl"
+            rail-below="stack-bottom"
         >
             <template #actions>
                 <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
@@ -264,10 +273,8 @@ const primaryButton =
                     <dl class="mt-2 grid gap-2 text-sm">
                         <div class="flex justify-between gap-3">
                             <dt class="text-muted-foreground">Type</dt>
-                            <dd
-                                class="min-w-0 font-medium break-words capitalize"
-                            >
-                                {{ visit.visitType }}
+                            <dd class="min-w-0 font-medium break-words">
+                                {{ visitTypeLabel }}
                             </dd>
                         </div>
                         <div class="flex justify-between gap-3">
