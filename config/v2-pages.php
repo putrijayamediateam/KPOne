@@ -64,6 +64,7 @@ return [
         'Inventory/Recalls',
         'Inventory/ControlledRegister',
         'Inventory/ControlledRegisterShow',
+        'Inventory/StockValue',
         'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
         'MedicalCertificates/Index',
