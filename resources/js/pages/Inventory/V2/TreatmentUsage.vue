@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router, useForm, usePage } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import ScanInput from '@/components/inventory/ScanInput.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
@@ -272,6 +272,18 @@ const recordSentence = computed(() => {
             : `used in treatment (${(usageReasonLabels[form.reason] ?? form.reason).toLowerCase()})`;
 
     return `Takes ${quantityWithUnit(String(form.quantity).trim(), row.stock_unit)} of ${row.item_name}, batch ${row.batch_number}, out of ${row.location} now, as ${why}${roomName.value ? `, in ${roomName.value}` : ''}. Not linked to a patient; no bill.`;
+});
+/**
+ * The footer note grows as the sentence fills in, which shortens the scrolling body; keep the field being typed in
+ * in view so the note never hides it (Daniel, page 4).
+ */
+watch(recordSentence, async () => {
+    await nextTick();
+    const field = document.activeElement;
+
+    if (field instanceof HTMLElement && field.closest('[role=dialog]')) {
+        field.scrollIntoView({ block: 'nearest' });
+    }
 });
 const stockRows = computed<KeyValueItem[]>(() => {
     const row = activeStock.value;

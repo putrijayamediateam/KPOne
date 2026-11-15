@@ -138,6 +138,11 @@ test('page 4 review: the sentence shows with the Record button, and cards drop t
         /<template v-if="operation === 'record'" #footer-note>\s*<p class="text-sm" role="status">\s*\{\{ recordSentence \}\}/,
     );
     assert.ok(!record.includes('recordSentence'));
+    // The note grows as the sentence fills in; the field being typed in is kept in view, so the note never hides it.
+    assert.match(
+        page,
+        /watch\(recordSentence, async \(\) => \{\s+await nextTick\(\);[\s\S]*?field\.scrollIntoView\(\{ block: 'nearest' \}\);/,
+    );
     assert.match(
         block(page, 'stockRows'),
         /label:'Item',value:`\$\{row\.item_name\}·\$\{row\.sku_code\}`/,
