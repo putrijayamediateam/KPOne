@@ -39,6 +39,14 @@ import { useLeaveGuard } from '@/composables/useLeaveGuard';
  * (4) browser Back and Forward are held too; `beforeunload` covers reload and tab close.
  * Pages need no guard of their own for an open sheet.
  *
+ * `singleActionStyle="outline"` (with `singleAction`) gives the one button the footer-Cancel look, for an info sheet that
+ * only says something and has no action to take. It still emits `confirm`, keeps the 44px / 36px sizes and the focus ring.
+ * The default is `"filled"`; no existing sheet changes unless its owner sets the prop.
+ *
+ * The named slot `footer-note` puts a short note (a decision sentence, a total) in the pinned footer, between the reason line
+ * and the buttons, with the same padding as the reason line and a top border. It is OUTSIDE the scrolling body, so the note
+ * never covers a field and the body scrolls above it. Rendered only when given; no change for existing callers.
+ *
  * `confirmDisabled` switches the filled action off, and `confirmDisabledReason` says why in a muted line directly above the
  * footer (read out politely, and named by the button's `aria-describedby`). Say what is missing, then what fixes it:
  * "Choose a supplier to continue.", "Enter the quantity received to continue.". Use it for a state the person can see and
@@ -60,6 +68,8 @@ const props = withDefaults(
         confirmDisabledReason?: string;
         /** Only the confirm button: no Cancel (for a dialog that now only says something, with a single Close). */
         singleAction?: boolean;
+        /** With `singleAction` only: 'outline' gives the one button the footer-Cancel look (an info sheet that only says something); default 'filled'. */
+        singleActionStyle?: 'filled' | 'outline';
         size?: 'default' | 'tall';
         dirty?: boolean;
     }>(),
@@ -72,6 +82,7 @@ const props = withDefaults(
         confirmDisabled: false,
         confirmDisabledReason: undefined,
         singleAction: false,
+        singleActionStyle: 'filled',
         size: 'default',
         dirty: false,
     },
@@ -317,10 +328,24 @@ const submit = () => {
                         confirmDisabledReason
                     }}</template>
                 </p>
+                <!-- Optional note in the pinned footer (outside the scrolling body), so a decision sentence never covers a field. -->
+                <div
+                    v-if="$slots['footer-note']"
+                    data-slot="v2-dialog-footer-note"
+                    class="shrink-0 bg-card px-5 pt-3 pb-1 text-sm"
+                    :class="
+                        confirmDisabled && confirmDisabledReason
+                            ? ''
+                            : 'border-t'
+                    "
+                >
+                    <slot name="footer-note" />
+                </div>
                 <div
                     class="flex flex-col-reverse gap-2 bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end"
                     :class="
-                        confirmDisabled && confirmDisabledReason
+                        (confirmDisabled && confirmDisabledReason) ||
+                        $slots['footer-note']
                             ? ''
                             : 'border-t'
                     "
@@ -351,9 +376,11 @@ const submit = () => {
                             confirmDisabled
                                 ? 'cursor-not-allowed opacity-50'
                                 : '',
-                            tone === 'danger'
-                                ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
-                                : 'bg-primary text-primary-foreground hover:bg-primary/90',
+                            singleAction && singleActionStyle === 'outline'
+                                ? 'border border-border bg-card text-foreground hover:bg-muted'
+                                : tone === 'danger'
+                                  ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90'
+                                  : 'bg-primary text-primary-foreground hover:bg-primary/90',
                         ]"
                         @click="submit"
                     >
