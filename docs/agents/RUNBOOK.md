@@ -26,6 +26,21 @@ suggestion is still safe to repeat (the same key and payload return the existing
 
 The earlier interim rule (no manual run in the hour of 07:00 or 14:00 branch time) is retired by this change.
 
+## Who decides agent suggestions at the pilot branch
+
+Owner decision (relayed by the coordinator, 2026-11-15): at the pilot branch the **two named CA Supervisors and the
+branch Director** do the two-person steps, including deciding agent suggestions (approve or reject in the Approval inbox).
+
+- The person who started the run that made a suggestion cannot decide it; the inbox says "You started the run that made
+  this suggestion, so someone else must decide." This is why a second person is needed.
+- A decider must be assigned to that branch now and hold the decide permission for the suggestion; otherwise the inbox
+  shows why they cannot decide.
+- An approval records the decision only. It changes no stock and sends nothing; the restock, expiry or transfer is still
+  done by hand through the normal stock screens.
+- **Week one of the pilot (owner decision, relayed by the coordinator, 2026-11-15):** agents are on, with the **Daily
+  summary only**, so staff learn it without relying on it. Do not tell branch staff to base stock or money decisions on
+  it. The scheduled run proof (the 07:00 and 14:00 runs on the pilot server) is a pilot item.
+
 ## If a section failed
 
 Open the Daily summary page for that date: a failed section says so and is retried by the next scheduled call. To retry
