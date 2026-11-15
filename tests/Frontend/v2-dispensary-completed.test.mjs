@@ -178,7 +178,12 @@ test("the sheets' words: summary first, reason prompts, footer sentences, Refuse
     );
     assert.match(template(section), /title="Discard this return\?"/);
     assert.match(template(panel), /title="Discard what you entered\?"/);
-    assert.match(section, /if \(form\.isDirty\) \{/);
+    assert.match(section, /if \(recordTyped\.value\) \{/);
+    assert.ok(
+        !/form\.isDirty/.test(section.slice(section.indexOf('---- V2 only'))),
+        'the retry key must not count as typing (Hakim)',
+    );
+    assert.match(template(section), /type="submit"\s+class="sr-only"/);
     assert.match(panel, /if \(sheetDirty\.value\) \{/);
 });
 
@@ -194,5 +199,20 @@ test('read-only quantities use plural unit words (Daniel)', () => {
             ),
         ),
         /quantityWords\(\s*row\.quantity,\s*line\.unit,?\s*\)/,
+    );
+});
+
+test('after a check, focus goes to the checked row even though the panel unmounts (Hakim)', () => {
+    const section = read(
+        'resources/js/pages/Dispensary/V2/Partials/MedicineReturnsSection.vue',
+    );
+    assert.match(
+        template(section),
+        /@click\.capture="noteCheck\(\$event, row\)"/,
+    );
+    assert.match(section, /if \(!row \|\| row\.canCheck \|\| !row\.check\) \{/);
+    assert.match(
+        section,
+        /window\.setTimeout\(\(\) => \{\s+document\s+\.querySelector<HTMLElement>\(\s+`\[data-return-id="\$\{row\.publicId\}"\]`,/,
     );
 });

@@ -242,12 +242,20 @@ const onChecked = async (row: ReturnRow, message: string) => {
 
 // ---- V2 only (Daniel): the record form is a sheet, with a guard before typed values are thrown away. ----
 const discardLine = ref<ReturnLine | null>(null);
+// Hakim: judged from what the CA typed, not the form dirty flag (the retry key changes as the sheet opens).
+const recordTyped = computed(
+    () =>
+        form.quantity.trim() !== '' ||
+        form.reason !== '' ||
+        form.note.trim() !== '' ||
+        form.condition !== '',
+);
 const onRecordOpen = (open: boolean, line: ReturnLine) => {
     if (open || form.processing) {
         return;
     }
 
-    if (form.isDirty) {
+    if (recordTyped.value) {
         discardLine.value = line;
 
         return;
@@ -255,6 +263,50 @@ const onRecordOpen = (open: boolean, line: ReturnLine) => {
 
     void closeForm(line);
 };
+// Hakim: after a check the panel (and its sheet) unmounts with the row's canCheck, so its "checked" event can be lost
+// and focus falls to the page. The section remembers which row a check started from, and once the reloaded props show
+// that row checked, it announces the outcome and focuses the row (after the closing sheet has returned focus).
+const checkingRow = ref<string | null>(null);
+const noteCheck = (event: Event, row: ReturnRow) => {
+    if (
+        (event.target as HTMLElement | null)?.closest('[data-action^="check-"]')
+    ) {
+        checkingRow.value = row.publicId;
+    }
+};
+watch(
+    () => props.returns,
+    (returns) => {
+        if (!checkingRow.value) {
+            return;
+        }
+
+        const row = returns.lines
+            .flatMap((line) => line.returns)
+            .find((candidate) => candidate.publicId === checkingRow.value);
+
+        if (!row || row.canCheck || !row.check) {
+            return;
+        }
+
+        checkingRow.value = null;
+        announcement.value =
+            row.check.outcome === 'quarantine'
+                ? `Return moved to ${row.check.locationName ?? 'the returns location'}.`
+                : row.check.outcome === 'refuse'
+                  ? 'Return refused.'
+                  : 'Return disposed.';
+        void nextTick(() =>
+            window.setTimeout(() => {
+                document
+                    .querySelector<HTMLElement>(
+                        `[data-return-id="${row.publicId}"]`,
+                    )
+                    ?.focus();
+            }, 0),
+        );
+    },
+);
 const discardRecord = () => {
     const line = discardLine.value;
     discardLine.value = null;
@@ -657,7 +709,7 @@ const discardRecord = () => {
                                 </p>
                                 <button
                                     type="submit"
-                                    class="hidden"
+                                    class="sr-only"
                                     tabindex="-1"
                                     aria-hidden="true"
                                 />
@@ -749,6 +801,7 @@ const discardRecord = () => {
                                     </p>
                                     <ReturnCheckPanel
                                         v-if="row.canCheck"
+                                        @click.capture="noteCheck($event, row)"
                                         :returns="returns"
                                         :line="line"
                                         :row="row"
