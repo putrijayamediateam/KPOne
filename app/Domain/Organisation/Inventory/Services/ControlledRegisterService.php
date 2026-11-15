@@ -35,6 +35,10 @@ final class ControlledRegisterService
 
     public const REASONS = ['count_to_follow', 'stock_elsewhere', 'investigate', 'other'];
 
+    private const DIFFERS_NEEDS_REASON = 'The count differs from the register. Choose a reason.';
+
+    private const DIFFERS_NEEDS_NOTE = 'Add a note to explain the difference.';
+
     private const PAGE_SIZE = 25;
 
     private const MAX_DAYS = 365;
@@ -246,6 +250,14 @@ final class ControlledRegisterService
 
         try {
             return DB::transaction(fn (): string => $this->checkLocked($actor, $branch, strtolower($skuPublicId), $data, $counted, $note, $key, $hash), 3);
+        } catch (ValidationException $e) {
+            // STK-40: a count refused because it differs (no reason, or "other" with no note) tells a blind checker that
+            // it differs. Each such try is recorded after the transaction rolled back, so the refusal cannot take it with it.
+            $errors = $e->errors();
+            if (($errors['reason'][0] ?? null) === self::DIFFERS_NEEDS_REASON || ($errors['note'][0] ?? null) === self::DIFFERS_NEEDS_NOTE) {
+                $this->recordRefusedTry($actor, $branch, strtolower($skuPublicId));
+            }
+            throw $e;
         } catch (UniqueConstraintViolationException) {
             throw ValidationException::withMessages(['seen_check_sequence' => 'Someone else just checked this register. Reload and check again.']);
         } catch (QueryException $e) {
@@ -301,10 +313,10 @@ final class ControlledRegisterService
         }
         $matches = $counted === $ledger;
         if (! $matches && ($data['reason'] ?? null) === null) {
-            throw ValidationException::withMessages(['reason' => 'The count differs from the register. Choose a reason.']);
+            throw ValidationException::withMessages(['reason' => self::DIFFERS_NEEDS_REASON]);
         }
         if (! $matches && $data['reason'] === 'other' && $note === '') {
-            throw ValidationException::withMessages(['note' => 'Add a note to explain the difference.']);
+            throw ValidationException::withMessages(['note' => self::DIFFERS_NEEDS_NOTE]);
         }
         $publicId = (string) Str::uuid();
         $id = DB::table('inventory_controlled_register_checks')->insertGetId([
@@ -319,6 +331,15 @@ final class ControlledRegisterService
             'outcome' => $matches ? 'matches' : 'differs', 'reason' => $matches ? null : $data['reason']], $actor, $branch) === null, 503, 'The check could not be recorded, so nothing was saved.');
 
         return $publicId;
+    }
+
+    /** STK-40: one audit row per refused "differs" try, with ids and the code only (no quantity), in its own write. */
+    private function recordRefusedTry(User $actor, Branch $branch, string $skuPublicId): void
+    {
+        $sku = InventorySku::query()->where('organisation_id', $actor->organisation_id)->where('public_id', $skuPublicId)->first();
+        if ($sku !== null) {
+            $this->audit->record('inventory.controlled_register.check_refused', $sku, ['inventory_sku_id' => $sku->id, 'outcome' => 'differs'], $actor, $branch);
+        }
     }
 
     /**

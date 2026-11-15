@@ -142,4 +142,52 @@ final class ControlledRegisterBlindCountTest extends VisitTestCase
         $audit = DB::table('audit_logs')->where('event', 'inventory.controlled_register.checked')->sole();
         $this->assertSame(['controlled_register_check_id', 'inventory_sku_id', 'outcome', 'reason'], collect(json_decode((string) $audit->metadata, true))->keys()->sort()->values()->all());
     }
+
+    public function test_a_refused_differing_try_leaves_one_audit_row_with_no_quantity_and_other_checks_write_none(): void
+    {
+        $f = $this->controlled();
+        $checker = $this->actorAt('finance_officer');
+        $sku = $f['sku']->public_id;
+        $register = $this->page($checker, $sku);
+        $refused = fn () => DB::table('audit_logs')->where('event', 'inventory.controlled_register.check_refused');
+
+        // No reason: refused (422), and the try survives the rollback as one row with ids and the code only.
+        $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '7'))->assertSessionHasErrors('reason');
+        $this->assertSame(1, $refused()->count());
+        $row = $refused()->sole();
+        $metadata = json_decode((string) $row->metadata, true);
+        $this->assertSame(['inventory_sku_id' => $f['sku']->id, 'outcome' => 'differs'], $metadata);
+        $this->assertSame([(int) $checker->id, (int) $this->branch->id], [(int) $row->actor_user_id, (int) $row->branch_id]);
+        $this->assertDoesNotMatchRegularExpression('/"7|counted|ledger|quantity/', (string) $row->metadata);
+        $this->assertSame(0, DB::table('inventory_controlled_register_checks')->count());
+
+        // "Other" with no note says it differs too, so it is recorded the same way.
+        $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '7', ['reason' => 'other']))->assertSessionHasErrors('note');
+        $this->assertSame(2, $refused()->count());
+
+        // A reasoned check and a matching check write their usual row and no refused row.
+        $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '7', ['reason' => 'investigate']))->assertSessionHasNoErrors();
+        $director = $this->actorAt('director');
+        $this->actingAs($director)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($this->page($director, $sku), '10'))->assertSessionHasNoErrors();
+        $this->assertSame(2, $refused()->count());
+        $this->assertSame(2, DB::table('audit_logs')->where('event', 'inventory.controlled_register.checked')->count());
+    }
+
+    public function test_a_finance_officer_and_a_director_get_the_full_register_after_their_own_check(): void
+    {
+        $f = $this->controlled();
+        $sku = $f['sku']->public_id;
+        foreach (['finance_officer', 'director'] as $role) {
+            $viewer = $this->actorAt($role);
+            $this->assertTrue($this->page($viewer, $sku)['blind']);
+            $this->actingAs($viewer)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($this->page($viewer, $sku), '10'))->assertSessionHasNoErrors();
+
+            $page = $this->page($viewer, $sku);
+            $this->assertFalse($page['blind'], $role);
+            $this->assertSame(['10', '10'], [$page['closing'], $page['balanceNow']], $role);
+            $this->assertSame(['10', null, '10'], [$page['lines']['rows'][0]['in'], $page['lines']['rows'][0]['out'], $page['lines']['rows'][0]['balance']], $role);
+            $this->assertSame(['10', '10', '0'], [$page['checks'][0]['ledger'], $page['checks'][0]['counted'], $page['checks'][0]['difference']], $role);
+            $this->actingAs($viewer)->get(route('inventory.controlled-register.print', ['sku' => $sku]))->assertOk();
+        }
+    }
 }
