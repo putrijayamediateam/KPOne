@@ -56,5 +56,6 @@ return [
         'Agents/Office',
         'Inventory/GovernedStock',
         'Inventory/SupplierInvoices',
+        'Inventory/SupplierReturns',
     ],
 ];
