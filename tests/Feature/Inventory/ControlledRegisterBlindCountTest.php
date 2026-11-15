@@ -190,4 +190,28 @@ final class ControlledRegisterBlindCountTest extends VisitTestCase
             $this->actingAs($viewer)->get(route('inventory.controlled-register.print', ['sku' => $sku]))->assertOk();
         }
     }
+
+    public function test_each_check_says_how_many_refused_tries_came_before_it(): void
+    {
+        $f = $this->controlled();
+        $sku = $f['sku']->public_id;
+        $first = $this->actorAt('finance_officer');
+        // No refused try before it: 0, which the page shows as nothing.
+        $this->actingAs($first)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($this->page($first, $sku), '10'))->assertSessionHasNoErrors();
+
+        // Two refused tries, then a check: that check carries 2; the earlier one keeps 0.
+        $second = $this->actorAt('director');
+        $register = $this->page($second, $sku);
+        foreach (['8', '9'] as $guess) {
+            $this->travel(1)->seconds();
+            $this->actingAs($second)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, $guess))->assertSessionHasErrors('reason');
+        }
+        $this->travel(1)->seconds();
+        $this->actingAs($second)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '10'))->assertSessionHasNoErrors();
+
+        $checks = $this->page($second, $sku)['checks'];
+        $this->assertSame([2, 0], [$checks[0]['attempts'], $checks[1]['attempts']]);
+        // The count is not a quantity: the refused rows still hold ids and the code only.
+        $this->assertSame(2, DB::table('audit_logs')->where('event', 'inventory.controlled_register.check_refused')->count());
+    }
 }

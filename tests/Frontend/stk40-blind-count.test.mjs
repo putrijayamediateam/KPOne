@@ -104,3 +104,20 @@ test('STK-40: in both layouts the list shows "Shown after your count" for a blin
         );
     }
 });
+
+test('STK-40: in both layouts a check shows "N earlier attempts" only when there were refused tries', () => {
+    for (const [name, source] of Object.entries(pages)) {
+        const t = flat(source.slice(source.indexOf('<template>')));
+        assert.match(
+            t,
+            /v-if="check\.attempts > 0"[^>]*data-testid="cd-earlier-attempts"/,
+            name,
+        );
+        assert.match(
+            t,
+            /check\.attempts === 1 \? '1 earlier attempt' : `\$\{check\.attempts\} earlier attempts`/,
+            name,
+        );
+        assert.match(flat(script(source)), /attempts: number;/, name);
+    }
+});

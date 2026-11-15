@@ -41,6 +41,8 @@ type Check = {
     ledger: string | null;
     counted: string | null;
     difference: string | null;
+    /** STK-40: refused "differs" tries before this check. */
+    attempts: number;
     checkedBy: string;
     checkedOn: string;
 };
@@ -768,6 +770,18 @@ watch(
                                     {{ check.checkedBy }}</span
                                 >
                             </div>
+                            <!-- STK-40: refused "differs" tries before this check, so guessing is visible to whoever reads it. -->
+                            <p
+                                v-if="check.attempts > 0"
+                                class="text-muted-foreground"
+                                data-testid="cd-earlier-attempts"
+                            >
+                                {{
+                                    check.attempts === 1
+                                        ? '1 earlier attempt'
+                                        : `${check.attempts} earlier attempts`
+                                }}
+                            </p>
                             <p
                                 v-if="check.ledger === null"
                                 class="text-muted-foreground"

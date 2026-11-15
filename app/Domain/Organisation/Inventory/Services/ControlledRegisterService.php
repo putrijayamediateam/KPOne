@@ -128,6 +128,19 @@ final class ControlledRegisterService
             'destination.name as destination', 'destination.branch_id as destination_branch'])->keyBy('id');
         $checks = DB::table('inventory_controlled_register_checks')->where('branch_id', $branch->id)->where('inventory_sku_id', $sku->id)->orderByDesc('sequence')->limit(20)
             ->get(['public_id', 'sequence', 'through_movement_id', 'ledger_quantity', 'counted_quantity', 'outcome', 'reason', 'note', 'checked_by_user_id', 'checked_at']);
+        // STK-40: refused "differs" tries before each check (audit rows with ids and codes only), so whoever reads the check
+        // can see "2 earlier attempts". A try counts towards the next check recorded after it.
+        $refusedAt = DB::table('audit_logs')->where('event', 'inventory.controlled_register.check_refused')->where('branch_id', $branch->id)
+            ->where('subject_type', (new InventorySku)->getMorphClass())->where('subject_id', $sku->id)->orderBy('occurred_at')
+            ->pluck('occurred_at')->map(fn (mixed $at): string => CarbonImmutable::parse((string) $at)->utc()->toDateTimeString())->all();
+        $checkedAt = DB::table('inventory_controlled_register_checks')->where('branch_id', $branch->id)->where('inventory_sku_id', $sku->id)->orderBy('sequence')
+            ->pluck('checked_at', 'sequence')->map(fn (mixed $at): string => CarbonImmutable::parse((string) $at)->utc()->toDateTimeString())->all();
+        $attempts = function (int $sequence) use ($refusedAt, $checkedAt): int {
+            $until = $checkedAt[$sequence] ?? null;
+            $since = $checkedAt[$sequence - 1] ?? '';
+
+            return $until === null ? 0 : count(array_filter($refusedAt, fn (string $at): bool => $at > $since && $at <= $until));
+        };
         $people = array_values(array_unique(array_merge($details->pluck('actor_user_id')->map(fn (mixed $id): int => (int) $id)->all(),
             $checks->pluck('checked_by_user_id')->map(fn (mixed $id): int => (int) $id)->all())));
         $names = $people === [] ? collect() : $this->staff->visibleUsers($actor)->whereIn('id', $people)->pluck('name', 'id');
@@ -182,6 +195,7 @@ final class ControlledRegisterService
                 'ledger' => $blind ? null : self::quantity(StockUnitQuantity::scaled((string) $check->ledger_quantity, true)),
                 'counted' => $blind ? null : self::quantity(StockUnitQuantity::scaled((string) $check->counted_quantity, true)),
                 // Counted minus the register, for the checker to see once their count is in.
+                'attempts' => $attempts((int) $check->sequence),
                 'difference' => $blind ? null : self::quantity(StockUnitQuantity::scaled((string) $check->counted_quantity, true) - StockUnitQuantity::scaled((string) $check->ledger_quantity, true)),
                 'checkedBy' => $names->get((int) $check->checked_by_user_id, 'Staff member'), 'checkedOn' => $this->local($branch, (string) $check->checked_at)->format('j M Y, g:i A'),
             ])->all()),

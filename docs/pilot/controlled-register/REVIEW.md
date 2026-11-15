@@ -31,7 +31,8 @@ synthetic until go-live. This sheet is not legal advice.
 - **Blind count (owner's decision, 15 Nov 2026):** while someone may check, the register's balance, in and out
   quantities, earlier checks' quantities and the print are held back. They appear once the count is recorded, with
   the difference. Other stock pages still show levels; a determined checker could look there. Guessing until no
-  reason is asked for is possible, but each refused try is recorded in the audit trail (not yet shown on screen).
+  reason is asked for is possible, but each refused try is recorded in the audit trail and the check shows "N earlier
+  attempts".
 - **Kept:** checks cannot be changed or deleted, and the database refuses it too.
 - **Printed register:** lists the checks signed in its dates under the movements. Opening the print page
   records nothing; pressing Print records who printed which register and dates.
