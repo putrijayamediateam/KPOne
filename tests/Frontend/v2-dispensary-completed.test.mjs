@@ -36,7 +36,7 @@ test("V2 takes exactly Classic's props, and keeps the same links and the returns
 
     assert.match(
         v2,
-        /from '@\/pages\/Dispensary\/Partials\/MedicineReturnsSection\.vue'/,
+        /from '@\/pages\/Dispensary\/V2\/Partials\/MedicineReturnsSection\.vue'/,
     );
 });
 
@@ -67,4 +67,132 @@ test("the reused returns section keeps Classic's 44 px controls below 1024 (Haki
         'max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11';
     assert.ok(classic.includes(rule), 'Classic carries the rule');
     assert.ok(v2.includes(`class="${rule}"`), 'V2 wraps the section in it');
+});
+
+// Every top-level `const` of a script, by name, with its full text (up to the next top-level statement).
+const consts = (source) => {
+    const lines = source.slice(0, source.indexOf('</script>')).split('\n');
+    const found = new Map();
+    let name = null;
+    let body = [];
+    const flush = () => {
+        if (name) {
+            found.set(name, body.join('\n').trimEnd());
+        }
+    };
+
+    for (const line of lines) {
+        const start = /^const ([A-Za-z_$][\w$]*)/.exec(line);
+        const otherTopLevel = /^(?:[a-z]|\/\/|type |\}|<)/.test(line) && !start;
+
+        if (start) {
+            flush();
+            name = start[1];
+            body = [line];
+        } else if (otherTopLevel && !line.startsWith('}') && name) {
+            flush();
+            name = null;
+            body = [];
+        } else if (name) {
+            body.push(line);
+        }
+    }
+
+    flush();
+
+    return found;
+};
+
+for (const [file, replaced] of [
+    ['MedicineReturnsSection', new Set()],
+    // The V2 sheet is the confirm step: its own title, labels and footer (sheetText) and its own confirm (confirmSheet).
+    ['ReturnCheckPanel', new Set(['dialog', 'openConfirm', 'amount'])],
+]) {
+    test(`V2 ${file} keeps every Classic const unchanged (rules, routes, payloads, retry keys)`, () => {
+        const classicConsts = consts(
+            read(`resources/js/pages/Dispensary/Partials/${file}.vue`),
+        );
+        const v2Consts = consts(
+            read(`resources/js/pages/Dispensary/V2/Partials/${file}.vue`),
+        );
+        assert.ok(classicConsts.size > 10, 'the parser found Classic consts');
+
+        for (const [name, body] of classicConsts) {
+            if (replaced.has(name)) {
+                assert.equal(v2Consts.has(name), false, name);
+                continue;
+            }
+
+            assert.ok(v2Consts.has(name), `V2 keeps ${name}`);
+            assert.equal(v2Consts.get(name), body, `V2's ${name} is Classic's`);
+        }
+    });
+}
+
+test('one filled button on the page: Record a return and each check open V2 sheets (Daniel)', () => {
+    const section = read(
+        'resources/js/pages/Dispensary/V2/Partials/MedicineReturnsSection.vue',
+    );
+    const panel = read(
+        'resources/js/pages/Dispensary/V2/Partials/ReturnCheckPanel.vue',
+    );
+
+    for (const source of [section, panel]) {
+        const tpl = template(source);
+        assert.ok(
+            !/<Button(?![^>]*variant="(outline|ghost|link)")[^>]*>/.test(tpl),
+            'no filled Button',
+        );
+        assert.match(tpl, /<V2Dialog/);
+    }
+
+    assert.ok(!/OperationalConfirmDialog/.test(panel));
+    assert.match(template(section), /@confirm="submit\(line\)"/);
+    assert.match(template(panel), /@confirm="confirmSheet"/);
+    assert.match(panel, /if \(validate\(\)\) \{\s+submit\(\);/);
+});
+
+test("the sheets' words: summary first, reason prompts, footer sentences, Refuse red, a discard guard (Daniel)", () => {
+    const section = read(
+        'resources/js/pages/Dispensary/V2/Partials/MedicineReturnsSection.vue',
+    );
+    const panel = read(
+        'resources/js/pages/Dispensary/V2/Partials/ReturnCheckPanel.vue',
+    );
+    assert.match(template(section), /data-testid="return-form-summary"/);
+    assert.match(template(panel), /data-testid="return-check-summary"/);
+    assert.match(template(section), /Pick a reason to continue\./);
+    assert.match(template(panel), /Pick a reason to continue\./);
+    assert.match(
+        template(section),
+        /Nothing goes back into stock until someone\s+else\s+checks the return\./,
+    );
+    assert.match(
+        panel,
+        /`Moves \$\{amountWords\.value\} to \$\{locationName\.value\}\./,
+    );
+    assert.match(panel, /No stock change/);
+    assert.match(
+        panel,
+        /tone: 'danger' as const,\s+footer: 'Nothing changes in stock\./,
+    );
+    assert.match(template(section), /title="Discard this return\?"/);
+    assert.match(template(panel), /title="Discard what you entered\?"/);
+    assert.match(section, /if \(form\.isDirty\) \{/);
+    assert.match(panel, /if \(sheetDirty\.value\) \{/);
+});
+
+test('read-only quantities use plural unit words (Daniel)', () => {
+    const words = read(
+        'resources/js/pages/Dispensary/V2/Partials/quantity-words.ts',
+    );
+    assert.match(words, /'tablet',/);
+    assert.match(
+        template(
+            read(
+                'resources/js/pages/Dispensary/V2/Partials/MedicineReturnsSection.vue',
+            ),
+        ),
+        /quantityWords\(\s*row\.quantity,\s*line\.unit,?\s*\)/,
+    );
 });
