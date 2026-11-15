@@ -130,13 +130,14 @@ test("page 4: Daniel's plan additions (reverse-only view, privacy, blocked rever
 test('page 4 review: the sentence shows with the Record button, and cards drop the Action label', () => {
     const record = template.slice(
         template.indexOf('<!-- Record: what, why and how much'),
-        template.indexOf('<!-- Reverse: names the entry'),
+        template.indexOf('<!-- The line the person decides on'),
     );
-    // The sentence is pinned just above the buttons, so it stays in view while the sheet scrolls.
+    // The sentence is in V2Dialog's footer note: above Cancel and Record, outside the scrolling body (Daniel).
     assert.match(
-        record,
-        /class="sticky bottom-0 z-10[^"]*"\s+role="status"\s*>\s*\{\{ recordSentence \}\}/,
+        template,
+        /<template v-if="operation === 'record'" #footer-note>\s*<p class="text-sm" role="status">\s*\{\{ recordSentence \}\}/,
     );
+    assert.ok(!record.includes('recordSentence'));
     assert.match(
         block(page, 'stockRows'),
         /label:'Item',value:`\$\{row\.item_name\}·\$\{row\.sku_code\}`/,

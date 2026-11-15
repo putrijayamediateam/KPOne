@@ -714,7 +714,7 @@ const wide =
                 </p>
             </div>
 
-            <!-- Record: what, why and how much; the sentence stays pinned just above the buttons while the sheet scrolls (Daniel). -->
+            <!-- Record: what, why and how much. The sentence sits in the footer note (below). -->
             <template v-if="operation === 'record'">
                 <V2KeyValueList :items="stockRows" />
                 <V2OptionGroup
@@ -761,10 +761,11 @@ const wide =
                         >{{ overOnHand }}</span
                     >
                 </label>
-                <p
-                    class="sticky bottom-0 z-10 rounded-[14px] border bg-card px-4 py-3 text-sm shadow-sm"
-                    role="status"
-                >
+            </template>
+
+            <!-- The line the person decides on: in the footer, above Cancel and Record, so it never covers the form (Daniel). -->
+            <template v-if="operation === 'record'" #footer-note>
+                <p class="text-sm" role="status">
                     {{ recordSentence }}
                 </p>
             </template>
