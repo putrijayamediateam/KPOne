@@ -18,7 +18,7 @@ type Line = {
     what: string;
     in: string | null;
     out: string | null;
-    balance: string;
+    balance: string | null;
     batch: string | null;
     location: string;
     reference: string;
@@ -30,8 +30,11 @@ type Check = {
     outcome: 'matches' | 'differs';
     reason: string | null;
     note: string | null;
-    ledger: string;
-    counted: string;
+    ledger: string | null;
+    counted: string | null;
+    difference: string | null;
+    /** STK-40: refused "differs" tries before this check. */
+    attempts: number;
     checkedBy: string;
     checkedOn: string;
 };
@@ -45,14 +48,16 @@ type Register = {
         stockUnit: string;
     };
     filters: { from: string; to: string; label: string };
-    opening: string;
-    closing: string;
+    opening: string | null;
+    closing: string | null;
     lines: { page: number; lastPage: number; total: number; rows: Line[] };
-    balanceNow: string;
+    balanceNow: string | null;
+    blind: boolean;
     controlled: boolean;
     newestMovementId: number;
     newestCheckSequence: number;
     movementsSinceCheck: number;
+    attemptsSinceCheck: number;
     checks: Check[];
     can: { check: boolean };
     checkBlockedReason: string | null;
@@ -100,9 +105,15 @@ const form = reactive({
 });
 const errors = ref<Record<string, string>>({});
 const busy = ref(false);
+// STK-40: a blind checker never sees the balance; the server says when the count differs and a reason is needed.
+const toldDiffers = ref(false);
 const differs = computed(() => {
+    if (props.register.blind) {
+        return toldDiffers.value;
+    }
+
     const counted = milli(form.counted);
-    const ledger = milli(props.register.balanceNow);
+    const ledger = milli(props.register.balanceNow ?? '');
 
     return counted !== null && ledger !== null && counted !== ledger;
 });
@@ -112,6 +123,13 @@ watch(differs, (value) => {
         form.note = '';
     }
 });
+// A new count needs the server to say again whether it differs.
+watch(
+    () => form.counted,
+    () => {
+        toldDiffers.value = false;
+    },
+);
 
 const submit = () => {
     errors.value = {};
@@ -168,6 +186,14 @@ const submit = () => {
             onError: (bag) => {
                 errors.value = bag as Record<string, string>;
 
+                // STK-40: when counting blind, the server is what says the count differs. The first time it is news, not
+                // a mistake: the differs note says what to do, and the red line returns only if Record check is pressed
+                // again without a reason.
+                if (bag.reason && props.register.blind && !toldDiffers.value) {
+                    toldDiffers.value = true;
+                    delete errors.value.reason;
+                }
+
                 // A stale page or an earlier key needs a fresh one after the reload.
                 if (
                     bag.seen_movement_id ||
@@ -188,6 +214,15 @@ const formError = computed(
             ([key]) => !fieldKeys.includes(key),
         )?.[1] ?? null,
 );
+// STK-40: the count less the register, with a sign and a real minus ("+2", "\u22121.5", "0").
+const difference = (value: string | null) =>
+    value === null
+        ? '—'
+        : value === '0'
+          ? 'no difference'
+          : value.startsWith('-')
+            ? `difference \u2212${value.slice(1)}`
+            : `difference +${value}`;
 </script>
 
 <template>
@@ -202,7 +237,11 @@ const formError = computed(
         >
         <PageHeader
             :title="register.sku.medicine"
-            :description="`${register.sku.skuCode} · ${register.branchName} · on hand now ${register.balanceNow} ${register.sku.stockUnit}`"
+            :description="
+                register.blind
+                    ? `${register.sku.skuCode} · ${register.branchName} · on hand shown after your count`
+                    : `${register.sku.skuCode} · ${register.branchName} · on hand now ${register.balanceNow} ${register.sku.stockUnit}`
+            "
         />
         <p
             class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
@@ -229,19 +268,35 @@ const formError = computed(
                 >Show</Button
             >
             <ActionLink
+                v-if="!register.blind"
                 :href="printHref"
                 variant="outline"
                 class="min-h-11"
                 data-testid="cd-print"
                 >Print register</ActionLink
             >
+            <p
+                v-else
+                class="text-sm text-muted-foreground"
+                data-testid="cd-print-after"
+            >
+                Print the register after your count.
+            </p>
         </form>
 
         <section aria-labelledby="cd-lines-heading" class="space-y-3">
             <h2 id="cd-lines-heading" class="text-xl font-semibold">
                 Movements ({{ register.lines.total }})
             </h2>
-            <p class="text-sm">
+            <p
+                v-if="register.blind"
+                class="rounded-md border p-3 text-sm"
+                data-testid="cd-blind-note"
+            >
+                Quantities are hidden until you record your count, so your check
+                does not depend on the register.
+            </p>
+            <p v-else class="text-sm">
                 Balance at the start:
                 <span class="font-medium tabular-nums">{{
                     register.opening
@@ -269,7 +324,7 @@ const formError = computed(
                             <p class="font-medium">{{ line.what }}</p>
                             <p class="text-muted-foreground">{{ line.when }}</p>
                         </div>
-                        <p class="tabular-nums">
+                        <p v-if="!register.blind" class="tabular-nums">
                             <span v-if="line.in">In {{ line.in }}</span>
                             <span v-if="line.in && line.out"> · </span>
                             <span v-if="line.out">Out {{ line.out }}</span>
@@ -301,18 +356,21 @@ const formError = computed(
                                     What happened
                                 </th>
                                 <th
+                                    v-if="!register.blind"
                                     scope="col"
                                     class="p-3 text-right font-medium"
                                 >
                                     In
                                 </th>
                                 <th
+                                    v-if="!register.blind"
                                     scope="col"
                                     class="p-3 text-right font-medium"
                                 >
                                     Out
                                 </th>
                                 <th
+                                    v-if="!register.blind"
                                     scope="col"
                                     class="p-3 text-right font-medium"
                                 >
@@ -342,13 +400,20 @@ const formError = computed(
                                     {{ line.when }}
                                 </td>
                                 <td class="p-3">{{ line.what }}</td>
-                                <td class="p-3 text-right tabular-nums">
+                                <td
+                                    v-if="!register.blind"
+                                    class="p-3 text-right tabular-nums"
+                                >
                                     {{ line.in ?? '' }}
                                 </td>
-                                <td class="p-3 text-right tabular-nums">
+                                <td
+                                    v-if="!register.blind"
+                                    class="p-3 text-right tabular-nums"
+                                >
                                     {{ line.out ?? '' }}
                                 </td>
                                 <td
+                                    v-if="!register.blind"
                                     class="p-3 text-right font-medium tabular-nums"
                                 >
                                     {{ line.balance }}
@@ -399,12 +464,20 @@ const formError = computed(
                         ? '1 movement'
                         : `${register.movementsSinceCheck} movements`
                 }}
-                since the last check. Count what is physically on hand at this
-                branch and compare it with the register:
-                <span class="font-medium text-foreground tabular-nums"
-                    >{{ register.balanceNow }}
-                    {{ register.sku.stockUnit }}</span
-                >.
+                since the last check.
+                <template v-if="register.blind"
+                    >Count what is physically on hand at this branch. The
+                    register's balance appears after you record your
+                    count.</template
+                >
+                <template v-else
+                    >Count what is physically on hand at this branch and compare
+                    it with the register:
+                    <span class="font-medium text-foreground tabular-nums"
+                        >{{ register.balanceNow }}
+                        {{ register.sku.stockUnit }}</span
+                    >.</template
+                >
             </p>
             <p
                 v-if="register.checkBlockedReason"
@@ -441,13 +514,33 @@ const formError = computed(
                     "
                 />
                 <InputError id="cd-counted-error" :message="errors.counted" />
+                <p
+                    v-if="register.attemptsSinceCheck > 0"
+                    class="text-sm text-muted-foreground"
+                    data-testid="cd-attempts-since"
+                >
+                    {{
+                        register.attemptsSinceCheck === 1
+                            ? '1 earlier attempt since the last check'
+                            : `${register.attemptsSinceCheck} earlier attempts since the last check`
+                    }}
+                </p>
                 <template v-if="differs">
                     <p
                         class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
                         data-testid="cd-differs-note"
                     >
-                        This differs from the register. Recording it does not
-                        change stock; correct stock with a governed stock count.
+                        <template v-if="register.blind"
+                            >Your count differs from the register. Choose a
+                            reason below, then press Record check. Recording it
+                            does not change stock; correct stock with a governed
+                            stock count.</template
+                        >
+                        <template v-else
+                            >This differs from the register. Recording it does
+                            not change stock; correct stock with a governed
+                            stock count.</template
+                        >
                     </p>
                     <label class="block text-sm font-medium" for="cd-reason"
                         >Reason</label
@@ -536,9 +629,28 @@ const formError = computed(
                             >{{ check.checkedOn }} · {{ check.checkedBy }}</span
                         >
                     </div>
-                    <p class="tabular-nums">
+                    <!-- STK-40: refused "differs" tries before this check, so guessing is visible to whoever reads it. -->
+                    <p
+                        v-if="check.attempts > 0"
+                        class="text-muted-foreground"
+                        data-testid="cd-earlier-attempts"
+                    >
+                        {{
+                            check.attempts === 1
+                                ? '1 earlier attempt before this check'
+                                : `${check.attempts} earlier attempts before this check`
+                        }}
+                    </p>
+                    <p
+                        v-if="check.ledger === null"
+                        class="text-muted-foreground"
+                    >
+                        Quantities shown after your count.
+                    </p>
+                    <p v-else class="tabular-nums">
                         Register {{ check.ledger }} · counted
-                        {{ check.counted }} {{ register.sku.stockUnit }}
+                        {{ check.counted }} {{ register.sku.stockUnit }} ·
+                        {{ difference(check.difference) }}
                     </p>
                     <p v-if="check.reason" class="text-muted-foreground">
                         {{ reasons[check.reason] ?? check.reason
