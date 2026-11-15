@@ -19,6 +19,7 @@ return [
         'Registration/Show',
         'Registration/Edit',
         'PanelClaims/Index',
+        'PanelClaims/Create',
         'PanelClaims/Show',
         'ClinicalService/Index',
         'Dispensary/Show',
@@ -55,6 +56,28 @@ return [
         'Inventory/TreatmentUsage',
         'Agents/Office',
         'Inventory/GovernedStock',
+        'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
+        'MedicalCertificates/Index',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Public (patient-facing) Version 2 pages
+    |--------------------------------------------------------------------------
+    |
+    | Version 2 for the staff pages follows each signed-in person's own "Try the new layout" switch. A patient has no
+    | account, so the public QR pages cannot work that way: they have one switch for everybody, and it is OFF. While it is
+    | `false`, every request to a page listed in `public_pages` gets the Classic page, signed in or not. The owner turns it
+    | on (changes this value to `true` and deploys) only after saying "turn on new QR pages". Even then, a page is swapped
+    | only when its V2 file exists at `resources/js/pages/<Dir>/V2/<Name>.vue`.
+    |
+    */
+
+    'public' => false,
+
+    'public_pages' => [
+        'PublicCheckIn/Show',
+        'PublicCheckIn/Status',
     ],
 ];
