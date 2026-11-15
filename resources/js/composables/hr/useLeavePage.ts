@@ -344,7 +344,9 @@ export function useLeavePage(props: LeavePageProps) {
         { value: 'full', label: 'None (whole day)' },
         { value: 'am', label: 'End at midday' },
     ];
-    const preview = reactive({ text: '', error: '' });
+    // `counting` (V2, Daniel): true from a change of the dates or type until the server answers, so the working-days
+    // line says "Counting…" and never shows a number for the old dates. Classic does not read it.
+    const preview = reactive({ text: '', error: '', counting: false });
     let previewTimer: ReturnType<typeof setTimeout> | undefined;
     // The day-count check shares the session with the form. If it ran while the form was being sent, its saved session
     // could overwrite the validation errors of the send, and the sheet would close with nothing shown. So a send first
@@ -355,9 +357,10 @@ export function useLeavePage(props: LeavePageProps) {
             return Promise.resolve();
         }
 
-        previewInFlight = fetchPreview().finally(
-            () => (previewInFlight = null),
-        );
+        previewInFlight = fetchPreview().finally(() => {
+            previewInFlight = null;
+            preview.counting = false;
+        });
 
         return previewInFlight;
     };
@@ -436,6 +439,11 @@ export function useLeavePage(props: LeavePageProps) {
                 'end_part',
             );
             clearTimeout(previewTimer);
+            preview.counting = Boolean(
+                applyForm.leave_type_id &&
+                applyForm.start_date &&
+                applyForm.end_date,
+            );
             previewTimer = setTimeout(runPreview, 300);
         },
     );
@@ -450,6 +458,7 @@ export function useLeavePage(props: LeavePageProps) {
         applyForm.clearErrors();
         preview.text = '';
         preview.error = '';
+        preview.counting = false;
         applyOpen.value = true;
     };
     // HR-2b (Daniel): a labelled button opens the file picker; chosen files are listed with a Remove link.
@@ -481,6 +490,12 @@ export function useLeavePage(props: LeavePageProps) {
     const sendApply = async () => {
         clearTimeout(previewTimer);
         await previewInFlight?.catch(() => undefined);
+        // A check still waiting was cancelled above: its old number is not for these dates (V2 "Counting…").
+        if (preview.counting) {
+            preview.counting = false;
+            preview.text = '';
+        }
+
         applyForm
             .transform((data) => ({
                 ...data,
