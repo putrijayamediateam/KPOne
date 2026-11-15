@@ -31,3 +31,10 @@ test('visit page V2 does not change its requests', () => {
     assert.match(source, /sendToWaiting/);
     assert.doesNotMatch(source, /rail-from="lg"/);
 });
+
+test('visit page V2 labels the visit type with a map, so OTC is not shown as "Otc"', () => {
+    const s = loose(source);
+    assert.match(s, /visitType === 'otc' \? 'OTC'/);
+    assert.match(s, /\{\{ visitTypeLabel \}\}/);
+    assert.doesNotMatch(s, /\{\{ visit\.visitType \}\}/);
+});
