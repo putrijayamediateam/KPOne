@@ -164,7 +164,12 @@ const changeStatus = (method: PaymentMethodRow) => {
                     <InputError :message="createForm.errors.description" />
                 </label>
                 <label class="flex items-center gap-2 text-xs">
-                    <Checkbox v-model:checked="createForm.requires_reference" />
+                    <Checkbox
+                        :model-value="createForm.requires_reference"
+                        @update:model-value="
+                            createForm.requires_reference = $event === true
+                        "
+                    />
                     Requires a transaction reference
                 </label>
                 <label class="grid gap-1 text-xs">
@@ -380,7 +385,10 @@ const changeStatus = (method: PaymentMethodRow) => {
                     </label>
                     <label class="flex items-center gap-2 text-xs">
                         <Checkbox
-                            v-model:checked="editForm.requires_reference"
+                            :model-value="editForm.requires_reference"
+                            @update:model-value="
+                                editForm.requires_reference = $event === true
+                            "
                         />
                         Requires a transaction reference
                     </label>

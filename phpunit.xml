@@ -13,6 +13,7 @@
             <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresRosterContentionTest.php</exclude>
@@ -32,6 +33,8 @@
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresOpeningImportTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresSupplierReturnTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresPurchaseRequestTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresReorderLevelTest.php</exclude>
@@ -66,6 +69,7 @@
         <testsuite name="Contention">
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
             <file>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</file>
@@ -86,6 +90,8 @@
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
+            <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</file>
             <file>tests/Feature/Inventory/PostgresSupplierReturnTest.php</file>
             <file>tests/Feature/Inventory/PostgresPurchaseRequestTest.php</file>
             <file>tests/Feature/Inventory/PostgresReorderLevelTest.php</file>
@@ -138,6 +144,7 @@
         <testsuite name="Contention2">
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
             <file>tests/Feature/HR/PostgresCredentialsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresDisciplineContentionTest.php</file>
@@ -159,6 +166,8 @@
             <file>tests/Feature/HR/PostgresMemosContentionTest.php</file>
             <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
+            <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</file>
             <file>tests/Feature/Inventory/PostgresSupplierReturnGroupTest.php</file>
             <file>tests/Feature/Inventory/PostgresTransferShortageTest.php</file>
             <file>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</file>

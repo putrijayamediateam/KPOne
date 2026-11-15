@@ -207,7 +207,7 @@ class InventoryOperationsController extends Controller
     public function createStockRequest(Request $request, StockRequestService $service): RedirectResponse
     {
         try {
-            $service->create($request->user(), $request->only(['expected_branch_id', 'source_location_public_id', 'destination_location_public_id', 'lines']));
+            $service->create($request->user(), $request->only(['expected_branch_id', 'source_location_public_id', 'destination_location_public_id', 'lines', 'retry_key']));
         } catch (ValidationException $exception) {
             // STK-31: a request sent from "Stock other branches need" stays on that page when refused.
             throw $request->input('from') === 'branch-replenishment'

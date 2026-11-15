@@ -23,6 +23,7 @@ return [
         'PanelClaims/Show',
         'ClinicalService/Index',
         'Dispensary/Show',
+        'Dispensary/Completed',
         'Medicine/Index',
         'PaymentMethods/Index',
         'Pricing/Index',
@@ -56,9 +57,14 @@ return [
         'Inventory/TreatmentUsage',
         'Agents/Office',
         'Inventory/GovernedStock',
+        'Clinical/Show',
+        'Inventory/BatchHolds',
+        'Inventory/Recalls',
         'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
         'MedicalCertificates/Index',
+        'Visits/History',
+        'Referrals/Index',
     ],
 
     /*
@@ -76,8 +82,8 @@ return [
 
     'public' => false,
 
+    // A page is listed here only once its V2 file exists (V2PageDispatchTest checks both ways).
     'public_pages' => [
-        'PublicCheckIn/Show',
         'PublicCheckIn/Status',
     ],
 ];
