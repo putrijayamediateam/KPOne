@@ -178,9 +178,21 @@ const documentLinks = () =>
 // The server's toast does not name the room (and is shared with Classic), so the V2 page says it beside the button.
 const roomCallResult = ref('');
 let pendingRoomName: string | null = null;
+// Success is `no validation error and no failed response`: a refusal that is not a validation error (a 4xx or 5xx, a
+// network failure) arrives as `httpException` or `networkError`, never through `onError`, so it is caught here.
+let roomCallFailed = false;
+const stopHttpException = router.on(
+    'httpException',
+    () => (roomCallFailed = true),
+);
+const stopNetworkError = router.on(
+    'networkError',
+    () => (roomCallFailed = true),
+);
 let roomResultTimer: ReturnType<typeof setTimeout> | undefined;
 const startRoomCall = () => {
     roomCallResult.value = '';
+    roomCallFailed = false;
     pendingRoomName =
         props.treatmentRooms?.find(
             (room) => String(room.id) === String(treatmentRoomId.value),
@@ -189,7 +201,7 @@ const startRoomCall = () => {
 };
 watch(recallProcessing, (now, was) => {
     if (was && !now && pendingRoomName) {
-        if (recallError.value === '') {
+        if (recallError.value === '' && !roomCallFailed) {
             roomCallResult.value = `Called to ${pendingRoomName} on the TV.`;
             clearTimeout(roomResultTimer);
             roomResultTimer = setTimeout(
@@ -201,7 +213,15 @@ watch(recallProcessing, (now, was) => {
         pendingRoomName = null;
     }
 });
-onBeforeUnmount(() => clearTimeout(roomResultTimer));
+onBeforeUnmount(() => {
+    clearTimeout(roomResultTimer);
+    stopHttpException();
+    stopNetworkError();
+});
+const callAgain = () => {
+    roomCallResult.value = '';
+    recallPatient();
+};
 const callRoom = (roomId: number) => {
     treatmentRoomId.value = roomId;
     startRoomCall();
@@ -424,7 +444,7 @@ const saveStatus = () =>
                         class="h-11 lg:h-9"
                         :disabled="recallProcessing || callNextProcessing"
                         data-testid="recall-patient"
-                        @click="recallPatient"
+                        @click="callAgain"
                     >
                         <Megaphone class="size-4" aria-hidden="true" /> Call
                         again

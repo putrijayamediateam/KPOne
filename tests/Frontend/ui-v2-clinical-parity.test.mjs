@@ -281,3 +281,16 @@ test('the two-column workspace starts at 1280 px, so the right column stacks at 
     assert.match(page, /xl:grid-cols-\[minmax\(0,55fr\)_minmax\(0,45fr\)\]/);
     assert.doesNotMatch(page, /lg:grid-cols-\[minmax\(0,55fr\)/);
 });
+
+test('the room name line never shows after a failed response, and Call again clears it', () => {
+    const flat = page.replace(/\s+/g, ' ');
+
+    assert.match(flat, /router\.on\( 'httpException'/);
+    assert.match(flat, /router\.on\( 'networkError'/);
+    assert.match(flat, /recallError\.value === '' && !roomCallFailed/);
+    assert.match(
+        flat,
+        /const callAgain = \(\) => \{ roomCallResult\.value = ''; recallPatient\(\); \};/,
+    );
+    assert.match(flat, /@click="callAgain"/);
+});
