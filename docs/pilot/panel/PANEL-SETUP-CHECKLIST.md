@@ -1,5 +1,7 @@
 # Panel pilot setup checklist
 
+Part of the pilot setup list: [docs/pilot/SETUP-LIST.md](../SETUP-LIST.md).
+
 **Status:** draft for the Panel team's Lead and the clinic. It authorises nothing and records no result. Panel
 claiming is inside the pilot (owner decision, relayed 2026-11-15). The pilot is one branch beside Yezza, with
 synthetic data until the go-live gates close, so every Panel below is entered as a **test record** until the owner
@@ -17,8 +19,13 @@ decides otherwise.
 | [ ]  | A Finance Officer (and the Director) who can reverse a wrongly recorded Panel payment                         | Staff create                                                                                     | They can open Correct a Panel payment from Clinic management             |
 | [ ]  | Panel approval limit for each person who approves Panel responsibility at the counter                         | Billing Approval Limits (Director only), capability "Panel", amount in sen with the ringgit echo | A proposed Panel amount within the limit is approved; one above it waits |
 
-To confirm: who may create Panel Officer accounts at this clinic (the access rules may keep role assignment with
-the Director).
+Pilot Panel approval limit (owner decision): RM 300.00 per CA, which is 30000 sen in the sen box. A Panel amount above
+it waits for someone with a higher limit.
+
+Who may create Panel Officer accounts (checked in `StaffAuthorityService::canAssignRoles`): the Director always may.
+Anyone else may assign a role only if they hold every permission of that role. No other role holds all of the Panel
+Officer's permissions (the Finance Officer is short of `panel.work.view.branch`; every other role is short of many), so
+in practice **only the Director creates Panel Officer accounts**.
 
 ## 2. Business details (SETUP, Director or Administrator)
 
@@ -102,9 +109,9 @@ longer than one page repeats the table headings but not the letterhead or claim 
 
 ## 8. Sign-offs outside KPOne (PEOPLE and DECISION)
 
-| Item                                                                                                                            | Who                                                               |
-| ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Whether the claim pack, its figures and the e-invoice details are acceptable                                                    | The clinic's accountant or tax adviser (KPOne makes no tax claim) |
-| Footer wording on prints                                                                                                        | Owner                                                             |
-| Whether real Panels and real contact details may be entered, and when                                                           | Owner (until then, test records only)                             |
-| Whether Panel statement files (patient names and Panel references, encrypted, deleted after 30 days) may be used with real data | Owner, after the privacy (PDPA) review                            |
+| Item                                                                                                                            | Who                                                                                       |
+| ------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Tax and e-Invoice                                                                                                               | Owner decision 15 Nov: no tax row; e-Invoice later. KPOne makes no tax claim.             |
+| Footer wording on prints                                                                                                        | Owner decision 15 Nov: "This is a computer-generated document. No signature is required." |
+| Whether real Panels and real contact details may be entered, and when                                                           | Owner (until then, test records only)                                                     |
+| Whether Panel statement files (patient names and Panel references, encrypted, deleted after 30 days) may be used with real data | Owner, after the privacy (PDPA) review                                                    |
