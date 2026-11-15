@@ -294,3 +294,12 @@ authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
    `PostgresPatientMergeWorker`). Test only. Not done in this session: removing the service's locks to watch the
    races fail (the session's permission guard refused editing application code for it); each race instead proves
    both workers wait behind the held patient row.
+9. **REG-13 Duplicate override: CA Supervisor only, with a recorded reason.** *Owner deferred, 15 Nov 2026 ("Leave it as today for now").* Today any CA can confirm a likely duplicate with a tick, and the
+   audit row `patient.created` holds only a yes/no (`soft_duplicate_override`); no reason and no approver. Design (size M, not built): a new narrow permission
+   (for example `patients.duplicates.override.organisation`) for `ca_supervisor` only (the Director's role to be decided) by an additive migration;
+   the check inside `PatientAdministrationService::createUsingPolicy`, so all three entry points are covered (Patient create, Registration Quick create,
+   QR intake acceptance); a controlled reason list plus an optional short note stored in the audit row, and optionally an append-only evidence row;
+   screens that show a CA "ask a CA Supervisor to confirm" and a reason picker for the supervisor; tests for a CA refused, a CA Supervisor allowed with
+   a reason, no reason refused, each entry point, and an audit row with the reason and no personal data. Until then the staff procedure in
+   `docs/pilot/PATIENT-DUPLICATES.md` applies. A new permission comes back to the coordinator and the owner first.
+
