@@ -184,3 +184,36 @@ test('page 9b: numbered steps, a chip per checked row, and the record sheet', ()
     assert.match(opening.flat, /data-testid="opening-import-notice"/);
     assert.match(opening.flat, /data-testid="opening-import-cost-column"/);
 });
+
+test("page 9: Daniel's changes, plural unit words and an outline Check file", () => {
+    // Unit words come from the SKU and are plural ("40 tablets"), in the sheet, the table and the import rows.
+    assert.match(
+        readiness.script,
+        /quantityWithUnit\(c\.opening\.quantity, sku\?\.stock_unit\)/,
+    );
+    assert.match(
+        readiness.flat,
+        /quantityWithUnit\( opening\.quantity, skuFor\(opening\)\?\.stock_unit, \)/,
+    );
+    assert.match(
+        opening.flat,
+        /quantityWithUnit\( row\.quantity, row\.stock_unit \?\? 'unit', \)/,
+    );
+    assert.ok(!readiness.source.includes('trimQuantity'));
+    // Check file is outline (never filled) and off with a reason until a file is chosen; Record is the only filled one.
+    const checkButton = opening.flat.slice(
+        opening.flat.lastIndexOf(
+            '<button',
+            opening.flat.indexOf('data-testid="opening-import-check"'),
+        ),
+        opening.flat.indexOf('data-testid="opening-import-check"'),
+    );
+    assert.match(checkButton, /border border-input bg-background/);
+    assert.ok(!checkButton.includes('bg-primary'));
+    assert.match(opening.flat, /Choose a file to continue\./);
+    assert.match(
+        opening.flat,
+        /file \? undefined : 'opening-import-check-reason'/,
+    );
+    assert.equal((opening.template.match(/bg-primary /g) ?? []).length, 1);
+});

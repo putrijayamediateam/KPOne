@@ -11,8 +11,8 @@ import V2Pager from '@/components/v2/V2Pager.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
+import { quantityWithUnit } from '@/lib/inventory-v2-words';
 import { formatDate } from '@/lib/presentation';
-import { trimQuantity } from '@/lib/supplier-terms';
 
 /**
  * Version 2 Pilot readiness (inventory V2 page 9a). Everything from `type Row` to the branch watch is a verbatim copy of
@@ -198,7 +198,7 @@ const sheetRows = computed<KeyValueItem[]>(() => {
         { label: 'Expiry', value: formatDate(c.opening.expiry_date) },
         {
             label: 'Quantity',
-            value: `${trimQuantity(c.opening.quantity)} ${sku?.stock_unit ?? ''}`.trim(),
+            value: quantityWithUnit(c.opening.quantity, sku?.stock_unit),
         },
     ];
 });
@@ -518,8 +518,12 @@ const outlineButton =
                                     data-label="Quantity"
                                     class="text-right text-sm whitespace-nowrap tabular-nums"
                                 >
-                                    {{ trimQuantity(opening.quantity) }}
-                                    {{ skuFor(opening)?.stock_unit }}
+                                    {{
+                                        quantityWithUnit(
+                                            opening.quantity,
+                                            skuFor(opening)?.stock_unit,
+                                        )
+                                    }}
                                 </td>
                                 <td data-actions>
                                     <button

@@ -9,8 +9,9 @@ import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
+import { quantityWithUnit } from '@/lib/inventory-v2-words';
 import { formatDate } from '@/lib/presentation';
-import { formatRinggit, trimQuantity } from '@/lib/supplier-terms';
+import { formatRinggit } from '@/lib/supplier-terms';
 
 /**
  * Version 2 Import opening stock (inventory V2 page 9b). Everything from `type CheckedRow` to `record` is a verbatim
@@ -296,19 +297,23 @@ const problemRows = computed(
                         </div>
                         <button
                             type="submit"
-                            class="inline-flex h-11 w-full items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto lg:h-9"
+                            class="inline-flex h-11 w-full items-center justify-center rounded-[10px] border border-input bg-background px-4 text-sm font-medium shadow-xs hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:border-dashed disabled:bg-transparent disabled:text-muted-foreground disabled:shadow-none disabled:hover:bg-transparent sm:w-auto lg:h-9"
+                            data-testid="opening-import-check"
                             :disabled="checking || !file"
                             :aria-busy="checking"
+                            :aria-describedby="
+                                file ? undefined : 'opening-import-check-reason'
+                            "
                         >
                             {{ checking ? 'Checking…' : 'Check file' }}
                         </button>
                     </form>
                     <p
-                        v-if="!file && !checked"
+                        v-if="!file"
+                        id="opening-import-check-reason"
                         class="text-sm text-muted-foreground"
                     >
-                        Choose a file to check it. Nothing is recorded by a
-                        check.
+                        Choose a file to continue.
                     </p>
                     <InputError
                         id="opening-import-error"
@@ -451,8 +456,12 @@ const problemRows = computed(
                                     <div class="min-w-0">
                                         <span
                                             class="block text-sm whitespace-nowrap tabular-nums"
-                                            >{{ trimQuantity(row.quantity) }}
-                                            {{ row.stock_unit ?? '' }}</span
+                                            >{{
+                                                quantityWithUnit(
+                                                    row.quantity,
+                                                    row.stock_unit ?? 'unit',
+                                                )
+                                            }}</span
                                         >
                                         <span
                                             v-if="row.unit_cost_sen !== null"
