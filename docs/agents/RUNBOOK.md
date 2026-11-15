@@ -27,6 +27,20 @@ of a slot the manual command is safe to run.
 The small fix (take the daily run's lock, `DailyRun::lockKey(..., 'hana')`, in the command and skip with a message when it
 is held) is planned as its own change. Until it merges, keep the rule above. Source: agent platform TEAM.md, open item 13.
 
+## Who decides agent suggestions at the pilot branch
+
+Owner decision (relayed by the coordinator, 2026-11-15): at the pilot branch the **two named CA Supervisors and the
+branch Director** do the two-person steps, including deciding agent suggestions (approve or reject in the Approval inbox).
+
+- The person who started the run that made a suggestion cannot decide it; the inbox says "You started the run that made
+  this suggestion, so someone else must decide." This is why a second person is needed.
+- A decider must be assigned to that branch now and hold the decide permission for the suggestion; otherwise the inbox
+  shows why they cannot decide.
+- An approval records the decision only. It changes no stock and sends nothing; the restock, expiry or transfer is still
+  done by hand through the normal stock screens.
+- **Not decided yet:** whether agents are switched on in week one of the pilot. Until the owner decides, do not tell
+  branch staff to rely on them.
+
 ## If a section failed
 
 Open the Daily summary page for that date: a failed section says so and is retried by the next scheduled call. To retry
