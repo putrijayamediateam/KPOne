@@ -57,11 +57,20 @@ class FinancialLedger
             return [];
         }
 
-        return PanelClaimAdjustment::query()->from('panel_claim_adjustments as a')
-            ->join('coverage_allocations as c', fn ($j) => $j->on('c.id', '=', 'a.coverage_allocation_id')->where('c.status', 'approved'))
-            ->whereIn('a.invoice_id', $invoiceIds)->where('a.status', 'confirmed')
+        return self::panelAdjustmentRows($invoiceIds)
             ->selectRaw("a.invoice_id, SUM(CASE a.direction WHEN 'add' THEN a.amount_sen ELSE -a.amount_sen END) AS amount")
             ->groupBy('a.invoice_id')->pluck('amount', 'invoice_id')->map(fn ($v): int => (int) $v)->all();
+    }
+
+    /**
+     * @param  list<int>  $invoiceIds
+     * @return Builder<PanelClaimAdjustment>
+     */
+    private static function panelAdjustmentRows(array $invoiceIds): Builder
+    {
+        return PanelClaimAdjustment::query()->from('panel_claim_adjustments as a')
+            ->join('coverage_allocations as c', fn ($j) => $j->on('c.id', '=', 'a.coverage_allocation_id')->where('c.status', 'approved'))
+            ->whereIn('a.invoice_id', $invoiceIds)->where('a.status', 'confirmed');
     }
 
     /** Same measures and reconciliation as state(), in bounded caller-selected batches.
@@ -78,21 +87,24 @@ class FinancialLedger
         }
         $ids = array_values($invoices->map(fn (Invoice $invoice): int => $invoice->id)->all());
         $paid = PaymentAllocation::query()->whereIn('invoice_id', $ids)->selectRaw('invoice_id, SUM(amount_sen) AS amount')->groupBy('invoice_id')->pluck('amount', 'invoice_id');
-        // Reversals and approved BIL-10 credits in one read, so the batch stays within its query budget.
-        $reversedAndCredited = DB::query()->fromSub(
-            PaymentReversal::query()->whereIn('invoice_id', $ids)->selectRaw('invoice_id, amount_sen AS reversed, 0 AS credited')
-                ->unionAll(self::approvedCredits($ids)->selectRaw('invoice_credits.invoice_id, 0 AS reversed, invoice_credits.amount_sen AS credited')), 'r')
-            ->selectRaw('invoice_id, SUM(reversed) AS reversed, SUM(credited) AS credited')->groupBy('invoice_id')->get()->keyBy('invoice_id');
+        // Reversals, approved BIL-10 credits and (PCA-2) confirmed Panel claim adjustments in one read, so the batch
+        // stays within its query budget.
+        $parts = PaymentReversal::query()->whereIn('invoice_id', $ids)->selectRaw('invoice_id, amount_sen AS reversed, 0 AS credited, 0 AS panel_adjusted')
+            ->unionAll(self::approvedCredits($ids)->selectRaw('invoice_credits.invoice_id, 0 AS reversed, invoice_credits.amount_sen AS credited, 0 AS panel_adjusted'));
+        if ($withPanelAdjustments) {
+            $parts->unionAll(self::panelAdjustmentRows($ids)->selectRaw("a.invoice_id, 0 AS reversed, 0 AS credited, CASE a.direction WHEN 'add' THEN a.amount_sen ELSE -a.amount_sen END AS panel_adjusted"));
+        }
+        $reversedAndCredited = DB::query()->fromSub($parts, 'r')
+            ->selectRaw('invoice_id, SUM(reversed) AS reversed, SUM(credited) AS credited, SUM(panel_adjusted) AS panel_adjusted')->groupBy('invoice_id')->get()->keyBy('invoice_id');
         $panel = CoverageAllocation::query()->whereIn('invoice_id', $ids)->where('status', 'approved')->selectRaw('invoice_id, SUM(amount_sen) AS amount')->groupBy('invoice_id')->pluck('amount', 'invoice_id');
         $deferred = PatientReceivable::query()->whereIn('invoice_id', $ids)->where('status', 'approved')->selectRaw('invoice_id, SUM(remaining_sen) AS amount')->groupBy('invoice_id')->pluck('amount', 'invoice_id');
         $adjustments = InvoiceAdjustmentService::activeForInvoices($ids);
-        $panelAdjustments = $withPanelAdjustments ? self::panelAdjustments($ids) : [];
         $states = [];
         foreach ($invoices as $invoice) {
             $adjustment = $adjustments->get($invoice->id);
             $net = InvoiceAdjustmentService::net($adjustment);
             $row = $reversedAndCredited->get($invoice->id);
-            $states[$invoice->id] = $this->calculate($invoice, (int) $paid->get($invoice->id, 0) - (int) ($row->reversed ?? 0), (int) $panel->get($invoice->id, 0), (int) $deferred->get($invoice->id, 0), $net, (int) ($row->credited ?? 0), $panelAdjustments[$invoice->id] ?? 0);
+            $states[$invoice->id] = $this->calculate($invoice, (int) $paid->get($invoice->id, 0) - (int) ($row->reversed ?? 0), (int) $panel->get($invoice->id, 0), (int) $deferred->get($invoice->id, 0), $net, (int) ($row->credited ?? 0), (int) ($row->panel_adjusted ?? 0));
         }
 
         return $states;
