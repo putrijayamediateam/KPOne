@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * Version 2 look for the completed Dispensary case (owner: "start the V2 Completed page", 2026-11-15). Look only: the
- * props, routes and the Medicine returns section are Classic's (`Dispensary/Completed.vue`), kept in step by
- * tests/Frontend/v2-dispensary-completed.test.mjs.
+ * props and routes are Classic's (`Dispensary/Completed.vue`). The Medicine returns section is a V2 copy whose script is
+ * Classic's, kept in step by tests/Frontend/v2-dispensary-completed.test.mjs.
  */
 import { Head, Link } from '@inertiajs/vue3';
 import { CheckCircle2, Printer } from '@lucide/vue';
@@ -10,7 +10,7 @@ import { PageFrame } from '@/components/ui/page-frame';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import type { DispensaryReturnsPanel } from '@/lib/dispensary-returns';
-import MedicineReturnsSection from '@/pages/Dispensary/Partials/MedicineReturnsSection.vue';
+import MedicineReturnsSection from '@/pages/Dispensary/V2/Partials/MedicineReturnsSection.vue';
 
 const props = defineProps<{
     dispensary: {
@@ -115,7 +115,7 @@ const outlineButton =
                     </p>
                 </section>
 
-                <!-- Hakim: the Classic returns section relies on Classic's page rule for 44 px controls below 1024; keep it. -->
+                <!-- Hakim: the returns section relies on Classic's page rule for 44 px controls below 1024; keep it. -->
                 <div
                     v-if="returns && returns.lines.length"
                     class="max-lg:[&_[data-slot=button]]:min-h-11 max-lg:[&_[data-slot=select-trigger]]:min-h-11 max-lg:[&_input:not([type=radio]):not([type=checkbox])]:min-h-11 max-lg:[&_select]:min-h-11 max-lg:[&_textarea]:min-h-11"
