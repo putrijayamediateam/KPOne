@@ -4,7 +4,7 @@ import { TriangleAlert } from '@lucide/vue';
 import { computed, nextTick, reactive, ref, watch } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
-import V2DateRange from '@/components/v2/V2DateRange.vue';
+import V2DateField from '@/components/v2/V2DateField.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
@@ -246,6 +246,20 @@ const pickReason = (value: string | null) => {
         });
     }
 };
+// Day-first date boxes (Daniel, page 8): an unreadable date sends nothing, so Show waits until both are usable.
+const fromInvalid = ref(false);
+const toInvalid = ref(false);
+const rangeError = computed(() =>
+    from.value && to.value && from.value > to.value
+        ? 'From must be on or before To.'
+        : undefined,
+);
+const rangeReady = computed(
+    () =>
+        !fromInvalid.value &&
+        !toInvalid.value &&
+        rangeError.value === undefined,
+);
 // A polite line once a new check arrives after recording one.
 const recorded = ref<number | null>(null);
 watch(
@@ -294,17 +308,27 @@ watch(
                     aria-label="Register dates"
                     @submit.prevent="visit(1)"
                 >
-                    <div class="min-w-0 flex-1 basis-80">
-                        <V2DateRange
-                            v-model:from="from"
-                            v-model:to="to"
-                            label="Register dates"
-                            echo
+                    <div class="min-w-0 flex-1 basis-56">
+                        <V2DateField
+                            v-model="from"
+                            label="From"
+                            subject="From"
+                            @update:invalid="(value) => (fromInvalid = value)"
+                        />
+                    </div>
+                    <div class="min-w-0 flex-1 basis-56">
+                        <V2DateField
+                            v-model="to"
+                            label="To"
+                            subject="To"
+                            :error="rangeError"
+                            @update:invalid="(value) => (toInvalid = value)"
                         />
                     </div>
                     <button
                         type="submit"
-                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9"
+                        :disabled="!rangeReady"
                     >
                         Show
                     </button>
@@ -359,7 +383,12 @@ watch(
                                 <th scope="col">Batch</th>
                                 <th scope="col">Location</th>
                                 <th scope="col">Reference</th>
-                                <th scope="col">Recorded by</th>
+                                <th
+                                    scope="col"
+                                    class="min-w-32 whitespace-nowrap"
+                                >
+                                    Recorded by
+                                </th>
                             </tr>
                         </template>
                         <template #body>

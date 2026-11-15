@@ -172,3 +172,12 @@ test('page 8b: movements keep the running balance, show "Showing N of M" and pri
     assert.match(show.flat, /:href="printHref"[^>]*data-testid="cd-print"/);
     assert.match(show.template, /cards="xl"/);
 });
+
+test('page 8b: register dates are day-first boxes; an unreadable date or a reversed range keeps Show off', () => {
+    assert.doesNotMatch(show.source, /V2DateRange|type="date"/);
+    assert.equal((show.template.match(/<V2DateField/g) ?? []).length, 2);
+    assert.match(show.flat, /v-model="from"/);
+    assert.match(show.flat, /v-model="to"/);
+    assert.match(show.flat, /:disabled="!rangeReady"/);
+    assert.ok(show.script.includes('From must be on or before To.'));
+});
