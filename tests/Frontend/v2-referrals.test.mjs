@@ -222,3 +222,13 @@ test('V2 adds no request and no router.post, and keeps the Classic props', () =>
         assert.ok(tight(page).includes(tight(piece)));
     }
 });
+
+test('V2 history actions stack on phones, each a full-width 44 px target with its words on one line', () => {
+    const t = tight(page);
+
+    assert.ok(t.includes('flexflex-wrapgap-2max-sm:w-fullmax-sm:flex-col'));
+    assert.equal(
+        (t.match(/'whitespace-nowrapmax-sm:w-full'/g) ?? []).length,
+        3,
+    );
+});

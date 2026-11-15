@@ -828,13 +828,18 @@ const textFields = [
                                 ({{ referrals.timezone }})
                             </p>
                         </div>
-                        <div class="flex flex-wrap gap-2 max-sm:w-full">
+                        <div
+                            class="flex flex-wrap gap-2 max-sm:w-full max-sm:flex-col"
+                        >
                             <a
                                 v-if="referrals.canPrint"
                                 :href="`${endpoint}/${doc.id}`"
                                 target="_blank"
                                 rel="noopener"
-                                :class="[outlineButton, 'max-sm:flex-1']"
+                                :class="[
+                                    outlineButton,
+                                    'whitespace-nowrap max-sm:w-full',
+                                ]"
                                 >Open COPY / print</a
                             >
                             <button
@@ -843,7 +848,10 @@ const textFields = [
                                     doc.status === 'current'
                                 "
                                 type="button"
-                                :class="[outlineButton, 'max-sm:flex-1']"
+                                :class="[
+                                    outlineButton,
+                                    'whitespace-nowrap max-sm:w-full',
+                                ]"
                                 :disabled="busy"
                                 @click="ask(() => compose(doc))"
                             >
@@ -855,7 +863,10 @@ const textFields = [
                                     doc.status === 'current'
                                 "
                                 type="button"
-                                :class="[outlineButton, 'max-sm:flex-1']"
+                                :class="[
+                                    outlineButton,
+                                    'whitespace-nowrap max-sm:w-full',
+                                ]"
                                 :disabled="busy"
                                 @click="voiding = doc"
                             >
