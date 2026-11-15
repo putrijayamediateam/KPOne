@@ -1698,7 +1698,8 @@ const calendarDays = computed(() =>
                     <div>
                         <h3 class="text-base font-semibold">Leave types</h3>
                         <p class="text-xs text-muted-foreground">
-                            KPOne ships none. Add the types the clinic uses.
+                            Add the types the clinic uses, or start from the
+                            KPOne defaults.
                         </p>
                     </div>
                     <div class="flex flex-wrap gap-2">
@@ -1807,7 +1808,7 @@ const calendarDays = computed(() =>
                     class="mt-1 text-xs text-muted-foreground"
                     data-test="defaults-entitlement-label"
                 >
-                    Some figures were set by KPOne defaults.
+                    Some figures here come from KPOne defaults:
                     {{ leave.settings.defaults.label }}
                 </p>
                 <ErrorState
@@ -2971,7 +2972,7 @@ const calendarDays = computed(() =>
                     </li>
                     <li>
                         Hospitalisation leave: 60 days a year including sick
-                        leave (46, 42 or 38 more days).
+                        leave, so 60 less the sick days in force.
                     </li>
                     <li>
                         Maternity leave (98 days a confinement) and paternity
@@ -3013,8 +3014,9 @@ const calendarDays = computed(() =>
                         no employment start date in their staff file, so they
                         get the first tier.</template
                     >
-                    <template v-if="leave.settings.defaults.crossing > 0">
-                        {{
+                    <template v-if="leave.settings.defaults.crossing > 0"
+                        >{{ ' '
+                        }}{{
                             plural(
                                 leave.settings.defaults.crossing,
                                 'person reaches',
