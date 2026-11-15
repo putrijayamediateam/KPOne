@@ -53,5 +53,6 @@ return [
         'Agents/DailySummary',
         'Agents/Office',
         'Inventory/GovernedStock',
+        'Inventory/SupplierReturns',
     ],
 ];
