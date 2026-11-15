@@ -595,6 +595,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::put('types', 'saveType')->name('hr.leave.types.save');
             Route::put('entitlements', 'saveEntitlements')->name('hr.leave.entitlements.save');
             Route::post('grant', 'grant')->name('hr.leave.grant');
+            Route::post('defaults', 'defaults')->name('hr.leave.defaults');
             Route::post('carry-forward', 'carryForward')->name('hr.leave.carry-forward');
             Route::post('expire', 'expire')->name('hr.leave.expire');
             Route::put('working-days', 'workingDays')->name('hr.leave.working-days');

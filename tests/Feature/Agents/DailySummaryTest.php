@@ -358,6 +358,34 @@ class DailySummaryTest extends QueueTestCase
         }
     }
 
+    public function test_a_manual_inventory_review_waits_for_the_daily_run_lock_and_releases_its_own(): void
+    {
+        // AG-27: hold Hana's lock for today from a second connection, as a running daily run would.
+        $name = 'ag27_lock_holder';
+        config(["database.connections.{$name}" => config('database.connections.'.config('database.default'))]);
+        $holder = DB::connection($name);
+        $key = DailyRun::lockKey($this->organisation->id, $this->branch, '2026-11-06', 'hana');
+        try {
+            $this->assertTrue((bool) $holder->selectOne('select pg_try_advisory_lock(hashtextextended(?, 0)) as locked', [$key])->locked);
+
+            $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'restock'])
+                ->expectsOutputToContain('Another run is working on Hana for CHERAS on 2026-11-06')
+                ->assertFailed();
+            $this->assertSame(0, AiAgentRun::query()->count(), 'No run starts while the daily run holds the lock.');
+            $this->assertSame(0, AiProposal::query()->count());
+
+            $holder->select('select pg_advisory_unlock(hashtextextended(?, 0))', [$key]);
+
+            $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'restock'])->assertSuccessful();
+            $this->assertSame(1, AiProposal::query()->count());
+            // The command released its lock: a second connection can take it at once.
+            $this->assertTrue((bool) $holder->selectOne('select pg_try_advisory_lock(hashtextextended(?, 0)) as locked', [$key])->locked);
+        } finally {
+            $holder->select('select pg_advisory_unlock_all()');
+            DB::purge($name);
+        }
+    }
+
     public function test_only_a_tool_marked_organisation_wide_is_read_with_no_branch(): void
     {
         $organisationWide = collect(app(AgentToolRegistry::class)->all())->filter(fn ($tool): bool => $tool instanceof OrganisationWideSystemTool)->map->code()->values()->all();

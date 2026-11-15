@@ -14,18 +14,17 @@ data and writes only agent runs, suggestions and daily summary sections. Nothing
 - The daily run holds a PostgreSQL advisory lock per organisation, branch, local date and section, so two scheduled
   processes cannot store the same section at once.
 
-## Running Hana by hand: the interim rule
+## Running Hana by hand
 
-**Do not run `agents:inventory-review` by hand in the hour of a slot, 07:00 or 14:00 branch time** (for example 07:00 to
-07:59 for a branch whose local clock is at 07:xx).
+`agents:inventory-review <BRANCH>` takes the same advisory lock the daily run uses for Hana (organisation, branch and
+local date). If a daily run, or another manual run, is working on that branch and date, the command prints "Another run
+is working on Hana for <BRANCH> on <date>. Nothing was changed; try again in a few minutes." and exits with a failure
+code. Nothing is stored. Run it again a few minutes later.
 
-Why: the manual command takes no lock. If it runs while the daily run is working on the same branch, both can read the
-same stock and choose different branches to send a transfer, giving two overlapping suggestions. A repeated identical
-suggestion is safe (the same key and payload return the existing one), so the risk is only that case. Outside the hour
-of a slot the manual command is safe to run.
+It needs the same direct or session-pooled database connection and no outer transaction as the daily run. An identical
+suggestion is still safe to repeat (the same key and payload return the existing one).
 
-The small fix (take the daily run's lock, `DailyRun::lockKey(..., 'hana')`, in the command and skip with a message when it
-is held) is planned as its own change. Until it merges, keep the rule above. Source: agent platform TEAM.md, open item 13.
+The earlier interim rule (no manual run in the hour of 07:00 or 14:00 branch time) is retired by this change.
 
 ## Who decides agent suggestions at the pilot branch
 
