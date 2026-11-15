@@ -178,5 +178,6 @@ final class StockJournalSummaryTest extends VisitTestCase
         $response = $this->get(route('inventory.stock-value.journal', ['branch' => (string) $this->branch->id, 'month' => $month]))->assertOk();
         $this->assertStringContainsString('kpone-stock-journal-'.$month.'-to-date-branch-', (string) $response->headers->get('Content-Disposition'));
         $this->assertStringContainsString('(month to date, up to '.now($this->branch->timezone)->toDateString().')', (string) $response->getContent());
+        $this->assertStringContainsString(','.now($this->branch->timezone)->toDateString().',"Memo: opening stock value"', (string) $response->getContent());
     }
 }

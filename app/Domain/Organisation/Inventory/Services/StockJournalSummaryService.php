@@ -161,6 +161,8 @@ final class StockJournalSummaryService
     {
         $s = $this->summary($actor, $active, $query);
         self::ensureBalanced((int) $s['checkMilliSen']);
+        // A month still running is dated up to now, not to a month end that has not come yet.
+        $s['monthEnd'] = $s['toDate'] ? $s['upTo'] : $s['monthEnd'];
         $sen = fn (int $milli): string => ReportCsv::money(WeightedAverageCostService::sen($milli));
         $rows = [];
         $n = 0;
