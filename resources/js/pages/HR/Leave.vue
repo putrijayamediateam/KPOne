@@ -902,7 +902,7 @@ const yearText = computed(() => {
         defaults: {
             title: `Use KPOne defaults for ${y}?`,
             description: defaultsDescription.value,
-            confirm: 'Use KPOne defaults',
+            confirm: 'Add these defaults',
         },
         expire: {
             title: `Expire carried days for ${y}?`,

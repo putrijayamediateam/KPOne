@@ -22,7 +22,7 @@ test('Leave settings: "Use KPOne defaults" is an outline action that confirms fi
     // The shared year dialog posts to /hr/leave/{kind} with the year and a fresh idempotency key.
     assert.match(leave, /`\/hr\/leave\/\$\{yearAction\.kind\}`/);
     assert.match(leave, /idempotency_key: yearAction\.key/);
-    assert.match(leave, /confirm: 'Use KPOne defaults'/);
+    assert.match(leave, /confirm: 'Add these defaults'/);
     assert.match(leave, /data-test="defaults-details"/);
 });
 
