@@ -62,7 +62,7 @@ const figure = (row: SummaryFigures, key: (typeof figureKeys)[number]) =>
                     label="Period"
                     @update:model-value="(v: string) => visit({ period: v })"
                 />
-                <div class="flex flex-wrap items-end gap-2">
+                <div class="flex flex-nowrap items-end gap-2">
                     <button
                         type="button"
                         :class="[button, 'gap-1.5']"
@@ -77,6 +77,7 @@ const figure = (row: SummaryFigures, key: (typeof figureKeys)[number]) =>
                     </button>
                     <V2DateField
                         :model-value="data.date ?? ''"
+                        required
                         :label="data.period === 'week' ? 'Week of' : 'Month of'"
                         @update:model-value="
                             (value: string) => value && visit({ date: value })

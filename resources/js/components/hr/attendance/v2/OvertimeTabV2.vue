@@ -88,7 +88,8 @@ const {
                 >
                     <div class="flex min-w-0 flex-col gap-1">
                         <p class="font-semibold">
-                            {{ r.person }} · {{ r.dayLabel }} · {{ r.branch }}
+                            {{ r.person }} · {{ glueTimes(r.dayLabel) }} ·
+                            {{ r.branch }}
                         </p>
                         <p>
                             {{ r.dayTypeLabel }} · asked for
@@ -165,7 +166,7 @@ const {
                 <h3 class="text-base font-semibold">
                     Decided in {{ data.monthLabel }}
                 </h3>
-                <div class="flex flex-wrap items-center gap-2">
+                <div class="flex flex-nowrap items-center gap-2">
                     <button
                         type="button"
                         :class="[button, 'gap-1.5']"
@@ -177,6 +178,7 @@ const {
                     <label for="v2-overtime-month" class="sr-only">Month</label>
                     <MonthField
                         id="v2-overtime-month"
+                        class="w-40!"
                         :model-value="data.month"
                         @change="(value: string) => visitMonth(value)"
                     />
@@ -219,7 +221,7 @@ const {
                             <span class="font-medium">{{ r.person }}</span>
                         </td>
                         <td data-label="Day">
-                            {{ r.dayLabel }} · {{ r.branch }}
+                            {{ glueTimes(r.dayLabel) }} · {{ r.branch }}
                         </td>
                         <td data-label="Day type">{{ r.dayTypeLabel }}</td>
                         <td
@@ -229,39 +231,48 @@ const {
                             {{ glueTimes(r.approvedLabel ?? r.requestedLabel) }}
                         </td>
                         <td data-label="Status">
-                            <div class="flex flex-wrap gap-1.5">
-                                <V2Chip
-                                    :tone="requestTone(r)"
-                                    :label="r.statusLabel"
-                                    class="text-nowrap!"
-                                />
-                                <V2Chip
-                                    v-if="r.fewer"
-                                    tone="neutral"
-                                    label="Fewer minutes"
-                                    class="text-nowrap!"
-                                />
-                                <V2Chip
-                                    v-if="r.hoursChanged"
-                                    tone="warning"
-                                    label="Hours changed after approval"
-                                    class="text-nowrap!"
-                                />
+                            <div
+                                class="flex flex-col items-end gap-1 xl:items-start"
+                            >
+                                <div
+                                    class="flex flex-wrap justify-end gap-1.5 xl:justify-start"
+                                >
+                                    <V2Chip
+                                        :tone="requestTone(r)"
+                                        :label="r.statusLabel"
+                                        class="text-nowrap!"
+                                    />
+                                    <V2Chip
+                                        v-if="r.fewer"
+                                        tone="neutral"
+                                        label="Fewer minutes"
+                                        class="text-nowrap!"
+                                    />
+                                    <V2Chip
+                                        v-if="r.hoursChanged"
+                                        tone="warning"
+                                        label="Hours changed after approval"
+                                        class="text-nowrap!"
+                                    />
+                                </div>
+                                <p
+                                    v-if="r.changedLabel"
+                                    class="text-[13px] tabular-nums"
+                                >
+                                    {{ r.changedLabel }}
+                                </p>
+                                <p
+                                    v-if="r.decisionReason"
+                                    class="text-[13px] text-muted-foreground"
+                                >
+                                    {{ r.decisionReason }}
+                                </p>
                             </div>
-                            <p
-                                v-if="r.changedLabel"
-                                class="mt-1 text-[13px] tabular-nums"
-                            >
-                                {{ r.changedLabel }}
-                            </p>
-                            <p
-                                v-if="r.decisionReason"
-                                class="mt-1 text-[13px] text-muted-foreground"
-                            >
-                                {{ r.decisionReason }}
-                            </p>
                         </td>
-                        <td data-actions>
+                        <td
+                            data-actions
+                            :class="r.canReverse ? '' : 'max-xl:hidden!'"
+                        >
                             <div class="flex justify-end">
                                 <button
                                     v-if="r.canReverse"
