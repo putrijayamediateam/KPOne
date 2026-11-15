@@ -101,10 +101,33 @@ final class ProposalService
      */
     public function canDecide(User $actor, AiProposal $proposal, bool $assigned): bool
     {
-        return $proposal->status === 'pending'
-            && $assigned
-            && $actor->can(ProposalTypes::get($proposal->type)['permission'])
-            && $proposal->run?->requested_by_user_id !== $actor->id;
+        return $proposal->status === 'pending' && $this->cannotDecideReason($actor, $proposal, $assigned) === null;
+    }
+
+    /**
+     * Why this person cannot decide a pending proposal, in plain words for the inbox, or null when they can (or when it
+     * is no longer pending, which the page already says). Read only: it decides nothing and the decision paths keep
+     * their own checks. The wording never names another person.
+     */
+    public function cannotDecideReason(User $actor, AiProposal $proposal, bool $assigned): ?string
+    {
+        if ($proposal->status !== 'pending') {
+            return null;
+        }
+
+        if (! $assigned) {
+            return 'You are not assigned to this branch now, so someone else must decide.';
+        }
+
+        if (! $actor->can(ProposalTypes::get($proposal->type)['permission'])) {
+            return 'Your role can see this suggestion but not decide it, so someone else must decide.';
+        }
+
+        if ($proposal->run?->requested_by_user_id === $actor->id) {
+            return 'You started the run that made this suggestion, so someone else must decide.';
+        }
+
+        return null;
     }
 
     /**

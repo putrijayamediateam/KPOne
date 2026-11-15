@@ -96,7 +96,7 @@ class SpaceAskTest extends VisitTestCase
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
 
-        $this->get('/spaces/front_desk')->assertInertia(fn (Assert $p) => $p->has('questions', 4)
+        $this->get('/spaces/front_desk')->assertInertia(fn (Assert $p) => $p->has('questions', 8)
             ->where('questions.3', ['key' => 'front_desk.qr_pending', 'label' => 'QR check-ins to review?']));
         $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.waited_over_30'])
             ->assertOk()->assertJsonPath('sentence', 'Nobody has waited over 30 minutes.')->assertJsonPath('href', '/registration');
@@ -111,7 +111,7 @@ class SpaceAskTest extends VisitTestCase
     public function test_the_billing_question_is_only_for_billing_holders_and_the_director_does_not_get_it(): void
     {
         $this->selectBranch($this->actor('director'));
-        $this->get('/spaces/front_desk')->assertInertia(fn (Assert $p) => $p->has('questions', 3));
+        $this->get('/spaces/front_desk')->assertInertia(fn (Assert $p) => $p->has('questions', 7));
         $this->postJson('/spaces/front_desk/ask', ['question' => 'front_desk.awaiting_billing'])->assertForbidden();
     }
 

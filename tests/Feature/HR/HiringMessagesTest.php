@@ -167,6 +167,64 @@ class HiringMessagesTest extends VisitTestCase
             ->assertInertia(fn (Assert $p) => $p->where('application.stage', 'withdrawn')->where('application.open', false));
     }
 
+    public function test_the_candidate_deletes_their_application_and_its_details_through_the_link(): void
+    {
+        // Owner decision 2026-11-11: self-service deletion. An open application is withdrawn first, with no message.
+        $hr = $this->actor('hr_manager');
+        $position = $this->addPosition($hr, 'Synthetic Assistant');
+        config(['hr-applications.enabled' => true]);
+        auth()->logout();
+        $token = $this->applyAndGetToken($position);
+        $cv = (string) DB::table('hr_job_applications')->value('cv_path');
+        Storage::disk(JobApplicationIntake::DISK)->assertExists($cv);
+
+        $this->post(route('hr-applications.status.delete'))->assertSessionHasErrors('link');
+        $this->withCookie('kpone_career_status', $token)->get(route('hr-applications.status'))
+            ->assertInertia(fn (Assert $p) => $p->where('application.canDelete', true)->where('erased', false));
+        $this->withCookie('kpone_career_status', $token)->post(route('hr-applications.status.delete'))
+            ->assertRedirect(route('hr-applications.status'))->assertSessionHasNoErrors()->assertSessionHas('erased', true);
+
+        $row = DB::table('hr_job_applications')->sole();
+        $this->assertSame('withdrawn', $row->status);
+        $this->assertNotNull($row->purged_at);
+        $this->assertSame([null, null, null, null, null, null, null], [$row->name_encrypted, $row->phone_encrypted, $row->email_encrypted,
+            $row->message_encrypted, $row->details_encrypted, $row->cv_path, $row->status_token_hash]);
+        Storage::disk(JobApplicationIntake::DISK)->assertMissing($cv);
+        $this->assertSame(['submitted', 'candidate_withdrew', 'status_changed', 'purged'], DB::table('hr_job_application_events')->orderBy('id')->pluck('action')->all());
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'hr.applications.erased_by_candidate')->count());
+        $this->assertSame(['received'], DB::table('hr_job_application_messages')->orderBy('id')->pluck('template')->all()); // nobody left to write to
+
+        // The page says so once; the link no longer works.
+        $this->withSession(['erased' => true])->get(route('hr-applications.status'))->assertInertia(fn (Assert $p) => $p->where('application', null)->where('erased', true));
+        $this->withCookie('kpone_career_status', $token)->post(route('hr-applications.status.delete'))->assertSessionHasErrors('link');
+    }
+
+    public function test_a_closed_application_can_be_deleted_but_one_at_offered_is_left_for_hr(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $position = $this->addPosition($hr, 'Synthetic Assistant');
+        config(['hr-applications.enabled' => true]);
+        auth()->logout();
+        $token = $this->applyAndGetToken($position);
+        $this->withCookie('kpone_career_status', $token)->post(route('hr-applications.status.withdraw'))->assertSessionHasNoErrors();
+        $second = $this->applyAndGetToken($position);
+
+        // An older HR-13 application can still be at Offered: HR closes it, so the candidate is asked to contact HR.
+        DB::statement('ALTER TABLE hr_job_applications DISABLE TRIGGER USER');
+        DB::table('hr_job_applications')->orderByDesc('id')->limit(1)->update(['status' => 'offered', 'closed_at' => now()]);
+        DB::statement('ALTER TABLE hr_job_applications ENABLE TRIGGER USER');
+        $this->withCookie('kpone_career_status', $second)->get(route('hr-applications.status'))->assertInertia(fn (Assert $p) => $p->where('application.canDelete', false));
+        $this->withCookie('kpone_career_status', $second)->post(route('hr-applications.status.delete'))->assertSessionHasErrors('erase');
+        $this->assertNull(DB::table('hr_job_applications')->orderByDesc('id')->value('purged_at'));
+
+        // The withdrawn one is deleted without a second withdrawal.
+        $this->withCookie('kpone_career_status', $token)->post(route('hr-applications.status.delete'))->assertSessionHasNoErrors();
+        $first = DB::table('hr_job_applications')->orderBy('id')->first();
+        $this->assertSame('withdrawn', $first->status);
+        $this->assertNotNull($first->purged_at);
+        $this->assertSame(1, DB::table('hr_job_application_events')->where('application_id', $first->id)->where('action', 'candidate_withdrew')->count());
+    }
+
     public function test_three_working_days_without_a_decision_send_one_reminder_then_auto_reject(): void
     {
         $hr = $this->actor('hr_manager');

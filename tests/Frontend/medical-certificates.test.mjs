@@ -65,11 +65,12 @@ test('retained print renderer enforces white A4 output and distinguishes pre-sig
 
 test('Encounter MC entry opens separately and preserves the unsaved clinical form', () => {
     const encounter = read('resources/js/pages/Clinical/Show.vue');
-    const anchor = encounter.match(/<a\b[^>]*medical_certificates\.view\.own[\s\S]*?<\/a\s*>/)?.[0];
+    const anchor = encounter.match(/<Button\b[^>]*medical_certificates\.view\.own[\s\S]*?<\/Button\s*>/)?.[0];
     assert.ok(anchor);
     assert.match(anchor, /target="_blank"/);
     assert.match(anchor, /rel="noopener"/);
-    assert.match(anchor, /Medical certificates \(new tab\)/);
+    assert.match(anchor, /Medical certificates/);
+    assert.match(anchor, /\(opens in a new tab\)/);
 });
 
 

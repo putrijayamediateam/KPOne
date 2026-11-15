@@ -229,8 +229,8 @@ final class SupplierInvoiceTest extends VisitTestCase
             'inventory_sku_id' => $this->secondSku($f), 'ordered_quantity' => '5.000', 'received_quantity' => '0.000', 'estimated_unit_cost_sen' => null, 'created_at' => now(), 'updated_at' => now()]);
         $payload = $f['payload'];
         $service->receive($this->as($f['receiver']), $order, [...$payload, 'lines' => [$payload['lines'][0]]]);
-        // Test fixture: the order is closed with the rest never coming (STK-21's short close does this in the app).
-        DB::table('inventory_purchase_orders')->where('id', $order->id)->update(['status' => 'closed', 'closed_by_user_id' => $f['director']->id, 'closed_at' => now()->utc(), 'lock_version' => DB::raw('lock_version + 1')]);
+        // The order is closed with the rest never coming, through STK-21's short close.
+        $service->shortClose($this->as($f['director']), $order, ['expected_branch_id' => $this->branch->id, 'lock_version' => $order->refresh()->lock_version, 'reason' => 'supplier_cannot_supply']);
         $lines = $order->lines()->orderBy('id')->get();
         $input = $this->invoice($f);
         $input['lines'] = [['line_public_id' => $lines[0]->public_id, 'quantity' => '2', 'total' => '2.50'], ['line_public_id' => $lines[1]->public_id, 'quantity' => '0', 'total' => '0']];

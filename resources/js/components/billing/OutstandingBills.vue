@@ -181,7 +181,7 @@ onBeforeUnmount(() => {
             v-if="collectionsUrl"
             :href="collectionsUrl"
             class="mt-3 block border-t pt-3 text-xs font-medium text-primary hover:underline"
-            >View all pay-later to collect at this branch</Link
+            >View all bills to collect at this branch</Link
         >
     </section>
     <Dialog v-model:open="open">

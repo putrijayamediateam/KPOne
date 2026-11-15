@@ -7,6 +7,7 @@ use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Payroll\Services\PayrollMath;
 use App\Domain\HR\Payroll\Services\PayrollRunService;
 use App\Domain\HR\Payroll\Services\PayrollSetupService;
+use App\Domain\HR\Payroll\Services\ProtectedZip;
 use App\Domain\HR\Records\Models\Worker;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -24,6 +25,9 @@ use Tests\Feature\Visit\VisitTestCase;
  */
 class PayrollRunsTest extends VisitTestCase
 {
+    /** PDPA 14: a synthetic file password; never a real one. */
+    private const FILE_PASSWORD = ['file_password' => 'Synthetic-file-pass-2026', 'file_password_confirmation' => 'Synthetic-file-pass-2026'];
+
     private const MONEY_TABLES = ['invoices', 'invoice_lines', 'payments', 'payment_allocations', 'payment_reversals', 'payment_refunds', 'cash_closings', 'panel_claims'];
 
     private User $hr;
@@ -414,10 +418,10 @@ class PayrollRunsTest extends VisitTestCase
         $this->assertSame('Klinik Contoh Synthetic', $snapshot($aina)['clinicName']);
     }
 
-    public function test_the_director_alone_exports_a_locked_run_and_each_download_is_recorded_first(): void
+    public function test_the_director_and_the_hr_manager_export_a_locked_run_and_each_download_is_recorded_first(): void
     {
         $holders = fn (string $permission): array => collect(PermissionCatalogue::roles())->filter(fn (array $p) => in_array($permission, $p, true))->keys()->sort()->values()->all();
-        $this->assertSame(['director'], $holders('hr.payroll.export.organisation'));
+        $this->assertSame(['director', 'hr_manager'], $holders('hr.payroll.export.organisation'));
         $this->assertCount(11, $holders('hr.payslips.view.own'));
         $this->assertNotContains('queue_display', $holders('hr.payslips.view.own'));
         foreach (['hr.payroll.export.organisation', 'hr.payslips.view.own'] as $permission) {
@@ -431,15 +435,15 @@ class PayrollRunsTest extends VisitTestCase
         });
         $this->assertSame([(int) DB::table('hr_bank_details')->where('worker_id', $aina->id)->value('id'), null],
             [(int) DB::table('hr_payslips')->where('worker_id', $aina->id)->value('bank_detail_id'), DB::table('hr_payslips')->where('worker_id', $cara->id)->value('bank_detail_id')]);
-        // Only the Director exports; the Finance Officer gets no payroll access in v1.
-        foreach (['hr_manager', 'finance_officer', 'ca'] as $role) {
-            $this->selectBranch($role === 'hr_manager' ? $this->hr : $this->actor($role));
-            $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']))->assertForbidden();
+        // The Director and the HR Manager export (PDPA 14, owner 2026-11-11); the Finance Officer gets no payroll access in v1.
+        foreach (['finance_officer', 'ca'] as $role) {
+            $this->selectBranch($this->actor($role));
+            $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']), self::FILE_PASSWORD)->assertForbidden();
         }
         $this->selectBranch($this->actor('finance_officer'));
         $this->get(route('hr.payroll.index'))->assertForbidden();
         $this->selectBranch($this->hr);
-        $this->get(route('hr.payroll.index'))->assertInertia(fn (Assert $page) => $page->where('payroll.tabs', ['runs', 'profiles', 'tables', 'settings']));
+        $this->get(route('hr.payroll.index'))->assertInertia(fn (Assert $page) => $page->where('payroll.tabs', ['runs', 'profiles', 'tables', 'settings', 'exports']));
 
         // The statutory summary is on screen, totalled by hand from the run's own lines.
         $this->selectBranch($this->director);
@@ -457,11 +461,11 @@ class PayrollRunsTest extends VisitTestCase
         // A new account confirmed after locking never changes the file: it pays the account frozen on the payslip (Suresh, S1).
         $this->confirmBank($aina, '9999000011');
         $this->selectBranch($this->director);
-        $response = $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']))->assertOk();
-        $this->assertSame('text/csv; charset=UTF-8', $response->headers->get('Content-Type'));
+        $response = $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']), self::FILE_PASSWORD)->assertOk();
+        $this->assertSame('application/zip', $response->headers->get('Content-Type'));
         $this->assertStringContainsString('no-store', (string) $response->headers->get('Cache-Control'));
-        $this->assertStringContainsString('payroll-bank-2026-11.csv', (string) $response->headers->get('Content-Disposition'));
-        $csv = $response->streamedContent();
+        $this->assertStringContainsString('payroll-bank-2026-11.zip', (string) $response->headers->get('Content-Disposition'));
+        $csv = $this->unzip((string) $response->getContent(), 'payroll-bank-2026-11.csv');
         $this->assertStringStartsWith("\xEF\xBB\xBFName,\"Account holder\",Bank,\"Account number\",\"Amount (MYR)\",Reference\r\n", $csv);
         // Cara had no confirmed bank details when the run was locked, so she is left out of the file and named on the tab.
         $this->assertSame([
@@ -481,7 +485,7 @@ class PayrollRunsTest extends VisitTestCase
         // The accountant summary: totals by person and item, with the accountant line. Two people who share a name stay
         // apart, because rows are grouped by the worker, not the name (Suresh, S2).
         DB::table('users')->where('id', $cara->user_id)->update(['name' => $aina->user->name]);
-        $csv = $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']))->assertOk()->streamedContent();
+        $csv = $this->unzip((string) $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']), self::FILE_PASSWORD)->assertOk()->getContent(), 'payroll-accountant-2026-11.csv');
         $this->assertStringContainsString("To confirm with the clinic's accountant before real use. Synthetic data only.", $csv);
         $rows = $this->csvRows($csv);
         $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '2600.00'], $rows);
@@ -497,6 +501,33 @@ class PayrollRunsTest extends VisitTestCase
             'run_id' => DB::table('hr_payroll_runs')->value('id'), 'kind' => 'bank', 'layout' => 'summary_csv', 'row_count' => 1, 'exported_by_user_id' => $this->director->id, 'created_at' => now()]));
     }
 
+    public function test_an_export_needs_a_password_that_is_never_kept_and_the_hr_manager_can_download(): void
+    {
+        // PDPA 14 (owner, 2026-11-11, "go with b"): the file is an AES-256 zip under a password the downloader types.
+        $this->assertTrue(ProtectedZip::supported(), 'This PHP must support AES-256 zips (CI included).');
+        [$aina, , , $id] = $this->lockedClinic(function (Worker $aina): void {
+            $this->confirmBank($aina, '1111222233');
+        });
+        $this->selectBranch($this->hr);
+        $export = fn (array $input) => $this->postJson(route('hr.payroll.runs.export', [$id, 'bank']), $input);
+        $export([])->assertStatus(422)->assertJsonPath('errors.file_password.0', 'Type a password of at least 12 characters for the file.');
+        $export(['file_password' => 'short', 'file_password_confirmation' => 'short'])->assertStatus(422);
+        $export(['file_password' => 'Synthetic pass 2026', 'file_password_confirmation' => 'Synthetic pass 2026'])
+            ->assertStatus(422)->assertJsonPath('errors.file_password.0', 'Use only letters, numbers and symbols, with no spaces.');
+        $export(['file_password' => 'Synthetic-file-pass-2026', 'file_password_confirmation' => 'Something-else-2026'])
+            ->assertStatus(422)->assertJsonPath('errors.file_password.0', 'The two passwords do not match.');
+        $this->assertSame(0, DB::table('hr_payroll_exports')->count()); // a refused password records nothing
+
+        $response = $export(self::FILE_PASSWORD)->assertOk();
+        $this->assertStringContainsString('1111222233', $this->unzip((string) $response->getContent(), 'payroll-bank-2026-11.csv'));
+        $this->assertStringNotContainsString('1111222233', (string) $response->getContent()); // encrypted inside the zip
+        $this->assertSame([(int) $this->hr->id], DB::table('hr_payroll_exports')->pluck('exported_by_user_id')->map(fn ($v): int => (int) $v)->all());
+        // The password is never stored, audited or kept in the session.
+        $everything = json_encode([DB::table('audit_logs')->get(), DB::table('hr_payroll_exports')->get(), DB::table('hr_record_retries')->get(), session()->all()]);
+        $this->assertStringNotContainsString('Synthetic-file-pass-2026', (string) $everything);
+        $this->assertNotNull($aina);
+    }
+
     public function test_only_a_locked_run_is_exported(): void
     {
         [$aina] = $this->clinic();
@@ -504,8 +535,8 @@ class PayrollRunsTest extends VisitTestCase
         $this->prepare($this->hr)->assertRedirect();
         $id = (string) DB::table('hr_payroll_runs')->value('public_id');
         $this->selectBranch($this->director);
-        $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']))->assertStatus(422)->assertJsonPath('errors.export.0', 'Only a locked run is exported.');
-        $this->postJson(route('hr.payroll.runs.export', [(string) Str::uuid(), 'accountant']))->assertNotFound();
+        $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']), self::FILE_PASSWORD)->assertStatus(422)->assertJsonPath('errors.export.0', 'Only a locked run is exported.');
+        $this->postJson(route('hr.payroll.runs.export', [(string) Str::uuid(), 'accountant']), self::FILE_PASSWORD)->assertNotFound();
         $this->get(route('hr.payroll.index', ['tab' => 'exports']))->assertInertia(fn (Assert $page) => $page->where('payroll.exports.runs', []));
         $this->assertSame(0, DB::table('hr_payroll_exports')->count());
         $this->assertSame(0, DB::table('hr_payslips')->count());
@@ -535,6 +566,28 @@ class PayrollRunsTest extends VisitTestCase
     }
 
     /** @return list<list<string>> */
+    /** The CSV inside a protected export, opened with the password it was made with (and refused without it). */
+    private function unzip(string $bytes, string $entry): string
+    {
+        $path = (string) tempnam(sys_get_temp_dir(), 'kpone-test-zip-');
+        file_put_contents($path, $bytes);
+        try {
+            $zip = new \ZipArchive;
+            $this->assertTrue($zip->open($path));
+            $this->assertSame([$entry], [$zip->getNameIndex(0)]);
+            $this->assertSame(\ZipArchive::EM_AES_256, $zip->statIndex(0)['encryption_method'] ?? null);
+            $this->assertFalse($zip->getFromName($entry)); // no password, no content
+            $zip->setPassword(self::FILE_PASSWORD['file_password']);
+            $csv = $zip->getFromName($entry);
+            $zip->close();
+            $this->assertIsString($csv);
+
+            return $csv;
+        } finally {
+            @unlink($path);
+        }
+    }
+
     private function csvRows(string $csv): array
     {
         $lines = preg_split('/\r\n/', substr($csv, 3), -1, PREG_SPLIT_NO_EMPTY) ?: [];

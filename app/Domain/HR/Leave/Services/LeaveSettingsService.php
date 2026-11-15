@@ -450,9 +450,11 @@ final class LeaveSettingsService
         // HR-2b: files are off until HR switches them on and sets how many days to keep them after the leave ends.
         $acceptsFiles = $flag('accepts_evidence_files');
         $retention = $input['evidence_retention_days'] ?? null;
-        $retention = $retention === null || $retention === '' ? null : filter_var($retention, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => 3650]]);
+        $retention = $retention === null || $retention === '' ? null : filter_var($retention, FILTER_VALIDATE_INT, ['options' => ['min_range' => 1, 'max_range' => LeaveRetentionPurge::MAX_EVIDENCE_DAYS]]);
         if ($retention === false || ($acceptsFiles && $retention === null)) {
-            throw ValidationException::withMessages(['evidence_retention_days' => 'Enter how many days to keep files after the leave ends (1 to 3650).']);
+            // PDPA 15: at most 7 years (2,555 days), the leave records' own retention. A type saved with more before the
+            // cap keeps its number until it is next saved; the leave purge deletes its files with their request anyway.
+            throw ValidationException::withMessages(['evidence_retention_days' => 'Enter how many days to keep files after the leave ends (1 to 2555).']);
         }
         // Files already kept must still be deleted on time, so the days cannot be cleared while any remain (Suresh).
         if ($retention === null && $type->exists && DB::table('hr_leave_evidence_files')->where('status', 'active')

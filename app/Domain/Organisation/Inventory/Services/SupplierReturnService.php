@@ -416,10 +416,14 @@ final class SupplierReturnService
             ->paginate(25, ['r.id', 'r.public_id', 'r.return_number', 'r.quantity', 'r.base_unit', 'r.reason', 'r.supplier_reference', 'r.requester_user_id', 'r.created_at', 'a.state', 'a.lock_version', 's.sku_code', 'b.batch_number', 'b.expiry_date', 'l.name as location', 'sup.name as supplier', 'd.delivery_reference'], 'page', (int) ($data['page'] ?? 1));
         $histories = DB::table('inventory_supplier_return_actions')->whereIn('return_id', $returns->pluck('id'))->orderBy('lock_version')
             ->get(['id', 'return_id', 'action', 'state', 'actor_user_id', 'reason_code', 'reference', 'credit_amount_sen', 'lock_version', 'movement_id', 'created_at'])->groupBy('return_id');
+        // TIDY-4: who did each step, in words (BIL-2 staff-visibility rule), not an id.
+        $name = app(InventoryStaffNames::class)->resolver($actor, $histories->flatten()->pluck('actor_user_id'));
         $rows = [];
         foreach ($returns->items() as $row) {
             $requester = (int) $row->requester_user_id === $actor->id;
-            $rows[] = [...(array) $row, 'history' => $histories->get($row->id, collect())->values()->all(),
+            $rows[] = [...(array) $row, 'history' => $histories->get($row->id, collect())->map(fn (object $step): array => [...(array) $step, 'actor_name' => $name($step->actor_user_id),
+                // The stored UTC time in the branch's own time, as staff read it ("12 Nov 2026, 6:00 PM").
+                'at_local' => CarbonImmutable::parse($step->created_at)->setTimezone($branch->timezone)->format('j M Y, g:i A')])->values()->all(),
                 'canDecide' => $canApprove && $row->state === 'awaiting_approval' && ! $requester,
                 'canDispatch' => $canRequest && $row->state === 'approved',
                 'canCredit' => $canApprove && $row->state === 'dispatched',

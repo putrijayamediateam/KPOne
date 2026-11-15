@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
 use App\Domain\HR\Attendance\Services\ClockService;
 use App\Domain\HR\Attendance\Services\CorrectionService;
 use App\Domain\HR\Attendance\Services\OvertimeService;
@@ -12,6 +13,7 @@ use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
+use Tests\Support\ClockPhotoFixture;
 
 /*
  * HR-3a and HR-3b contention worker: one attendance write (clock in, decide a correction, ask for or decide overtime) in
@@ -28,13 +30,17 @@ try {
         exit(65);
     }
     $db->statement("select set_config('application_name', ?, false)", [(string) end($argv)]);
+    $actor = User::query()->findOrFail((int) $argv[1]);
+    $a = json_decode(base64_decode($argv[2], true), true, 64, JSON_THROW_ON_ERROR);
+    if ($a['op'] === 'in') {
+        // HR-PHOTO: a synthetic noise photo, made before the race starts (the test passes the camera's token).
+        $a['photo_prepared'] = ClockPhotoFiles::fromString(ClockPhotoFixture::bytes());
+    }
     fwrite(STDOUT, 'READY '.(int) $db->scalar('select pg_backend_pid()').PHP_EOL);
     fflush(STDOUT);
     if (trim((string) fgets(STDIN)) !== 'GO') {
         exit(66);
     }
-    $actor = User::query()->findOrFail((int) $argv[1]);
-    $a = json_decode(base64_decode($argv[2], true), true, 64, JSON_THROW_ON_ERROR);
     match ($a['op']) {
         'in' => app(ClockService::class)->clockIn($actor, $a),
         'approve' => app(CorrectionService::class)->decide($actor, $a['correction'], 'approve', $a),

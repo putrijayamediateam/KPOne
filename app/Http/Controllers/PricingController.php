@@ -183,11 +183,15 @@ class PricingController extends Controller
             throw $exception->redirectTo(route('pricing.charges.history', ['charge' => $charge, ...$from]));
         }
         $actor = $request->user();
-        $result = $history->history($actor, $charge, $branches->activeBranch($actor), $data['book'] ?? null, (int) ($data['page'] ?? 1));
+        $branch = $branches->activeBranch($actor);
+        $result = $history->history($actor, $charge, $branch, $data['book'] ?? null, (int) ($data['page'] ?? 1));
 
         return Inertia::render('Pricing/PriceHistory', [
             'filters' => ['book' => $result['book']],
             'from' => $data['from'] ?? null,
+            // The time zone the "In effect from" times are shown in (the active branch's, as in the history service), so
+            // a page can name it. A name only; no branch or patient data.
+            'timezone' => $branch !== null ? $branch->timezone : (string) config('app.timezone'),
             'result' => $result,
         ]);
     }

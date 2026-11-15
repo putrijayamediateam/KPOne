@@ -18,6 +18,7 @@ use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
+use Tests\Support\ClockPhotoFixture;
 
 /**
  * HR-16a location check at clock-in (HR-PLAN 22; B.E.R.N.I.S.S for the owner, 2026-11-10). Off by default, one branch
@@ -254,7 +255,7 @@ class LocationCheckTest extends VisitTestCase
     {
         $this->selectBranch($actor);
 
-        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid(), ...$extra]);
+        return $this->post(route($kind === 'in' ? 'hr.attendance.clock-in' : 'hr.attendance.clock-out'), ['idempotency_key' => (string) Str::uuid(), ...ClockPhotoFixture::press($this, $kind), ...$extra]);
     }
 
     /** @return array{0: string, 1: ?string, 2: ?string} */

@@ -9,6 +9,7 @@ use App\Domain\HR\Credentials\Services\CredentialsPageService;
 use App\Domain\HR\Leave\Services\LeavePageService;
 use App\Domain\HR\Payroll\Services\PayslipService;
 use App\Domain\HR\Roster\Services\RosterPageService;
+use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 
@@ -61,18 +62,172 @@ final class MeSpace
             }
         }
         $payslip = $this->latestPayslip($actor);
+        $my = $this->attendanceMine($actor);
+        $ring = $my === null ? null : $this->ring($actor, $my);
+        $week = $my === null ? null : $this->week($my);
 
         return [
             'branchName' => $branch?->name,
             'asOf' => $branch ? now()->setTimezone($branch->timezone)->format('g:i A') : null,
-            'shift' => $this->nextShift($actor),
-            'clock' => $this->clock($actor),
-            'leave' => $this->leaveLeft($actor),
-            'claims' => $this->claimCounts($actor),
+            'greeting' => $branch === null ? null : $this->greeting($actor, $branch, $ring['state'] ?? null),
+            'time' => $branch === null ? null : ['serverNow' => now()->utc()->toIso8601String(), 'timezone' => $branch->timezone],
+            'ring' => $ring,
+            'week' => $week,
+            'tiles' => $this->tiles($actor, $week),
             'credentials' => $this->credentialsDue($actor),
             'payslip' => $payslip,
             'primaryAction' => $primary,
             'links' => $links,
+        ];
+    }
+
+    /**
+     * My attendance's own data for the signed-in person (the same service My attendance uses, under its own permission).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function attendanceMine(User $actor): ?array
+    {
+        if ($this->branches->activeBranch($actor) === null || ! $actor->can('hr.attendance.clock.own')) {
+            return null;
+        }
+
+        return (array) ($this->attendance->page($actor, ['tab' => 'my'])['my'] ?? []);
+    }
+
+    /**
+     * "Good morning, Aina", "Good afternoon" from 12:00 and "Good evening" from 18:00 in the branch time zone, or "Have a
+     * good shift, Aina" once clocked in. The signed-in person's own first name only.
+     *
+     * @return array{text: string, date: string}
+     */
+    public function greeting(User $actor, Branch $branch, ?string $clockState): array
+    {
+        $now = now()->setTimezone($branch->timezone);
+        $first = trim((string) strtok(trim($actor->name), ' '));
+        $period = $now->hour < 12 ? 'Good morning' : ($now->hour < 18 ? 'Good afternoon' : 'Good evening');
+        $text = $clockState === 'in' ? 'Have a good shift' : $period;
+
+        return ['text' => $first === '' ? $text : $text.', '.$first, 'date' => $now->format('D j M').' · '.$branch->name];
+    }
+
+    /**
+     * The ring: clock state and the times the browser needs to count Worked up from. Every time the page shows as a
+     * fact comes from the server; the browser only ticks a display from the server's own "now".
+     *
+     * @param  array<string, mixed>  $my
+     * @return array<string, mixed>
+     */
+    public function ring(User $actor, array $my): array
+    {
+        $zone = (string) ($my['timezone'] ?? 'UTC');
+        $today = now($zone)->toDateString();
+        $row = collect((array) ($my['week'] ?? []))->first(fn (array $r): bool => (string) $r['date'] === $today && ($r['session']['status'] ?? null) === 'open')
+            ?? collect((array) ($my['week'] ?? []))->first(fn (array $r): bool => (string) $r['date'] === $today);
+        $state = (string) ($my['state'] ?? 'out');
+        $shiftLabel = null;
+        if (is_array($row['shift'] ?? null)) {
+            $parts = explode(', ', (string) $row['shift']['label'], 2);
+            $shiftLabel = $parts[1] ?? $parts[0];
+        }
+        $flags = collect((array) ($row['flags'] ?? []));
+        $late = $flags->firstWhere('code', 'late');
+        $inOpen = is_array($row['session'] ?? null) && ($row['session']['status'] ?? null) === 'open';
+
+        return [
+            'state' => $state,
+            'canPress' => (bool) ($my['canPress'] ?? false),
+            'refusal' => $my['refusal'] ?? null,
+            'needsAttendancePage' => ($my['location'] ?? null) !== null,
+            'serverNow' => now()->utc()->toIso8601String(),
+            'timezone' => $zone,
+            'clockedInAt' => $state === 'in' && $inOpen ? CarbonImmutable::parse((string) $row['session']['inValue'], $zone)->utc()->toIso8601String() : null,
+            'clockedInLabel' => $my['clockedInLabel'] ?? null,
+            'doneLabel' => $my['doneLabel'] ?? null,
+            'shiftLabel' => $shiftLabel,
+            'rosteredMinutes' => isset($row['rosteredMinutes']) ? (int) $row['rosteredMinutes'] : null,
+            'onTime' => $state === 'in' && $inOpen && $shiftLabel !== null ? $late === null : null,
+            'lateMinutes' => $late === null ? null : (int) $late['minutes'],
+        ];
+    }
+
+    /**
+     * This week, Monday to Friday, from My attendance's own rows and the same Late rule as HR Review (the grace minutes
+     * included): a tick for on time, "!" for late or missed, a dash for a day with nothing to show.
+     *
+     * @param  array<string, mixed>  $my
+     * @return array{days: list<array{day: string, date: string, result: string, word: string}>, summary: string}
+     */
+    public function week(array $my): array
+    {
+        $zone = (string) ($my['timezone'] ?? 'UTC');
+        $today = CarbonImmutable::now($zone)->startOfDay();
+        $monday = $today->startOfWeek(CarbonImmutable::MONDAY);
+        $rows = collect((array) ($my['week'] ?? []))->groupBy(fn (array $r): string => (string) $r['date']);
+        $days = [];
+        $onTime = 0;
+        $late = 0;
+        $missed = 0;
+        for ($i = 0; $i < 5; $i++) {
+            $date = $monday->addDays($i);
+            $items = $rows->get($date->toDateString(), collect());
+            $codes = $items->flatMap(fn (array $r): array => array_column((array) $r['flags'], 'code'))->all();
+            $session = $items->first(fn (array $r): bool => is_array($r['session'] ?? null));
+            $result = 'none';
+            $word = $date->greaterThan($today) ? 'Not yet' : 'No shift';
+            if (in_array('on_leave', $codes, true)) {
+                $result = 'leave';
+                $word = 'On leave';
+            } elseif ($session !== null && in_array('late', $codes, true)) {
+                $result = 'late';
+                $word = 'Late';
+                $late++;
+            } elseif ($session !== null) {
+                $result = 'ontime';
+                $word = 'On time';
+                $onTime++;
+            } elseif (in_array('no_clock_in', $codes, true) && $date->lessThan($today)) {
+                $result = 'missed';
+                $word = 'Missed';
+                $missed++;
+            }
+            $days[] = ['day' => $date->format('D'), 'date' => $date->toDateString(), 'result' => $result, 'word' => $word];
+        }
+        $parts = [];
+        if ($onTime > 0) {
+            $parts[] = $onTime.' on time';
+        }
+        if ($late > 0) {
+            $parts[] = $late.' late';
+        }
+        if ($missed > 0) {
+            $parts[] = $missed.' missed';
+        }
+
+        return ['days' => $days, 'summary' => $parts === [] ? 'Nothing clocked yet this week' : implode(', ', $parts)];
+    }
+
+    /**
+     * The four tiles. Each reads its own page's data under that page's permission and is null without it.
+     *
+     * @param  array{days: list<array<string, mixed>>, summary: string}|null  $week
+     * @return array<string, array{title: string, text: string, href: string}|null>
+     */
+    public function tiles(User $actor, ?array $week): array
+    {
+        $leave = $this->leaveLeft($actor);
+        $leaveText = null;
+        if ($leave !== null) {
+            $leaveText = isset($leave['notSetUp']) ? 'Not set up yet' : ($leave['rows'][0]['name'].': '.$leave['rows'][0]['left']);
+        }
+        $shift = $this->nextShift($actor);
+        $claims = $this->claimCounts($actor);
+
+        return [
+            'leave' => $leaveText === null ? null : ['title' => 'My leave', 'text' => $leaveText, 'href' => route('hr.leave.index', absolute: false)],
+            'claims' => $claims === null ? null : ['title' => 'My claims', 'text' => $claims['text'], 'href' => route('hr.claims.index', absolute: false)],
+            'roster' => $shift === null ? null : ['title' => 'My roster', 'text' => $shift['text'], 'href' => route('hr.roster.index', absolute: false)],
+            'attendance' => $week === null ? null : ['title' => 'My attendance', 'text' => $week['summary'], 'href' => route('hr.attendance.index', absolute: false)],
         ];
     }
 

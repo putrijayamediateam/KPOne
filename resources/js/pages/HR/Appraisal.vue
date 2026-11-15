@@ -43,6 +43,8 @@ const props = defineProps<{
         staffComment: string | null;
         staffCommentedOn: string | null;
         signedOffBy: string | null;
+        sameSigner: boolean;
+        ratedByYou: boolean;
         signedOffOn: string | null;
         signOffFrom: string | null;
         commentDays: number;
@@ -185,7 +187,10 @@ const textareaClass =
 
         <p v-if="appraisal.appraiser" class="text-sm text-muted-foreground">
             Rated by {{ appraisal.appraiser }}, sent {{ appraisal.sentOn
-            }}<template v-if="appraisal.signedOffBy">
+            }}<template v-if="appraisal.signedOffBy && appraisal.sameSigner">
+                · signed off by the same person on
+                {{ appraisal.signedOffOn }}</template
+            ><template v-else-if="appraisal.signedOffBy">
                 · signed off by {{ appraisal.signedOffBy }} on
                 {{ appraisal.signedOffOn }}</template
             >.
@@ -486,9 +491,12 @@ const textareaClass =
             :open="confirmSignOff"
             title="Sign this appraisal off?"
             :description="
-                appraisal.staffComment
+                (appraisal.ratedByYou
+                    ? 'You rated this appraisal, so it will show as signed off by the same person. '
+                    : '') +
+                (appraisal.staffComment
                     ? 'It no longer changes after this.'
-                    : 'The staff member has not commented yet. After sign-off they can no longer add a comment, and the appraisal no longer changes.'
+                    : 'The staff member has not commented yet. After sign-off they can no longer add a comment, and the appraisal no longer changes.')
             "
             confirm-label="Sign off"
             cancel-label="Not yet"

@@ -116,8 +116,17 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 | BIL-16 | Correct a receipt recorded in error on a completed visit, in one step: a Finance Officer who did not record it reverses it and records what was really received; only money not received becomes due (owner decisions). Never a refund. Append-only `payment_corrections` evidence (migration `2026_11_12_400100`), no new permission. Design note: `BIL-16-DESIGN.md` | PR #415 |
 | BIL-17 | Billing page display fixes: a fully paid pay-later reads "Paid in full · nothing left to collect"; voided invoices stay visible (number, total, who and when, receipts; never the reason); the "Use amount due" shortcut also shows on a completed visit with money due; the pay-later list notes money due now (paid first). Display only. Design note: `BIL-17-DESIGN.md` | PR #431 |
 | BIL-18 | Pay-later list on phones and summary wording: below 1024 px the pay-later collection list is cards (amount and past-due chip first, the due-now note beside it, a 44 px Open billing); the Billing, Invoice and Visit history summary row "Approved pay later" reads "Pay later still owed" (prints unchanged). Layout and wording only. Design note: `BIL-18-DESIGN.md` | PR #471 |
+| BIL-19 | "Recorded by" on the completed-visit Invoice page: each receipt shows when it was received and who recorded it, by the BIL-2 name rule ("Staff member" when the viewer may not see the name); prints unchanged. Display only. Design note: `BIL-19-DESIGN.md` | PR #493 |
 | BIL-20 | PostgreSQL race tests for receipt corrections (BIL-16): two people correcting one receipt at once record one correction (one reversal, one replacement, one audit; the other is refused), and a correction racing a refund on the same receipt never both win, with no deadlock (both lock the patient and visit, then the invoice and the receipt); both orders are also forced in turn, and the same request sent twice at once records one correction. The race test cleanup also removes payment corrections. Test only. | PR #474 |
+| BIL-21 | Staff names by the branch day: a branch-level viewer sees a staff member's name while that person is assigned to the branch on the branch's own calendar day, as branch access already decides it. Between 00:00 and 08:00 Kuala Lumpur time the UTC date used to keep yesterday's leaver named and today's new starter hidden. One shared Access file (`StaffAccessService`), also used by the staff directory, Dispensary returns, patient history and Panel screens, and by who a branch-level viewer may open in the staff directory (`StaffPolicy`); their tests pass unchanged. | PR #491 |
 | BIL-23 | "Bills to collect": the pay-later collection list now shows every completed visit that still owes money, not only approved pay later: rows show Approved, Pay later, Due now and Still owed (the Billing page's Outstanding bill amount); money due now counts from the visit day and is past due from the next day ("N days since visit"); the page and its menu card are renamed (same link). Read-only. Design note: `BIL-23-DESIGN.md` | PR #538 |
+| BIL-24 | Bills to collect at scale: the list now works out only bills that can still owe money (approved pay later still to collect, or a completed visit whose invoice has a payment reversal, since a visit completes only with nothing due now and afterwards only a receipt correction can make it owe). Same output, measured on 20,000-bill fixtures. No migration. Design note: `BIL-24-DESIGN.md` | PR #556 |
+| BIL-25 | Receipt status badges: on the Invoice page and the read-only Billing payments list a receipt's status is the coloured status badge (Posted green, Reversed neutral grey) on its own row under the receipt number and time, instead of plain grey text; the manage-list badges use the same local tone. Version 2 only (owner decision 2026-11-13): Classic keeps the plain status text. Frontend only | PR #636 |
+| BIL-26 | "Review required" on Bills to collect: a bill whose invoice is on hold for a correction or has out-of-date source (the Outstanding bills "Review required before settlement" rule) shows a neutral "Review required" tag beside Still owed on the phone card and in the table, with a help sentence when one is on the page; amounts and Open billing unchanged. Sent as a side list of visit numbers, so the pinned row fields stay. Read-only | PR #639 |
+| BIL-28 | The Outstanding bill box's link on the Billing page reads "View all bills to collect at this branch", naming the page it opens (BIL-23). Wording only. | PR #553 |
+| BV2-0 | Version 2 groundwork for Patient Billing: a Version 2-only copy of the Classic workspace logic (`composables/billing/useBillingWorkspaceV2.ts`) for the coming V2 page, pinned to the Classic script by a parity test (same payloads, keys, lock versions and idempotency key). Classic is untouched; no visual change; no existing test edited | PR #650 |
+| BV2-1 | Version 2 Patient Billing page (`pages/Billing/V2/Show.vue`, registered in `config/v2-pages.php`; Version 2 only). The patient name and visit number head the page; from 1280 px a right column (Due now first, then Payments, Bill to and notes), below 1280 px one column with Due now and Payments first; one main action per state (Build / refresh draft, Finalize Invoice, Record new payment or Settle Outstanding Balance, Complete Visitation), in the header from 1280 px and in a bottom bar with the amount above it below that; "More billing actions" menu (Panel, pay later, then Governed correction last as Danger, opened in view with Cancel); status words through the V2 chip; Panel shortfall on warning colours; a small "Due now" or "Pay later owed" label line above the amount (one element, never wrapping in the 1280 px rail), or "Nothing due"; after completion with pay later still owed, Settle Outstanding Balance is the main action. Same props, routes, permissions, payloads and money rules (the BV2-0 logic copy). The three entry dialogs (payment, Panel or pay later, reversal) are V2Dialogs (bottom sheet on a phone, tall with a pinned footer for the two money dialogs, discard guard on typed values) with V2MoneyInput ("Amount received", RM prefix, amount due stated) and V2Picker for the payment method and the Panel, keeping the Classic calls, payload values and disabled conditions; the bottom bar hides while any dialog is open. No existing test edited | open |
+| BV2-2 | Version 2 adjustment and completion dialogs for Patient Billing V2 (`components/billing/v2/InvoiceAdjustmentDialogV2.vue`, `BillingCompletionDialogV2.vue`), so every dialog on the V2 page is a V2Dialog. Each script is a verbatim copy of the Classic dialog (same calculation, threshold check, idempotency key, payload, guards and post), pinned by a parity test; only the template differs: bottom sheet on a phone with a pinned footer, 44 px choices instead of native selects, V2MoneyInput for a fixed amount, warning tokens for the above-limit box, a reason line when the action is disabled, the visit number unbroken in the completion title. Classic's native "required" becomes the disabled Confirm; closing while saving stays refused. Classic dialogs untouched; no existing test edited | open |
 
 ## 6. Owner decisions already made (never ask again)
 
@@ -248,13 +257,26 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 37. BIL-18 (2026-11-10, the owner through B.E.R.N.I.S.S, "i want to start all that"): take Daniel's two Billing debt
     items, the pay-later list on phones and the "Approved pay later" summary row wording; layout and wording only.
     The owner also approved changing the existing assertion so the past-due chip reads "1 day" / "N days" (2026-11-10).
+38. BIL-19 (2026-11-10, the owner in the Billing session, "start with 1"): show "Recorded by" on the completed-visit
+    Invoice page, by the BIL-2 name rule.
 39. BIL-23 "Bills to collect" (2026-11-11, the owner in the Billing session): list every completed visit that still
     owes money (pay later plus money due now, the Outstanding bill amount); money due now is past due from the day
     after the visit ("N days since visit"); rename the page "Bills to collect", same link; the one existing assertion
     on the old title may change.
+40. BIL-24 (2026-11-11, the owner in the Billing session, "start with 1"): make Bills to collect cheaper on a long history
+    without changing what it shows; no index migration in this slice (recorded as the next step if needed).
+41. BIL-25 receipt status badges (2026-11-11, the owner in the Billing session, "start with 1"; Siti's design, Daniel OK 2026-11-12): Reversed stays neutral grey (a settled correction, nothing to do), set locally in Billing so the shared status map, which HR also uses for 'reversed', is unchanged. On 2026-11-13 the owner chose "Version 2 only" for it: the badges show only with "Try the new layout"; Classic keeps the plain text.
+42. BIL-26 (2026-11-12, the owner in the Billing session, "start with 1" on a "Check bill" tag): Siti chose the wording "Review required" (the Billing page and Outstanding bills already use it for the same state; "Check bill" could read as "check the amount with the patient") and a neutral tone so amber stays for past due.
+43. BIL-28 (2026-11-12, the owner in the Billing session): the link reads "View all bills to collect at this branch"; the owner approved changing the one existing assertion that pinned the old words (bil-3 test).
+44. BV2-0 (2026-11-13, owner "start all v2" via the coordinator; plan approved with conditions): the first try moved the workspace logic into a shared composable, but 7 existing tests would break (they mount or read the Classic file), so it was stopped. The coordinator chose option A: Classic stays byte-identical, the Version 2 page gets its own copy of the logic and a parity test pins the copy to Classic; Kumar reviews line by line; BV2-0 merges alone.
+45. BV2-1 (2026-11-13, Daniel's Billing look with the coordinator's conditions): the right column starts at 1280 px at the earliest (the shared V2 work layout only offers 1024 or 1536, so the page builds its own two-column grid); the patient's name sits above Due now; one cobalt action per state; the entry dialogs may keep their Classic build under a Version 2 wrapper until BV2-2 rebuilds them as V2Dialog. The page adds its own "context cleared" reset for the Version 2 page name, so the BV2-0 copy stays identical to Classic.
+46. BV2-2 (2026-11-13, agreed with the coordinator as BV2-1's follow-up): the adjustment and completion dialogs follow the BV2-0 pattern: the V2 copies keep the Classic script byte-for-byte (a parity test fails on any drift) and only the template moves to V2Dialog, so Classic stays untouched and no existing test changes.
 
 ## 7. Open items and known limits
 
+- **Debt (BV2-0):** about 260 lines of the Patient Billing workspace logic exist twice, in Classic `components/billing/BillingWorkspace.vue` and the Version 2 copy `composables/billing/useBillingWorkspaceV2.ts`. The parity test fails if they differ, so a change to one must be made to both. A shared-composable refactor needs its own approval (7 existing tests would break and need edits).
+- **BV2-1 limits:** the shared Classic pieces inside the V2 page (adjustment dialog, refunds, corrections, outstanding bills, Bill to and notes) keep their Classic build under a Version 2 wrapper: while the page is open it marks the page body, and page-only CSS makes every control at least 44 px below 1024 px (also in the dialogs it opens) and shows their extra filled buttons as outline. The dialog close cross stays a small icon. The payment summary sits in the shared layout's right column from 1280 px and stays stacked above the work below it (`railBelow="stack-top"`, batch 15), rendered once, so nothing remounts when the width changes. The adjustment and completion dialogs are V2Dialogs since BV2-2. Screenshots cover the synthetic states that exist (money due, nothing due, completed with refund credit and a voided invoice, adjustments, pay later, Panel); draft, stale draft, proposal waiting and correction hold are covered by tests of the main-action helper, not screenshots. Daniel's BV2-1 review (2026-11-13): the Classic refund form inside V2 Billing (native selects for "Given back by" and "Reason") is design debt **DD-82** and moves to V2Picker once that lands; until then its controls meet 44 px below 1024 px through the wrapper. On a completed visit without corrections the Classic refunds block shows two overlapping explainers, because the Classic `v-else` pairs with the corrections pointer rather than the after-completion note; it needs a Classic change or the V2 refund form, so it travels with DD-82 (Classic stays untouched; Daniel agreed).
+- **Debt (BV2-2):** the adjustment and completion dialog logic now exists twice (Classic and `components/billing/v2/`), like BV2-0; the parity test fails if they differ, so a change to one must be made to both.
 - **Walked and tested in BIL-1 (2026-11-05):** invoice void and reissue, adjustment reversal, later settlement
   of pay-later debt on a return visit, rejected and partially accepted Panel decisions
   (`tests/Feature/Billing/MoneyFlowWalkTest.php`). All worked as the rules say.
@@ -278,12 +300,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
 - Physical printer test of invoice and receipt still outstanding.
 - No tax or e-Invoice fields (accountant first).
 - BNPL provider fee and settlement tracking parked for the finance phase.
-- Receipt "Recorded by" names (BIL-2) are not on the completed-visit Invoice page, only on the Billing page and
-  Manage payments. The stock receiving screen still shows "Receiver: staff #ID"; that screen belongs to the
+- Receipt "Recorded by" names (BIL-2) show on the Billing page, Manage payments and, since BIL-19, the completed-visit
+  Invoice page; never on prints. The stock receiving screen still shows "Receiver: staff #ID"; that screen belongs to the
   Inventory team.
-- Staff name visibility (activity log and receipts) compares branch assignment dates with the UTC date, so
-  between 00:00 and 08:00 Kuala Lumpur time an assignment starting that day is not yet visible to branch-level
-  viewers (existing behaviour of `StaffAccessService`).
+- Staff name visibility (`StaffAccessService`) uses the branch's own calendar day since BIL-21. Still on the UTC date,
+  outside Billing: the staff directory's branch filter and its assignment state label (`StaffDirectoryService`), and
+  `StaffBranchAssignment::effectiveAt()` called without a date (primary-branch checks). Raised for their owner.
 - The pay-later collection list (BIL-3) is not audited per view, like the Finance / Billing work list and the
   Registration board; it shows patient name and KP number only. Payments are still recorded on each patient's
   Billing page.
@@ -293,15 +315,20 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php` and `BillingPermiss
   its totals include money due now while its rows show the pay-later part only (`remainingSen`), so a due-now-only
   bill reads RM 0.00 there until the space adds the `dueNow` map. Told the DS session; their file, their change.
 - Bills to collect (BIL-23) lists completed visits that owe money and approved pay later (also on open visits); an
-  open visit's own due-now money is not listed (it is being paid at the counter). The Billing page's "View all
-  pay-later to collect" link keeps its wording (pinned by an existing assertion). No "Check bill" badge for invoices
-  under review on this list (it would add a row field), so a bill on hold for correction or with stale source shows
-  unflagged. An open visit with pay later and unpaid money due no longer shows the "also due now" note (that money
+  open visit's own due-now money is not listed (it is being paid at the counter). Since BIL-28 the Billing page's
+  link reads "View all bills to collect at this branch". Since BIL-26 a bill on hold for correction or with stale
+  source shows a neutral "Review required" tag (a side list, so the pinned row fields stay). The Billing department
+  space (DS team) builds its pay-later card and overdue answers from the rows only, so it does not show the tag yet;
+  the side list `reviewRequired` is there for it to use (their file, their change). An open visit with pay later and
+  unpaid money due no longer shows the "also due now" note (that money
   is being paid at the counter). If an invoice's evidence did not reconcile, the list floors its due-now money at
-  zero instead of refusing, as the Billing page would. Performance: each page works out what every finalised
-  invoice of a completed visit at the branch owes (three times: all totals, shown totals, page); fine for the pilot,
-  but it grows with history. A follow-up should pre-filter candidates or inline the payable figure, proved on a
-  20,000-invoice fixture as in the pilot scale limits work.
+  zero instead of refusing, as the Billing page would. Performance (BIL-24): only bills that can still owe money are
+  worked out (approved pay later still to collect, or a completed visit whose invoice has a payment reversal). On a
+  20,000 paid-bill fixture the page fell from about 1.1 s to 0.56 s and the past-due view from 1.2-2.2 s to 0.22 s,
+  with output byte-identical. When many bills really owe money (20,000 corrected bills) it is unchanged at about
+  3.5 s: the money sums still group whole tables, because payment_allocations, payment_reversals and
+  coverage_allocations have no invoice_id index (a per-bill sum was tried and was far slower). An index migration
+  would be the next step if a branch ever has thousands of bills owing at once.
   The "Owed on bills past due" total counts a whole bill once any part of it is past due, including pay later not yet
   due on that bill (counting only the past-due part needs a backend change; a follow-up for the owner).
 - Daily cash closing (BIL-4): expected cash counts only payment methods classified Cash on the Payment Methods

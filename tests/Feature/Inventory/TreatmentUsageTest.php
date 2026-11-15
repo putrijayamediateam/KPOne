@@ -187,6 +187,21 @@ final class TreatmentUsageTest extends VisitTestCase
         $this->assertSame(0, DB::table('inventory_treatment_usage_reversals')->count());
     }
 
+    public function test_the_page_says_when_a_later_governed_count_blocks_a_reversal(): void
+    {
+        // V2 page 4 (Daniel): the row says so before the press, by the same rule reverse() applies; canReverse is unchanged.
+        $f = $this->fx()->received('10.000');
+        app(Service::class)->record($this->as($this->fx()->actor('ca')), $this->entry($f, '5.000', ['kind' => 'waste', 'reason' => 'spilled_or_broken']));
+        $finance = $this->as($this->fx()->actor('finance_officer'));
+        $row = fn () => $this->actingAs($finance)->get(route('inventory.treatment-usage'))->viewData('page')['props']['usage']['entries']['rows'][0];
+        $this->assertFalse($row()['later_governed']);
+        $this->assertTrue($row()['canReverse']);
+
+        DB::table('stock_movements')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'inventory_sku_id' => $f['sku']->id, 'inventory_batch_id' => $f['returnBatchId'], 'destination_location_id' => $f['location']->id, 'quantity' => '5.000', 'movement_type' => 'stocktake_gain', 'reference_type' => 'inventory_governed_case', 'reference_public_id' => (string) Str::uuid(), 'actor_user_id' => $f['director']->id, 'occurred_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        $this->assertTrue($row()['later_governed']);
+        $this->assertTrue($row()['canReverse']);
+    }
+
     public function test_quantity_unit_reason_room_and_stock_limits(): void
     {
         $f = $this->fx()->received('5.000');

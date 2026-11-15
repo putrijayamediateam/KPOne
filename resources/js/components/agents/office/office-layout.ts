@@ -337,3 +337,114 @@ export const recentMessages = (
 
 export const shorten = (text: string, max = 44): string =>
     text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+
+/**
+ * AG-13b name tags. A tag is drawn in real screen pixels (13 px name) by scaling it with 1 / scene scale, so it stays
+ * readable when the scene is shrunk; these pure functions work out its size and keep tags apart.
+ */
+export const TAG_NAME_PX = 13;
+export const TAG_GAP_PX = 10;
+export const BUBBLE_GAP_PX = 12;
+const TAG_MAX_NAME_CHARS = 16;
+
+export const tagName = (name: string): string =>
+    name.length > TAG_MAX_NAME_CHARS
+        ? `${name.slice(0, TAG_MAX_NAME_CHARS - 1).trimEnd()}…`
+        : name;
+
+/** Tag size in screen pixels: name row, an optional role row (not on phones) and the AI agent chip on its own row. */
+export const tagBox = (
+    name: string,
+    showRole: boolean,
+): { w: number; h: number } => ({
+    w: Math.max(96, Math.min(176, tagName(name).length * 7.9 + 36)),
+    h: showRole ? 74 : 56,
+});
+
+/** Where the bottom edge of a tag sits above the figure's feet (scene units), clear of the head by TAG_GAP_PX. */
+export const tagBottom = (seated: boolean, f: number): number =>
+    (seated ? -49 : -60) - (TAG_GAP_PX + 2) * f;
+
+export type TagRequest = {
+    code: string;
+    x: number;
+    bottomY: number;
+    w: number;
+    h: number;
+};
+
+export type Rect = { x: number; y: number; w: number; h: number };
+
+/**
+ * Keeps tags inside the scene and at least TAG_GAP_PX (screen pixels) from each other and from the obstacles, by
+ * moving a tag up when it would touch another one. Returns the shift of each tag in scene units.
+ */
+export const spreadTags = (
+    tags: TagRequest[],
+    obstacles: Rect[],
+    f: number,
+    width: number,
+): Map<string, { dx: number; dy: number }> => {
+    const gap = TAG_GAP_PX * f;
+    const state = tags.map((tag) => {
+        const w = tag.w * f;
+        const half = w / 2;
+        const x = Math.min(Math.max(tag.x, half + 2), width - half - 2);
+
+        return {
+            code: tag.code,
+            x,
+            dx: x - tag.x,
+            y: tag.bottomY,
+            w,
+            h: tag.h * f,
+        };
+    });
+    const rect = (item: (typeof state)[number], at: number): Rect => ({
+        x: item.x - item.w / 2,
+        y: at - item.h,
+        w: item.w,
+        h: item.h,
+    });
+    const hit = (a: Rect, b: Rect): boolean =>
+        a.x < b.x + b.w + gap &&
+        b.x < a.x + a.w + gap &&
+        a.y < b.y + b.h + gap &&
+        b.y < a.y + a.h + gap;
+
+    // Lower tags (nearer the viewer) keep their place; the ones behind move up.
+    const order = state
+        .map((item, index) => ({ item, index, at: tags[index].bottomY }))
+        .sort((a, b) => b.at - a.at);
+    const placed: Rect[] = [];
+
+    for (const entry of order) {
+        let at = entry.at;
+        let guard = 0;
+        let moved = true;
+
+        while (moved && guard < 40) {
+            moved = false;
+            guard += 1;
+
+            for (const other of [...placed, ...obstacles]) {
+                const mine = rect(entry.item, at);
+
+                if (hit(mine, other)) {
+                    at = other.y - gap;
+                    moved = true;
+                }
+            }
+        }
+
+        entry.item.y = at;
+        placed.push(rect(entry.item, at));
+    }
+
+    return new Map(
+        state.map((item, index) => [
+            item.code,
+            { dx: item.dx, dy: item.y - tags[index].bottomY },
+        ]),
+    );
+};

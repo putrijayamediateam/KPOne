@@ -5,7 +5,7 @@ const read = path => readFileSync(new URL(`../../${path}`, import.meta.url), 'ut
 test('stock review exposes three bounded worklists, unresolved expiry and no disposal action', () => {
     const ui = read('resources/js/pages/Inventory/StockReview.vue');
 
-    for (const text of ['Low stock', 'Expiring soon', 'Expired stock still on hand', 'Up to 25 items per page', 'STK-5', 'Review overdue', 'Review history (last 10)', 'review.canManage', 'min-h-11']) {
+    for (const text of ['Low stock', 'Expiring soon', 'Expired stock still on hand', 'Up to 25 items per page', 'Record any disposal through Stock count and Write-off', 'Review overdue', 'Review history (last 10)', 'review.canManage', 'min-h-11']) {
 assert.ok(ui.includes(text), text);
 }
 

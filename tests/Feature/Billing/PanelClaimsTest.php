@@ -404,6 +404,29 @@ class PanelClaimsTest extends BillingTestCase
             ->where('claim.identityVisible', false)->where('claim.patientPhone', null)->where('claim.patientIdentifier', null));
     }
 
+    public function test_claim_page_shows_no_identity_when_its_audit_row_cannot_be_written(): void
+    {
+        [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        DB::table('patients')->where('id', $visit->patient_id)->update(['mobile_phone' => '0123456789']);
+        DB::table('patient_identifiers')->insert(['organisation_id' => $visit->organisation_id, 'patient_id' => $visit->patient_id, 'identifier_type' => 'nric', 'issuing_country_code' => 'MY', 'normalized_value' => '900101015555', 'created_at' => now(), 'updated_at' => now()]);
+        $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+
+        // The identity audit row is written in the same request, before anything is returned: if it fails, the page fails.
+        DB::unprepared("create function kpone_test_identity_audit_down() returns trigger as \$\$ begin if new.event = 'panel_claim.identity_viewed' then raise exception 'audit unavailable'; end if; return new; end \$\$ language plpgsql");
+        DB::unprepared('create trigger kpone_test_identity_audit_down before insert on audit_logs for each row execute function kpone_test_identity_audit_down()');
+
+        // Production-like: the debug page would list this test's own fixture queries, which are not what a user sees.
+        config(['app.debug' => false]);
+        $response = $this->get(route('panel-claims.show', $claim));
+
+        $response->assertStatus(500);
+        $this->assertStringNotContainsString('0123456789', (string) $response->getContent());
+        $this->assertStringNotContainsString('900101015555', (string) $response->getContent());
+        $this->assertDatabaseMissing('audit_logs', ['event' => 'panel_claim.identity_viewed', 'subject_id' => $claim->id]);
+    }
+
     public function test_notes_remarks_and_photo_documents_are_branch_scoped_audited_and_validated(): void
     {
         Storage::fake('local');
@@ -803,6 +826,30 @@ class PanelClaimsTest extends BillingTestCase
 
         $this->get(route('panel-invoices.download', []))->assertRedirect();
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_invoices.exported')->count());
+    }
+
+    public function test_a_ready_panel_invoices_page_carries_a_working_download_link(): void
+    {
+        // The page sent downloadUrl as null even when ready, so its Download CSV button was always disabled.
+        [$panelOfficer, , $invoice, $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        $params = ['panel' => $allocation->panel_name_snapshot];
+
+        $this->get(route('panel-invoices.index'))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('ready', false)->where('downloadUrl', null));
+
+        $url = null;
+        $this->get(route('panel-invoices.index', $params))->assertOk()
+            ->assertInertia(function (Assert $page) use (&$url): void {
+                $page->where('ready', true)->where('total', 1)->where('downloadUrl', function ($value) use (&$url): bool {
+                    $url = $value;
+
+                    return is_string($value) && str_starts_with($value, route('panel-invoices.download'));
+                });
+            });
+
+        $response = $this->get((string) $url)->assertOk();
+        $this->assertStringContainsString($invoice->invoice_number, $response->streamedContent());
     }
 
     public function test_panel_invoices_are_limited_to_panel_officer_finance_officer_and_director_and_the_active_branch(): void
