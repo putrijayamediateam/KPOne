@@ -161,6 +161,15 @@ const days = computed(() => {
     return Number.isInteger(value) && value > 0 ? value : 0;
 });
 
+// The day count shows only while both dates are readable and in order, never "0 inclusive day(s)".
+const datesValid = computed(
+    () =>
+        !startInvalid.value &&
+        !endInvalid.value &&
+        !!form.start_date &&
+        !!form.end_date &&
+        days.value > 0,
+);
 const selected = computed(
     () =>
         props.certificates.documents.find(
@@ -202,7 +211,13 @@ const missing = computed(() => {
 });
 // On screen only, never printed. Wording is new (listed in the PR for review); the day count is the same one Classic shows.
 const footerNote = computed(() => {
-    if (form.action === 'void' || missing.value) {
+    if (form.action === 'void') {
+        return selected.value
+            ? `Voids ${selected.value.number}. Voiding it closes this MC chain; another MC cannot be issued for this consultation. Every copy is marked VOID.`
+            : null;
+    }
+
+    if (missing.value) {
         return null;
     }
 
@@ -211,6 +226,27 @@ const footerNote = computed(() => {
     return form.action === 'replace' && selected.value
         ? `Replaces ${selected.value.number} with an MC ${period} to ${props.certificates.patientName}. It is a draft until the doctor approves the wording.`
         : `Issues an MC ${period} to ${props.certificates.patientName}. It is a draft until the doctor approves the wording.`;
+});
+// Why the header's Issue MC is off, in Classic's own words (the credential and branch cases already have their alerts).
+const issueDisabledReason = computed(() => {
+    if (
+        !props.certificates.canIssue ||
+        !loaded.value ||
+        branchChanged.value ||
+        !props.certificates.credentialVerified
+    ) {
+        return null;
+    }
+
+    if (props.certificates.documents.length > 0) {
+        return 'One first MC may be issued per consultation. The original issuer may replace the current MC.';
+    }
+
+    if (!props.certificates.canFirstIssue) {
+        return 'First issue requires Serving, not held, before clinical checkout.';
+    }
+
+    return null;
 });
 const statusLabel = (status: string) =>
     status.charAt(0).toUpperCase() + status.slice(1);
@@ -275,6 +311,13 @@ const errorKeys = [
             </template>
 
             <template #main>
+                <p
+                    v-if="issueDisabledReason"
+                    class="text-sm text-muted-foreground"
+                    data-testid="issue-disabled-reason"
+                >
+                    {{ issueDisabledReason }}
+                </p>
                 <div
                     class="flex items-start gap-3 rounded-[14px] border border-warning/30 bg-warning/10 p-4 text-sm"
                     data-testid="draft-notice"
@@ -427,7 +470,7 @@ const errorKeys = [
         :confirm-disabled="branchChanged || !!missing"
         :confirm-disabled-reason="missing"
         :dirty="dirty"
-        size="tall"
+        :size="form.action === 'void' ? 'default' : 'tall'"
         @confirm="submit"
     >
         <div class="grid gap-4">
@@ -479,7 +522,7 @@ const errorKeys = [
                         @update:invalid="endInvalid = $event"
                     />
                 </div>
-                <p class="text-sm">
+                <p v-if="datesValid" class="text-sm">
                     {{ days }} inclusive day(s) · maximum 30. Examination and
                     issue dates are recorded by the server.
                 </p>

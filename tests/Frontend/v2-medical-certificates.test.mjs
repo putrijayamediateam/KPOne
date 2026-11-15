@@ -141,3 +141,39 @@ test('V2 adds no request and the history stays the Classic list', () => {
     assert.ok(tight(page).includes('whitespace-nowrap"'));
     assert.ok(tight(page).includes('{{document.number}}'));
 });
+
+test('V2 void and replace sheets name the MC, reuse the Classic chain rule and the disabled reasons use Classic words', () => {
+    const p = flat(page);
+
+    for (const classicWords of [
+        'Voiding it closes this MC chain; another MC cannot be issued for this consultation.',
+        'copy is marked VOID.',
+        'One first MC may be issued per consultation. The original issuer may replace the current MC.',
+        'First issue requires Serving, not held, before clinical checkout.',
+    ]) {
+        assert.ok(
+            tight(classic).includes(tight(classicWords)),
+            `Classic lacks ${classicWords}`,
+        );
+        assert.ok(
+            tight(page).includes(tight(classicWords)),
+            `V2 lacks ${classicWords}`,
+        );
+    }
+
+    assert.ok(p.includes('Voids ${selected.value.number}.'));
+    assert.ok(p.includes('Replaces ${selected.value.number} with an MC'));
+    assert.ok(/:size="form\.action === 'void' \? 'default' : 'tall'"/.test(p));
+    // Classic starts the change category on "Dates corrected" too, so V2 keeps that default for parity.
+    assert.ok(
+        tight(classic).includes(tight("change_reason: 'dates_corrected',")),
+    );
+    assert.ok(tight(page).includes(tight("change_reason: 'dates_corrected',")));
+});
+
+test('V2 hides the day count until both dates are valid', () => {
+    const p = tight(page);
+
+    assert.ok(/v-if="datesValid"[^>]*>\{\{days\}\}inclusiveday\(s\)/.test(p));
+    assert.ok(p.includes('!startInvalid.value&&!endInvalid.value'));
+});
