@@ -286,8 +286,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   warning at Dispensary. Each waits for the pharmacist's answers and the owner.
 - **Pilot staffing:** the controlled-register checker cannot be anyone who recorded a movement on that register
   since the last check, so a controlled-delivery day needs a third person (raised with the owner, 2026-11-12).
-- STK-31 limits: the cross-branch guard is insert-only; no idempotency key on stock request creation (existing
-  design); one low-stock query per other branch.
+- STK-31 limits: the cross-branch guard is insert-only; stock request creation takes an optional retry key since
+  STK-39 (a double press or retry returns the request already made); one low-stock query per other branch.
 - STK-37 limits (Mei Ling, low risk, the same as for dispensing): stock in transit is not re-checked on receipt, so
   a batch recalled or held while in transit still lands (dispensing refuses it there); a recall locks only the
   chosen SKU's batches, so a sibling SKU's batch with the same number is not serialised against it; item
