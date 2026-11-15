@@ -46,6 +46,8 @@ const props = defineProps<{
     receiptMemoryContext: InventoryReceiptMemoryContext;
     referenceData: {
         canManage: boolean;
+        /** STK-28: true only for the Director (the server checks the page too). */
+        canViewStockValue?: boolean;
         expectedBranchId: number;
         items: Array<{ publicId: string; code: string; genericName: string }>;
         skus: Array<{
@@ -66,7 +68,7 @@ const props = defineProps<{
 usePageCrumbs(() => [{ title: 'Inventory' }]);
 
 const {
-    taskGroups,
+    taskGroups: sharedTaskGroups,
     search,
     location,
     status,
@@ -84,6 +86,26 @@ const {
 } = useInventoryHome(
     () => props.inventory,
     () => props.errors,
+);
+
+// STK-28: "Stock value and cost" joins Reports and checks for the Director only. V2 only: the shared list stays the
+// same 16 links as Classic, so it is added here.
+const taskGroups = computed(() =>
+    sharedTaskGroups.value.map((group) =>
+        group.id === 'reports-and-checks' &&
+        props.referenceData.canViewStockValue
+            ? {
+                  ...group,
+                  links: [
+                      ...group.links,
+                      {
+                          href: '/inventory/stock-value',
+                          label: 'Stock value and cost',
+                      },
+                  ],
+              }
+            : group,
+    ),
 );
 
 // Filters kept behind "More filters": say how many are applied, so a hidden filter is never a surprise.
