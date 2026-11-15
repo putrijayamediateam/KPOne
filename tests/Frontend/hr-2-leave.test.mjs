@@ -5,7 +5,9 @@ import { compileTemplate, parse } from '@vue/compiler-sfc';
 
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const source = read('resources/js/pages/HR/Leave.vue');
+const source =
+    read('resources/js/pages/HR/Leave.vue') +
+    read('resources/js/composables/hr/useLeavePage.ts');
 const template = parse(source).descriptor.template.content;
 const roster = read('resources/js/pages/HR/Roster.vue');
 
