@@ -1,0 +1,63 @@
+<?php
+
+namespace App\Http\Requests;
+
+use App\Domain\Patient\Models\Patient;
+use App\Domain\Patient\Services\PatientGuardianService;
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class StorePatientRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()->can('create', Patient::class);
+    }
+
+    /** @return array<string, mixed> */
+    public function rules(): array
+    {
+        return [
+            'full_name' => ['required', 'string', 'max:255'],
+            'adult_confirmed' => ['sometimes', 'boolean'],
+            'adult_confirmation_key' => ['sometimes', 'uuid'],
+            'date_of_birth' => ['nullable', 'date_format:Y-m-d', 'before_or_equal:today'],
+            'sex' => ['required', 'in:female,male,indeterminate,unknown'],
+            'nationality_code' => ['nullable', 'string', 'size:2'],
+            'mobile_phone' => [Rule::requiredIf(fn (): bool => ! app(PatientGuardianService::class)->minor($this->input('date_of_birth'), $this->user())), 'nullable', 'string', 'max:64'],
+            'phone_country' => ['sometimes', 'string', 'size:2'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'address_line_1' => ['nullable', 'string', 'max:255'],
+            'address_line_2' => ['nullable', 'string', 'max:255'],
+            'postcode' => ['nullable', 'string', 'max:20'],
+            'city' => ['nullable', 'string', 'max:100'],
+            'state' => ['nullable', 'string', 'max:100'],
+            'country_code' => ['nullable', 'string', 'size:2'],
+            'identifiers' => ['required', 'array', 'size:1'],
+            'identifiers.*.identifier_type' => ['required', 'in:nric,passport'],
+            'identifiers.*.issuing_country_code' => ['nullable', 'string', 'size:2'],
+            'identifiers.*.value' => ['required', 'string', 'max:100'],
+            'duplicate_override' => ['nullable', 'boolean'],
+            'guardian' => ['sometimes', 'nullable', 'array'],
+            'expected_branch_id' => ['sometimes', 'integer'],
+            'organisation_id' => ['prohibited'],
+            'patient_number' => ['prohibited'],
+            'search_name' => ['prohibited'],
+            'created_by_user_id' => ['prohibited'],
+            'updated_by_user_id' => ['prohibited'],
+            'lock_version' => ['prohibited'],
+        ];
+    }
+
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'mobile_phone.required' => 'Phone number is required.',
+            'mobile_phone.string' => 'Enter a valid phone number for the selected country.',
+            'mobile_phone.max' => 'Enter a valid phone number for the selected country.',
+            'identifiers.required' => 'Choose IC number or Passport.',
+            'identifiers.0.value.required' => $this->input('identifiers.0.identifier_type') === 'passport' ? 'Passport number is incomplete.' : 'IC number must have 12 digits.',
+        ];
+    }
+}

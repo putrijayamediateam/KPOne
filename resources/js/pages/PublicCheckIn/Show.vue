@@ -1,0 +1,1211 @@
+<script setup lang="ts">
+import { Head } from '@inertiajs/vue3';
+import {
+    ArrowLeft,
+    ArrowRight,
+    Building2,
+    CheckCircle2,
+    Clock3,
+    LoaderCircle,
+    Pencil,
+    ShieldCheck,
+    UserRound,
+    UsersRound,
+} from '@lucide/vue';
+import {
+    computed,
+    onBeforeUnmount,
+    onMounted,
+    reactive,
+    ref,
+    watch,
+} from 'vue';
+import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
+import { DateField } from '@/components/ui/date-field';
+import { knownMinor } from '@/lib/guardian-contact';
+import {
+    SESSION_WARNING_SECONDS,
+    formatCountdown,
+    localToday,
+    intakeSubmission,
+    reviewRows,
+    secondsRemaining,
+    validateIntakeStep,
+} from '@/lib/public-intake-form';
+import type { RegistrationRequirements } from '@/types/registration-settings';
+
+const props = defineProps<{
+    clinicName: string;
+    branch: { name: string } | null;
+    intakeSession: { expiresAt: string } | null;
+    panelOptions: Array<{ id: number; name: string }>;
+    statusAvailable: boolean;
+    privacyNoticeVersion: string;
+    minorAge: number;
+    registrationRequirements: RegistrationRequirements | null;
+    collectContactDetails: boolean;
+}>();
+declare global {
+    interface Window {
+        __KPOnePublicIntakeExchangeToken?: string;
+        __KPOnePublicIntakeExchangeAttempted?: boolean;
+    }
+}
+type IntakeSession = { expiresAt: string };
+
+const step = ref(0);
+const loading = ref(!props.intakeSession);
+const submitting = ref(false);
+const session = ref<IntakeSession | null>(props.intakeSession);
+const branch = ref<{ name: string } | null>(props.branch);
+const panelOptions = ref(props.panelOptions);
+const requirements = ref(props.registrationRequirements);
+const collectContactDetails = ref(props.collectContactDetails);
+const privacyVersion = ref(props.privacyNoticeVersion);
+const errors = ref<Record<string, string[]>>({});
+const generalError = ref('');
+const form = reactive({
+    submission_type: 'patient',
+    full_name: '',
+    date_of_birth: '',
+    sex: 'unknown',
+    nationality_code: 'MY',
+    email: '',
+    address_line_1: '',
+    address_line_2: '',
+    city: '',
+    state: '',
+    postcode: '',
+    country_code: 'MY',
+    mobile_phone: '',
+    phone_country: 'MY',
+    identifier_type: 'nric',
+    identifier_value: '',
+    identifier_issuing_country_code: 'MY',
+    visit_kind: 'consultation',
+    visit_purpose: '',
+    chief_complaint: '',
+    complaint_duration: '',
+    coverage_type: '',
+    panel_id: '' as string | number,
+    coverage_member_reference: '',
+    guardian_name: '',
+    guardian_relationship: '',
+    guardian_contact_number: '',
+    guardian_attestation: false,
+    consent_confirmed: false,
+    privacy_notice_version: props.privacyNoticeVersion,
+});
+const csrfToken = () =>
+    document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')
+        ?.content ?? '';
+const branchName = computed(() => branch.value?.name ?? 'Klinik Putrijaya');
+const errorFor = (field: string) => errors.value[field]?.[0] ?? '';
+const validationSummary = computed(() =>
+    Object.values(errors.value).flat().filter(Boolean),
+);
+const now = ref(new Date());
+let clock: number | undefined;
+const sessionSecondsLeft = computed(() =>
+    session.value ? secondsRemaining(session.value.expiresAt, now.value) : 0,
+);
+const sessionWarning = computed(
+    () =>
+        sessionSecondsLeft.value > 0 &&
+        sessionSecondsLeft.value <= SESSION_WARNING_SECONDS,
+);
+const sessionLapsed = computed(
+    () => !!session.value && sessionSecondsLeft.value === 0,
+);
+const contactErrors = computed(() =>
+    Object.fromEntries(
+        Object.entries(errors.value).map(([key, value]) => [key, value[0]]),
+    ),
+);
+const summaryRows = computed(() =>
+    reviewRows(form, panelOptions.value, collectContactDetails.value),
+);
+const checkStep = (target: number) => {
+    const found = validateIntakeStep(target, form, {
+        minorAge: props.minorAge,
+        today: localToday(new Date()),
+        requireNationality: requirements.value?.requireNationality ?? false,
+        requireEmail: requirements.value?.requireEmail ?? false,
+        requireAddress: requirements.value?.requireAddress ?? false,
+        collectContactDetails: collectContactDetails.value,
+    });
+    errors.value = found;
+
+    return Object.keys(found).length === 0;
+};
+const request = async (url: string, body?: object) => {
+    const response = await fetch(url, {
+        method: 'POST',
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': csrfToken(),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+    });
+    const data = (await response.json()) as Record<string, unknown>;
+
+    if (!response.ok) {
+        throw data;
+    }
+
+    return data;
+};
+const exchangeFragment = async () => {
+    let rawToken = window.__KPOnePublicIntakeExchangeToken ?? '';
+    const exchangeAttempted =
+        window.__KPOnePublicIntakeExchangeAttempted === true;
+    delete window.__KPOnePublicIntakeExchangeToken;
+    delete window.__KPOnePublicIntakeExchangeAttempted;
+
+    if (exchangeAttempted) {
+        session.value = null;
+        branch.value = null;
+        panelOptions.value = [];
+    }
+
+    if (exchangeAttempted && rawToken === '') {
+        loading.value = false;
+        generalError.value =
+            'Pautan pendaftaran tidak sah atau telah tamat. Sila imbas semula kod QR atau hadir ke kaunter.';
+
+        return;
+    }
+
+    if (rawToken === '') {
+        if (session.value) {
+            return;
+        }
+
+        if (props.statusAvailable) {
+            window.location.replace('/check-in/status');
+
+            return;
+        }
+    }
+
+    loading.value = true;
+    generalError.value = '';
+
+    try {
+        if (!/^[A-Za-z0-9_-]{43}$/.test(rawToken)) {
+            throw new Error('invalid public link token');
+        }
+
+        const exchanged = (await request('/check-in/exchange', {
+            link_token: rawToken,
+        })) as {
+            branch: { name: string };
+            intakeSession: IntakeSession;
+            registrationRequirements: RegistrationRequirements;
+            privacyNoticeVersion: string;
+            collectContactDetails: boolean;
+            panelOptions: Array<{ id: number; name: string }>;
+        };
+        branch.value = exchanged.branch;
+        session.value = exchanged.intakeSession;
+        panelOptions.value = exchanged.panelOptions;
+        requirements.value = exchanged.registrationRequirements;
+        privacyVersion.value = exchanged.privacyNoticeVersion;
+        form.privacy_notice_version = exchanged.privacyNoticeVersion;
+        collectContactDetails.value = exchanged.collectContactDetails;
+    } catch {
+        generalError.value =
+            'Pautan pendaftaran tidak sah atau telah tamat. Sila imbas semula kod QR atau hadir ke kaunter.';
+    } finally {
+        rawToken = '';
+        loading.value = false;
+    }
+};
+const begin = () => {
+    if (!session.value || loading.value) {
+        generalError.value =
+            'Pendaftaran tidak dapat dimulakan. Sila imbas semula kod QR atau hadir ke kaunter.';
+
+        return;
+    }
+
+    generalError.value = '';
+    step.value = 1;
+};
+const next = () => {
+    generalError.value = '';
+
+    if (!checkStep(step.value)) {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        return;
+    }
+
+    step.value = Math.min(5, step.value + 1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+const goTo = (target: number) => {
+    errors.value = {};
+    generalError.value = '';
+    step.value = Math.min(5, Math.max(1, target));
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+const back = () => {
+    errors.value = {};
+    step.value = Math.max(1, step.value - 1);
+};
+const submit = async () => {
+    if (!session.value || submitting.value) {
+        return;
+    }
+
+    if (!checkStep(5)) {
+        return;
+    }
+
+    submitting.value = true;
+    errors.value = {};
+    generalError.value = '';
+
+    try {
+        const payload = intakeSubmission(form, collectContactDetails.value);
+        const result = await request('/check-in/intakes', payload);
+        window.location.assign(result.statusUrl as string);
+    } catch (error) {
+        const response = error as { errors?: Record<string, string[]> };
+        errors.value = response.errors ?? {};
+        generalError.value = response.errors
+            ? 'Sila semak maklumat yang ditandakan.'
+            : 'Maklumat tidak dapat dihantar. Jangan tutup halaman ini; cuba semula dengan maklumat yang sama.';
+
+        if (response.errors) {
+            const fields = Object.keys(response.errors);
+            step.value = fields.some((field) =>
+                [
+                    'coverage_type',
+                    'panel_id',
+                    'coverage_member_reference',
+                ].includes(field),
+            )
+                ? 4
+                : fields.some((field) =>
+                        [
+                            'guardian_name',
+                            'guardian_relationship',
+                            'guardian_contact_number',
+                            'guardian_attestation',
+                        ].includes(field),
+                    )
+                  ? 3
+                  : 2;
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } finally {
+        submitting.value = false;
+    }
+};
+watch(
+    () => form.coverage_type,
+    (coverageType) => {
+        if (coverageType !== 'panel') {
+            form.panel_id = '';
+            form.coverage_member_reference = '';
+        }
+    },
+);
+watch(
+    () => ({ ...form }),
+    (current, previous) => {
+        const changed = (Object.keys(current) as Array<keyof typeof form>)
+            .filter((field) => current[field] !== previous[field])
+            .map(String);
+        const remaining = Object.fromEntries(
+            Object.entries(errors.value).filter(
+                ([field]) =>
+                    !changed.includes(field) &&
+                    !(
+                        field === 'identifier_value' &&
+                        changed.includes('identifier_issuing_country_code')
+                    ),
+            ),
+        );
+
+        if (
+            Object.keys(remaining).length !== Object.keys(errors.value).length
+        ) {
+            errors.value = remaining;
+        }
+    },
+);
+onMounted(() => {
+    void exchangeFragment();
+    clock = window.setInterval(() => (now.value = new Date()), 1_000);
+});
+onBeforeUnmount(() => {
+    if (clock) {
+        window.clearInterval(clock);
+    }
+});
+</script>
+
+<template>
+    <Head :title="`Daftar di ${branchName}`"
+        ><meta name="referrer" content="no-referrer"
+    /></Head>
+    <main
+        class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8"
+        lang="ms"
+    >
+        <section
+            class="overflow-hidden rounded-3xl border border-zinc-200 bg-white shadow-xl shadow-zinc-950/5 dark:border-zinc-800 dark:bg-zinc-900"
+        >
+            <div class="h-1.5 bg-pink-600" aria-hidden="true"></div>
+            <div class="space-y-6 p-5 sm:p-8">
+                <header class="flex items-center gap-3">
+                    <img
+                        src="/kp-mark.png"
+                        :alt="clinicName"
+                        class="size-11 object-contain"
+                    />
+                    <div class="min-w-0">
+                        <p class="text-sm font-semibold text-pink-700">
+                            KPOne · Klinik Putrijaya
+                        </p>
+                        <p
+                            class="truncate text-sm text-zinc-600 dark:text-zinc-300"
+                        >
+                            {{ branchName }}
+                        </p>
+                    </div>
+                </header>
+                <div
+                    v-if="generalError || validationSummary.length"
+                    tabindex="-1"
+                    role="alert"
+                    aria-live="assertive"
+                    class="rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+                >
+                    <p class="font-semibold">
+                        {{ generalError || 'Sila semak maklumat berikut.' }}
+                    </p>
+                    <ul
+                        v-if="validationSummary.length"
+                        class="mt-2 list-disc pl-5"
+                    >
+                        <li v-for="message in validationSummary" :key="message">
+                            {{ message }}
+                        </li>
+                    </ul>
+                </div>
+
+                <template v-if="step === 0">
+                    <div class="space-y-4">
+                        <div
+                            class="grid size-12 place-items-center rounded-2xl bg-pink-50 text-pink-700"
+                        >
+                            <Building2 class="size-6" aria-hidden="true" />
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-zinc-500">
+                                Pendaftaran mudah alih
+                            </p>
+                            <h1
+                                class="mt-1 text-3xl font-semibold tracking-tight"
+                            >
+                                Daftar untuk lawatan anda
+                            </h1>
+                            <p
+                                class="mt-3 leading-7 text-zinc-600 dark:text-zinc-300"
+                            >
+                                Isi maklumat pesakit atau penjaga. Nombor queue
+                                hanya akan diberi selepas staf klinik membuat
+                                semakan.
+                            </p>
+                        </div>
+                    </div>
+                    <div
+                        class="flex items-start gap-3 rounded-2xl border bg-zinc-50 p-4 text-sm text-zinc-700 dark:bg-zinc-800"
+                    >
+                        <ShieldCheck
+                            class="mt-0.5 size-5 shrink-0 text-pink-700"
+                        />
+                        <p>
+                            Maklumat disimpan secara terlindung selama 30 hari.
+                            <a href="#privacy" class="font-medium underline"
+                                >Baca notis privasi</a
+                            >.
+                        </p>
+                    </div>
+                    <p
+                        class="rounded-2xl border border-amber-300 bg-amber-50 p-4 text-sm font-medium text-amber-950"
+                    >
+                        Jika anda mengalami sesak nafas teruk, sakit dada,
+                        pengsan atau pendarahan banyak, sila terus maklumkan
+                        staff di kaunter.
+                    </p>
+                    <button
+                        type="button"
+                        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 py-3 font-semibold text-white focus-visible:ring-4 focus-visible:ring-pink-200 disabled:opacity-60"
+                        :disabled="loading"
+                        @click="begin"
+                    >
+                        <LoaderCircle
+                            v-if="loading"
+                            class="size-5 animate-spin"
+                        />{{ loading ? 'Memulakan…' : 'Mula Daftar'
+                        }}<ArrowRight v-if="!loading" class="size-5" />
+                    </button>
+                    <div
+                        id="privacy"
+                        class="rounded-2xl bg-zinc-50 p-4 text-xs leading-5 text-zinc-600 dark:bg-zinc-800"
+                    >
+                        <p class="font-semibold">Notis privasi — draf UAT</p>
+                        <p class="mt-1">
+                            Versi {{ privacyVersion }} belum merupakan teks
+                            undang-undang muktamad. Maklumat digunakan untuk
+                            semakan pendaftaran di cawangan ini sahaja.
+                            <span v-if="collectContactDetails"
+                                >E-mel dan alamat turut dikumpulkan untuk rekod
+                                pendaftaran. Maklumat dalam pendaftaran yang
+                                belum disahkan disulitkan dan dipadam selepas 30
+                                hari. Selepas penerimaan oleh staf, maklumat
+                                disalin ke rekod pesakit; tempoh 30 hari ini
+                                tidak merujuk kepada rekod pesakit.</span
+                            >
+                        </p>
+                    </div>
+                </template>
+
+                <template v-else
+                    ><div
+                        class="flex items-center justify-between text-xs font-medium text-zinc-500"
+                    >
+                        <span>Langkah {{ step }} daripada 5</span
+                        ><span
+                            v-if="session"
+                            class="flex items-center gap-1"
+                            :class="
+                                sessionWarning || sessionLapsed
+                                    ? 'font-semibold text-amber-700'
+                                    : ''
+                            "
+                            role="timer"
+                            :aria-label="`Masa sesi berbaki ${formatCountdown(sessionSecondsLeft)}`"
+                            ><Clock3 class="size-3.5" aria-hidden="true" />{{
+                                formatCountdown(sessionSecondsLeft)
+                            }}</span
+                        >
+                    </div>
+                    <p
+                        v-if="sessionWarning"
+                        class="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                        role="status"
+                    >
+                        Sesi pendaftaran akan tamat tidak lama lagi. Sila
+                        lengkapkan dan hantar borang ini.
+                    </p>
+                    <p
+                        v-if="sessionLapsed"
+                        class="rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-950"
+                        role="status"
+                    >
+                        Masa sesi mungkin telah tamat. Anda masih boleh cuba
+                        menghantar; jika gagal, sila imbas semula kod QR atau
+                        hadir ke kaunter.
+                    </p>
+                    <div class="h-2 overflow-hidden rounded-full bg-zinc-100">
+                        <div
+                            class="h-full rounded-full bg-pink-600 transition-all"
+                            :style="{ width: `${step * 20}%` }"
+                        ></div></div
+                ></template>
+
+                <section v-if="step === 1" class="space-y-5">
+                    <div>
+                        <h1 class="text-2xl font-semibold">
+                            Siapa yang mengisi borang?
+                        </h1>
+                        <p class="mt-1 text-sm text-zinc-600">
+                            Pesakit bawah {{ minorAge }} tahun mesti didaftarkan
+                            oleh penjaga.
+                        </p>
+                    </div>
+                    <div class="grid gap-3">
+                        <button
+                            type="button"
+                            :aria-pressed="form.submission_type === 'patient'"
+                            class="flex min-h-20 items-center gap-4 rounded-2xl border p-4 text-left focus-visible:ring-4 focus-visible:ring-pink-200"
+                            :class="
+                                form.submission_type === 'patient'
+                                    ? 'border-pink-600 bg-pink-50'
+                                    : ''
+                            "
+                            @click="form.submission_type = 'patient'"
+                        >
+                            <UserRound class="size-7 text-pink-700" /><span
+                                ><strong>Saya pesakit</strong><br /><span
+                                    class="text-sm text-zinc-600"
+                                    >Saya mengisi maklumat sendiri</span
+                                ></span
+                            >
+                        </button>
+                        <button
+                            type="button"
+                            :aria-pressed="form.submission_type === 'guardian'"
+                            class="flex min-h-20 items-center gap-4 rounded-2xl border p-4 text-left focus-visible:ring-4 focus-visible:ring-pink-200"
+                            :class="
+                                form.submission_type === 'guardian'
+                                    ? 'border-pink-600 bg-pink-50'
+                                    : ''
+                            "
+                            @click="form.submission_type = 'guardian'"
+                        >
+                            <UsersRound class="size-7 text-pink-700" /><span
+                                ><strong>Saya penjaga</strong><br /><span
+                                    class="text-sm text-zinc-600"
+                                    >Saya diberi kuasa untuk membantu
+                                    pesakit</span
+                                ></span
+                            >
+                        </button>
+                    </div>
+                    <p
+                        v-if="errorFor('submission_type')"
+                        class="text-sm text-red-700"
+                        role="alert"
+                    >
+                        {{ errorFor('submission_type') }}
+                    </p>
+                    <button
+                        type="button"
+                        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white"
+                        @click="next"
+                    >
+                        Seterusnya <ArrowRight class="size-5" />
+                    </button>
+                </section>
+
+                <section v-if="step === 2" class="space-y-5">
+                    <div>
+                        <h1 class="text-2xl font-semibold">Maklumat pesakit</h1>
+                        <p class="mt-1 text-sm text-zinc-600">
+                            Semua medan bertanda * diperlukan.
+                        </p>
+                    </div>
+                    <div class="grid gap-4">
+                        <label class="grid gap-1.5" for="full-name"
+                            ><span class="text-sm font-medium"
+                                >Nama penuh *</span
+                            ><input
+                                id="full-name"
+                                v-model="form.full_name"
+                                autocomplete="name"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="!!errorFor('full_name')"
+                            /><span
+                                v-if="errorFor('full_name')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('full_name') }}</span
+                            ></label
+                        >
+                        <div class="grid grid-cols-2 items-start gap-3">
+                            <label
+                                class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                                for="dob"
+                                ><span class="text-sm font-medium"
+                                    >Tarikh lahir *</span
+                                ><DateField
+                                    id="dob"
+                                    v-model="form.date_of_birth"
+                                    :aria-invalid="!!errorFor('date_of_birth')"
+                                    locale="ms"
+                                    look="patient"
+                                /><span
+                                    v-if="errorFor('date_of_birth')"
+                                    class="text-sm text-red-700"
+                                    role="alert"
+                                    >{{ errorFor('date_of_birth') }}</span
+                                ></label
+                            ><label
+                                class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                                for="sex"
+                                ><span class="text-sm font-medium"
+                                    >Jantina *</span
+                                ><select
+                                    id="sex"
+                                    v-model="form.sex"
+                                    class="min-h-12 rounded-xl border px-3"
+                                >
+                                    <option value="female">Perempuan</option>
+                                    <option value="male">Lelaki</option>
+                                    <option value="indeterminate">
+                                        Tidak ditentukan
+                                    </option>
+                                    <option value="unknown">Tidak pasti</option>
+                                </select></label
+                            >
+                        </div>
+                        <RegistrationContactFields
+                            v-if="collectContactDetails"
+                            :model="form"
+                            :require-email="requirements?.requireEmail"
+                            :require-address="requirements?.requireAddress"
+                            :errors="contactErrors"
+                            public-form
+                            id-prefix="public-contact"
+                        />
+                        <label class="grid gap-1.5" for="nationality"
+                            ><span class="text-sm font-medium"
+                                >Kod negara kewarganegaraan{{
+                                    requirements?.requireNationality
+                                        ? ' *'
+                                        : ' (pilihan)'
+                                }}</span
+                            ><input
+                                id="nationality"
+                                v-model="form.nationality_code"
+                                :required="requirements?.requireNationality"
+                                :aria-invalid="!!errorFor('nationality_code')"
+                                maxlength="2"
+                                placeholder="MY"
+                                class="min-h-12 rounded-xl border px-3 uppercase"
+                            /><span
+                                v-if="errorFor('nationality_code')"
+                                role="alert"
+                                class="text-sm text-red-700"
+                                >{{ errorFor('nationality_code') }}</span
+                            ></label
+                        >
+                        <label class="grid gap-1.5" for="phone"
+                            ><span class="text-sm font-medium">{{
+                                knownMinor(form.date_of_birth)
+                                    ? 'Nombor telefon anak (pilihan)'
+                                    : 'Nombor telefon pesakit *'
+                            }}</span
+                            ><input
+                                id="phone"
+                                v-model="form.mobile_phone"
+                                type="tel"
+                                inputmode="tel"
+                                autocomplete="tel"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="!!errorFor('mobile_phone')"
+                            /><span
+                                v-if="errorFor('mobile_phone')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('mobile_phone') }}</span
+                            ></label
+                        >
+                        <fieldset class="grid gap-2">
+                            <legend class="text-sm font-medium">
+                                Pengenalan *
+                            </legend>
+                            <div class="grid grid-cols-[8rem_1fr] gap-2">
+                                <select
+                                    v-model="form.identifier_type"
+                                    aria-label="Jenis pengenalan"
+                                    class="min-h-12 rounded-xl border px-3"
+                                >
+                                    <option value="nric">No. IC</option>
+                                    <option value="passport">
+                                        Passport
+                                    </option></select
+                                ><input
+                                    v-model="form.identifier_value"
+                                    autocomplete="off"
+                                    class="min-h-12 min-w-0 rounded-xl border px-3"
+                                    aria-label="Nombor pengenalan"
+                                    :aria-invalid="
+                                        !!errorFor('identifier_value')
+                                    "
+                                />
+                            </div>
+                            <input
+                                v-if="form.identifier_type === 'passport'"
+                                v-model="form.identifier_issuing_country_code"
+                                maxlength="2"
+                                aria-label="Kod negara pengeluar passport"
+                                class="min-h-12 rounded-xl border px-3 uppercase"
+                                placeholder="Kod negara, contoh MY"
+                            /><span
+                                v-if="errorFor('identifier_value')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('identifier_value') }}</span
+                            >
+                        </fieldset>
+                        <fieldset class="grid gap-2" data-testid="visit-kind">
+                            <legend class="text-sm font-medium">
+                                Apa yang anda perlukan hari ini? *
+                            </legend>
+                            <label
+                                class="flex min-h-12 items-center gap-3 rounded-xl border px-3"
+                                ><input
+                                    v-model="form.visit_kind"
+                                    type="radio"
+                                    value="consultation"
+                                />Jumpa doktor</label
+                            >
+                            <label
+                                class="flex min-h-12 items-center gap-3 rounded-xl border px-3"
+                                ><input
+                                    v-model="form.visit_kind"
+                                    type="radio"
+                                    value="otc"
+                                />Beli ubat sahaja</label
+                            >
+                        </fieldset>
+                        <label
+                            v-if="form.visit_kind !== 'otc'"
+                            class="grid gap-1.5"
+                            for="visit-purpose"
+                            ><span class="text-sm font-medium"
+                                >Tujuan lawatan *</span
+                            ><select
+                                id="visit-purpose"
+                                v-model="form.visit_purpose"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="!!errorFor('visit_purpose')"
+                            >
+                                <option value="" disabled>Pilih tujuan</option>
+                                <option value="doctor_illness">
+                                    Jumpa doktor / sakit
+                                </option>
+                                <option value="pregnancy_check">
+                                    Pemeriksaan kehamilan
+                                </option>
+                                <option value="scan">Scan</option>
+                                <option value="vaccination">Vaksin</option>
+                                <option value="medical_checkup">
+                                    Medical check-up
+                                </option>
+                                <option value="procedure">Prosedur</option>
+                                <option value="other">Lain-lain</option></select
+                            ><span
+                                v-if="errorFor('visit_purpose')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('visit_purpose') }}</span
+                            ></label
+                        >
+                        <label class="grid gap-1.5" for="chief-complaint"
+                            ><span class="text-sm font-medium">{{
+                                form.visit_kind === 'otc'
+                                    ? 'Ubat apa yang anda perlukan? (pilihan)'
+                                    : 'Apa masalah atau tujuan utama anda datang hari ini? *'
+                            }}</span
+                            ><textarea
+                                id="chief-complaint"
+                                v-model="form.chief_complaint"
+                                rows="3"
+                                maxlength="500"
+                                class="rounded-xl border px-3 py-3"
+                                placeholder="Contoh: Demam dan batuk sejak semalam."
+                                :aria-invalid="!!errorFor('chief_complaint')"
+                            ></textarea
+                            ><span
+                                v-if="errorFor('chief_complaint')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('chief_complaint') }}</span
+                            ></label
+                        >
+                        <label
+                            v-if="form.visit_kind !== 'otc'"
+                            class="grid gap-1.5"
+                            for="complaint-duration"
+                            ><span class="text-sm font-medium"
+                                >Sejak bila? (pilihan)</span
+                            ><input
+                                id="complaint-duration"
+                                v-model="form.complaint_duration"
+                                maxlength="120"
+                                class="min-h-12 rounded-xl border px-3"
+                                placeholder="Contoh: Sejak semalam"
+                                :aria-invalid="!!errorFor('complaint_duration')"
+                            /><span
+                                v-if="errorFor('complaint_duration')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('complaint_duration') }}</span
+                            ></label
+                        >
+                    </div>
+                    <div class="flex gap-3">
+                        <button
+                            type="button"
+                            class="min-h-12 rounded-xl border px-4"
+                            @click="back"
+                            aria-label="Kembali"
+                        >
+                            <ArrowLeft
+                                class="size-5"
+                                aria-hidden="true"
+                            /></button
+                        ><button
+                            type="button"
+                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white disabled:opacity-60"
+                            @click="next"
+                        >
+                            Seterusnya <ArrowRight class="size-5" />
+                        </button>
+                    </div>
+                </section>
+
+                <section v-if="step === 3" class="space-y-5">
+                    <div>
+                        <h1 class="text-2xl font-semibold">Maklumat penjaga</h1>
+                        <p class="mt-1 text-sm text-zinc-600">
+                            {{
+                                form.submission_type === 'guardian'
+                                    ? 'Lengkapkan pengesahan penjaga.'
+                                    : 'Tiada maklumat penjaga diperlukan.'
+                            }}
+                        </p>
+                    </div>
+                    <div
+                        v-if="form.submission_type === 'guardian'"
+                        class="grid gap-4"
+                    >
+                        <label class="grid gap-1.5"
+                            ><span class="text-sm font-medium"
+                                >Nama penjaga *</span
+                            ><input
+                                v-model="form.guardian_name"
+                                autocomplete="name"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="!!errorFor('guardian_name')"
+                            /><span
+                                v-if="errorFor('guardian_name')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('guardian_name') }}</span
+                            ></label
+                        >
+                        <label class="grid gap-1.5"
+                            ><span class="text-sm font-medium">Hubungan *</span
+                            ><select
+                                v-model="form.guardian_relationship"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="
+                                    !!errorFor('guardian_relationship')
+                                "
+                            >
+                                <option value="" disabled>
+                                    Pilih hubungan
+                                </option>
+                                <option value="mother">Ibu</option>
+                                <option value="father">Bapa</option>
+                                <option value="other_family_member">
+                                    Ahli keluarga lain
+                                </option>
+                                <option value="parent">Ibu / Bapa</option>
+                                <option value="legal_guardian">
+                                    Penjaga sah
+                                </option>
+                                <option value="spouse">Suami / Isteri</option>
+                                <option value="adult_child">Anak dewasa</option>
+                                <option value="sibling">Adik-beradik</option>
+                                <option value="other">Lain-lain</option></select
+                            ><span
+                                v-if="errorFor('guardian_relationship')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('guardian_relationship') }}</span
+                            ></label
+                        >
+                        <label class="grid gap-1.5"
+                            ><span class="text-sm font-medium"
+                                >Nombor telefon penjaga *</span
+                            ><input
+                                v-model="form.guardian_contact_number"
+                                type="tel"
+                                inputmode="tel"
+                                autocomplete="tel"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="
+                                    !!errorFor('guardian_contact_number')
+                                "
+                            /><span
+                                v-if="errorFor('guardian_contact_number')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('guardian_contact_number') }}</span
+                            ></label
+                        >
+                        <label
+                            class="flex items-start gap-3 rounded-2xl border p-4 text-sm"
+                            ><input
+                                v-model="form.guardian_attestation"
+                                type="checkbox"
+                                class="mt-1 size-5"
+                            /><span
+                                >Saya mengesahkan bahawa saya diberi kuasa untuk
+                                menghantar maklumat pesakit ini.</span
+                            ></label
+                        ><span
+                            v-if="errorFor('guardian_attestation')"
+                            class="text-sm text-red-700"
+                            role="alert"
+                            >{{ errorFor('guardian_attestation') }}</span
+                        >
+                    </div>
+                    <div
+                        v-else
+                        class="flex items-center gap-3 rounded-2xl bg-emerald-50 p-4 text-sm text-emerald-800"
+                    >
+                        <CheckCircle2 class="size-5" />Teruskan ke maklumat
+                        perlindungan.
+                    </div>
+                    <div class="flex gap-3">
+                        <button
+                            type="button"
+                            class="min-h-12 rounded-xl border px-4"
+                            @click="back"
+                            aria-label="Kembali"
+                        >
+                            <ArrowLeft
+                                class="size-5"
+                                aria-hidden="true"
+                            /></button
+                        ><button
+                            type="button"
+                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white"
+                            @click="next"
+                        >
+                            Seterusnya <ArrowRight class="size-5" />
+                        </button>
+                    </div>
+                </section>
+
+                <section v-if="step === 4" class="space-y-5">
+                    <div>
+                        <h1 class="text-2xl font-semibold">
+                            Maklumat perlindungan
+                        </h1>
+                        <p class="mt-1 text-sm text-zinc-600">
+                            Maklumat ini diberikan oleh anda dan akan disahkan
+                            oleh staf sebelum pendaftaran.
+                        </p>
+                    </div>
+                    <label class="grid gap-1.5" for="coverage-type"
+                        ><span class="text-sm font-medium">Jenis bayaran *</span
+                        ><select
+                            id="coverage-type"
+                            v-model="form.coverage_type"
+                            class="min-h-12 rounded-xl border px-3"
+                            :aria-invalid="!!errorFor('coverage_type')"
+                        >
+                            <option value="" disabled>Pilih satu</option>
+                            <option value="self_pay">Bayar sendiri</option>
+                            <option value="panel">Panel</option>
+                        </select>
+                        <span
+                            v-if="errorFor('coverage_type')"
+                            class="text-sm text-red-700"
+                            role="alert"
+                            >{{ errorFor('coverage_type') }}</span
+                        ></label
+                    >
+                    <template v-if="form.coverage_type === 'panel'">
+                        <label class="grid gap-1.5" for="panel-id"
+                            ><span class="text-sm font-medium">Panel *</span
+                            ><select
+                                id="panel-id"
+                                v-model="form.panel_id"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="!!errorFor('panel_id')"
+                            >
+                                <option value="" disabled>Pilih panel</option>
+                                <option
+                                    v-for="panel in panelOptions"
+                                    :key="panel.id"
+                                    :value="panel.id"
+                                >
+                                    {{ panel.name }}
+                                </option>
+                            </select>
+                            <span
+                                v-if="panelOptions.length === 0"
+                                class="text-sm text-amber-700"
+                                >Tiada panel tersedia. Sila maklumkan kepada
+                                staf di kaunter.</span
+                            >
+                            <span
+                                v-if="errorFor('panel_id')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{ errorFor('panel_id') }}</span
+                            ></label
+                        >
+                        <label
+                            class="grid gap-1.5"
+                            for="coverage-member-reference"
+                            ><span class="text-sm font-medium"
+                                >Nombor ahli panel (jika ada)</span
+                            ><input
+                                id="coverage-member-reference"
+                                v-model="form.coverage_member_reference"
+                                maxlength="100"
+                                autocomplete="off"
+                                class="min-h-12 rounded-xl border px-3"
+                                :aria-invalid="
+                                    !!errorFor('coverage_member_reference')
+                                "
+                            />
+                            <span
+                                v-if="errorFor('coverage_member_reference')"
+                                class="text-sm text-red-700"
+                                role="alert"
+                                >{{
+                                    errorFor('coverage_member_reference')
+                                }}</span
+                            ></label
+                        >
+                    </template>
+                    <div class="flex gap-3">
+                        <button
+                            type="button"
+                            class="min-h-12 rounded-xl border px-4"
+                            @click="back"
+                            aria-label="Kembali"
+                        >
+                            <ArrowLeft
+                                class="size-5"
+                                aria-hidden="true"
+                            /></button
+                        ><button
+                            type="button"
+                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white disabled:opacity-60"
+                            :disabled="
+                                !form.coverage_type ||
+                                (form.coverage_type === 'panel' &&
+                                    !form.panel_id)
+                            "
+                            @click="next"
+                        >
+                            Semak persetujuan <ArrowRight class="size-5" />
+                        </button>
+                    </div>
+                </section>
+
+                <form
+                    v-if="step === 5"
+                    class="space-y-5"
+                    @submit.prevent="submit"
+                >
+                    <div>
+                        <h1 class="text-2xl font-semibold">
+                            Persetujuan & hantar
+                        </h1>
+                        <p class="mt-1 text-sm text-zinc-600">
+                            Staf akan menyemak maklumat sekali sebelum
+                            pendaftaran dan queue dicipta.
+                        </p>
+                    </div>
+                    <section
+                        aria-labelledby="review-heading"
+                        class="rounded-2xl border p-4"
+                    >
+                        <h2 id="review-heading" class="font-semibold">
+                            Semak maklumat anda
+                        </h2>
+                        <p class="mt-1 text-sm text-zinc-600">
+                            Pastikan semua maklumat betul sebelum dihantar.
+                        </p>
+                        <dl class="mt-3 divide-y text-sm">
+                            <div
+                                v-for="row in summaryRows"
+                                :key="row.label"
+                                class="flex items-start justify-between gap-3 py-2"
+                            >
+                                <div class="min-w-0">
+                                    <dt class="text-zinc-500">
+                                        {{ row.label }}
+                                    </dt>
+                                    <dd class="font-medium break-words">
+                                        {{ row.value }}
+                                    </dd>
+                                </div>
+                                <button
+                                    type="button"
+                                    class="flex min-h-10 shrink-0 items-center gap-1 rounded-lg px-2 text-pink-700 focus-visible:ring-4 focus-visible:ring-pink-200"
+                                    :aria-label="`Ubah ${row.label}`"
+                                    @click="goTo(row.step)"
+                                >
+                                    <Pencil
+                                        class="size-4"
+                                        aria-hidden="true"
+                                    />Ubah
+                                </button>
+                            </div>
+                        </dl>
+                    </section>
+                    <div
+                        class="rounded-2xl border bg-zinc-50 p-4 text-sm leading-6 dark:bg-zinc-800"
+                    >
+                        <p class="font-semibold">Notis privasi — draf UAT</p>
+                        <p>
+                            Versi {{ privacyVersion }}. Teks ini masih
+                            memerlukan kelulusan privasi/undang-undang.
+                            <span v-if="collectContactDetails"
+                                >E-mel dan alamat digunakan untuk rekod
+                                pendaftaran. Maklumat pendaftaran yang belum
+                                disahkan disulitkan dan dipadam selepas 30 hari.
+                                Selepas staf menerima pendaftaran, maklumat
+                                disalin ke rekod pesakit; rekod pesakit tidak
+                                dipadam selepas 30 hari.</span
+                            >
+                        </p>
+                    </div>
+                    <label
+                        class="flex items-start gap-3 rounded-2xl border p-4 text-sm"
+                        ><input
+                            v-model="form.consent_confirmed"
+                            type="checkbox"
+                            class="mt-1 size-5"
+                        /><span
+                            >Saya bersetuju maklumat ini digunakan untuk
+                            pendaftaran lawatan di {{ branchName }}.</span
+                        ></label
+                    >
+                    <span
+                        v-if="errorFor('consent_confirmed')"
+                        class="text-sm text-red-700"
+                        role="alert"
+                        >{{ errorFor('consent_confirmed') }}</span
+                    >
+                    <div class="flex gap-3">
+                        <button
+                            type="button"
+                            class="min-h-12 rounded-xl border px-4"
+                            @click="back"
+                            aria-label="Kembali"
+                        >
+                            <ArrowLeft
+                                class="size-5"
+                                aria-hidden="true"
+                            /></button
+                        ><button
+                            type="submit"
+                            class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-pink-700 px-5 font-semibold text-white disabled:opacity-60"
+                            :disabled="submitting"
+                        >
+                            <LoaderCircle
+                                v-if="submitting"
+                                class="size-5 animate-spin"
+                            />{{
+                                submitting ? 'Menghantar…' : 'Hantar Maklumat'
+                            }}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </main>
+</template>

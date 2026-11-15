@@ -1,0 +1,1363 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Domain\Access\BillingPermissions;
+use App\Domain\Access\BranchAccessService;
+use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
+use App\Domain\Clinical\Dispensary\Models\DispensaryHandoff;
+use App\Domain\Clinical\Dispensary\Models\DispensaryItemException;
+use App\Domain\Clinical\Dispensary\Services\DispensaryHandoffService;
+use App\Domain\Clinical\Dispensary\Services\DispensaryService;
+use App\Domain\Clinical\Models\MedicineCatalogueItem;
+use App\Domain\Clinical\Services\ClinicalEncounterService;
+use App\Domain\Clinical\Services\CompleteConsultationService;
+use App\Domain\Clinical\Services\PatientAllergyService;
+use App\Domain\Clinical\Services\TreatmentPlanService;
+use App\Domain\Identity\Models\StaffProfile;
+use App\Domain\Organisation\Inventory\Models\InventoryBatch;
+use App\Domain\Organisation\Inventory\Models\InventoryItem;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Inventory\Models\InventorySku;
+use App\Domain\Organisation\Inventory\Models\InventoryStockBalance;
+use App\Domain\Organisation\Inventory\Models\MedicineCatalogueInventorySku;
+use App\Domain\Organisation\Inventory\Services\InventoryMovementService;
+use App\Domain\Organisation\Models\Branch;
+use App\Domain\Organisation\Models\Organisation;
+use App\Domain\Patient\Models\Patient;
+use App\Domain\Queue\Services\QueueEntryService;
+use App\Domain\Visit\Billing\Models\CashClosingDecision;
+use App\Domain\Visit\Billing\Models\ChargeDefinition;
+use App\Domain\Visit\Billing\Models\Invoice;
+use App\Domain\Visit\Billing\Models\InvoiceCredit;
+use App\Domain\Visit\Billing\Models\Payment;
+use App\Domain\Visit\Billing\Models\PaymentCorrection;
+use App\Domain\Visit\Billing\Models\PaymentMethod;
+use App\Domain\Visit\Billing\Models\PaymentRefund;
+use App\Domain\Visit\Billing\Models\PaymentRefundDecision;
+use App\Domain\Visit\Billing\Models\PriceBook;
+use App\Domain\Visit\Billing\Models\PriceEntry;
+use App\Domain\Visit\Billing\Services\BillingBuilderService;
+use App\Domain\Visit\Billing\Services\CashClosingService;
+use App\Domain\Visit\Billing\Services\CompleteVisitationService;
+use App\Domain\Visit\Billing\Services\FinancialLedger;
+use App\Domain\Visit\Billing\Services\InvoiceCorrectionService;
+use App\Domain\Visit\Billing\Services\PaymentMethodAdministrationService;
+use App\Domain\Visit\Billing\Services\PaymentService;
+use App\Domain\Visit\Billing\Services\RefundService;
+use App\Domain\Visit\Billing\Services\ResponsibilityService;
+use App\Domain\Visit\Models\Visit;
+use App\Models\User;
+use Carbon\CarbonImmutable;
+use Illuminate\Database\Connection;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\Config;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
+use PDOException;
+use RuntimeException;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Symfony\Component\Process\InputStream;
+use Symfony\Component\Process\Process;
+use Tests\Support\ContentionTimeouts;
+use Tests\Support\StaffBranchAssignmentBootstrapper;
+use Tests\TestCase;
+
+/** @phpstan-type Worker array{process: Process, input: InputStream} */
+class PostgresBillingRegressionTest extends TestCase
+{
+    private const OBSERVER = 'pgsql_billing_observer';
+
+    /** @var list<int> */
+    private array $organisationIds = [];
+
+    /** @var list<Process> */
+    private array $workers = [];
+
+    /** @var list<InputStream> */
+    private array $inputs = [];
+
+    private int $sequence = 1;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        if (DB::connection()->getDriverName() !== 'pgsql') {
+            $this->markTestSkipped('PostgreSQL Phase 3B regressions require DB_CONNECTION=pgsql.');
+        }
+        $database = (string) DB::connection()->getDatabaseName();
+        if (! app()->environment('testing') || preg_match('/(?:^|_)(?:test|testing)(?:_|$)/i', $database) !== 1) {
+            throw new RuntimeException('Phase 3B concurrency tests require an isolated PostgreSQL test database.');
+        }
+        foreach (['invoices', 'invoice_lines', 'consultation_checkouts', 'payment_allocations'] as $table) {
+            if (! Schema::hasTable($table)) {
+                throw new RuntimeException('Migrate the isolated PostgreSQL test database before Phase 3B regressions.');
+            }
+        }
+        Config::set('database.connections.'.self::OBSERVER, config('database.connections.'.config('database.default')));
+        DB::purge(self::OBSERVER);
+    }
+
+    protected function tearDown(): void
+    {
+        foreach ($this->inputs as $input) {
+            if (! $input->isClosed()) {
+                $input->close();
+            }
+        }
+        foreach ($this->workers as $worker) {
+            if ($worker->isRunning()) {
+                $worker->stop(1);
+            }
+        }
+        foreach ($this->organisationIds as $id) {
+            $this->deleteOrganisation($id);
+        }
+        DB::purge(self::OBSERVER);
+        parent::tearDown();
+    }
+
+    private function adjustmentArgs(array $f): array
+    {
+        foreach (['ca', 'ca2'] as $key) {
+            foreach (['billing.adjustments.add.branch', 'billing.adjustments.override_limit.branch', 'billing.adjustments.reverse.branch'] as $permission) {
+                $f[$key]->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+            }
+        }
+
+        return ['direction' => 'deduct', 'input_type' => 'fixed', 'input_value' => 1000, 'threshold_version' => 0, 'confirm_above_limit' => true, 'reason' => 'Synthetic private PG adjustment', 'idempotency_key' => (string) Str::uuid()];
+    }
+
+    public function test_two_first_prints_of_one_invoice_at_once_give_one_original_and_one_copy(): void
+    {
+        // BIL-5: the invoice row lock (and the version and label triggers) put two presses of Print in order.
+        $f = $this->billingFixture();
+        foreach (['ca', 'ca2'] as $key) {
+            // BIL-9: the printer must also see the patient's identity, as CA and CA Supervisor do.
+            foreach (['billing.print.branch', 'billing.bill_to.view.branch', 'billing.view.branch', 'patients.view.organisation'] as $permission) {
+                $f[$key]->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+            }
+        }
+        $out = $this->race([$this->billWorker($f, 'bill-issue', ['idempotency_key' => (string) Str::uuid()]), $this->billWorker($f, 'bill-issue', ['idempotency_key' => (string) Str::uuid()], 'ca2')], $f['patient']);
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, DB::table('issued_billing_documents')->where('invoice_id', $f['invoice']->id)->count());
+        $this->assertSame(['copy', 'original'], DB::table('issued_billing_document_prints')->where('organisation_id', $f['organisation']->id)->orderBy('label')->pluck('label')->all());
+    }
+
+    public function test_adjustment_race_serializes_two_cashiers_and_payment_without_overpaying(): void
+    {
+        $f = $this->billingFixture();
+        $a = $this->adjustmentArgs($f);
+        $out = $this->race([$this->billWorker($f, 'bill-adjust', $a), $this->billWorker($f, 'bill-adjust', [...$a, 'idempotency_key' => (string) Str::uuid()], 'ca2')], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $this->assertSame(3000, app(FinancialLedger::class)->state($f['invoice'])['total']);
+        $this->assertSame(1, DB::table('invoice_adjustments')->where('invoice_id', $f['invoice']->id)->count());
+        $snapshot = fn () => $this->financialSnapshot($f);
+        $this->assertPgRejects(function () use ($f): void {
+            DB::table('invoice_adjustments')->where('invoice_id', $f['invoice']->id)->update(['amount_sen' => 900]);
+        }, $snapshot, 'immutable');
+        $this->assertPgRejects(function () use ($f): void {
+            DB::table('invoice_adjustments')->where('invoice_id', $f['invoice']->id)->delete();
+        }, $snapshot, 'retained');
+    }
+
+    public function test_adjustment_and_payment_race_has_only_one_winner(): void
+    {
+        $f = $this->billingFixture();
+        $a = $this->adjustmentArgs($f);
+        $out = $this->race([$this->billWorker($f, 'bill-adjust', $a), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000), 'ca2')], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $state = app(FinancialLedger::class)->state($f['invoice']);
+        $this->assertTrue(($state['total'] === 3000 && $state['self_pay'] === 0) || ($state['total'] === 4000 && $state['self_pay'] === 4000));
+    }
+
+    public function test_postgres_rejects_forged_adjustment_basis_rounding_and_post_payment_history(): void
+    {
+        $f = $this->billingFixture();
+        $a = $this->adjustmentArgs($f);
+        $raw = ['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'branch_id' => $f['branch']->id, 'invoice_id' => $f['invoice']->id, 'actor_user_id' => $f['ca']->id, 'direction' => 'deduct', 'input_type' => 'percentage', 'input_value' => 1250, 'base_sen' => 4000, 'amount_sen' => 500, 'reason' => 'Synthetic PG evidence', 'threshold_version' => 0, 'threshold_sen' => null, 'limit_overridden' => true, 'invoice_version' => $f['invoice']->lock_version, 'idempotency_key' => (string) Str::uuid(), 'payload_hash' => str_repeat('a', 64), 'created_at' => now(), 'updated_at' => now()];
+        $snapshot = fn () => $this->financialSnapshot($f);
+        foreach (['base_sen' => 3999, 'amount_sen' => 499, 'threshold_sen' => 0, 'threshold_version' => 1] as $field => $value) {
+            $this->assertPgRejects(fn () => DB::table('invoice_adjustments')->insert([...$raw, $field => $value]), $snapshot);
+        }
+        $this->assertPgRejects(fn () => DB::table('invoice_adjustments')->insert($raw), $snapshot, 'new Invoice revision', true);
+        app(PaymentService::class)->add($f['ca'], $f['visit'], $f['invoice'], [...$this->payArgs($f, 1000), 'expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
+        $this->assertPgRejects(fn () => DB::table('invoice_adjustments')->insert([...$raw, 'invoice_version' => $f['invoice']->refresh()->lock_version]), $snapshot, 'before any financial history');
+    }
+
+    public function test_two_cashiers_cannot_overpay_one_invoice(): void
+    {
+        $f = $this->billingFixture();
+        $before = $this->financialSnapshot($f);
+        try {
+            app(PaymentService::class)->add($f['ca'], $f['visit'], $f['invoice'], [...$this->payArgs($f, 5000), 'expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
+            $this->fail('A 5000-sen payment must not settle a 4000-sen balance.');
+        } catch (ValidationException $e) {
+            $this->assertArrayHasKey('amount_sen', $e->errors());
+            $this->assertSame($before, $this->financialSnapshot($f));
+        }
+        $out = $this->race([$this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000)), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000), 'ca2')], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $this->assertSame(4000, app(FinancialLedger::class)->state($f['invoice'])['self_pay']);
+    }
+
+    public function test_duplicate_complete_visitation_records_one_transition(): void
+    {
+        $f = $this->billingFixture(0);
+        $args = ['visit_lock_version' => $f['visit']->lock_version];
+        $out = $this->race([$this->billWorker($f, 'bill-complete', $args), $this->billWorker($f, 'bill-complete', $args, 'ca2')], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $this->assertSame('completed', $f['visit']->refresh()->status);
+        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'billing.visit_completed')->count());
+    }
+
+    public function test_payment_and_completion_require_the_same_financial_revision(): void
+    {
+        $f = $this->billingFixture();
+        $out = $this->race([$this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000)), $this->billWorker($f, 'bill-complete', ['visit_lock_version' => $f['visit']->lock_version], 'ca2')], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $this->assertSame('registered', $f['visit']->refresh()->status);
+        app(CompleteVisitationService::class)->complete($f['ca'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'visit_lock_version' => $f['visit']->lock_version, 'lock_version' => $f['invoice']->refresh()->lock_version]);
+        $this->assertSame('completed', $f['visit']->refresh()->status);
+    }
+
+    public function test_deferment_approval_and_payment_do_not_double_allocate(): void
+    {
+        $f = $this->billingFixture();
+        $proposal = $this->proposal($f, 'deferment');
+        $out = $this->race([$this->billWorker($f, 'bill-approve', ['kind' => 'deferment', 'proposal' => $proposal->public_id, 'proposal_lock_version' => $proposal->lock_version], 'approver'), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000))], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $state = app(FinancialLedger::class)->state($f['invoice']);
+        $this->assertSame(4000, $state['self_pay'] + $state['deferred']);
+        $this->assertSame(0, $state['due_now']);
+    }
+
+    public function test_panel_acceptance_and_self_pay_do_not_double_allocate(): void
+    {
+        $f = $this->billingFixture();
+        $proposal = $this->proposal($f, 'panel');
+        $out = $this->race([$this->billWorker($f, 'bill-approve', ['kind' => 'panel', 'proposal' => $proposal->public_id, 'proposal_lock_version' => $proposal->lock_version], 'approver'), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000))], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $state = app(FinancialLedger::class)->state($f['invoice']);
+        $this->assertSame(4000, $state['self_pay'] + $state['panel']);
+        $this->assertSame(0, $state['due_now']);
+    }
+
+    public function test_duplicate_build_and_finalization_preserve_one_current_invoice(): void
+    {
+        $f = $this->billingFixture(4000, false);
+        $out = $this->race([$this->billWorker($f, 'bill-build'), $this->billWorker($f, 'bill-build', [], 'ca2')], $f['patient']);
+        $this->assertSame(2, substr_count($out, 'SUCCESS'));
+        $f['invoice'] = Invoice::query()->where('visit_id', $f['visit']->id)->sole();
+        $out = $this->race([$this->billWorker($f, 'bill-finalize'), $this->billWorker($f, 'bill-finalize', [], 'ca2')], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $this->assertSame(2, DB::table('invoice_lines')->where('invoice_id', $f['invoice']->id)->count());
+        // Direct SQL proof reaches COMMIT, exercising deferred protection rather than model guards.
+        $lineId = DB::table('invoice_lines')->where('invoice_id', $f['invoice']->id)->value('id');
+        $snapshot = fn () => $this->financialSnapshot($f);
+        $this->assertPgRejects(fn () => DB::table('invoice_lines')->where('id', $lineId)->update(['quantity' => '-1.000']), $snapshot);
+        $this->assertPgRejects(fn () => DB::table('invoice_lines')->where('id', $lineId)->update(['display_name' => 'Forbidden final rewrite']), $snapshot, 'Final financial evidence is immutable and retained', true);
+        $this->assertPgRejects(fn () => DB::table('invoices')->where('id', $f['invoice']->id)->update(['total_sen' => 1]), $snapshot);
+        $this->assertPgRejects(fn () => DB::table('invoice_lines')->where('id', $lineId)->update(['branch_id' => 999999999]), $snapshot);
+    }
+
+    public function test_dispensary_completion_and_billing_generation_use_committed_actual_quantity(): void
+    {
+        $f = $this->completableFixture('20.000', '10.000', '20.000');
+        $this->prices($f, 4000);
+        $out = $this->race([$this->worker(['complete', (string) $f['ca']->id, (string) $f['branch']->id, $f['case']->public_id, (string) $f['case']->lock_version]), $this->billWorker($f, 'bill-build', [], 'ca2')], $f['patient']);
+        $this->assertStringContainsString('COMPLETED', $out);
+        $movements = DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->orderBy('id')->get()->toJson();
+        $invoice = app(BillingBuilderService::class)->build($f['ca'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => null]);
+        $this->assertSame('20.000', (string) $f['item']->refresh()->quantity_ordered);
+        $this->assertSame('10.000', (string) $f['item']->quantity_dispensed);
+        $this->assertSame('10.000', (string) DB::table('invoice_lines')->where('invoice_id', $invoice->id)->where('line_type', 'medicine')->value('quantity'));
+        $this->assertSame('10.000', (string) $f['balance']->refresh()->quantity);
+        $this->assertSame($movements, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->orderBy('id')->get()->toJson());
+        $this->assertSame(2, DB::table('stock_movements')->where('organisation_id', $f['organisation']->id)->count()); // One opening, one dispense; no billing movement.
+    }
+
+    public function test_payment_permission_loss_wins_before_mutation(): void
+    {
+        $f = $this->billingFixture();
+        $f['ca']->syncRoles([]);
+        $out = $this->leaderThenFollower($this->worker(['revoke', (string) $f['ca']->id, 'payments.add.branch']), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000)));
+        $this->assertStringContainsString('DENIED', $out);
+        $this->assertSame(0, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+    }
+
+    public function test_payment_method_deactivation_wins_before_payment_without_financial_mutation(): void
+    {
+        $f = $this->billingFixture();
+        $f['manager'] = $this->user($f['organisation'], $f['branch'], null, [PaymentMethodAdministrationService::PERMISSION]);
+        $invoiceVersion = $f['invoice']->lock_version;
+
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-payment-method-deactivate', ['method' => $f['method']->id, 'hold' => true], 'manager'),
+            $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000)),
+        );
+
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $this->assertFalse($f['method']->refresh()->is_active);
+        $this->assertSame(0, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(0, DB::table('payment_allocations')->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(0, DB::table('billing_document_counters')->where('organisation_id', $f['organisation']->id)->where('document_type', 'receipt')->count());
+        $this->assertSame(0, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'billing.payment_recorded')->count());
+        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'payment_method.deactivated')->count());
+        $this->assertSame($invoiceVersion, $f['invoice']->refresh()->lock_version);
+        $this->assertSame(['total' => 4000, 'self_pay' => 0, 'panel' => 0, 'deferred' => 0, 'due_now' => 4000], app(FinancialLedger::class)->state($f['invoice']));
+    }
+
+    public function test_payment_wins_before_method_deactivation_and_historical_evidence_remains_readable(): void
+    {
+        $f = $this->billingFixture();
+        $f['manager'] = $this->user($f['organisation'], $f['branch'], null, [PaymentMethodAdministrationService::PERMISSION]);
+
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-pay', [...$this->payArgs($f, 4000), 'hold' => true]),
+            $this->billWorker($f, 'bill-payment-method-deactivate', ['method' => $f['method']->id], 'manager'),
+        );
+
+        $this->assertSame(2, substr_count($out, 'SUCCESS'));
+        $this->assertFalse($f['method']->refresh()->is_active);
+        $payment = Payment::query()->where('organisation_id', $f['organisation']->id)->sole();
+        $this->assertSame($f['method']->id, $payment->payment_method_id);
+        $this->assertSame('Cash', $payment->method_snapshot);
+        $this->assertSame('posted', $payment->status);
+        $this->assertNotEmpty($payment->receipt_number);
+        $this->assertSame(1, DB::table('payment_allocations')->where('payment_id', $payment->id)->count());
+        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'billing.payment_recorded')->count());
+        $this->assertSame(1, AuditLog::query()->where('organisation_id', $f['organisation']->id)->where('event', 'payment_method.deactivated')->count());
+        $this->assertSame(['total' => 4000, 'self_pay' => 4000, 'panel' => 0, 'deferred' => 0, 'due_now' => 0], app(FinancialLedger::class)->state($f['invoice']));
+    }
+
+    public function test_assignment_loss_fails_closed_before_payment(): void
+    {
+        $f = $this->billingFixture();
+        $out = $this->leaderThenFollower($this->worker(['end-assignment', (string) $f['ca']->id, (string) $f['branch']->id]), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000)));
+        $this->assertSame(0, substr_count($out, 'SUCCESS'));
+        $this->assertSame(0, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+    }
+
+    public function test_visit_state_loss_before_completion_fails_closed(): void
+    {
+        $f = $this->billingFixture(0);
+        $out = $this->leaderThenFollower($this->worker(['state-loss', $f['visit']->visit_number, 'visit', (string) $f['ca2']->id]), $this->billWorker($f, 'bill-complete', ['visit_lock_version' => $f['visit']->lock_version]));
+        $this->assertStringContainsString('STALE', $out);
+        $this->assertSame('cancelled', $f['visit']->refresh()->status);
+        $this->assertNull($f['visit']->completed_at);
+    }
+
+    public function test_last_remaining_payment_and_idempotent_retry_are_exact(): void
+    {
+        $f = $this->billingFixture();
+        app(PaymentService::class)->add($f['ca'], $f['visit'], $f['invoice'], [...$this->payArgs($f, 2000), 'expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
+        $f['invoice']->refresh();
+        $qr = new PaymentMethod;
+        $qr->forceFill(['organisation_id' => $f['organisation']->id, 'code' => 'qr', 'name' => 'QR', 'requires_reference' => true])->save();
+        $a = [...$this->payArgs($f, 2000), 'method' => 'qr', 'reference' => 'SYNTHETIC-QR'];
+        $b = [...$this->payArgs($f, 2000), 'method' => 'qr', 'reference' => 'SYNTHETIC-QR'];
+        $out = $this->race([$this->billWorker($f, 'bill-pay', $a), $this->billWorker($f, 'bill-pay', $b)], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $winner = Payment::query()->where('organisation_id', $f['organisation']->id)->latest('id')->firstOrFail();
+        $retry = $winner->idempotency_key === $a['idempotency_key'] ? $a : $b;
+        $workers = [$this->billWorker($f, 'bill-pay', $retry)];
+        $this->runWorkers($workers);
+        $this->assertStringContainsString('SUCCESS', $this->workerOutput($workers));
+        $this->assertSame(2, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(2000, (int) Payment::query()->where('organisation_id', $f['organisation']->id)->where('method_snapshot', 'Cash')->sum('amount_sen'));
+        $this->assertSame(2000, (int) Payment::query()->where('organisation_id', $f['organisation']->id)->where('method_snapshot', 'QR')->sum('amount_sen'));
+        $this->assertSame(['total' => 4000, 'self_pay' => 4000, 'panel' => 0, 'deferred' => 0, 'due_now' => 0], app(FinancialLedger::class)->state($f['invoice']));
+    }
+
+    public function test_late_financial_audit_failure_rolls_back_payment_and_completion(): void
+    {
+        $f = $this->billingFixture();
+        DB::unprepared("CREATE OR REPLACE FUNCTION kpone_phase3b_fail_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.event LIKE 'billing.%' THEN RAISE EXCEPTION 'Synthetic late billing audit failure' USING ERRCODE='23514'; END IF; RETURN NEW; END $$; CREATE TRIGGER kpone_phase3b_fail_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION kpone_phase3b_fail_audit()");
+        try {
+            $version = $f['invoice']->lock_version;
+            $workers = [$this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000))];
+            $this->runWorkers($workers);
+            $this->assertSame(1, $workers[0]['process']->getExitCode());
+            $this->assertSame($version, $f['invoice']->refresh()->lock_version);
+            $this->assertSame(0, Payment::query()->where('organisation_id', $f['organisation']->id)->count());
+        } finally {
+            DB::unprepared('DROP TRIGGER kpone_phase3b_fail_audit ON audit_logs; DROP FUNCTION kpone_phase3b_fail_audit()');
+        }
+        app(PaymentService::class)->add($f['ca'], $f['visit'], $f['invoice'], [...$this->payArgs($f, 4000), 'expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
+        $f['invoice']->refresh();
+        DB::unprepared("CREATE OR REPLACE FUNCTION kpone_phase3b_fail_audit() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.event='billing.visit_completed' THEN RAISE EXCEPTION 'Synthetic late completion failure' USING ERRCODE='23514'; END IF; RETURN NEW; END $$; CREATE TRIGGER kpone_phase3b_fail_audit BEFORE INSERT ON audit_logs FOR EACH ROW EXECUTE FUNCTION kpone_phase3b_fail_audit()");
+        try {
+            $workers = [$this->billWorker($f, 'bill-complete', ['visit_lock_version' => $f['visit']->lock_version])];
+            $this->runWorkers($workers);
+            $this->assertSame(1, $workers[0]['process']->getExitCode());
+            $this->assertSame('registered', $f['visit']->refresh()->status);
+        } finally {
+            DB::unprepared('DROP TRIGGER kpone_phase3b_fail_audit ON audit_logs; DROP FUNCTION kpone_phase3b_fail_audit()');
+        }
+    }
+
+    public function test_price_publication_before_finalization_rejects_stale_preview(): void
+    {
+        $f = $this->billingFixture(4000, false);
+        $f['invoice'] = app(BillingBuilderService::class)->build($f['ca'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => null]);
+        $f['publisher'] = $this->user($f['organisation'], $f['branch'], null, ['prices.publish.organisation', 'branch_context.switch.branch']);
+        $out = $this->leaderThenFollower($this->billWorker($f, 'bill-price', ['book' => $f['book']->id, 'charge' => $f['charge']->id, 'price_version' => 1, 'amount_sen' => 4500, 'hold' => true], 'publisher'), $this->billWorker($f, 'bill-finalize'));
+        $this->assertStringContainsString('STALE', $out);
+        $this->assertSame('draft', $f['invoice']->refresh()->status);
+        $this->assertSame(4000, $f['invoice']->total_sen);
+    }
+
+    public function test_no_medicine_checkout_and_encounter_edit_serialize_on_visit(): void
+    {
+        $f = $this->noMedicineFixture(false);
+        $out = $this->race([$this->billWorker($f, 'bill-checkout', $this->checkoutArgs($f), 'doctor'), $this->billWorker($f, 'bill-edit', ['lock_version' => $f['encounter']->lock_version, 'clinical_note' => 'Synthetic concurrent checkout note', 'vitals' => ['pulse_bpm' => 72], 'diagnoses' => []], 'doctor')], $f['visit']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE') + substr_count($out, 'DENIED'));
+        $this->assertSame(0, DispensaryCase::query()->where('visit_id', $f['visit']->id)->count());
+    }
+
+    public function test_reopen_before_invoice_generation_invalidates_checkout(): void
+    {
+        $f = $this->noMedicineFixture(true);
+        $out = $this->leaderThenFollower($this->billWorker($f, 'bill-reopen', ['visit_lock_version' => $f['visit']->lock_version, 'checkout_lock_version' => $f['checkout']->lock_version, 'hold' => true], 'doctor'), $this->billWorker($f, 'bill-build'));
+        $this->assertStringContainsString('STALE', $out);
+        $this->assertSame(0, Invoice::query()->where('visit_id', $f['visit']->id)->count());
+        $this->assertSame('serving', $f['queue']->refresh()->status);
+    }
+
+    public function test_payment_reversal_and_completion_have_one_valid_winner(): void
+    {
+        $f = $this->billingFixture();
+        $receipt = app(PaymentService::class)->add($f['ca'], $f['visit'], $f['invoice'], [...$this->payArgs($f, 4000), 'expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
+        $f['invoice']->refresh();
+        $f['finance'] = $this->user($f['organisation'], $f['branch'], null, ['payments.reverse.branch', 'branch_context.switch.branch']);
+        $out = $this->race([$this->billWorker($f, 'bill-reverse', ['payment' => $receipt->public_id, 'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction'], 'finance'), $this->billWorker($f, 'bill-complete', ['visit_lock_version' => $f['visit']->lock_version])], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        $state = app(FinancialLedger::class)->state($f['invoice']);
+        $this->assertSame($f['visit']->refresh()->status === 'completed' ? 0 : 4000, $state['due_now']);
+    }
+
+    public function test_cash_receipt_reversal_holding_its_lock_makes_a_cash_closing_approval_wait_and_refuse(): void
+    {
+        $f = $this->cashClosingFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-reverse', ['payment' => $f['receipt']->public_id, 'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction', 'hold' => true], 'finance'),
+            $this->billWorker($f, 'bill-cash-decide', ['closing' => $f['closing']->public_id, 'decision' => 'approved', 'reason' => null, 'business_date' => $f['day']->toDateString(), 'idempotency_key' => (string) Str::uuid()], 'supervisor'),
+        );
+
+        // The approval waited for the reversal, then saw the receipt reversed and refused: no approval of stale figures.
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE cash_closing'), $out);
+        $this->assertSame('reversed', $f['receipt']->refresh()->status);
+        $this->assertSame(0, CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(['count' => 0, 'sen' => 0], app(CashClosingService::class)->expected($f['branch'], $f['day']));
+    }
+
+    public function test_cash_closing_approval_holding_its_share_lock_makes_a_receipt_reversal_wait_then_succeed(): void
+    {
+        $f = $this->cashClosingFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-cash-decide', ['closing' => $f['closing']->public_id, 'decision' => 'approved', 'reason' => null, 'business_date' => $f['day']->toDateString(), 'idempotency_key' => (string) Str::uuid(), 'hold' => true], 'supervisor'),
+            $this->billWorker($f, 'bill-reverse', ['payment' => $f['receipt']->public_id, 'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction'], 'finance'),
+        );
+
+        // The reversal waited until the approval committed: the approval matched the receipts at that moment, and the
+        // later reversal leaves the approved snapshot unchanged (the page then shows "changed after approval").
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $decision = CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->sole();
+        $this->assertSame([$f['closing']->id, 'approved'], [$decision->cash_closing_id, $decision->decision]);
+        $this->assertSame('reversed', $f['receipt']->refresh()->status);
+        // The reversal was recorded only after the approval: it waited behind the approval's share lock.
+        $reversedAt = CarbonImmutable::parse((string) DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->value('reversed_at'), 'UTC');
+        $this->assertTrue($reversedAt->greaterThanOrEqualTo($decision->decided_at), 'Reversal must follow the approval.');
+        $this->assertSame(['count' => 0, 'sen' => 0], app(CashClosingService::class)->expected($f['branch'], $f['day']));
+    }
+
+    public function test_recording_a_refund_and_approving_the_receipt_day_cash_closing_go_one_after_the_other(): void
+    {
+        // Refund first: the approval waits, then sees the refunded receipt now counts as received and refuses.
+        $f = $this->refundFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-refund', [...$this->refundArgs($f), 'hold' => true], 'supervisor'),
+            $this->billWorker($f, 'bill-cash-decide', $this->cashApproveArgs($f), 'director'),
+        );
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE cash_closing'), $out);
+        $this->assertSame(1, PaymentRefund::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(0, CashClosingDecision::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(['count' => 1, 'sen' => 4000], app(CashClosingService::class)->expected($f['branch'], $f['day']));
+
+        // Approval first: the refund waits for the approval, then is recorded; the approved snapshot (RM 0) stays.
+        $g = $this->refundFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($g, 'bill-cash-decide', [...$this->cashApproveArgs($g), 'hold' => true], 'director'),
+            $this->billWorker($g, 'bill-refund', $this->refundArgs($g), 'supervisor'),
+        );
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame('approved', CashClosingDecision::query()->where('organisation_id', $g['organisation']->id)->sole()->decision);
+        $this->assertSame(0, $g['closing']->refresh()->expected_cash_sen);
+        $this->assertSame(1, PaymentRefund::query()->where('organisation_id', $g['organisation']->id)->count());
+    }
+
+    public function test_two_people_recording_a_refund_for_one_receipt_record_one_refund(): void
+    {
+        $f = $this->refundFixture();
+        $f['finance']->givePermissionTo(Permission::findOrCreate('payments.refunds.record.branch', 'web'));
+        $out = $this->race([
+            $this->billWorker($f, 'bill-refund', $this->refundArgs($f), 'supervisor'),
+            $this->billWorker($f, 'bill-refund', [...$this->refundArgs($f), 'reason_code' => 'overpaid'], 'finance'),
+        ], $f['receipt']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE refund'), $out);
+        $this->assertSame(1, PaymentRefund::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(1, DB::table('audit_logs')->where('organisation_id', $f['organisation']->id)->where('event', 'billing.refund_recorded')->count());
+    }
+
+    public function test_two_people_deciding_one_refund_record_one_decision(): void
+    {
+        $f = $this->refundFixture();
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $refund = app(RefundService::class)->record($f['supervisor'], $f['visit'], $f['receipt']->public_id, [...$this->refundArgs($f), 'expected_branch_id' => $f['branch']->id]);
+        $out = $this->race([
+            $this->billWorker($f, 'bill-refund-decide', ['refund' => $refund->public_id, 'decision' => 'approved', 'reason_code' => null, 'idempotency_key' => (string) Str::uuid()], 'finance'),
+            $this->billWorker($f, 'bill-refund-decide', ['refund' => $refund->public_id, 'decision' => 'rejected', 'reason_code' => 'other', 'idempotency_key' => (string) Str::uuid()], 'director'),
+        ], $f['receipt']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE refund'), $out);
+        $this->assertSame(1, PaymentRefundDecision::query()->where('organisation_id', $f['organisation']->id)->count());
+    }
+
+    public function test_two_refunds_after_completion_racing_on_one_receipt_never_exceed_it(): void
+    {
+        // BIL-13: two people each record a refund after completion of RM 30.00 on one RM 40.00 receipt at the same
+        // moment. The receipt row lock (service and PostgreSQL rule) makes them run one after the other, and the second
+        // re-reads the first, so exactly one is recorded and the receipt is never refunded beyond its amount.
+        $f = $this->completedRefundFixture();
+        $args = fn (): array => [...$this->refundArgs($f), 'reason_code' => 'medicine_returned', 'amount_sen' => 3000, 'idempotency_key' => (string) Str::uuid()];
+        $out = $this->race([
+            $this->billWorker($f, 'bill-refund', $args(), 'supervisor'),
+            $this->billWorker($f, 'bill-refund', $args(), 'finance'),
+        ], $f['receipt']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE amount_sen'), $out);
+        $this->assertSame([3000], PaymentRefund::query()->where('organisation_id', $f['organisation']->id)->pluck('amount_sen')->all());
+        $this->assertSame(1, InvoiceCredit::query()->where('invoice_id', $f['invoice']->id)->count());
+        $this->assertSame(1, DB::table('audit_logs')->where('organisation_id', $f['organisation']->id)->where('event', 'billing.refund_recorded')->count());
+    }
+
+    public function test_two_refunds_after_completion_that_fit_together_are_both_recorded(): void
+    {
+        // Two refunds of RM 20.00 on one RM 40.00 receipt fit together: both are recorded, one after the other.
+        $f = $this->completedRefundFixture();
+        $args = fn (): array => [...$this->refundArgs($f), 'reason_code' => 'goodwill', 'amount_sen' => 2000, 'idempotency_key' => (string) Str::uuid()];
+        $out = $this->race([
+            $this->billWorker($f, 'bill-refund', $args(), 'supervisor'),
+            $this->billWorker($f, 'bill-refund', $args(), 'finance'),
+        ], $f['receipt']);
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(4000, (int) PaymentRefund::query()->where('organisation_id', $f['organisation']->id)->sum('amount_sen'));
+        $this->assertSame(2, InvoiceCredit::query()->where('invoice_id', $f['invoice']->id)->count());
+    }
+
+    public function test_two_people_correcting_one_receipt_at_once_record_one_correction(): void
+    {
+        // BIL-20: two Finance staff each correct the same RM 40.00 receipt of a completed visit at the same moment
+        // (one says RM 20.00 was really received, the other RM 30.00). The patient, visit and invoice row locks make
+        // them run one after the other, and the second sees the changed invoice and receipt and is refused, so the
+        // receipt is reversed once and replaced once.
+        $f = $this->correctionFixture();
+        $out = $this->race([
+            $this->billWorker($f, 'bill-correct', $this->correctionArgs($f, 2000), 'finance'),
+            $this->billWorker($f, 'bill-correct', $this->correctionArgs($f, 3000), 'director'),
+        ], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, substr_count($out, 'STALE invoice'), $out);
+        $this->assertSame(1, PaymentCorrection::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(1, DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->count());
+        $this->assertSame('reversed', $f['receipt']->refresh()->status);
+        $replacements = Payment::query()->where('organisation_id', $f['organisation']->id)->where('status', 'posted')->pluck('amount_sen')->all();
+        $this->assertCount(1, $replacements);
+        $this->assertContains($replacements[0], [2000, 3000]);
+        $state = app(FinancialLedger::class)->state($f['invoice']->refresh());
+        $this->assertSame([$replacements[0], 4000 - $replacements[0]], [$state['self_pay'], $state['due_now']]);
+        $this->assertSame(1, DB::table('audit_logs')->where('organisation_id', $f['organisation']->id)->where('event', 'billing.receipt_corrected')->count());
+    }
+
+    public function test_a_correction_and_a_refund_on_one_receipt_cannot_both_win(): void
+    {
+        // BIL-20: a refund after completion and a correction of the same receipt at the same moment. Both lock the
+        // patient and visit, then the invoice and the receipt, in the same order, so they run one after the other
+        // without deadlock: a refund first leaves the receipt with a refund (the correction is refused); a correction
+        // first reverses the receipt (the refund is refused).
+        $f = $this->correctionFixture();
+        $out = $this->race([
+            $this->billWorker($f, 'bill-correct', $this->correctionArgs($f, 2000), 'finance'),
+            $this->billWorker($f, 'bill-refund', $this->correctionRaceRefundArgs($f), 'supervisor'),
+        ], $f['patient']);
+        $this->assertCorrectionOrRefundWon($f, $out, PaymentCorrection::query()->where('organisation_id', $f['organisation']->id)->exists());
+    }
+
+    public function test_a_refund_held_first_makes_a_waiting_correction_refuse(): void
+    {
+        // BIL-20: the order fixed, refund first. The correction waits, then sees the refund and is refused.
+        $f = $this->correctionFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-refund', [...$this->correctionRaceRefundArgs($f), 'hold' => true], 'supervisor'),
+            $this->billWorker($f, 'bill-correct', $this->correctionArgs($f, 2000), 'finance'),
+        );
+        $this->assertCorrectionOrRefundWon($f, $out, false);
+    }
+
+    public function test_a_correction_held_first_makes_a_waiting_refund_refuse(): void
+    {
+        // BIL-20: the order fixed, correction first. The refund waits, then sees the reversed receipt and is refused.
+        $f = $this->correctionFixture();
+        $out = $this->leaderThenFollower(
+            $this->billWorker($f, 'bill-correct', [...$this->correctionArgs($f, 2000), 'hold' => true], 'finance'),
+            $this->billWorker($f, 'bill-refund', $this->correctionRaceRefundArgs($f), 'supervisor'),
+        );
+        $this->assertCorrectionOrRefundWon($f, $out, true);
+    }
+
+    public function test_the_same_correction_sent_twice_at_once_is_recorded_once(): void
+    {
+        // BIL-20: a double click or retry with one request key: both requests succeed and one correction is recorded.
+        $f = $this->correctionFixture();
+        $args = $this->correctionArgs($f, 2000);
+        $out = $this->race([
+            $this->billWorker($f, 'bill-correct', $args, 'finance'),
+            $this->billWorker($f, 'bill-correct', $args, 'finance'),
+        ], $f['patient']);
+        $this->assertSame(2, substr_count($out, 'SUCCESS'), $out);
+        $this->assertSame(1, PaymentCorrection::query()->where('organisation_id', $f['organisation']->id)->count());
+        $this->assertSame(1, DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->count());
+        $this->assertSame(1, Payment::query()->where('organisation_id', $f['organisation']->id)->where('status', 'posted')->count());
+        $this->assertSame(1, DB::table('audit_logs')->where('organisation_id', $f['organisation']->id)->where('event', 'billing.receipt_corrected')->count());
+    }
+
+    public function test_void_reissue_and_payment_cannot_both_win(): void
+    {
+        $f = $this->billingFixture();
+        $f['finance'] = $this->user($f['organisation'], $f['branch'], null, ['invoices.void.branch', 'branch_context.switch.branch']);
+        $out = $this->race([$this->billWorker($f, 'bill-void', ['reason' => 'Synthetic full correction'], 'finance'), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 4000))], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame(1, substr_count($out, 'STALE'));
+        if ($f['invoice']->refresh()->status === 'voided') {
+            $new = app(BillingBuilderService::class)->build($f['ca'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => null]);
+            $this->assertSame($f['invoice']->public_id, $new->replaces_public_id);
+        } else {
+            $this->assertSame(4000, app(FinancialLedger::class)->state($f['invoice'])['self_pay']);
+        }
+    }
+
+    public function test_old_outstanding_settlement_retains_completed_history_and_denies_cross_branch_probes(): void
+    {
+        $f = $this->billingFixture();
+        $proposal = $this->proposal($f, 'deferment');
+        app(ResponsibilityService::class)->approve($f['approver'], $f['visit'], $f['invoice'], 'deferment', $proposal->public_id, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version, 'proposal_lock_version' => 1]);
+        $f['invoice']->refresh();
+        app(CompleteVisitationService::class)->complete($f['ca'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'visit_lock_version' => $f['visit']->lock_version, 'lock_version' => $f['invoice']->lock_version]);
+        $before = $f['visit']->refresh()->completion_evidence;
+        $out = $this->race([$this->billWorker($f, 'bill-pay', $this->payArgs($f, 3000)), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 3000), 'ca2')], $f['patient']);
+        $this->assertSame(1, substr_count($out, 'SUCCESS'));
+        $this->assertSame($before, $f['visit']->refresh()->completion_evidence);
+        $this->assertSame(1000, app(FinancialLedger::class)->state($f['invoice'])['deferred']);
+        $this->assertPgRejects(fn () => DB::table('patient_receivables')->where('id', $proposal->id)->update(['remaining_sen' => 0]), fn () => $this->financialSnapshot($f), 'Deferred balance must reconcile to immutable receipt allocations', true);
+        $settledState = $this->financialSnapshot($f);
+        $other = $this->fixture();
+        $f['outsider'] = $other['ca'];
+        $args = ['bill-pay', (string) $other['ca']->id, (string) $other['branch']->id, $f['visit']->visit_number, base64_encode(json_encode([...$this->payArgs($f, 1000), 'invoice' => $f['invoice']->public_id, 'lock_version' => $f['invoice']->refresh()->lock_version], JSON_THROW_ON_ERROR))];
+        $workers = [$this->worker($args), $this->billWorker($f, 'bill-pay', $this->payArgs($f, 1000), 'doctor')];
+        $this->runWorkers($workers);
+        $this->assertSame(2, substr_count($this->workerOutput($workers), 'DENIED'));
+        $this->assertSame($settledState, $this->financialSnapshot($f));
+        $branch = new Branch;
+        $branch->forceFill(['organisation_id' => $f['organisation']->id, 'code' => 'OTHER', 'name' => 'Synthetic other branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
+        $actor = $this->user($f['organisation'], $branch, 'ca', $this->caPermissions());
+        // Fixture permission grants legitimately audit; isolate the subsequent denial.
+        $settledState = $this->financialSnapshot($f);
+        $args[1] = (string) $actor->id;
+        $args[2] = (string) $branch->id;
+        $workers = [$this->worker($args)];
+        $this->runWorkers($workers);
+        $this->assertStringContainsString('DENIED', $this->workerOutput($workers));
+        $this->assertSame(1000, app(FinancialLedger::class)->state($f['invoice'])['deferred']);
+        $this->assertSame($settledState, $this->financialSnapshot($f));
+        $this->assertSame($f['invoice']->id, $proposal->refresh()->invoice_id);
+        $this->assertSame($before, $f['visit']->refresh()->completion_evidence);
+    }
+
+    private function billingFixture(int $total = 4000, bool $finalized = true): array
+    {
+        $f = $this->completableFixture('10.000', '4.000');
+        app(DispensaryService::class)->complete($f['ca'], $f['case'], ['expected_branch_id' => $f['branch']->id, 'case_lock_version' => $f['case']->lock_version]);
+        $this->prices($f, $total);
+        if ($finalized) {
+            $f['invoice'] = app(BillingBuilderService::class)->build($f['ca'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => null]);
+            $f['invoice'] = app(BillingBuilderService::class)->finalize($f['ca'], $f['visit'], $f['invoice'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
+        }
+
+        return $f;
+    }
+
+    private function assertPgRejects(\Closure $operation, \Closure $snapshot, string $message = '', bool $deferred = false): void
+    {
+        $this->assertSame(0, DB::transactionLevel());
+        $before = $snapshot();
+        $statementCompleted = false;
+        try {
+            DB::transaction(function () use ($operation, &$statementCompleted): void {
+                $operation();
+                $statementCompleted = true;
+            });
+            $this->fail('PostgreSQL accepted invalid retained financial evidence.');
+        } catch (PDOException $e) {
+            // QueryException extends PDOException; COMMIT may throw the native parent.
+            $this->assertSame('23514', (string) ($e->errorInfo[0] ?? $e->getCode()), $e->getMessage());
+            if ($message !== '') {
+                $this->assertStringContainsString($message, $e->getMessage());
+            }
+            if ($deferred) {
+                $this->assertTrue($statementCompleted, 'The deferred violation must occur at COMMIT, not during the statement.');
+            }
+            $this->assertSame(0, DB::transactionLevel());
+            $this->assertFalse(DB::connection()->getPdo()->inTransaction());
+            $this->assertSame($before, $snapshot(), 'The independent observer must see the original committed evidence after rollback.');
+        }
+    }
+
+    /**
+     * BIL-4: a real RM 40.00 cash receipt on a finalised invoice, moved to yesterday (branch time) so the day has
+     * ended and can be approved, and an exact cash count of that day by the CA.
+     *
+     * @return array<string, mixed>
+     */
+    private function cashClosingFixture(): array
+    {
+        $f = $this->billingFixture();
+        $f['receipt'] = app(PaymentService::class)->add($f['ca'], $f['visit'], $f['invoice'], [...$this->payArgs($f, 4000), 'expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version]);
+        $f['invoice']->refresh();
+        $f['day'] = CarbonImmutable::now($f['branch']->timezone)->subDay()->startOfDay();
+        DB::transaction(function () use ($f): void {
+            // Only this isolated fixture moves a receipt to yesterday (retained receipts are otherwise immutable).
+            DB::table('payment_methods')->where('organisation_id', $f['organisation']->id)->where('code', 'cash')->update(['classification' => 'cash']);
+            DB::statement('ALTER TABLE payments DISABLE TRIGGER USER');
+            DB::table('payments')->where('id', $f['receipt']->id)->update(['received_at' => $f['day']->addHours(10)->utc()]);
+            DB::statement('ALTER TABLE payments ENABLE TRIGGER USER');
+        });
+        $f['finance'] = $this->user($f['organisation'], $f['branch'], null, ['payments.reverse.branch', 'branch_context.switch.branch']);
+        $f['supervisor'] = $this->user($f['organisation'], $f['branch'], null, [CashClosingService::APPROVE_PERMISSION, 'payments.reconcile.branch', 'branch_context.switch.branch']);
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $f['closing'] = app(CashClosingService::class)->count($f['ca'], ['expected_branch_id' => $f['branch']->id, 'business_date' => $f['day']->toDateString(),
+            'counted_cash' => '40.00', 'variance_reason' => null, 'idempotency_key' => (string) Str::uuid()]);
+        $this->assertSame([1, 4000], [$f['closing']->expected_receipt_count, $f['closing']->expected_cash_sen]);
+
+        return $f;
+    }
+
+    /**
+     * BIL-6: the cash closing fixture's receipt reversed by Finance (yesterday's day then expects RM 0 and is
+     * counted), plus a refund recorder (CA Supervisor) and a Director who approves refunds and cash closings.
+     *
+     * @return array<string, mixed>
+     */
+    private function refundFixture(): array
+    {
+        $f = $this->cashClosingFixture();
+        foreach (['payments.refunds.approve.branch', 'payments.reverse.branch'] as $permission) {
+            $f['finance']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        }
+        $f['supervisor']->givePermissionTo(Permission::findOrCreate('payments.refunds.record.branch', 'web'));
+        $f['director'] = $this->user($f['organisation'], $f['branch'], null, ['payments.refunds.approve.branch', CashClosingService::APPROVE_PERMISSION, 'payments.reconcile.branch', 'branch_context.switch.branch']);
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        app(InvoiceCorrectionService::class)->reverse($f['finance'], $f['visit'], $f['invoice'], $f['receipt'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version,
+            'payment_lock_version' => 1, 'recording_error_only' => true, 'reason' => 'Synthetic recording correction']);
+        $f['invoice']->refresh();
+        $f['receipt']->refresh();
+        $f['closing'] = app(CashClosingService::class)->count($f['ca'], ['expected_branch_id' => $f['branch']->id, 'business_date' => $f['day']->toDateString(),
+            'counted_cash' => '0.00', 'variance_reason' => null, 'idempotency_key' => (string) Str::uuid()]);
+        $this->assertSame(0, $f['closing']->expected_cash_sen);
+
+        return $f;
+    }
+
+    /**
+     * BIL-13: the cash closing fixture's RM 40.00 receipt stays posted and the visit is completed, so its money can be
+     * refunded after completion. A CA Supervisor and a Finance Officer may both record refunds.
+     */
+    private function completedRefundFixture(): array
+    {
+        $f = $this->cashClosingFixture();
+        foreach (['payments.refunds.record.branch'] as $permission) {
+            $f['finance']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+            $f['supervisor']->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        }
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        app(CompleteVisitationService::class)->complete($f['ca'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->refresh()->lock_version, 'visit_lock_version' => $f['visit']->refresh()->lock_version]);
+        $this->assertSame(Visit::STATUS_COMPLETED, $f['visit']->refresh()->status);
+        $f['invoice']->refresh();
+        $f['receipt']->refresh();
+
+        return $f;
+    }
+
+    /**
+     * BIL-20: the BIL-13 completed visit (one RM 40.00 receipt recorded by the CA). A Finance Officer and a Director,
+     * neither of whom recorded it, may correct it (reverse and record).
+     */
+    private function correctionFixture(): array
+    {
+        $f = $this->completedRefundFixture();
+        $f['finance']->givePermissionTo(Permission::findOrCreate('payments.add.branch', 'web'));
+        $f['director'] = $this->user($f['organisation'], $f['branch'], null, ['payments.reverse.branch', 'payments.add.branch', 'branch_context.switch.branch']);
+
+        return $f;
+    }
+
+    /** @return array<string, mixed> */
+    private function correctionArgs(array $f, int $receivedSen): array
+    {
+        return ['payment' => $f['receipt']->public_id, 'payment_lock_version' => $f['receipt']->lock_version, 'received_sen' => (string) $receivedSen,
+            'method' => 'cash', 'recording_error_only' => '1', 'reason' => 'Synthetic: less was really received', 'idempotency_key' => (string) Str::uuid()];
+    }
+
+    /** @return array<string, mixed> */
+    private function correctionRaceRefundArgs(array $f): array
+    {
+        return [...$this->refundArgs($f), 'reason_code' => 'goodwill', 'amount_sen' => 1000];
+    }
+
+    /** BIL-20: exactly one of a correction and a refund on one receipt won, with only its own evidence. */
+    private function assertCorrectionOrRefundWon(array $f, string $out, bool $correctionWon): void
+    {
+        $organisation = $f['organisation']->id;
+        $audits = fn (string $event): int => DB::table('audit_logs')->where('organisation_id', $organisation)->where('event', $event)->count();
+        $state = app(FinancialLedger::class)->state($f['invoice']->refresh());
+        $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
+        if ($correctionWon) {
+            $this->assertSame(1, substr_count($out, 'STALE refund'), $out);
+            $this->assertSame([1, 0, 0], [PaymentCorrection::query()->where('organisation_id', $organisation)->count(),
+                PaymentRefund::query()->where('organisation_id', $organisation)->count(), InvoiceCredit::query()->where('invoice_id', $f['invoice']->id)->count()]);
+            $this->assertSame('reversed', $f['receipt']->refresh()->status);
+            $this->assertSame(1, DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->count());
+            $this->assertSame(1, Payment::query()->where('organisation_id', $organisation)->where('status', 'posted')->count());
+            $this->assertSame([1, 0], [$audits('billing.receipt_corrected'), $audits('billing.refund_recorded')]);
+            $this->assertSame([2000, 2000], [$state['self_pay'], $state['due_now']]);
+        } else {
+            $this->assertSame(1, substr_count($out, 'STALE correction'), $out);
+            $this->assertSame([0, 1, 1], [PaymentCorrection::query()->where('organisation_id', $organisation)->count(),
+                PaymentRefund::query()->where('organisation_id', $organisation)->count(), InvoiceCredit::query()->where('invoice_id', $f['invoice']->id)->count()]);
+            $this->assertSame('posted', $f['receipt']->refresh()->status);
+            $this->assertSame(0, DB::table('payment_reversals')->where('payment_id', $f['receipt']->id)->count());
+            $this->assertSame([0, 1], [$audits('billing.receipt_corrected'), $audits('billing.refund_recorded')]);
+            $this->assertSame([4000, 0], [$state['self_pay'], $state['due_now']]);
+        }
+    }
+
+    /** @return array<string, mixed> */
+    private function refundArgs(array $f): array
+    {
+        return ['payment' => $f['receipt']->public_id, 'payment_method_id' => PaymentMethod::query()->where('organisation_id', $f['organisation']->id)->where('code', 'cash')->value('id'),
+            'reason_code' => 'invoice_corrected', 'idempotency_key' => (string) Str::uuid()];
+    }
+
+    /** @return array<string, mixed> */
+    private function cashApproveArgs(array $f): array
+    {
+        return ['closing' => $f['closing']->public_id, 'decision' => 'approved', 'reason' => null, 'business_date' => $f['day']->toDateString(), 'idempotency_key' => (string) Str::uuid()];
+    }
+
+    /** @return array<string, string> */
+    private function financialSnapshot(array $f): array
+    {
+        $state = [];
+        foreach (['visits', 'invoices', 'invoice_lines', 'payments', 'payment_allocations', 'payment_reversals', 'coverage_allocations', 'patient_receivables', 'invoice_adjustments', 'invoice_adjustment_reversals', 'invoice_adjustment_limits', 'audit_logs'] as $table) {
+            $state[$table] = DB::connection(self::OBSERVER)->table($table)->where('organisation_id', $f['organisation']->id)->orderBy('id')->get()->toJson();
+        }
+
+        return $state;
+    }
+
+    private function prices(array &$f, int $consultationPrice): void
+    {
+        $book = new PriceBook;
+        $book->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'scope_key' => 'organisation', 'name' => 'Synthetic PG prices', 'currency' => 'MYR'])->save();
+        foreach (['consultation', 'medicine'] as $type) {
+            $charge = new ChargeDefinition;
+            $charge->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'code' => 'UAT-'.$type, 'type' => $type, 'display_name' => 'Synthetic '.$type, 'unit' => $type === 'consultation' ? 'consultation' : 'unit', 'source_key' => $type === 'consultation' ? 'consultation' : 'medicine:'.$f['medicine']->id, 'medicine_catalogue_item_id' => $type === 'medicine' ? $f['medicine']->id : null])->save();
+            $price = new PriceEntry;
+            $price->forceFill(['organisation_id' => $f['organisation']->id, 'price_book_id' => $book->id, 'charge_definition_id' => $charge->id, 'unit_price_sen' => $type === 'consultation' ? $consultationPrice : 0, 'version' => 1, 'effective_at' => now()->subMinute(), 'published_by_user_id' => $f['ca']->id])->save();
+            if ($type === 'consultation') {
+                $f['charge'] = $charge;
+            }
+        }
+        $method = new PaymentMethod;
+        $method->forceFill(['organisation_id' => $f['organisation']->id, 'code' => 'cash', 'name' => 'Cash'])->save();
+        $f['book'] = $book;
+        $f['method'] = $method;
+    }
+
+    private function noMedicineFixture(bool $checkout): array
+    {
+        $f = $this->fixture();
+        // Initial synthetic fixture only; no handoff or financial scenario has begun.
+        DB::table('treatment_plan_medicine_orders')->where('treatment_plan_id', $f['plan']->id)->delete();
+        $this->prices($f, 4000);
+        if ($checkout) {
+            $f['checkout'] = app(CompleteConsultationService::class)->complete($f['doctor'], $f['visit'], ['expected_branch_id' => $f['branch']->id, ...$this->checkoutArgs($f)]);
+        }
+
+        return $f;
+    }
+
+    private function checkoutArgs(array $f): array
+    {
+        return ['visit_lock_version' => $f['visit']->lock_version, 'queue_lock_version' => $f['queue']->lock_version, 'encounter_lock_version' => $f['encounter']->lock_version, 'lock_version' => $f['plan']->lock_version, 'service_deliveries' => []];
+    }
+
+    private function proposal(array &$f, string $kind): Model
+    {
+        $f['approver'] = $this->user($f['organisation'], $f['branch'], null, ['branch_context.switch.branch', 'coverage.approve.branch', 'outstanding.approve.branch']);
+        DB::table('billing_approval_limits')->insert(['organisation_id' => $f['organisation']->id, 'branch_id' => $f['branch']->id, 'user_id' => $f['approver']->id, 'capability' => $kind, 'limit_sen' => 10000]);
+        $extra = ['due_date' => now()->addDay()->toDateString()];
+        if ($kind === 'panel') {
+            $extra['panel_id'] = DB::table('panels')->insertGetId(['organisation_id' => $f['organisation']->id, 'code' => 'UAT-PG', 'name' => 'Synthetic Panel', 'is_active' => true, 'created_at' => now(), 'updated_at' => now()]);
+        }
+        $proposal = app(ResponsibilityService::class)->propose($f['ca'], $f['visit'], $f['invoice'], $kind, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $f['invoice']->lock_version, 'amount_sen' => 4000, 'reason' => 'Synthetic responsibility', ...$extra]);
+        $f['invoice']->refresh();
+
+        return $proposal;
+    }
+
+    private function payArgs(array $f, int $amount): array
+    {
+        return ['amount_sen' => $amount, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()];
+    }
+
+    private function billWorker(array $f, string $mode, array $a = [], string $actor = 'ca'): array
+    {
+        return $this->worker([$mode, (string) $f[$actor]->id, (string) $f['branch']->id, $f['visit']->visit_number, base64_encode(json_encode(['invoice' => $f['invoice']->public_id ?? null, 'lock_version' => $f['invoice']->lock_version ?? null, ...$a], JSON_THROW_ON_ERROR))]);
+    }
+
+    private function fixture(string $ordered = '10.000'): array
+    {
+        $organisation = new Organisation;
+        $organisation->forceFill(['code' => 'DISP_PG_'.Str::upper(Str::random(8)), 'name' => 'Synthetic Phase 3A PG', 'is_active' => true])->save();
+        $this->organisationIds[] = $organisation->id;
+        $branch = new Branch;
+        $branch->forceFill(['organisation_id' => $organisation->id, 'code' => 'D'.Str::upper(Str::random(5)), 'name' => 'Synthetic Dispensary Branch', 'timezone' => 'Asia/Kuala_Lumpur', 'is_active' => true])->save();
+        $operator = $this->user($organisation, $branch, null, ['queue.view.branch', 'queue.enter.branch', 'queue.call.branch', 'visits.view.branch', 'branch_context.switch.organisation']);
+        $doctor = $this->user($organisation, $branch, 'resident_doctor', $this->doctorPermissions());
+        $ca = $this->user($organisation, $branch, 'ca', $this->caPermissions());
+        $ca2 = $this->user($organisation, $branch, 'ca', $this->caPermissions());
+        $inventorySupervisor = $this->user($organisation, $branch, 'ca_supervisor', $this->inventorySupervisorPermissions());
+        $patient = new Patient;
+        $patient->forceFill(['organisation_id' => $organisation->id, 'patient_number' => sprintf('KP-%08d', 96_000_000 + $this->sequence), 'full_name' => 'Synthetic Dispensary Patient', 'search_name' => 'synthetic dispensary patient', 'sex' => 'unknown', 'lock_version' => 1])->save();
+        $visit = new Visit;
+        $visit->forceFill(['organisation_id' => $organisation->id, 'branch_id' => $branch->id, 'patient_id' => $patient->id, 'visit_number' => sprintf('KPV-%08d', 96_000_000 + $this->sequence++), 'idempotency_key' => (string) Str::uuid(), 'visit_type' => 'consultation', 'status' => Visit::STATUS_REGISTERED, 'priority' => 'normal', 'visit_reason' => 'Synthetic Dispensary reason', 'assigned_doctor_user_id' => $doctor->id, 'coverage_type' => 'self_pay', 'registered_at' => now()->utc(), 'registered_by_user_id' => $operator->id, 'updated_by_user_id' => $operator->id, 'lock_version' => 1])->save();
+        app('session')->start();
+        session([BranchAccessService::SESSION_KEY => $branch->id]);
+        $queue = app(QueueEntryService::class)->enter($operator, $visit, ['expected_branch_id' => $branch->id, 'visit_lock_version' => $visit->lock_version]);
+        $queue = app(QueueEntryService::class)->call($operator, $visit, ['expected_branch_id' => $branch->id, 'visit_lock_version' => $visit->lock_version, 'queue_lock_version' => $queue->lock_version]);
+        session([BranchAccessService::SESSION_KEY => $branch->id]);
+        $encounter = app(ClinicalEncounterService::class)->start($doctor, $visit, ['expected_branch_id' => $branch->id, 'visit_lock_version' => $visit->lock_version, 'queue_lock_version' => $queue->lock_version]);
+        $profile = app(PatientAllergyService::class)->declareNoKnown($doctor, $visit, ['expected_branch_id' => $branch->id, 'profile_lock_version' => null]);
+        app(PatientAllergyService::class)->review($doctor, $visit, ['expected_branch_id' => $branch->id, 'profile_lock_version' => $profile->lock_version]);
+        $medicine = new MedicineCatalogueItem;
+        $medicine->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $organisation->id, 'code' => 'MED-'.Str::upper(Str::random(7)), 'display_name' => 'Synthetic concurrency medicine', 'strength_text' => 'Synthetic strength', 'dosage_form' => 'unit', 'order_unit' => 'unit', 'authorisation_class' => MedicineCatalogueItem::AUTHORISATION_DOCTOR_REQUIRED, 'is_active' => true, 'created_by_user_id' => $doctor->id, 'updated_by_user_id' => $doctor->id])->save();
+        $plan = app(TreatmentPlanService::class)->save($doctor, $visit, ['expected_branch_id' => $branch->id, 'lock_version' => null, 'medicines' => [[
+            'public_id' => null, 'catalogue_public_id' => $medicine->public_id, 'quantity_ordered' => $ordered,
+            'dosage' => 'Synthetic dosage', 'frequency' => 'Synthetic frequency', 'duration' => null, 'route' => null,
+            'administration_instruction' => null, 'indication' => null, 'precaution' => null,
+        ]], 'services' => []]);
+
+        return compact('organisation', 'branch', 'operator', 'doctor', 'ca', 'ca2', 'inventorySupervisor', 'patient', 'visit', 'queue', 'encounter', 'profile', 'medicine', 'plan');
+    }
+
+    /** @return array<string, mixed> */
+    private function sentFixture(string $ordered = '10.000'): array
+    {
+        $f = $this->fixture($ordered);
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $f['case'] = app(DispensaryHandoffService::class)->send($f['doctor'], $f['visit'], ['expected_branch_id' => $f['branch']->id, 'lock_version' => $f['plan']->lock_version]);
+        $f['item'] = $f['case']->handoffs()->where('status', DispensaryHandoff::STATUS_OPEN)->sole()->items()->sole();
+
+        return $f;
+    }
+
+    /** @return array<string, mixed> */
+    private function startedFixture(string $ordered = '10.000'): array
+    {
+        $f = $this->sentFixture($ordered);
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $f['case'] = app(DispensaryService::class)->start($f['ca'], $f['case'], ['expected_branch_id' => $f['branch']->id, 'case_lock_version' => $f['case']->lock_version]);
+        $f['item'] = $f['item']->refresh();
+
+        return $f;
+    }
+
+    /** @return array<string, mixed> */
+    private function patientDeclinedFixture(): array
+    {
+        $f = $this->startedFixture();
+        $f['item'] = app(DispensaryService::class)->updateItem($f['ca'], $f['case'], $f['item'], ['expected_branch_id' => $f['branch']->id, 'case_lock_version' => $f['case']->lock_version, 'item_lock_version' => $f['item']->lock_version, 'status' => 'not_dispensed', 'quantity_dispensed' => '0.000', 'reason' => 'patient_declined', 'allocations' => []]);
+        $f['case']->refresh();
+        $f['exception'] = $f['item']->exceptions()->where('status', DispensaryItemException::STATUS_AWAITING)->sole();
+
+        return $f;
+    }
+
+    /** @return array<string, mixed> */
+    private function zeroCompletableFixture(): array
+    {
+        $f = $this->patientDeclinedFixture();
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        app(DispensaryService::class)->acknowledge($f['doctor'], $f['exception'], ['case_lock_version' => $f['case']->lock_version, 'item_lock_version' => $f['item']->lock_version]);
+
+        return $f;
+    }
+
+    /** @return array<string, mixed> */
+    private function completableFixture(string $opening, string $actual, string $ordered = '10.000'): array
+    {
+        $f = $this->startedFixture($ordered);
+        $inventoryItem = new InventoryItem;
+        $inventoryItem->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'code' => 'ITEM-'.Str::upper(Str::random(6)), 'generic_name' => 'Synthetic stock item', 'is_active' => true])->save();
+        $sku = new InventorySku;
+        $sku->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'inventory_item_id' => $inventoryItem->id, 'sku_code' => 'SKU-'.Str::upper(Str::random(6)), 'pack_size' => 1, 'purchase_unit' => 'unit', 'stock_unit' => 'unit', 'dispensing_unit' => 'unit', 'unit_conversion' => 1, 'storage_type' => 'ambient', 'cold_chain_required' => false, 'do_not_freeze' => false, 'protect_from_light' => false, 'batch_tracking_required' => true, 'expiry_tracking_required' => true, 'is_active' => true])->save();
+        $mapping = new MedicineCatalogueInventorySku;
+        $mapping->forceFill(['organisation_id' => $f['organisation']->id, 'medicine_catalogue_item_id' => $f['medicine']->id, 'inventory_sku_id' => $sku->id, 'is_active' => true, 'approved_by_user_id' => $f['inventorySupervisor']->id, 'approved_at' => now()->utc()])->save();
+        $location = $this->location($f, 'DISP-A');
+        $destination = $this->location($f, 'DISP-B');
+        $batch = new InventoryBatch;
+        $batch->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'inventory_sku_id' => $sku->id, 'batch_number' => 'B-'.Str::upper(Str::random(6)), 'expiry_date' => now()->addMonth()->toDateString(), 'received_at' => now()->subDay()->toDateString(), 'status' => InventoryBatch::STATUS_AVAILABLE])->save();
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        app(InventoryMovementService::class)->openingBalance($f['inventorySupervisor'], ['expected_branch_id' => $f['branch']->id, 'location_public_id' => $location->public_id, 'sku_public_id' => $sku->public_id, 'batch_public_id' => $batch->public_id, 'quantity' => $opening]);
+        $f['item'] = app(DispensaryService::class)->updateItem($f['ca'], $f['case'], $f['item'], ['expected_branch_id' => $f['branch']->id, 'case_lock_version' => $f['case']->lock_version, 'item_lock_version' => $f['item']->lock_version, 'status' => 'partial', 'quantity_dispensed' => $actual, 'reason' => 'patient_declined', 'allocations' => [[
+            'location_public_id' => $location->public_id, 'sku_public_id' => $sku->public_id, 'batch_public_id' => $batch->public_id, 'quantity' => $actual,
+        ]]]);
+        $f['case']->refresh();
+        $exception = $f['item']->exceptions()->where('status', DispensaryItemException::STATUS_AWAITING)->sole();
+        app(DispensaryService::class)->acknowledge($f['doctor'], $exception, ['case_lock_version' => $f['case']->lock_version, 'item_lock_version' => $f['item']->lock_version]);
+        $f['sku'] = $sku;
+        $f['batch'] = $batch;
+        $f['location'] = $location;
+        $f['destination'] = $destination;
+        $f['balance'] = InventoryStockBalance::query()->where('inventory_location_id', $location->id)->sole();
+
+        return $f;
+    }
+
+    /** @param array<string, mixed> $f */
+    private function location(array $f, string $suffix): InventoryLocation
+    {
+        $location = new InventoryLocation;
+        $location->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $f['organisation']->id, 'branch_id' => $f['branch']->id, 'code' => $suffix.Str::upper(Str::random(4)), 'name' => 'Synthetic '.$suffix, 'type' => InventoryLocation::TYPE_DISPENSARY, 'is_active' => true])->save();
+
+        return $location;
+    }
+
+    /** @param array<string, mixed> $f @return array<string, mixed> */
+    private function additionalCompletableCase(array $f, string $actual): array
+    {
+        $patient = new Patient;
+        $patient->forceFill(['organisation_id' => $f['organisation']->id, 'patient_number' => sprintf('KP-%08d', 96_000_000 + $this->sequence), 'full_name' => 'Synthetic Competing Patient', 'search_name' => 'synthetic competing patient', 'sex' => 'unknown', 'lock_version' => 1])->save();
+        $visit = new Visit;
+        $visit->forceFill(['organisation_id' => $f['organisation']->id, 'branch_id' => $f['branch']->id, 'patient_id' => $patient->id, 'visit_number' => sprintf('KPV-%08d', 96_000_000 + $this->sequence++), 'idempotency_key' => (string) Str::uuid(), 'visit_type' => 'consultation', 'status' => Visit::STATUS_REGISTERED, 'priority' => 'normal', 'visit_reason' => 'Synthetic competing stock reason', 'assigned_doctor_user_id' => $f['doctor']->id, 'coverage_type' => 'self_pay', 'registered_at' => now()->utc(), 'registered_by_user_id' => $f['operator']->id, 'updated_by_user_id' => $f['operator']->id, 'lock_version' => 1])->save();
+        session([BranchAccessService::SESSION_KEY => $f['branch']->id]);
+        $queue = app(QueueEntryService::class)->enter($f['operator'], $visit, ['expected_branch_id' => $f['branch']->id, 'visit_lock_version' => $visit->lock_version]);
+        $queue = app(QueueEntryService::class)->call($f['operator'], $visit, ['expected_branch_id' => $f['branch']->id, 'visit_lock_version' => $visit->lock_version, 'queue_lock_version' => $queue->lock_version]);
+        $encounter = app(ClinicalEncounterService::class)->start($f['doctor'], $visit, ['expected_branch_id' => $f['branch']->id, 'visit_lock_version' => $visit->lock_version, 'queue_lock_version' => $queue->lock_version]);
+        $profile = app(PatientAllergyService::class)->declareNoKnown($f['doctor'], $visit, ['expected_branch_id' => $f['branch']->id, 'profile_lock_version' => null]);
+        app(PatientAllergyService::class)->review($f['doctor'], $visit, ['expected_branch_id' => $f['branch']->id, 'profile_lock_version' => $profile->lock_version]);
+        $plan = app(TreatmentPlanService::class)->save($f['doctor'], $visit, ['expected_branch_id' => $f['branch']->id, 'lock_version' => null, 'medicines' => [[
+            'public_id' => null, 'catalogue_public_id' => $f['medicine']->public_id, 'quantity_ordered' => '10.000', 'dosage' => 'Synthetic dosage', 'frequency' => 'Synthetic frequency', 'duration' => null, 'route' => null, 'administration_instruction' => null, 'indication' => null, 'precaution' => null,
+        ]], 'services' => []]);
+        $case = app(DispensaryHandoffService::class)->send($f['doctor'], $visit, ['expected_branch_id' => $f['branch']->id, 'lock_version' => $plan->lock_version]);
+        $case = app(DispensaryService::class)->start($f['ca2'], $case, ['expected_branch_id' => $f['branch']->id, 'case_lock_version' => $case->lock_version]);
+        $item = $case->handoffs()->where('status', DispensaryHandoff::STATUS_OPEN)->sole()->items()->sole();
+        $item = app(DispensaryService::class)->updateItem($f['ca2'], $case, $item, ['expected_branch_id' => $f['branch']->id, 'case_lock_version' => $case->lock_version, 'item_lock_version' => $item->lock_version, 'status' => 'partial', 'quantity_dispensed' => $actual, 'reason' => 'patient_declined', 'allocations' => [[
+            'location_public_id' => $f['location']->public_id, 'sku_public_id' => $f['sku']->public_id, 'batch_public_id' => $f['batch']->public_id, 'quantity' => $actual,
+        ]]]);
+        $case->refresh();
+        $exception = $item->exceptions()->where('status', DispensaryItemException::STATUS_AWAITING)->sole();
+        app(DispensaryService::class)->acknowledge($f['doctor'], $exception, ['case_lock_version' => $case->lock_version, 'item_lock_version' => $item->lock_version]);
+
+        return compact('patient', 'visit', 'queue', 'encounter', 'profile', 'plan', 'case', 'item');
+    }
+
+    private function assertAuthorityLossFailsClosed(string $mode): void
+    {
+        $f = $this->zeroCompletableFixture();
+        $leaderArgs = [$mode, (string) $f['ca']->id];
+        if ($mode === 'revoke') {
+            $leaderArgs[] = 'dispensary.complete.branch';
+        } elseif ($mode === 'end-assignment') {
+            $leaderArgs[] = (string) $f['branch']->id;
+        }
+        $leader = $this->worker($leaderArgs);
+        $follower = $this->worker(['complete', (string) $f['ca']->id, (string) $f['branch']->id, $f['case']->public_id, (string) $f['case']->lock_version]);
+        $this->assertStringContainsString('DENIED', $this->leaderThenFollower($leader, $follower));
+        $this->assertNotSame(DispensaryCase::STATUS_COMPLETED, $f['case']->refresh()->status);
+        $this->assertDatabaseCount('stock_movements', 0);
+    }
+
+    /** @return list<string> */
+    private function doctorPermissions(): array
+    {
+        return ['consultations.complete.own', 'consultations.reopen.own', 'services.confirm.own', 'branch_context.switch.branch', 'queue.view.own', 'queue.call.own', 'encounters.view.own', 'encounters.start.own', 'encounters.update.own', 'allergies.view.own', 'allergies.update.own', 'allergies.review.own', 'treatment_plans.view.own', 'treatment_plans.create.own', 'treatment_plans.update.own', 'treatment_plans.send_to_dispensary.own', 'dispensary.acknowledge_partial.own'];
+    }
+
+    /** @return list<string> */
+    private function caPermissions(): array
+    {
+        return [...BillingPermissions::roles()['ca'], 'branch_context.switch.branch', 'dispensary.view.branch', 'dispensary.start.branch', 'dispensary.update.branch', 'dispensary.complete.branch', 'dispensary.return_to_doctor.branch', 'inventory.view.branch', 'inventory.transfer.branch'];
+    }
+
+    /** @return list<string> */
+    private function inventorySupervisorPermissions(): array
+    {
+        return [...$this->caPermissions(), 'inventory.opening_balance.branch', 'inventory.transfer.organisation'];
+    }
+
+    /** @param list<string> $permissions */
+    private function user(Organisation $organisation, Branch $branch, ?string $role, array $permissions): User
+    {
+        $user = new User;
+        $user->forceFill(['organisation_id' => $organisation->id, 'name' => 'Synthetic Phase 3A User', 'email' => 'disp.pg.'.Str::lower(Str::random(10)).'@kpone.test', 'is_active' => true])->save();
+        if ($role) {
+            $user->assignRole(Role::findOrCreate($role, 'web'));
+        }
+        foreach ($permissions as $permission) {
+            $user->givePermissionTo(Permission::findOrCreate($permission, 'web'));
+        }
+        $profile = new StaffProfile;
+        $profile->forceFill(['user_id' => $user->id, 'department_id' => null])->save();
+        StaffBranchAssignmentBootstrapper::create($profile, $branch, ['assignment_type' => 'temporary', 'is_primary' => false, 'valid_from' => now()->subDay()->toDateString(), 'valid_until' => now()->addDay()->toDateString()]);
+
+        return $user->refresh();
+    }
+
+    /** @param list<string> $arguments @return Worker */
+    private function worker(array $arguments): array
+    {
+        $input = new InputStream;
+        $process = new Process([PHP_BINARY, base_path(str_starts_with($arguments[0], 'bill-') ? 'tests/Support/PostgresBillingWorker.php' : 'tests/Support/PostgresDispensaryInventoryWorker.php'), ...$arguments, 'kpone-dispensary-pg-'.Str::lower(Str::random(8))], base_path());
+        $process->setInput($input);
+        $process->setTimeout(ContentionTimeouts::processTimeoutSeconds());
+        $this->workers[] = $process;
+        $this->inputs[] = $input;
+
+        return ['process' => $process, 'input' => $input];
+    }
+
+    /** @param list<Worker> $workers */
+    private function race(array $workers, Model $blocker): string
+    {
+        DB::beginTransaction();
+        try {
+            $blocker->newQuery()->whereKey($blocker->getKey())->lockForUpdate()->firstOrFail();
+            $parentPid = (int) DB::scalar('select pg_backend_pid()');
+            foreach ($workers as $worker) {
+                $worker['process']->start();
+            }
+            $this->waitReady($workers);
+            foreach ($workers as $worker) {
+                $worker['input']->write("GO\n");
+                $worker['input']->close();
+            }
+            foreach ($workers as $worker) {
+                $this->waitForDatabaseBlock($worker['process'], $parentPid);
+            }
+            DB::commit();
+        } catch (\Throwable $exception) {
+            if (DB::transactionLevel() > 0) {
+                DB::rollBack();
+            }
+            throw $exception;
+        }
+        $this->finish($workers);
+
+        return $this->workerOutput($workers);
+    }
+
+    private function leaderThenFollower(array $leader, array $follower): string
+    {
+        $leader['process']->start();
+        $this->waitReady([$leader]);
+        $leader['input']->write("GO\n");
+        $this->waitForOutput($leader['process'], 'LOCKED');
+        $leaderPid = $this->workerPid($leader['process']);
+        $follower['process']->start();
+        $this->waitReady([$follower]);
+        $follower['input']->write("GO\n");
+        $follower['input']->close();
+        $this->waitForDatabaseBlock($follower['process'], $leaderPid);
+        $leader['input']->write("COMMIT\n");
+        $leader['input']->close();
+        $this->finish([$leader, $follower]);
+
+        return $this->workerOutput([$leader, $follower]);
+    }
+
+    /** @param list<Worker> $workers */
+    private function runWorkers(array $workers): void
+    {
+        foreach ($workers as $worker) {
+            $worker['process']->start();
+        }
+        $this->waitReady($workers);
+        foreach ($workers as $worker) {
+            $worker['input']->write("GO\n");
+            $worker['input']->close();
+        }
+        $this->finish($workers, false);
+    }
+
+    /** @param list<Worker> $workers */
+    private function finish(array $workers, bool $requireZero = true): void
+    {
+        foreach ($workers as $worker) {
+            $worker['process']->wait();
+            if ($requireZero) {
+                $this->assertSame(0, $worker['process']->getExitCode(), $worker['process']->getOutput().' STDERR: '.$worker['process']->getErrorOutput());
+            }
+        }
+    }
+
+    /** @param list<Worker> $workers */
+    private function waitReady(array $workers): void
+    {
+        $timeoutSeconds = ContentionTimeouts::readyTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
+        do {
+            if (collect($workers)->every(fn ($worker) => str_contains(str_replace("\r\n", "\n", $worker['process']->getOutput()), 'READY '))) {
+                return;
+            }
+            usleep(50_000);
+        } while (microtime(true) < $deadline);
+        throw new RuntimeException(sprintf('Phase 3A worker did not report READY within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->diagnostics($workers)));
+    }
+
+    private function waitForOutput(Process $process, string $needle): void
+    {
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
+        do {
+            if (str_contains(str_replace("\r\n", "\n", $process->getOutput()), $needle)) {
+                return;
+            }
+            if ($process->isTerminated()) {
+                throw new RuntimeException('Phase 3A worker exited before '.$needle.'. '.$this->processDiagnostics($process));
+            }
+            usleep(50_000);
+        } while (microtime(true) < $deadline);
+        throw new RuntimeException(sprintf('Phase 3A worker protocol timeout for %s within %ds (elapsed %.2fs). %s', $needle, $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
+    }
+
+    private function workerPid(Process $process): int
+    {
+        preg_match('/READY ([1-9][0-9]*)/', str_replace("\r\n", "\n", $process->getOutput()), $matches);
+        $pid = (int) ($matches[1] ?? 0);
+        if ($pid <= 0) {
+            throw new RuntimeException('Phase 3A worker did not report a backend PID. '.$this->processDiagnostics($process));
+        }
+
+        return $pid;
+    }
+
+    private function waitForDatabaseBlock(Process $process, int $expectedBlockerPid): void
+    {
+        $pid = $this->workerPid($process);
+        $timeoutSeconds = ContentionTimeouts::protocolTimeoutSeconds();
+        $started = microtime(true);
+        $deadline = $started + $timeoutSeconds;
+        do {
+            if ($process->isTerminated()) {
+                throw new RuntimeException('Required Phase 3A contention was not reached. '.$this->processDiagnostics($process));
+            }
+            $result = $this->observer()->selectOne(<<<'SQL'
+                select exists (
+                    with recursive blockers(pid) as (
+                        select unnest(pg_blocking_pids(activity.pid))
+                        union
+                        select unnest(pg_blocking_pids(blockers.pid)) from blockers
+                    ) select 1 from blockers where pid = ?
+                ) as expected_blocker
+                from pg_stat_activity as activity where pid = ?
+                SQL, [$expectedBlockerPid, $pid]);
+            if ($result && filter_var($result->expected_blocker, FILTER_VALIDATE_BOOL)) {
+                return;
+            }
+            usleep(50_000);
+        } while (microtime(true) < $deadline);
+        throw new RuntimeException(sprintf('Expected Phase 3A PostgreSQL blocker chain was not observed within %ds (elapsed %.2fs). %s', $timeoutSeconds, microtime(true) - $started, $this->processDiagnostics($process)));
+    }
+
+    private function observer(): Connection
+    {
+        return DB::connection(self::OBSERVER);
+    }
+
+    /** @param list<Worker> $workers */
+    private function workerOutput(array $workers): string
+    {
+        return implode('', array_map(fn ($worker) => $worker['process']->getOutput(), $workers));
+    }
+
+    /** @param list<Worker> $workers */
+    private function diagnostics(array $workers): string
+    {
+        return implode(' | ', array_map(fn ($worker) => $this->processDiagnostics($worker['process']), $workers));
+    }
+
+    private function processDiagnostics(Process $process): string
+    {
+        return 'exit='.var_export($process->getExitCode(), true).' stdout='.trim(str_replace("\r\n", "\n", $process->getOutput())).' stderr='.trim(str_replace("\r\n", "\n", $process->getErrorOutput()));
+    }
+
+    private function deleteOrganisation(int $id): void
+    {
+        DB::transaction(function () use ($id): void {
+            // Only this isolated PostgreSQL test fixture cleanup may discard retained synthetic evidence.
+            foreach (['payment_corrections', 'issued_billing_document_prints', 'issued_billing_documents', 'invoice_credits', 'payment_refund_decisions', 'payment_refunds', 'cash_closing_decisions', 'cash_closings', 'invoice_adjustment_reversals', 'invoice_adjustments', 'invoice_adjustment_limits'] as $table) {
+                DB::statement("ALTER TABLE {$table} DISABLE TRIGGER USER");
+                DB::table($table)->where('organisation_id', $id)->delete();
+                DB::statement("ALTER TABLE {$table} ENABLE TRIGGER USER");
+            }
+            foreach (['payment_reversals', 'payment_allocations', 'patient_receivables', 'coverage_allocations', 'payments', 'invoice_lines', 'invoices', 'billing_document_counters', 'price_entries', 'price_books', 'charge_definitions', 'payment_methods', 'billing_approval_limits'] as $table) {
+                DB::table($table)->where('organisation_id', $id)->delete();
+            }
+            DB::table('service_deliveries')->where('organisation_id', $id)->delete();
+            DB::table('consultation_checkouts')->where('organisation_id', $id)->delete();
+            foreach (['stock_movements', 'dispensary_item_batch_allocations', 'dispensary_item_exceptions', 'dispensary_items', 'dispensary_handoffs', 'dispensary_cases', 'inventory_stock_balances', 'medicine_catalogue_inventory_skus', 'medicine_catalogue_aliases', 'inventory_batches', 'inventory_locations', 'inventory_skus', 'inventory_items', 'treatment_plan_service_orders', 'treatment_plan_medicine_orders', 'treatment_plans', 'clinical_service_catalogue_items', 'medicine_catalogue_items', 'clinical_encounter_allergy_reviews', 'patient_allergy_records', 'patient_allergy_profile_versions', 'patient_allergy_profiles', 'audit_logs', 'clinical_encounters', 'queue_calls', 'queue_entries', 'queue_number_counters', 'visits', 'visit_number_counters', 'patients', 'patient_number_counters', 'panels'] as $table) {
+                DB::table($table)->where('organisation_id', $id)->delete();
+            }
+            $branchIds = DB::table('branches')->where('organisation_id', $id)->pluck('id');
+            DB::table('staff_branch_assignments')->whereIn('branch_id', $branchIds)->delete();
+            $userIds = DB::table('users')->where('organisation_id', $id)->pluck('id');
+            DB::table('model_has_permissions')->where('model_type', User::class)->whereIn('model_id', $userIds)->delete();
+            DB::table('model_has_roles')->where('model_type', User::class)->whereIn('model_id', $userIds)->delete();
+            DB::table('staff_profiles')->whereIn('user_id', $userIds)->delete();
+            DB::table('users')->where('organisation_id', $id)->delete();
+            DB::table('branches')->where('organisation_id', $id)->delete();
+            DB::table('organisations')->where('id', $id)->delete();
+        });
+    }
+}

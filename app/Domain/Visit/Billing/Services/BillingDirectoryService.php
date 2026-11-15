@@ -1,0 +1,130 @@
+<?php
+
+namespace App\Domain\Visit\Billing\Services;
+
+use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
+use App\Domain\Clinical\Dispensary\Models\DispensaryCase;
+use App\Domain\Clinical\Models\ConsultationCheckout;
+use App\Domain\Visit\Billing\Models\CoverageAllocation;
+use App\Domain\Visit\Billing\Models\Invoice;
+use App\Domain\Visit\Billing\Models\InvoiceLine;
+use App\Domain\Visit\Billing\Models\PatientReceivable;
+use App\Domain\Visit\Billing\Models\Payment;
+use App\Domain\Visit\Billing\Models\PaymentAllocation;
+use App\Domain\Visit\Billing\Models\PaymentMethod;
+use App\Domain\Visit\Models\Panel;
+use App\Domain\Visit\Models\Visit;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+
+class BillingDirectoryService
+{
+    public function __construct(private BillingContextService $context, private FinancialLedger $ledger, private StaffAccessService $staff) {}
+
+    /** Explicit projection: summary-only actors never receive medicine line descriptions; the owner-granted billing.lines.view.branch (finance_officer, 2026-10-08) adds them.
+     * @return array<string,mixed>
+     */
+    public function detail(User $actor, Visit $visit, ?Invoice $document = null, bool $printing = false): array
+    {
+        return DB::transaction(function () use ($actor, $visit, $document, $printing): array {
+            $permission = $printing ? 'billing.print.branch' : ($actor->can('billing.view.branch') ? 'billing.view.branch' : 'billing.summary.branch');
+            $branchId = app(BranchAccessService::class)->activeBranch($actor)?->id;
+            [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $branchId, $permission);
+            $visit->load('patient:id,patient_number,full_name');
+            $checkout = ConsultationCheckout::query()->where('current_visit_guard', $visit->id)->first();
+            $case = DispensaryCase::query()->where('visit_id', $visit->id)->first();
+            $invoice = $document ? Invoice::query()->whereKey($document->id)->where('visit_id', $visit->id)->firstOrFail() : Invoice::query()->where('current_visit_guard', $visit->id)->first();
+            $mutable = $visit->status === Visit::STATUS_REGISTERED && $invoice?->status === 'finalized' && ! $invoice->correction_hold;
+            $state = $invoice ? $this->ledger->state($invoice) : null;
+            $payments = $invoice ? Payment::query()->whereIn('id', PaymentAllocation::query()->where('invoice_id', $invoice->id)->select('payment_id'))->orderBy('id')->get() : collect();
+            $refunded = FinancialLedger::approvedRefundsByPayment($payments->pluck('id'));
+            $recorders = $printing ? collect() : $this->staff->visibleUsers($actor)
+                ->whereIn('id', $payments->pluck('recorded_by_user_id')->filter()->unique())->pluck('name', 'id');
+            $approvalCapabilities = DB::table('billing_approval_limits')
+                ->where('organisation_id', $actor->organisation_id)
+                ->where('branch_id', $branch->id)
+                ->where('user_id', $actor->id)
+                ->whereIn('capability', ['panel', 'deferment'])
+                ->pluck('capability')
+                ->all();
+            $proposal = function (string $class) use ($invoice): ?array {
+                $record = $invoice ? $class::query()->where('current_invoice_guard', $invoice->id)->first() : null;
+
+                return $record ? ['publicId' => $record->public_id, 'status' => $record->status, 'amountSen' => $record->amount_sen, 'lockVersion' => $record->lock_version,
+                    'reason' => $record->reason, 'panelName' => $record instanceof CoverageAllocation ? $record->panel_name_snapshot : null,
+                    'memberReference' => $record instanceof CoverageAllocation ? $record->member_reference : null,
+                    'remainingSen' => $record instanceof PatientReceivable ? $record->remaining_sen : null, 'dueDate' => $record instanceof PatientReceivable ? $record->due_date->toDateString() : null] : null;
+            };
+
+            return ['patient' => ['name' => $visit->patient->full_name, 'patientNumber' => $visit->patient->patient_number, 'profileUrl' => $actor->can('patients.view.organisation') ? '/patients/'.rawurlencode($visit->patient->patient_number) : null],
+                'backLink' => $this->backLink($actor),
+                'billTo' => $printing ? null : app(InvoiceBillToService::class)->link($actor, $visit, $invoice),
+                'notes' => $printing ? null : app(InvoiceNoteService::class)->link($actor, $visit, $invoice),
+                'activity' => app(InvoiceActivityService::class)->link($visit, $branch->id, $invoice, false),
+                'visit' => ['visitNumber' => $visit->visit_number, 'status' => $visit->status, 'lockVersion' => $visit->lock_version, 'coverage' => $visit->coverage_type === 'panel' ? $visit->coverage_panel_name_snapshot : 'Self-pay', 'completedAt' => $visit->completed_at?->setTimezone($branch->timezone)->format('j M Y, g:i A')],
+                'clinic' => $branch->organisation->name, 'branch' => $branch->name, 'outstanding' => $printing ? null : app(OutstandingBillService::class)->summary($actor, $visit),
+                'payLaterCollectionsUrl' => ! $printing && $actor->can('outstanding.view.branch') ? route('billing.pay-later-collections', absolute: false) : null,
+                'invoice' => $invoice ? ['publicId' => $invoice->public_id, 'number' => $invoice->invoice_number, 'status' => $invoice->status, 'lockVersion' => $invoice->lock_version, 'currency' => $invoice->currency,
+                    'finalizedAt' => $invoice->finalized_at?->setTimezone($branch->timezone)->format('j M Y, g:i A'), 'correctionHold' => $invoice->correction_hold, 'state' => $state, 'adjustment' => InvoiceAdjustmentService::summary($invoice), 'refundCreditSen' => (int) FinancialLedger::approvedCredits([$invoice->id])->sum('amount_sen'), 'adjustmentControls' => $printing ? null : InvoiceAdjustmentService::controls($actor, $visit, $invoice),
+                    'lines' => ($actor->can('billing.view.branch') || $actor->can('billing.lines.view.branch')) ? InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()->map(fn ($l): array => ['type' => $l->line_type, 'name' => $l->display_name, 'unit' => $l->unit_snapshot, 'quantity' => $l->quantity, 'unitPriceSen' => $l->unit_price_sen, 'totalSen' => $l->line_total_sen])->all() : []] : null,
+                'panel' => ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? $proposal(CoverageAllocation::class) : null,
+                'panelShortfall' => ! $printing && $invoice && ($actor->can('coverage.propose.branch') || $actor->can('coverage.approve.branch')) ? PanelShortfall::forInvoice($invoice) : null,
+                'deferment' => ($actor->can('outstanding.view.branch') || $actor->can('outstanding.request.branch') || $actor->can('outstanding.approve.branch')) ? $proposal(PatientReceivable::class) : null,
+                'payments' => $payments->map(fn (Payment $p): array => ['publicId' => $p->public_id, 'number' => $p->receipt_number, 'amountSen' => $p->amount_sen, 'refundedSen' => $refunded[$p->id] ?? 0, 'method' => $p->method_snapshot, 'status' => $p->status, 'lockVersion' => $p->lock_version, 'receivedAt' => $p->received_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                    // BIL-2: screens only, never prints; the same name rule as the invoice activity log.
+                    ...($printing ? [] : ['recordedBy' => $recorders[$p->recorded_by_user_id] ?? 'Staff member'])])->all(),
+                // BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers only.
+                'refunds' => $printing ? null : app(RefundService::class)->forVisit($actor, $visit, $branch->timezone),
+                'corrections' => $printing ? null : app(ReceiptCorrectionService::class)->forVisit($actor, $visit, $invoice, $branch->timezone),
+                // BIL-17: voided invoices of this visit stay visible (number, total, when and by whom, and their receipts),
+                // never the void reason, following the activity log rule.
+                'voidedInvoices' => $printing ? null : $this->voidedInvoices($actor, $visit, $branch->timezone),
+                'issuedCopies' => $printing ? null : app(IssuedBillingDocumentService::class)->forVisit($actor, $visit, $branch->timezone),
+                'methods' => $actor->can('payments.add.branch') ? PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->operational()->orderBy('sort_order')->orderBy('name')->get()->map(fn ($m): array => ['code' => $m->code, 'name' => $m->name, 'requiresReference' => $m->requires_reference])->all() : [],
+                'panels' => $actor->can('coverage.propose.branch') ? Panel::query()->where('organisation_id', $actor->organisation_id)->where('is_active', true)->orderBy('name')->limit(100)->get(['id', 'name'])->toArray() : [],
+                'can' => ['build' => $actor->can('billing.build.branch') && $visit->status === Visit::STATUS_REGISTERED && (($checkout !== null && ($checkout->route === 'billing' || $case?->status === DispensaryCase::STATUS_COMPLETED)) || ($visit->visit_type === 'otc' && $case?->case_type === DispensaryCase::TYPE_OTC && $case->status === DispensaryCase::STATUS_COMPLETED)) && (! $invoice || $invoice->status === 'draft'),
+                    'finalize' => $visit->status === Visit::STATUS_REGISTERED && $actor->can('billing.finalize.branch') && $invoice?->status === 'draft' && ! $invoice->source_stale,
+                    'pay' => in_array($visit->status, [Visit::STATUS_REGISTERED, Visit::STATUS_COMPLETED], true) && $actor->can('payments.add.branch') && $invoice?->status === 'finalized' && ! $invoice->correction_hold && ($state['due_now'] + $state['deferred']) > 0,
+                    'panelPropose' => $mutable && $actor->can('coverage.propose.branch'), 'panelApprove' => $mutable && $actor->can('coverage.approve.branch') && in_array('panel', $approvalCapabilities, true),
+                    'deferPropose' => $mutable && $actor->can('outstanding.request.branch'), 'deferApprove' => $mutable && $actor->can('outstanding.approve.branch') && in_array('deferment', $approvalCapabilities, true),
+                    'reverse' => $mutable && $actor->can('payments.reverse.branch'), 'void' => $mutable && $actor->can('invoices.void.branch'),
+                    'complete' => $mutable && $actor->can('visits.complete.branch') && $state['due_now'] === 0, 'print' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch'),
+                    // PCA-1: receipts still print for a Panel patient; the invoice does not.
+                    'printInvoice' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch') && ! PanelInvoicePrinting::blocked($visit, $invoice)]];
+        });
+    }
+
+    /** @return list<array{number: string, totalSen: int, voidedAt: string|null, voidedBy: string, receipts: list<array{number: string, amountSen: int, method: string, status: string}>}> */
+    private function voidedInvoices(User $actor, Visit $visit, string $timezone): array
+    {
+        $voided = Invoice::query()->where('visit_id', $visit->id)->where('status', 'voided')->orderBy('id')->get();
+        if ($voided->isEmpty()) {
+            return [];
+        }
+        $allocations = PaymentAllocation::query()->whereIn('invoice_id', $voided->pluck('id'))->get(['invoice_id', 'payment_id']);
+        $payments = Payment::query()->whereIn('id', $allocations->pluck('payment_id'))->orderBy('id')->get()->keyBy('id');
+        $names = $this->staff->visibleUsers($actor)->whereIn('id', $voided->pluck('voided_by_user_id')->filter()->unique())->pluck('name', 'id');
+        /** @var list<array{number: string, totalSen: int, voidedAt: string|null, voidedBy: string, receipts: list<array{number: string, amountSen: int, method: string, status: string}>}> $list */
+        $list = $voided->map(fn (Invoice $i): array => [
+            'number' => (string) $i->invoice_number, 'totalSen' => (int) $i->total_sen,
+            'voidedAt' => $i->voided_at?->setTimezone($timezone)->format('j M Y, g:i A'),
+            'voidedBy' => (string) ($names[$i->voided_by_user_id] ?? 'Staff member'),
+            'receipts' => $allocations->where('invoice_id', $i->id)->map(fn ($a): ?Payment => $payments->get($a->payment_id))->filter()
+                ->map(fn (Payment $p): array => ['number' => $p->receipt_number, 'amountSen' => (int) $p->amount_sen, 'method' => $p->method_snapshot, 'status' => $p->status])->values()->all(),
+        ])->values()->all();
+
+        return $list;
+    }
+
+    /** @return array{label: string, href: string}|null */
+    private function backLink(User $actor): ?array
+    {
+        return match (true) {
+            $actor->can('visits.view.branch') => ['label' => 'Registration', 'href' => '/registration'],
+            $actor->can('panel.work.view.branch') => ['label' => 'Panel Responsibility', 'href' => '/panel-responsibility'],
+            $actor->can('finance.work.view.branch') => ['label' => 'Finance / Billing', 'href' => '/financial-work'],
+            default => null,
+        };
+    }
+}

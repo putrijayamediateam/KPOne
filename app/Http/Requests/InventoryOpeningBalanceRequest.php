@@ -1,0 +1,31 @@
+<?php
+
+namespace App\Http\Requests;
+
+use App\Http\Requests\Concerns\RedirectsInventoryValidationFailuresToIndex;
+use Illuminate\Foundation\Http\FormRequest;
+
+class InventoryOpeningBalanceRequest extends FormRequest
+{
+    use RedirectsInventoryValidationFailuresToIndex;
+
+    public function authorize(): bool
+    {
+        return true;
+    }
+
+    /** @return array<string, list<string>> */
+    public function rules(): array
+    {
+        return [
+            'expected_branch_id' => ['required', 'integer', 'min:1'],
+            'location_public_id' => ['required', 'uuid'],
+            'sku_public_id' => ['required', 'uuid'],
+            'batch_public_id' => ['required', 'uuid'],
+            'unit' => ['sometimes', 'string', 'max:100'],
+            'quantity' => ['required', 'regex:/^\d{1,12}(?:\.\d{1,3})?$/'],
+            'unit_cost_sen' => ['nullable', 'integer', 'min:0'],
+            'supplier_public_id' => ['nullable', 'uuid'],
+        ];
+    }
+}

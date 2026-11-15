@@ -1,0 +1,308 @@
+# Patients & Registration builder team
+
+Status: **set up with the owner on 2026-11-05.** This folder is the team's memory: what is
+built, what the owner decided, the rules, and what to build next. The team reads it before every task and
+updates it in the same PR as the code.
+
+## 1. Team
+
+| Role | Name | Job |
+|---|---|---|
+| Lead | **Nurul** | Plans each piece, builds it (backend, pages, tests), keeps this file current |
+| Reviewer | **Hafiz** | Checks every piece against the rules below, the tests and the owner's decisions before it reaches the owner |
+| Designer | **Balqis** | Sketches every screen change before it is built and checks the screenshots before hand-off |
+
+All are Claude sessions working for the owner through the coordinator session. Names chosen by the coordinator at
+the owner's request (2026-11-05). The Reviewer was called Daniel until the owner set up the Design team
+(2026-11-05): **Daniel** is now the Lead UI/UX Designer for all teams (`docs/teams/design/TEAM.md`), and this
+team's Reviewer is Hafiz, with the same role and rules.
+
+## 2. What this area covers
+
+**In scope (the team builds and maintains):**
+- Patient Master: KP numbers, names, NRIC/passport history, phone, email, address, gender, date of birth,
+  nationality, masked search, duplicate prevention.
+- Guardian contacts for minors, and the explicit adult confirmation when the date of birth is unknown.
+- Registration: Quick create, Register Visit (Consultation or OTC), doctor eligibility, visit reasons,
+  priority, Self-pay or Panel intent, the per-visit Panel note, edit and cancel of a registered visit.
+- The Registration board: tabs, tab counts, search, date filters, live refresh, row menus.
+- Registration settings (which new-patient details are required).
+- The WhatsApp click-to-chat button on saved patient phones (WA-01 exception only).
+- Visit history and the Invoices page navigation for a patient (read side).
+
+**Shared with other teams (change only through a small agreed change):**
+- QR check-in intake and its review (`PublicPatientIntakeService`, `PublicIntakeReviewService`): **QR check-in** team.
+- Queue entries, Call In, not-ready flag, Send to Waiting: **Queue & TV** team.
+- Dispense and Open Dispensary actions on the board: **Dispensary & OTC** team.
+- Panels and Checkout settings (`PanelSettingsService`): **Panel** team.
+- Invoices and billing figures on the Invoices page: **Billing** team.
+- Permissions catalogue: changed only by an owner-approved migration.
+
+## 3. Where the code lives
+
+| Kind | Files |
+|---|---|
+| Patient services | `app/Domain/Patient/Services/` — `PatientAdministrationService`, `PatientAdultConfirmationService`, `PatientDirectoryService`, `PatientGuardianService`, `PatientIdentityService`, `PatientNumberGenerator`, `PatientPhoneNormalizer`, `PatientWhatsAppService`, `RegistrationSettingsService`, `VisitWhatsAppEligibility`, `WhatsAppNumber` |
+| Visit services | `app/Domain/Visit/Services/` — `VisitRegistrationService`, `VisitAdministrationService`, `VisitDirectoryService`, `VisitDoctorEligibilityService`, `VisitHistoryService`, `VisitNumberGenerator`, `VisitPanelNoteService`, `VisitReasonService` |
+| Pages | `resources/js/pages/Patient/*.vue`, `resources/js/pages/Registration/*.vue`, `resources/js/pages/RegistrationSettings/Index.vue` |
+| Version 2 pages (V2-REG) | Pages `resources/js/pages/Registration/V2/{Index,Create,Show,Edit}.vue` (only these four belong in `pages/**/V2/`: `V2PageDispatchTest` fails if a V2 file is not registered); helpers `resources/js/components/registration-v2/` (`AttentionList`, `QrIntakeList`, `RowDialogs`, `V2PhoneField`, `VisitReasonField`); logic `resources/js/composables/registration/` (`useRegistrationBoard`, `useRegistrationRowActions`, `useRegistrationCreate`) and `resources/js/lib/registration-v2.ts`; registered in `config/v2-pages.php` (Kavitha's file). The Classic pages above are unchanged. Test `tests/Frontend/v2-registration-board.test.mjs` compares each V2 page with its Classic source. |
+| Version 2 patient pages (V2-PAT) | Pages `resources/js/pages/Patient/V2/{Index,Show,Edit,Create,MergeRequests}.vue` and `resources/js/pages/RegistrationReview/V2/Show.vue`, all registered in `config/v2-pages.php`; helpers `resources/js/components/patient-v2/` (`PatientFormV2` is the shared Identity, Guardian, Contact and Address form for Create and Edit; `PatientMergeCards`), `resources/js/composables/patient/usePatientDirectory.ts` and `resources/js/lib/patient-v2.ts`. Classic pages are unchanged. Tests `tests/Frontend/v2-patient-{directory,details,edit,create,merges}.test.mjs` and `v2-qr-intake-review.test.mjs` compare each V2 page with its Classic source; `tests/Feature/PublicIntakeSoftDuplicateTest.php` covers the soft-match list. |
+| Tests | `tests/Feature/Patient/*`, `tests/Feature/Visit/*` (except Panel and Invoice files owned by other teams); frontend `patient-registration`, `guardian-contact`, `unknown-dob-confirmation`, `registration-settings`, `registration-contact-settings`, `rb-01-*`, `rb-02-*`, `reg-live-1`, `tab-counts-1`, `quick-create-sticky-overlap`, `patient-board-reason`, `r1c2-registration-consultation` |
+
+## 4. Permissions (who can do what today)
+
+| Permission | Holders | Use |
+|---|---|---|
+| `patients.search.organisation`, `patients.view.organisation` | Director, CA, CA Supervisor, Resident Doctor | Find and open a patient |
+| `patients.create.organisation`, `patients.update.organisation` | Director, CA, CA Supervisor | Create and edit a patient |
+| `patients.identifiers.manage.organisation` | Director, CA Supervisor | Change NRIC/passport history |
+| `visits.view.branch`, `visits.history.view.branch` | Director, CA, CA Supervisor, Resident Doctor | Open a visit and its history |
+| `visits.create.branch`, `visits.update.branch`, `visits.cancel.branch` | Director, CA, CA Supervisor | Register, edit, cancel a visit |
+| `catalogue.settings.manage.organisation` | Director, Administrator, Finance Officer, Panel Officer | Registration settings |
+| `patients.history.view.organisation` | Director, CA Supervisor | Patient change history on the patient page (REG-4) |
+| `patients.merge.propose.organisation` | Director, CA, CA Supervisor | Propose a merge or unmerge, withdraw own request (REG-3) |
+| `patients.merge.approve.organisation` | Director, CA Supervisor | Approve or reject someone else's merge request (REG-3) |
+
+`app/Domain/Access/PermissionCatalogue.php` is the source of truth; check it before relying on this table.
+
+## 5. What is built (history)
+
+| Slice | What it did | PR |
+|---|---|---|
+| 1A | Patient Master: KP numbers, NRIC/passport history, masked search | merged |
+| 1B | Registration creates the Visit (Consultation/OTC, doctor, reason, priority, coverage intent) | merged |
+| R1A / R1B | Registration validation, visit-reason catalogue | #7, #8 |
+| RB-01 / RB-02 | Board clears stale rows after a failed search; each row shows its own date | #31 |
+| UI-FIX | Quick create Register Visit card no longer overlaps on narrow screens | #133 |
+| PANEL-NOTE-01 | Per-visit Panel note and Payment column | #113 |
+| SET-04 / SET-04b | Registration settings: Date of birth, Nationality, Email, Address switches | #126, #127 |
+| WA-01 | WhatsApp click-to-chat button on saved patient phones | #156 |
+| GUARDIAN-CONTACT-1 | Independent guardian contact for each minor | #179 |
+| Unknown DOB | Explicit adult confirmation when the date of birth is blank | #181 |
+| REG-LIVE-1 | Board refreshes about every 10 seconds | #198 |
+| FLOW-FIXES-1 | Board keeps its filter and page after actions | #201 |
+| TAB-COUNTS-1 | Tab counts on the Registration board | #210 |
+| REG-1 | Visit result page (`Registration/Show.vue`) fits a phone: action buttons and status badges wrap, visit number stays on one line, long unbroken text breaks; layout only | #221 (`d304476`) |
+| REG-2 | Phone and IC/Passport messages in English everywhere (staff screens, server and public QR form); QR Intake tab and QR review list visit purposes in English; rest of the public QR form unchanged | #228 (`bf5b1b2`) |
+| REG-3 | Two-person patient merge by link: the duplicate gets a pointer to the kept record, nothing is moved; propose, approve by a different person, reject, withdraw, unmerge; refusals for unfinished visits, open QR check-ins and allergies missing from the kept record; search, duplicate check, QR match, consultation history and outstanding bills follow the kept record; two new permissions by additive migration | #239 (`5775833`) |
+| REG-4 | Patient change history on the patient page for CA Supervisor and Director: who changed which parts of the record and when, from existing audit rows, field names only (never values); changes only; first 10 rows, older rows by cursor; includes the merged records' rows, labelled; replaces the raw "Authorized activity" list; one new permission by additive migration; fixes every edit logging "date_of_birth" as changed; staff names follow the BIL-2 staff-visibility rule | #252 (`7cf6df4`) |
+| REG-5 | REG-3 follow-ups, read paths only: search rows and the Registration picker say "Merged from KP-…"; the kept patient page shows a merged record's guardian contact, read only, when it has none; the doctor's problem list shows merged records' problems as a separate read-only group labelled with their KP number; pay-later rows of a merged-away record list under the kept record with "merged from KP-…". No permission, migration or route | #271 (`b6103d8`) |
+| REG-6 | Patient create, patient edit and Registration Quick create fit a 320 or 390 px phone: the phone number box can shrink, and below 640 px the phone country list and the Quick create identity type list stack above their box at full width; the Patient create identifier box and its fields stay inside their border. Layout only | #285 (`b77d244`) |
+| REG-7 | Screen-reader names: the public QR form's 4 back buttons carry "Kembali" on the button with the arrow icon hidden; the shared `OperationalSelect` names its open option list like its trigger (`aria-label`, or `aria-labelledby` when the caller passes `labelledby`), on every screen that uses it. Frontend only, no visual change | #300 (`8bc868f`) |
+| REG-8 | PostgreSQL contention test for patient merges (test only): two approvers on one request, approve against reject, approve against the proposer withdrawing, two proposals for the same duplicate, and approving A←B and B←C at once; each race proves both sessions wait on the shared patient row, and exactly one wins with no chain | pending (branch `feature/reg-8-merge-approval-contention`) |
+| MC-1 | Medical certificate DRAFT layout matching the clinic's printed paper (renderer `mc-a4-v2`, template revision 2 in EN and BM; still DRAFT, `production_approved` false): uppercase letterhead with Email and Tel, title, right-aligned MC No and date, bold name and identifier, bold-underlined days and dates, blank re-examine, resume and "Diagnosis" lines, "(NOT VALID IN THE COURT OF LAW)", signature line "<Doctor> (MMC No: n)". New MCs use revision 2; issued MCs keep their frozen snapshot; revision 1 unchanged. Five owner-approved assertion changes (`MedicalCertificateTest` :88, :92; `ClinicianCredentialsTest` :170, :172, :251) | not merged yet (`feature/doc-mc-1-layout`) |
+| DD-08 (this team's part) | The QR intake list's status chips (`QrIntakeTable.vue`) move from pale palette colours with no dark style to theme tokens, with the same choices as DD-38 (#331) on the board: Pending warning, Reviewed accent, Rejected danger, Expired and Data Purged outline. Text contrast is at least 4.5:1 in light and dark. Frontend only; the owner said "yes, start DD-08" on 2026-11-06 | not merged yet (`fix/dd-08-qr-intake-chips-dark`) |
+| MC-2 | MC follow-up on the DRAFT v2 layout: the letterhead prints the clinic phones through the shared `PrintedPhone` ("Tel: 03-2111 0000", or "Tel: A / B" with a second phone), and the footer prints the issue time in the branch time zone ("Issued at / Dikeluarkan pada: 1 Jan 2027, 12:10 AM (Kuala Lumpur)") instead of the raw UTC time; the printed issue date and time come from the same instant as the stored UTC issue time, which stays in the snapshot. Renderer stays `mc-a4-v2`; issued MCs keep their stored copy. No existing assertion changed. Owner: "go MC follow-up for nurul" (2026-11-07, relayed word for word) | Merged in PR #390 as `efdb034` |
+| REG-9 | Pale colours cleanup on the Patient and Registration screens (frontend only): amber, red, sky and green notices and the Urgent and Cancel Visit colours move to the warning, destructive, success and neutral tokens; the Patient list name links, KP number and icon tiles move from emerald to the brand tokens (pink, kept at the owner's choice); the Visit Reason search box and its chips are 40 px tall. Left alone: pieces that already have dark styles pinned by `dark-1.test.mjs` and `ui-dropdown-darkmode-polish.test.mjs`, other teams' files and the emerald focus rings. No existing assertion changed. Owner: "go with the pale colours cleanup", "keep them pink, run the gate", "ship it" (2026-11-10) | Merged in PR #412 as `1087879` |
+| REG-10 | Two small design-debt items (frontend only): the Coverage and Urgency toggles on Register Visit are 44 px tall below 1024 px (36 px on desktop; measured live at 390, 768 and 1440 px), Daniel's DEBT.md item from REG-9; and the navigation label "Public Check-In" becomes "QR check-in links", the name the Clinic management hub, the sidebar and the page title already use. The label needs one existing assertion changed, in `nav-02-top-bar.test.mjs`, so the header-omission list names the new label and stays meaningful. Owner: "go with both items", then "approve the nav test change, ship it" (2026-11-10) | Merged in PR #422 as `ffc937c` |
+| MC-3 | MC number year and issue time from one instant (backend only, no migration): `MedicalCertificateService` read the number's year and the stored issue time from separate `now()` calls, so a wait for the number lock that crossed local midnight on 31 December could give a number from one year (for example `.../2026/...`) and an issue time and date from the next (1 Jan 2027). The issue instant is now read after the number lock is held, and the year is taken from that instant (the lock is taken again for the new year if it differs), so the number, the printed issue date and the stored UTC time agree. Closes the known limit Hafiz recorded in the MC-2 review. New test `test_a_wait_for_the_number_lock_that_crosses_new_year_midnight_keeps_one_year_and_one_instant` fails on the old code and passes on the new. No existing assertion changed. Owner: "go with the MC number year timing fix" (2026-11-10) | Merged in PR #416 as `3bd7d60` |
+| REG-11 | Screen-reader checks of the pages REG-7 did not cover (frontend only; nothing changes on screen): the public QR form (start and review steps), the QR status page after a submission (pending state), the QR intake list and the intake review page with a real synthetic intake, scanned with Chromium's accessibility tree, a DOM check of ids, references, headings, landmarks and live regions, and the pages' own markup. Fixed: the Bahasa Melayu check-in form and status page declare `lang="ms"` on their `main`; the progress steps say which step is current (`aria-current="step"`) and which are done; the three "Buka peta" links name their branch and say they open a new tab; the QR intake list's "Verify" links name the intake ("Verify <name>"); the Visit Reason search points `aria-controls` at its list only while the list exists. No existing assertion changed. Found and not changed: the whole status card is one polite live region that the 10-second poll updates (a narrower announcement needs a real screen-reader test); the review page's section titles skip from `h1` to `h3` and the shared select points `aria-controls` at its closed list (both in shared components); the accepted and called states of the status page were checked from the markup, not live; no real screen reader (NVDA, VoiceOver) was used. Owner: "go with the screen-reader checks" (2026-11-10) | Merged in PR #435 as `1ccd6cf` |
+| REG-12 | The patient QR status page announces only the key changes (frontend only; nothing changes on screen): the whole status card is no longer one polite live region. One small screen-reader-only region (`role="status"`, `aria-live="polite"`, `aria-atomic`, `data-test="status-announcer"`) speaks the status message, the queue number and the patients ahead when they change; the wait estimate and the other branches' counts are never announced; a call to the room keeps its own alert; the region stays empty until the first change so the page is not read twice on load. Checked live: empty at load, and after a staff rejection the next poll announced the new message. Not tested with a real screen reader (NVDA, VoiceOver). No existing assertion changed. Closes the REG-11 hand-off. Owner: "go with the live region change" (2026-11-10) | Merged in PR #437 as `9d3d480` |
+| V2-REG | Version 2 Registration pages, shown only to a person who has switched on "Try the new layout" (Classic stays exactly as it was; same props, routes, permissions, lock versions and payloads; no backend, migration or permission change). **S1 board:** V2 tabs, toolbar and filters (a Filters sheet on phones), cards below 1280 px, the row menu from the server's flags only (links are real links, a busy state while an action runs), a "needs attention" list grouped by patient (a bar below 1536 px, a rail from 1536 px; at most 5 rows, then "Show all"), Mark not ready / Ready to be called / Cancel visit on V2 dialogs (same endpoints and payload keys as Classic), live refresh with the Classic polling rules. **S3 QR intake tab:** Pending and History groups, same Verify and View visit links and the same 25-a-page history paging. **S4 Register visit:** search-first patient pick, recent patients, Quick create (name, identity, phone, date of birth first; the rest behind "More details (optional)"), a visit reason field on V2 blocks (same search and add rule as Classic), Panel coverage and note, a summary rail and, on phones, a sticky bar. **S5 Visit page and S6 Edit visit:** same data and rules; Edit shows an unsaved-changes summary and its Save button is an outline until something changes. Page crumbs: Registration > Register visit; Registration > KPV-…; Registration > KPV-… > Edit. Built in rounds with Daniel's reviews (shots in the real V2 shell at 1440, 1024 and 390 px, light and dark). | #621 (merged in batch #627; `main` `6892f47`) |
+| V2-PAT | Version 2 patient pages, shown only to a person who has switched on "Try the new layout" (Classic untouched; same props, routes, permissions, lock versions and payloads; no backend, migration or permission change except the soft-match fix below). **Patient directory** (#656), **Patient details** with merge cards (#672), **Edit patient** (#726), **Create patient** (#738), **QR intake review** (#740) and the **Patient merges list** (#747): V2 blocks, one filled action per width, V2Dialog for every confirm, V2LeaveGuard for unsaved work, masked values stay masked and the summary lists field names only. **Follow-ups:** the QR review starts on Create new patient when there is no duplicate candidate (#749); V2DateField for the date of birth on Create and Edit, an unreadable date sends nothing, Guardian full name full width (#753); and a **backend fix** (#758): the QR review's duplicate list now normalises the patient the way Accept does, so a soft match (name, date of birth, phone) that Accept refuses on is listed too (same gate, same masked projection, cap of 5), with V2 wording and the date hint hidden while the box shows its own error. Each page was reviewed by the Lead UI/UX Designer on shots (1440 and 390 px, light and dark, plus 320 where asked) and, for private-data pages, in full. | Merged in PRs #656, #672, #726, #738, #740, #747, #749, #753 and #758 |
+
+## 6. Owner decisions already made (never ask again)
+
+1. Patients are organisation-level; visits are branch-owned.
+2. Name, phone and NRIC/passport are always required; gender required with Unknown allowed; Date of birth,
+   Nationality, Email and Address are per-organisation switches, default optional (2026-10-16).
+3. A minor needs a guardian contact; guardian numbers are never used for WhatsApp, search or matching (2026-10-27).
+4. A blank date of birth needs an explicit staff adult confirmation; legacy blank patients are not blocked (2026-10-27).
+5. Patients without an NRIC or passport are registered in Yezza only during the pilot (2026-10-29).
+6. The Registration board refreshes about every 10 seconds (2026-10-30).
+7. WhatsApp is click-to-chat only; KPOne sends nothing (2026-10-22).
+8. Registration and Patient screens use **English** labels; "Panggil semula" stays (2026-11-05).
+9. Merging duplicate patients needs **two people**: a CA or CA Supervisor proposes, a different CA Supervisor
+   or Director approves (2026-11-05).
+10. A merge can be **undone** (unmerge) with the same two-person approval; the merged-away record is kept
+    hidden, never deleted; every step audited (2026-11-05).
+11. Patient change history (who and when, field names only, never old values) is visible to **CA Supervisor
+    and Director** only (2026-11-05).
+12. **English everywhere** for the nine phone and IC/Passport validation messages and the five QR visit-purpose
+    labels in the staff lists (QR Intake tab, QR review list): staff screens **and the public QR form** show the same
+    English messages. This is an explicit owner exception to the "patient-facing text in Bahasa Melayu" rule, **for
+    these messages only**; the rest of the public QR form keeps its own wording (including "Jumpa doktor / Beli ubat
+    sahaja" and its Malay purpose options). Wording approved as proposed. Two existing assertions changed with
+    approval: `tests/Frontend/patient-registration.test.mjs` and `tests/Feature/Patient/RegistrationValidationTest.php`
+    line 80 ("Semak kod negara dan nombor telefon." became "Check the country code and phone number.") (2026-11-05).
+13. A "ship it" or any other owner decision relayed by B.E.R.N.I.S.S (formerly LUCY), the coordinator session,
+    counts as the owner's own (the owner renamed the coordinator on 2026-11-05: same session, same rules);
+    still never merge, never edit `docs/BASELINE.md`, and stop and ask the owner directly if a relayed message
+    conflicts with something the owner said directly (2026-11-05, confirmed by the owner in this team's session).
+14. **REG-3 merge design (owner answers 2026-11-05, design note `REG-3-DESIGN.md`):** (A) link the records, never
+    rewrite invoices, receipts, Panel claims, visits or documents; (B) refuse a merge while either record has an
+    unfinished visit or a pending QR intake; (C) block a merge while the merged-away record has active allergies the
+    kept record does not show, until a doctor records them on the kept record; (D) propose: CA, CA Supervisor,
+    Director; approve: a different CA Supervisor or Director; (E) fixed reason list, no free text; (F) past Insights
+    distinct-patient counts may count a merged person twice (known limit); (G) two new permissions
+    `patients.merge.propose.organisation` and `patients.merge.approve.organisation` by one additive migration.
+15. **Retiring an identifier on a merged-away record stays allowed** (owner answer "yes", relayed by LUCY,
+    2026-11-05): only the existing `patients.identifiers.manage.organisation` holders (CA Supervisor, Director), audited
+    as today. It is how the IC or passport is freed for the kept record; adding or replacing an identifier on a
+    merged-away record stays refused.
+16. **REG-4 patient change history (owner answers 2026-11-05):** a new view-only permission
+    `patients.history.view.organisation` for CA Supervisor and Director only, by an additive migration; changes only
+    (WhatsApp opens and other views are not listed); it **replaces** the older raw "Authorized activity" list, so HR
+    Manager and Technical Admin no longer see patient history on the patient page; the one existing assertion that
+    listed the patient detail keys (`WhatsAppLinkBoundaryTest`, `activity` removed) was changed with approval.
+17. **Every screen change goes through the team designer** (owner decision 2026-11-05, relayed by LUCY): see
+    section 8.
+18. **Backup push** (owner rule 2026-11-05, relayed by LUCY for all teams): whenever this team stops to wait for
+    the owner (a "ship it", a question or the end of a turn) with work not yet on GitHub, commit it to this piece's own
+    feature branch and push (`git push -u origin <branch>`). It is only a backup: no PR, never push to `main` or
+    another team's branch, never merge, never force-push (add new commits instead). If the branch already has an
+    open PR, a push re-runs CI, so push there only when the change is ready. The PR still opens only after "ship it",
+    from the same branch, with the latest `origin/main` merged first. On a fresh machine, fetch the branch first.
+19. **REG-5 merge follow-ups (owner answers 2026-11-05):** build the REG-3 follow-ups next; the pay-later row gains
+    a `mergedFrom` field, and the one Billing test line listing a pay-later row's exact fields
+    (`PayLaterCollectionTest`) gains it, with approval.
+20. **Next pieces after REG-5 (owner, directly in this session, 2026-11-05):** "do 1 first, then 2": REG-6 phone fit
+    of Patient create, then REG-7 accessible names (the public QR form's icon-only back buttons and this team's
+    SMOKE-1 S1-009 to S1-014 items). REG-7 leaves to Staff Experience's UX-6 the two labels it already adds in this
+    team's files (the cancellation reason on `Registration/Show.vue` and the issuer box on `Patient/Index.vue`).
+21. **MC slice 1 (owner, 2026-11-06, in this session and relayed by B.E.R.N.I.S.S):** "yes, build MC slice 1" on the
+    recommended scope: DRAFT still, KPOne's MC number format kept, one phone line, a blank "Diagnosis: ________" line (no
+    diagnosis is ever filled in by KPOne), blank re-examine and resume lines, the court notice, the new signature line,
+    EN and BM both DRAFT, DRAFT banner kept. "approve the 3 MC assertions", then "approve the MC test changes for
+    nurul" (all five). Approved wording and `production_approved` (slice 2) wait for a named doctor's sign-off. The MC
+    "Date:" uses dd/mm/yyyy, the same as the body dates (owner, relayed word for word: "go with 1 for the MC date").
+22. **Patient QR status page announcements (owner, 2026-11-10, in this session):** a screen reader announces only the key changes (status message, queue number, patients ahead), never the whole card on every 10-second poll; a call to the room stays its own alert. B.E.R.N.I.S.S relayed the same choice for the owner; the owner then said "go with the live region change". Built as REG-12.
+23. **Version 2 only; the Classic restyle is closed (owner, 2026-11-12, through B.E.R.N.I.S.S):** the owner chose "Version 2 only", then "close" for the Classic restyle (UI-RESTYLE). The ten Classic restyle PRs (#552, #557, #560, #567, #572, #574, #577, #580, #589, #596) were closed unmerged, their branches kept, and Classic stays exactly as it was. Each page gets its own new V2 layout, shown only when V2 is on, with the same data, routes, permissions and payloads and Classic untouched.
+24. **V2 Registration answers (B.E.R.N.I.S.S acting for the owner, 2026-11-12):** no Call again, Call to treatment room or Treatment progress in the Registration V2 menu (the server never sets those flags for a Registration row); "Needs attention" is counted from the rows on screen only and says so, with "Waiting now" and "Longest wait" in the count line; no "Doctors with a room today" and no "Recent activity" on this page; the Dispensary and Awaiting billing tabs are hidden for a role with no count; Quick create is offered by the same rule as Classic; Apply keeps its name; the row still opens Invoices on click. Daniel's wording choices (English, sentence case: "View visit", "Cancel visit…") apply to V2 only; Classic keeps its wording.
+25. **Shipping the V2 Registration PR (owner, 2026-11-12, directly in this session):** "ship it" for #621. A ship-it relayed by B.E.R.N.I.S.S was not enough on its own: the PR waited for the owner's own word in this session, and B.E.R.N.I.S.S later asked the same. Unchanged: no PR before the owner's "ship it".
+26. **Do not run database tests against the demo or preview database (B.E.R.N.I.S.S, 2026-11-12):** `RefreshDatabase` tests wipe the database they run on. Use a task-owned disposable PostgreSQL database whose name ends in `_testing` (this session used `kpone_v2reg_testing` in the task container), check host, port and name before the first query, and never the demo database.
+27. **Shipping V2 pages (owner, 2026-11-13, directly in this session):** a ship-it relayed by B.E.R.N.I.S.S was never enough; each V2 patient PR (#726, #738, #740, #747, #749, #753, #758) opened only after the owner typed "ship it ..." in this session. A reviewer's OK is a separate step, and the owner's own words come first (the PR text says when the designer had not yet seen the final head).
+28. **V2 patient form rules (Lead UI/UX Designer, 2026-11-13):** Reject on the QR review asks for a V2Dialog confirm (Classic rejects on one click) and the filled button sits only in the dialog; in the merges list Approve is an outline button and the filled button is in the dialog. A refused action keeps the dialog open with the server's message and the buttons stay normal. Selects that are still `OperationalSelect` (Doctor, Visit purpose, Rejection category, Identification type) are logged under DD-83 until V2Picker replaces them.
+29. **Soft duplicates on the QR review (owner, 2026-11-13, through B.E.R.N.I.S.S):** the owner chose to fix the list in Classic and V2 as its own backend PR (#758). Cause: the list passed the stored payload to the duplicate check, which needs the normalised search name and phone. After a refusal at Accept the page reloads its intake data, shows the tick and the plain message. Known limit: if normalising throws, the list falls back to the raw payload and shows only exact identifier matches.
+30. **Registration V2 follow-ups (merged 2026-11-15; each opened only on the owner's own ship-it in this session):** Register visit (#761): the summary rail shows from 1280 px (`rail-from="xl"`) and the rail-aware sticky bar carries the one Register visit button below it, shown from the start (disabled with a reason); a leave guard for unsaved work; six recent patients; picker names wrap on phones; the search placeholder is "Search patients" with a visible help line; `V2PatientPickRow` has an accessible name that starts with the visible name, KP number and date (the masked identifier is spoken as "identifier ending 1234", an accepted exception to label-in-name because asterisks cannot be spoken). Edit visit (#760): rail from 1280 px, a leave guard and a two-item crumb. Visit page (#764): rail from 1280 px stacked below, and the visit type shown through a V2 label map ("OTC", not "Otc"). Board (#765): the not-ready reason wraps to two lines and is left-aligned on phones. Rule from each PR: exactly one filled action at every width, counted in the browser at 1440, 1280, 1024, 768, 390 and 320 px.
+
+## 7. Open items and known limits
+
+- ~~The Registration result page is about 567 px wide on a 390 px phone.~~ Fixed by REG-1 (pending merge): the
+  page is `/visits/{number}` (`Registration/Show.vue`), not the board; it measured 570 px at 390 px and 793 px at
+  768 px, and now matches the viewport at 320, 390, 768 and 1440 px, including long text without spaces. Not
+  measured on the real page: the Consultation Queue card on a consultation visit.
+- TAB-COUNTS-1 (#210) is listed in section 5 but has no row in `docs/BASELINE.md` yet (drift noticed during REG-1 review).
+- ~~SMOKE-1 S1-016: mixed Bahasa Melayu and English labels.~~ Fixed for this team's screens by REG-2 (pending merge).
+  Left for another team: the Queue message "Doktor sedang menjalankan konsultasi lain..." (Queue & TV). Other
+  Malay messages from the public QR validator (guardian, consent, date of birth) are part of the QR form's own
+  wording and unchanged.
+- Public QR form now mixes languages next to the nine REG-2 messages, as the owner chose ("these nine only"): an
+  empty phone shows "Phone number is required." but a too-long phone shows "Nombor telefon terlalu panjang.", the ID
+  field shows "Nombor pengenalan diperlukan.", and the guardian phone's invalid message is now English. A whole-form
+  language decision would be a separate piece (QR check-in team).
+- ~~Patient create page (`/patients/create`) is 433 px wide on a 390 px phone.~~ Fixed by REG-6 (PR #285). It
+  was 433 px at 320 and 390 px with or without errors, and so was Patient edit; the cause was the shared
+  `PhoneInput` number box, whose built-in width set the minimum of the one-column form. Registration Quick create
+  had the same fault in its identity row: its fields ran past the card and were clipped. Now measured at 320, 390
+  and 768 px in light and dark: page width equals the viewport, no field passes its bordered box, and every input
+  and select is at least 40 px tall. Lesson (Balqis): a bare `flex-1` on a box in a column row sets its height to
+  0; use `sm:flex-1` when a row stacks below `sm`. Design debt found, not fixed: the Registration Visit Reason
+  search box is 36 px tall.
+- REG-7 known limits (built 2026-11-06). Not scanned: the QR status page after a submission, step 5 of the QR form
+  (review) and the QR intake review page with a real intake. A list's name repeats its trigger's label, so a
+  required field's list reads with its "*" (for example "Identification type *"), as the trigger already does.
+- REG-5 known limits (merged in PR #271). The Invoices page and the patient page have no
+  patient-level visit list, so "both records' visits" needs nothing there: each invoice opens by its own visit,
+  and the doctor's previous consultations and outstanding bills already include both records. A merged guardian is
+  shown only while the kept record has none (the newest merged record's contact wins); saving it on the kept record
+  is a normal patient edit. Merged problems are capped at 50 (active first) and the panel says so when cut. Clinical
+  safety (Hafiz and Balqis, REG-5 review): the "From merged records" group opens by default while it holds an active
+  problem, and the count line names the active ones, for example "3 from merged records (2 active)"; Daniel and the
+  Clinical team are asked to confirm that default. Problem dates show as 2019-02-01 rather than the GUIDE's
+  1 Feb 2019, the same as the existing resolved list (DES-2 design debt). The Registration picker's
+  selected-patient summary has no merge note (sketch decision). Design debt noted by Balqis, not fixed here:
+  `Patient/Index.vue` name links and the picker highlight use emerald classes, the "Entered in error" button uses
+  `text-red-700`, and the pay-later table scrolls sideways on a phone.
+- REG-4 known limits (merged in PR #252). Audit rows written before REG-4 list "Date of birth" on
+  every personal-details edit, because of the comparison bug REG-4 fixed; those old rows are not rewritten. Only
+  events recorded with the patient as subject appear: visit, billing, clinical and QR changes are elsewhere. Times
+  show in the viewer's active branch time zone.
+- REG-3 known limits (merged in PR #239). The follow-ups from the design note (search note, pay-later list,
+  problem list, guardian contact) are REG-5. The two-process PostgreSQL contention test for simultaneous approvals is REG-8. The duplicate keeps its IC or passport, so that IC cannot be added to the kept record until it is retired on
+  the merged-away record (allowed by owner decision, section 6 item 15; adding and replacing are refused). Old
+  registration rows of the duplicate still offer WhatsApp to the duplicate's own phone. Past Insights counts may
+  count a merged person twice (decision F). Allergy matching compares normalised text, so "Penicillin" and
+  "Penicillin (rash)" count as different and block until the kept record has the same wording.
+- REG-3 touched other teams' files (shared read paths only): `OutstandingBillService` (Billing),
+  `ClinicalEncounterDirectoryService` (Clinical), `PublicIntakeReviewService` (QR check-in). REG-5 also reads in
+  `ClinicalSafetyDirectoryService` and `AllergyProblemPanel.vue` (Clinical) and `PayLaterCollectionService` and
+  `PayLaterCollections.vue` (Billing); the coordinator told those teams.
+- "Consultation Completed" tab count: all-time count or the latest 25 shown (owner decision pending).
+- RB-01 "two 200s, stale tab" mechanism never reproduced.
+- V2-REG known limits (merged in PR #621). The Registration V2 pages were checked in a headless browser on synthetic data only: not on a real phone, not with a real on-screen keyboard (the sticky bar was checked with a short viewport), and not with production-like data. The visit reason field and the guardian, adult-confirmation and contact fields reuse the shared components, so they keep their own look inside the V2 form (their inputs are forced to the card fill with a wrapper class). The Register visit search box has its focus returned after "Change patient" through `V2SearchCombobox.focus()` (Kavitha's block); the composables are copies of the Classic logic, so a later change to a Classic page needs the same change in its copy (the parity test compares the main routes, payload keys and messages, not every line). The needs-attention count is per patient on the screen's rows only. Breadcrumb alignment and the "Back to Classic" button belong to the V2 shell (Rashid, Kavitha). The 2xl rail is checked in code, not in a shot (the shots were taken at 1440 px).
+- V2-PAT known limits. Checked in a headless browser on synthetic data in a task-owned database only (no real phone, no real screen reader). Doctor, Visit purpose, Rejection category and Identification type on the QR review use `OperationalSelect`, not V2Picker (DD-83). The shared date box is V2DateField; while it holds unreadable text the model is empty and nothing is saved. After a refused merge decision the dialog's confirm button stays pressable until Cancel (it would only be refused again). The QR review's second duplicate path (an exact identifier on a merged-away record) still offers the kept record, as before.
+- Debt: `resources/js/pages/RegistrationReview/Index.vue` is dead code. No controller renders it on `main`; only two frontend source tests still read the file. Not given a V2 page (B.E.R.N.I.S.S., 2026-11-15) and not deleted yet, because removing it would change those existing assertions. Remove it, with the two tests, in a separately approved change.
+- Registration V2 follow-up limits (#760, #761, #764, #765). The Register visit recent list is cut on the page only (the server still sends all of them). The board reason shots used reason data injected in the browser because the demo database had no waiting visit with a not-ready reason, and the 390 shot predates the left-align change. The Visit page filled-action count was measured at six widths for the Edit visit state and at 1280 and 390 for the Send to waiting state. All checks were headless on synthetic data in a task-owned database; none on a real phone or screen reader.
+
+## 8. Rules (every task)
+
+- Read `CLAUDE.md`, `AGENTS.md`, `docs/BASELINE.md` and this file first.
+- Never open, print or edit `.env`. Synthetic `.test` data only; no real names, NRIC or phone numbers.
+- Every state change: backend permission and branch scope, `DB::transaction`, row locks, `lock_version`,
+  idempotency where retried, and a structural audit row with **no NRIC, phone, address or clinical text**.
+- Never widen who sees identity data, never weaken masking or duplicate checks, without an owner decision in section 6.
+- Do not change any existing test assertion without the owner's approval.
+- **Design (owner decision 2026-11-05):** for any piece that changes a screen, run Balqis (the team designer) as
+  a subagent **before building** to sketch the layout (components, phone behaviour at 390 px, empty, loading and
+  error states, wording) from the existing patterns and, once merged, `docs/design/GUIDE.md`; and **before hand-off**
+  to check the 390 and 1440 px light and dark screenshots against `docs/design/CHECKLIST.md`. A new page or a page
+  layout change also goes to Daniel (Lead UI/UX Designer) for a look, through B.E.R.N.I.S.S.
+- Full gate before hand-off, on a task-owned PostgreSQL 18 database: backend tests, Pint, frontend types,
+  lint, format, build, frontend tests, `migrate:fresh --seed`, `git diff --check`; screenshots at 1440 and
+  390 px, light and dark, for any screen change.
+- Commit, push and PR only after the owner says "ship it" (directly, or relayed by B.E.R.N.I.S.S, the coordinator: see
+  section 6 item 13); never merge. If a relayed decision conflicts with what the owner said directly, stop and ask.
+  The one exception is the backup push to this piece's own branch (section 6 item 18), which opens no PR.
+- Record every new owner decision in section 6 and every finished piece in section 5, in the same PR.
+- **Never edit `docs/BASELINE.md`** (owner rule, 2026-11-05): record each finished piece only here (section 5
+  history, section 6 for new owner decisions). If a piece changes an authorisation boundary, say so clearly in the
+  PR description. The coordinator records all BASELINE updates in one docs-only PR after each batch of merges.
+
+## 9. Backlog (next pieces, in order)
+
+Chosen by the owner on 2026-11-05; built one by one in this order, each its own PR. Choosing them is the owner's
+authorisation to build them; the coordinator records it in `docs/BASELINE.md`.
+
+1. **REG-1 Phone fit.** *Merged in PR #221 as `d304476`.* The Registration result page is about 567 px wide on a 390 px phone and scrolls
+   sideways. Make it fit at 390 px with no horizontal page scroll. Layout only: no backend, permission or data
+   change. Screenshots at 1440 and 390 px, light and dark, before and after.
+2. **REG-2 Labels in one language.** *Merged in PR #228 as `bf5b1b2`. The Malay CA guide needs no change.* SMOKE-1 S1-016: Registration and Patient screens mix Malay and English.
+   Make them **English** (owner decision 2026-11-05); "Panggil semula" stays. Update any exact-text test only
+   with the owner's approval, listing each one first. Tell the owner if the Malay CA guide
+   (`docs/guides/ms/`) needs a matching update.
+3. **REG-3 Merge duplicate patients.** *Merged in PR #239 as `5775833` (design:
+   [REG-3-DESIGN.md](REG-3-DESIGN.md)).* Two-person merge (propose, then a different person approves), the
+   merged-away record kept hidden and never deleted, all visits, allergies, documents and invoices pointing to
+   the kept record, unmerge with the same approval, full structural audit with no identity values. Needs an
+   owner-approved permission migration (new narrow propose/approve permissions). Touches every area's
+   patient links, so write a short design note first and show the owner before building.
+4. **REG-4 Patient change history.** *Merged in PR #252 as `7cf6df4`.* A read-only list on the patient page of who changed which fields and
+   when, from existing audit rows; field names only, never old or new values; CA Supervisor and Director only
+   (owner decision 2026-11-05), likely a new narrow view permission by owner-approved migration.
+5. **REG-5 Merge follow-ups.** *Merged in PR #271 as `b6103d8`.* The
+   REG-3 design note's unbuilt read paths: "Merged from KP-…" on search rows, a merged record's guardian and
+   problems on the kept record (read only), and the pay-later list under the kept record.
+6. **REG-6 Patient create phone fit.** *Merged in PR #285 as `b77d244`.* Patient
+   create (and, through the shared phone field, Patient edit and Registration Quick create) fit a 320 and 390 px
+   phone with errors shown. Layout only.
+7. **REG-7 Accessible names.** *Merged in PR #300 as `8bc868f`.*
+   Survey (Chromium accessibility tree): UX-3 had already fixed this team's staff pages; the QR back buttons were
+   named only through the svg; every open shared select list was unnamed. Kavitha (Staff Experience) asked for the
+   `labelledby` case; Daniel OK. The public QR form's icon-only back
+   buttons and this team's SMOKE-1 S1-009 to S1-014 items in `docs/design/DEBT.md`, except the two labels UX-6
+   adds. Frontend only; the QR page is patient-facing, so Daniel looks at it.
+8. **REG-8 Merge approval contention test.** *Chosen by the owner on 2026-11-06 ("do REG-8 first").* Five
+   two-process PostgreSQL races in the serial Contention suite (`PostgresPatientMergeRegressionTest` and
+   `PostgresPatientMergeWorker`). Test only. Not done in this session: removing the service's locks to watch the
+   races fail (the session's permission guard refused editing application code for it); each race instead proves
+   both workers wait behind the held patient row.
+9. **REG-13 Duplicate override: CA Supervisor only, with a recorded reason.** *Owner deferred, 15 Nov 2026 ("Leave it as today for now").* Today any CA can confirm a likely duplicate with a tick, and the
+   audit row `patient.created` holds only a yes/no (`soft_duplicate_override`); no reason and no approver. Design (size M, not built): a new narrow permission
+   (for example `patients.duplicates.override.organisation`) for `ca_supervisor` only (the Director's role to be decided) by an additive migration;
+   the check inside `PatientAdministrationService::createUsingPolicy`, so all three entry points are covered (Patient create, Registration Quick create,
+   QR intake acceptance); a controlled reason list plus an optional short note stored in the audit row, and optionally an append-only evidence row;
+   screens that show a CA "ask a CA Supervisor to confirm" and a reason picker for the supervisor; tests for a CA refused, a CA Supervisor allowed with
+   a reason, no reason refused, each entry point, and an audit row with the reason and no personal data. Until then the staff procedure in
+   `docs/pilot/PATIENT-DUPLICATES.md` applies. A new permission comes back to the coordinator and the owner first.
+

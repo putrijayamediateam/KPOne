@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+>
+    <testsuites>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+            <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</exclude>
+            <exclude>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</exclude>
+            <exclude>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresRosterContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresLeaveContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresAttendanceContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresOvertimeContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresRecordsContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresMemosContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresLettersContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresDisciplineContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresIncidentsContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresOpenShiftsContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresCredentialsContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresClaimsContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresPayrollContentionTest.php</exclude>
+            <exclude>tests/Feature/HR/PostgresInterviewContentionTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresOpeningImportTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresSupplierReturnTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresPurchaseRequestTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresReorderLevelTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresSupplierReturnGroupTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresTransferShortageTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresTreatmentUsageTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresVerifiedReceivingTest.php</exclude>
+            <exclude>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</exclude>
+            <exclude>tests/Feature/PilotStorageIsolationTest.php</exclude>
+            <exclude>tests/Feature/PostgresAttendanceNumberTest.php</exclude>
+            <exclude>tests/Feature/PostgresBillingRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresBranchAssignmentRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresBusinessDetailsRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresCashClosingRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresClinicalEncounterRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresClinicalSafetyRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresDispensaryInventoryRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresPatientMasterRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresQueueRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresReferralNumberTest.php</exclude>
+            <exclude>tests/Feature/PostgresTreatmentPlanRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresVisitReasonRegressionTest.php</exclude>
+            <exclude>tests/Feature/PostgresVisitRegistrationRegressionTest.php</exclude>
+            <exclude>tests/Feature/Queue/CallReadinessConcurrencyTest.php</exclude>
+            <exclude>tests/Feature/Website/WebsiteOutputPlanTest.php</exclude>
+            <exclude>tests/Feature/Website/WebsiteReleaseTest.php</exclude>
+        </testsuite>
+        <!-- CI-PAR-1: tests that start a process (worker subprocesses connect to the configured test database; a forked
+             child shares the parent's storage). They run in their own serial CI step; ContentionSuiteTest fails if a
+             test that starts a process is missing here. Order does not matter: TestCase restores the unseeded
+             schema when seeded role grants were left committed. -->
+        <testsuite name="Contention">
+            <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
+            <file>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</file>
+            <file>tests/Feature/HR/PostgresRosterContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresLeaveContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresRecordsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresMemosContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresLettersContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresDisciplineContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresIncidentsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresOpenShiftsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresCredentialsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresPayrollContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresInterviewContentionTest.php</file>
+            <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
+            <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
+            <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
+            <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</file>
+            <file>tests/Feature/Inventory/PostgresSupplierReturnTest.php</file>
+            <file>tests/Feature/Inventory/PostgresPurchaseRequestTest.php</file>
+            <file>tests/Feature/Inventory/PostgresReorderLevelTest.php</file>
+            <file>tests/Feature/Inventory/PostgresSupplierReturnGroupTest.php</file>
+            <file>tests/Feature/Inventory/PostgresTransferShortageTest.php</file>
+            <file>tests/Feature/Inventory/PostgresTreatmentUsageTest.php</file>
+            <file>tests/Feature/Inventory/PostgresVerifiedReceivingTest.php</file>
+            <file>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</file>
+            <file>tests/Feature/PilotStorageIsolationTest.php</file>
+            <file>tests/Feature/PostgresAttendanceNumberTest.php</file>
+            <file>tests/Feature/PostgresBillingRegressionTest.php</file>
+            <file>tests/Feature/PostgresBranchAssignmentRegressionTest.php</file>
+            <file>tests/Feature/PostgresBusinessDetailsRegressionTest.php</file>
+            <file>tests/Feature/PostgresCashClosingRegressionTest.php</file>
+            <file>tests/Feature/PostgresClinicalEncounterRegressionTest.php</file>
+            <file>tests/Feature/PostgresClinicalSafetyRegressionTest.php</file>
+            <file>tests/Feature/PostgresDispensaryInventoryRegressionTest.php</file>
+            <file>tests/Feature/PostgresPatientMasterRegressionTest.php</file>
+            <file>tests/Feature/PostgresQueueRegressionTest.php</file>
+            <file>tests/Feature/PostgresReferralNumberTest.php</file>
+            <file>tests/Feature/PostgresTreatmentPlanRegressionTest.php</file>
+            <file>tests/Feature/PostgresVisitReasonRegressionTest.php</file>
+            <file>tests/Feature/PostgresVisitRegistrationRegressionTest.php</file>
+            <file>tests/Feature/Queue/CallReadinessConcurrencyTest.php</file>
+            <file>tests/Feature/Website/WebsiteOutputPlanTest.php</file>
+            <file>tests/Feature/Website/WebsiteReleaseTest.php</file>
+        </testsuite>
+        <!-- CI-SPLIT: the three shards below partition the Contention suite above (ContentionSuiteTest fails if a file is
+             missing, repeated or not in Contention). Each CI backend shard runs its Contention share after its Unit and
+             Feature share. The three slowest files lead one shard each (about 161 s, 161 s and 100 s on a CI runner); the rest were dealt by
+             measured time (run 2537 of PR 599) so that each shard's Unit/Feature and Contention work finishes together. The full
+             Contention suite stays as it was for local runs. -->
+        <testsuite name="Contention1">
+            <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
+            <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresInterviewContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresLeaveContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresOpenShiftsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresRecordsContentionTest.php</file>
+            <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
+            <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
+            <file>tests/Feature/Inventory/PostgresPurchaseRequestTest.php</file>
+            <file>tests/Feature/Inventory/PostgresTreatmentUsageTest.php</file>
+            <file>tests/Feature/PostgresBillingRegressionTest.php</file>
+            <file>tests/Feature/PostgresBranchAssignmentRegressionTest.php</file>
+            <file>tests/Feature/PostgresClinicalSafetyRegressionTest.php</file>
+            <file>tests/Feature/PostgresDispensaryInventoryRegressionTest.php</file>
+        </testsuite>
+        <testsuite name="Contention2">
+            <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
+            <file>tests/Feature/HR/PostgresCredentialsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresDisciplineContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresIncidentsContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresLettersContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresPayrollContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresRosterContentionTest.php</file>
+            <file>tests/Feature/Inventory/PostgresSupplierReturnTest.php</file>
+            <file>tests/Feature/Inventory/PostgresVerifiedReceivingTest.php</file>
+            <file>tests/Feature/PilotStorageIsolationTest.php</file>
+            <file>tests/Feature/PostgresCashClosingRegressionTest.php</file>
+            <file>tests/Feature/PostgresQueueRegressionTest.php</file>
+            <file>tests/Feature/PostgresReferralNumberTest.php</file>
+            <file>tests/Feature/PostgresVisitRegistrationRegressionTest.php</file>
+            <file>tests/Feature/Website/WebsiteReleaseTest.php</file>
+        </testsuite>
+        <testsuite name="Contention3">
+            <file>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</file>
+            <file>tests/Feature/HR/PostgresMemosContentionTest.php</file>
+            <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>
+            <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
+            <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</file>
+            <file>tests/Feature/Inventory/PostgresSupplierReturnGroupTest.php</file>
+            <file>tests/Feature/Inventory/PostgresTransferShortageTest.php</file>
+            <file>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</file>
+            <file>tests/Feature/PostgresAttendanceNumberTest.php</file>
+            <file>tests/Feature/PostgresBusinessDetailsRegressionTest.php</file>
+            <file>tests/Feature/PostgresClinicalEncounterRegressionTest.php</file>
+            <file>tests/Feature/PostgresPatientMasterRegressionTest.php</file>
+            <file>tests/Feature/PostgresTreatmentPlanRegressionTest.php</file>
+            <file>tests/Feature/PostgresVisitReasonRegressionTest.php</file>
+            <file>tests/Feature/Queue/CallReadinessConcurrencyTest.php</file>
+            <file>tests/Feature/Website/WebsiteOutputPlanTest.php</file>
+            <file>tests/Feature/Inventory/PostgresReorderLevelTest.php</file>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_KEY" value="base64:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA="/>
+        <env name="APP_MAINTENANCE_DRIVER" value="file"/>
+        <env name="BCRYPT_ROUNDS" value="4"/>
+        <env name="BROADCAST_CONNECTION" value="null"/>
+        <env name="CACHE_STORE" value="array"/>
+        <env name="DB_CONNECTION" value="sqlite"/>
+        <env name="DB_DATABASE" value=":memory:"/>
+        <env name="DB_URL" value=""/>
+        <env name="MAIL_MAILER" value="array"/>
+        <env name="QUEUE_CONNECTION" value="sync"/>
+        <env name="SESSION_DRIVER" value="array"/>
+        <env name="PULSE_ENABLED" value="false"/>
+        <env name="TELESCOPE_ENABLED" value="false"/>
+        <env name="NIGHTWATCH_ENABLED" value="false"/>
+        <env name="PUBLIC_PATIENT_INTAKE_ENABLED" value="true" force="true"/>
+        <server name="PUBLIC_PATIENT_INTAKE_ENABLED" value="true"/>
+    </php>
+</phpunit>

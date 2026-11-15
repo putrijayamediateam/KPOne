@@ -1,0 +1,173 @@
+<script setup lang="ts">
+import { AlertTriangle, CircleHelp, LoaderCircle } from '@lucide/vue';
+import { useTemplateRef } from 'vue';
+import { Button } from '@/components/ui/button';
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from '@/components/ui/dialog';
+
+const props = withDefaults(
+    defineProps<{
+        open: boolean;
+        title: string;
+        description: string;
+        confirmLabel: string;
+        processingLabel?: string;
+        cancelLabel?: string;
+        processing?: boolean;
+        destructive?: boolean;
+        error?: string;
+        /** Optional third choice, rendered between Cancel and Confirm. Omit for the classic two-choice dialog. */
+        secondaryLabel?: string;
+        secondaryProcessingLabel?: string;
+        secondaryVariant?: 'outline' | 'ghost' | 'destructive';
+        /** Which button is currently in flight, so only that one shows its spinner/processing label. */
+        processingAction?: 'confirm' | 'secondary';
+    }>(),
+    {
+        cancelLabel: 'Cancel',
+        processingLabel: 'Working…',
+        processing: false,
+        destructive: false,
+        error: '',
+        secondaryLabel: undefined,
+        secondaryProcessingLabel: 'Working…',
+        secondaryVariant: 'outline',
+        processingAction: 'confirm',
+    },
+);
+
+const emit = defineEmits<{
+    'update:open': [value: boolean];
+    confirm: [];
+    secondary: [];
+}>();
+
+const updateOpen = (open: boolean) => {
+    if (!props.processing) {
+        emit('update:open', open);
+    }
+};
+
+const confirm = () => {
+    if (!props.processing) {
+        emit('confirm');
+    }
+};
+
+const secondaryAction = () => {
+    if (!props.processing) {
+        emit('secondary');
+    }
+};
+
+// OH-06d: the primary action (Confirm - e.g. "Save and hold") must receive
+// focus by default, not whatever Reka UI's own focus trap would pick first
+// (the first DOM-order focusable element, which is Cancel here). Reka UI's
+// Dialog content emits `openAutoFocus` right before applying its own
+// default; preventing it and focusing explicitly overrides that default
+// without disabling the focus trap itself.
+const confirmButtonRef = useTemplateRef<InstanceType<typeof Button>>(
+    'confirmButton',
+);
+const onOpenAutoFocus = (event: Event) => {
+    event.preventDefault();
+    (confirmButtonRef.value?.$el as HTMLElement | undefined)?.focus();
+};
+</script>
+
+<template>
+    <Dialog :open="open" @update:open="updateOpen">
+        <DialogContent
+            class="gap-5 border-border/80 bg-popover p-5 shadow-2xl shadow-black/15 sm:max-w-md sm:p-6 dark:border-border"
+            :show-close-button="!processing"
+            @open-auto-focus="onOpenAutoFocus"
+        >
+            <DialogHeader class="gap-3 text-left">
+                <div class="flex items-start gap-3.5">
+                    <!-- UX-10: a caller without its own icon gets a default one, so the tile is never empty;
+                         a destructive question uses the destructive tone so the glyph shows in both themes. -->
+                    <div
+                        class="grid size-10 shrink-0 place-items-center rounded-xl"
+                        :class="
+                            destructive
+                                ? 'bg-destructive/10 text-destructive dark:bg-destructive/15'
+                                : 'bg-brand/10 text-brand-strong dark:bg-brand/15'
+                        "
+                        data-testid="confirm-dialog-icon"
+                        aria-hidden="true"
+                    >
+                        <slot name="icon">
+                            <AlertTriangle v-if="destructive" class="size-5" />
+                            <CircleHelp v-else class="size-5" />
+                        </slot>
+                    </div>
+                    <div class="min-w-0 space-y-1.5">
+                        <DialogTitle class="text-lg leading-6">{{ title }}</DialogTitle>
+                        <DialogDescription class="leading-5">{{ description }}</DialogDescription>
+                    </div>
+                </div>
+            </DialogHeader>
+
+            <slot />
+
+            <p
+                v-if="error"
+                role="alert"
+                class="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive"
+            >
+                {{ error }}
+            </p>
+
+            <DialogFooter class="gap-2 sm:gap-2">
+                <Button
+                    type="button"
+                    variant="outline"
+                    :disabled="processing"
+                    @click="updateOpen(false)"
+                >
+                    {{ cancelLabel }}
+                </Button>
+                <Button
+                    v-if="secondaryLabel"
+                    type="button"
+                    :variant="secondaryVariant"
+                    :disabled="processing"
+                    @click="secondaryAction"
+                >
+                    <LoaderCircle
+                        v-if="processing && processingAction === 'secondary'"
+                        class="size-4 animate-spin"
+                    />
+                    {{
+                        processing && processingAction === 'secondary'
+                            ? secondaryProcessingLabel
+                            : secondaryLabel
+                    }}
+                </Button>
+                <Button
+                    ref="confirmButton"
+                    type="button"
+                    :variant="destructive ? 'destructive' : 'default'"
+                    :disabled="processing"
+                    @click="confirm"
+                >
+                    <LoaderCircle
+                        v-if="processing && processingAction === 'confirm'"
+                        class="size-4 animate-spin"
+                    />
+                    {{
+                        processing && processingAction === 'confirm'
+                            ? processingLabel
+                            : confirmLabel
+                    }}
+                </Button>
+            </DialogFooter>
+        </DialogContent>
+    </Dialog>
+</template>

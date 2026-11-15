@@ -1,0 +1,99 @@
+/*
+ * DS-0 (department spaces): the design tokens of the new shell. Everything here is scoped to `.space-shell`, the one class the
+ * spaces layout puts on its root, so no existing screen changes. Look: calm, Apple-like, one cobalt accent. KPOne pink is the
+ * logo mark only. Values start from Daniel's sketch (https://claude.ai/artifact/6SGv7ub1FTF2gDgfB6SY39) with the few that missed
+ * 4.5:1 text contrast adjusted (muted text on the sidebar grey, cobalt on its tint, and text on the dark-mode accent button).
+ * tests/Frontend/ds-0-space-tokens.test.mjs pins every pairing below.
+ */
+.space-shell {
+    color-scheme: light;
+
+    --space-font:
+        -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display',
+        Inter, system-ui, sans-serif;
+
+    /* Surfaces: page, card, a slightly different card row, the sidebar. */
+    --space-bg: #f5f5f7;
+    --space-surface: #ffffff;
+    --space-surface-2: #fafafc;
+    --space-side: #ececef;
+
+    /* Text and lines. */
+    --space-fg: #1d1d1f;
+    --space-muted: #69696e;
+    --space-line: rgba(60, 60, 67, 0.16);
+    --space-hover: rgba(60, 60, 67, 0.06);
+
+    /* Cobalt: selection, links, primary buttons. `--space-accent-fg` is the text on a solid accent. */
+    --space-accent: #0852da;
+    --space-accent-fg: #ffffff;
+    --space-accent-tint: rgba(8, 82, 218, 0.12);
+
+    /* Status text colours. */
+    --space-ok: #1f7a3a;
+    --space-warn: #a35200;
+    --space-bad: #c7141f;
+
+    /* Segmented control and the logo mark (pink is used nowhere else in a space). */
+    /* Unselected segmented-control labels use fg, never muted (muted on the segment fill is under 4.5:1). */
+    --space-seg: rgba(118, 118, 128, 0.14);
+    --space-seg-on: #ffffff;
+    --space-logo-mark: #e8348c;
+
+    /* Me home (DS-13, §19): the soft gradient behind the top of that page only, the four tile tints, and the muted text
+       colour that keeps 4.5:1 on the gradient. Pink here is the Clock out outline, a small accent. */
+    --space-g1: #ffdcc2;
+    --space-g2: #cfe2ff;
+    --space-t1: #e0ebff;
+    --space-t2: #fde3ee;
+    --space-t3: #e1f3e8;
+    --space-t4: #fcefd0;
+    --space-me-muted: #4a5468;
+    --space-brand: #c4155f;
+
+    /* Shape and rhythm. */
+    --space-radius-card: 14px;
+    --space-radius-control: 9px;
+    --space-radius-item: 8px;
+    --space-sidebar-width: 232px;
+    --space-bar-height: 56px;
+
+    font-family: var(--space-font);
+    font-variant-numeric: tabular-nums;
+    background: var(--space-bg);
+    color: var(--space-fg);
+}
+
+.dark .space-shell {
+    color-scheme: dark;
+
+    --space-bg: #1c1c1e;
+    --space-surface: #2c2c2e;
+    --space-surface-2: #262628;
+    --space-side: #242426;
+
+    --space-fg: #f5f5f7;
+    --space-muted: #98989d;
+    --space-line: rgba(84, 84, 88, 0.55);
+    --space-hover: rgba(255, 255, 255, 0.06);
+
+    --space-accent: #76adff;
+    --space-accent-fg: #0b1220;
+    --space-accent-tint: rgba(118, 173, 255, 0.16);
+
+    --space-ok: #30d158;
+    --space-warn: #ff9f0a;
+    --space-bad: #ff8079;
+
+    --space-seg: rgba(118, 118, 128, 0.28);
+    --space-seg-on: #636366;
+
+    --space-g1: #5a3550;
+    --space-g2: #1c2a4a;
+    --space-t1: #1e2c4a;
+    --space-t2: #3c2030;
+    --space-t3: #12301f;
+    --space-t4: #3a2a0a;
+    --space-me-muted: #b0b8cc;
+    --space-brand: #ff86ae;
+}
