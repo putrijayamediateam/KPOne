@@ -51,12 +51,12 @@ class V2PublicPagesSwitchTest extends VisitTestCase
         DB::table('user_space_preferences')->insert(['user_id' => $user->id, 'enabled' => true, 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
     }
 
-    public function test_the_switch_ships_off_and_lists_the_two_public_qr_pages(): void
+    public function test_the_switch_ships_off_and_lists_the_public_qr_pages_that_have_a_v2_page(): void
     {
         $config = require base_path('config/v2-pages.php');
 
         $this->assertFalse($config['public']);
-        $this->assertSame(['PublicCheckIn/Show', 'PublicCheckIn/Status'], $config['public_pages']);
+        $this->assertSame(['PublicCheckIn/Status'], $config['public_pages']);
     }
 
     public function test_with_the_switch_off_a_patient_gets_classic_even_when_the_v2_file_exists(): void
@@ -108,8 +108,17 @@ class V2PublicPagesSwitchTest extends VisitTestCase
         $resolver = app(UiVersionResolver::class);
         config(['v2-pages.public' => false]);
 
-        $this->assertSame('PublicCheckIn/Show', $resolver->pageFor('PublicCheckIn/Show'));
         $this->assertSame('PublicCheckIn/Status', $resolver->pageFor('PublicCheckIn/Status'));
+    }
+
+    public function test_with_the_switch_on_the_real_status_page_gets_its_v2_page_and_the_show_page_stays_classic(): void
+    {
+        $resolver = app(UiVersionResolver::class);
+        config(['v2-pages.public' => true, 'v2-pages.public_pages' => (require base_path('config/v2-pages.php'))['public_pages']]);
+
+        $this->assertSame('PublicCheckIn/V2/Status', $resolver->pageFor('PublicCheckIn/Status'));
+        // The intake form has no V2 page yet and is not listed, so it is untouched.
+        $this->assertSame('PublicCheckIn/Show', $resolver->pageFor('PublicCheckIn/Show'));
     }
 
     public function test_the_staff_pages_dispatch_is_unchanged(): void
