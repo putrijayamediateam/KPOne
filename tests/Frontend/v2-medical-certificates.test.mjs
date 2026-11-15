@@ -201,6 +201,7 @@ test('V2 brings the consent tick into view when the reason first gets text', () 
     const p = flat(page);
 
     assert.ok(p.includes('ref="consentRow"'));
+    assert.ok(p.includes('v-model="form.reason_consent"'));
     assert.ok(p.includes("block: 'nearest'"));
     assert.ok(p.includes("form.reason !== ''"));
 });

@@ -569,10 +569,7 @@ const errorKeys = [
                     ref="consentRow"
                     class="flex min-h-11 items-start gap-3 py-1 text-sm"
                 >
-                    <Checkbox
-                        v-model:checked="form.reason_consent"
-                        class="mt-0.5"
-                    />
+                    <Checkbox v-model="form.reason_consent" class="mt-0.5" />
                     The patient explicitly consents to this reason appearing on
                     the MC.
                 </label>
