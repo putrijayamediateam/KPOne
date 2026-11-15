@@ -339,7 +339,8 @@ final class PanelClaimService
         ])->validate();
 
         return DB::transaction(function () use ($actor, $routeClaim, $a): PanelClaim {
-            [$actor, $branch, $claim] = $this->lockClaim($actor, $routeClaim, $a);
+            // PCA-2: the invoice and allocation are locked before the claim, the order a Panel claim adjustment uses.
+            [$actor, $branch, $claim] = $this->lockClaim($actor, $routeClaim, $a, sourcesFirst: true);
             $this->requireVersion($claim, $a['lock_version']);
             if (! in_array($claim->status, ['prepared', 'queried', 'rejected'], true) || $claim->payments()->exists()) {
                 throw ValidationException::withMessages(['claim' => 'This claim is not ready for submission.']);
@@ -619,10 +620,15 @@ final class PanelClaimService
      * @param  array<string, mixed>  $a
      * @return array{User, Branch, PanelClaim}
      */
-    private function lockClaim(User $actor, PanelClaim $routeClaim, array $a): array
+    private function lockClaim(User $actor, PanelClaim $routeClaim, array $a, bool $sourcesFirst = false): array
     {
         $branch = $this->authority->branch($actor, $a['expected_branch_id'] ?? null);
         $actor = $this->authority->lock($actor, $branch, 'panel.claims.manage.branch');
+        if ($sourcesFirst) {
+            $peek = PanelClaim::query()->whereKey($routeClaim->id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
+            Invoice::query()->whereKey($peek->invoice_id)->lockForUpdate()->firstOrFail();
+            CoverageAllocation::query()->whereKey($peek->coverage_allocation_id)->lockForUpdate()->firstOrFail();
+        }
         $claim = PanelClaim::query()->whereKey($routeClaim->id)->where('organisation_id', $actor->organisation_id)
             ->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
 

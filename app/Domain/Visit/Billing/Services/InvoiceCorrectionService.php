@@ -61,7 +61,9 @@ class InvoiceCorrectionService
             $this->ledger->requireMutable($invoice, $a['lock_version'] ?? null);
             $this->ledger->lock($invoice);
             $state = $this->ledger->state($invoice);
-            if ($visit->status !== Visit::STATUS_REGISTERED || $state['self_pay'] !== 0 || $state['panel'] !== 0 || $state['deferred'] !== 0) {
+            // PCA-2: an approved Panel share blocks a void even when adjustments brought it to RM 0.00, as before them.
+            $approvedShare = CoverageAllocation::query()->where('invoice_id', $invoice->id)->where('status', 'approved')->exists();
+            if ($visit->status !== Visit::STATUS_REGISTERED || $state['self_pay'] !== 0 || $state['panel'] !== 0 || $approvedShare || $state['deferred'] !== 0) {
                 $this->invalid();
             }
             foreach ([CoverageAllocation::class, PatientReceivable::class] as $class) {

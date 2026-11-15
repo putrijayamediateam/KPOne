@@ -743,6 +743,7 @@ final class PanelClaimDirectoryService
             'rejected' => 'Rejected',
             'partially_paid' => 'Partially paid',
             'paid' => 'Paid',
+            'cancelled' => 'Cancelled', // PCA-2: a supplementary claim fully covered by a later minus adjustment.
             default => 'Unknown',
         };
     }

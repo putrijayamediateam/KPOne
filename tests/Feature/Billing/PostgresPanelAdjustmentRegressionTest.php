@@ -147,6 +147,29 @@ class PostgresPanelAdjustmentRegressionTest extends BillingTestCase
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_claim_adjustment.confirmed')->count());
     }
 
+    public function test_a_claim_submit_and_a_confirmation_lock_in_the_same_order_and_both_apply(): void
+    {
+        [$claim, $adjustment] = $this->submittedClaimWithRequest();
+        $this->selectBranch($this->officer(), $this->branch);
+        $this->post(route('panel-claims.query', $claim), ['expected_branch_id' => $this->branch->id, 'lock_version' => $claim->refresh()->lock_version,
+            'note' => 'Synthetic query'])->assertSessionHasNoErrors();
+        // The request was made on the Submitted claim; record it again on the Queried one so the confirmation may apply.
+        $this->selectBranch($this->officer(), $this->branch);
+        app(PanelClaimAdjustmentService::class)->withdraw($this->officer(), $adjustment, ['expected_branch_id' => $this->branch->id, 'lock_version' => 1]);
+        $invoice = Invoice::query()->findOrFail($claim->invoice_id);
+        $adjustment = $this->requestAdjustment(CoverageAllocation::query()->findOrFail($claim->coverage_allocation_id), $invoice);
+        $claim->refresh();
+        $out = $this->race('select id from invoices where id = ? for update', $claim->invoice_id, [
+            $this->worker('submit', $this->finance(), ['claim' => $claim->public_id, 'lock_version' => $claim->lock_version]),
+            $this->worker('confirm', $this->officer(), ['adjustment' => $adjustment->public_id, 'lock_version' => 1]),
+        ]);
+
+        // The submit ran first; the confirmation then found the claim changed from Queried and was refused, without a deadlock.
+        $this->assertStringContainsString('SUCCESS '.$claim->public_id, $out);
+        $this->assertStringContainsString('STALE adjustment: This claim was decided or paid after the request.', $out);
+        $this->assertSame(['submitted', 3000], [$claim->refresh()->status, $claim->claim_amount_sen]);
+    }
+
     /**
      * A Submitted RM 30.00 claim on an approved RM 30.00 Panel share, with a +RM 50.00 adjustment waiting.
      *

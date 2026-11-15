@@ -134,6 +134,9 @@ final class PanelClaimAdjustmentService
             }
             [$invoice, $allocation, $original, $supplementary] = $this->lockSources($actor, $branch, $current->coverage_allocation_id);
             $adjustment = PanelClaimAdjustment::query()->whereKey($current->id)->lockForUpdate()->firstOrFail();
+            if ($adjustment->status === 'confirmed' && $adjustment->confirm_idempotency_key === $a['idempotency_key']) {
+                return $adjustment; // The same confirmation, retried at the same moment: it already applied once.
+            }
             if ($adjustment->status !== 'requested') {
                 throw ValidationException::withMessages(['adjustment' => self::CHANGED]);
             }
@@ -174,7 +177,8 @@ final class PanelClaimAdjustmentService
             $branch = $this->authority->branch($actor, $a['expected_branch_id']);
             $actor = $this->authority->lock($actor, $branch, self::REQUEST_PERMISSION);
             $current = $this->find($actor, $branch, $routeAdjustment);
-            $this->lockSources($actor, $branch, $current->coverage_allocation_id);
+            // A waiting request can always be withdrawn, even after the invoice was voided.
+            $this->lockSources($actor, $branch, $current->coverage_allocation_id, requireAdjustable: false);
             $adjustment = PanelClaimAdjustment::query()->whereKey($current->id)->lockForUpdate()->firstOrFail();
             if ($adjustment->status !== 'requested') {
                 throw ValidationException::withMessages(['adjustment' => self::CHANGED]);
@@ -200,7 +204,7 @@ final class PanelClaimAdjustmentService
      *
      * @return array{Invoice, CoverageAllocation, PanelClaim|null, Collection<int, PanelClaim>}
      */
-    private function lockSources(User $actor, Branch $branch, int $allocationId): array
+    private function lockSources(User $actor, Branch $branch, int $allocationId, bool $requireAdjustable = true): array
     {
         $peek = CoverageAllocation::query()->whereKey($allocationId)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
         $visitId = (int) Invoice::query()->whereKey($peek->invoice_id)->value('visit_id');
@@ -211,6 +215,9 @@ final class PanelClaimAdjustmentService
         $allocation = CoverageAllocation::query()->whereKey($allocationId)->where('invoice_id', $invoice->id)->lockForUpdate()->firstOrFail();
         $claims = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->orderBy('id')->lockForUpdate()->get();
         $this->ledger->lock($invoice);
+        if (! $requireAdjustable) {
+            return [$invoice, $allocation, null, collect()];
+        }
         if ($invoice->status === 'voided') {
             throw ValidationException::withMessages(['adjustment' => 'This invoice was voided. Request the adjustment again on the new invoice.']);
         }
@@ -238,13 +245,16 @@ final class PanelClaimAdjustmentService
         if ($original === null) {
             return ['kind' => 'unclaimed'];
         }
+        $supplementary = $supplementary->where('status', '!=', 'cancelled')->values();
         $supplementarySum = (int) $supplementary->sum('claim_amount_sen');
         if (in_array($original->status, self::UNDECIDED, true) && ! $original->payments()->exists()) {
             // Owner default: an old claim-only excess must be brought back to the share first, so the two kinds never mix.
             if ($original->claim_amount_sen > $share - $supplementarySum) {
                 throw ValidationException::withMessages(['adjustment' => 'This claim amount is above the Panel share. Bring the claim amount back to the Panel share first, so the two kinds of change do not mix.']);
             }
-            $amount = $newShare - $supplementarySum;
+            // The adjustment moves the claim by the same amount, so a claim kept below the share by a claim-only edit
+            // stays below it (a minus never raises what is asked of the Panel).
+            $amount = $original->claim_amount_sen + $signed;
             if ($amount < 1) {
                 throw ValidationException::withMessages(['amount_sen' => 'This would leave the claim at RM 0.00.']);
             }
@@ -254,18 +264,17 @@ final class PanelClaimAdjustmentService
         if ($signed > 0) {
             return ['kind' => 'supplementary'];
         }
-        // A minus on a decided claim: reduce undecided supplementary claims first, then never below what the Panel accepted.
+        // A minus on a decided claim: reduce undecided supplementary claims first (newest first; one fully covered is
+        // cancelled, so a mistaken plus can always be undone), then never below what the Panel accepted or paid.
         $remaining = -$signed;
         $reductions = [];
         foreach ($supplementary->sortByDesc('id') as $claim) {
             if ($remaining === 0 || ! in_array($claim->status, self::UNDECIDED, true) || $claim->payments()->exists()) {
                 continue;
             }
-            $cut = min($remaining, $claim->claim_amount_sen - 1);
-            if ($cut > 0) {
-                $reductions[$claim->id] = $cut;
-                $remaining -= $cut;
-            }
+            $cut = min($remaining, $claim->claim_amount_sen);
+            $reductions[$claim->id] = $cut;
+            $remaining -= $cut;
         }
         $committed = 0;
         $accepted = 0;
@@ -273,7 +282,12 @@ final class PanelClaimAdjustmentService
         foreach (collect([$original])->merge($supplementary) as $claim) {
             $decided = in_array($claim->status, PanelClaim::DECIDED, true);
             $accepted += $decided ? (int) $claim->accepted_amount_sen : 0;
-            $committed += $decided ? (int) $claim->accepted_amount_sen : $claim->claim_amount_sen - ($reductions[$claim->id] ?? 0);
+            // A rejected claim commits nothing (accepted RM 0.00); an undecided one commits what it still asks for.
+            $committed += match (true) {
+                $decided => (int) $claim->accepted_amount_sen,
+                $claim->status === 'rejected' => 0,
+                default => $claim->claim_amount_sen - ($reductions[$claim->id] ?? 0),
+            };
             $paid += (int) $claim->receivedPayments()->sum('amount_sen');
         }
         if ($newShare < $paid) {
@@ -331,6 +345,15 @@ final class PanelClaimAdjustmentService
                 continue;
             }
             $previous = $claim->claim_amount_sen;
+            if ($cut >= $previous) {
+                $wasSubmitted = $claim->status !== 'prepared';
+                $claim->forceFill(['status' => 'cancelled', 'accepted_amount_sen' => null, 'lock_version' => $claim->lock_version + 1])->save();
+                $this->event($claim, $actor, $branch, 'cancelled', null, $previous,
+                    $wasSubmitted ? 'Cancelled by a Panel claim adjustment: tell the Panel' : 'Cancelled by a Panel claim adjustment');
+                $this->audit->record('panel_claim.supplementary_cancelled', $claim, ['claim_amount_sen' => $previous], $actor, $branch);
+
+                continue;
+            }
             $claim->forceFill(['claim_amount_sen' => $previous - $cut, 'lock_version' => $claim->lock_version + 1])->save();
             $this->event($claim, $actor, $branch, 'panel_adjusted', $previous, $claim->claim_amount_sen,
                 $claim->status === 'submitted' ? 'Amount changed after submission: tell the Panel' : null);

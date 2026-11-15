@@ -65,7 +65,7 @@ final class PanelAdjustmentView
             'originalShareSen' => $allocation->amount_sen,
             'adjustmentSen' => $sum,
             'shareSen' => $allocation->amount_sen + $sum,
-            'claimedSen' => (int) $claims->sum('claim_amount_sen'),
+            'claimedSen' => (int) $claims->where('status', '!=', 'cancelled')->sum('claim_amount_sen'),
             'claimUrl' => $original === null || ! $actor->can('panel.claims.manage.branch') ? null : route('panel-claims.show', $original),
             'invoiceLockVersion' => $invoice->lock_version,
             'canRequest' => $canRequest && $invoice->status === 'finalized' && $waiting === null,

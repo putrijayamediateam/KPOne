@@ -58,7 +58,7 @@ final class PanelClaimsSummaryTool implements SystemReadableTool
             $now = CarbonImmutable::now($each->timezone);
             $query = $this->eligibility->approvedAllocations($requester->organisation_id, $each->id)
                 ->orderByRaw('pn.name COLLATE "C"')->orderBy('c.id')
-                ->select(['c.id', 'c.panel_id', 'c.amount_sen', 'pn.name as panel_label', 'i.finalized_at', 'v.registered_at', 'pn.claim_due_days', 'pn.claim_due_rule', 'pn.claim_due_time', 'pn.claim_due_offset']);
+                ->select(['c.id', 'c.panel_id', DB::raw('kpone_panel_effective(i.id) as amount_sen'), 'pn.name as panel_label', 'i.finalized_at', 'v.registered_at', 'pn.claim_due_days', 'pn.claim_due_rule', 'pn.claim_due_time', 'pn.claim_due_offset']);
             if (isset($input['from'])) {
                 $query->where('i.finalized_at', '>=', CarbonImmutable::parse($input['from'], $each->timezone)->startOfDay()->utc());
             }
@@ -70,7 +70,7 @@ final class PanelClaimsSummaryTool implements SystemReadableTool
                 $claims = PanelClaim::query()->where('organisation_id', $requester->organisation_id)->where('branch_id', $each->id)
                     ->whereIn('coverage_allocation_id', $allocations->pluck('id'))->get(['id', 'organisation_id', 'branch_id', 'coverage_allocation_id', 'claim_amount_sen', 'accepted_amount_sen', 'status', 'claim_kind']);
                 // PCA-2: the original claim decides claimed or unclaimed; submitted supplementary claims add their money.
-                $supplementary = $claims->where('claim_kind', 'supplementary')->groupBy('coverage_allocation_id');
+                $supplementary = $claims->where('claim_kind', 'supplementary')->where('status', '!=', 'cancelled')->groupBy('coverage_allocation_id');
                 $allClaimIds = $claims->pluck('id');
                 $claims = $claims->where('claim_kind', 'original')->keyBy('coverage_allocation_id');
                 $submitted = DB::table('panel_claim_events')->where('organisation_id', $requester->organisation_id)->where('branch_id', $each->id)

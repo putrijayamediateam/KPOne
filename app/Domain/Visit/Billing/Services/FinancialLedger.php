@@ -75,7 +75,8 @@ class FinancialLedger
 
     /** Same measures and reconciliation as state(), in bounded caller-selected batches.
      * PCA-2: a day-story report (Daily summary, the money day tool) passes $withPanelAdjustments false, so a day closed
-     * before a Panel claim adjustment never changes; adjustments count on their own confirmation day instead.
+     * before a Panel claim adjustment never changes. Those reports do not show adjustments yet: PCA-3 adds them on their
+     * own confirmation day.
      *
      * @param  Collection<int, Invoice>  $invoices
      * @return array<int, array{total:int,self_pay:int,panel:int,deferred:int,due_now:int}>

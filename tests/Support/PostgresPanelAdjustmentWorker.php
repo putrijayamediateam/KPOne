@@ -47,6 +47,8 @@ try {
     $result = match ($mode) {
         'confirm' => app(PanelClaimAdjustmentService::class)
             ->confirm($actor, PanelClaimAdjustment::query()->where('public_id', $a['adjustment'])->firstOrFail(), $a)->public_id,
+        'submit' => app(PanelClaimService::class)
+            ->submit($actor, PanelClaim::query()->where('public_id', $a['claim'])->firstOrFail(), $a)->public_id,
         'decision' => app(PanelClaimService::class)
             ->recordDecision($actor, PanelClaim::query()->where('public_id', $a['claim'])->firstOrFail(), $a)->public_id,
         'payment' => app(PaymentService::class)->add($actor, Visit::query()->where('visit_number', $a['visit'])->firstOrFail(),

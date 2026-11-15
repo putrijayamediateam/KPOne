@@ -97,13 +97,23 @@ CREATE UNIQUE INDEX panel_adjustment_one_waiting_per_invoice ON panel_claim_adju
 ALTER TABLE panel_claims DROP CONSTRAINT panel_claims_coverage_allocation_id_unique;
 CREATE UNIQUE INDEX panel_claims_one_original_per_allocation ON panel_claims (coverage_allocation_id) WHERE claim_kind='original';
 CREATE UNIQUE INDEX panel_claims_one_supplementary_per_adjustment ON panel_claims (panel_claim_adjustment_id) WHERE panel_claim_adjustment_id IS NOT NULL;
+-- A supplementary claim fully covered by a later minus adjustment is cancelled, never deleted (it keeps what it asked for).
+ALTER TABLE panel_claims DROP CONSTRAINT panel_claims_shape;
+ALTER TABLE panel_claims ADD CONSTRAINT panel_claims_shape CHECK (
+ invoice_total_sen BETWEEN 0 AND 999999999999 AND claim_amount_sen BETWEEN 1 AND 999999999999 AND lock_version>0
+ AND ((status IN ('prepared','submitted','queried') AND accepted_amount_sen IS NULL)
+  OR (status='rejected' AND accepted_amount_sen=0)
+  OR (status='accepted' AND accepted_amount_sen=claim_amount_sen)
+  OR (status='partially_accepted' AND accepted_amount_sen BETWEEN 1 AND claim_amount_sen-1)
+  OR (status IN ('partially_paid','paid') AND accepted_amount_sen BETWEEN 1 AND claim_amount_sen)
+  OR (status='cancelled' AND accepted_amount_sen IS NULL AND claim_kind='supplementary')));
 ALTER TABLE panel_claims ADD CONSTRAINT panel_claims_kind_shape CHECK (
  (claim_kind='original' AND parent_claim_id IS NULL AND panel_claim_adjustment_id IS NULL)
  OR (claim_kind='supplementary' AND parent_claim_id IS NOT NULL AND panel_claim_adjustment_id IS NOT NULL));
 
 ALTER TABLE panel_claim_events DROP CONSTRAINT panel_claim_events_shape;
 ALTER TABLE panel_claim_events ADD CONSTRAINT panel_claim_events_shape CHECK (
- event_type IN ('prepared','amount_adjusted','submitted','queried','decision_accepted','decision_partially_accepted','decision_rejected','note','panel_adjusted','supplementary_created')
+ event_type IN ('prepared','amount_adjusted','submitted','queried','decision_accepted','decision_partially_accepted','decision_rejected','note','panel_adjusted','supplementary_created','cancelled')
  AND (previous_amount_sen IS NULL OR previous_amount_sen BETWEEN 0 AND 999999999999)
  AND (amount_sen IS NULL OR amount_sen BETWEEN 0 AND 999999999999)
  AND ((event_type='prepared' AND amount_sen IS NOT NULL)
@@ -113,7 +123,8 @@ ALTER TABLE panel_claim_events ADD CONSTRAINT panel_claim_events_shape CHECK (
   OR (event_type LIKE 'decision_%' AND amount_sen IS NOT NULL AND note IS NOT NULL)
   OR (event_type='note' AND note IS NOT NULL)
   OR (event_type='panel_adjusted' AND previous_amount_sen IS NOT NULL AND amount_sen IS NOT NULL)
-  OR (event_type='supplementary_created' AND amount_sen IS NOT NULL)));
+  OR (event_type='supplementary_created' AND amount_sen IS NOT NULL)
+  OR (event_type='cancelled' AND amount_sen IS NOT NULL AND note IS NOT NULL)));
 
 ALTER TABLE panel_claim_snapshots ADD CONSTRAINT panel_claim_snapshot_shape CHECK (
  version>0 AND invoice_total_sen BETWEEN 0 AND 999999999999 AND panel_adjustment_sen BETWEEN -999999999999 AND 999999999999
