@@ -8,6 +8,7 @@ use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Services\ExactMoney;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
+use App\Domain\Visit\Billing\Services\PanelInvoicePrinting;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -73,8 +74,11 @@ class PanelShortfallTest extends BillingTestCase
         [$ca, $panelOfficer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
         $this->decide($panelOfficer, $visit, $this->createClaim($panelOfficer, $visit, $invoice, $allocation), 'rejected', '0', 'Synthetic rejection');
         $this->assertShortfall($ca, $visit, ['shortfallSen' => 3000, 'panelShareSen' => 3000, 'acceptedSen' => 0, 'decision' => 'rejected']);
+        // PCA-1 (owner decision 2026-11-13): a Panel invoice is never printed, so the warning can never reach paper.
         $this->selectBranch($ca);
-        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertInertia(fn (Assert $page) => $page->missing('billing.panelShortfall'))->assertDontSee('shortfallSen');
+        $this->post(route('billing.issue', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'idempotency_key' => (string) Str::uuid(), 'return_to' => 'billing'])
+            ->assertSessionHasErrors(['document' => PanelInvoicePrinting::MESSAGE]);
+        $this->assertDatabaseCount('issued_billing_documents', 0);
     }
 
     public function test_a_queried_claim_or_a_rejected_claim_reset_by_an_amount_edit_shows_no_warning(): void

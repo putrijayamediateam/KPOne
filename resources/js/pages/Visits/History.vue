@@ -542,7 +542,11 @@ const totals = computed(() => {
                         "
                         class="text-sm text-muted-foreground"
                     >
-                        No printable documents for your access.
+                        {{
+                            history.financial?.panelNoInvoicePrint
+                                ? 'Panel patient: no invoice is printed. A receipt prints only for cash the patient paid.'
+                                : 'No printable documents for your access.'
+                        }}
                     </p>
                     <ul v-else class="grid gap-1 text-sm">
                         <li v-if="history.financial?.printUrl">
