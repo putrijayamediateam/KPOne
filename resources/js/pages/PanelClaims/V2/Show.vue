@@ -549,6 +549,12 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                         :label="claim.status"
                     />
                     <p
+                        v-if="adjustmentClaim?.cancelledNote"
+                        class="w-full text-sm text-muted-foreground"
+                    >
+                        {{ adjustmentClaim.cancelledNote }}
+                    </p>
+                    <p
                         class="min-w-0 flex-1 text-sm text-muted-foreground max-sm:w-full"
                     >
                         {{

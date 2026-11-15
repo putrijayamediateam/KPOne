@@ -348,8 +348,10 @@ final class PanelClaimAdjustmentService
             if ($cut >= $previous) {
                 $wasSubmitted = $claim->status !== 'prepared';
                 $claim->forceFill(['status' => 'cancelled', 'accepted_amount_sen' => null, 'lock_version' => $claim->lock_version + 1])->save();
+                // Daniel's wording: the log names the claim and the amount, and says whether the Panel must be told.
                 $this->event($claim, $actor, $branch, 'cancelled', null, $previous,
-                    $wasSubmitted ? 'Cancelled by a Panel claim adjustment: tell the Panel' : 'Cancelled by a Panel claim adjustment');
+                    'Supplementary claim '.PanelAdjustmentView::number($claim->id).' ('.self::myr($previous).') was cancelled by a Panel claim adjustment. '
+                    .($wasSubmitted ? 'Tell the Panel.' : 'Nothing was submitted.'));
                 $this->audit->record('panel_claim.supplementary_cancelled', $claim, ['claim_amount_sen' => $previous], $actor, $branch);
 
                 continue;

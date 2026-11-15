@@ -103,3 +103,14 @@ test('PCA-2: a supplementary claim names its original and earlier versions stay 
     );
     assert.match(versions, /\['version', String\(version\)\]/);
 });
+
+test('PCA-2: a cancelled supplementary claim is explained on its page and under the Panel summary', () => {
+    const report = read('resources/js/pages/Reports/BranchReport.vue');
+    assert.ok(
+        flat(report).includes(
+            'v-if="endpoint === \'/reports/panel-summary\'" class="text-sm text-muted-foreground" > Cancelled supplementary claims are not counted.',
+        ),
+    );
+    assert.match(classicClaim, /claim\.adjustmentClaim\?\.cancelledNote/);
+    assert.match(v2Claim, /adjustmentClaim\?\.cancelledNote/);
+});

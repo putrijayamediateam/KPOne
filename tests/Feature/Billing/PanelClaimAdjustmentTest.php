@@ -10,6 +10,7 @@ use App\Domain\Visit\Billing\Models\PanelClaimSnapshot;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Services\ExactMoney;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
+use App\Domain\Visit\Billing\Services\PanelAdjustmentView;
 use App\Domain\Visit\Billing\Services\PanelClaimAdjustmentService;
 use App\Domain\Visit\Billing\Services\PanelClaimEligibility;
 use App\Domain\Visit\Billing\Services\PanelShare;
@@ -327,11 +328,14 @@ class PanelClaimAdjustmentTest extends BillingTestCase
         $this->assertSame(['cancelled', 2000, null], [$supplementary->refresh()->status, $supplementary->claim_amount_sen, $supplementary->accepted_amount_sen]);
         $this->assertSame(3000, PanelShare::effective($allocation->refresh()));
         $this->assertSame(self::SETTLED, app(FinancialLedger::class)->state($invoice->refresh()));
-        $this->assertDatabaseHas('panel_claim_events', ['panel_claim_id' => $supplementary->id, 'event_type' => 'cancelled', 'amount_sen' => 2000]);
+        $number = PanelAdjustmentView::number($supplementary->id);
+        $this->assertDatabaseHas('panel_claim_events', ['panel_claim_id' => $supplementary->id, 'event_type' => 'cancelled', 'amount_sen' => 2000,
+            'note' => "Supplementary claim {$number} (RM 20.00) was cancelled by a Panel claim adjustment. Nothing was submitted."]);
         $this->selectBranch($officer);
         $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('panelAdjustment.claimedSen', 3000));
         $this->get(route('panel-claims.show', $supplementary))->assertInertia(fn (Assert $page) => $page->where('claim.status', 'Cancelled')
-            ->where('claim.canSubmit', false)->where('claim.canEditAmount', false));
+            ->where('claim.canSubmit', false)->where('claim.canEditAmount', false)
+            ->where('claim.adjustmentClaim.cancelledNote', 'Cancelled because the Panel adjustment that created it was reversed. Kept on record; counted in no total.'));
     }
 
     public function test_a_rejected_supplementary_claim_commits_nothing_so_a_minus_can_cover_it(): void
@@ -347,6 +351,9 @@ class PanelClaimAdjustmentTest extends BillingTestCase
         $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'deduct', 2000));
         $this->assertSame('cancelled', $supplementary->refresh()->status);
         $this->assertSame(3000, PanelShare::effective($allocation->refresh()));
+        $number = PanelAdjustmentView::number($supplementary->id);
+        $this->assertDatabaseHas('panel_claim_events', ['panel_claim_id' => $supplementary->id, 'event_type' => 'cancelled',
+            'note' => "Supplementary claim {$number} (RM 20.00) was cancelled by a Panel claim adjustment. Tell the Panel."]);
     }
 
     public function test_a_minus_moves_a_claim_kept_below_the_share_down_and_never_raises_it(): void

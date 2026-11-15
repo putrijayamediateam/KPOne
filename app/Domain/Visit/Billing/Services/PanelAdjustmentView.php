@@ -114,6 +114,8 @@ final class PanelAdjustmentView
             'number' => self::number($claim->id),
             'decided' => in_array($claim->status, PanelClaim::DECIDED, true),
             'reason' => $own === null ? null : (PanelClaimAdjustment::REASONS[$own->reason_code] ?? null),
+            // Daniel's wording for a cancelled supplementary claim, shown muted under its status.
+            'cancelledNote' => $claim->status === 'cancelled' ? 'Cancelled because the Panel adjustment that created it was reversed. Kept on record; counted in no total.' : null,
             'parent' => $parent === null ? null : ['claimNo' => (string) $parent->id, 'number' => self::number($parent->id), 'url' => route('panel-claims.show', $parent),
                 'amountSen' => $parent->claim_amount_sen, 'acceptedSen' => $parent->accepted_amount_sen, 'statusKey' => $parent->status],
             'supplementary' => $children->map(fn (PanelClaim $c): array => [

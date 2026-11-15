@@ -360,6 +360,12 @@ const eventTitle = (type: string) =>
                         </span>
                         <StatusBadge :status="claim.status" />
                     </h1>
+                    <p
+                        v-if="claim.adjustmentClaim?.cancelledNote"
+                        class="mt-1 text-sm text-muted-foreground"
+                    >
+                        {{ claim.adjustmentClaim.cancelledNote }}
+                    </p>
                     <p class="mt-1 text-sm text-muted-foreground">
                         <template v-if="claim.submittedOn">
                             Submitted on {{ claim.submittedOn }}
