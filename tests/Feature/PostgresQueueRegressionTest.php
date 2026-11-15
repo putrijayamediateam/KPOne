@@ -79,6 +79,7 @@ class PostgresQueueRegressionTest extends TestCase
             DB::table('audit_logs')->where('organisation_id', $this->organisationId)->delete();
             DB::table('consultation_holds')->where('organisation_id', $this->organisationId)->delete();
             DB::table('clinical_encounters')->where('organisation_id', $this->organisationId)->delete();
+            DB::table('queue_call_holds')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_calls')->where('organisation_id', $this->organisationId)->delete();
             DB::table('queue_entries')->where('organisation_id', $this->organisationId)->delete();
             DB::table('visit_reason_assignments')->where('organisation_id', $this->organisationId)->delete();
@@ -307,6 +308,89 @@ class PostgresQueueRegressionTest extends TestCase
         $this->assertLessThanOrEqual(1, QueueEntry::where('organisation_id', $organisation->id)->where('status', QueueEntry::STATUS_SERVING)->whereDoesntHave('visit.clinicalEncounter.activeHold')->count());
     }
 
+    /** B2: two people press Call next for the same doctor and the same confirmed patient at once. */
+    public function test_two_call_next_presses_for_one_doctor_call_exactly_one_patient(): void
+    {
+        [$organisation, $branches, $actors, $doctor] = $this->fixture();
+        $visit = $this->visit($organisation, $branches[0], $actors[0], $doctor);
+        $entry = $this->enter($actors[0], $visit);
+        $workers = [$this->callNextWorker($actors[0], $doctor, $visit, $entry), $this->callNextWorker($actors[1], $doctor, $visit, $entry)];
+
+        $this->runTogetherWhileParentBlocks($workers, fn () => User::query()->whereKey($doctor->id)->lockForUpdate()->firstOrFail());
+
+        $output = $this->workerOutput($workers);
+        $this->assertSame(1, substr_count($output, 'CALLED '.$visit->visit_number), $output);
+        $this->assertSame(1, substr_count($output, 'REFUSED'), $output);
+        $this->assertSame(QueueEntry::STATUS_SERVING, $entry->refresh()->status);
+        $this->assertSame(1, DB::table('queue_calls')->where('queue_entry_id', $entry->id)->count());
+        $this->assertSame(1, DB::table('audit_logs')->where('organisation_id', $organisation->id)->where('event', 'queue.called')->count());
+    }
+
+    /** B2: Call next against someone registering a new, higher-priority patient for the same doctor at that instant. */
+    public function test_call_next_races_a_new_registration_and_never_calls_anyone_but_the_confirmed_patient(): void
+    {
+        [$organisation, $branches, $actors, $doctor] = $this->fixture();
+        $first = $this->visit($organisation, $branches[0], $actors[0], $doctor);
+        $entry = $this->enter($actors[0], $first);
+        $second = $this->visit($organisation, $branches[0], $actors[1], $doctor);
+        $workers = [$this->callNextWorker($actors[0], $doctor, $first, $entry), $this->enterWorker($actors[1], $second)];
+
+        $this->runTogetherWhileParentBlocks($workers, fn () => User::query()->whereKey($doctor->id)->lockForUpdate()->firstOrFail());
+
+        $output = $this->workerOutput($workers);
+        // The known Q-4 limit: the next-patient check does not lock new registrations. Whoever wins, the person called is
+        // the patient they confirmed, the new patient is queued exactly once and still Waiting.
+        $this->assertSame(1, substr_count($output, 'CALLED '.$first->visit_number), $output);
+        $this->assertSame(1, substr_count($output, 'ENTERED'), $output);
+        $this->assertSame(QueueEntry::STATUS_SERVING, $entry->refresh()->status);
+        $queued = QueueEntry::query()->where('visit_id', $second->id)->get();
+        $this->assertCount(1, $queued);
+        $this->assertSame(QueueEntry::STATUS_WAITING, $queued->first()->status);
+        $this->assertSame(1, DB::table('queue_calls')->where('organisation_id', $organisation->id)->count());
+    }
+
+    /** B2: Call next against the not-ready flag being set on the same patient. */
+    public function test_call_next_and_a_not_ready_flag_never_leave_a_serving_patient_with_an_active_flag(): void
+    {
+        [$organisation, $branches, $actors, $doctor] = $this->fixture();
+        $actors[1]->givePermissionTo(Permission::findOrCreate('queue.call_hold.set.branch', 'web'));
+        $visit = $this->visit($organisation, $branches[0], $actors[0], $doctor);
+        $entry = $this->enter($actors[0], $visit);
+        $workers = [
+            $this->callNextWorker($actors[0], $doctor, $visit, $entry),
+            $this->worker(['flag-set', (string) $actors[1]->id, $visit->visit_number, (string) $branches[0]->id, (string) $entry->lock_version]),
+        ];
+
+        $this->runTogetherWhileParentBlocks($workers, fn () => User::query()->whereKey($doctor->id)->lockForUpdate()->firstOrFail());
+
+        $output = $this->workerOutput($workers);
+        $this->assertSame(1, substr_count($output, 'CALLED') + substr_count($output, 'FLAGGED'), $output);
+        $this->assertSame(1, substr_count($output, 'REFUSED'), $output);
+        $active = DB::table('queue_call_holds')->where('queue_entry_id', $entry->id)->whereNull('closed_at')->count();
+        $this->assertFalse($entry->refresh()->status === QueueEntry::STATUS_SERVING && $active > 0, 'Serving with an active not-ready flag');
+    }
+
+    /** B2: Call next against the visit being cancelled. */
+    public function test_call_next_and_a_cancelled_visit_never_leave_a_serving_cancelled_patient(): void
+    {
+        [$organisation, $branches, $actors, $doctor] = $this->fixture();
+        $visit = $this->visit($organisation, $branches[0], $actors[0], $doctor);
+        $entry = $this->enter($actors[0], $visit);
+        $workers = [
+            $this->callNextWorker($actors[0], $doctor, $visit, $entry),
+            $this->worker(['cancel', (string) $actors[1]->id, $visit->visit_number, (string) $branches[0]->id, (string) $visit->lock_version, (string) $entry->lock_version]),
+        ];
+
+        $this->runTogetherWhileParentBlocks($workers, fn () => Visit::query()->whereKey($visit->id)->lockForUpdate()->firstOrFail());
+
+        $output = $this->workerOutput($workers);
+        $this->assertSame(1, substr_count($output, 'CALLED') + substr_count($output, 'CANCELLED'), $output);
+        $this->assertFalse(
+            Visit::query()->whereKey($visit->id)->where('status', Visit::STATUS_CANCELLED)->exists()
+            && QueueEntry::query()->where('visit_id', $visit->id)->whereIn('status', [QueueEntry::STATUS_WAITING, QueueEntry::STATUS_SERVING])->exists(),
+        );
+    }
+
     private function pilotServing(Organisation $organisation, Branch $branch, User $actor, User $doctor): array
     {
         $visit = $this->visit($organisation, $branch, $actor, $doctor);
@@ -431,6 +515,11 @@ class PostgresQueueRegressionTest extends TestCase
     private function callWorker(User $actor, Visit $visit, QueueEntry $entry): array
     {
         return $this->worker(['call', (string) $actor->id, $visit->visit_number, (string) $visit->branch_id, (string) $visit->lock_version, (string) $entry->lock_version]);
+    }
+
+    private function callNextWorker(User $actor, User $doctor, Visit $visit, QueueEntry $entry): array
+    {
+        return $this->worker(['call-next', (string) $actor->id, (string) $doctor->id, $visit->visit_number, (string) $visit->branch_id, (string) $visit->lock_version, (string) $entry->lock_version]);
     }
 
     private function worker(array $arguments): array
@@ -616,6 +705,7 @@ class PostgresQueueRegressionTest extends TestCase
         DB::table('audit_logs')->where('organisation_id', $id)->delete();
         DB::table('consultation_holds')->where('organisation_id', $id)->delete();
         DB::table('clinical_encounters')->where('organisation_id', $id)->delete();
+        DB::table('queue_call_holds')->where('organisation_id', $id)->delete();
         DB::table('queue_calls')->where('organisation_id', $id)->delete();
         DB::table('queue_entries')->where('organisation_id', $id)->delete();
         DB::table('visit_reason_assignments')->where('organisation_id', $id)->delete();
