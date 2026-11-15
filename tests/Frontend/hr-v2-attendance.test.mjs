@@ -285,3 +285,75 @@ test('Daniel: times never split, chips stay on one line, and the Branch and Reas
         /<OperationalSelect\s+:id="id"\s+v-model="correction\.reason"/,
     );
 });
+
+test('PR 2 (Daniel): the location Branch box is OperationalSelect, and the decided-month stepper names the month in words', () => {
+    const dir = 'resources/js/components/hr/attendance/v2/';
+    const location = parse(read(`${dir}LocationCheckCardV2.vue`)).descriptor
+        .template.content;
+    assert.match(
+        location,
+        /<OperationalSelect\s+id="v2-location-branch"\s+:model-value="form\.branchId"/,
+    );
+    assert.doesNotMatch(location, /<select\b/);
+    // Switching branch with typed edits asks first: filled red "Discard and switch", outline "Keep editing".
+    assert.match(
+        location,
+        /confirm-label="Discard and switch"\s+cancel-label="Keep editing"\s+tone="danger"/,
+    );
+    // The consent texts stay editable, under the draft notice.
+    assert.match(location, /Synthetic data only until the PDPA review\./);
+    assert.match(location, /v-model="form\.consentEn"/);
+    assert.match(location, /v-model="form\.consentBm"/);
+
+    const overtime = read(`${dir}OvertimeTabV2.vue`);
+    const stepper = parse(overtime).descriptor.template.content;
+    assert.doesNotMatch(overtime, /MonthField|type="month"/);
+    assert.match(
+        stepper,
+        /Previous month<\/span>[\s\S]*?data-test="overtime-month"\s*>\{\{ data\.monthLabel \}\}<\/span[\s\S]*?Next month<\/span/,
+    );
+});
+
+test('PR 2 (Daniel): each V2 Save keeps the page state, so the other cards keep their typing; Classic sends what it did', () => {
+    const dir = 'resources/js/components/hr/attendance/';
+    const read2 = (p) => read(`resources/js/composables/hr/${p}`);
+    assert.match(template, /@submit\.prevent="saveSettingsKeepingState"/);
+    assert.match(
+        read(`${dir}v2/OvertimeRulesCardV2.vue`),
+        /useOvertimeSettings\(props, \{\s*preserveState: true,?\s*\}\)/,
+    );
+    assert.match(
+        read(`${dir}v2/LocationCheckCardV2.vue`),
+        /useLocationCheckSettings\(props, \{ preserveState: true \}\)/,
+    );
+    // Classic calls the same composables without the option, so its requests are unchanged.
+    assert.match(
+        read(`${dir}OvertimeSettingsForm.vue`),
+        /useOvertimeSettings\(props\);/,
+    );
+    assert.match(
+        read(`${dir}LocationCheckSettings.vue`),
+        /useLocationCheckSettings\(props\);/,
+    );
+
+    for (const c of ['useOvertimeSettings.ts', 'useLocationCheckSettings.ts']) {
+        assert.match(
+            read2(c),
+            /\.\.\.\(options\.preserveState \? \{ preserveState: true \} : \{\}\)/,
+        );
+    }
+
+    assert.match(
+        composable,
+        /const saveSettings = \(\) => sendSettings\(false\);/,
+    );
+    assert.match(
+        composable,
+        /const saveSettingsKeepingState = \(\) => sendSettings\(true\);/,
+    );
+    assert.match(classic, /@submit\.prevent="saveSettings"/);
+    // "You also have unsaved changes above" only follows real changes above, and no "below" warning is left.
+    assert.match(template, /:others-above="rulesDirty"/);
+    assert.match(template, /:others-above="rulesDirty \|\| overtimeDirty"/);
+    assert.doesNotMatch(source, /others-below|unsaved changes below/);
+});

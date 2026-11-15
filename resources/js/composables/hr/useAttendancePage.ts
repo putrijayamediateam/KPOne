@@ -646,7 +646,9 @@ export const useAttendancePage = (props: AttendanceProps) => {
         processing: false,
         key: crypto.randomUUID(),
     });
-    const saveSettings = () => {
+    // Version 2 uses saveSettingsKeepingState: the page keeps its state through the save, so the other Settings cards keep
+    // their unsaved typing. Classic keeps saveSettings, unchanged.
+    const sendSettings = (preserveState: boolean) => {
         settingsForm.processing = true;
         router.put(
             '/hr/attendance/settings',
@@ -659,11 +661,14 @@ export const useAttendancePage = (props: AttendanceProps) => {
             },
             {
                 preserveScroll: true,
+                ...(preserveState ? { preserveState: true } : {}),
                 onSuccess: () => (settingsForm.key = crypto.randomUUID()),
                 onFinish: () => (settingsForm.processing = false),
             },
         );
     };
+    const saveSettings = () => sendSettings(false);
+    const saveSettingsKeepingState = () => sendSettings(true);
 
     const reviewBranchOptions = computed(() =>
         (props.attendance.review?.branches ?? []).map((b) => ({
@@ -724,6 +729,7 @@ export const useAttendancePage = (props: AttendanceProps) => {
         openAskFor,
         settingsForm,
         saveSettings,
+        saveSettingsKeepingState,
         reviewBranchOptions,
         staffOptions,
         correctionStatusTone,

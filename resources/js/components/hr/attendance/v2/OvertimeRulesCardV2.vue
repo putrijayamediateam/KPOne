@@ -16,11 +16,12 @@ const props = defineProps<{
     today: string;
     primary: boolean;
     othersAbove: boolean;
-    othersBelow?: boolean;
 }>();
 const emit = defineEmits<{ dirty: [value: boolean] }>();
 
-const { errors, form, toggle, save } = useOvertimeSettings(props);
+const { errors, form, toggle, save } = useOvertimeSettings(props, {
+    preserveState: true,
+});
 
 // The saved baseline comes from the server's card (current, else the suggested values), never from the form.
 const baseline = () => {
@@ -50,6 +51,12 @@ const dirty = computed(() => snapshot(form) !== snapshot(baseline()));
 watch(dirty, (value) => emit('dirty', value), { immediate: true });
 const reset = () => Object.assign(form, baseline());
 defineExpose({ reset, dirty });
+// The page keeps its state through a save, so after this card's own save (the saved rules change) go back to them;
+// another card's save leaves this card's typing alone.
+watch(
+    () => JSON.stringify(props.card.current),
+    () => reset(),
+);
 </script>
 
 <template>
@@ -216,14 +223,6 @@ defineExpose({ reset, dirty });
                     class="text-[13px] text-muted-foreground"
                 >
                     You also have unsaved changes above.
-                </p>
-                <p
-                    v-if="dirty && othersBelow"
-                    class="text-[13px] text-muted-foreground"
-                    data-test="overtime-others-below"
-                >
-                    Saving here reloads the page, so the unsaved changes below
-                    are lost.
                 </p>
             </div>
         </form>

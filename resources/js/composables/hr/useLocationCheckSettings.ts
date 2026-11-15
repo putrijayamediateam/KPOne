@@ -6,7 +6,12 @@ import type { LocationCheckCard } from '@/components/hr/attendance/types';
  * Moved unchanged out of `components/hr/attendance/LocationCheckSettings.vue` so Classic and Version 2 share it; the Classic template
  * did not change.
  */
-export function useLocationCheckSettings(props: { card: LocationCheckCard }) {
+export function useLocationCheckSettings(
+    props: { card: LocationCheckCard },
+    // Version 2 keeps the page's state through a save, so the fields refill only when the branch changes (another
+    // card's save must not wipe typing here).
+    options: { preserveState?: boolean } = {},
+) {
     const page = usePage();
     const errors = computed(
         () => (page.props.errors ?? {}) as Record<string, string | undefined>,
@@ -39,7 +44,13 @@ export function useLocationCheckSettings(props: { card: LocationCheckCard }) {
         form.consentBm = b?.consentBm ?? props.card.draftConsentBm;
     };
     fill();
-    watch(() => [form.branchId, props.card], fill);
+    watch(
+        () =>
+            options.preserveState
+                ? [form.branchId]
+                : [form.branchId, props.card],
+        fill,
+    );
 
     const branchOptions = computed(() =>
         props.card.branches.map((b) => ({
@@ -69,6 +80,7 @@ export function useLocationCheckSettings(props: { card: LocationCheckCard }) {
             },
             {
                 preserveScroll: true,
+                ...(options.preserveState ? { preserveState: true } : {}),
                 onSuccess: () => {
                     form.key = crypto.randomUUID();
                     form.confirmOff = false;

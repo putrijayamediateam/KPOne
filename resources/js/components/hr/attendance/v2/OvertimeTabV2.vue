@@ -2,7 +2,6 @@
 // Version 2 Overtime tab (Director, HR Manager), HR V2 Attendance PR 2. The same state and requests as Classic, through
 // useOvertimeTab. Daniel: waiting requests are cards at every width with outline Approve and Reject, the filled action
 // lives in the dialog; decided requests by month are a table from 1280 px with cards below and a month stepper.
-import { MonthField } from '@/components/ui/date-field';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Field from '@/components/v2/V2Field.vue';
@@ -175,13 +174,12 @@ const {
                         <span aria-hidden="true">‹</span
                         ><span class="max-sm:sr-only">Previous month</span>
                     </button>
-                    <label for="v2-overtime-month" class="sr-only">Month</label>
-                    <MonthField
-                        id="v2-overtime-month"
-                        class="w-40!"
-                        :model-value="data.month"
-                        @change="(value: string) => visitMonth(value)"
-                    />
+                    <span
+                        class="min-w-0 px-1 text-sm font-medium whitespace-nowrap"
+                        aria-live="polite"
+                        data-test="overtime-month"
+                        >{{ data.monthLabel }}</span
+                    >
                     <button
                         type="button"
                         :class="[button, 'gap-1.5']"

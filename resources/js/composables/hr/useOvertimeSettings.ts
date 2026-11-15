@@ -6,10 +6,14 @@ import type { OvertimeSettingsCard } from '@/components/hr/attendance/types';
  * Moved unchanged out of `components/hr/attendance/OvertimeSettingsForm.vue` so Classic and Version 2 share it; the Classic template
  * did not change.
  */
-export function useOvertimeSettings(props: {
-    card: OvertimeSettingsCard;
-    today: string;
-}) {
+export function useOvertimeSettings(
+    props: {
+        card: OvertimeSettingsCard;
+        today: string;
+    },
+    // Version 2 keeps the page's state through the save, so another card's unsaved typing survives it.
+    options: { preserveState?: boolean } = {},
+) {
     const page = usePage();
     const errors = computed(
         () => (page.props.errors ?? {}) as Record<string, string | undefined>,
@@ -47,6 +51,7 @@ export function useOvertimeSettings(props: {
             },
             {
                 preserveScroll: true,
+                ...(options.preserveState ? { preserveState: true } : {}),
                 onSuccess: () => (form.key = crypto.randomUUID()),
                 onFinish: () => (form.processing = false),
             },

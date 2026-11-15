@@ -81,7 +81,7 @@ const {
     openAsk,
     openAskFor,
     settingsForm,
-    saveSettings,
+    saveSettingsKeepingState,
     reviewBranchOptions,
     staffOptions,
     reviewQuery,
@@ -165,6 +165,11 @@ const rulesDirty = computed(
         props.attendance.tab === 'settings' &&
         rulesValue() !== rulesSaved.value,
 );
+// With state preserved, the form is not rebuilt after a save: when the saved rules themselves change, go back to them.
+watch(
+    () => JSON.stringify(props.attendance.settings?.current ?? null),
+    () => resetRules(),
+);
 const resetRules = () => {
     const [grace, window, days, from] = JSON.parse(
         rulesSaved.value,
@@ -178,8 +183,8 @@ const resetRules = () => {
 };
 // PR 2 (Daniel): three Settings cards, each with its own named Save, dirty guard and busy state, but only ONE filled
 // Save at a time: the first card from the top that has changes (or has never been saved) keeps it. A card below a
-// changed one shows an outline Save and "You also have unsaved changes above"; a changed card with changes below says
-// that saving reloads the page and loses them (Suresh m2). The leave guard covers all three.
+// changed one shows an outline Save and "You also have unsaved changes above" (only when a card above has changes).
+// Each Save keeps the page's state, so the other cards keep their unsaved typing (Daniel). The leave guard covers all three.
 const overtimeDirty = ref(false);
 const locationDirty = ref(false);
 const overtimeCard = ref<InstanceType<typeof OvertimeRulesCardV2> | null>(null);
@@ -1241,7 +1246,7 @@ const numberClass =
                         >
                             <form
                                 class="flex flex-col gap-4"
-                                @submit.prevent="saveSettings"
+                                @submit.prevent="saveSettingsKeepingState"
                             >
                                 <V2Field
                                     v-slot="{ id, describedBy, invalid }"
@@ -1316,17 +1321,6 @@ const numberClass =
                                                 : 'Save attendance rules'
                                         }}
                                     </button>
-                                    <p
-                                        v-if="
-                                            rulesDirty &&
-                                            (overtimeDirty || locationDirty)
-                                        "
-                                        class="mt-1.5 text-[13px] text-muted-foreground"
-                                        data-test="rules-others-below"
-                                    >
-                                        Saving here reloads the page, so the
-                                        unsaved changes below are lost.
-                                    </p>
                                 </div>
                             </form>
                             <div
@@ -1354,8 +1348,7 @@ const numberClass =
                             :card="attendance.settings.overtime"
                             :today="attendance.settings.today"
                             :primary="filledCard === 'overtime'"
-                            :others-above="filledCard === 'rules'"
-                            :others-below="locationDirty"
+                            :others-above="rulesDirty"
                             @dirty="overtimeDirty = $event"
                         />
                         <LocationCheckCardV2
@@ -1363,10 +1356,7 @@ const numberClass =
                             ref="locationCard"
                             :card="attendance.settings.location"
                             :primary="filledCard === 'location'"
-                            :others-above="
-                                filledCard === 'rules' ||
-                                filledCard === 'overtime'
-                            "
+                            :others-above="rulesDirty || overtimeDirty"
                             @dirty="locationDirty = $event"
                         />
                     </section>
