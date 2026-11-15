@@ -292,6 +292,29 @@ class PanelClaimAdjustmentTest extends BillingTestCase
         $this->get(route('panel-claims.follow-up'))->assertOk();
     }
 
+    public function test_the_migration_gives_an_existing_claim_its_original_amount_as_version_1_and_the_page_keeps_the_live_amount(): void
+    {
+        [, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
+        $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
+        $this->patch(route('panel-claims.amount', $claim), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $claim->refresh()->lock_version,
+            'amount_sen' => '2500', 'reason' => 'Synthetic claim-only edit before the migration'])->assertSessionHasNoErrors();
+        // A claim from before PCA-2 has no versions: remove the one written at creation, as the migration found them.
+        DB::statement('ALTER TABLE panel_claim_snapshots DISABLE TRIGGER panel_claim_snapshots_guard');
+        DB::table('panel_claim_snapshots')->where('panel_claim_id', $claim->id)->delete();
+        DB::statement('ALTER TABLE panel_claim_snapshots ENABLE TRIGGER panel_claim_snapshots_guard');
+
+        $migration = require base_path('database/migrations/2026_11_16_000100_create_panel_claim_adjustments.php');
+        $migration->backfillVersionOne();
+        $migration->backfillVersionOne(); // Idempotent.
+        $version = PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->sole();
+        $this->assertSame([1, 3000, 3000, 0], [$version->version, $version->claim_amount_sen, $version->panel_share_sen, $version->panel_adjustment_sen]);
+        $this->selectBranch($officer);
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page
+            ->where('claim.claimAmountSen', 2500)->where('claim.adjustmentClaim.versions.0.claimAmountSen', 3000));
+        $this->get(route('panel-claims.pack', ['claims' => [$claim->public_id]]))->assertInertia(fn (Assert $page) => $page
+            ->where('pack.claims.0.claimAmountSen', 2500)->where('pack.claims.0.version.number', 1));
+    }
+
     private function refusal(callable $action): string
     {
         try {

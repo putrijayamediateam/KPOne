@@ -237,14 +237,22 @@ SQL);
             "paid+panel_amount+deferred_amount<>kpone_invoice_payable(inv.id) OR (EXISTS (SELECT 1 FROM invoice_adjustments WHERE invoice_id=inv.id) AND (evidence->'financial_revision'->>'total' IS DISTINCT FROM kpone_invoice_payable(inv.id)::text" => "paid+panel_amount+deferred_amount<>kpone_invoice_payable_effective(inv.id) OR ((EXISTS (SELECT 1 FROM invoice_adjustments WHERE invoice_id=inv.id) OR kpone_panel_adjustment_sum(inv.id)<>0) AND (evidence->'financial_revision'->>'total' IS DISTINCT FROM kpone_invoice_payable_effective(inv.id)::text",
         ], 'RETURNS trigger');
 
-        // Version 1 of every existing claim: the frozen invoice total and the amount the claim was first prepared at
-        // (a later claim-only edit may have changed the live amount since).
+        $this->backfillVersionOne();
+    }
+
+    /**
+     * Version 1 of every claim that has none: the frozen invoice total and the amount the claim was first prepared at
+     * (a later claim-only edit may have changed the live amount since). Idempotent.
+     */
+    public function backfillVersionOne(): void
+    {
         DB::unprepared(<<<'SQL'
 INSERT INTO panel_claim_snapshots (public_id, organisation_id, branch_id, panel_claim_id, version, invoice_total_sen, panel_adjustment_sen, panel_share_sen, claim_amount_sen, panel_claim_adjustment_id, created_by_user_id, created_at)
 SELECT gen_random_uuid(), c.organisation_id, c.branch_id, c.id, 1, c.invoice_total_sen, 0, a.amount_sen,
  coalesce((SELECT e.amount_sen FROM panel_claim_events e WHERE e.panel_claim_id=c.id AND e.event_type='prepared' ORDER BY e.occurred_at, e.id LIMIT 1), c.claim_amount_sen),
  NULL, c.created_by_user_id, c.created_at
-FROM panel_claims c JOIN coverage_allocations a ON a.id=c.coverage_allocation_id;
+FROM panel_claims c JOIN coverage_allocations a ON a.id=c.coverage_allocation_id
+WHERE NOT EXISTS (SELECT 1 FROM panel_claim_snapshots s WHERE s.panel_claim_id=c.id);
 SQL);
     }
 
