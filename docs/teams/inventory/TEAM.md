@@ -277,8 +277,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   Agent platform's AG-7b. Label batch and expiry is the Dispensary
   team's DSP-2 (merged).
 - **Parked review (2026-10-21):** supplier invoice match (STK-22), the printable purchase order (STK-20) and reorder
-  suggestions (STK-16, STK-30) are now built. `InventoryController::referenceData()` still projects all items, SKUs
-  and locations unbounded.
+  suggestions (STK-16, STK-30) are now built. `InventoryController::referenceData()` is bounded: since the pilot scale
+  limits (PR #176) each list comes from `InventoryPickerService::choices()`, 25 rows by default and 100 at most, with
+  search for the rest (checked 2026-11-15; this line said "unbounded" until then).
 - **Found while writing the pharmacist pack (STK-36):** the transfer gaps are closed by STK-37 (#624). Still open:
   the FEFO audit entry records that an exception was chosen, not which reason,
   and a re-save before completion loses the earlier reason; no report lists FEFO exceptions; no short-dated
@@ -291,8 +292,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   a batch recalled or held while in transit still lands (dispensing refuses it there); a recall locks only the
   chosen SKU's batches, so a sibling SKU's batch with the same number is not serialised against it; item
   deactivation and expiry edits do not take the batch lock. Direct transfer has no screen today.
-- STK-35 limits: the organisation lock is held while a large import records (up to 500 rows); no two-process test
-  of an import racing a single opening; `crypto.randomUUID()` needs a secure context; a held existing batch is
+- STK-35 limits: the organisation lock is held while a large import records (up to 500 rows); an import racing a single opening
+  is covered by a two-process test since STK-38 (`PostgresOpeningImportTest`: one opening, the other refused); `crypto.randomUUID()` needs a secure context; a held existing batch is
   reused without the row saying so. The file is never stored, only its SHA-256.
 - STK-33 limits: about 8 queries per page and the whole branch loaded before slicing, not load-tested; an index on
   `(source_location_id, occurred_at)` and `(destination_location_id, occurred_at)` may be needed later; "used"

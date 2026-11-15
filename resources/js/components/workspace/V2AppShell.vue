@@ -18,6 +18,7 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import V2RefusedNotice from '@/components/v2/V2RefusedNotice.vue';
 import V2JumpDialog from '@/components/workspace/V2JumpDialog.vue';
 import V2PageCrumbs from '@/components/workspace/V2PageCrumbs.vue';
 import V2ShellNav from '@/components/workspace/V2ShellNav.vue';
@@ -29,6 +30,7 @@ import {
 } from '@/composables/useClockShortcut';
 import { getInitials } from '@/composables/useInitials';
 import { providePageCrumbs } from '@/composables/usePageCrumbs';
+import { openDialogs } from '@/lib/v2-refused-request';
 import type { V2Shell } from '@/types';
 
 /**
@@ -245,6 +247,12 @@ const crumbsInFrame = computed(() => placed.value.length);
                 v-if="!focusMode && crumbsInFrame === 0"
                 class="px-4 pt-4 md:px-6"
                 data-test="v2-shell-crumb"
+            />
+
+            <V2RefusedNotice
+                v-if="openDialogs === 0"
+                scroll-into-view
+                class="mx-4 mt-4 md:mx-6"
             />
 
             <slot />

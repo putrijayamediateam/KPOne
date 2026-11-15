@@ -17,6 +17,7 @@ import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import { useScrollStrip } from '@/composables/useScrollStrip';
+import { titleCaseCode } from '@/lib/agent-plain';
 import { formatDateTime } from '@/lib/presentation';
 
 /**
@@ -64,20 +65,14 @@ const plainStep = (summary: string): string => {
     if (readMatch === null) {
         return summary.replace(
             /\b[A-Z]{2,}(?:_[A-Z]+)+\b|\b[A-Z]{3,}(?=:)/g,
-            (code) => titleCase(code),
+            (code) => titleCaseCode(code),
         );
     }
 
     const what = readMatch[2].replace(/_/g, ' ');
 
-    return `Read ${what}${readMatch[3] ? ` for ${titleCase(readMatch[3])}` : ''}`;
+    return `Read ${what}${readMatch[3] ? ` for ${titleCaseCode(readMatch[3])}` : ''}`;
 };
-const titleCase = (code: string): string =>
-    code
-        .toLowerCase()
-        .split('_')
-        .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
-        .join(' ');
 
 // The agent's details open in a V2 dialog (a bottom sheet on a phone). It stays open while the 10-second poll refreshes
 // what it shows, in place.
@@ -442,6 +437,7 @@ const { measure: measureScene, fadeStyle: sceneFade } = useScrollStrip(
         :description="panelDescription"
         confirm-label="Close"
         single-action
+        single-action-style="outline"
         @confirm="closePanel"
     >
         <div
