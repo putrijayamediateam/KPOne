@@ -42,7 +42,7 @@ import { useLeaveGuard } from '@/composables/useLeaveGuard';
  * `singleActionStyle="outline"` (with `singleAction`) gives the one button the footer-Cancel look, for an info sheet that
  * only says something and has no action to take. It still emits `confirm`, keeps the 44px / 36px sizes and the focus ring.
  * The default is `"filled"`; no existing sheet changes unless its owner sets the prop.
-  *
+ *
  * The named slot `footer-note` puts a short note (a decision sentence, a total) in the pinned footer, between the reason line
  * and the buttons, with the same padding as the reason line and a top border. It is OUTSIDE the scrolling body, so the note
  * never covers a field and the body scrolls above it. Rendered only when given; no change for existing callers.
