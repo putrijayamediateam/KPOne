@@ -171,6 +171,7 @@ const outlineButton =
                                             <V2Chip
                                                 tone="warning"
                                                 label="Waiting for check"
+                                                class="whitespace-nowrap"
                                             />
                                             <span
                                                 v-if="row.recordedByMe"
