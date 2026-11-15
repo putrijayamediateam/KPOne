@@ -1171,6 +1171,7 @@ const wide =
             "
             confirm-label="Close"
             single-action
+            single-action-style="outline"
             @update:open="(value) => !value && (history = null)"
             @confirm="history = null"
         >

@@ -537,6 +537,7 @@ const confirmOpen = computed({
         "
         confirm-label="Close"
         single-action
+        single-action-style="outline"
         @update:open="requestClose"
         @confirm="closeSheet"
     >
