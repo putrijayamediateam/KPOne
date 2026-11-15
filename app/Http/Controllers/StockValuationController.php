@@ -19,8 +19,8 @@ final class StockValuationController extends Controller
         try {
             $report = $service->report($request->user(), $branch, $request->only(['branch', 'from', 'to']));
         } catch (ValidationException $e) {
-            // A refused filter goes back to the default period with its reason, never to another page.
-            throw $e->redirectTo(route('inventory.stock-value'));
+            // A refused filter shows the default period, with its reason on the page (no redirect, so nothing is lost).
+            $report = [...$service->report($request->user(), $branch, []), 'refused' => array_values(array_map(fn (array $messages): string => (string) $messages[0], $e->errors()))];
         }
 
         return Inertia::render('Inventory/StockValue', ['report' => $report]);

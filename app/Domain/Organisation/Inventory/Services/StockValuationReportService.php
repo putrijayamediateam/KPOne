@@ -249,7 +249,7 @@ final class StockValuationReportService
             $total += $x['m']['value_milli_sen'];
         }
         $ids = array_values(array_unique([...array_keys($sales), ...array_keys($cost)]));
-        $names = DB::table('medicine_catalogue_items')->where('organisation_id', $organisationId)->whereIn('id', $ids === [] ? [-1] : $ids)->pluck('display_name', 'id')->all();
+        $names = DB::table('medicine_catalogue_items')->where('organisation_id', $organisationId)->whereIn('id', $ids === [] ? [-1] : $ids)->get(['id', 'display_name', 'code'])->keyBy('id')->all();
         $rows = [];
         foreach ($ids as $id) {
             $salesSen = $sales[$id] ?? 0;
@@ -258,7 +258,8 @@ final class StockValuationReportService
             $costSen = $c === null ? null : WeightedAverageCostService::sen($c['milliSen']);
             $marginSen = $known ? $salesSen - (int) $costSen : null;
             $rows[] = [
-                'medicine' => $id === 0 ? 'Dispensed without a medicine link' : (string) ($names[$id] ?? 'Medicine'),
+                'medicine' => $id === 0 ? 'Dispensed without a medicine link' : (string) ($names[$id]->display_name ?? 'Medicine'),
+                'code' => $id === 0 ? '' : (string) ($names[$id]->code ?? ''),
                 'salesSen' => $salesSen, 'costSen' => $costSen, 'marginSen' => $marginSen,
                 'marginPercent' => $marginSen !== null && $salesSen > 0 ? round($marginSen / $salesSen * 100, 1) : null,
                 'reason' => match (true) {

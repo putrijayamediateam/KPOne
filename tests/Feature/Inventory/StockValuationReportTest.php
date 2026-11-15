@@ -130,9 +130,10 @@ final class StockValuationReportTest extends VisitTestCase
         $today = now($this->branch->timezone)->toDateString();
         $from = now($this->branch->timezone)->subDays(92)->toDateString();
 
-        $this->get(route('inventory.stock-value', ['from' => $from, 'to' => $today]))->assertRedirect(route('inventory.stock-value'))->assertSessionHasErrors(['to' => 'Choose 92 days or fewer.']);
-        $this->get(route('inventory.stock-value', ['to' => now($this->branch->timezone)->addDay()->toDateString()]))->assertSessionHasErrors(['to' => 'Choose a date up to today.']);
-        $this->get(route('inventory.stock-value', ['branch' => '999999']))->assertSessionHasErrors(['branch' => 'Choose a branch, or All branches.']);
+        $this->get(route('inventory.stock-value', ['from' => $from, 'to' => $today]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('report.refused', ['Choose 92 days or fewer.'])->where('report.filters.to', $today)->where('report.filters.from', substr($today, 0, 8).'01'));
+        $this->get(route('inventory.stock-value', ['to' => now($this->branch->timezone)->addDay()->toDateString()]))->assertInertia(fn (Assert $page) => $page->where('report.refused', ['Choose a date up to today.']));
+        $this->get(route('inventory.stock-value', ['branch' => '999999']))->assertInertia(fn (Assert $page) => $page->where('report.refused', ['Choose a branch, or All branches.'])->where('report.filters.branch', (string) $this->branch->id));
         $this->get(route('inventory.stock-value', ['from' => now($this->branch->timezone)->subDays(91)->toDateString(), 'to' => $today, 'branch' => 'all']))->assertOk()
             ->assertInertia(fn (Assert $page) => $page->where('report.filters.branch', 'all')->where('report.scopeLabel', 'All branches'));
     }
