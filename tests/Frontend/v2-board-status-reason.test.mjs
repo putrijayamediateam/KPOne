@@ -12,6 +12,7 @@ const page = readFileSync(
 
 test('board not-ready reason wraps to two lines and keeps its full-text tooltip', () => {
     assert.match(page, /line-clamp-2/);
+    assert.match(page, /max-xl:text-right max-sm:text-left/);
     assert.doesNotMatch(page, /callHold\?\.active" class="max-w-36 truncate/);
     assert.match(
         page,

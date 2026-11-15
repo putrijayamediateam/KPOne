@@ -698,7 +698,7 @@ const filterBadge = computed(
                                         </div>
                                         <p
                                             v-if="item.visit.callHold?.active"
-                                            class="line-clamp-2 max-w-36 text-xs break-words text-muted-foreground max-xl:text-right"
+                                            class="line-clamp-2 max-w-36 text-xs break-words text-muted-foreground max-xl:text-right max-sm:text-left"
                                             :title="
                                                 item.visit.callHold.reason ??
                                                 undefined
