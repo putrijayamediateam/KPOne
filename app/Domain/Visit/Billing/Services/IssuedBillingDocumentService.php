@@ -58,6 +58,9 @@ final class IssuedBillingDocumentService
             $invoice = Invoice::query()->whereKey($invoice->id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
                 ->where('visit_id', $visit->id)->lockForUpdate()->first();
             abort_if($invoice === null || $invoice->status === 'draft', 404);
+            if ($payment === null && PanelInvoicePrinting::blocked($visit, $invoice)) {
+                throw ValidationException::withMessages(['document' => PanelInvoicePrinting::MESSAGE]);
+            }
             if ($payment !== null) {
                 abort_unless(PaymentAllocation::query()->where('payment_id', $payment->id)->where('invoice_id', $invoice->id)->exists(), 404);
                 $payment = Payment::query()->whereKey($payment->id)->lockForUpdate()->firstOrFail();
@@ -102,7 +105,11 @@ final class IssuedBillingDocumentService
         return DB::transaction(function () use ($actor, $visit, $documentPublicId, $input, $key): IssuedBillingDocumentPrint {
             [$actor, $visit, $branch] = $this->context->lock($actor, $visit, $input['expected_branch_id'] ?? null, self::PERMISSION);
             $document = $this->visitDocument($actor, $visit, $branch, $documentPublicId);
-            Invoice::query()->whereKey($document->invoice_id)->lockForUpdate()->firstOrFail();
+            $invoice = Invoice::query()->whereKey($document->invoice_id)->lockForUpdate()->firstOrFail();
+            // PCA-1: an invoice copy issued for a Panel patient before this rule stays viewable but is not reprinted.
+            if ($document->document_type === 'invoice' && PanelInvoicePrinting::blocked($visit, $invoice)) {
+                throw ValidationException::withMessages(['document' => PanelInvoicePrinting::MESSAGE]);
+            }
             $this->assertCanSeeIdentity($actor, $this->decrypt($document));
             $hash = $this->payloadHash(['reprint', $actor->id, $document->id]);
 
@@ -162,6 +169,9 @@ final class IssuedBillingDocumentService
                 'printedByYou' => $mine,
                 'notes' => $notes,
                 'backUrl' => route('billing.show', $visit, absolute: false),
+                // PCA-1: an earlier invoice copy of a Panel patient is shown for reading only, never printed again.
+                'viewOnly' => $document->document_type === 'invoice'
+                    && PanelInvoicePrinting::blocked($visit, Invoice::query()->whereKey($document->invoice_id)->firstOrFail()),
             ]];
         }, 3);
     }
@@ -184,6 +194,11 @@ final class IssuedBillingDocumentService
         $receipts = Payment::query()->whereIn('id', $documents->pluck('payment_id')->filter())->pluck('receipt_number', 'id');
         $people = $this->staff->visibleUsers($actor)->whereIn('id', $documents->pluck('issued_by_user_id')->unique())->pluck('name', 'id');
         $latest = $documents->groupBy(fn (IssuedBillingDocument $d): string => $d->invoice_id.':'.($d->payment_id ?? 0))->map->max('version');
+        // PCA-1: a Panel patient's invoice copies are view only: no reprint, and a link to view the last print.
+        $panelInvoices = Invoice::query()->whereIn('id', $documents->pluck('invoice_id')->unique())->get()
+            ->filter(fn (Invoice $invoice): bool => PanelInvoicePrinting::blocked($visit, $invoice))->pluck('id')->all();
+        $lastPrints = IssuedBillingDocumentPrint::query()->whereIn('issued_billing_document_id', $documents->pluck('id'))
+            ->orderBy('id')->get()->keyBy('issued_billing_document_id');
 
         return $documents->map(fn (IssuedBillingDocument $d): array => [
             'publicId' => $d->public_id,
@@ -195,6 +210,9 @@ final class IssuedBillingDocumentService
             'issuedBy' => $people->get($d->issued_by_user_id, 'Staff member'),
             'prints' => (int) $d->getAttribute('prints_count'),
             'latest' => $latest->get($d->invoice_id.':'.($d->payment_id ?? 0)) === $d->version,
+            'reprintable' => ! ($d->document_type === 'invoice' && in_array($d->invoice_id, $panelInvoices, true)),
+            'viewUrl' => $d->document_type === 'invoice' && in_array($d->invoice_id, $panelInvoices, true) && $lastPrints->has($d->id)
+                ? route('billing.issued.show', [$visit, $lastPrints->get($d->id)->public_id], false) : null,
         ])->values()->all();
     }
 

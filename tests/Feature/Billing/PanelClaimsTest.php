@@ -201,12 +201,20 @@ class PanelClaimsTest extends BillingTestCase
         $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])->assertRedirect();
         $claim = PanelClaim::query()->sole();
 
-        foreach (['ca', 'ca_supervisor', 'resident_doctor', 'director', 'finance_officer', 'technical_admin'] as $role) {
+        foreach (['ca', 'ca_supervisor', 'resident_doctor', 'technical_admin'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor, $this->branch);
             $this->get(route('panel-claims.index'))->assertForbidden();
             $this->get(route('panel-claims.show', $claim))->assertForbidden();
             $this->post(route('panel-claims.submit', $claim), [])->assertForbidden();
+        }
+
+        // PCA-1 (owner decision 2026-11-13): Director and Finance Officer handle Panel claims too.
+        foreach (['director', 'finance_officer'] as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor, $this->branch);
+            $this->get(route('panel-claims.index'))->assertOk();
+            $this->get(route('panel-claims.show', $claim))->assertOk();
         }
 
         $otherBranch = Branch::query()
@@ -215,7 +223,7 @@ class PanelClaimsTest extends BillingTestCase
         $this->selectBranch($differentBranchOfficer, $otherBranch);
         $this->get(route('panel-claims.show', $claim))->assertNotFound();
         $this->assertContains('panel.claims.manage.branch', BillingPermissions::roles()['panel_officer']);
-        $this->assertNotContains('panel.claims.manage.branch', BillingPermissions::roles()['director']);
+        $this->assertContains('panel.claims.manage.branch', BillingPermissions::roles()['director']);
         $this->assertSame($invoice->lock_version, $invoice->refresh()->lock_version);
     }
 
@@ -440,8 +448,9 @@ class PanelClaimsTest extends BillingTestCase
 
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance, $this->branch);
-        $this->get(route('panel-claims.documents.show', [$claim, $document->public_id]))->assertForbidden();
-        $this->post(route('panel-claims.note', $claim), ['expected_branch_id' => $branchId, 'note' => 'x'])->assertForbidden();
+        // PCA-1 (owner decision 2026-11-13): Finance Officers open claim photos and add notes too.
+        $this->get(route('panel-claims.documents.show', [$claim, $document->public_id]))->assertOk();
+        $this->post(route('panel-claims.note', $claim), ['expected_branch_id' => $branchId, 'note' => 'x'])->assertSessionHasNoErrors();
     }
 
     public function test_created_claims_leave_pending_and_show_in_submitted_then_follow_decisions_and_remittances(): void
@@ -577,11 +586,17 @@ class PanelClaimsTest extends BillingTestCase
     {
         [, , $invoice, $allocation] = $this->approvedPanelFixture();
         $payload = $this->creationPayload($allocation, $invoice);
-        foreach (['director', 'technical_admin', 'ca', 'finance_officer'] as $role) {
+        foreach (['technical_admin', 'ca'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor, $this->branch);
             $this->get(route('panel-claims.create', $allocation))->assertForbidden();
             $this->post(route('panel-claims.store', $allocation), $payload)->assertForbidden();
+        }
+        // PCA-1 (owner decision 2026-11-13): Director and Finance Officer may open Create claim.
+        foreach (['director', 'finance_officer'] as $role) {
+            $actor = $this->actor($role);
+            $this->selectBranch($actor, $this->branch);
+            $this->get(route('panel-claims.create', $allocation))->assertOk();
         }
         $otherBranch = Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->firstOrFail();
         $officer = $this->actor('panel_officer', $otherBranch);
@@ -848,7 +863,8 @@ class PanelClaimsTest extends BillingTestCase
 
         $finance = $this->actor('finance_officer');
         $this->selectBranch($finance, $this->branch);
-        $this->get(route('panel-invoices.index'))->assertInertia(fn (Assert $page) => $page->where('can.clinicalFilters', false));
+        // PCA-1 (owner decision 2026-11-13): Finance Officers get the Diagnosis and Treatment filters.
+        $this->get(route('panel-invoices.index'))->assertInertia(fn (Assert $page) => $page->where('can.clinicalFilters', true));
     }
 
     public function test_csv_cells_that_look_like_formulas_are_neutralised(): void
