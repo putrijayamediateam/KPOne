@@ -209,3 +209,10 @@ test('V2 history actions stack on phones, each a full-width 44 px target with it
         3,
     );
 });
+
+test('V2 acknowledgement row is a whole-row label at least 44 px tall, so its text is tappable', () => {
+    assert.match(
+        flat(page),
+        /<label v-if="form\.recipient\.trim\(\)" class="flex min-h-11 items-start gap-3 py-1 text-sm" > <Checkbox v-model="form\.consent"/,
+    );
+});
