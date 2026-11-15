@@ -55,9 +55,10 @@ class WorkspaceTest extends VisitTestCase
             'resident_doctor' => [true, true, true, false, false, false, false, false],
             'ca_supervisor' => [true, true, true, false, false, false, false, false],
             'panel_officer' => [false, false, false, true, true, false, false, false],
-            'finance_officer' => [false, false, false, false, false, true, false, false],
+            // PCA-1 (owner decision 2026-11-13): Finance Officer and Director handle Panel claims too.
+            'finance_officer' => [false, false, false, false, true, true, false, false],
             'technical_admin' => [false, false, false, false, false, false, true, true],
-            'director' => [true, true, true, true, false, true, true, true],
+            'director' => [true, true, true, true, true, true, true, true],
         ];
 
         foreach ($expectations as $role => [$registration, $consultation, $patients, $panel, $panelClaims, $finance, $access, $audit]) {
