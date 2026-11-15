@@ -30,17 +30,6 @@ const form = reactive({
     processing: false,
     key: crypto.randomUUID(),
 });
-// HR-DEFAULTS: the label shows while the rates in force (or, before the first save, in the form) are KPOne's defaults.
-const ratesAreDefaults = computed(() => {
-    const r = props.card.current ?? props.card.suggested;
-    const d = props.card.suggested;
-
-    return (
-        Number(r.normalMultiplier) === Number(d.normalMultiplier) &&
-        Number(r.restDayMultiplier) === Number(d.restDayMultiplier) &&
-        Number(r.publicHolidayMultiplier) === Number(d.publicHolidayMultiplier)
-    );
-});
 const toggle = (role: string, on: boolean) => {
     form.roles = on
         ? [...new Set([...form.roles, role])]
@@ -86,7 +75,7 @@ const save = () => {
             In force since {{ card.current.effectiveFrom }}.
         </p>
         <p
-            v-if="ratesAreDefaults"
+            v-if="!card.current"
             class="text-xs text-muted-foreground"
             data-test="overtime-defaults-label"
         >

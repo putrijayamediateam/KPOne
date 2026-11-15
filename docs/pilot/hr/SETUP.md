@@ -30,5 +30,9 @@ PDPA review; nothing here is production approval.
 
 ## Before real staff data
 
+- Who the Act's overtime, rest-day and public-holiday pay rules cover depends on wages and job category (since the 2022
+  amendment, mainly staff earning up to the wage threshold or in the listed categories, which likely leaves out
+  doctors). The 1.5x, 2x and 3x rates also simplify the Act's rest-day and public-holiday rules. Confirm with the
+  accountant or a lawyer before real pay.
 - The PDPA review, above all for clock-in photos (and location results, if the check is ever turned on).
 - A check of the defaults against current law, and the clinic's own leave and overtime policy where it differs.

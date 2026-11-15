@@ -17,7 +17,8 @@ use Illuminate\Validation\ValidationException;
  * replaced. Everything it writes carries a mark, so the screen says it was set by KPOne defaults and is not advice.
  *
  * Annual, sick and hospitalisation leave count against a yearly balance by length of service at 1 January of the
- * year. Hospitalisation is 60 days a year including sick leave, so its balance is 60 less the sick days. Maternity
+ * year. Hospitalisation is 60 days a year including sick leave, so its balance is 60 less the sick figure in force
+ * (HR's own, or the default). Service runs back through employment periods that join up. Maternity
  * (98 days a confinement) and paternity (7 days a birth) are not yearly figures, so they are paid types without a
  * balance and the approver checks the days. Nothing is granted here; "Give this year's entitlement" still does that.
  */
@@ -29,8 +30,10 @@ final class LeaveDefaultsService
     public const TIERS = [
         'ANNUAL' => [8, 12, 16],
         'SICK' => [14, 18, 22],
-        'HOSPITAL' => [46, 42, 38],
     ];
+
+    /** Hospitalisation leave: 60 days a year including sick leave, so the balance is 60 less the sick figure in force. */
+    public const HOSPITAL_TOTAL_DAYS = 60;
 
     /** @var array<string, array{name:string, is_paid:bool, uses_balance:bool, allow_half_days:bool, evidence_needed:bool}> */
     public const TYPES = [
@@ -104,7 +107,9 @@ final class LeaveDefaultsService
 
     /**
      * The entitlement rows to add: one row per human role at the first tier, and one row per person whose service puts
-     * them in a higher tier. A row HR already entered for the same type and role or person is kept, never replaced.
+     * them in a higher tier. A row HR already entered for the same type and role or person is kept, never replaced, and
+     * a role figure HR entered is never lowered by a person row. Hospitalisation is 60 days a year including sick leave,
+     * so it is worked out from the sick figure in force (HR's own, or the default) rather than fixed.
      *
      * @param  list<int>  $people
      * @param  array<string, int>|null  $typeIds  code => id; null reads the existing types
@@ -119,7 +124,30 @@ final class LeaveDefaultsService
         $service = $this->service($organisationId, $year, $people);
         $roles = User::query()->with('roles')->whereIn('id', $people === [] ? [0] : $people)->get()
             ->mapWithKeys(fn (User $u): array => [$u->id => array_values(array_intersect($u->roles->pluck('name')->all(), RosterPermissions::HUMAN_ROLES))])->all();
+        $key = fn (string $code, string $who): ?string => isset($typeIds[$code]) ? $typeIds[$code].':'.$who : null;
+        $has = fn (?string $k): bool => $k !== null && array_key_exists($k, $current);
+        $full = 2 * self::HOSPITAL_TOTAL_DAYS;
+
+        // Role rows: the first tier where the role has none; hospitalisation follows the role's sick figure.
         $rows = [];
+        /** @var array<string, array<string, int>> $roleValue */
+        $roleValue = ['ANNUAL' => [], 'SICK' => [], 'HOSPITAL' => []];
+        foreach (RosterPermissions::HUMAN_ROLES as $role) {
+            foreach (['ANNUAL', 'SICK'] as $code) {
+                $k = $key($code, $role);
+                $roleValue[$code][$role] = $has($k) ? $current[$k] : self::TIERS[$code][0] * 2;
+                if (! $has($k)) {
+                    $rows[] = ['leave_type_id' => $typeIds[$code] ?? 0, 'role' => $role, 'user_id' => null, 'halves' => self::TIERS[$code][0] * 2];
+                }
+            }
+            $k = $key('HOSPITAL', $role);
+            $sickForRole = $roleValue['SICK'][$role] ?? self::TIERS['SICK'][0] * 2;
+            $roleValue['HOSPITAL'][$role] = $has($k) ? $current[(string) $k] : max(0, $full - $sickForRole);
+            if (! $has($k)) {
+                $rows[] = ['leave_type_id' => $typeIds['HOSPITAL'] ?? 0, 'role' => $role, 'user_id' => null, 'halves' => $roleValue['HOSPITAL'][$role]];
+            }
+        }
+
         $counts = ['base' => 0, 'middle' => 0, 'long' => 0, 'noRecord' => 0, 'crossing' => 0];
         foreach ($people as $id) {
             $s = $service[$id] ?? null;
@@ -130,35 +158,39 @@ final class LeaveDefaultsService
             if ($tier === 0) {
                 continue;
             }
-            foreach (self::TIERS as $code => $days) {
-                $typeId = $typeIds[$code] ?? null;
-                $target = $days[$tier] * 2;
-                // A person row already there (HR's, or an earlier press of the defaults) stays as it is.
-                if ($typeId !== null && array_key_exists("{$typeId}:u{$id}", $current)) {
-                    continue;
-                }
-                // A role figure HR entered itself is the clinic's policy: keep it, and add a person row only to raise
-                // annual or sick leave to the tier. Hospitalisation is 60 days including sick leave, so it is never
-                // adjusted around an HR figure. The defaults' own first-tier rows do not count as HR figures.
-                $fromHr = null;
-                foreach ($roles[$id] ?? [] as $role) {
-                    $roleKey = "{$typeId}:{$role}";
-                    if ($typeId !== null && array_key_exists($roleKey, $current) && ! in_array($roleKey, $defaultKeys, true)) {
-                        $fromHr = max($fromHr ?? 0, $current[$roleKey]);
+            $mine = $roles[$id] ?? [];
+            // What the grant would give from the roles alone (it takes the largest role row), and the HR part of it.
+            $fromRoles = fn (string $code): int => $mine === [] ? 0 : max(array_map(fn (string $r): int => $roleValue[$code][$r] ?? 0, $mine));
+            $fromHr = function (string $code) use ($mine, $key, $has, $current, $defaultKeys): ?int {
+                $values = [];
+                foreach ($mine as $r) {
+                    $k = $key($code, $r);
+                    if ($has($k) && ! in_array($k, $defaultKeys, true)) {
+                        $values[] = $current[(string) $k];
                     }
                 }
-                if ($fromHr === null || ($code !== 'HOSPITAL' && $fromHr < $target)) {
-                    // A type that is not there yet gets its id on apply; the preview counts it with id 0.
-                    $rows[] = ['leave_type_id' => $typeId ?? 0, 'role' => null, 'user_id' => $id, 'halves' => $target];
+
+                return $values === [] ? null : max($values);
+            };
+            $sick = null;
+            foreach (['ANNUAL', 'SICK'] as $code) {
+                $k = $key($code, 'u'.$id);
+                $target = self::TIERS[$code][$tier] * 2;
+                if ($has($k)) {
+                    $value = $current[(string) $k]; // a person row already there stays as it is
+                } elseif (($hr = $fromHr($code)) !== null && $hr >= $target) {
+                    $value = $fromRoles($code);    // HR's own role figure already gives at least the tier
+                } else {
+                    $rows[] = ['leave_type_id' => $typeIds[$code] ?? 0, 'role' => null, 'user_id' => $id, 'halves' => $target];
+                    $value = $target;
                 }
+                $sick = $code === 'SICK' ? $value : $sick;
             }
-        }
-        foreach (RosterPermissions::HUMAN_ROLES as $role) {
-            foreach (self::TIERS as $code => $days) {
-                $typeId = $typeIds[$code] ?? null;
-                if ($typeId === null || ! array_key_exists("{$typeId}:{$role}", $current)) {
-                    $rows[] = ['leave_type_id' => $typeId ?? 0, 'role' => $role, 'user_id' => null, 'halves' => $days[0] * 2];
-                }
+            // Hospitalisation: 60 days less the sick figure this person will have, unless HR set its own figure.
+            $k = $key('HOSPITAL', 'u'.$id);
+            $target = max(0, $full - (int) $sick);
+            if (! $has($k) && $fromHr('HOSPITAL') === null && $target !== $fromRoles('HOSPITAL')) {
+                $rows[] = ['leave_type_id' => $typeIds['HOSPITAL'] ?? 0, 'role' => null, 'user_id' => $id, 'halves' => $target];
             }
         }
 
@@ -167,9 +199,11 @@ final class LeaveDefaultsService
     }
 
     /**
-     * Whole years of service at 1 January, from the person's employment period that covers that day (or, for someone
-     * who starts later in the year, zero). "crossing" is true when a 2 or 5 year anniversary falls inside the year, so
-     * HR can add a per-person entitlement for the rest of that year by hand.
+     * Whole years of continuous service at 1 January. The period that covers 1 January (or, for someone who starts
+     * later in the year, that period) is followed back through earlier periods of the same person while they join up
+     * (the earlier one ends no more than a day before the next starts), so a contract renewal does not restart the
+     * count (Suresh, M1). "crossing" is true when a 2 or 5 year anniversary falls inside the year, so HR can add a
+     * per-person entitlement for the rest of that year by hand.
      *
      * @param  list<int>  $people
      * @return array<int, array{years:int, crossing:bool}>
@@ -178,22 +212,38 @@ final class LeaveDefaultsService
     {
         $jan = CarbonImmutable::create($year, 1, 1);
         $dec = CarbonImmutable::create($year, 12, 31);
-        $periods = DB::table('hr_employment_periods as p')->join('hr_workers as w', 'w.id', '=', 'p.worker_id')
+        $byPerson = DB::table('hr_employment_periods as p')->join('hr_workers as w', 'w.id', '=', 'p.worker_id')
             ->where('p.organisation_id', $organisationId)->whereIn('w.user_id', $people === [] ? [0] : $people)
-            ->where(fn ($q) => $q->whereNull('p.ends_on')->orWhere('p.ends_on', '>=', $jan->toDateString()))
-            ->where('p.starts_on', '<=', $dec->toDateString())
-            ->orderBy('p.starts_on')->get(['w.user_id', 'p.starts_on']);
+            ->where('p.starts_on', '<=', $dec->toDateString())->orderBy('p.starts_on')->get(['w.user_id', 'p.starts_on', 'p.ends_on'])->groupBy('user_id');
+        $date = fn (?string $d): ?CarbonImmutable => $d === null ? null : CarbonImmutable::parse(substr($d, 0, 10));
         $out = [];
-        foreach ($periods as $p) {
-            $start = CarbonImmutable::parse(substr((string) $p->starts_on, 0, 10));
+        foreach ($byPerson as $userId => $periods) {
+            $periods = $periods->values();
+            $i = null;
+            foreach ($periods as $n => $p) {
+                $ends = $date($p->ends_on);
+                if ($i === null && ($ends === null || $ends->greaterThanOrEqualTo($jan))) {
+                    $i = $n; // the first period still running on or after 1 January
+                }
+            }
+            if ($i === null) {
+                continue;
+            }
+            while ($i > 0) {
+                $earlierEnds = $date($periods[$i - 1]->ends_on);
+                if ($earlierEnds === null || $earlierEnds->addDay()->lessThan($date((string) $periods[$i]->starts_on))) {
+                    break;
+                }
+                $i--;
+            }
+            $start = $date((string) $periods[$i]->starts_on);
             $years = $start->greaterThan($jan) ? 0 : (int) $start->diffInYears($jan);
             $crossing = false;
             foreach ([2, 5] as $mark) {
                 $anniversary = $start->addYears($mark);
                 $crossing = $crossing || ($anniversary->greaterThan($jan) && $anniversary->lessThanOrEqualTo($dec));
             }
-            // The earliest period still covering the year wins (the longest unbroken service on record).
-            $out[(int) $p->user_id] ??= ['years' => $years, 'crossing' => $crossing];
+            $out[(int) $userId] = ['years' => $years, 'crossing' => $crossing];
         }
 
         return $out;

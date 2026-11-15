@@ -39,7 +39,11 @@ test('every default carries the owner-instruction label, and the dialog lists wh
 });
 
 test('overtime rates and statutory tables say where their numbers come from', () => {
-    assert.match(overtime, /data-test="overtime-defaults-label"/);
+    // Only before the first save: once HR saves rates, they are the clinic's own (Suresh m2).
+    assert.match(
+        overtime,
+        /v-if="!card\.current"\s+class="text-xs text-muted-foreground"\s+data-test="overtime-defaults-label"/,
+    );
     assert.match(
         overtime,
         /set by KPOne defaults at the owner's\s+instruction; not professional advice\. Check against current law\s+before real pay\./,

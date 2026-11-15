@@ -2981,6 +2981,12 @@ const calendarDays = computed(() =>
                     <li>No carry-forward.</li>
                 </ul>
                 <p class="text-muted-foreground">
+                    Check that the clinic does not already have these types
+                    under other codes. Someone who joins during the year gets
+                    the full year's days; lower it by hand if the clinic
+                    pro-rates the first year.
+                </p>
+                <p class="text-muted-foreground">
                     {{
                         plural(leave.settings.defaults.base, 'person', 'people')
                     }}

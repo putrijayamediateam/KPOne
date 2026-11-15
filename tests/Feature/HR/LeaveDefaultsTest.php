@@ -108,6 +108,42 @@ class LeaveDefaultsTest extends VisitTestCase
         $this->assertFalse($sick->refresh()->set_by_defaults);
     }
 
+    public function test_service_runs_back_through_periods_that_join_up(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $renewed = $this->staffSince('ca', '2019-01-01', '2025-02-28');
+        $this->addPeriod($renewed, '2025-03-01');          // renewed the next day: 8 years unbroken
+        $returned = $this->staffSince('ca', '2018-01-01', '2024-12-31');
+        $this->addPeriod($returned, '2025-03-01');         // back after a two-month gap: 1 year, 2 years on 1 March 2027
+
+        $this->defaults($hr)->assertSessionHasNoErrors();
+        $types = LeaveType::query()->pluck('id', 'code');
+        $this->assertSame([32, 44, 76], [$this->row($types['ANNUAL'], $renewed), $this->row($types['SICK'], $renewed), $this->row($types['HOSPITAL'], $renewed)]);
+        $this->assertNull($this->row($types['ANNUAL'], $returned));
+        $this->selectBranch($hr);
+        $this->get(route('hr.leave.index', ['tab' => 'settings', 'year' => 2027]))->assertInertia(fn (Assert $page) => $page
+            ->where('leave.settings.defaults.long', 1)->where('leave.settings.defaults.crossing', 1));
+    }
+
+    public function test_hospitalisation_follows_the_sick_figure_hr_entered(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $middle = $this->staffSince('ca', '2024-07-01');
+        $this->selectBranch($hr);
+        $this->put(route('hr.leave.types.save'), ['code' => 'SICK', 'name' => 'Sick leave', 'is_paid' => true, 'uses_balance' => true,
+            'allow_half_days' => false, 'evidence_needed' => true])->assertSessionHasNoErrors();
+        $sick = (int) LeaveType::query()->where('code', 'SICK')->value('id');
+        $this->put(route('hr.leave.entitlements.save'), ['year' => 2027, 'rows' => [['leave_type_id' => $sick, 'role' => 'ca', 'days' => '20']]])->assertSessionHasNoErrors();
+
+        $this->defaults($hr)->assertSessionHasNoErrors();
+        $hospital = (int) LeaveType::query()->where('code', 'HOSPITAL')->value('id');
+        $this->assertSame(80, $this->row($hospital, role: 'ca'), '60 days including the 20 sick days HR gives a CA.');
+        $this->assertSame(92, $this->row($hospital, role: 'ca_supervisor'));
+        // HR's 20 sick days already exceed the second tier's 18, so the CA keeps them and 40 hospitalisation days.
+        $this->assertNull($this->row($sick, $middle));
+        $this->assertNull($this->row($hospital, $middle));
+    }
+
     public function test_only_leave_managers_may_use_the_defaults(): void
     {
         foreach (['ca', 'ca_supervisor', 'finance_officer', 'resident_doctor'] as $role) {
@@ -134,16 +170,23 @@ class LeaveDefaultsTest extends VisitTestCase
         return $this->post(route('hr.leave.defaults'), ['year' => 2027, 'idempotency_key' => $key ?? (string) Str::uuid()]);
     }
 
-    private function staffSince(string $role, string $startsOn): User
+    private function staffSince(string $role, string $startsOn, ?string $endsOn = null): User
     {
         $user = $this->actor($role);
         $creator = User::query()->whereKeyNot($user->id)->where('organisation_id', $user->organisation_id)->value('id') ?? $user->id;
-        $worker = DB::table('hr_workers')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $user->organisation_id, 'user_id' => $user->id,
+        DB::table('hr_workers')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $user->organisation_id, 'user_id' => $user->id,
             'kind' => 'staff', 'created_by_user_id' => $creator, 'created_at' => now(), 'updated_at' => now()]);
-        DB::table('hr_employment_periods')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $user->organisation_id, 'worker_id' => $worker,
-            'type' => 'permanent', 'starts_on' => $startsOn, 'created_by_user_id' => $creator, 'created_at' => now(), 'updated_at' => now()]);
+        $this->addPeriod($user, $startsOn, $endsOn);
 
         return $user;
+    }
+
+    private function addPeriod(User $user, string $startsOn, ?string $endsOn = null): void
+    {
+        $worker = DB::table('hr_workers')->where('user_id', $user->id)->sole();
+        DB::table('hr_employment_periods')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $user->organisation_id, 'worker_id' => $worker->id,
+            'type' => 'contract', 'starts_on' => $startsOn, 'ends_on' => $endsOn, 'end_reason' => $endsOn === null ? null : 'contract_ended',
+            'created_by_user_id' => $worker->created_by_user_id, 'created_at' => now(), 'updated_at' => now()]);
     }
 
     /** The halves of the latest entitlement row for a type and a person or a role, or null. */
