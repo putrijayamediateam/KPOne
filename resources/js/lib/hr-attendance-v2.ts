@@ -17,3 +17,16 @@ export const splitLocal = (value: string | null | undefined): LocalParts => {
 /** { date, time } back to "YYYY-MM-DDTHH:MM", or '' while either part is missing. */
 export const joinLocal = (date: string, time: string): string =>
     date !== '' && time !== '' ? `${date}T${time}` : '';
+
+/**
+ * Applies one field's change to a pair the page keeps as its own state and returns the request value. The pair keeps
+ * what was typed even while the other half is empty, so a date picked first is not lost when the time follows.
+ */
+export const updatePair = (
+    pair: LocalParts,
+    change: Partial<LocalParts>,
+): string => {
+    Object.assign(pair, change);
+
+    return joinLocal(pair.date, pair.time);
+};

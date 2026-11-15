@@ -131,11 +131,11 @@ test('one filled action per tab: Clock in or out on My attendance, Save on Setti
         template.indexOf('<!-- Overtime and Summary'),
     );
     assert.doesNotMatch(review, /primaryButton|clockButton/);
-    // The Settings Save is filled only while its card has changes (Daniel).
+    // The Settings Save is filled before the first save and while its card has changes (Daniel, Suresh m1).
     assert.doesNotMatch(template, /:class="primaryButton"/);
     assert.match(
         template,
-        /:class="\s*rulesDirty \? primaryButton : button\s*"/,
+        /:class="\s*!attendance\.settings\?\.current \|\|\s*rulesDirty\s*\? primaryButton\s*: button\s*"/,
     );
     assert.match(template, /'Save attendance rules'/);
 });
@@ -192,4 +192,39 @@ test("Daniel's build notes: muted refusal, red Reject that needs a reason, guard
     );
     assert.match(script, /guard\.value\.ask\(\(\) => selectTab\(tab\)\)/);
     assert.doesNotMatch(template, /<select\b/);
+});
+
+test('an empty pair keeps a date picked first, then sends the full value once the time follows (Suresh S1)', async () => {
+    const { updatePair } = await loadLib();
+    const pair = { date: '', time: '' };
+    assert.equal(updatePair(pair, { date: '2026-11-13' }), '');
+    assert.deepEqual(pair, { date: '2026-11-13', time: '' });
+    assert.equal(updatePair(pair, { time: '17:30' }), '2026-11-13T17:30');
+
+    const timeFirst = { date: '', time: '' };
+    assert.equal(updatePair(timeFirst, { time: '08:05' }), '');
+    assert.equal(
+        updatePair(timeFirst, { date: '2026-11-12' }),
+        '2026-11-12T08:05',
+    );
+
+    // The fields read the page's own pair, never parts recomputed from the request value.
+    assert.match(template, /:model-value="parts\.out\.date"/);
+    assert.match(
+        template,
+        /@update:model-value="setOut\(\{ time: \$event \}\)"/,
+    );
+    assert.match(
+        script,
+        /correction\.outTime = updatePair\(parts\.out, change\)/,
+    );
+    assert.doesNotMatch(script, /computed\(\(\) => splitLocal\(correction/);
+});
+
+test('Settings: Save is filled before the first save, and the guard baseline comes from the server (Suresh m1, m2)', () => {
+    assert.match(
+        template,
+        /!attendance\.settings\?\.current \|\|\s*rulesDirty\s*\? primaryButton\s*: button/,
+    );
+    assert.match(script, /const rulesSaved = computed\(savedRules\)/);
 });

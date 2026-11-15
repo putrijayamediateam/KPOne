@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { computed, ref, watch } from 'vue';
+import { computed, reactive, ref, watch } from 'vue';
 import ClockPhotoNotice from '@/components/hr/attendance/ClockPhotoNotice.vue';
 import ClockPhotoThumb from '@/components/hr/attendance/ClockPhotoThumb.vue';
 import LocationCheckSettings from '@/components/hr/attendance/LocationCheckSettings.vue';
@@ -32,7 +32,7 @@ import type {
     Row,
 } from '@/composables/hr/useAttendancePage';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
-import { joinLocal, splitLocal } from '@/lib/hr-attendance-v2';
+import { splitLocal, updatePair } from '@/lib/hr-attendance-v2';
 
 /**
  * Version 2 Attendance (shown only in V2; Classic is `pages/HR/Attendance.vue`, untouched). Same props, routes,
@@ -97,13 +97,26 @@ const correctionTone: Record<
     cancelled: 'neutral',
 };
 
-// The correction form shows each press as a date and a time; the request keeps Classic's one local value.
-const inParts = computed(() => splitLocal(correction.inTime));
-const outParts = computed(() => splitLocal(correction.outTime));
-const setIn = (date: string, time: string) =>
-    (correction.inTime = joinLocal(date, time));
-const setOut = (date: string, time: string) =>
-    (correction.outTime = joinLocal(date, time));
+// The correction form shows each press as a date and a time; the request keeps Classic's one local value. The parts
+// are page state, so a half-filled pair keeps what was typed while the request value stays '' until both are set.
+const parts = reactive({
+    in: { date: '', time: '' },
+    out: { date: '', time: '' },
+});
+watch(
+    () => correction.open,
+    (open) => {
+        if (open) {
+            Object.assign(parts.in, splitLocal(correction.inTime));
+            Object.assign(parts.out, splitLocal(correction.outTime));
+        }
+    },
+    { immediate: true },
+);
+const setIn = (change: { date?: string; time?: string }) =>
+    (correction.inTime = updatePair(parts.in, change));
+const setOut = (change: { date?: string; time?: string }) =>
+    (correction.outTime = updatePair(parts.out, change));
 
 const decisionTitle = computed(() =>
     decision.approve ? 'Approve this correction?' : 'Reject this correction?',
@@ -126,11 +139,22 @@ const rulesValue = () =>
         settingsForm.correction_days,
         settingsForm.effective_from,
     ]);
-const rulesSaved = ref(rulesValue());
-watch(
-    () => props.attendance.settings,
-    () => (rulesSaved.value = rulesValue()),
-);
+// The saved baseline comes from the server's settings, never from the form, so a reload in place cannot clear the guard.
+const savedRules = () => {
+    const s = props.attendance.settings;
+
+    return JSON.stringify([
+        String(s?.current?.graceMinutes ?? s?.suggested.graceMinutes ?? ''),
+        String(
+            s?.current?.forgottenWindowMinutes ??
+                s?.suggested.forgottenWindowMinutes ??
+                '',
+        ),
+        String(s?.current?.correctionDays ?? s?.suggested.correctionDays ?? ''),
+        s?.today ?? '',
+    ]);
+};
+const rulesSaved = computed(savedRules);
 const rulesDirty = computed(
     () =>
         props.attendance.tab === 'settings' &&
@@ -1172,7 +1196,10 @@ const numberClass =
                                     <button
                                         type="submit"
                                         :class="
-                                            rulesDirty ? primaryButton : button
+                                            !attendance.settings?.current ||
+                                            rulesDirty
+                                                ? primaryButton
+                                                : button
                                         "
                                         :disabled="settingsForm.processing"
                                     >
@@ -1385,17 +1412,17 @@ const numberClass =
                 >
                     <legend class="mb-1.5 text-sm font-medium">Clock-in</legend>
                     <V2DateField
-                        :model-value="inParts.date"
+                        :model-value="parts.in.date"
                         label="Date"
                         required
-                        @update:model-value="setIn($event, inParts.time)"
+                        @update:model-value="setIn({ date: $event })"
                     />
                     <V2TimeField
-                        :model-value="inParts.time"
+                        :model-value="parts.in.time"
                         label="Time"
                         required
                         :error="correctionErrors.in_time"
-                        @update:model-value="setIn(inParts.date, $event)"
+                        @update:model-value="setIn({ time: $event })"
                     />
                 </fieldset>
                 <fieldset
@@ -1406,17 +1433,17 @@ const numberClass =
                         Clock-out
                     </legend>
                     <V2DateField
-                        :model-value="outParts.date"
+                        :model-value="parts.out.date"
                         label="Date"
                         required
-                        @update:model-value="setOut($event, outParts.time)"
+                        @update:model-value="setOut({ date: $event })"
                     />
                     <V2TimeField
-                        :model-value="outParts.time"
+                        :model-value="parts.out.time"
                         label="Time"
                         required
                         :error="correctionErrors.out_time"
-                        @update:model-value="setOut(outParts.date, $event)"
+                        @update:model-value="setOut({ time: $event })"
                     />
                 </fieldset>
                 <p
