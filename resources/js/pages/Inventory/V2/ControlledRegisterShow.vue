@@ -342,8 +342,9 @@ watch(
                     >
                 </p>
 
+                <!-- Top-aligned, so an error under To hangs below and the two boxes stay level (Daniel). -->
                 <form
-                    class="flex min-w-0 flex-wrap items-end gap-2"
+                    class="flex min-w-0 flex-wrap items-start gap-2"
                     aria-label="Register dates"
                     @submit.prevent="visit(1)"
                 >
@@ -364,27 +365,37 @@ watch(
                             @update:invalid="(value) => (toInvalid = value)"
                         />
                     </div>
-                    <button
-                        type="submit"
-                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9"
-                        :disabled="!rangeReady"
-                    >
-                        Show
-                    </button>
-                    <p
-                        v-if="register.blind"
-                        class="flex min-h-11 items-center text-sm text-muted-foreground lg:min-h-9"
-                        data-testid="cd-print-after"
-                    >
-                        Print the register after your count.
-                    </p>
-                    <a
-                        v-else
-                        :href="printHref"
-                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
-                        data-testid="cd-print"
-                        >Print register</a
-                    >
+                    <div class="flex min-w-0 flex-col gap-1.5">
+                        <!-- An invisible label line, so the buttons sit level with the date boxes. -->
+                        <span
+                            aria-hidden="true"
+                            class="invisible hidden text-sm font-medium sm:block"
+                            >Show</span
+                        >
+                        <div class="flex flex-wrap items-center gap-2">
+                            <button
+                                type="submit"
+                                class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:h-9"
+                                :disabled="!rangeReady"
+                            >
+                                Show
+                            </button>
+                            <p
+                                v-if="register.blind"
+                                class="flex min-h-11 items-center text-sm text-muted-foreground lg:min-h-9"
+                                data-testid="cd-print-after"
+                            >
+                                Print the register after your count.
+                            </p>
+                            <a
+                                v-else
+                                :href="printHref"
+                                class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
+                                data-testid="cd-print"
+                                >Print register</a
+                            >
+                        </div>
+                    </div>
                 </form>
 
                 <section
