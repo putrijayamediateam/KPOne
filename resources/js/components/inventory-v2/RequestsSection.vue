@@ -144,8 +144,10 @@ const saveRequest = () =>
                 sku_public_id: line.sku,
                 quantity: line.quantity,
             })),
+            retry_key: stockRequest.key,
         },
         () => {
+            stockRequest.key = crypto.randomUUID();
             resetRequest();
             closeSheet();
         },

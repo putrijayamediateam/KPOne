@@ -1,4 +1,5 @@
 import '@/lib/v2-leave-popstate';
+import '@/lib/v2-refused-request';
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
 import AdminLayout from '@/layouts/AdminLayout.vue';
