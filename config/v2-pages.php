@@ -85,5 +85,6 @@ return [
     // A page is listed here only once its V2 file exists (V2PageDispatchTest checks both ways).
     'public_pages' => [
         'PublicCheckIn/Status',
+        'PublicCheckIn/Show',
     ],
 ];
