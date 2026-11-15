@@ -432,11 +432,26 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                             </template>
                             <div v-else class="space-y-3 p-4">
                                 <IssuePrintButton
-                                    v-if="billing.can.print"
+                                    v-if="
+                                        billing.can.print &&
+                                        billing.can.printInvoice
+                                    "
                                     :url="`${invoiceBase}/issue`"
                                     label="Print invoice"
                                     return-to="billing"
                                 />
+                                <p
+                                    v-if="
+                                        billing.can.print &&
+                                        !billing.can.printInvoice
+                                    "
+                                    class="text-[13px] text-muted-foreground"
+                                    data-testid="panel-no-invoice-print"
+                                >
+                                    Panel patient: no invoice is printed. A
+                                    receipt prints only for cash the patient
+                                    paid.
+                                </p>
                                 <div
                                     v-for="receipt in billing.payments"
                                     :key="receipt.publicId"
