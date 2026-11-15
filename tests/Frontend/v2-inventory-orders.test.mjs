@@ -252,8 +252,15 @@ test('2a: the V2 home shows the orders section in a bar that keeps its forms, an
         home,
         /<V2DisclosureBar title="Orders and receiving" keep-mounted>\s*<OrdersSection/,
     );
-    assert.match(
-        home,
-        /<InventoryOperationsPanel[\s\S]*?hide-orders[\s\S]*?\/>/,
-    );
+    // Page 2c: the Classic Operations panel is no longer on the V2 home, so orders appear only in the V2 section.
+    assert.ok(!home.includes('<InventoryOperationsPanel'));
+});
+
+test('Receive: the expiry uses the day-first V2 date field, limited to the branch today', () => {
+    assert.match(receive, /<V2DateField\s+v-model="entry\.expiry_date"/);
+    assert.match(receive, /subject="Expiry"/);
+    assert.match(receive, /:min="branchToday\(\)"/);
+    // The native month-first box is gone; the missing-expiry refusal before sending stays.
+    assert.ok(!/type="date"/.test(receive));
+    assert.match(receive, /'Enter the expiry date for every lot\.'/);
 });

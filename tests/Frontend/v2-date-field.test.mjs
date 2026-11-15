@@ -150,3 +150,13 @@ test('V2DateField: ISO model, empty on bad text, clear when optional, calendar b
     assert.equal((s.match(/type="date"/g) ?? []).length, 1);
     assert.match(s, /type="date"\s+class="sr-only"/);
 });
+
+test('V2DateField tells the page when the box holds text it could not read', () => {
+    const src = read('resources/js/components/v2/V2DateField.vue');
+    assert.match(src, /'update:invalid': \[value: boolean\]/);
+    assert.match(
+        src,
+        /watch\(typedProblem, \(problem\) => emit\('update:invalid', problem !== null\)\)/,
+    );
+    assert.match(src, /@update:invalid/);
+});

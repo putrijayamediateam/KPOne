@@ -65,6 +65,9 @@ test('Staff/Show V2 wording: outline Deactivate, plain note, ended and future ro
     assert.match(page, /What this person can open depends on their roles/);
     assert.match(page, /Ended \$\{date\(assignment\.validUntil\)\}/);
     assert.match(page, /Starts \$\{date\(assignment\.validFrom\)\}/);
-    assert.match(dialog, /echo\(form\.valid_from, 'From'\)/);
-    assert.match(dialog, /', inclusive'/);
+    // approved by B.E.R.N.I.S.S: V2DateField draws the date echo in words, so the dialog pins the block, not its own echo
+    assert.equal((dialog.match(/<V2DateField/g) ?? []).length, 3);
+    assert.doesNotMatch(dialog, /type="date"/);
+    assert.match(dialog, /The last day counts \(inclusive\)\./);
+    assert.match(dialog, /@update:invalid/);
 });

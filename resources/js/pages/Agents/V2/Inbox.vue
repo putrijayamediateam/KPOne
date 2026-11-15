@@ -30,6 +30,7 @@ type ProposalRow = {
     lockVersion: number;
     lines: { label: string; value: string }[];
     canDecide: boolean;
+    cannotDecideReason: string | null;
 };
 
 const props = defineProps<{
@@ -335,9 +336,10 @@ const outline =
                                 class="text-[13px] leading-[18px] text-muted-foreground"
                                 data-test="cannot-decide"
                             >
-                                You cannot decide this one: you may only see it,
-                                or you started the run that made it. Someone
-                                else must decide.
+                                {{
+                                    proposal.cannotDecideReason ??
+                                    'You cannot decide this one. Someone else must decide.'
+                                }}
                             </p>
                             <div v-if="proposal.canDecide" class="flex gap-2">
                                 <button

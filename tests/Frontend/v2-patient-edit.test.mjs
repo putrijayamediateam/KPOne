@@ -132,7 +132,11 @@ test('date of birth is shown in words, the nationality label is plain, errors ar
         ),
     );
     assert.ok(fields.includes('a guardian contact is required'));
-    assert.ok(fields.includes(':hint="dobWords"'));
+    // The words stay the hint, hidden only while the box shows its own error.
+    assert.match(
+        fields,
+        /:hint="\s*dobBoxError \|\| err\('date_of_birth'\)\s*\? undefined\s*: dobWords\s*"/,
+    );
     assert.ok(fields.includes('Nationality (2-letter country code)'));
     assert.ok(fields.includes("full_name: 'Enter the full name.'"));
     assert.ok(fields.includes("sex: 'Choose a gender.'"));
@@ -147,4 +151,28 @@ test('leaving with unsaved changes uses the shared V2LeaveGuard, and the rail st
     assert.ok(page.includes(':href="patientUrl"'));
     assert.ok(!page.includes('event.preventDefault();'));
     assert.ok(page.includes('rail-from="xl"'));
+});
+
+test('the date of birth uses V2DateField, blocks Save on unreadable text and the guardian name is full width', () => {
+    assert.ok(fields.includes('<V2DateField'));
+    assert.ok(!fields.includes('import { DateField }'));
+    assert.ok(fields.includes('@update:invalid'));
+    assert.ok(fields.includes("emit('dobInvalid', value)"));
+    assert.ok(page.includes('@dob-invalid'));
+    assert.match(
+        page,
+        /if \(dobInvalid\.value\)\s*\{\s*return focusInvalidField\(\);/,
+    );
+    assert.match(
+        fields,
+        /<div class="md:col-span-2">\s*<V2Field\s+label="Guardian full name"/,
+    );
+});
+
+test('the words under the date of birth hide while the box shows its own error', () => {
+    assert.ok(fields.includes('const dobBoxError = ref(false);'));
+    assert.match(
+        fields,
+        /dobBoxError \|\| err\('date_of_birth'\)\s*\? undefined\s*: dobWords/,
+    );
 });

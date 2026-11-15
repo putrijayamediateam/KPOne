@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import PatientFormV2 from '@/components/patient-v2/PatientFormV2.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
@@ -62,8 +62,14 @@ const initial = JSON.parse(JSON.stringify(form.data())) as Record<
     unknown
 >;
 
+// The date of birth box could not read what was typed: it says why, and nothing is sent.
+const dobInvalid = ref(false);
 const submit = () => {
     form.clearErrors();
+
+    if (dobInvalid.value) {
+        return focusInvalidField();
+    }
 
     if (form.mobile_phone !== (props.patient.contact.mobilePhone ?? '')) {
         const error = phoneError(
@@ -186,6 +192,7 @@ const patientUrl =
                         :original-phone="patient.contact.mobilePhone ?? ''"
                         :original-dob="patient.identity.dateOfBirth ?? ''"
                         :has-address="hasAddress"
+                        @dob-invalid="(value: boolean) => (dobInvalid = value)"
                         @clear="(key: string) => form.clearErrors(key as never)"
                     />
                     <p

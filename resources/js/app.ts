@@ -1,3 +1,4 @@
+import '@/lib/v2-leave-popstate';
 import { createInertiaApp, router } from '@inertiajs/vue3';
 import { initializeTheme } from '@/composables/useAppearance';
 import AdminLayout from '@/layouts/AdminLayout.vue';
