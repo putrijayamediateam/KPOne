@@ -150,8 +150,8 @@ function days(value: number): string {
             <p class="mt-1 text-sm text-muted-foreground">
                 One figure for the whole clinic, from approved pay runs only.
                 Not split by person or branch. Includes corrections approved
-                later. An estimate until the clinic's accountant has checked the
-                pay rules.
+                later. An estimate until the pay rules are checked against
+                current law.
             </p>
             <p
                 v-if="dashboard.staffCost.runs === 0"

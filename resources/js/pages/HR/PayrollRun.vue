@@ -136,11 +136,11 @@ const mtdNote = (lines: Line[]): string | null => {
     }
 
     if (line.explanation.includes('(worked out:')) {
-        return "The typed figure counts for this run. KPOne's worked-out figure is in brackets for comparison. Check both with the clinic's accountant.";
+        return "The typed figure counts for this run. KPOne's worked-out figure is in brackets for comparison. Check both against LHDN's published schedule.";
     }
 
     return line.explanation.startsWith('MTD (PCB) · worked out')
-        ? "Worked out by KPOne. Check it with the clinic's accountant before real use."
+        ? "Worked out by KPOne. Check it against LHDN's published schedule before real use."
         : null;
 };
 

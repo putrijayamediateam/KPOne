@@ -1,6 +1,6 @@
 <script setup lang="ts">
-// HR-3b overtime settings card. KPOne ships no rule: the numbers are the clinic HR proposal's suggestions and no role
-// is ticked until HR ticks one; nothing counts until Save.
+// HR-3b overtime settings card. The rates are KPOne's defaults (1.5x, 2x, 3x), set at the owner's instruction
+// (HR-DEFAULTS, 2026-11-15); no role is ticked until HR ticks one, and nothing counts until Save.
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
@@ -68,12 +68,20 @@ const save = () => {
             Overtime
         </h2>
         <p v-if="!card.current" class="text-sm text-muted-foreground">
-            Overtime is not set up yet. The numbers below are suggestions from
-            the clinic HR proposal and no role is ticked; nothing counts until
-            you save.
+            Overtime is not set up yet. The rates below are KPOne defaults and
+            no role is ticked; nothing counts until you save.
         </p>
         <p v-else class="text-sm text-muted-foreground">
             In force since {{ card.current.effectiveFrom }}.
+        </p>
+        <p
+            v-if="!card.current"
+            class="text-xs text-muted-foreground"
+            data-test="overtime-defaults-label"
+        >
+            Rates 1.5x, 2x and 3x: set by KPOne defaults at the owner's
+            instruction; not professional advice. Check against current law
+            before real pay.
         </p>
         <form
             class="grid max-w-xl gap-4 rounded-xl border bg-card p-4"
