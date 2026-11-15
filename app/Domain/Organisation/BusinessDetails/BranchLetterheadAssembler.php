@@ -20,7 +20,7 @@ final class BranchLetterheadAssembler
         return new BranchLetterhead($branch->id, $branch->name,
             ['legal_name' => $org->legal_name ?? $organisation->name, 'registration_type' => $org?->registration_type, 'registration_number' => $org?->registration_number],
             ['clinic_name' => $details->clinic_name ?? $branch->name, 'address_line_1' => $details->address_line_1 ?? '', 'address_line_2' => $details?->address_line_2,
-                'postcode' => $details->postcode ?? '', 'city' => $details->city ?? '', 'state' => $details->state ?? '', 'country' => $details->country ?? '', 'phone' => $details?->phone, 'phone_secondary' => $details?->phone_secondary, 'email' => $details?->email],
+                'postcode' => $details->postcode ?? '', 'city' => $details->city ?? '', 'state' => $details->state ?? '', 'country' => $details->country ?? '', 'phone' => $details?->phone, 'phone_secondary' => $details?->phone_secondary, 'email' => $details?->email, 'label_address' => $details?->label_address],
             $logo ? ['url' => $logoUrl($logo->public_id), 'mime' => $logo->mime, 'width' => $logo->width, 'height' => $logo->height] : null,
             $org->lock_version ?? 0, $details->lock_version ?? 0, $footer?->text, $footer->lock_version ?? 0);
     }

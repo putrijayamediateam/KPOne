@@ -294,3 +294,13 @@ test('the room name line never shows after a failed response, and Call again cle
     );
     assert.match(flat, /@click="callAgain"/);
 });
+
+test('the room result line keeps its place (min height) when empty, so the toolbar does not jump after a call', () => {
+    const flat = page.replace(/\s+/g, ' ');
+
+    assert.match(
+        flat,
+        /role="status" class="min-h-5 w-full text-sm text-muted-foreground" data-testid="room-call-result"/,
+    );
+    assert.doesNotMatch(flat, /v-if="roomCallResult"/);
+});

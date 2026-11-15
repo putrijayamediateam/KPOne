@@ -89,7 +89,9 @@ class BillingDirectoryService
                     'panelPropose' => $mutable && $actor->can('coverage.propose.branch'), 'panelApprove' => $mutable && $actor->can('coverage.approve.branch') && in_array('panel', $approvalCapabilities, true),
                     'deferPropose' => $mutable && $actor->can('outstanding.request.branch'), 'deferApprove' => $mutable && $actor->can('outstanding.approve.branch') && in_array('deferment', $approvalCapabilities, true),
                     'reverse' => $mutable && $actor->can('payments.reverse.branch'), 'void' => $mutable && $actor->can('invoices.void.branch'),
-                    'complete' => $mutable && $actor->can('visits.complete.branch') && $state['due_now'] === 0, 'print' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch')]];
+                    'complete' => $mutable && $actor->can('visits.complete.branch') && $state['due_now'] === 0, 'print' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch'),
+                    // PCA-1: receipts still print for a Panel patient; the invoice does not.
+                    'printInvoice' => $invoice !== null && $invoice->status !== 'draft' && $actor->can('billing.print.branch') && ! PanelInvoicePrinting::blocked($visit, $invoice)]];
         });
     }
 

@@ -2,7 +2,8 @@
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 /**
- * Version 2 tabs: a full-pill segmented control. The selected tab is scrolled into view; the `trailing` slot sits at
+ * Version 2 tabs: a full-pill segmented control. When the strip scrolls, the selected tab is brought to the middle of it on load
+ * and on every change (smooth, instant with reduced motion; only the strip scrolls, never the page); the `trailing` slot sits at
  * the right end (for example the live-refresh note). Arrow keys, Home and End move between tabs. The tabs only pick a
  * value: the page owns the tabpanel (role="tabpanel", its id and aria-labelledby) and the `aria-controls` on the tabs.
  */
@@ -29,12 +30,27 @@ const measure = () => {
     more.value = !!el && el.scrollWidth - el.clientWidth - el.scrollLeft > 1;
 };
 
+// Bring the selected tab to the middle of a strip that scrolls (on load and on every change), so it is never cut off or
+// sitting under the right-edge fade. Only the strip moves, never the page. Smooth, unless the person asked for less motion.
 const reveal = () =>
-    nextTick(() =>
-        list.value
-            ?.querySelector<HTMLElement>('[aria-selected="true"]')
-            ?.scrollIntoView({ block: 'nearest', inline: 'nearest' }),
-    );
+    nextTick(() => {
+        const el = list.value;
+        const tab = el?.querySelector<HTMLElement>('[aria-selected="true"]');
+
+        if (!el || !tab || el.scrollWidth <= el.clientWidth) {
+            return;
+        }
+
+        const reduced = window.matchMedia(
+            '(prefers-reduced-motion: reduce)',
+        ).matches;
+        const left = tab.offsetLeft - (el.clientWidth - tab.offsetWidth) / 2;
+
+        el.scrollTo({
+            left: Math.max(0, Math.min(left, el.scrollWidth - el.clientWidth)),
+            behavior: reduced ? 'auto' : 'smooth',
+        });
+    });
 
 onMounted(() => {
     reveal();

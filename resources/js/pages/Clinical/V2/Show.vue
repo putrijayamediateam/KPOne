@@ -525,9 +525,12 @@ const saveStatus = () =>
                         :message="recallError"
                     />
                     <p
-                        v-if="roomCallResult"
+                        v-if="
+                            clinical.queue.canRecall &&
+                            (treatmentRooms?.length ?? 0) > 0
+                        "
                         role="status"
-                        class="w-full text-sm text-muted-foreground"
+                        class="min-h-5 w-full text-sm text-muted-foreground"
                         data-testid="room-call-result"
                     >
                         {{ roomCallResult }}

@@ -141,7 +141,8 @@ class PanelFollowUpTest extends BillingTestCase
         $this->submittedClaim($panel);
         $this->travel(31)->days();
 
-        foreach (['ca', 'ca_supervisor', 'resident_doctor', 'director', 'finance_officer', 'administrator', 'technical_admin'] as $role) {
+        // PCA-1: Director and Finance Officer see follow-up (owner decision 2026-11-13).
+        foreach (['ca', 'ca_supervisor', 'resident_doctor', 'administrator', 'technical_admin'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor, $this->branch);
             $this->get(route('panel-claims.follow-up'))->assertForbidden();
