@@ -64,7 +64,8 @@ final class ClockPhotoStorageReport
             'perMonthSize' => $perMonthBytes === null ? null : PurgeAttendanceRecords::size($perMonthBytes),
             'forecastMonths' => self::FORECAST_MONTHS,
             // At the current rate, on top of what is stored now; at the retention mark deletes start, so it stops growing.
-            'forecastOneYear' => $perMonthBytes === null ? null : PurgeAttendanceRecords::size($bytes + 12 * $perMonthBytes),
+            // Never more than the steady size at the retention mark: once deletes start, older photos go as new ones come (Suresh m3).
+            'forecastOneYear' => $perMonthBytes === null ? null : PurgeAttendanceRecords::size(min($bytes + 12 * $perMonthBytes, 12 * $years * $perMonthBytes)),
             'forecastRetention' => $perMonthBytes === null ? null : PurgeAttendanceRecords::size(12 * $years * $perMonthBytes),
             'retentionYears' => $years,
             'earliestDelete' => $earliest === null ? null : AttendanceSupport::day($earliest),

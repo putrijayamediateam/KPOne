@@ -62,7 +62,8 @@ final class AttendanceRetentionPurge
      * HR-PHOTO-STORAGE dry run: what the purge would delete today, the next day anything falls due, and what falls due in
      * each of the next 12 months. It only reads: no row is locked or deleted, no audit row is written, and the purge flag
      * PostgreSQL needs before any delete is never set. The 12-month figures count by age alone (a session that still has
-     * something newer hanging on it waits longer), so they are an upper bound.
+     * something newer hanging on it waits longer), so they are an upper bound, and use calendar months in UTC (a record
+     * falling due in the first hours of a Kuala Lumpur month counts in the month before; Suresh m2, cosmetic for a report).
      *
      * @return array{due: array{sessions: int, photos: int, photo_bytes: int, corrections: int, consents: int, notices: int},
      *     next_due: ?string, months: list<array{month: string, sessions: int, photos: int, photo_bytes: int}>}
@@ -94,6 +95,8 @@ final class AttendanceRetentionPurge
         $next = DB::query()->fromSub(
             $scope(DB::table('hr_clock_sessions'))->whereRaw("clock_in_at >= {$cutoff}")->selectRaw('min(clock_in_at) as t')
                 ->unionAll($scope(DB::table('hr_attendance_corrections'))->whereRaw("created_at >= {$cutoff}")->selectRaw('min(created_at) as t'))
+                // A newer overtime request keeps an old session waiting until the request is past the 7 years too (Suresh m1).
+                ->unionAll($scope(DB::table('hr_overtime_requests'))->whereRaw("created_at >= {$cutoff}")->selectRaw('min(created_at) as t'))
                 ->unionAll($scope(DB::table('hr_location_consents'))->whereRaw("acknowledged_at >= {$cutoff}")->selectRaw('min(acknowledged_at) as t'))
                 ->unionAll($scope(DB::table('hr_clock_photo_notices'))->whereRaw("seen_at >= {$cutoff}")->selectRaw('min(seen_at) as t')),
             'x')->selectRaw("min(t) + interval '7 years' + interval '1 day' as due")->value('due');
