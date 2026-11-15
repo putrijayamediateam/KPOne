@@ -183,9 +183,12 @@ const submit = () => {
             onError: (bag) => {
                 errors.value = bag as Record<string, string>;
 
-                // STK-40: when counting blind, the server is what says the count differs.
-                if (bag.reason && props.register.blind) {
+                // STK-40: when counting blind, the server is what says the count differs. The first time it is news, not
+                // a mistake: the differs note says what to do, and the red line returns only if Record check is pressed
+                // again without a reason.
+                if (bag.reason && props.register.blind && !toldDiffers.value) {
                     toldDiffers.value = true;
+                    delete errors.value.reason;
                 }
 
                 // A stale page or an earlier key needs a fresh one after the reload.
@@ -212,11 +215,11 @@ const formError = computed(
 const difference = (value: string | null) =>
     value === null
         ? '—'
-        : value.startsWith('-')
-          ? `\u2212${value.slice(1)}`
-          : value === '0'
-            ? '0'
-            : `+${value}`;
+        : value === '0'
+          ? 'no difference'
+          : value.startsWith('-')
+            ? `difference \u2212${value.slice(1)}`
+            : `difference +${value}`;
 </script>
 
 <template>
@@ -350,18 +353,21 @@ const difference = (value: string | null) =>
                                     What happened
                                 </th>
                                 <th
+                                    v-if="!register.blind"
                                     scope="col"
                                     class="p-3 text-right font-medium"
                                 >
                                     In
                                 </th>
                                 <th
+                                    v-if="!register.blind"
                                     scope="col"
                                     class="p-3 text-right font-medium"
                                 >
                                     Out
                                 </th>
                                 <th
+                                    v-if="!register.blind"
                                     scope="col"
                                     class="p-3 text-right font-medium"
                                 >
@@ -391,16 +397,23 @@ const difference = (value: string | null) =>
                                     {{ line.when }}
                                 </td>
                                 <td class="p-3">{{ line.what }}</td>
-                                <td class="p-3 text-right tabular-nums">
+                                <td
+                                    v-if="!register.blind"
+                                    class="p-3 text-right tabular-nums"
+                                >
                                     {{ line.in ?? '' }}
                                 </td>
-                                <td class="p-3 text-right tabular-nums">
+                                <td
+                                    v-if="!register.blind"
+                                    class="p-3 text-right tabular-nums"
+                                >
                                     {{ line.out ?? '' }}
                                 </td>
                                 <td
+                                    v-if="!register.blind"
                                     class="p-3 text-right font-medium tabular-nums"
                                 >
-                                    {{ line.balance ?? '—' }}
+                                    {{ line.balance }}
                                 </td>
                                 <td class="p-3 whitespace-nowrap">
                                     {{ line.batch ?? '—' }}
@@ -503,8 +516,17 @@ const difference = (value: string | null) =>
                         class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
                         data-testid="cd-differs-note"
                     >
-                        This differs from the register. Recording it does not
-                        change stock; correct stock with a governed stock count.
+                        <template v-if="register.blind"
+                            >Your count differs from the register. Choose a
+                            reason below, then press Record check. Recording it
+                            does not change stock; correct stock with a governed
+                            stock count.</template
+                        >
+                        <template v-else
+                            >This differs from the register. Recording it does
+                            not change stock; correct stock with a governed
+                            stock count.</template
+                        >
                     </p>
                     <label class="block text-sm font-medium" for="cd-reason"
                         >Reason</label
@@ -602,7 +624,7 @@ const difference = (value: string | null) =>
                     <p v-else class="tabular-nums">
                         Register {{ check.ledger }} · counted
                         {{ check.counted }} {{ register.sku.stockUnit }} ·
-                        difference {{ difference(check.difference) }}
+                        {{ difference(check.difference) }}
                     </p>
                     <p v-if="check.reason" class="text-muted-foreground">
                         {{ reasons[check.reason] ?? check.reason

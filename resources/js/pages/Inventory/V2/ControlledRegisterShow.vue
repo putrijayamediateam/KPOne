@@ -191,9 +191,12 @@ const submit = () => {
             onError: (bag) => {
                 errors.value = bag as Record<string, string>;
 
-                // STK-40: when counting blind, the server is what says the count differs.
-                if (bag.reason && props.register.blind) {
+                // STK-40: when counting blind, the server is what says the count differs. The first time it is news, not
+                // a mistake: the differs note says what to do, and the red line returns only if Record check is pressed
+                // again without a reason.
+                if (bag.reason && props.register.blind && !toldDiffers.value) {
                     toldDiffers.value = true;
+                    delete errors.value.reason;
                 }
 
                 // A stale page or an earlier key needs a fresh one after the reload.
@@ -218,15 +221,15 @@ const formError = computed(
 );
 
 // ---- V2 only below this line ----
-// STK-40: the count less the register, with a sign and a real minus ("+2", "\u22121.5", "0"), as Classic.
+// STK-40: the count less the register in words: "no difference", "difference +6 units", "difference \u22121.5 units" (Daniel).
 const difference = (value: string | null) =>
     value === null
         ? '—'
-        : value.startsWith('-')
-          ? `\u2212${quantityWithUnit(value.slice(1), unit.value)}`
-          : value === '0'
-            ? 'none'
-            : `+${quantityWithUnit(value, unit.value)}`;
+        : value === '0'
+          ? 'no difference'
+          : value.startsWith('-')
+            ? `difference \u2212${quantityWithUnit(value.slice(1), unit.value)}`
+            : `difference +${quantityWithUnit(value, unit.value)}`;
 usePageCrumbs(() => [
     { title: 'Inventory', href: '/inventory' },
     { title: 'Controlled register', href: '/inventory/controlled-register' },
@@ -419,7 +422,7 @@ watch(
                     </p>
                     <V2Table
                         label="Movements with a running balance"
-                        :columns="9"
+                        :columns="register.blind ? 6 : 9"
                         cards="xl"
                         min-width="1040px"
                         :empty="register.lines.rows.length === 0"
@@ -429,9 +432,27 @@ watch(
                             <tr>
                                 <th scope="col">Date and time</th>
                                 <th scope="col">What happened</th>
-                                <th scope="col" class="text-right">In</th>
-                                <th scope="col" class="text-right">Out</th>
-                                <th scope="col" class="text-right">Balance</th>
+                                <th
+                                    v-if="!register.blind"
+                                    scope="col"
+                                    class="text-right"
+                                >
+                                    In
+                                </th>
+                                <th
+                                    v-if="!register.blind"
+                                    scope="col"
+                                    class="text-right"
+                                >
+                                    Out
+                                </th>
+                                <th
+                                    v-if="!register.blind"
+                                    scope="col"
+                                    class="text-right"
+                                >
+                                    Balance
+                                </th>
                                 <th scope="col">Batch</th>
                                 <th scope="col">Location</th>
                                 <th scope="col">Reference</th>
@@ -462,18 +483,21 @@ watch(
                                     {{ line.what }}
                                 </td>
                                 <td
+                                    v-if="!register.blind"
                                     data-label="In"
                                     class="text-right text-sm whitespace-nowrap tabular-nums"
                                 >
                                     {{ words(line.in) }}
                                 </td>
                                 <td
+                                    v-if="!register.blind"
                                     data-label="Out"
                                     class="text-right text-sm whitespace-nowrap tabular-nums"
                                 >
                                     {{ words(line.out) }}
                                 </td>
                                 <td
+                                    v-if="!register.blind"
                                     data-label="Balance"
                                     class="text-right text-sm font-medium whitespace-nowrap tabular-nums"
                                 >
@@ -616,7 +640,14 @@ watch(
                                     class="mt-0.5 size-4 shrink-0"
                                     aria-hidden="true"
                                 />
-                                <span
+                                <span v-if="register.blind"
+                                    >Your count differs from the register.
+                                    Choose a reason below, then press Record
+                                    check. Recording it does not change stock;
+                                    correct stock with a governed stock
+                                    count.</span
+                                >
+                                <span v-else
                                     >This differs from the register. Recording
                                     it does not change stock; correct stock with
                                     a governed stock count.</span
@@ -745,7 +776,7 @@ watch(
                             </p>
                             <p v-else class="tabular-nums">
                                 Register {{ words(check.ledger) }} · counted
-                                {{ words(check.counted) }} · difference
+                                {{ words(check.counted) }} ·
                                 {{ difference(check.difference) }}
                             </p>
                             <p

@@ -31,7 +31,7 @@ test('STK-40: in both layouts a blind checker relies on the server to say the co
         );
         assert.match(
             s,
-            /if \(bag\.reason && props\.register\.blind\) \{ toldDiffers\.value = true; \}/,
+            /if \(bag\.reason && props\.register\.blind && !toldDiffers\.value\) \{ toldDiffers\.value = true; delete errors\.value\.reason; \}/,
             name,
         );
         assert.match(
@@ -64,9 +64,31 @@ test('STK-40: in both layouts the page says the balance comes after the count, w
             name,
         );
         assert.match(t, /Quantities shown after your count\./, name);
+        assert.match(t, /· \{\{ difference\(check\.difference\) \}\}/, name);
+    }
+});
+
+test('STK-40: while blind the In, Out and Balance columns are left out, the differs note says what to do, and a match reads "no difference"', () => {
+    for (const [name, source] of Object.entries(pages)) {
+        const t = flat(source.slice(source.indexOf('<template>')));
+        assert.equal(
+            (t.match(/<th v-if="!register\.blind"/g) ?? []).length,
+            3,
+            name,
+        );
+        assert.equal(
+            (t.match(/<td v-if="!register\.blind"/g) ?? []).length,
+            3,
+            name,
+        );
         assert.match(
             t,
-            /difference \{\{ difference\(check\.difference\) \}\}/,
+            /Your count differs from the register\. Choose a reason below, then press Record check\./,
+            name,
+        );
+        assert.match(
+            flat(script(source)),
+            /value === '0' \? 'no difference'/,
             name,
         );
     }
