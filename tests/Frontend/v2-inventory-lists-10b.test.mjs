@@ -259,3 +259,43 @@ test('page 10b: Purchase requests tabs, sheets and the own-request rule', () => 
     );
     assert.match(page.source, /quantityWithUnit\(/);
 });
+
+test("page 10b: Daniel's changes, send off with a reason, room under the last field, named actions", () => {
+    const requests = v2.requests;
+    // Deliver to tells same-named locations apart by code and type.
+    assert.match(
+        requests.script,
+        /location\?\.code \? unbroken\(location\.code\)/,
+    );
+    assert.match(requests.script, /medical_stock: 'Medical stock'/);
+    // Send for review is off, with the reason in words, until there is a location and a line with a SKU and a quantity.
+    assert.match(
+        requests.flat,
+        /:confirm-disabled="sendBlockedReason !== undefined" :confirm-disabled-reason="sendBlockedReason"/,
+    );
+    assert.match(requests.script, /'Add a SKU and a quantity to continue\.'/);
+    assert.match(
+        requests.script,
+        /'Choose where the stock should go to continue\.'/,
+    );
+    // A specific name for Withdraw, an "Actions" heading for screen readers, and a request number kept whole.
+    assert.match(requests.flat, /`Withdraw request \$\{request\.number\}`/);
+    assert.match(requests.flat, /<span class="sr-only">Actions<\/span>/);
+    assert.match(
+        requests.flat,
+        /font-mono text-sm font-medium whitespace-nowrap" >\{\{ unbroken\(request\.number\) \}\}/,
+    );
+    // The long sheets leave room so the last field and its help scroll clear of the footer.
+    assert.equal(
+        (v2.terms.template.match(/flex flex-col gap-4 pb-8/g) ?? []).length,
+        2,
+    );
+    assert.match(
+        v2.skus.flat,
+        /<div v-if="editingSku" class="flex flex-col gap-6 pb-8">/,
+    );
+    assert.match(
+        requests.flat,
+        /<div v-if="converting" class="flex flex-col gap-4 pb-8">/,
+    );
+});

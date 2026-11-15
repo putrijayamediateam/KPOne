@@ -446,13 +446,61 @@ const rejectOptions = Object.entries(rejectReasons).map(([value, label]) => ({
     value,
     label,
 }));
-/** The same locations as Classic's list, for the V2 picker (a branch can have many). */
+/** Location types in words, as in Stock setup. */
+const locationTypes: Record<string, string> = {
+    medical_stock: 'Medical stock',
+    branch_store: 'Branch store',
+    dispensary: 'Dispensary',
+};
+/**
+ * Classic's locations for the V2 picker, each with its code and type so locations that share a name are told apart
+ * ("Synthetic Dispensary · SYN-DISP-I9WQX · Dispensary"). The server sends both; Classic reads only the name.
+ */
 const locationChoices = computed<PickerOption[]>(() =>
-    locationOptions.value.map((option) => ({
-        id: option.value,
-        label: option.label,
-    })),
+    locationOptions.value.map((option) => {
+        const location = requestLocations().find(
+            (l) => l.publicId === option.value,
+        );
+
+        return {
+            id: option.value,
+            label: option.label,
+            detail: [
+                location?.code ? unbroken(location.code) : null,
+                location?.type
+                    ? (locationTypes[location.type] ?? location.type)
+                    : null,
+            ]
+                .filter(Boolean)
+                .join(' · '),
+        };
+    }),
 );
+function requestLocations() {
+    return props.requests.locations as {
+        publicId: string;
+        name: string;
+        code?: string;
+        type?: string;
+    }[];
+}
+/** Send stays off until there is somewhere to deliver and at least one line with a SKU and a quantity. */
+const lineReady = (line: DraftLine) =>
+    !!line.sku &&
+    /^\d+(\.\d{1,3})?$/.test(line.quantity.trim()) &&
+    Number(line.quantity) > 0;
+const sendBlockedReason = computed(() => {
+    const where = !!send.location;
+    const lines = send.lines.some(lineReady);
+
+    return where && lines
+        ? undefined
+        : !where && !lines
+          ? 'Choose where the stock should go, and add a SKU and a quantity to continue.'
+          : !where
+            ? 'Choose where the stock should go to continue.'
+            : 'Add a SKU and a quantity to continue.';
+});
 const inputClass =
     'h-11 w-full min-w-0 rounded-[10px] border border-input bg-card px-3 text-base md:text-[15px] lg:h-9';
 const outlineButton =
@@ -640,7 +688,7 @@ const askWithdraw = (request: PurchaseRequest) => {
                                         type="button"
                                         :class="outlineButton"
                                         :disabled="busy"
-                                        :aria-label="`Withdraw ${request.number}`"
+                                        :aria-label="`Withdraw request ${request.number}`"
                                         @click="askWithdraw(request)"
                                     >
                                         Withdraw
@@ -695,11 +743,13 @@ const askWithdraw = (request: PurchaseRequest) => {
             description="Another person reviews it and turns it into a draft purchase order."
             confirm-label="Send for review"
             :busy="busy"
+            :confirm-disabled="sendBlockedReason !== undefined"
+            :confirm-disabled-reason="sendBlockedReason"
             size="tall"
             @update:open="(value) => (sendOpen = value)"
             @confirm="submitSend"
         >
-            <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-4 pb-8">
                 <p
                     v-if="sendGeneral"
                     role="alert"
@@ -838,7 +888,7 @@ const askWithdraw = (request: PurchaseRequest) => {
             @update:open="(open) => !open && (converting = null)"
             @confirm="submitConvert"
         >
-            <div v-if="converting" class="flex flex-col gap-4">
+            <div v-if="converting" class="flex flex-col gap-4 pb-8">
                 <p
                     v-if="convertGeneral"
                     role="alert"

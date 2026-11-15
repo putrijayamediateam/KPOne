@@ -447,7 +447,7 @@ const outlineButton =
             @update:open="(value) => (value ? null : (editing = null))"
             @confirm="editingSku && submit(editingSku)"
         >
-            <div v-if="editingSku" class="flex flex-col gap-6">
+            <div v-if="editingSku" class="flex flex-col gap-6 pb-8">
                 <p
                     v-if="sheetError"
                     role="alert"

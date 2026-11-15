@@ -438,7 +438,7 @@ const PRICE_HINT = 'Leave blank if not quoted. Up to 2 decimal places.';
             @update:open="(value) => (addOpen = value)"
             @confirm="submitCreate"
         >
-            <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-4 pb-8">
                 <InventoryPickerField
                     :model-value="String(create.supplier_public_id)"
                     kind="suppliers"
@@ -566,7 +566,7 @@ const PRICE_HINT = 'Leave blank if not quoted. Up to 2 decimal places.';
             @update:open="(value) => (value ? null : (editing = null))"
             @confirm="editingRow && submitEdit(editingRow)"
         >
-            <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-4 pb-8">
                 <p
                     v-if="edit.errors.lock_version"
                     role="alert"
