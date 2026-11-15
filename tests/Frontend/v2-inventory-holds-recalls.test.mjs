@@ -255,3 +255,12 @@ test("page 7b: Daniel's checklist for Recalls", () => {
         );
     }
 });
+
+test('page 7b: picking Other brings the note into view with focus, on Start and Lift', () => {
+    assert.match(
+        recalls.script.replace(/\s+/g, ' '),
+        /const showNote = .*?reason !== 'other'.*?scrollIntoView\(\{ block: 'nearest' \}\).*?focus\(\)/,
+    );
+    assert.match(recalls.flat, /showNote\(start\.reason, 'recall-note'\)/);
+    assert.match(recalls.flat, /showNote\(lift\.reason, 'lift-note'\)/);
+});

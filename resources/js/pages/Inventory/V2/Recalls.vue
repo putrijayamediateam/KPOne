@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, router } from '@inertiajs/vue3';
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import InventoryPickerField from '@/components/inventory-v2/InventoryPickerField.vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -366,6 +366,18 @@ const reasonOptions = computed(() =>
 const liftReasonOptions = computed(() =>
     Object.entries(liftReasons).map(([value, label]) => ({ value, label })),
 );
+/** "Other" needs a note: bring the box into view and put the cursor in it (Daniel, page 6). */
+const showNote = (reason: string, id: string) => {
+    if (reason !== 'other') {
+        return;
+    }
+
+    void nextTick(() => {
+        const note = document.getElementById(id);
+        note?.scrollIntoView({ block: 'nearest' });
+        note?.focus();
+    });
+};
 const skuWords = ref('');
 const skuUnit = ref('');
 /** Why Start recall is off, in words; null when it can be pressed. */
@@ -940,7 +952,10 @@ const liftRows = computed<KeyValueItem[]>(() => {
                     :options="reasonOptions"
                     :error="startErrors.reason"
                     @update:model-value="
-                        (value) => (start.reason = value ?? '')
+                        (value) => {
+                            start.reason = value ?? '';
+                            showNote(start.reason, 'recall-note');
+                        }
                     "
                 />
                 <label
@@ -1029,7 +1044,12 @@ const liftRows = computed<KeyValueItem[]>(() => {
                 required
                 :options="liftReasonOptions"
                 :error="liftErrors.reason"
-                @update:model-value="(value) => (lift.reason = value ?? '')"
+                @update:model-value="
+                    (value) => {
+                        lift.reason = value ?? '';
+                        showNote(lift.reason, 'lift-note');
+                    }
+                "
             />
             <label
                 class="flex flex-col gap-1.5 text-sm font-medium"
