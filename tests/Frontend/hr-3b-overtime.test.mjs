@@ -22,6 +22,7 @@ const source = Object.fromEntries(
 source.page += read('resources/js/composables/hr/useAttendancePage.ts');
 // The Overtime tab's state and actions live in a composable too (HR V2 Attendance PR 2).
 source.tab += read('resources/js/composables/hr/useOvertimeTab.ts');
+source.settings += read('resources/js/composables/hr/useOvertimeSettings.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('every new component and the page compile', () => {

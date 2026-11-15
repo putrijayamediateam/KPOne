@@ -135,7 +135,7 @@ test('one filled action per tab: Clock in or out on My attendance, Save on Setti
     assert.doesNotMatch(template, /:class="primaryButton"/);
     assert.match(
         template,
-        /:class="\s*!attendance\.settings\?\.current \|\|\s*rulesDirty\s*\? primaryButton\s*: button\s*"/,
+        /:class="\s*filledCard === 'rules'\s*\? primaryButton\s*: button\s*"/,
     );
     assert.match(template, /'Save attendance rules'/);
 });
@@ -162,16 +162,25 @@ test('the correction form shows a date and a time and sends the same local value
     );
 });
 
-test('Overtime, Summary and the two settings cards show their current components inside the V2 frame', () => {
+test('PR 2: Overtime, Summary and the two settings cards are their V2 versions; My overtime and the ask sheet stay shared', () => {
     for (const name of [
-        '<OvertimeTab',
-        '<SummaryTab',
-        '<OvertimeSettingsForm',
-        '<LocationCheckSettings',
+        '<OvertimeTabV2',
+        '<SummaryTabV2',
+        '<OvertimeRulesCardV2',
+        '<LocationCheckCardV2',
         '<MyOvertimeSection',
         '<OvertimeAskSheet',
     ]) {
         assert.ok(template.includes(name), name);
+    }
+
+    for (const classic of [
+        /<OvertimeTab[\s>]/,
+        /<SummaryTab[\s>]/,
+        /<OvertimeSettingsForm/,
+        /<LocationCheckSettings/,
+    ]) {
+        assert.doesNotMatch(template, classic);
     }
 });
 
@@ -188,7 +197,7 @@ test("Daniel's build notes: muted refusal, red Reject that needs a reason, guard
     assert.match(script, /!decision\.approve && decision\.reason === ''/);
     assert.match(
         template,
-        /<V2LeaveGuard ref="guard" :dirty="rulesDirty" @discard="resetRules" \/>/,
+        /<V2LeaveGuard\s+ref="guard"\s+:dirty="settingsDirty"\s+@discard="discardSettings"\s*\/>/,
     );
     assert.match(script, /guard\.value\.ask\(\(\) => selectTab\(tab\)\)/);
     assert.doesNotMatch(template, /<select\b/);
@@ -223,8 +232,8 @@ test('an empty pair keeps a date picked first, then sends the full value once th
 
 test('Settings: Save is filled before the first save, and the guard baseline comes from the server (Suresh m1, m2)', () => {
     assert.match(
-        template,
-        /!attendance\.settings\?\.current \|\|\s*rulesDirty\s*\? primaryButton\s*: button/,
+        script,
+        /if \(rulesDirty\.value \|\| !s\.current\) \{\s*return 'rules';/,
     );
     assert.match(script, /const rulesSaved = computed\(savedRules\)/);
 });
