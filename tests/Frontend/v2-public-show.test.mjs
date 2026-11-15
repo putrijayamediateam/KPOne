@@ -12,7 +12,12 @@ const script = (s) =>
 const template = (s) => s.split('</script>')[1];
 
 test('V2 show keeps the Classic script exactly (token exchange, steps, checks, submit, countdown)', () => {
-    assert.equal(tight(script(page)), tight(script(classic)));
+    // The only difference is the import of the template-level leave warning (no logic is added to the script).
+    const withoutImport = script(page).replace(
+        /import PublicLeaveWarning from '[^']+';/,
+        '',
+    );
+    assert.equal(tight(withoutImport), tight(script(classic)));
 });
 
 test('V2 show keeps every Malay string of the Classic template', () => {
@@ -79,4 +84,99 @@ test('V2 show keeps 44 px controls and one filled button per step', () => {
     );
     assert.match(t, /aria-label="Kembali"/);
     assert.match(t, /bg-primary/);
+});
+
+const steps = () => {
+    const t = template(page);
+    const at = (needle) => t.indexOf(needle);
+
+    return {
+        t,
+        bars: [...t.matchAll(/data-test="step-bar"/g)].length,
+        at,
+    };
+};
+
+test('V2 show (a): every step has one sticky bar with exactly one filled button; Kembali is outline', () => {
+    const { t, bars } = steps();
+    assert.equal(bars, 5);
+    const sections = t.split('data-test="step-bar"').slice(1);
+
+    for (const chunk of sections) {
+        const bar = chunk.split('</div>')[0] + chunk.split('</div>')[1];
+        assert.equal((bar.match(/bg-primary /g) ?? []).length, 1);
+    }
+
+    assert.match(t, /Seterusnya/);
+    assert.match(t, /Hantar Maklumat/);
+});
+
+test('V2 show (b): the bar is sticky, safe-area aware, and the page uses dynamic viewport height; no ancestor creates a scroll box', () => {
+    const t = template(page);
+    assert.match(t, /sticky bottom-0/);
+    assert.match(t, /env\(safe-area-inset-bottom\)/);
+    assert.match(t, /min-h-dvh/);
+    assert.doesNotMatch(t, /min-h-svh/);
+    // overflow-hidden on the card would stop the bar sticking; overflow-clip does not.
+    assert.match(t, /overflow-clip rounded-3xl/);
+    assert.doesNotMatch(t, /overflow-hidden rounded-3xl/);
+});
+
+test('V2 show (c): the countdown is a silent timer; only the 3-minute warning and the lapse are live regions', () => {
+    const t = template(page);
+    const timer = t.slice(
+        t.indexOf('role="timer"') - 200,
+        t.indexOf('role="timer"') + 300,
+    );
+    assert.doesNotMatch(timer, /aria-live/);
+    assert.match(
+        t,
+        /v-if="sessionWarning"[^>]*\s+role="status"|v-if="sessionWarning"\s+class="[^"]*"\s+role="status"/,
+    );
+    assert.match(t, /v-if="sessionLapsed"\s+class="[^"]*"\s+role="status"/);
+    assert.equal((t.match(/role="timer"/g) ?? []).length, 1);
+});
+
+test('V2 show (d): Back keeps typed values (the script only changes the step) and leaving with typed answers asks the browser', () => {
+    const s = script(page);
+    assert.match(
+        s,
+        /const back = \(\) => \{\s*errors\.value = \{\};\s*step\.value = Math\.max\(1, step\.value - 1\);\s*\};/,
+    );
+    assert.doesNotMatch(s, /Object\.assign\(form|reset\(/);
+    assert.match(template(page), /<PublicLeaveWarning/);
+    const guard = read(
+        'resources/js/components/public-v2/PublicLeaveWarning.vue',
+    );
+    assert.match(guard, /beforeunload/);
+    assert.match(guard, /removeEventListener\('beforeunload'/);
+    assert.doesNotMatch(guard, /localStorage|sessionStorage|fetch\(/);
+});
+
+test('V2 show (e): Hantar is busy and disabled while sending, cannot double submit, and a refused send shows its error beside the button', () => {
+    const t = template(page);
+    assert.match(
+        t,
+        /type="submit"[\s\S]*?:disabled="submitting"[\s\S]*?:aria-busy="submitting"/,
+    );
+    assert.match(t, /submitting \? 'Menghantar…' : 'Hantar Maklumat'/);
+    assert.match(
+        script(page),
+        /if \(!session\.value \|\| submitting\.value\) \{\s*return;/,
+    );
+    assert.match(t, /data-test="submit-error"/);
+    assert.match(t, /aria-describedby/);
+    // The error beside the button is plain text; the page-top alert is the only live region for it.
+    const near = t.slice(
+        t.indexOf('data-test="submit-error"') - 150,
+        t.indexOf('data-test="submit-error"') + 250,
+    );
+    assert.doesNotMatch(near, /role="alert"|aria-live/);
+});
+
+test('V2 show: at 320 the identity type sits above the number so all 12 digits show', () => {
+    assert.match(
+        template(page),
+        /grid-cols-1 gap-2 min-\[400px\]:grid-cols-\[7rem_minmax\(0,1fr\)\]/,
+    );
 });

@@ -21,6 +21,7 @@ import {
     watch,
 } from 'vue';
 import RegistrationContactFields from '@/components/patient/RegistrationContactFields.vue';
+import PublicLeaveWarning from '@/components/public-v2/PublicLeaveWarning.vue';
 import { DateField } from '@/components/ui/date-field';
 import { knownMinor } from '@/lib/guardian-contact';
 import {
@@ -356,11 +357,24 @@ onBeforeUnmount(() => {
         ><meta name="referrer" content="no-referrer"
     /></Head>
     <main
-        class="mx-auto min-h-svh max-w-xl bg-background px-4 py-5 text-foreground sm:px-6 sm:py-8"
+        class="mx-auto min-h-dvh max-w-xl bg-background px-4 py-5 text-foreground sm:px-6 sm:py-8"
         lang="ms"
     >
+        <PublicLeaveWarning
+            :dirty="
+                step > 0 &&
+                !!(
+                    form.full_name ||
+                    form.mobile_phone ||
+                    form.identifier_value ||
+                    form.chief_complaint ||
+                    form.guardian_name
+                )
+            "
+            :submitting="submitting"
+        />
         <section
-            class="overflow-hidden rounded-3xl border border-border bg-card text-card-foreground shadow-sm"
+            class="overflow-clip rounded-3xl border border-border bg-card text-card-foreground shadow-sm"
         >
             <div class="h-1.5 bg-primary" aria-hidden="true"></div>
             <div class="space-y-6 p-5 sm:p-8">
@@ -452,7 +466,7 @@ onBeforeUnmount(() => {
                     >
                         <LoaderCircle
                             v-if="loading"
-                            class="size-5 animate-spin"
+                            class="size-5 motion-safe:animate-spin"
                         />{{ loading ? 'Memulakan…' : 'Mula Daftar'
                         }}<ArrowRight v-if="!loading" class="size-5" />
                     </button>
@@ -584,13 +598,18 @@ onBeforeUnmount(() => {
                     >
                         {{ errorFor('submission_type') }}
                     </p>
-                    <button
-                        type="button"
-                        class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 font-semibold text-primary-foreground"
-                        @click="next"
+                    <div
+                        data-test="step-bar"
+                        class="sticky bottom-0 z-10 -mx-5 flex gap-3 border-t border-border bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8"
                     >
-                        Seterusnya <ArrowRight class="size-5" />
-                    </button>
+                        <button
+                            type="button"
+                            class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-5 font-semibold text-primary-foreground"
+                            @click="next"
+                        >
+                            Seterusnya <ArrowRight class="size-5" />
+                        </button>
+                    </div>
                 </section>
 
                 <section v-if="step === 2" class="space-y-5">
@@ -723,7 +742,7 @@ onBeforeUnmount(() => {
                                 Pengenalan *
                             </legend>
                             <div
-                                class="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"
+                                class="grid grid-cols-1 gap-2 min-[400px]:grid-cols-[7rem_minmax(0,1fr)]"
                             >
                                 <select
                                     v-model="form.identifier_type"
@@ -857,7 +876,10 @@ onBeforeUnmount(() => {
                             ></label
                         >
                     </div>
-                    <div class="flex gap-3">
+                    <div
+                        data-test="step-bar"
+                        class="sticky bottom-0 z-10 -mx-5 flex gap-3 border-t border-border bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8"
+                    >
                         <button
                             type="button"
                             class="min-h-12 min-w-12 rounded-xl border border-input bg-background px-4 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
@@ -986,7 +1008,10 @@ onBeforeUnmount(() => {
                         <CheckCircle2 class="size-5" />Teruskan ke maklumat
                         perlindungan.
                     </div>
-                    <div class="flex gap-3">
+                    <div
+                        data-test="step-bar"
+                        class="sticky bottom-0 z-10 -mx-5 flex gap-3 border-t border-border bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8"
+                    >
                         <button
                             type="button"
                             class="min-h-12 min-w-12 rounded-xl border border-input bg-background px-4 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
@@ -1096,7 +1121,10 @@ onBeforeUnmount(() => {
                             ></label
                         >
                     </template>
-                    <div class="flex gap-3">
+                    <div
+                        data-test="step-bar"
+                        class="sticky bottom-0 z-10 -mx-5 flex gap-3 border-t border-border bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8"
+                    >
                         <button
                             type="button"
                             class="min-h-12 min-w-12 rounded-xl border border-input bg-background px-4 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
@@ -1208,7 +1236,18 @@ onBeforeUnmount(() => {
                         role="alert"
                         >{{ errorFor('consent_confirmed') }}</span
                     >
-                    <div class="flex gap-3">
+                    <p
+                        v-if="generalError"
+                        id="submit-error"
+                        data-test="submit-error"
+                        class="rounded-xl border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive"
+                    >
+                        {{ generalError }}
+                    </p>
+                    <div
+                        data-test="step-bar"
+                        class="sticky bottom-0 z-10 -mx-5 flex gap-3 border-t border-border bg-card px-5 pt-3 pb-[max(1rem,env(safe-area-inset-bottom))] sm:-mx-8 sm:px-8"
+                    >
                         <button
                             type="button"
                             class="min-h-12 min-w-12 rounded-xl border border-input bg-background px-4 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
@@ -1223,10 +1262,14 @@ onBeforeUnmount(() => {
                             type="submit"
                             class="flex min-h-12 flex-1 items-center justify-center gap-2 rounded-xl bg-primary px-5 font-semibold text-primary-foreground disabled:opacity-60"
                             :disabled="submitting"
+                            :aria-busy="submitting"
+                            :aria-describedby="
+                                generalError ? 'submit-error' : undefined
+                            "
                         >
                             <LoaderCircle
                                 v-if="submitting"
-                                class="size-5 animate-spin"
+                                class="size-5 motion-safe:animate-spin"
                             />{{
                                 submitting ? 'Menghantar…' : 'Hantar Maklumat'
                             }}
