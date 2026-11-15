@@ -31,7 +31,6 @@ import { myr, toSen } from '@/types/billing';
  */
 const props = defineProps<Props>();
 usePageCrumbs(() => [
-    { title: 'Panel', href: '/spaces/panel' },
     { title: 'Panel claims', href: '/panel-claims' },
     { title: `Claim ${props.claim.claimNo}` },
 ]);
@@ -101,18 +100,40 @@ const openStep = (step: Step) => {
     dateInvalid.value = false;
     dateTried.value = false;
 
+    // Every dialog opens fresh, from the claim as it is now (an earlier save changed the page props, not the refs).
     if (step === 'amount') {
         amount.value = (claim.value.claimAmountSen / 100).toFixed(2);
         amountReason.value = '';
         confirmAboveInvoice.value = false;
+    } else if (step === 'submit') {
+        submissionReference.value = '';
+    } else if (step === 'query') {
+        queryNote.value = '';
+        queryReference.value = '';
+    } else if (step === 'decision') {
+        decision.value = 'accepted';
+        acceptedAmount.value = (claim.value.claimAmountSen / 100).toFixed(2);
+        decisionNote.value = '';
+        decisionReference.value = '';
+    } else if (step === 'payment') {
+        remittanceAmount.value = '';
+        remittanceReference.value = '';
     }
 
+    submitting.value = false;
     open.value = step;
 };
 
-// A dialog closes when its request finished without an error (the page props then carry the new state).
+// A dialog closes when ITS request finished without an error (an upload or a remarks save also uses `busy`).
+const submitting = ref(false);
 watch(busy, (isBusy, wasBusy) => {
-    if (wasBusy && !isBusy && open.value !== null && error.value === '') {
+    if (!wasBusy || isBusy || !submitting.value) {
+        return;
+    }
+
+    submitting.value = false;
+
+    if (open.value !== null && error.value === '') {
         open.value = null;
     }
 });
@@ -252,6 +273,7 @@ const decisionOptions = [
 
 // The same checks Classic's HTML `required` attributes make, in words; the server stays the authority.
 const fail = (message: string) => {
+    submitting.value = false;
     error.value = message;
 };
 const dateError = computed(() =>
@@ -260,7 +282,12 @@ const dateError = computed(() =>
         : undefined,
 );
 const confirmDialog = () => {
+    if (busy.value) {
+        return;
+    }
+
     error.value = '';
+    submitting.value = true;
 
     if (open.value === 'amount') {
         if (amountReason.value.trim() === '') {
@@ -299,6 +326,7 @@ const confirmDialog = () => {
     if (open.value === 'payment') {
         if (dateInvalid.value || remittanceDate.value === '') {
             dateTried.value = true;
+            submitting.value = false;
 
             return;
         }
@@ -366,6 +394,12 @@ const LINE_PAGE = 10;
 const linePage = ref(1);
 const lineLastPage = computed(() =>
     Math.max(1, Math.ceil(claim.value.lines.length / LINE_PAGE)),
+);
+watch(
+    () => [claim.value.publicId, lineLastPage.value],
+    () => {
+        linePage.value = Math.min(linePage.value, lineLastPage.value);
+    },
 );
 const pagedLines = computed(() =>
     claim.value.lines.slice(

@@ -183,7 +183,7 @@ test('the Version 2 wording the Lead UI/UX Designer approved', () => {
     assert.ok(classic.includes('Edit claim amount'));
 });
 
-test('invoice items are ten to a page, the figures show at every width, the crumb is Panel > Panel claims', () => {
+test('invoice items are ten to a page, the figures show at every width, the crumb is Panel claims > Claim n (two items, so a phone never shows a lone ellipsis)', () => {
     assert.match(page, /LINE_PAGE = 10/);
     assert.match(page, /<V2Pager/);
     assert.match(page, /v-for="line in pagedLines"/);
@@ -191,6 +191,7 @@ test('invoice items are ten to a page, the figures show at every width, the crum
     assert.match(page, /#rail-collapsed/);
     assert.match(page, /title: 'Panel claims', href: '\/panel-claims'/);
     assert.match(page, /usePageCrumbs/);
+    assert.ok(!page.includes("title: 'Panel', href"));
     // The prefix is RM: no "(MYR)" in the V2 labels.
     assert.ok(!/\(MYR/.test(page));
     // Partially accepted needs 0 < accepted < claimed, otherwise the save stays off.
@@ -210,11 +211,19 @@ test('a Prepared claim says created on, and the submission dialog says nothing i
     assert.match(page, /anything to the Panel\./);
 });
 
-test('a dialog closes only after a request finished without an error, and checks what Classic required', () => {
+test('each dialog opens fresh and closes only for its own request (Priya)', () => {
+    assert.match(page, /decision\.value = 'accepted';/);
     assert.match(
         page,
-        /wasBusy && !isBusy && open\.value !== null && error\.value === ''/,
+        /acceptedAmount\.value = \(claim\.value\.claimAmountSen \/ 100\)\.toFixed\(2\);/,
     );
+    assert.match(page, /const submitting = ref\(false\)/);
+    assert.match(page, /if \(busy\.value\) \{\s*return;/);
+    assert.match(page, /Math\.min\(linePage\.value, lineLastPage\.value\)/);
+});
+
+test('a dialog closes only after a request finished without an error, and checks what Classic required', () => {
+    assert.match(page, /open\.value !== null && error\.value === ''/);
     assert.match(page, /Enter the reason for changing the approved amount\./);
     assert.match(page, /Enter the query details\./);
     assert.match(page, /Enter the decision details\./);
