@@ -173,6 +173,7 @@ final class PermissionCatalogue
             'inventory.recalls.manage.organisation',
             'inventory.recalls.lift.organisation',
             'inventory.cost.view.organisation',
+            'inventory.valuation.view.organisation',
             'inventory.stock_reviews.manage.branch',
             'inventory.view.branch',
             'inventory.opening_balance.branch',
@@ -531,6 +532,10 @@ final class PermissionCatalogue
         foreach (['director', 'finance_officer'] as $holder) {
             $roles[$holder][] = 'inventory.recalls.lift.organisation';
         }
+
+        // STK-28 (owner programme 2026-11-11; approved by B.E.R.N.I.S.S for the owner 2026-11-15): the stock value, cost of
+        // goods sold, margin and losses report. Director only; KPOne default figures, not professional accounting advice.
+        $roles['director'][] = 'inventory.valuation.view.organisation';
 
         foreach (AgentPermissions::grants() as $permission => $holders) {
             foreach ($holders as $role) {
