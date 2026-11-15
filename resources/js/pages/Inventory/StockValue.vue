@@ -34,8 +34,16 @@ const turnOn = () => {
     <PageFrame>
         <PageHeader
             title="Stock value and cost"
-            description="This report is in the new layout. Turn on Try the new layout to open it."
+            description="This report is in the new layout. Turn on the new layout to open it."
         />
+        <p
+            class="text-sm text-muted-foreground"
+            data-testid="stock-value-turn-on-note"
+        >
+            This turns the new layout on for all your pages. You can turn it off
+            again with Back to Classic at the top of any page (on a phone, in
+            the menu).
+        </p>
         <div>
             <button
                 type="button"

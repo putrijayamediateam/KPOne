@@ -15,7 +15,11 @@ test('STK-28: the report is a Version 2 page; the Classic page only offers to tu
     assert.match(registry, /'Inventory\/StockValue',/);
     assert.match(
         classic,
-        /This report is in the new layout\. Turn on Try the new layout to open it\./,
+        /This report is in the new layout\. Turn on the new layout to open it\./,
+    );
+    assert.match(
+        classic.replace(/\s+/g, ' '),
+        /This turns the new layout on for all your pages\. You can turn it off again with Back to Classic at the top of any page/,
     );
     assert.match(classic, /router\.put\(\s*'\/spaces\/preference'/);
     assert.match(classic, /enabled: true/);
@@ -64,7 +68,16 @@ test('STK-28: money, percent and margin words never rely on colour or a hyphen f
         flat,
         /<V2Chip v-if="row\.includesEstimate" tone="neutral" label="Includes an estimate" \/>/,
     );
-    assert.match(flat, /No cost recorded, so not in the value:/);
+    assert.match(
+        flat,
+        /stock with no cost recorded\. They are marked below and left out of the value\./,
+    );
+    assert.match(flat, /row\.sen > 0 \? 'Loss' : 'Gain'/);
+    assert.match(flat, /lossesTotal > 0 \? 'Net loss' : 'Net gain'/);
+    assert.match(
+        flat,
+        /Unit costs show up to 4 decimals; values are rounded to sen\./,
+    );
     assert.match(flat, />No cost recorded<\/span/);
 });
 

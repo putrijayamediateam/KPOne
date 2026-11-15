@@ -457,8 +457,14 @@ const lossHelp: Record<string, string> = {
                                 aria-hidden="true"
                             />
                             <span
-                                >No cost recorded, so not in the value:
-                                {{ uncostedNames.join(', ') }}.</span
+                                >{{ uncostedNames.length }}
+                                {{
+                                    uncostedNames.length === 1
+                                        ? 'medicine has'
+                                        : 'medicines have'
+                                }}
+                                stock with no cost recorded. They are marked
+                                below and left out of the value.</span
                             >
                         </p>
                         <p
@@ -817,10 +823,20 @@ const lossHelp: Record<string, string> = {
                                             <span>{{
                                                 money(Math.abs(row.sen))
                                             }}</span>
+                                            <!-- Every non-zero row says which way it goes, so the column adds up in words too (Daniel). -->
                                             <span
-                                                v-if="row.sen < 0"
+                                                v-if="row.sen !== 0"
                                                 class="text-xs font-medium"
-                                                >Gain</span
+                                                :class="
+                                                    row.sen > 0
+                                                        ? 'text-warning-strong'
+                                                        : ''
+                                                "
+                                                >{{
+                                                    row.sen > 0
+                                                        ? 'Loss'
+                                                        : 'Gain'
+                                                }}</span
                                             >
                                         </span>
                                     </td>
@@ -845,9 +861,18 @@ const lossHelp: Record<string, string> = {
                                                 money(Math.abs(lossesTotal))
                                             }}</span>
                                             <span
-                                                v-if="lossesTotal < 0"
+                                                v-if="lossesTotal !== 0"
                                                 class="text-xs font-medium"
-                                                >Net gain</span
+                                                :class="
+                                                    lossesTotal > 0
+                                                        ? 'text-warning-strong'
+                                                        : ''
+                                                "
+                                                >{{
+                                                    lossesTotal > 0
+                                                        ? 'Net loss'
+                                                        : 'Net gain'
+                                                }}</span
                                             >
                                         </span>
                                     </td>
@@ -935,6 +960,14 @@ const lossHelp: Record<string, string> = {
                         </ul>
                     </template>
 
+                    <p
+                        v-if="tab === 'value' && report.stock.length > 0"
+                        class="text-xs text-muted-foreground"
+                        data-testid="valuation-decimals"
+                    >
+                        Unit costs show up to 4 decimals; values are rounded to
+                        sen.
+                    </p>
                     <p
                         v-if="tab === 'value' && report.stock.length > 0"
                         class="text-sm text-muted-foreground"
