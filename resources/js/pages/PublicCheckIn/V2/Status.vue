@@ -253,7 +253,7 @@ onBeforeUnmount(() => {
                     class="mx-auto grid size-16 place-items-center rounded-full"
                     :class="
                         status.state === 'accepted'
-                            ? 'bg-success-soft text-success'
+                            ? 'bg-success/10 text-success'
                             : status.state === 'rejected' ||
                                 status.state === 'expired'
                               ? 'bg-warning/15 text-warning'
