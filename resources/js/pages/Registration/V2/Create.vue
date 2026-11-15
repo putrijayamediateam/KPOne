@@ -717,21 +717,27 @@ const inputClass =
                             c.errorFor('quick_patient')
                         }}
                     </p>
-
-                    <V2StickyBar>
-                        <button
-                            type="submit"
-                            class="inline-flex items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50"
-                            :disabled="form.processing"
-                        >
-                            {{
-                                form.processing
-                                    ? 'Registering…'
-                                    : 'Register visit'
-                            }}
-                        </button>
-                    </V2StickyBar>
                 </form>
+                <V2StickyBar>
+                    <button
+                        type="submit"
+                        form="v2-register-visit-form"
+                        class="inline-flex items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50"
+                        :disabled="!visitReady || form.processing"
+                        aria-describedby="v2-register-bar-hint"
+                    >
+                        {{
+                            form.processing ? 'Registering…' : 'Register visit'
+                        }}
+                    </button>
+                    <p
+                        v-if="!visitReady"
+                        id="v2-register-bar-hint"
+                        class="text-center text-[13px] text-muted-foreground sm:text-right"
+                    >
+                        Choose or create a patient first.
+                    </p>
+                </V2StickyBar>
             </template>
 
             <template #rail>
