@@ -23,6 +23,7 @@ return [
         'PanelClaims/Show',
         'ClinicalService/Index',
         'Dispensary/Show',
+        'Dispensary/Completed',
         'Medicine/Index',
         'PaymentMethods/Index',
         'Pricing/Index',
