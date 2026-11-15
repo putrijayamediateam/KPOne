@@ -127,6 +127,7 @@ test('the requires-reference checkbox binds modelValue on both layouts (ticking 
             !source.includes('v-model:checked'),
             `${name} no v-model:checked`,
         );
+
         for (const form of ['createForm', 'editForm']) {
             assert.match(
                 source,
