@@ -226,12 +226,15 @@ const inputClass =
                             class="[&_ul[role=listbox]:not(:has([role=option],[role=status]))]:hidden"
                             v-model="patientQuery"
                             label="Search patient"
-                            placeholder="Name, IC number, phone or Patient No."
+                            placeholder="Search patients"
                             :options="patientOptions"
                             :loading="searching"
                             empty-text="No matching Patient found."
                             @select="(option) => pick(option.id)"
                         />
+                        <p class="text-[13px] text-muted-foreground">
+                            Search by name, IC number, phone or Patient No.
+                        </p>
                         <p
                             v-if="
                                 patientQuery.trim().length > 0 &&

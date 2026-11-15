@@ -50,9 +50,10 @@ const emit = defineEmits<{ select: [] }>();
         @click="emit('select')"
     >
         <span class="min-w-0 flex-1">
-            <span class="block truncate text-[15px] font-medium">{{
-                name
-            }}</span>
+            <span
+                class="block text-[15px] font-medium break-words sm:truncate"
+                >{{ name }}</span
+            >
             <span
                 class="block text-[13px] text-muted-foreground tabular-nums"
                 >{{ kpNumber }}</span

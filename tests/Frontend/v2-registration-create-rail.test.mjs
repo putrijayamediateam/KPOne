@@ -38,3 +38,23 @@ test('a pick row keeps the masked text visible and speaks only the last characte
     assert.ok(row.includes('identifier ending ${ending}'));
     assert.ok(loose(row).includes(loose('{{ maskedIdentifier }}')));
 });
+
+test('picker names wrap on phones and the search box uses a short placeholder', () => {
+    const row = readFileSync(
+        new URL(
+            '../../resources/js/components/v2/V2PatientPickRow.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+    assert.match(row, /break-words sm:truncate/);
+    const page = readFileSync(
+        new URL(
+            '../../resources/js/pages/Registration/V2/Create.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+    assert.match(page, /placeholder="Search patients"/);
+    assert.match(page, /Search by name, IC number, phone or Patient No\./);
+});
