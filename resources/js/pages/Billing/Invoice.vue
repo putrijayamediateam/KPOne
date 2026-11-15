@@ -179,6 +179,14 @@ const totals = computed(() => {
                                 return-to="invoice"
                             />
                         </div>
+                        <p
+                            v-if="invoice.financial?.panelNoInvoicePrint"
+                            class="mt-2 text-xs text-muted-foreground"
+                            data-testid="panel-no-invoice-print"
+                        >
+                            Panel patient: no invoice is printed. A receipt
+                            prints only for cash the patient paid.
+                        </p>
                         <InvoiceBillTo :context="invoice.billTo" class="mt-3" />
                         <dl
                             class="mt-3 grid grid-cols-[auto_1fr] gap-x-3 gap-y-2 text-xs"
@@ -288,7 +296,11 @@ const totals = computed(() => {
                         v-if="tab === 'documents' && !documents.length"
                         class="p-4 text-xs text-muted-foreground"
                     >
-                        No printable documents for your access.
+                        {{
+                            invoice.financial?.panelNoInvoicePrint
+                                ? 'Panel patient: no invoice is printed. A receipt prints only for cash the patient paid.'
+                                : 'No printable documents for your access.'
+                        }}
                     </p>
                 </div>
             </section>
