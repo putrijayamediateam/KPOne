@@ -451,13 +451,15 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                 </div>
 
                 <div
-                    class="flex flex-wrap items-center gap-3 rounded-[14px] border bg-card p-4"
+                    class="flex flex-wrap items-center gap-3 rounded-[14px] border bg-card p-4 max-sm:flex-col max-sm:items-start"
                 >
                     <V2Chip
                         :tone="claimChipTone(claim.status)"
                         :label="claim.status"
                     />
-                    <p class="min-w-0 flex-1 text-sm text-muted-foreground">
+                    <p
+                        class="min-w-0 flex-1 text-sm text-muted-foreground max-sm:w-full"
+                    >
                         {{
                             nextStep
                                 ? nextStep.hint
