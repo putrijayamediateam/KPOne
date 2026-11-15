@@ -58,6 +58,8 @@ return [
         'Agents/Office',
         'Inventory/GovernedStock',
         'Clinical/Show',
+        'Inventory/BatchHolds',
+        'Inventory/Recalls',
         'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
         'MedicalCertificates/Index',
