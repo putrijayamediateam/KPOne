@@ -120,7 +120,12 @@ test('page 8b: the check posts exactly what Classic posts, with its idempotency 
 test('page 8b: the checker sees what Classic shows and nothing more (balance before counting, a differs note while typing)', () => {
     assert.match(
         show.flat,
-        /since the last check\. Count what is physically on hand at this branch and compare it with the register:/,
+        /Count what is physically on hand at this branch and compare it with the register:/,
+    );
+    // STK-40: the blind wording is pinned too, so neither sentence can drift.
+    assert.match(
+        show.flat,
+        /Count what is physically on hand at this branch\. The register's balance appears after you record your count\./,
     );
     assert.match(show.flat, /words\(register\.balanceNow\)/);
     assert.match(show.flat, /data-testid="cd-differs-note"/);
