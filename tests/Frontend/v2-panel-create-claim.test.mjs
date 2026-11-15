@@ -61,7 +61,6 @@ test('the Classic wording the Version 2 page keeps', () => {
         'Cancel',
         'Create claim',
         'Invoice details',
-        'Below are the details of the selected invoice.',
         'Visit date and time',
         'Treatment items',
         'Item name',
@@ -72,7 +71,6 @@ test('the Classic wording the Version 2 page keeps', () => {
         'Invoice adjustment',
         'Adjusted total',
         'Panel claim details',
-        'Key information related to the submitted panel',
         'Submitted date',
         'Remarks',
         'Upload photo',
@@ -131,4 +129,13 @@ test('Daniel: live sentence, due rule line, above-the-invoice wording, phone ord
     assert.match(page, /:aria-label="`Remove \$\{file\.name\}`"/);
     // No role-based show or hide: nothing in the page reads a permission.
     assert.ok(!/permissions|\.can\(|canEdit/.test(page));
+});
+
+test('review fixes: one above-invoice note, no restating helper text, 44 px Remove, named refusal', () => {
+    assert.equal([...page.matchAll(/Above the invoice by/g)].length, 2);
+    assert.ok(!page.includes('Below are the details of the selected invoice'));
+    assert.ok(!page.includes('Key information related to the submitted panel'));
+    assert.match(page, /const removeButton =\s*'inline-flex h-11/);
+    assert.match(page, /was not added: /);
+    assert.match(page, /chooser\.value\?\.clear\(\)/);
 });

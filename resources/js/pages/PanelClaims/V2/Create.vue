@@ -83,6 +83,40 @@ const submit = () => {
     createClaim();
 };
 
+const chooser = ref<InstanceType<typeof FileChooseButton> | null>(null);
+const refusal = ref('');
+// Same checks as Classic's selectPhotos, run first only to say which file was refused and why.
+const choosePhotos = (files: FileList | null) => {
+    refusal.value = '';
+
+    if (files) {
+        const incoming = Array.from(files);
+
+        if (form.photos.length + incoming.length > MAX_PHOTOS) {
+            refusal.value = `Not added: you can attach up to ${MAX_PHOTOS} photos.`;
+        } else {
+            const bad = incoming.find(
+                (file) =>
+                    !['image/jpeg', 'image/png'].includes(file.type) ||
+                    file.size > 5 * 1024 * 1024 ||
+                    file.size === 0,
+            );
+
+            if (bad) {
+                refusal.value = `${bad.name} was not added: ${
+                    !['image/jpeg', 'image/png'].includes(bad.type)
+                        ? 'only JPG or PNG photos are accepted.'
+                        : bad.size === 0
+                          ? 'the file is empty.'
+                          : 'it is over 5 MB.'
+                }`;
+            }
+        }
+    }
+
+    selectPhotos(files);
+    chooser.value?.clear();
+};
 const sizeLabel = (bytes: number) =>
     bytes >= 1048576
         ? `${(bytes / 1048576).toFixed(1)} MB`
@@ -103,6 +137,8 @@ const details = computed(() => [
 ]);
 const outline =
     'inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9';
+const removeButton =
+    'inline-flex h-11 shrink-0 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
 const filled =
     'inline-flex h-11 items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-progress disabled:opacity-70 lg:h-9';
 </script>
@@ -132,7 +168,7 @@ const filled =
 
             <template #rail-collapsed>
                 <section
-                    class="grid grid-cols-1 gap-3 rounded-[14px] border bg-card p-4 min-[420px]:grid-cols-2"
+                    class="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2"
                     aria-label="Claim figures"
                 >
                     <V2Stat
@@ -180,29 +216,18 @@ const filled =
                     <section
                         class="grid gap-3 rounded-[14px] border bg-card p-4 xl:col-start-1 xl:row-start-1"
                     >
-                        <div>
-                            <h2 class="text-base leading-[22px] font-semibold">
-                                Invoice details
-                            </h2>
-                            <p class="text-sm text-muted-foreground">
-                                Below are the details of the selected invoice.
-                            </p>
-                        </div>
+                        <h2 class="text-base leading-[22px] font-semibold">
+                            Invoice details
+                        </h2>
                         <V2KeyValueList :items="details" empty-text="N/A" />
                     </section>
 
                     <section
                         class="grid gap-4 rounded-[14px] border bg-card p-4 xl:col-start-2 xl:row-span-2 xl:row-start-1"
                     >
-                        <div>
-                            <h2 class="text-base leading-[22px] font-semibold">
-                                Panel claim details
-                            </h2>
-                            <p class="text-sm text-muted-foreground">
-                                Key information related to the submitted panel
-                                claim.
-                            </p>
-                        </div>
+                        <h2 class="text-base leading-[22px] font-semibold">
+                            Panel claim details
+                        </h2>
                         <div
                             class="flex items-center justify-between gap-3 rounded-[10px] bg-muted p-3"
                         >
@@ -214,14 +239,6 @@ const filled =
                                 >{{ myr(allocation.amountSen) }}</span
                             >
                         </div>
-                        <p
-                            v-if="aboveInvoiceSen > 0"
-                            class="text-sm text-muted-foreground 2xl:hidden"
-                        >
-                            Above the invoice by {{ myr(aboveInvoiceSen) }}. The
-                            extra is kept on the claim only; the invoice stays
-                            the same.
-                        </p>
                         <div class="grid gap-1">
                             <V2DateField
                                 v-model="form.submitted_date"
@@ -268,7 +285,7 @@ const filled =
                                 class="grid gap-2 rounded-[10px] border-2 border-dashed p-3"
                                 @dragover.prevent
                                 @drop.prevent="
-                                    selectPhotos(
+                                    choosePhotos(
                                         $event.dataTransfer?.files ?? null,
                                     )
                                 "
@@ -280,13 +297,14 @@ const filled =
                                 </p>
                                 <FileChooseButton
                                     id="photos"
+                                    ref="chooser"
                                     accept="image/jpeg,image/png"
                                     multiple
                                     label="Choose photos"
                                     :status="photoStatus"
                                     status-id="photos-status"
                                     @change="
-                                        selectPhotos(
+                                        choosePhotos(
                                             ($event.target as HTMLInputElement)
                                                 .files,
                                         )
@@ -294,11 +312,15 @@ const filled =
                                 />
                             </div>
                             <p
-                                v-if="photoError || form.errors.photos"
+                                v-if="
+                                    refusal || photoError || form.errors.photos
+                                "
                                 role="alert"
                                 class="text-sm wrap-anywhere text-destructive"
                             >
-                                {{ photoError || form.errors.photos }}
+                                {{
+                                    refusal || photoError || form.errors.photos
+                                }}
                             </p>
                             <ul
                                 v-if="form.photos.length > 0"
@@ -318,7 +340,7 @@ const filled =
                                     >
                                     <button
                                         type="button"
-                                        :class="[outline, 'shrink-0']"
+                                        :class="removeButton"
                                         :aria-label="`Remove ${file.name}`"
                                         @click="form.photos.splice(index, 1)"
                                     >
