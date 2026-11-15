@@ -412,7 +412,12 @@ const onMenu = (method: PaymentMethodRow, id: string) => {
                 />
             </V2Field>
             <label class="flex min-h-11 items-center gap-3 text-sm lg:min-h-9">
-                <Checkbox v-model:checked="createForm.requires_reference" />
+                <Checkbox
+                    :model-value="createForm.requires_reference"
+                    @update:model-value="
+                        createForm.requires_reference = $event === true
+                    "
+                />
                 Requires a transaction reference
             </label>
             <V2Field
@@ -472,7 +477,12 @@ const onMenu = (method: PaymentMethodRow, id: string) => {
                 />
             </V2Field>
             <label class="flex min-h-11 items-center gap-3 text-sm lg:min-h-9">
-                <Checkbox v-model:checked="editForm.requires_reference" />
+                <Checkbox
+                    :model-value="editForm.requires_reference"
+                    @update:model-value="
+                        editForm.requires_reference = $event === true
+                    "
+                />
                 Requires a transaction reference
             </label>
             <V2Field

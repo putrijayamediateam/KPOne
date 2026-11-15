@@ -41,6 +41,10 @@ if (authenticationHistory.ready) {
                 case name === 'PanelClaims/Pack':
                 case name === 'QueueDisplay/Screen':
                     return null;
+                // A Version 2 public (patient-facing) page keeps the public layout: a patient is never inside the staff
+                // shell. This case must stay above the V2 shell case.
+                case name.startsWith('PublicCheckIn/V2/'):
+                    return PublicCheckInLayout;
                 case isV2Page(name):
                     return V2Layout;
                 case name.startsWith('PublicCheckIn/'):
