@@ -3,13 +3,13 @@ import { Head, Link } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import ClockPhotoNotice from '@/components/hr/attendance/ClockPhotoNotice.vue';
 import ClockPhotoThumb from '@/components/hr/attendance/ClockPhotoThumb.vue';
-import LocationCheckSettings from '@/components/hr/attendance/LocationCheckSettings.vue';
 import MyOvertimeSection from '@/components/hr/attendance/MyOvertime.vue';
 import OvertimeAskSheet from '@/components/hr/attendance/OvertimeAskSheet.vue';
-import OvertimeSettingsForm from '@/components/hr/attendance/OvertimeSettingsForm.vue';
-import OvertimeTab from '@/components/hr/attendance/OvertimeTab.vue';
-import SummaryTab from '@/components/hr/attendance/SummaryTab.vue';
 import { weekTone } from '@/components/hr/attendance/types';
+import LocationCheckCardV2 from '@/components/hr/attendance/v2/LocationCheckCardV2.vue';
+import OvertimeRulesCardV2 from '@/components/hr/attendance/v2/OvertimeRulesCardV2.vue';
+import OvertimeTabV2 from '@/components/hr/attendance/v2/OvertimeTabV2.vue';
+import SummaryTabV2 from '@/components/hr/attendance/v2/SummaryTabV2.vue';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
@@ -81,7 +81,7 @@ const {
     openAsk,
     openAskFor,
     settingsForm,
-    saveSettings,
+    saveSettingsKeepingState,
     reviewBranchOptions,
     staffOptions,
     reviewQuery,
@@ -175,6 +175,41 @@ const resetRules = () => {
         correction_days: days,
         effective_from: from,
     });
+};
+// PR 2 (Daniel): three Settings cards, each with its own named Save, dirty guard and busy state, but only ONE filled
+// Save at a time: the first card from the top that has changes (or has never been saved) keeps it. A card below a
+// changed one shows an outline Save and "You also have unsaved changes above" (only when a card above has changes).
+// Each Save keeps the page's state, so the other cards keep their unsaved typing (Daniel). The leave guard covers all three.
+const overtimeDirty = ref(false);
+const locationDirty = ref(false);
+const overtimeCard = ref<InstanceType<typeof OvertimeRulesCardV2> | null>(null);
+const locationCard = ref<InstanceType<typeof LocationCheckCardV2> | null>(null);
+const filledCard = computed<'rules' | 'overtime' | 'location' | null>(() => {
+    const s = props.attendance.settings;
+
+    if (!s) {
+        return null;
+    }
+
+    if (rulesDirty.value || !s.current) {
+        return 'rules';
+    }
+
+    if (overtimeDirty.value || !s.overtime.current) {
+        return 'overtime';
+    }
+
+    return locationDirty.value ? 'location' : null;
+});
+const settingsDirty = computed(
+    () =>
+        props.attendance.tab === 'settings' &&
+        (rulesDirty.value || overtimeDirty.value || locationDirty.value),
+);
+const discardSettings = () => {
+    resetRules();
+    overtimeCard.value?.reset();
+    locationCard.value?.reset();
 };
 const guard = ref<InstanceType<typeof V2LeaveGuard> | null>(null);
 const changeTab = (tab: string) =>
@@ -1168,8 +1203,8 @@ const numberClass =
                         </template>
                     </section>
 
-                    <!-- Overtime and Summary: their current components inside the V2 frame until the next PR -->
-                    <OvertimeTab
+                    <!-- Overtime and Summary (PR 2) -->
+                    <OvertimeTabV2
                         v-if="
                             attendance.tab === 'overtime' && attendance.overtime
                         "
@@ -1177,7 +1212,7 @@ const numberClass =
                         :options="attendance.overtimeOptions"
                         :error="errors.overtime"
                     />
-                    <SummaryTab
+                    <SummaryTabV2
                         v-if="
                             attendance.tab === 'summary' && attendance.summary
                         "
@@ -1206,7 +1241,9 @@ const numberClass =
                         >
                             <form
                                 class="flex flex-col gap-4"
-                                @submit.prevent="saveSettings"
+                                @submit.prevent="
+                                    saveSettingsKeepingState(resetRules)
+                                "
                             >
                                 <V2Field
                                     v-slot="{ id, describedBy, invalid }"
@@ -1269,8 +1306,7 @@ const numberClass =
                                     <button
                                         type="submit"
                                         :class="
-                                            !attendance.settings?.current ||
-                                            rulesDirty
+                                            filledCard === 'rules'
                                                 ? primaryButton
                                                 : button
                                         "
@@ -1304,19 +1340,31 @@ const numberClass =
                                 </ul>
                             </div>
                         </V2FormCard>
-                        <OvertimeSettingsForm
+                        <OvertimeRulesCardV2
+                            ref="overtimeCard"
                             :card="attendance.settings.overtime"
                             :today="attendance.settings.today"
+                            :primary="filledCard === 'overtime'"
+                            :others-above="rulesDirty"
+                            @dirty="overtimeDirty = $event"
                         />
-                        <LocationCheckSettings
+                        <LocationCheckCardV2
                             v-if="attendance.settings.location"
+                            ref="locationCard"
                             :card="attendance.settings.location"
+                            :primary="filledCard === 'location'"
+                            :others-above="rulesDirty || overtimeDirty"
+                            @dirty="locationDirty = $event"
                         />
                     </section>
                 </div>
             </template>
         </V2WorkLayout>
-        <V2LeaveGuard ref="guard" :dirty="rulesDirty" @discard="resetRules" />
+        <V2LeaveGuard
+            ref="guard"
+            :dirty="settingsDirty"
+            @discard="discardSettings"
+        />
 
         <!-- Clock out (only Clock out asks) -->
         <V2Dialog

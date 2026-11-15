@@ -1,61 +1,19 @@
 <script setup lang="ts">
 // HR-3b overtime settings card. The rates are KPOne's defaults (1.5x, 2x, 3x), set at the owner's instruction
 // (HR-DEFAULTS, 2026-11-15); no role is ticked until HR ticks one, and nothing counts until Save.
-import { router, usePage } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useOvertimeSettings } from '@/composables/hr/useOvertimeSettings';
 import { formatRoleLabel } from '@/lib/displayLabels';
 import type { OvertimeSettingsCard } from './types';
 
 const props = defineProps<{ card: OvertimeSettingsCard; today: string }>();
 
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const start = props.card.current ?? props.card.suggested;
-const form = reactive({
-    normal_multiplier: start.normalMultiplier,
-    rest_day_multiplier: start.restDayMultiplier,
-    public_holiday_multiplier: start.publicHolidayMultiplier,
-    nearing_hours: String(start.nearingHours),
-    limit_hours: String(start.limitHours),
-    roles: [...(props.card.current?.roles ?? [])] as string[],
-    effective_from: props.today,
-    processing: false,
-    key: crypto.randomUUID(),
-});
-const toggle = (role: string, on: boolean) => {
-    form.roles = on
-        ? [...new Set([...form.roles, role])]
-        : form.roles.filter((r) => r !== role);
-};
-const save = () => {
-    form.processing = true;
-    router.put(
-        '/hr/attendance/overtime-settings',
-        {
-            normal_multiplier: form.normal_multiplier,
-            rest_day_multiplier: form.rest_day_multiplier,
-            public_holiday_multiplier: form.public_holiday_multiplier,
-            nearing_hours: form.nearing_hours,
-            limit_hours: form.limit_hours,
-            roles: form.roles,
-            overtime_effective_from: form.effective_from,
-            idempotency_key: form.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (form.key = crypto.randomUUID()),
-            onFinish: () => (form.processing = false),
-        },
-    );
-};
+const { errors, form, toggle, save } = useOvertimeSettings(props);
 </script>
 
 <template>
