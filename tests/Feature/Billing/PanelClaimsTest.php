@@ -417,6 +417,8 @@ class PanelClaimsTest extends BillingTestCase
         DB::unprepared("create function kpone_test_identity_audit_down() returns trigger as \$\$ begin if new.event = 'panel_claim.identity_viewed' then raise exception 'audit unavailable'; end if; return new; end \$\$ language plpgsql");
         DB::unprepared('create trigger kpone_test_identity_audit_down before insert on audit_logs for each row execute function kpone_test_identity_audit_down()');
 
+        // Production-like: the debug page would list this test's own fixture queries, which are not what a user sees.
+        config(['app.debug' => false]);
         $response = $this->get(route('panel-claims.show', $claim));
 
         $response->assertStatus(500);
