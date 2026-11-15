@@ -59,6 +59,8 @@ return [
         'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
         'MedicalCertificates/Index',
+        'Visits/History',
+        'Referrals/Index',
     ],
 
     /*
@@ -79,7 +81,5 @@ return [
     'public_pages' => [
         'PublicCheckIn/Show',
         'PublicCheckIn/Status',
-        'Visits/History',
-        'Referrals/Index',
     ],
 ];
