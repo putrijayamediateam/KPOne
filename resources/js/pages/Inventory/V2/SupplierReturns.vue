@@ -583,9 +583,17 @@ const rejectOptions = computed(() =>
 );
 
 /** What the open sheet is about, in one phrase ("5 tablets of X, batch B" or "3 lots: 2 tablets + 1 bottle"). */
+/** The Classic totals ("5.000 unit") in plain words ("5 units"). */
+const groupTotalWords = computed(() =>
+    groupTotals.value.map((total) => {
+        const [value, unit] = total.split(' ');
+
+        return quantityWithUnit(value, unit);
+    }),
+);
 const subject = computed(() => {
     if (isGroup.value && activeGroup.value) {
-        return `${activeGroup.value.lines.length} lots (${groupTotals.value.join(' + ')})`;
+        return `${activeGroup.value.lines.length} lots (${groupTotalWords.value.join(' + ')})`;
     }
 
     const row = activeRow.value;
@@ -594,6 +602,10 @@ const subject = computed(() => {
         ? `${quantityWithUnit(row.quantity, row.base_unit)} of ${itemOf(row)}, batch ${row.batch_number}`
         : '';
 });
+/** The subject followed by a comma after a batch number, so the sentence reads "batch X, to …". */
+const subjectThen = computed(() =>
+    isGroup.value ? subject.value : `${subject.value},`,
+);
 const supplierOf = computed(() =>
     isGroup.value && activeGroup.value
         ? activeGroup.value.supplier
@@ -617,14 +629,14 @@ const footerNote = computed(() => {
             return 'Approving lets it be dispatched; stock leaves only then.';
         case 'dispatched':
             return isGroup.value
-                ? `Takes ${subject.value} out of this branch's stock now, to ${supplierOf.value}. It can't be undone.`
-                : `Takes ${subject.value} out of ${activeRow.value?.location ?? 'this branch'} now, to ${supplierOf.value}. It can't be undone.`;
+                ? `Takes ${subjectThen.value} out of this branch's stock now, to ${supplierOf.value}. It can't be undone.`
+                : `Takes ${subjectThen.value} out of ${activeRow.value?.location ?? 'this branch'} now, to ${supplierOf.value}. It can't be undone.`;
         case 'credit_recorded':
             return 'Recorded as a reference only. KPOne moves no money and restocks nothing.';
         case 'rejected':
-            return `Rejects returning ${subject.value} to ${supplierOf.value}. Nothing leaves stock, and the quantity can be requested again.`;
+            return `Rejects returning ${subjectThen.value} to ${supplierOf.value}. Nothing leaves stock, and the quantity can be requested again.`;
         case 'cancelled':
-            return `Cancels returning ${subject.value} to ${supplierOf.value}. The return is closed without any stock change.`;
+            return `Cancels returning ${subjectThen.value} to ${supplierOf.value}. The return is closed without any stock change.`;
         default:
             return '';
     }
@@ -727,7 +739,7 @@ const groupRows = computed<KeyValueItem[]>(() => {
                   label: 'Supplier',
                   value: `${group.supplier} · delivery ${group.deliveryReference}`,
               },
-              { label: 'Total', value: groupTotals.value.join(' + ') },
+              { label: 'Total', value: groupTotalWords.value.join(' + ') },
           ]
         : [];
 });
@@ -867,9 +879,10 @@ const wide =
                                         <span
                                             class="inline-flex flex-wrap items-center gap-2"
                                         >
-                                            <span class="font-mono text-sm">{{
-                                                group.groupNumber
-                                            }}</span>
+                                            <span
+                                                class="font-mono text-sm whitespace-nowrap"
+                                                >{{ group.groupNumber }}</span
+                                            >
                                             <V2Chip
                                                 tone="neutral"
                                                 :label="`${group.lines.length} ${group.lines.length === 1 ? 'lot' : 'lots'}`"
@@ -1003,9 +1016,10 @@ const wide =
                                 :key="row.id"
                             >
                                 <td data-label="Return" data-primary>
-                                    <span class="font-mono text-sm">{{
-                                        row.return_number
-                                    }}</span>
+                                    <span
+                                        class="font-mono text-sm whitespace-nowrap"
+                                        >{{ row.return_number }}</span
+                                    >
                                 </td>
                                 <td data-stack data-label="Quantity and item">
                                     <div class="min-w-0">
@@ -1082,6 +1096,7 @@ const wide =
                         </template>
                     </V2Table>
                     <V2Pager
+                        v-if="returns.returns.total > 0"
                         :current-page="returns.returns.page"
                         :last-page="returns.returns.lastPage"
                         :total="returns.returns.total"
@@ -1196,7 +1211,7 @@ const wide =
                                     >
                                         <div class="min-w-0 tabular-nums">
                                             <span
-                                                class="block text-sm font-medium"
+                                                class="block text-sm font-medium whitespace-nowrap"
                                                 >Up to
                                                 {{
                                                     quantityWithUnit(
@@ -1206,7 +1221,7 @@ const wide =
                                                 }}</span
                                             >
                                             <span
-                                                class="block text-xs text-muted-foreground"
+                                                class="block text-xs whitespace-nowrap text-muted-foreground"
                                                 >On hand
                                                 {{
                                                     quantityWithUnit(
