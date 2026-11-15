@@ -142,8 +142,12 @@ test("page 5: Daniel's checklist (sentences, blocked reasons, destructive sheets
         ).length,
         2,
     );
-    // Dirty guard on the request sheet.
-    assert.match(template, /:dirty="hasInput && form\.isDirty"/);
+    // Dirty guard on the request sheet: changed since the sheet opened, not since page load.
+    assert.match(template, /:dirty="sheetDirty"/);
+    assert.match(
+        script,
+        /JSON\.stringify\(form\.data\(\)\) !== openedData\.value/,
+    );
     // History: outline Close, actor names, local time.
     assert.equal(
         (template.match(/single-action-style="outline"/g) ?? []).length,

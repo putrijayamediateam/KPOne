@@ -455,20 +455,33 @@ const stateTone = (state: string) =>
 /** The row the open sheet is about, kept for its words. */
 const activeLot = ref<Lot | null>(null);
 const activeRow = ref<ReturnRow | null>(null);
+/** What the sheet held when it opened: "dirty" means the person changed something since, not since page load. */
+const openedData = ref('');
+const snapshot = () => {
+    openedData.value = JSON.stringify(form.data());
+};
+const sheetDirty = computed(
+    () => hasInput.value && JSON.stringify(form.data()) !== openedData.value,
+);
 const openRequest = (lot: Lot) => {
     activeRow.value = null;
     activeLot.value = lot;
     showRequest(lot);
+    // "1", not "1.000", like the Can return line.
+    form.quantity = trimQuantity(lot.returnable);
+    snapshot();
 };
 const openAction = (row: ReturnRow, action: SupplierReturnAction) => {
     activeLot.value = null;
     activeRow.value = row;
     showAction(row, action);
+    snapshot();
 };
 const openGroupAction = (group: GroupRow, action: SupplierReturnAction) => {
     activeLot.value = null;
     activeRow.value = null;
     showGroupAction(group, action);
+    snapshot();
 };
 const closeSheet = (value: boolean) => {
     open.value = value;
@@ -730,7 +743,12 @@ const returnRows = computed<KeyValueItem[]>(() => {
                   value: `${row.supplier} · delivery ${unbroken(row.delivery_reference)}`,
               },
               { label: 'Reason', value: reasonLabel(row.reason) },
-              { label: 'Supplier reference', value: row.supplier_reference },
+              {
+                  label: 'Supplier reference',
+                  value: row.supplier_reference
+                      ? unbroken(row.supplier_reference)
+                      : null,
+              },
           ]
         : [];
 });
@@ -1094,7 +1112,9 @@ const draftQuantity = (lotId: number) =>
                                             >
                                                 · supplier ref
                                                 {{
-                                                    row.supplier_reference
+                                                    unbroken(
+                                                        row.supplier_reference,
+                                                    )
                                                 }}</template
                                             ></span
                                         >
@@ -1548,7 +1568,7 @@ const draftQuantity = (lotId: number) =>
                     : 'default'
             "
             :busy="form.processing"
-            :dirty="hasInput && form.isDirty"
+            :dirty="sheetDirty"
             :confirm-disabled="blockedBy !== null"
             :confirm-disabled-reason="blockedBy ?? undefined"
             @update:open="closeSheet"
