@@ -17,7 +17,7 @@ import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { quantityWithUnit } from '@/lib/inventory-v2-words';
-import { formatDate } from '@/lib/presentation';
+import { formatDate, formatDateTime } from '@/lib/presentation';
 import type { ScannedSku } from '@/lib/scan';
 import { trimQuantity } from '@/lib/supplier-terms';
 import {
@@ -322,6 +322,9 @@ const itemOf = (row: object): string | null => {
     return typeof value === 'string' && value !== '' ? value : null;
 };
 const nameOf = (row: { sku_code: string }) => itemOf(row) ?? row.sku_code;
+/** The database time ("2026-11-11 19:16:42+00") as ISO, which the shared date formatter reads. */
+const isoTime = (at: string) =>
+    at.replace(' ', 'T').replace(/([+-]\d{2})$/, '$1:00');
 
 // The five states as chips, in words (Daniel, page 3 answer 2).
 const stateChips = [
@@ -1211,8 +1214,8 @@ const wide =
                         Movement #{{ entry.movement_id }}
                     </p>
                     <p class="text-xs text-muted-foreground">
-                        <time :datetime="entry.created_at">{{
-                            formatDate(entry.created_at)
+                        <time :datetime="isoTime(entry.created_at)">{{
+                            formatDateTime(isoTime(entry.created_at))
                         }}</time>
                         · version {{ entry.lock_version }}
                     </p>

@@ -203,3 +203,13 @@ test("page 3: Daniel's plan and changes a to f", () => {
     assert.match(template, /:dirty="hasInput && form\.isDirty"/);
     assert.match(template, /single-action/);
 });
+
+test('page 3: the evidence history shows each entry time (the database time is turned into ISO first)', () => {
+    // "2026-11-11 19:16:42+00" is not ISO, so the shared formatter printed "—"; isoTime makes it "2026-11-11T19:16:42+00:00".
+    assert.match(
+        page,
+        /at\.replace\(' ', 'T'\)\.replace\(\/\(\[\+-\]\\d\{2\}\)\$\/, '\$1:00'\)/,
+    );
+    assert.match(template, /formatDateTime\(isoTime\(entry\.created_at\)\)/);
+    assert.match(template, /:datetime="isoTime\(entry\.created_at\)"/);
+});
