@@ -201,7 +201,8 @@ const actionTarget = computed(() => {
         return '';
     }
 
-    return `${row.person ? `${row.person} · ` : ''}${row.type} · ${row.dates} · ${row.days} ${dayWord(row.days)}`;
+    // A no-break space keeps the number with its unit.
+    return `${row.person ? `${row.person} · ` : ''}${row.type} · ${row.dates} · ${row.days}\u00A0${dayWord(row.days)}`;
 });
 const actionBlockedReason = computed(() =>
     action.kind === 'approve'
@@ -498,6 +499,7 @@ const inputClass =
                                         data-test="left-after"
                                     >
                                         Left after approval: {{ r.leftAfter }}
+                                        {{ dayWord(r.leftAfter) }}
                                     </p>
                                     <p
                                         v-if="r.reason"
@@ -711,7 +713,7 @@ const inputClass =
                                             v-for="day in calendar.days"
                                             :key="day.date"
                                             scope="col"
-                                            class="px-1 text-center text-xs"
+                                            class="relative px-1 text-center text-xs"
                                             :class="
                                                 shaded(day)
                                                     ? 'bg-muted text-muted-foreground'
@@ -756,7 +758,7 @@ const inputClass =
                                         <td
                                             v-for="day in calendar.days"
                                             :key="day.date"
-                                            class="px-1 text-center text-xs"
+                                            class="relative px-1 text-center text-xs"
                                             :class="
                                                 shaded(day) ? 'bg-muted' : ''
                                             "
@@ -1949,6 +1951,7 @@ const inputClass =
                     class="text-sm tabular-nums"
                 >
                     Left after approval: {{ action.row.leftAfter }}
+                    {{ dayWord(action.row.leftAfter) }}
                 </p>
                 <label
                     v-if="action.kind === 'approve' && action.evidenceNeeded"
