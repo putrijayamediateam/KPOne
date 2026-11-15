@@ -93,8 +93,11 @@ const photoStatus = computed(() =>
         : `${form.photos.length} of ${MAX_PHOTOS} photos. JPG or PNG, up to 5 MB each.`,
 );
 const details = computed(() => [
-    { label: 'Billed to', value: allocation.value.patientName },
-    { label: 'Patient details', value: allocation.value.patientName },
+    // Classic prints the same name under "Billed to" and "Patient details"; one row says both.
+    {
+        label: 'Billed to and patient details',
+        value: allocation.value.patientName,
+    },
     { label: 'Invoice no.', value: allocation.value.invoiceNumber },
     { label: 'Visit date and time', value: allocation.value.visitDateTime },
 ]);
@@ -171,7 +174,7 @@ const filled =
 
                 <form
                     id="v2-create-claim-form"
-                    class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:items-start"
+                    class="grid gap-4 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)] xl:grid-rows-[auto_1fr] xl:items-start"
                     @submit.prevent="submit"
                 >
                     <section

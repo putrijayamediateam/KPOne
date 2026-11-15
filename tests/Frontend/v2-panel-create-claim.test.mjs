@@ -62,7 +62,6 @@ test('the Classic wording the Version 2 page keeps', () => {
         'Create claim',
         'Invoice details',
         'Below are the details of the selected invoice.',
-        'Patient details',
         'Visit date and time',
         'Treatment items',
         'Item name',
@@ -84,6 +83,14 @@ test('the Classic wording the Version 2 page keeps', () => {
         assert.ok(flat(classic).includes(wanted), `Classic has: ${text}`);
         assert.ok(flat(page + composable).includes(wanted), `V2 has: ${text}`);
     }
+});
+
+test('one row says Billed to and Patient details (Classic prints the same name twice)', () => {
+    assert.match(page, /Billed to and patient details/);
+    assert.ok(
+        classic.includes('Billing details') &&
+            classic.includes('Patient details'),
+    );
 });
 
 test('the page is registered and the layout rules hold', () => {
