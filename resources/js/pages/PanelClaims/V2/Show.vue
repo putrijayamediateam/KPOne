@@ -7,11 +7,11 @@ import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2DateField from '@/components/v2/V2DateField.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
-import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2KeyValueList from '@/components/v2/V2KeyValueList.vue';
 import V2MoneyInput from '@/components/v2/V2MoneyInput.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
+import V2Pager from '@/components/v2/V2Pager.vue';
 import V2RowMenu from '@/components/v2/V2RowMenu.vue';
 import V2Stat from '@/components/v2/V2Stat.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
@@ -19,6 +19,7 @@ import V2Table from '@/components/v2/V2Table.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePanelClaimShow } from '@/composables/panel-claims/usePanelClaimShow';
 import type { Props } from '@/composables/panel-claims/usePanelClaimShow';
+import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import { claimChipTone } from '@/lib/panel-claims-v2';
 import { displayFromIso } from '@/lib/v2-date';
 import { myr, toSen } from '@/types/billing';
@@ -29,6 +30,11 @@ import { myr, toSen } from '@/types/billing';
  * forms become dialogs, and the one action that comes next is the only filled button on the page.
  */
 const props = defineProps<Props>();
+usePageCrumbs(() => [
+    { title: 'Panel', href: '/spaces/panel' },
+    { title: 'Panel claims', href: '/panel-claims' },
+    { title: `Claim ${props.claim.claimNo}` },
+]);
 const claimPage = usePanelClaimShow(props);
 const {
     aboveInvoice,
@@ -186,10 +192,20 @@ const decisionLabel = computed(
     () => decisionOptions.find((o) => o.value === decision.value)?.label ?? '',
 );
 const decisionAmountSen = computed(() => sen(acceptedAmount.value));
+// Partially accepted must be more than nothing and less than the claim; Accepted and Rejected need no amount.
+const partialInvalid = computed(
+    () =>
+        decision.value === 'partially_accepted' &&
+        (decisionAmountSen.value === null ||
+            decisionAmountSen.value <= 0 ||
+            decisionAmountSen.value >= claim.value.claimAmountSen),
+);
 const decisionSentence = computed(() =>
     decisionAmountSen.value === null
         ? null
-        : `Records the Panel's decision: ${decisionLabel.value}, ${myr(decisionAmountSen.value)} of ${myr(claim.value.claimAmountSen)}.`,
+        : partialInvalid.value
+          ? null
+          : `Records the Panel's decision: ${decisionLabel.value}, ${myr(decisionAmountSen.value)} of ${myr(claim.value.claimAmountSen)}.`,
 );
 const paymentSen = computed(() => sen(remittanceAmount.value));
 const paymentOver = computed(
@@ -345,6 +361,18 @@ const summary = computed(() => [
 ]);
 const reversedLabel = (payment: { reversedOn?: string | null }) =>
     `Reversed on ${payment.reversedOn}: recorded by mistake, not counted as received.`;
+// Invoice items, ten to a page (as the Create claim page does).
+const LINE_PAGE = 10;
+const linePage = ref(1);
+const lineLastPage = computed(() =>
+    Math.max(1, Math.ceil(claim.value.lines.length / LINE_PAGE)),
+);
+const pagedLines = computed(() =>
+    claim.value.lines.slice(
+        (linePage.value - 1) * LINE_PAGE,
+        linePage.value * LINE_PAGE,
+    ),
+);
 const claimEvents = computed(() => [...claim.value.events].reverse());
 </script>
 
@@ -401,16 +429,17 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
             </template>
 
             <template #rail-collapsed>
-                <V2DisclosureBar title="Claim figures">
-                    <div class="grid gap-3 sm:grid-cols-2">
-                        <V2Stat
-                            v-for="item in rail"
-                            :key="item.label"
-                            :label="item.label"
-                            :value="item.value"
-                        />
-                    </div>
-                </V2DisclosureBar>
+                <section
+                    class="grid grid-cols-2 gap-3 rounded-[14px] border bg-card p-4 lg:grid-cols-4"
+                    aria-label="Claim figures"
+                >
+                    <V2Stat
+                        v-for="item in rail"
+                        :key="item.label"
+                        :label="item.label"
+                        :value="item.value"
+                    />
+                </section>
             </template>
 
             <template #main>
@@ -584,7 +613,7 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                             </tr>
                         </template>
                         <template #body>
-                            <tr v-for="line in claim.lines" :key="line.number">
+                            <tr v-for="line in pagedLines" :key="line.number">
                                 <td
                                     data-label="Item name"
                                     data-primary
@@ -610,6 +639,14 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                             </tr>
                         </template>
                     </V2Table>
+                    <V2Pager
+                        v-if="lineLastPage > 1"
+                        :current-page="linePage"
+                        :last-page="lineLastPage"
+                        :total="claim.lines.length"
+                        :per-page="LINE_PAGE"
+                        @change="(value) => (linePage = value)"
+                    />
                     <p class="text-xs text-muted-foreground">
                         Total: {{ claim.lines.length }} items
                     </p>
@@ -919,15 +956,22 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
             :title="open ? titles[open] : ''"
             :confirm-label="open ? confirmLabels[open] : 'Save'"
             :busy="busy"
-            :confirm-disabled="open === 'payment' && paymentOver"
-            confirm-disabled-reason="Enter an amount that is not more than what is still outstanding."
+            :confirm-disabled="
+                (open === 'payment' && paymentOver) ||
+                (open === 'decision' && partialInvalid)
+            "
+            :confirm-disabled-reason="
+                open === 'decision'
+                    ? 'Enter an amount above RM 0.00 and below the claimed amount.'
+                    : 'Enter an amount that is not more than what is still outstanding.'
+            "
             @confirm="confirmDialog()"
         >
             <div v-if="open" class="grid gap-3">
                 <template v-if="open === 'amount'">
                     <V2MoneyInput
                         v-model="amount"
-                        label="Claim amount (MYR)"
+                        label="Claim amount"
                         required
                     />
                     <V2Field
@@ -1026,7 +1070,7 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                     <V2MoneyInput
                         v-if="decision === 'partially_accepted'"
                         v-model="acceptedAmount"
-                        label="Accepted amount (MYR; enter 0 if rejected)"
+                        label="Accepted amount"
                         required
                     />
                     <p v-else class="text-sm">
@@ -1041,6 +1085,16 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                                     : '(nothing accepted)'
                             }}
                         </span>
+                    </p>
+                    <p
+                        v-if="partialInvalid"
+                        class="text-sm text-destructive"
+                        role="alert"
+                    >
+                        Partially accepted needs an amount above RM 0.00 and
+                        below the claimed {{ myr(claim.claimAmountSen) }}. For
+                        the full amount choose Accepted; for nothing choose
+                        Rejected.
                     </p>
                     <p
                         v-if="decisionSentence"
@@ -1082,7 +1136,7 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                     </p>
                     <V2MoneyInput
                         v-model="remittanceAmount"
-                        label="Amount received (MYR)"
+                        label="Amount received"
                         required
                     />
                     <p

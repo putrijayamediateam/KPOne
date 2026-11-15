@@ -106,8 +106,6 @@ test('the Classic wording the Version 2 page keeps', () => {
         'Panel portal reference (optional)',
         'Query details',
         'Decision details',
-        'Accepted amount (MYR; enter 0 if rejected)',
-        'Amount received (MYR)',
         'Date received',
         'Panel payment reference (optional)',
         'Save claim amount',
@@ -183,6 +181,27 @@ test('the Version 2 wording the Lead UI/UX Designer approved', () => {
     assert.match(page, /Copying was blocked\./);
     // Classic keeps its own wording.
     assert.ok(classic.includes('Edit claim amount'));
+});
+
+test('invoice items are ten to a page, the figures show at every width, the crumb is Panel > Panel claims', () => {
+    assert.match(page, /LINE_PAGE = 10/);
+    assert.match(page, /<V2Pager/);
+    assert.match(page, /v-for="line in pagedLines"/);
+    assert.ok(!page.includes('V2DisclosureBar'));
+    assert.match(page, /#rail-collapsed/);
+    assert.match(page, /title: 'Panel claims', href: '\/panel-claims'/);
+    assert.match(page, /usePageCrumbs/);
+    // The prefix is RM: no "(MYR)" in the V2 labels.
+    assert.ok(!/\(MYR/.test(page));
+    // Partially accepted needs 0 < accepted < claimed, otherwise the save stays off.
+    assert.match(page, /partialInvalid/);
+    assert.match(
+        page,
+        /decisionAmountSen\.value >= claim\.value\.claimAmountSen/,
+    );
+    // Phone and IC are shown exactly as Classic shows them (no masking in Classic, so none here).
+    assert.ok(!classic.includes('Masked'));
+    assert.ok(!page.includes('V2MaskedValue'));
 });
 
 test('a dialog closes only after a request finished without an error, and checks what Classic required', () => {
