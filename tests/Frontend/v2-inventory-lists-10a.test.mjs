@@ -216,3 +216,37 @@ test('page 10a: Branch replenishment ticks into the selection bar and the sheet 
         /Creates a stock request only\. No stock moves until it is approved and sent\./,
     );
 });
+
+test("page 10a: Daniel's changes, disclosure bars, a full-size supplier note and compact Stock health cards", () => {
+    // The method notes use V2DisclosureBar (it has the chevron), never a bare <details>.
+    for (const key of ['health', 'reorder', 'replenish']) {
+        assert.match(v2[key].template, /<V2DisclosureBar title="How /);
+        assert.ok(!v2[key].template.includes('<details'));
+    }
+
+    // The no-supplier note is the row's own size, with the link on its own line.
+    assert.match(
+        v2.reorder.flat,
+        /<div v-else class="flex min-w-0 flex-col gap-1 text-sm" ?>/,
+    );
+    assert.match(v2.reorder.flat, />Set one in Supplier price list<\/Link/);
+    assert.ok(
+        !v2.reorder.flat.includes('text-xs text-muted-foreground" > None set'),
+    );
+    // Ticks use the table's own select cell on cards.
+    assert.match(v2.reorder.flat, /<td v-if="canTick" data-select>/);
+    assert.match(
+        v2.replenish.flat,
+        /<td v-if="suggestions\.canRequest" data-select>/,
+    );
+    // Stock health cards: the medicine across the top, then two columns.
+    assert.match(v2.health.flat, /class="v2-health-cards"/);
+    assert.match(
+        v2.health.source,
+        /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/,
+    );
+    assert.match(
+        v2.health.source,
+        /td\[data-primary\]\) \{\s*grid-column: 1 \/ -1;/,
+    );
+});

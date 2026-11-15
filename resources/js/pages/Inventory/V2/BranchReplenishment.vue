@@ -4,6 +4,7 @@ import { computed, reactive, ref } from 'vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
+import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
 import V2SelectionBar from '@/components/v2/V2SelectionBar.vue';
 import V2Table from '@/components/v2/V2Table.vue';
@@ -239,23 +240,17 @@ const lineCount = computed(() => draft.lines.length);
             :description="`${suggestions.branchName} · Other branches at or below their reorder level, and stock this branch can spare. Nothing is sent from this page.`"
         >
             <template #main>
-                <details
-                    class="rounded-[14px] border bg-card px-4 py-3 text-sm"
-                    data-testid="replenishment-method"
-                >
-                    <summary
-                        class="flex min-h-11 cursor-pointer items-center font-medium lg:min-h-9"
-                    >
-                        How the suggestion is worked out
-                    </summary>
-                    <p class="pt-2">
-                        Their need is what brings them up to their maximum (or
-                        reorder level). What we can spare is our usable stock
-                        above our own level, less what is already waiting to be
-                        sent. The suggestion is the smaller of the two, in whole
-                        units.
-                    </p>
-                </details>
+                <div data-testid="replenishment-method">
+                    <V2DisclosureBar title="How the suggestion is worked out">
+                        <p class="text-sm">
+                            Their need is what brings them up to their maximum
+                            (or reorder level). What we can spare is our usable
+                            stock above our own level, less what is already
+                            waiting to be sent. The suggestion is the smaller of
+                            the two, in whole units.
+                        </p>
+                    </V2DisclosureBar>
+                </div>
 
                 <form
                     class="flex min-w-0 flex-wrap items-end gap-2"
@@ -328,10 +323,7 @@ const lineCount = computed(() => draft.lines.length);
                         </template>
                         <template #body>
                             <tr v-for="row in suggestions.rows" :key="row.key">
-                                <td
-                                    v-if="suggestions.canRequest"
-                                    data-label="Include in a request"
-                                >
+                                <td v-if="suggestions.canRequest" data-select>
                                     <span
                                         class="-m-3 inline-flex min-h-11 min-w-11 items-center justify-center"
                                         ><Checkbox

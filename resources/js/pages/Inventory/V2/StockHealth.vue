@@ -3,6 +3,7 @@ import { Head, Link, router } from '@inertiajs/vue3';
 import { ref } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
 import V2Stat from '@/components/v2/V2Stat.vue';
@@ -155,33 +156,27 @@ const choosePeriod = (value: string | null) => {
                     />
                 </div>
 
-                <details
-                    class="rounded-[14px] border bg-card px-4 py-3 text-sm"
-                    data-testid="stock-health-method"
-                >
-                    <summary
-                        class="flex min-h-11 cursor-pointer items-center font-medium lg:min-h-9"
-                    >
-                        How these figures are worked out
-                    </summary>
-                    <div class="flex flex-col gap-2 pt-2">
-                        <p>
-                            <strong>Used</strong> is what was dispensed or used
-                            in a treatment room in the period.
-                            <strong>Days on hand</strong> is the usable stock
-                            now ÷ the average use a day.
-                            <strong>Turnover</strong> is used ÷ the average
-                            stock held. <strong>Expiry loss</strong> is the
-                            stock written off as expired ÷ (used + all
-                            write-offs). Longest on hand first; stock with no
-                            use in the period comes first of all.
-                        </p>
-                        <p class="text-muted-foreground">
-                            No money figures: stock value waits for the clinic's
-                            cost policy.
-                        </p>
-                    </div>
-                </details>
+                <div data-testid="stock-health-method">
+                    <V2DisclosureBar title="How these figures are worked out">
+                        <div class="flex flex-col gap-2 text-sm">
+                            <p>
+                                <strong>Used</strong> is what was dispensed or
+                                used in a treatment room in the period.
+                                <strong>Days on hand</strong> is the usable
+                                stock now ÷ the average use a day.
+                                <strong>Turnover</strong> is used ÷ the average
+                                stock held. <strong>Expiry loss</strong> is the
+                                stock written off as expired ÷ (used + all
+                                write-offs). Longest on hand first; stock with
+                                no use in the period comes first of all.
+                            </p>
+                            <p class="text-muted-foreground">
+                                No money figures: stock value waits for the
+                                clinic's cost policy.
+                            </p>
+                        </div>
+                    </V2DisclosureBar>
+                </div>
 
                 <section
                     class="flex min-w-0 flex-col gap-3"
@@ -194,6 +189,7 @@ const choosePeriod = (value: string | null) => {
                         Stock by SKU and location ({{ health.total }})
                     </h2>
                     <V2Table
+                        class="v2-health-cards"
                         label="Stock health by SKU"
                         :columns="6"
                         cards="xl"
@@ -388,6 +384,28 @@ const choosePeriod = (value: string | null) => {
         text-align: left;
     }
     :deep(.v2-cards-xl td[data-stack] .text-right) {
+        text-align: left;
+    }
+    /* Daniel (page 10a): compact cards, the medicine on top, then a two-column label and value grid, so a card is about
+       half as tall. Same fields and words as the table. */
+    :deep(.v2-health-cards.v2-cards-xl tbody tr) {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        column-gap: 1rem;
+        padding: 0.5rem 0.75rem;
+    }
+    :deep(.v2-health-cards.v2-cards-xl td) {
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: flex-start;
+        gap: 0.125rem;
+        padding: 0.375rem 0 !important;
+        text-align: left !important;
+    }
+    :deep(.v2-health-cards.v2-cards-xl td[data-primary]) {
+        grid-column: 1 / -1;
+    }
+    :deep(.v2-health-cards.v2-cards-xl td .text-right) {
         text-align: left;
     }
 }

@@ -4,6 +4,7 @@ import { computed, ref } from 'vue';
 import { Checkbox } from '@/components/ui/checkbox';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
 import V2SelectionBar from '@/components/v2/V2SelectionBar.vue';
@@ -147,23 +148,18 @@ const leadDays = (days: number) => `${days} ${days === 1 ? 'day' : 'days'}`;
             :description="`${suggestions.branchName} · Stock at or below its reorder level, with a suggested order. Nothing is ordered from this page.`"
         >
             <template #main>
-                <details
-                    class="rounded-[14px] border bg-card px-4 py-3 text-sm"
-                    data-testid="reorder-method"
-                >
-                    <summary
-                        class="flex min-h-11 cursor-pointer items-center font-medium lg:min-h-9"
-                    >
-                        How the suggestion is worked out
-                    </summary>
-                    <p class="pt-2">
-                        Suggested = reorder level − on hand − on order −
-                        incoming + {{ suggestions.lookBackDays }}-day average
-                        use × lead time, rounded up to whole packs and at least
-                        the supplier's minimum order. Where a maximum is set,
-                        the maximum is used instead of the reorder level.
-                    </p>
-                </details>
+                <div data-testid="reorder-method">
+                    <V2DisclosureBar title="How the suggestion is worked out">
+                        <p class="text-sm">
+                            Suggested = reorder level − on hand − on order −
+                            incoming + {{ suggestions.lookBackDays }}-day
+                            average use × lead time, rounded up to whole packs
+                            and at least the supplier's minimum order. Where a
+                            maximum is set, the maximum is used instead of the
+                            reorder level.
+                        </p>
+                    </V2DisclosureBar>
+                </div>
                 <p
                     v-if="!suggestions.canSeeCost"
                     class="text-sm text-muted-foreground"
@@ -251,7 +247,7 @@ const leadDays = (days: number) => `${days} ${days === 1 ? 'day' : 'days'}`;
                         </template>
                         <template #body>
                             <tr v-for="row in suggestions.rows" :key="row.key">
-                                <td v-if="canTick" data-label="Ask for this">
+                                <td v-if="canTick" data-select>
                                     <span
                                         v-if="needsOrder(row)"
                                         class="-m-3 inline-flex min-h-11 min-w-11 items-center justify-center"
@@ -479,19 +475,22 @@ const leadDays = (days: number) => `${days} ${days === 1 ? 'day' : 'days'}`;
                                             }}</span
                                         >
                                     </div>
-                                    <p
+                                    <div
                                         v-else
-                                        class="text-xs text-muted-foreground"
+                                        class="flex min-w-0 flex-col gap-1 text-sm"
                                     >
-                                        None set. The suggestion is in whole
-                                        stock units with no lead time. Set one
-                                        in
+                                        <span class="text-muted-foreground"
+                                            >None set. The suggestion is in
+                                            whole stock units with no lead
+                                            time.</span
+                                        >
                                         <Link
                                             href="/inventory/supplier-terms"
-                                            class="text-primary underline underline-offset-4"
-                                            >Supplier price list</Link
-                                        >.
-                                    </p>
+                                            class="w-fit text-primary underline underline-offset-4"
+                                            >Set one in Supplier price
+                                            list</Link
+                                        >
+                                    </div>
                                 </td>
                             </tr>
                         </template>
