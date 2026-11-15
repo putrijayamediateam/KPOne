@@ -81,10 +81,6 @@ test('Daniel: the working-days line says Counting… while the server works, nev
         /preview\.counting = Boolean\(\s*applyForm\.leave_type_id &&\s*applyForm\.start_date &&\s*applyForm\.end_date,?\s*\);/,
     );
     assert.match(
-        composable,
-        /previewInFlight = null;\s*preview\.counting = false;/,
-    );
-    assert.match(
         template,
         /role="status"\s+aria-live="polite"\s+data-test="apply-summary"/,
     );
@@ -128,10 +124,59 @@ test('Daniel (b): weekends and public holidays are shaded with words and a visib
     assert.match(script, /`Public holiday: \$\{day\.holiday\}`/);
     assert.match(script, /Sat: 'Saturday'/);
     assert.match(template, /data-test="day-mark"/);
+    // A working day reads "M / 2"; a shaded day drops the letter and reads "28 / Sat".
+    assert.match(
+        template,
+        /<span\s+v-if="!dayMark\(day\)"\s+class="block"\s+aria-hidden="true"\s*>\{\{ day\.weekday\[0\] \}\}<\/span/,
+    );
     assert.match(template, /<span\s+v-if="dayWords\(day\)"\s+class="sr-only"/);
-    // Cells stay "on leave" or "half day" only.
-    assert.match(composable, /cell === 'half' \? 'half day' : 'on leave'/);
+    // Each mark has a spoken name per person and day, "On leave" or "Half day leave" only.
+    assert.match(
+        script,
+        /`\$\{name\}, \$\{label\}: \$\{cell === 'half' \? 'Half day leave' : 'On leave'\}`/,
+    );
+    assert.match(
+        template,
+        /class="sr-only"\s+data-test="cell-name"\s*>\{\{\s*spokenCell\(\s*row\.name,\s*day\.label,\s*row\.cells\[day\.date\],?\s*\)/,
+    );
+    assert.match(template, /:key="`\$\{i\}-\$\{row\.name\}`"/);
     const calendarSection =
         template.match(/<!-- Team calendar -->[\s\S]*?<\/section>/)?.[0] ?? '';
     assert.doesNotMatch(calendarSection, /\.type\b|\.reason\b/);
+});
+
+test('Daniel: the leave type is option chips, and Send request is faded until the choices are made', () => {
+    assert.match(
+        template,
+        /<V2OptionGroup[\s\S]*?:options="typeOptions"\s+label="Leave type"\s+required/,
+    );
+    const applySheet = template.slice(
+        template.indexOf('title="Apply for leave"'),
+        template.indexOf('title="Evidence"'),
+    );
+    assert.doesNotMatch(applySheet, /OperationalSelect[^>]*label="Leave type"/);
+    assert.match(script, /'Choose a leave type to continue\.'/);
+    assert.match(script, /'Choose the start date to continue\.'/);
+    assert.match(script, /'Choose the end date to continue\.'/);
+    assert.match(template, /:confirm-disabled="applyMissing !== ''"/);
+    assert.match(template, /:confirm-disabled-reason="applyMissing"/);
+});
+
+test('Daniel: "Booked" is explained once in words under the balance heading', () => {
+    assert.match(
+        template,
+        /data-test="booked-note"\s*>\s*Booked: waiting for approval, or approved\s+and not yet started\./,
+    );
+});
+
+test('Suresh M1: each day-count check has a number, so an older answer never shows for new dates', () => {
+    assert.match(composable, /let previewSeq = 0;/);
+    assert.match(composable, /const seq = \+\+previewSeq;/);
+    assert.match(composable, /if \(seq !== previewSeq\) \{\s*return;\s*\}/);
+    assert.match(
+        composable,
+        /if \(seq === previewSeq\) \{\s*preview\.counting = false;\s*\}/,
+    );
+    // A changed field makes the running check stale.
+    assert.match(composable, /clearTimeout\(previewTimer\);\s*previewSeq\+\+;/);
 });

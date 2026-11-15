@@ -352,19 +352,26 @@ export function useLeavePage(props: LeavePageProps) {
     // could overwrite the validation errors of the send, and the sheet would close with nothing shown. So a send first
     // cancels a waiting check and waits for one already running.
     let previewInFlight: Promise<void> | null = null;
+    // Each check has a number (Suresh, V2 Leave review). A changed field or a newer check makes an older check stale:
+    // its answer is dropped and it never clears "Counting…", so the line never shows a number for other dates.
+    let previewSeq = 0;
     const runPreview = () => {
         if (applyForm.processing) {
             return Promise.resolve();
         }
 
-        previewInFlight = fetchPreview().finally(() => {
+        const seq = ++previewSeq;
+        previewInFlight = fetchPreview(seq).finally(() => {
             previewInFlight = null;
-            preview.counting = false;
+
+            if (seq === previewSeq) {
+                preview.counting = false;
+            }
         });
 
         return previewInFlight;
     };
-    const fetchPreview = async () => {
+    const fetchPreview = async (seq: number) => {
         preview.text = '';
         preview.error = '';
 
@@ -399,6 +406,10 @@ export function useLeavePage(props: LeavePageProps) {
             shortfall?: string | null;
             errors?: Record<string, string>;
         };
+
+        if (seq !== previewSeq) {
+            return;
+        }
 
         if (!response.ok) {
             preview.error = Object.values(data.errors ?? {})[0] ?? '';
@@ -439,6 +450,7 @@ export function useLeavePage(props: LeavePageProps) {
                 'end_part',
             );
             clearTimeout(previewTimer);
+            previewSeq++;
             preview.counting = Boolean(
                 applyForm.leave_type_id &&
                 applyForm.start_date &&
@@ -490,6 +502,7 @@ export function useLeavePage(props: LeavePageProps) {
     const sendApply = async () => {
         clearTimeout(previewTimer);
         await previewInFlight?.catch(() => undefined);
+
         // A check still waiting was cancelled above: its old number is not for these dates (V2 "Counting…").
         if (preview.counting) {
             preview.counting = false;
@@ -506,6 +519,12 @@ export function useLeavePage(props: LeavePageProps) {
                 preserveScroll: true,
                 forceFormData: applyForm.evidence_files.length > 0,
                 onSuccess: () => (applyOpen.value = false),
+                // A field changed while the send ran: its check was skipped, so run it now (Suresh m1).
+                onFinish: () => {
+                    if (preview.counting && applyOpen.value) {
+                        void runPreview();
+                    }
+                },
             });
     };
 

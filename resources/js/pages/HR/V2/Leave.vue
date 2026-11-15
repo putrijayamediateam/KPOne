@@ -122,7 +122,6 @@ const {
     typeName,
     calendar,
     branchName,
-    cellName,
     calendarDays,
 } = useLeavePage(props);
 
@@ -144,7 +143,21 @@ const requestTone = {
 } as const;
 
 const typeOptions = computed(() =>
-    (props.leave.my?.types ?? []).map((t) => ({ value: t.id, label: t.name })),
+    (props.leave.my?.types ?? []).map((t) => ({
+        value: String(t.id),
+        label: t.name,
+    })),
+);
+
+// Daniel: "Send request" is faded until the required choices are made, and says what is missing in words.
+const applyMissing = computed(() =>
+    applyForm.leave_type_id === ''
+        ? 'Choose a leave type to continue.'
+        : applyForm.start_date === ''
+          ? 'Choose the start date to continue.'
+          : applyForm.end_date === ''
+            ? 'Choose the end date to continue.'
+            : '',
 );
 
 // The apply sheet's files (Daniel): a file chooser with a spoken state line.
@@ -235,6 +248,9 @@ const dayWords = (day: {
         : day.working
           ? ''
           : (weekdayNames[day.weekday] ?? day.weekday);
+// Daniel: every mark has a spoken name, per person and day: "On leave" or "Half day leave", never the type or reason.
+const spokenCell = (name: string, label: string, cell: 'full' | 'half') =>
+    `${name}, ${label}: ${cell === 'half' ? 'Half day leave' : 'On leave'}`;
 const shaded = (day: { holiday: string | null; working: boolean }) =>
     day.holiday !== null || !day.working;
 
@@ -304,9 +320,18 @@ const inputClass =
                             </p>
                         </div>
                         <template v-else>
-                            <h3 class="text-base font-semibold">
-                                Balance for {{ leave.today.slice(0, 4) }}
-                            </h3>
+                            <div class="flex flex-col gap-1">
+                                <h3 class="text-base font-semibold">
+                                    Balance for {{ leave.today.slice(0, 4) }}
+                                </h3>
+                                <p
+                                    class="text-[13px] text-muted-foreground"
+                                    data-test="booked-note"
+                                >
+                                    Booked: waiting for approval, or approved
+                                    and not yet started.
+                                </p>
+                            </div>
                             <ul
                                 class="grid gap-3 sm:grid-cols-2 xl:grid-cols-3"
                                 data-test="balances"
@@ -721,7 +746,9 @@ const inputClass =
                                             "
                                             data-test="calendar-day"
                                         >
+                                            <!-- Daniel: a working day reads "M / 2"; a shaded day "28 / Sat" or "9 / Hol". -->
                                             <span
+                                                v-if="!dayMark(day)"
                                                 class="block"
                                                 aria-hidden="true"
                                                 >{{ day.weekday[0] }}</span
@@ -746,8 +773,8 @@ const inputClass =
                                 </template>
                                 <template #body>
                                     <tr
-                                        v-for="row in calendar.rows"
-                                        :key="row.name"
+                                        v-for="(row, i) in calendar.rows"
+                                        :key="`${i}-${row.name}`"
                                     >
                                         <th
                                             scope="row"
@@ -772,13 +799,17 @@ const inputClass =
                                                         ? '½'
                                                         : '•'
                                                 }}</span
-                                                ><span class="sr-only">{{
-                                                    cellName(
-                                                        row.name,
-                                                        day.label,
-                                                        row.cells[day.date],
-                                                    )
-                                                }}</span></span
+                                                ><span
+                                                    class="sr-only"
+                                                    data-test="cell-name"
+                                                    >{{
+                                                        spokenCell(
+                                                            row.name,
+                                                            day.label,
+                                                            row.cells[day.date],
+                                                        )
+                                                    }}</span
+                                                ></span
                                             >
                                         </td>
                                     </tr>
@@ -1599,6 +1630,8 @@ const inputClass =
             "
             size="tall"
             :busy="applyForm.processing"
+            :confirm-disabled="applyMissing !== ''"
+            :confirm-disabled-reason="applyMissing"
             @update:open="applyOpen = $event"
             @confirm="sendApply"
         >
@@ -1607,22 +1640,20 @@ const inputClass =
                 data-test="apply-form"
                 @submit.prevent="sendApply"
             >
-                <V2Field
-                    v-slot="{ id, describedBy, invalid }"
+                <!-- Daniel: the leave type is a set of option chips, as the plan said. -->
+                <V2OptionGroup
+                    :model-value="
+                        applyForm.leave_type_id === ''
+                            ? null
+                            : String(applyForm.leave_type_id)
+                    "
+                    :options="typeOptions"
                     label="Leave type"
                     required
                     :error="applyForm.errors.leave_type_id"
-                >
-                    <OperationalSelect
-                        :id="id"
-                        v-model="applyForm.leave_type_id"
-                        :options="typeOptions"
-                        label="Leave type"
-                        placeholder="Choose a leave type"
-                        :aria-describedby="describedBy"
-                        :invalid="invalid"
-                    />
-                </V2Field>
+                    data-test="apply-type"
+                    @update:model-value="applyForm.leave_type_id = $event ?? ''"
+                />
                 <div class="grid gap-4 sm:grid-cols-2 sm:items-start">
                     <V2DateField
                         v-model="applyForm.start_date"
@@ -1913,7 +1944,10 @@ const inputClass =
                 :options="removalReasons"
                 label="Reason"
                 required
-                @update:model-value="removal.reason = $event ?? ''"
+                @update:model-value="
+                    removal.reason = $event ?? '';
+                    removal.error = '';
+                "
             />
             <p
                 v-if="removal.error"
@@ -1960,7 +1994,10 @@ const inputClass =
                     <Checkbox
                         :model-value="action.evidenceSeen"
                         @update:model-value="
-                            (v) => (action.evidenceSeen = v === true)
+                            (v) => {
+                                action.evidenceSeen = v === true;
+                                action.error = '';
+                            }
                         "
                     />
                     Evidence seen
@@ -1971,7 +2008,10 @@ const inputClass =
                     :options="actionReasons"
                     label="Reason"
                     required
-                    @update:model-value="action.reason = $event ?? ''"
+                    @update:model-value="
+                        action.reason = $event ?? '';
+                        action.error = '';
+                    "
                 />
                 <p
                     v-if="action.error"
