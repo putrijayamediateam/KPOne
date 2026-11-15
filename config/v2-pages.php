@@ -62,6 +62,7 @@ return [
         'Inventory/Recalls',
         'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
+        'Attendance/Index',
         'MedicalCertificates/Index',
         'Visits/History',
         'Referrals/Index',
