@@ -166,7 +166,7 @@ const linkButton =
                 </div>
 
                 <div
-                    class="grid gap-4 md:grid-cols-2"
+                    class="grid items-start gap-4 md:grid-cols-2"
                     data-testid="history-patient"
                 >
                     <section :class="card">
@@ -565,7 +565,10 @@ const linkButton =
                             >
                                 No printable documents for your access.
                             </p>
-                            <ul v-else class="grid gap-1 text-sm">
+                            <ul
+                                v-else
+                                class="grid gap-1 text-sm [&_button]:h-auto [&_button]:max-w-full [&_button]:text-left [&_button]:break-all [&_button]:whitespace-normal"
+                            >
                                 <li v-if="history.financial?.printUrl">
                                     <IssuePrintButton
                                         :url="
@@ -597,10 +600,12 @@ const linkButton =
             </template>
 
             <template #rail>
-                <div data-testid="history-financial" class="grid gap-4">
+                <div data-testid="history-financial" class="grid min-w-0 gap-4">
                     <section v-if="history.financial" :class="card">
                         <div class="flex items-center justify-between gap-2">
-                            <h2 class="text-base font-semibold">
+                            <h2
+                                class="min-w-0 text-base font-semibold break-all"
+                            >
                                 Invoice {{ history.financial.invoiceNumber }}
                             </h2>
                             <span
@@ -619,7 +624,8 @@ const linkButton =
                             >
                                 <span class="min-w-0 break-words">
                                     {{ line.name }}
-                                    <span class="text-xs text-muted-foreground"
+                                    <span
+                                        class="text-xs whitespace-nowrap text-muted-foreground"
                                         >{{ line.quantity }} ×
                                         {{ myr(line.unitPriceSen) }}</span
                                     >
