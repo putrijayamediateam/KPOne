@@ -459,6 +459,17 @@ order, each its own PR:
     (Daniel, 2026-11-13).** On the V2 case page, give scan to check one help sentence ("Scanning only checks. It doesn't
     save anything or check the quantity or batch.") and hide the camera button where the device can't use it. Until the
     option lands, the camera sentence stays.
+27. **Print pages stay Classic in V2 (B.E.R.N.I.S.S for the owner, 2026-11-15, option (a)).** The drug label preview
+    (`Dispensary/Labels`) and the other bare print pages get no V2 version. They open in a new tab with no layout, and
+    their printed output must stay byte-identical; a V2 file would be wrapped in the V2 shell by `app.ts`. The V2 case
+    and Completed pages link to the Classic preview.
+28. **V2 Completed page — frame in #813; the returns step (V2 copies of the returns section and check panel, record and
+    each check in sheets) built on `feature/v2-dispensary-completed-returns`, waiting for Daniel (which check is red)
+    and Hakim.**
+29. **Classic: focus after a return check — not built.** After a Dispose, Quarantine or Refuse, the check panel unmounts
+    with the row's `canCheck`, so its `checked` event may never reach the section and focus can fall to the page. The V2
+    section fixes this for V2; Classic needs the same small follow-up if the coordinator asks for it.
+
 
 Team rules for this backlog: run the PHPStan stopgap before each push; migration timestamps from
 `2026_11_06_200000` up.
