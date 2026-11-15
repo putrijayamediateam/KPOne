@@ -1,10 +1,12 @@
 <script setup lang="ts">
+import { computed } from 'vue';
+
 /**
  * Version 2 patient pick row (the recent-patients list): name, KP number, masked identifier and date of birth.
  * The selected row has a success tint and a check. Put rows in V2PatientPickList, which makes them one radio group
  * with arrow keys (`tabStop` is the roving tab stop). A 56px row; the whole row is the button.
  */
-defineProps<{
+const props = defineProps<{
     name: string;
     kpNumber: string;
     maskedIdentifier?: string;
@@ -12,6 +14,21 @@ defineProps<{
     selected: boolean;
     tabStop?: boolean;
 }>();
+
+// What a screen reader says. The visible text stays masked ("******-**-1234"); only this name says "ending 1234", so
+// the masked dots are not read out one by one.
+const spokenName = computed(() => {
+    const ending = props.maskedIdentifier?.match(/([A-Za-z0-9]{1,4})$/)?.[1];
+
+    return [
+        props.name,
+        props.kpNumber,
+        props.dateOfBirth ? `born ${props.dateOfBirth}` : null,
+        ending ? `identifier ending ${ending}` : null,
+    ]
+        .filter(Boolean)
+        .join(', ');
+});
 
 const emit = defineEmits<{ select: [] }>();
 </script>
@@ -22,6 +39,7 @@ const emit = defineEmits<{ select: [] }>();
         type="button"
         role="radio"
         :aria-checked="selected"
+        :aria-label="spokenName"
         :tabindex="tabStop === false ? -1 : 0"
         class="flex min-h-14 w-full items-center gap-3 rounded-[10px] border px-3 py-2 text-left outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
         :class="

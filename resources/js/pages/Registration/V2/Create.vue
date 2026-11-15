@@ -14,6 +14,7 @@ import V2Chip from '@/components/v2/V2Chip.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
+import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2PatientPickList from '@/components/v2/V2PatientPickList.vue';
 import V2SearchCombobox from '@/components/v2/V2SearchCombobox.vue';
@@ -70,8 +71,10 @@ const patientOptions = computed(() =>
         }`,
     })),
 );
+// The list sits in a narrow card: show the six most recent and say how to find the others.
+const RECENT_SHOWN = 6;
 const pickList = computed(() =>
-    props.recentPatients.map((patient) => ({
+    props.recentPatients.slice(0, RECENT_SHOWN).map((patient) => ({
         value: patient.patientNumber,
         name: patient.fullName,
         kpNumber: patient.patientNumber,
@@ -81,6 +84,13 @@ const pickList = computed(() =>
             ? formatDate(patient.dateOfBirth)
             : undefined,
     })),
+);
+// Unsaved work: a chosen patient, a new patient being typed, or any changed visit field.
+const dirty = computed(
+    () =>
+        form.isDirty ||
+        !!selectedPatient.value ||
+        (quickMode.value && quick.value.full_name.trim() !== ''),
 );
 const findPatient = (number: string) =>
     [...patientResults.value, ...props.recentPatients].find(
@@ -146,9 +156,11 @@ const inputClass =
 <template>
     <Head title="Register visit" />
     <PageFrame width="wide">
+        <V2LeaveGuard :dirty="dirty && !form.processing" />
         <V2WorkLayout
             title="Register visit"
             :description="`${options.branch.name} · current branch. Pick the patient, then the visit details.`"
+            rail-from="xl"
             rail-width="narrow"
         >
             <template #actions>
@@ -254,6 +266,10 @@ const inputClass =
                                 :patients="pickList"
                                 @update:model-value="pick"
                             />
+                            <p class="mt-2 text-[13px] text-muted-foreground">
+                                Showing the {{ pickList.length }} most recent.
+                                Search to find others.
+                            </p>
                         </div>
                         <div
                             v-if="
