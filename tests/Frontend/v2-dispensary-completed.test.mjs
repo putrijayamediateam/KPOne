@@ -152,7 +152,7 @@ test('one filled button on the page: Record a return and each check open V2 shee
     assert.match(panel, /if \(validate\(\)\) \{\s+submit\(\);/);
 });
 
-test("the sheets' words: summary first, reason prompts, footer sentences, Refuse red, a discard guard (Daniel)", () => {
+test("the sheets' words: summary first, footer notes, the buttons off with the reason, Dispose and Refuse red (Daniel)", () => {
     const section = read(
         'resources/js/pages/Dispensary/V2/Partials/MedicineReturnsSection.vue',
     );
@@ -161,8 +161,15 @@ test("the sheets' words: summary first, reason prompts, footer sentences, Refuse
     );
     assert.match(template(section), /data-testid="return-form-summary"/);
     assert.match(template(panel), /data-testid="return-check-summary"/);
-    assert.match(template(section), /Pick a reason to continue\./);
-    assert.match(template(panel), /Pick a reason to continue\./);
+    // The decision sentence sits in the pinned footer, beside the button.
+    assert.match(
+        template(section),
+        /<template #footer-note>[\s\S]*?data-testid="return-form-footer"/,
+    );
+    assert.match(
+        template(panel),
+        /<template #footer-note>[\s\S]*?data-testid="return-check-footer"/,
+    );
     assert.match(
         template(section),
         /Nothing goes back into stock until someone\s+else\s+checks the return\./,
@@ -172,19 +179,53 @@ test("the sheets' words: summary first, reason prompts, footer sentences, Refuse
         /`Moves \$\{amountWords\.value\} to \$\{locationName\.value\}\./,
     );
     assert.match(panel, /No stock change/);
+    // Stock actions are truly off (aria-disabled through V2Dialog) until valid, with the exact reason.
+    assert.match(
+        template(section),
+        /:confirm-disabled="\s*recordBlockedReason\(line\) !== null\s*"/,
+    );
+    assert.match(
+        section,
+        /'Enter a quantity, a reason and a condition to continue\.'/,
+    );
+    assert.match(
+        template(panel),
+        /:confirm-disabled="sheetBlockedReason !== null"/,
+    );
+    assert.match(panel, /`Place all \$\{amountWords\.value\} to continue\.`/);
+    assert.match(panel, /'Pick a reason to continue\.'/);
+    // Dispose (irreversible) and Refuse are red; Quarantine is standard.
     assert.match(
         panel,
-        /tone: 'danger' as const,\s+footer: 'Nothing changes in stock\./,
+        /title: `Dispose \$\{amountWords\.value\}\?`,\s+confirm: `Dispose \$\{amountWords\.value\}`,\s+busy: 'Disposing…',\s+tone: 'danger' as const,/,
     );
-    assert.match(template(section), /title="Discard this return\?"/);
-    assert.match(template(panel), /title="Discard what you entered\?"/);
-    assert.match(section, /if \(recordTyped\.value\) \{/);
+    assert.match(
+        panel,
+        /confirm: 'Refuse return',\s+busy: 'Refusing…',\s+tone: 'danger' as const,/,
+    );
+    assert.match(
+        panel,
+        /confirm: 'Move to returns location',\s+busy: 'Moving…',\s+tone: 'default' as const,/,
+    );
+    // V2Dialog's own discard guard, judged from what was typed.
+    assert.match(template(section), /:dirty="recordTyped"/);
+    assert.match(template(panel), /:dirty="sheetDirty"/);
     assert.ok(
         !/form\.isDirty/.test(section.slice(section.indexOf('---- V2 only'))),
         'the retry key must not count as typing (Hakim)',
     );
     assert.match(template(section), /type="submit"\s+class="sr-only"/);
-    assert.match(panel, /if \(sheetDirty\.value\) \{/);
+    // A cancelled check forgets its row (Hakim).
+    assert.match(panel, /notifySheetClosed\(props\.row\.publicId\);/);
+    assert.match(section, /provide\(RETURN_SHEET_CLOSED,/);
+});
+
+test('the split quarantine shows "Placed 0 of 18 tablets" from the V2 template (Daniel)', () => {
+    const panel = read(
+        'resources/js/pages/Dispensary/V2/Partials/ReturnCheckPanel.vue',
+    );
+    assert.match(template(panel), /\{\{ placedWords \}\}/);
+    assert.ok(!/\{\{ placedText \}\}/.test(template(panel)));
 });
 
 test('read-only quantities use plural unit words (Daniel)', () => {

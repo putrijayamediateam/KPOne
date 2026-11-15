@@ -6,7 +6,7 @@
  */
 import { useForm } from '@inertiajs/vue3';
 import { Ban, PackageOpen, Trash2 } from '@lucide/vue';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, inject, nextTick, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
@@ -21,6 +21,7 @@ import type {
     DispensaryReturnsPanel,
 } from '@/lib/dispensary-returns';
 import { quantityWords } from './quantity-words';
+import { RETURN_SHEET_CLOSED } from './return-sheet';
 
 // DSP-7 step 2 (owner decisions 2026-11-05): a CA Supervisor who did not record the return checks it once. The
 // server repeats every check (checker, controlled medicine, location, batch, already checked).
@@ -327,7 +328,6 @@ const serverAlert = computed(() => {
 
 // ---- V2 only (Daniel): one sheet per check. ----
 const sheetOpen = ref(false);
-const discardOpen = ref(false);
 const outcomeButtons = computed(() =>
     props.row.allowedOutcomes.filter(
         (outcome) => !(props.line.controlled && outcome === 'quarantine'),
@@ -374,7 +374,7 @@ const sheetText = computed(() => {
         title: `Dispose ${amountWords.value}?`,
         confirm: `Dispose ${amountWords.value}`,
         busy: 'Disposing…',
-        tone: 'default' as const,
+        tone: 'danger' as const,
         footer: 'The units are destroyed. No stock change: nothing goes back into stock. This check cannot be undone.',
     };
 });
@@ -400,24 +400,67 @@ const openSheet = (outcome: string) => {
     form.outcome = outcome;
     sheetOpen.value = true;
 };
+// V2Dialog's own `dirty` guard asks "Discard your changes?" before this runs; a close while saving is ignored.
+const notifySheetClosed = inject(RETURN_SHEET_CLOSED, () => {});
 const onSheetOpen = (open: boolean) => {
     if (open || form.processing) {
         return;
     }
 
-    if (sheetDirty.value) {
-        discardOpen.value = true;
-
-        return;
-    }
-
-    sheetOpen.value = false;
-};
-const discard = () => {
-    discardOpen.value = false;
     clearSheet();
     sheetOpen.value = false;
+    notifySheetClosed(props.row.publicId);
 };
+// Daniel: a stock action stays off, with the reason beside it, until it is valid (the server repeats every check).
+const sheetBlockedReason = computed((): string | null => {
+    if (form.outcome === 'quarantine') {
+        if (!form.location_public_id) {
+            return 'Choose a returns location to continue.';
+        }
+
+        if (isSplit.value) {
+            return placed.value === returned.value &&
+                props.line.batches.every(
+                    (batch) =>
+                        (toThousandths(shares.value[batch.publicId] ?? '') ??
+                            -1) >= 0 &&
+                        (toThousandths(shares.value[batch.publicId] ?? '') ??
+                            0) <= available(batch.publicId),
+                )
+                ? null
+                : `Place all ${amountWords.value} to continue.`;
+        }
+
+        return form.batch_public_id
+            ? null
+            : 'Choose the batch the units came from to continue.';
+    }
+
+    if (form.outcome === 'refuse') {
+        if (!form.refuse_reason) {
+            return 'Pick a reason to continue.';
+        }
+
+        return form.refuse_reason === 'other' && form.refuse_note.trim() === ''
+            ? 'Write a short note for Other to continue.'
+            : null;
+    }
+
+    return null;
+});
+// Daniel: the placed line in words ("Placed 0 of 18 tablets · 18 left"); Classic's placedText stays for its announcement.
+const placedWords = computed(() => {
+    const base = `Placed ${quantityWords(fromThousandths(placed.value), props.line.unit)} of ${amountWords.value}`;
+    const difference = returned.value - placed.value;
+
+    if (difference === 0) {
+        return `${base} · All placed`;
+    }
+
+    return difference > 0
+        ? `${base} · ${fromThousandths(difference)} left`
+        : `${base} · ${fromThousandths(-difference)} too many`;
+});
 const confirmSheet = async () => {
     if (form.processing) {
         return;
@@ -518,6 +561,9 @@ const confirmSheet = async () => {
             "
             :tone="sheetText.tone"
             :busy="form.processing"
+            :dirty="sheetDirty"
+            :confirm-disabled="sheetBlockedReason !== null"
+            :confirm-disabled-reason="sheetBlockedReason ?? undefined"
             @update:open="onSheetOpen"
             @confirm="confirmSheet"
         >
@@ -711,7 +757,7 @@ const confirmSheet = async () => {
                             aria-hidden="true"
                             data-testid="return-check-placed"
                         >
-                            {{ placedText }}
+                            {{ placedWords }}
                         </p>
                         <p class="sr-only" role="status" aria-live="polite">
                             {{ placedAnnouncement }}
@@ -833,30 +879,15 @@ const confirmSheet = async () => {
                         >
                     </div>
                 </template>
+            </div>
+            <template #footer-note>
                 <p
-                    v-if="form.outcome === 'refuse' && !form.refuse_reason"
-                    class="text-xs text-muted-foreground"
-                    data-testid="return-check-pick-reason"
-                >
-                    Pick a reason to continue.
-                </p>
-                <p
-                    class="border-t pt-3 text-[13px] text-muted-foreground"
+                    class="text-[13px] text-muted-foreground"
                     data-testid="return-check-footer"
                 >
                     {{ sheetText.footer }}
                 </p>
-            </div>
+            </template>
         </V2Dialog>
-
-        <V2Dialog
-            v-model:open="discardOpen"
-            title="Discard what you entered?"
-            description="The check is not saved. What you typed in this sheet is cleared."
-            confirm-label="Discard"
-            cancel-label="Keep editing"
-            tone="danger"
-            @confirm="discard"
-        />
     </div>
 </template>

@@ -5,7 +5,7 @@
  * sheet, so the page keeps one filled button (Continue to Billing).
  */
 import { useForm } from '@inertiajs/vue3';
-import { computed, nextTick, ref, watch } from 'vue';
+import { computed, nextTick, provide, ref, watch } from 'vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { StatusBadge } from '@/components/ui/status';
@@ -22,6 +22,7 @@ import type {
     DispensaryReturnsPanel,
 } from '@/lib/dispensary-returns';
 import { quantityWords } from './quantity-words';
+import { RETURN_SHEET_CLOSED } from './return-sheet';
 import ReturnCheckPanel from './ReturnCheckPanel.vue';
 
 // DSP-7 step 1 (owner decisions 2026-11-05): the CA or CA Supervisor records medicine the patient brought back.
@@ -240,8 +241,7 @@ const onChecked = async (row: ReturnRow, message: string) => {
         ?.focus();
 };
 
-// ---- V2 only (Daniel): the record form is a sheet, with a guard before typed values are thrown away. ----
-const discardLine = ref<ReturnLine | null>(null);
+// ---- V2 only (Daniel): the record form is a sheet; V2Dialog's own `dirty` guard asks before typed values are lost. ----
 // Hakim: judged from what the CA typed, not the form dirty flag (the retry key changes as the sheet opens).
 const recordTyped = computed(
     () =>
@@ -255,13 +255,21 @@ const onRecordOpen = (open: boolean, line: ReturnLine) => {
         return;
     }
 
-    if (recordTyped.value) {
-        discardLine.value = line;
-
-        return;
+    void closeForm(line);
+};
+// Daniel: "Record return" stays off, with the reason beside it, until the fields are filled (the server repeats every check).
+const recordBlockedReason = (line: ReturnLine): string | null => {
+    if (
+        quantityProblem(line) !== null ||
+        form.reason === '' ||
+        form.condition === ''
+    ) {
+        return 'Enter a quantity, a reason and a condition to continue.';
     }
 
-    void closeForm(line);
+    return form.reason === 'other' && form.note.trim() === ''
+        ? 'Write a short note for Other to continue.'
+        : null;
 };
 // Hakim: after a check the panel (and its sheet) unmounts with the row's canCheck, so its "checked" event can be lost
 // and focus falls to the page. The section remembers which row a check started from, and once the reloaded props show
@@ -307,14 +315,12 @@ watch(
         );
     },
 );
-const discardRecord = () => {
-    const line = discardLine.value;
-    discardLine.value = null;
-
-    if (line) {
-        void closeForm(line);
+// Hakim: a cancelled check forgets its row, so a later reload never announces or moves focus by surprise.
+provide(RETURN_SHEET_CLOSED, (rowPublicId: string) => {
+    if (checkingRow.value === rowPublicId) {
+        checkingRow.value = null;
     }
-};
+});
 </script>
 
 <template>
@@ -447,6 +453,13 @@ const discardRecord = () => {
                                 form.processing ? 'Recording…' : 'Record return'
                             "
                             :busy="form.processing"
+                            :dirty="recordTyped"
+                            :confirm-disabled="
+                                recordBlockedReason(line) !== null
+                            "
+                            :confirm-disabled-reason="
+                                recordBlockedReason(line) ?? undefined
+                            "
                             @update:open="(open) => onRecordOpen(open, line)"
                             @confirm="submit(line)"
                         >
@@ -686,15 +699,16 @@ const discardRecord = () => {
                                     >
                                 </fieldset>
 
+                                <button
+                                    type="submit"
+                                    class="sr-only"
+                                    tabindex="-1"
+                                    aria-hidden="true"
+                                />
+                            </form>
+                            <template #footer-note>
                                 <p
-                                    v-if="!form.reason"
-                                    class="-mt-2 text-xs text-muted-foreground"
-                                    data-testid="return-pick-reason"
-                                >
-                                    Pick a reason to continue.
-                                </p>
-                                <p
-                                    class="border-t pt-3 text-[13px] text-muted-foreground"
+                                    class="text-[13px] text-muted-foreground"
                                     data-testid="return-form-footer"
                                 >
                                     Nothing goes back into stock until someone
@@ -707,13 +721,7 @@ const discardRecord = () => {
                                     A saved return cannot be edited; if it is
                                     wrong, the checker refuses it.
                                 </p>
-                                <button
-                                    type="submit"
-                                    class="sr-only"
-                                    tabindex="-1"
-                                    aria-hidden="true"
-                                />
-                            </form>
+                            </template>
                         </V2Dialog>
 
                         <div v-if="line.returns.length" class="grid gap-2">
@@ -822,15 +830,5 @@ const discardRecord = () => {
                 </article>
             </li>
         </ul>
-        <V2Dialog
-            :open="discardLine !== null"
-            title="Discard this return?"
-            description="It is not recorded. What you typed is cleared."
-            confirm-label="Discard"
-            cancel-label="Keep editing"
-            tone="danger"
-            @update:open="(open) => (open ? null : (discardLine = null))"
-            @confirm="discardRecord"
-        />
     </section>
 </template>
