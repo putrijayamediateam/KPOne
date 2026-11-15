@@ -96,6 +96,11 @@ const dialogOpen = computed({
     },
 });
 const decisionTitle = computed(() => {
+    // After a refusal the sheet says what happened, not the question it started with.
+    if (refused.value) {
+        return 'Could not record your decision';
+    }
+
     const kind = deciding.value?.proposal.typeLabel.toLowerCase() ?? '';
 
     return deciding.value?.action === 'reject'
@@ -379,9 +384,11 @@ const outline =
         v-model:open="dialogOpen"
         :title="decisionTitle"
         :description="
-            deciding?.action === 'reject'
-                ? 'Say briefly why. Do not enter patient details.'
-                : 'This records your decision. It does not change stock.'
+            refused
+                ? undefined
+                : deciding?.action === 'reject'
+                  ? 'Say briefly why. Do not enter patient details.'
+                  : 'This records your decision. It does not change stock.'
         "
         :confirm-label="
             refused
