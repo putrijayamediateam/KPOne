@@ -384,7 +384,7 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
             rail-from="2xl"
             rail-label="Claim figures"
             :description="`${claim.panelName} · invoice ${claim.invoiceNumber} · ${
-                claim.submittedOn
+                claim.submittedOn && claim.status !== 'Prepared'
                     ? `submitted on ${claim.submittedOn}`
                     : `created on ${claim.createdAt}`
             }${claim.updatedBy ? ` · updated by ${claim.updatedBy}` : ''}`"
@@ -1014,6 +1014,10 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                     <p class="text-sm text-muted-foreground">
                         Submit the claim pack manually in the Panel portal, then
                         record the submission here.
+                    </p>
+                    <p class="text-sm font-medium">
+                        Marks this claim as Submitted. KPOne does not send
+                        anything to the Panel.
                     </p>
                     <V2Field label="Panel portal reference (optional)">
                         <template #default="{ id, describedBy }">

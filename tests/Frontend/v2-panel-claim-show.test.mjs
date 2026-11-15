@@ -204,6 +204,12 @@ test('invoice items are ten to a page, the figures show at every width, the crum
     assert.ok(!page.includes('V2MaskedValue'));
 });
 
+test('a Prepared claim says created on, and the submission dialog says nothing is sent', () => {
+    assert.match(page, /claim\.submittedOn && claim\.status !== 'Prepared'/);
+    assert.match(page, /Marks this claim as Submitted\. KPOne does not send/);
+    assert.match(page, /anything to the Panel\./);
+});
+
 test('a dialog closes only after a request finished without an error, and checks what Classic required', () => {
     assert.match(
         page,
