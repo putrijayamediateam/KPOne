@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Organisation\Inventory\Services\StockJournalSummaryService;
 use App\Domain\Organisation\Inventory\Services\StockValuationReportService;
 use Illuminate\Http\Request;
+use Illuminate\Http\Response as HttpResponse;
 use Illuminate\Validation\ValidationException;
 use Inertia\Inertia;
 use Inertia\Response;
@@ -24,5 +26,19 @@ final class StockValuationController extends Controller
         }
 
         return Inertia::render('Inventory/StockValue', ['report' => $report]);
+    }
+
+    /** STK-29: the monthly journal summary CSV (Director only). Nothing is kept on the server. */
+    public function journal(Request $request, StockJournalSummaryService $service, BranchAccessService $branches): HttpResponse
+    {
+        $branch = $branches->activeBranch($request->user());
+        abort_unless($branch !== null && $branch->organisation_id === $request->user()->organisation_id && $branches->hasEffectiveAssignment($request->user(), $branch), 404);
+        $file = $service->csv($request->user(), $branch, $request->only(['branch', 'month']));
+
+        return response($file['csv'], 200, [
+            'Content-Type' => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="'.$file['filename'].'"',
+            'Cache-Control' => 'no-store, private',
+        ]);
     }
 }

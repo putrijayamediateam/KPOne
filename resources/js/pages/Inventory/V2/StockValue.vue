@@ -181,6 +181,107 @@ const show = () => {
     );
 };
 
+// ---- STK-29: monthly journal summary download ----
+const monthNames = [
+    'January',
+    'February',
+    'March',
+    'April',
+    'May',
+    'June',
+    'July',
+    'August',
+    'September',
+    'October',
+    'November',
+    'December',
+];
+/** The shown period, when it is one calendar month (to its last day, or to today for this month); otherwise null. */
+const journalMonth = computed(() => {
+    const { from: f, to: t, today, branch: b } = props.report.filters;
+
+    if (!/^\d{4}-\d{2}-01$/.test(f) || f.slice(0, 7) !== t.slice(0, 7)) {
+        return null;
+    }
+
+    const [year, month] = f.split('-').map(Number);
+    const lastDay = new Date(Date.UTC(year, month, 0)).getUTCDate();
+    const fullMonth =
+        t === `${f.slice(0, 8)}${String(lastDay).padStart(2, '0')}`;
+    const toDate = !fullMonth && t === today;
+
+    if (!fullMonth && !toDate) {
+        return null;
+    }
+
+    return {
+        month: f.slice(0, 7),
+        branch: b,
+        label: `${monthNames[month - 1]} ${year} · ${props.report.scopeLabel} · ${fullMonth && t < today ? 'full month' : 'month to date'}`,
+    };
+});
+const downloading = ref(false);
+const journalError = ref<string | null>(null);
+const journalDone = ref('');
+const downloadJournal = async () => {
+    if (downloading.value || !journalMonth.value) {
+        return;
+    }
+
+    downloading.value = true;
+    journalError.value = null;
+    journalDone.value = '';
+
+    try {
+        const query = new URLSearchParams({
+            branch: journalMonth.value.branch,
+            month: journalMonth.value.month,
+        });
+        const response = await fetch(
+            `/inventory/stock-value/journal?${query}`,
+            {
+                headers: {
+                    Accept: 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                },
+                credentials: 'same-origin',
+            },
+        );
+
+        if (!response.ok) {
+            const body = (await response.json().catch(() => null)) as {
+                message?: string;
+                errors?: Record<string, string[]>;
+            } | null;
+            journalError.value =
+                Object.values(body?.errors ?? {})[0]?.[0] ??
+                body?.message ??
+                'The journal summary could not be prepared. Try again.';
+
+            return;
+        }
+
+        const name =
+            /filename="([^"]+)"/.exec(
+                response.headers.get('Content-Disposition') ?? '',
+            )?.[1] ?? 'kpone-stock-journal.csv';
+        const url = URL.createObjectURL(await response.blob());
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = name;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        journalDone.value = `Downloaded ${name}`;
+    } catch {
+        journalError.value =
+            'The journal summary could not be prepared. Try again.';
+    } finally {
+        downloading.value = false;
+    }
+};
+
 // ---- Summary ----
 // With no medicine sales there is no margin to describe, so no word either.
 const marginStatus = s.salesSen > 0 ? marginWord(s.marginSen) : null;
@@ -347,6 +448,59 @@ const lossHelp: Record<string, string> = {
                         {{ busy ? 'Showing…' : 'Show' }}
                     </button>
                 </form>
+
+                <!-- STK-29: the monthly journal summary CSV, only for one calendar month (Daniel). -->
+                <div
+                    class="flex min-w-0 flex-col gap-1.5"
+                    data-testid="journal-download"
+                >
+                    <template v-if="journalMonth">
+                        <div
+                            class="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5"
+                        >
+                            <button
+                                type="button"
+                                class="inline-flex h-11 w-full items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:w-fit lg:h-9"
+                                :disabled="downloading"
+                                :aria-busy="downloading"
+                                data-testid="journal-button"
+                                @click="downloadJournal"
+                            >
+                                {{
+                                    downloading
+                                        ? 'Preparing…'
+                                        : 'Download journal summary (CSV)'
+                                }}
+                            </button>
+                            <span
+                                class="text-sm text-muted-foreground"
+                                data-testid="journal-scope"
+                                >{{ journalMonth.label }}</span
+                            >
+                        </div>
+                        <p class="text-xs text-muted-foreground">
+                            A management summary only. No real accounting system
+                            receives this file.
+                        </p>
+                    </template>
+                    <p
+                        v-else
+                        class="text-sm text-muted-foreground"
+                        data-testid="journal-other-period"
+                    >
+                        The journal summary is for one calendar month. Choose
+                        the 1st to the last day of a month.
+                    </p>
+                    <p
+                        v-if="journalError"
+                        role="alert"
+                        class="text-sm text-destructive"
+                        data-testid="journal-error"
+                    >
+                        {{ journalError }}
+                    </p>
+                    <p role="status" class="sr-only">{{ journalDone }}</p>
+                </div>
 
                 <!-- Summary: a plain list below 640 px, tiles from 640 px (Daniel). -->
                 <dl

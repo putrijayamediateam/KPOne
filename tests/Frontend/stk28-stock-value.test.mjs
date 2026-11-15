@@ -93,7 +93,7 @@ test('STK-28: filters need an explicit Show, day-first dates and at most 92 days
     assert.match(flat, /data-testid="valuation-refused"/);
 });
 
-test('STK-28: four tabs, "How this is counted" on every tab, 25 rows a page with a total row, and no download', () => {
+test('STK-28: four tabs, "How this is counted" on every tab, 25 rows a page with a total row, and only the STK-29 journal download', () => {
     for (const tab of [
         "value: 'value'",
         "value: 'margin'",
@@ -110,7 +110,11 @@ test('STK-28: four tabs, "How this is counted" on every tab, 25 rows a page with
     assert.match(script, /const PAGE_SIZE = 25;/);
     assert.ok((template.match(/<tr data-total>/g) ?? []).length === 3);
     assert.ok((template.match(/cards="xl"/g) ?? []).length === 3);
-    assert.doesNotMatch(v2, /download|\.csv|export/i);
+    assert.equal(
+        (v2.match(/\/inventory\/stock-value\/journal/g) ?? []).length,
+        1,
+    );
+    assert.doesNotMatch(v2, /export|\.xlsx|\.pdf/i);
     assert.match(
         script,
         /credit: 'Cost of the returned stock minus the supplier credit note amount\./,
