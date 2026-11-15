@@ -404,6 +404,27 @@ class PanelClaimsTest extends BillingTestCase
             ->where('claim.identityVisible', false)->where('claim.patientPhone', null)->where('claim.patientIdentifier', null));
     }
 
+    public function test_claim_page_shows_no_identity_when_its_audit_row_cannot_be_written(): void
+    {
+        [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        DB::table('patients')->where('id', $visit->patient_id)->update(['mobile_phone' => '0123456789']);
+        DB::table('patient_identifiers')->insert(['organisation_id' => $visit->organisation_id, 'patient_id' => $visit->patient_id, 'identifier_type' => 'nric', 'issuing_country_code' => 'MY', 'normalized_value' => '900101015555', 'created_at' => now(), 'updated_at' => now()]);
+        $this->post(route('panel-claims.prepare', $allocation), ['expected_branch_id' => $visit->branch_id])->assertRedirect();
+        $claim = PanelClaim::query()->sole();
+
+        // The identity audit row is written in the same request, before anything is returned: if it fails, the page fails.
+        DB::unprepared("create function kpone_test_identity_audit_down() returns trigger as \$\$ begin if new.event = 'panel_claim.identity_viewed' then raise exception 'audit unavailable'; end if; return new; end \$\$ language plpgsql");
+        DB::unprepared('create trigger kpone_test_identity_audit_down before insert on audit_logs for each row execute function kpone_test_identity_audit_down()');
+
+        $response = $this->get(route('panel-claims.show', $claim));
+
+        $response->assertStatus(500);
+        $this->assertStringNotContainsString('0123456789', (string) $response->getContent());
+        $this->assertStringNotContainsString('900101015555', (string) $response->getContent());
+        $this->assertDatabaseMissing('audit_logs', ['event' => 'panel_claim.identity_viewed', 'subject_id' => $claim->id]);
+    }
+
     public function test_notes_remarks_and_photo_documents_are_branch_scoped_audited_and_validated(): void
     {
         Storage::fake('local');
