@@ -333,6 +333,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   check row is Dispensary's deferred trigger (in DSP-7's migration); expired returned stock stays on the STK-4
   "expired on hand" list, on purpose, because it still has to be written off; a two-stage transfer never touches a
   returns location; there is no page that lists returns stock by itself (it shows in the stock view and STK-5).
+- Debt (Daniel, V2 page 5 review): supplier-return server messages print quantities as "6.000 unit" (three decimals,
+  singular unit), the Classic wording. The V2 page shows them as "6 units" in the browser; the server text and the
+  Classic page are unchanged. A server fix would change existing assertions, so it waits for its own approval.
 
 ## 8. Rules (every task)
 
