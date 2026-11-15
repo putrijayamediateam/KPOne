@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\HR;
 
+use App\Console\Commands\PurgeAttendanceRecords;
 use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockPhoto;
 use App\Domain\HR\Attendance\Models\ClockSession;
@@ -290,6 +291,54 @@ class ClockPhotoTest extends VisitTestCase
         // The schedule is untouched: the purge still runs daily.
         $this->assertSame(['0 0 * * *'], collect(app(Schedule::class)->events())
             ->filter(fn ($e): bool => str_contains((string) $e->command, 'hr-attendance:purge'))->pluck('expression')->values()->all());
+    }
+
+    public function test_the_storage_card_shows_counts_only_to_the_settings_viewers(): void
+    {
+        // HR-PHOTO-STORAGE. Photos in November, December, January and February, then one this month (March 2027).
+        $zone = $this->branch->timezone;
+        $this->travelTo(CarbonImmutable::parse('2026-11-01 08:00', $zone)); // the accounts start before the first photo
+        $ca = $this->actor('ca');
+        $hr = $this->actor('hr_manager');
+        foreach (['2026-11-20', '2026-12-10', '2026-12-17', '2027-01-15', '2027-02-20', '2027-03-08'] as $day) {
+            $this->travelTo(CarbonImmutable::parse("{$day} 09:00", $zone));
+            $this->selectBranch($ca);
+            $this->press('in', ClockPhotoFixture::press($this, 'in'))->assertSessionHasNoErrors();
+            $this->travelTo(CarbonImmutable::parse("{$day} 13:00", $zone));
+            $this->press('out', ClockPhotoFixture::press($this, 'out'))->assertSessionHasNoErrors();
+        }
+        $bytes = (int) ClockPhoto::query()->get()->sum(fn (ClockPhoto $p): int => $p->bytes + $p->thumb_bytes);
+        // Three full months (December to February): 8 photos, so about 3 a month.
+        $window = (int) ClockPhoto::query()->where('created_at', '>=', CarbonImmutable::parse('2026-12-01', $zone)->utc())
+            ->where('created_at', '<', CarbonImmutable::parse('2027-03-01', $zone)->utc())->get()->sum(fn (ClockPhoto $p): int => $p->bytes + $p->thumb_bytes);
+
+        $this->selectBranch($hr);
+        $audits = DB::table('audit_logs')->count();
+        $this->get(route('hr.attendance.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page
+            ->where('attendance.settings.photoStorage.photos', 12)
+            ->where('attendance.settings.photoStorage.bytes', $bytes)
+            ->where('attendance.settings.photoStorage.oldest', '20 Nov 2026')
+            ->where('attendance.settings.photoStorage.thisMonth', 2)
+            ->where('attendance.settings.photoStorage.perMonth', 3)
+            ->where('attendance.settings.photoStorage.perMonthSize', PurgeAttendanceRecords::size((int) round($window / 3)))
+            ->where('attendance.settings.photoStorage.forecastRetention', PurgeAttendanceRecords::size(84 * (int) round($window / 3)))
+            ->where('attendance.settings.photoStorage.retentionYears', 7)
+            ->where('attendance.settings.photoStorage.earliestDelete', '21 Nov 2033')
+            ->where('attendance.settings.photoStorage.draft', true)
+            // Counts only: no names, photo ids or per-person figures anywhere on the card.
+            ->where('attendance.settings.photoStorage', fn ($card): bool => ! str_contains((string) json_encode($card), $ca->name)
+                && ! str_contains((string) json_encode($card), (string) ClockPhoto::query()->value('public_id'))));
+        $this->assertSame($audits, DB::table('audit_logs')->count()); // reading the card writes nothing
+
+        // Seen on 20 December 2026 the oldest photo (20 November) does not cover three full months: no forecast yet.
+        $this->travelTo(CarbonImmutable::parse('2026-12-20 09:00', $zone));
+        $this->get(route('hr.attendance.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page
+            ->where('attendance.settings.photoStorage.perMonth', null)->where('attendance.settings.photoStorage.forecastOneYear', null));
+
+        // Staff without the Settings tab never get the card.
+        $this->travelTo(CarbonImmutable::parse('2027-03-08 15:00', $zone));
+        $this->selectBranch($ca);
+        $this->get(route('hr.attendance.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page->where('attendance.settings', null));
     }
 
     public function test_pages_show_your_own_photo_and_keep_anyone_elses_behind_show(): void
