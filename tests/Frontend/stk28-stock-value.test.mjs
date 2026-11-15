@@ -103,3 +103,20 @@ test('STK-28: four tabs, "How this is counted" on every tab, 25 rows a page with
         /credit: 'Cost of the returned stock minus the supplier credit note amount\./,
     );
 });
+
+test('STK-28: the V2 Inventory home links the report under Reports and checks, for the Director only', () => {
+    const home = read('resources/js/pages/Inventory/V2/Index.vue');
+    assert.match(
+        home,
+        /group\.id === 'reports-and-checks' &&\s*props\.referenceData\.canViewStockValue/,
+    );
+    assert.match(
+        home,
+        /href: '\/inventory\/stock-value',\s*label: 'Stock value and cost'/,
+    );
+    // Classic stays untouched.
+    assert.doesNotMatch(
+        read('resources/js/pages/Inventory/Index.vue'),
+        /stock-value|canViewStockValue/,
+    );
+});
