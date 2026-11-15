@@ -43,6 +43,10 @@ final class UiVersionResolver
     /** `Registration/Index` becomes `Registration/V2/Index` when the person is in V2 and the page is registered. */
     public function pageFor(string $component, ?User $user = null, ?Request $request = null): string
     {
+        if (in_array($component, config('v2-pages.public_pages', []), true)) {
+            return $this->publicPageFor($component);
+        }
+
         $registered = config('v2-pages.pages', []);
 
         if (! in_array($component, $registered, true)) {
@@ -58,5 +62,22 @@ final class UiVersionResolver
         return $at === false
             ? 'V2/'.$component
             : substr($component, 0, $at).'/V2'.substr($component, $at);
+    }
+
+    /**
+     * A public (patient-facing) page: Classic unless the one public switch is on, and then only when the V2 file exists.
+     * The person's own switch is never read here, so a signed-in person and a patient get the same page, and while the
+     * switch is off nobody gets a V2 public page.
+     */
+    private function publicPageFor(string $component): string
+    {
+        if (config('v2-pages.public', false) !== true) {
+            return $component;
+        }
+
+        $at = strrpos($component, '/');
+        $v2 = $at === false ? 'V2/'.$component : substr($component, 0, $at).'/V2'.substr($component, $at);
+
+        return is_file(resource_path('js/pages/'.$v2.'.vue')) ? $v2 : $component;
     }
 }
