@@ -268,6 +268,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 41. Approved changes to existing tests (B.E.R.N.I.S.S for the owner, 2026-11-12): in DD-75, the DD-12 task link pin
     expects each link twice (`[...grouped, ...grouped]`), once in the desktop groups and once in the phone groups.
     The compact tiles (#633, Daniel's OK) changed no existing assertion; they add one test.
+42. STK-40 blind count (owner, "blind count yes", 2026-11-15; option A approved by B.E.R.N.I.S.S for the owner):
+    while someone may check a controlled register now, the server sends no figure that gives its balance away (the
+    list's on hand, the register's balances, in and out, earlier checks' quantities) and the print waits. Everything
+    comes back once they have checked, or whenever a rule blocks them; their check then shows the expected balance and
+    the difference. The checker rules, locks and audit are unchanged; a count that differs is still refused until a
+    reason is chosen, which tells the checker only that it differs. Known limit, accepted: other stock pages still
+    show levels; a determined checker could look there.
 
 ## 7. Open items and known limits
 
@@ -284,6 +291,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   the FEFO audit entry records that an exception was chosen, not which reason,
   and a re-save before completion loses the earlier reason; no report lists FEFO exceptions; no short-dated
   warning at Dispensary. Each waits for the pharmacist's answers and the owner.
+- **STK-40 blind count limits:** other stock pages (Inventory home, stock movement report, reorder list) still show
+  levels; a determined checker could look there. A checker could also learn the balance by sending guesses until no
+  reason is asked for (raised with B.E.R.N.I.S.S, 2026-11-15).
 - **Pilot staffing:** the controlled-register checker cannot be anyone who recorded a movement on that register
   since the last check, so a controlled-delivery day needs a third person (raised with the owner, 2026-11-12).
 - STK-31 limits: the cross-branch guard is insert-only; stock request creation takes an optional retry key since
