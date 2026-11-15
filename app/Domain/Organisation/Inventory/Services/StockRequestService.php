@@ -59,9 +59,29 @@ final class StockRequestService
     {
         $branch = $this->authority->activeBranch($actor, $attributes);
         $lines = $this->validateRequestLines($attributes['lines'] ?? null);
+        // STK-39: an optional retry key. With one, a double press or a retry returns the request already made; without
+        // one (older callers), nothing changes.
+        $retryKey = $attributes['retry_key'] ?? null;
+        if ($retryKey !== null && (! is_string($retryKey) || ! Str::isUuid($retryKey))) {
+            throw ValidationException::withMessages(['retry_key' => 'The request key is missing. Reload the page and try again.']);
+        }
+        $retryKey = $retryKey === null ? null : Str::lower($retryKey);
+        $hash = $retryKey === null ? null : $this->fingerprint(['create', $branch->id, (string) ($attributes['source_location_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''), $lines]);
 
-        return DB::transaction(function () use ($actor, $attributes, $branch, $lines): StockRequest {
+        return DB::transaction(function () use ($actor, $attributes, $branch, $lines, $retryKey, $hash): StockRequest {
             $lockedActor = $this->authority->lockForBranch($actor, $branch, self::CREATE_PERMISSION);
+            // Checked under the actor lock, so a concurrent replay of the same key waits and then replays; the unique index
+            // on (organisation_id, retry_key) is the backstop.
+            if ($retryKey !== null) {
+                $earlier = StockRequest::query()->where('organisation_id', $lockedActor->organisation_id)->where('retry_key', $retryKey)->first();
+                if ($earlier !== null) {
+                    if ((int) $earlier->requested_by_user_id !== $lockedActor->id || ! hash_equals((string) $earlier->payload_hash, (string) $hash)) {
+                        throw ValidationException::withMessages(['retry_key' => 'This request key was already used for a different stock request. Reload the page and try again.']);
+                    }
+
+                    return $earlier->load('lines');
+                }
+            }
             [$source, $destination] = $this->lockLocations($lockedActor, (string) ($attributes['source_location_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''));
             $this->assertSourceAuthority($lockedActor, $branch, $source);
             $this->assertRequestDestination($lockedActor, $branch, $source, $destination);
@@ -88,6 +108,7 @@ final class StockRequestService
                 'source_location_id' => $source->id, 'destination_location_id' => $destination->id,
                 'request_number' => 'SR-'.now()->utc()->format('Ym').'-'.Str::upper(Str::random(8)), 'status' => StockRequest::STATUS_REQUESTED,
                 'lock_version' => 1, 'requested_by_user_id' => $lockedActor->id, 'requested_at' => now()->utc(),
+                'retry_key' => $retryKey, 'payload_hash' => $hash,
             ])->save();
             foreach ($lines as $input) {
                 $line = new StockRequestLine;

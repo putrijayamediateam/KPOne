@@ -187,6 +187,8 @@ const stockRequest = reactive({
     source: '',
     destination: '',
     lines: [blankLine()],
+    // STK-39: one key per request, so a double press or a retry returns the request already made.
+    key: crypto.randomUUID(),
 });
 const dispatchBatch = reactive<Record<string, string>>({});
 const reorder = reactive({
@@ -715,8 +717,10 @@ const createStockRequest = () =>
                 sku_public_id: line.sku,
                 quantity: line.quantity,
             })),
+            retry_key: stockRequest.key,
         },
         () => {
+            stockRequest.key = crypto.randomUUID();
             stockRequest.source = '';
             stockRequest.destination = '';
             stockRequest.lines.splice(

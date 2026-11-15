@@ -94,6 +94,8 @@ const expected = {
         'Finance / Billing',
         'Inventory',
         'Terminal Reconciliation',
+        // PCA-1 (owner decision 2026-11-13): Finance Officers handle Panel claims too.
+        'Panel Claims',
         'Clinic management',
     ],
     panel_officer: [

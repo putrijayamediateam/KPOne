@@ -372,7 +372,10 @@ const wide =
                     class="flex min-w-0 flex-col gap-3"
                     aria-labelledby="v2-usage-stock"
                 >
-                    <h2 id="v2-usage-stock" class="v2-section-title">
+                    <h2
+                        id="v2-usage-stock"
+                        class="v2-section-title text-lg font-semibold"
+                    >
                         Record use or waste ({{ usage.stock.total }})
                     </h2>
                     <ScanInput
