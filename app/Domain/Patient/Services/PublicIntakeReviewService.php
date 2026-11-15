@@ -497,7 +497,14 @@ class PublicIntakeReviewService
     {
         Gate::forUser($actor)->authorize('viewAny', Patient::class);
         $patientData = Arr::wrap($payload['patient'] ?? []);
-        $candidates = $this->identity->possibleDuplicates($actor->organisation_id, $patientData);
+        // Accept checks the normalised patient (search name, normalised phone), so the list must too: the stored payload
+        // has neither, and without them a soft match (name, date of birth, phone) that Accept refuses on was never listed.
+        try {
+            $normalised = $this->identity->normalizePatient($patientData);
+        } catch (ValidationException) {
+            $normalised = $patientData;
+        }
+        $candidates = $this->identity->possibleDuplicates($actor->organisation_id, $normalised);
         $identifier = Arr::wrap($patientData['identifiers'][0] ?? []);
         if ($identifier !== []) {
             $exactId = PatientIdentifier::query()
