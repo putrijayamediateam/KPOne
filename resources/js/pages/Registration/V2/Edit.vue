@@ -6,6 +6,7 @@ import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
+import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2StickySummary from '@/components/v2/V2StickySummary.vue';
@@ -182,9 +183,11 @@ const inputClass =
 <template>
     <Head :title="`Edit ${visit.visitNumber}`" />
     <PageFrame>
+        <V2LeaveGuard :dirty="form.isDirty && !form.processing" />
         <V2WorkLayout
             title="Edit visit"
             :description="`${visit.visitNumber} · ${visit.patient.fullName}`"
+            rail-from="xl"
             rail-width="narrow"
         >
             <template #actions>
