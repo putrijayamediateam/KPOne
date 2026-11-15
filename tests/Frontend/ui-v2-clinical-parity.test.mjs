@@ -229,25 +229,52 @@ test('the held branch-switch replay is one-shot, so a cancelled visit cannot lea
     assert.doesNotMatch(flat, /@discard=/);
 });
 
-test('while the visit is held the clinical record and the treatment plan are read-only (disabled fieldsets), so no unsaved text can exist then', () => {
+test('Classic keeps the record editable while held; V2 does too (no clinical behaviour change), so Call next while held asks about unsaved work first', () => {
     const flat = page.replace(/\s+/g, ' ');
 
+    assert.doesNotMatch(page, /<fieldset/);
+    assert.match(flat, /<HeldCallNext[^>]*:before-start="askBeforeCallNext"/);
     assert.match(
         flat,
-        /<fieldset :disabled="clinical\.hold\.isHeld" class="[^"]*" data-testid="consultation-record-fields"/,
-    );
-    assert.match(
-        flat,
-        /<fieldset :disabled="clinical\.hold\.isHeld" class="[^"]*" data-testid="consultation-treatment-fields"/,
-    );
-    // The Resume button and the held notice are outside both fieldsets.
-    const record = flat.slice(
-        flat.indexOf('consultation-record-fields'),
-        flat.indexOf('</fieldset>', flat.indexOf('consultation-record-fields')),
+        /const askBeforeCallNext = \(proceed: \(\) => void\) => \{ if \(leaveGuard\.value\) \{ leaveGuard\.value\.ask\(proceed\);/,
     );
 
-    assert.doesNotMatch(record, /changeHoldState\('resume'\)/);
-    assert.doesNotMatch(record, /HeldCallNext/);
+    // The Classic controls take an optional hook that runs before the dialog opens: nothing is in flight, nothing can stick.
+    const control = read(
+        'resources/js/components/queue/CallNextControl.vue',
+    ).replace(/\s+/g, ' ');
+    const held = read('resources/js/components/queue/HeldCallNext.vue').replace(
+        /\s+/g,
+        ' ',
+    );
+
+    assert.match(control, /beforeStart\?: \(proceed: \(\) => void\) => void;/);
+    assert.match(
+        control,
+        /if \(props\.beforeStart\) \{ props\.beforeStart\(openConfirm\); return; \} openConfirm\(\);/,
+    );
+    assert.match(held, /:before-start="beforeStart"/);
+    // Classic's own page passes no hook, so Classic behaves exactly as before.
+    assert.doesNotMatch(classic, /before-start/);
+});
+
+test('the treatment-room call keeps the page and the typed text (preserveState), so it needs no guard; it names the room beside the button', () => {
+    const flat = composable.replace(/\s+/g, ' ');
+
+    assert.match(
+        flat,
+        /treatment-call`, \{ expected_branch_id: props\.clinical\.branch\.id, queue_lock_version: props\.clinical\.queue\.lockVersion, branch_room_id: treatmentRoomId\.value, from: 'consultation', \}, \{ preserveScroll: true, preserveState: true,/,
+    );
+
+    const pageFlat = page.replace(/\s+/g, ' ');
+
+    assert.match(
+        pageFlat,
+        /roomCallResult\.value = `Called to \$\{pendingRoomName\} on the TV\.`/,
+    );
+    assert.match(pageFlat, /data-testid="room-call-result"/);
+    assert.match(pageFlat, /@click="startRoomCall"/);
+    assert.doesNotMatch(pageFlat, /@click="callToTreatment"/);
 });
 
 test('the two-column workspace starts at 1280 px, so the right column stacks at 1024', () => {
