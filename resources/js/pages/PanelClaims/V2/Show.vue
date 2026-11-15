@@ -20,7 +20,6 @@ import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePanelClaimShow } from '@/composables/panel-claims/usePanelClaimShow';
 import type { Props } from '@/composables/panel-claims/usePanelClaimShow';
 import { claimChipTone } from '@/lib/panel-claims-v2';
-import { formatDate } from '@/lib/presentation';
 import { myr } from '@/types/billing';
 
 /**
@@ -303,7 +302,7 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
             rail-label="Claim figures"
             :description="`${claim.panelName} · invoice ${claim.invoiceNumber} · ${
                 claim.submittedOn
-                    ? `submitted on ${formatDate(claim.submittedOn)}`
+                    ? `submitted on ${claim.submittedOn}`
                     : `created on ${claim.createdAt}`
             }${claim.updatedBy ? ` · updated by ${claim.updatedBy}` : ''}`"
         >
@@ -467,7 +466,12 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                             >
                                 {{ claim.verificationUrl }}
                             </a>
-                            <template v-else>{{ item.value }}</template>
+                            <template v-else-if="item.value">{{
+                                item.value
+                            }}</template>
+                            <span v-else class="text-muted-foreground"
+                                >N/A</span
+                            >
                         </template>
                     </V2KeyValueList>
                 </section>
