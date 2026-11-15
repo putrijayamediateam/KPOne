@@ -11,8 +11,9 @@ export function useOvertimeSettings(
         card: OvertimeSettingsCard;
         today: string;
     },
-    // Version 2 keeps the page's state through the save, so another card's unsaved typing survives it.
-    options: { preserveState?: boolean } = {},
+    // Version 2 keeps the page's state through the save, so another card's unsaved typing survives it; `onSaved` then puts
+    // this card back to the saved values (also when the new version starts on a later date).
+    options: { preserveState?: boolean; onSaved?: () => void } = {},
 ) {
     const page = usePage();
     const errors = computed(
@@ -52,7 +53,10 @@ export function useOvertimeSettings(
             {
                 preserveScroll: true,
                 ...(options.preserveState ? { preserveState: true } : {}),
-                onSuccess: () => (form.key = crypto.randomUUID()),
+                onSuccess: () => {
+                    form.key = crypto.randomUUID();
+                    options.onSaved?.();
+                },
                 onFinish: () => (form.processing = false),
             },
         );

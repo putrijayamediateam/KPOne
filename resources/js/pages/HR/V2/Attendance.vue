@@ -165,11 +165,6 @@ const rulesDirty = computed(
         props.attendance.tab === 'settings' &&
         rulesValue() !== rulesSaved.value,
 );
-// With state preserved, the form is not rebuilt after a save: when the saved rules themselves change, go back to them.
-watch(
-    () => JSON.stringify(props.attendance.settings?.current ?? null),
-    () => resetRules(),
-);
 const resetRules = () => {
     const [grace, window, days, from] = JSON.parse(
         rulesSaved.value,
@@ -1246,7 +1241,9 @@ const numberClass =
                         >
                             <form
                                 class="flex flex-col gap-4"
-                                @submit.prevent="saveSettingsKeepingState"
+                                @submit.prevent="
+                                    saveSettingsKeepingState(resetRules)
+                                "
                             >
                                 <V2Field
                                     v-slot="{ id, describedBy, invalid }"

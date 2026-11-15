@@ -647,8 +647,9 @@ export const useAttendancePage = (props: AttendanceProps) => {
         key: crypto.randomUUID(),
     });
     // Version 2 uses saveSettingsKeepingState: the page keeps its state through the save, so the other Settings cards keep
-    // their unsaved typing. Classic keeps saveSettings, unchanged.
-    const sendSettings = (preserveState: boolean) => {
+    // their unsaved typing, and `onSaved` puts this card back to the saved values (also for a version dated later).
+    // Classic keeps saveSettings, unchanged.
+    const sendSettings = (preserveState: boolean, onSaved?: () => void) => {
         settingsForm.processing = true;
         router.put(
             '/hr/attendance/settings',
@@ -662,13 +663,17 @@ export const useAttendancePage = (props: AttendanceProps) => {
             {
                 preserveScroll: true,
                 ...(preserveState ? { preserveState: true } : {}),
-                onSuccess: () => (settingsForm.key = crypto.randomUUID()),
+                onSuccess: () => {
+                    settingsForm.key = crypto.randomUUID();
+                    onSaved?.();
+                },
                 onFinish: () => (settingsForm.processing = false),
             },
         );
     };
     const saveSettings = () => sendSettings(false);
-    const saveSettingsKeepingState = () => sendSettings(true);
+    const saveSettingsKeepingState = (onSaved?: () => void) =>
+        sendSettings(true, onSaved);
 
     const reviewBranchOptions = computed(() =>
         (props.attendance.review?.branches ?? []).map((b) => ({

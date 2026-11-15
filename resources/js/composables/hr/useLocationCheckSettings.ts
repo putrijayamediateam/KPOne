@@ -10,7 +10,7 @@ export function useLocationCheckSettings(
     props: { card: LocationCheckCard },
     // Version 2 keeps the page's state through a save, so the fields refill only when the branch changes (another
     // card's save must not wipe typing here).
-    options: { preserveState?: boolean } = {},
+    options: { preserveState?: boolean; onSaved?: () => void } = {},
 ) {
     const page = usePage();
     const errors = computed(
@@ -84,6 +84,7 @@ export function useLocationCheckSettings(
                 onSuccess: () => {
                     form.key = crypto.randomUUID();
                     form.confirmOff = false;
+                    options.onSaved?.();
                 },
                 onFinish: () => (form.processing = false),
             },

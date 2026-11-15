@@ -317,14 +317,17 @@ test('PR 2 (Daniel): the location Branch box is OperationalSelect, and the decid
 test('PR 2 (Daniel): each V2 Save keeps the page state, so the other cards keep their typing; Classic sends what it did', () => {
     const dir = 'resources/js/components/hr/attendance/';
     const read2 = (p) => read(`resources/js/composables/hr/${p}`);
-    assert.match(template, /@submit\.prevent="saveSettingsKeepingState"/);
+    assert.match(
+        template,
+        /@submit\.prevent="\s*saveSettingsKeepingState\(resetRules\)\s*"/,
+    );
     assert.match(
         read(`${dir}v2/OvertimeRulesCardV2.vue`),
-        /useOvertimeSettings\(props, \{\s*preserveState: true,?\s*\}\)/,
+        /useOvertimeSettings\(props, \{\s*preserveState: true,/,
     );
     assert.match(
         read(`${dir}v2/LocationCheckCardV2.vue`),
-        /useLocationCheckSettings\(props, \{ preserveState: true \}\)/,
+        /useLocationCheckSettings\(props, \{\s*preserveState: true,/,
     );
     // Classic calls the same composables without the option, so its requests are unchanged.
     assert.match(
@@ -349,9 +352,33 @@ test('PR 2 (Daniel): each V2 Save keeps the page state, so the other cards keep 
     );
     assert.match(
         composable,
-        /const saveSettingsKeepingState = \(\) => sendSettings\(true\);/,
+        /const saveSettingsKeepingState = \(onSaved\?: \(\) => void\) =>\s+sendSettings\(true, onSaved\);/,
     );
     assert.match(classic, /@submit\.prevent="saveSettings"/);
+    // Suresh M1: each card goes back to its saved values on its OWN successful save (a version dated later does not change
+    // the version in force, so a watch on it would leave the card looking unsaved). No watcher resets a card.
+    assert.match(
+        composable,
+        /onSuccess: \(\) => \{\s+settingsForm\.key = crypto\.randomUUID\(\);\s+onSaved\?\.\(\);/,
+    );
+
+    for (const card of ['OvertimeRulesCardV2.vue', 'LocationCheckCardV2.vue']) {
+        const src = read(`${dir}v2/${card}`);
+        assert.match(src, /onSaved: \(\) => reset\(\)/);
+        assert.doesNotMatch(
+            src,
+            /JSON\.stringify\(props\.card\.(current|branches)\)/,
+        );
+    }
+
+    for (const c of ['useOvertimeSettings.ts', 'useLocationCheckSettings.ts']) {
+        assert.match(read2(c), /options\.onSaved\?\.\(\);/);
+    }
+
+    assert.doesNotMatch(
+        script,
+        /settings\?\.current \?\? null\),\s+\(\) => resetRules/,
+    );
     // "You also have unsaved changes above" only follows real changes above, and no "below" warning is left.
     assert.match(template, /:others-above="rulesDirty"/);
     assert.match(template, /:others-above="rulesDirty \|\| overtimeDirty"/);

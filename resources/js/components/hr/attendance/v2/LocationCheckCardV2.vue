@@ -26,7 +26,11 @@ const props = defineProps<{
 const emit = defineEmits<{ dirty: [value: boolean] }>();
 
 const { errors, form, branch, branchOptions, blockedBy, put } =
-    useLocationCheckSettings(props, { preserveState: true });
+    useLocationCheckSettings(props, {
+        preserveState: true,
+        // After this card's own save, refill from the saved branch (the page keeps its state).
+        onSaved: () => reset(),
+    });
 
 // What the fields hold for the chosen branch before any typing (the composable fills them the same way).
 const baseline = () => {
@@ -52,11 +56,6 @@ const dirty = computed(() => snapshot(form) !== snapshot(baseline()));
 watch(dirty, (value) => emit('dirty', value), { immediate: true });
 const reset = () => Object.assign(form, baseline());
 defineExpose({ reset, dirty });
-// The page keeps its state through a save: refill only when this card's saved branches change (its own save).
-watch(
-    () => JSON.stringify(props.card.branches),
-    () => reset(),
-);
 
 // Choosing another branch refills the fields from it, so typed edits would be lost: ask first (Suresh m1).
 const pendingBranch = ref<string | null>(null);
