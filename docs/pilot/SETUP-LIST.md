@@ -24,6 +24,13 @@ nothing here authorises anything.
 - This is a working procedure, not a permission change: the CA Supervisor, Finance Officer and Director all still hold the publish and reference permissions, and no grant has been removed. If the owner later wants it enforced in code, that is a separate permission decision.
 - Why: one named person publishes, and a different person checks the result, so a wrong price is caught before it reaches an invoice.
 
+## Medical certificates (logo)
+
+- Upload the Klinik Putrijaya logo in Business details (Director or Administrator) before any MC is issued. An MC is
+  refused with "The letterhead logo is unavailable. Restore it before issuing." if the configured logo file is missing, and
+  an MC issued with no logo configured prints without one. In the local and testing demo, `KPOneDemoSetupSeeder` sets the
+  Klinik Putrijaya mark as the logo.
+
 ## HR
 
 - **KPOne HR pilot setup: see [docs/pilot/hr/SETUP.md](hr/SETUP.md).** Location check OFF at the pilot branch (photo only) and clock-in photos kept 7 years as a DRAFT, both until the privacy review (owner decisions, 2026-11-15); leave and overtime from "Use KPOne defaults" (labelled, not professional advice); statutory tables from the official schedules with a second-person check.

@@ -9,8 +9,18 @@ const source = readFileSync(
     new URL('../../resources/js/pages/HR/Attendance.vue', import.meta.url),
     'utf8',
 );
-const watcher = source.slice(
-    source.indexOf('const announcement'),
+// The page's state and actions live in its composable (HR V2 Attendance), so the source is both files.
+const sourceAll =
+    source +
+    readFileSync(
+        new URL(
+            '../../resources/js/composables/hr/useAttendancePage.ts',
+            import.meta.url,
+        ),
+        'utf8',
+    );
+const watcher = sourceAll.slice(
+    sourceAll.indexOf('const announcement'),
     source.indexOf('// ---- Clock in and out'),
 );
 

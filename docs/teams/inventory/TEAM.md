@@ -286,8 +286,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   warning at Dispensary. Each waits for the pharmacist's answers and the owner.
 - **Pilot staffing:** the controlled-register checker cannot be anyone who recorded a movement on that register
   since the last check, so a controlled-delivery day needs a third person (raised with the owner, 2026-11-12).
-- STK-31 limits: the cross-branch guard is insert-only; no idempotency key on stock request creation (existing
-  design); one low-stock query per other branch.
+- STK-31 limits: the cross-branch guard is insert-only; stock request creation takes an optional retry key since
+  STK-39 (a double press or retry returns the request already made); one low-stock query per other branch.
 - STK-37 limits (Mei Ling, low risk, the same as for dispensing): stock in transit is not re-checked on receipt, so
   a batch recalled or held while in transit still lands (dispensing refuses it there); a recall locks only the
   chosen SKU's batches, so a sibling SKU's batch with the same number is not serialised against it; item
@@ -390,6 +390,10 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
    - Merged: STK-12 to STK-26, STK-30, STK-30b, STK-31, STK-33 to STK-37, STK-15b and STK-15c (section 5).
      Design follow-ups merged: DD-75 and DD-76 (#629) and the compact summary tiles (#633).
      STK-37 was added on 2026-11-12 from a gap found while writing STK-36.
-   - Parked by B.E.R.N.I.S.S until the accountant's cost policy exists: STK-27 (cost policy and weighted
-     average cost), STK-28 (stock value, COGS, margin and RM losses) and STK-29 (monthly journal summary CSV).
+   - Unparked on 2026-11-15: the owner has no accountant or clinic policy ("just do first ... act like one"), so
+     B.E.R.N.I.S.S set draft defaults as the accountant. STK-27 (weighted average cost, the read-only engine
+     `WeightedAverageCostService`, gap defaults a to f) is built; STK-28 (stock value, COGS, margin and RM losses,
+     with a "supplier credit difference" line and the new permission `inventory.valuation.view.organisation` for the
+     Director, to be approved) and STK-29 (monthly journal summary CSV) follow. Every figure says "Set by KPOne
+     defaults at the owner's instruction; not professional accounting advice."
    - Parked until there is real usage history: STK-32 (seasonal usage forecast).

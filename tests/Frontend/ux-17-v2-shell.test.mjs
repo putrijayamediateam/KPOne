@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import test from 'node:test';
 
 const read = (p) =>
@@ -185,8 +185,11 @@ test('UX-17: a Version 2 page (Dir/V2/Name) gets the V2 layout, before every pre
             app.indexOf('case isV2Page(name)'),
         'print views and the TV keep their own no-layout cases first',
     );
-    assert.match(layout, /<V2AppShell v-if="shell" :shell="shell">/);
-    assert.match(layout, /<Toaster v-bind="STAFF_TOAST_PLACEMENT" \/>/);
+    assert.match(
+        layout,
+        /<V2AppShell v-if="shell" :shell="shell" :focus-mode="focusMode">/,
+    );
+    assert.match(layout, /<Toaster v-bind="toastPlacement" \/>/);
     assert.equal(layout.match(/<Toaster /g)?.length, 1);
     assert.doesNotMatch(layout, /dataset\.ui|applyUiVersion/);
 });
@@ -208,4 +211,34 @@ test('UX-19: Back to Classic in the top bar is a quiet ghost control the height 
         /const QUIET_BACK = 'h-9 gap-1\.5 rounded-lg px-2\.5 text-xs font-normal/,
     );
     assert.match(switcher, /class="h-9 w-auto/);
+});
+
+test('UX-17: the V2 layout takes an optional focusMode that defaults to false, so every other V2 page keeps the shared staff placement', () => {
+    const layout = read('resources/js/layouts/V2Layout.vue');
+    const squashed = layout.replace(/\s+/g, ' ');
+
+    assert.match(
+        squashed,
+        /withDefaults\(defineProps<\{ focusMode\?: boolean \}>\(\), \{ focusMode: false, \}\)/,
+    );
+    assert.match(
+        squashed,
+        /props\.focusMode && desktop\.value \? FOCUS_DESKTOP_TOAST_PLACEMENT : STAFF_TOAST_PLACEMENT/,
+    );
+
+    // Only the consultation page (Classic and its V2 copy) asks for focus mode.
+    const asking = readdirSync(
+        new URL('../../resources/js/pages', import.meta.url),
+        {
+            recursive: true,
+        },
+    )
+        .filter((file) => file.endsWith('.vue'))
+        .filter((file) =>
+            /focusMode:\s*true/.test(read(`resources/js/pages/${file}`)),
+        )
+        .map((file) => file.replaceAll('\\', '/'))
+        .sort();
+
+    assert.deepEqual(asking, ['Clinical/Show.vue', 'Clinical/V2/Show.vue']);
 });
