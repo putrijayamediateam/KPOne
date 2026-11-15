@@ -62,7 +62,7 @@ const open = ref(false);
                     v-for="doc in documents"
                     :key="doc.id"
                     as-child
-                    class="flex min-h-11 cursor-default items-center rounded-[8px] px-2.5 text-sm outline-none select-none data-[highlighted]:bg-muted"
+                    class="flex min-h-11 cursor-default items-center rounded-[8px] text-sm outline-none select-none data-[highlighted]:bg-muted"
                 >
                     <a
                         :href="doc.href"

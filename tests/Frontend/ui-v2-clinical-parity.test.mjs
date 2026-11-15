@@ -163,7 +163,6 @@ test('every way out of the page with unsaved work is guarded: leave guard, branc
     );
     assert.match(flatPage, /\.pathname !== '\/branch-context'/);
     assert.match(page, /leaveGuard\.value\?\.ask\(/);
-    assert.match(page, /treatmentPlanPanelRef\.value\?\.discardDraft\(\)/);
     assert.match(page, /@click="requestHold"/);
 
     const guard = read('resources/js/composables/useLeaveGuard.ts');
@@ -211,4 +210,21 @@ test('vitals keep numbers or empty text, as the Classic native number input does
         page.replace(/\s+/g, ' '),
         /value === '' \? '' : Number\(value\)/,
     );
+});
+
+test('a failed room call shows its error on phones too (the inline group is hidden there)', () => {
+    const flat = page.replace(/\s+/g, ' ');
+
+    assert.match(
+        flat,
+        /v-if="recallError && treatmentError" class="w-full max-w-prose sm:hidden"/,
+    );
+});
+
+test('the held branch-switch replay is one-shot, so a cancelled visit cannot leave the guard off, and nothing is reset before the POST', () => {
+    const flat = page.replace(/\s+/g, ' ');
+
+    assert.match(flat, /if \(replaying\) \{ replaying = false; return; \}/);
+    assert.doesNotMatch(flat, /onFinish: \(\) => \(replaying = false\)/);
+    assert.doesNotMatch(flat, /@discard=/);
 });

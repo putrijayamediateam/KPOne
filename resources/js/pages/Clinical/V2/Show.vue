@@ -114,12 +114,19 @@ const {
 // through the same dialog. Hold has its own question (Save and hold / Discard and hold). Call again, the treatment-room
 // call and the treatment step keep the page and the unsaved text, so they ask nothing.
 const leaveGuard = ref<InstanceType<typeof V2LeaveGuard> | null>(null);
+// One-shot: the replayed switch skips the guard once, and the flag is cleared by that very event, so a cancelled
+// visit can never leave it stuck. Nothing is reset before the POST, so a refused switch keeps the typed text.
 let replaying = false;
 const stopBranchGuard = router.on('before', (event) => {
     const visit = event.detail.visit;
 
+    if (replaying) {
+        replaying = false;
+
+        return;
+    }
+
     if (
-        replaying ||
         !hasUnsavedWork.value ||
         form.processing ||
         String(visit.method).toLowerCase() === 'get'
@@ -138,18 +145,12 @@ const stopBranchGuard = router.on('before', (event) => {
         replaying = true;
         router.post('/branch-context', visit.data as Record<string, never>, {
             preserveScroll: true,
-            onFinish: () => (replaying = false),
         });
     });
 
     return false;
 });
 onBeforeUnmount(stopBranchGuard);
-const discardUnsaved = () => {
-    form.reset();
-    form.clearErrors();
-    treatmentPlanPanelRef.value?.discardDraft();
-};
 const documentLinks = () =>
     [
         [
@@ -244,7 +245,6 @@ const saveStatus = () =>
             <V2LeaveGuard
                 ref="leaveGuard"
                 :dirty="hasUnsavedWork && !form.processing"
-                @discard="discardUnsaved"
             />
             <header class="flex flex-col gap-3">
                 <div class="flex flex-wrap items-center gap-x-3 gap-y-2">
@@ -393,13 +393,15 @@ const saveStatus = () =>
                         <Megaphone class="size-4" aria-hidden="true" /> Call
                         again
                     </Button>
-                    <div class="sm:hidden">
+                    <div
+                        v-if="
+                            documentLinks().length ||
+                            (clinical.queue.canRecall &&
+                                (treatmentRooms?.length ?? 0) > 0)
+                        "
+                        class="sm:hidden"
+                    >
                         <ConsultationMoreMenu
-                            v-if="
-                                documentLinks().length ||
-                                (clinical.queue.canRecall &&
-                                    (treatmentRooms?.length ?? 0) > 0)
-                            "
                             :documents="documentLinks()"
                             :rooms="
                                 clinical.queue.canRecall
@@ -464,6 +466,12 @@ const saveStatus = () =>
                     <InputError
                         v-if="recallError && !treatmentError"
                         class="w-full max-w-prose"
+                        :message="recallError"
+                    />
+                    <!-- Phones: the room calls live in the More menu, so a failed call shows its error here (not inside the hidden inline group). -->
+                    <InputError
+                        v-if="recallError && treatmentError"
+                        class="w-full max-w-prose sm:hidden"
                         :message="recallError"
                     />
                     <div class="contents">
