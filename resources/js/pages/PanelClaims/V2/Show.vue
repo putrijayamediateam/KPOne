@@ -20,7 +20,8 @@ import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePanelClaimShow } from '@/composables/panel-claims/usePanelClaimShow';
 import type { Props } from '@/composables/panel-claims/usePanelClaimShow';
 import { claimChipTone } from '@/lib/panel-claims-v2';
-import { myr } from '@/types/billing';
+import { displayFromIso } from '@/lib/v2-date';
+import { myr, toSen } from '@/types/billing';
 
 /**
  * Version 2 Panel claim page (shown only in V2; Classic is `pages/PanelClaims/Show.vue`, untouched). Same props, same
@@ -68,6 +69,9 @@ const {
     uploadDocument,
     uploadRecoveryError,
 } = claimPage;
+
+// Version 2 wording of the approved design (Classic keeps "Edit claim amount").
+const AMOUNT_LABEL = 'Change claim amount only: the invoice stays the same';
 
 type Step = 'amount' | 'submit' | 'query' | 'decision' | 'payment' | 'note';
 const open = ref<Step | null>(null);
@@ -143,7 +147,7 @@ const actionGroups = computed(() => {
     const items = [
         {
             id: 'amount',
-            label: 'Edit claim amount',
+            label: AMOUNT_LABEL,
             on: claim.value.canEditAmount,
         },
         {
@@ -173,6 +177,57 @@ const actionGroups = computed(() => {
     return items.length > 0 ? [{ label: '', items }] : [];
 });
 
+const sen = (value: string): number | null => {
+    const parsed = toSen(value);
+
+    return parsed === null ? null : Number(parsed);
+};
+const decisionLabel = computed(
+    () => decisionOptions.find((o) => o.value === decision.value)?.label ?? '',
+);
+const decisionAmountSen = computed(() => sen(acceptedAmount.value));
+const decisionSentence = computed(() =>
+    decisionAmountSen.value === null
+        ? null
+        : `Records the Panel's decision: ${decisionLabel.value}, ${myr(decisionAmountSen.value)} of ${myr(claim.value.claimAmountSen)}.`,
+);
+const paymentSen = computed(() => sen(remittanceAmount.value));
+const paymentOver = computed(
+    () =>
+        paymentSen.value !== null &&
+        paymentSen.value > claim.value.outstandingSen,
+);
+const paymentSentence = computed(() => {
+    if (
+        paymentSen.value === null ||
+        paymentSen.value < 1 ||
+        paymentOver.value
+    ) {
+        return null;
+    }
+
+    const when = displayFromIso(remittanceDate.value);
+
+    return `Records ${myr(paymentSen.value)} received from ${claim.value.panelName}${when ? ` on ${when}` : ''} for claim ${claim.value.claimNo}. ${myr(claim.value.outstandingSen - paymentSen.value)} will still be outstanding.`;
+});
+
+// Copy link and Copy message say what was copied; when the browser blocks copying, the text is shown to select.
+const copyFallback = ref<{ label: string; text: string } | null>(null);
+const tryCopy = async (
+    run: () => Promise<void>,
+    label: string,
+    text: string,
+) => {
+    copyFallback.value = null;
+    await run();
+
+    if (error.value.endsWith('could not be copied.')) {
+        error.value = '';
+        copyFallback.value = { label, text };
+    }
+};
+const MAX_DOCUMENTS = 10;
+
 const decisionOptions = [
     { value: 'accepted', label: 'Accepted' },
     { value: 'partially_accepted', label: 'Partially accepted' },
@@ -198,7 +253,7 @@ const confirmDialog = () => {
 
         if (aboveInvoice.value && !confirmAboveInvoice.value) {
             return fail(
-                'Confirm that the amount exceeds the invoice total before saving.',
+                'Tick the box to confirm the claim is above the invoice amount.',
             );
         }
 
@@ -245,7 +300,7 @@ const confirmDialog = () => {
 };
 
 const titles: Record<Step, string> = {
-    amount: 'Edit claim amount',
+    amount: AMOUNT_LABEL,
     submit: 'Record portal submission',
     query: 'Record a Panel query',
     decision: 'Record Panel decision',
@@ -316,7 +371,7 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                 <button
                     type="button"
                     class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
-                    @click="copyLink"
+                    @click="tryCopy(copyLink, 'Link', claim.shareUrl)"
                 >
                     {{ copied ? 'Link copied' : 'Copy link' }}
                 </button>
@@ -324,7 +379,9 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                     v-if="claim.message"
                     type="button"
                     class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9"
-                    @click="copyMessage"
+                    @click="
+                        tryCopy(copyMessage, 'Message', claim.message ?? '')
+                    "
                 >
                     {{ messageCopied ? 'Message copied' : 'Copy message' }}
                 </button>
@@ -373,6 +430,25 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                 >
                     {{ error || uploadRecoveryError }}
                 </p>
+
+                <div
+                    v-if="copyFallback"
+                    class="grid gap-2 rounded-[10px] border bg-card p-3 text-sm"
+                    role="status"
+                >
+                    <label for="claim-copy-fallback"
+                        >Copying was blocked. Select and copy this
+                        {{ copyFallback.label.toLowerCase() }}:</label
+                    >
+                    <textarea
+                        id="claim-copy-fallback"
+                        readonly
+                        rows="3"
+                        :value="copyFallback.text"
+                        class="w-full rounded-[10px] border border-input bg-card px-3 py-2 text-base md:text-[15px]"
+                        @focus="($event.target as HTMLTextAreaElement).select()"
+                    />
+                </div>
 
                 <div
                     class="flex flex-wrap items-center gap-3 rounded-[14px] border bg-card p-4"
@@ -604,7 +680,9 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                             :status="
                                 busy
                                     ? 'Working…'
-                                    : 'JPG or PNG, up to 5 MB each.'
+                                    : claim.documents.length >= MAX_DOCUMENTS
+                                      ? `Full: ${MAX_DOCUMENTS} of ${MAX_DOCUMENTS} photos. JPG or PNG, up to 5 MB each.`
+                                      : `${claim.documents.length} of ${MAX_DOCUMENTS} photos. JPG or PNG, up to 5 MB each.`
                             "
                             status-id="claim-photo-status"
                             :disabled="busy"
@@ -697,6 +775,8 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                     </V2Table>
                 </section>
 
+                <!-- A "Panel adjustments" section for the Panel claim design (adjustments and supplementary claims) goes here when
+                     that work lands; nothing is shown until a claim has one. -->
                 <section class="grid gap-3 rounded-[14px] border bg-card p-4">
                     <div
                         class="flex flex-wrap items-center justify-between gap-2"
@@ -837,6 +917,8 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
             :title="open ? titles[open] : ''"
             :confirm-label="open ? confirmLabels[open] : 'Save'"
             :busy="busy"
+            :confirm-disabled="open === 'payment' && paymentOver"
+            confirm-disabled-reason="Enter an amount that is not more than what is still outstanding."
             @confirm="confirmDialog()"
         >
             <div v-if="open" class="grid gap-3">
@@ -871,11 +953,13 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                             class="mt-1 size-5"
                         />
                         <span>
-                            Confirm
-                            {{ myr(Number(amountSen ?? '0')) }} exceeds the
-                            invoice total. The excess will be shown as a
-                            separate Panel claim adjustment and will not change
-                            the invoice or approved allocation.
+                            I confirm the claim is above the invoice amount.
+                            <span class="block text-muted-foreground">
+                                {{ myr(Number(amountSen ?? '0')) }} exceeds the
+                                invoice total. The excess will be shown as a
+                                separate Panel claim adjustment and will not
+                                change the invoice or approved allocation.
+                            </span>
                         </span>
                     </label>
                 </template>
@@ -938,10 +1022,31 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                         "
                     />
                     <V2MoneyInput
+                        v-if="decision === 'partially_accepted'"
                         v-model="acceptedAmount"
                         label="Accepted amount (MYR; enter 0 if rejected)"
                         required
                     />
+                    <p v-else class="text-sm">
+                        Accepted amount:
+                        <strong class="tabular-nums">{{
+                            myr(decisionAmountSen ?? 0)
+                        }}</strong>
+                        <span class="text-muted-foreground">
+                            {{
+                                decision === 'accepted'
+                                    ? '(the full claimed amount)'
+                                    : '(nothing accepted)'
+                            }}
+                        </span>
+                    </p>
+                    <p
+                        v-if="decisionSentence"
+                        class="text-sm text-muted-foreground"
+                        aria-live="polite"
+                    >
+                        {{ decisionSentence }}
+                    </p>
                     <V2Field label="Decision details" required>
                         <template #default="{ id, describedBy }">
                             <textarea
@@ -978,14 +1083,30 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                         label="Amount received (MYR)"
                         required
                     />
+                    <p
+                        v-if="paymentOver"
+                        class="text-sm text-destructive"
+                        role="alert"
+                    >
+                        That is more than the
+                        {{ myr(claim.outstandingSen) }} still outstanding.
+                    </p>
                     <V2DateField
                         v-model="remittanceDate"
                         label="Date received"
                         subject="Date received"
                         required
+                        :max="props.branch.today"
                         :error="dateError"
                         @update:invalid="(value) => (dateInvalid = value)"
                     />
+                    <p
+                        v-if="paymentSentence"
+                        class="text-sm text-muted-foreground"
+                        aria-live="polite"
+                    >
+                        {{ paymentSentence }}
+                    </p>
                     <V2Field label="Panel payment reference (optional)">
                         <template #default="{ id, describedBy }">
                             <input

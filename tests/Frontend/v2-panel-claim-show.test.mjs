@@ -98,7 +98,6 @@ test('the Classic wording the Version 2 page keeps', () => {
         'Copy message',
         'Download PDF',
         'Print claim pack',
-        'Edit claim amount',
         'Record portal submission',
         'Record a Panel query',
         'Record Panel decision',
@@ -170,6 +169,22 @@ test('the next step and the actions follow the server flags, not the status text
     assert.ok(!page.includes('statusKey'));
 });
 
+test('the Version 2 wording the Lead UI/UX Designer approved', () => {
+    assert.match(page, /Change claim amount only: the invoice stays the same/);
+    assert.match(page, /I confirm the claim is above the invoice amount\./);
+    assert.match(page, /Records the Panel's decision: /);
+    assert.match(page, /will still be outstanding\./);
+    assert.match(page, /That is more than the/);
+    // Accepted-amount box only for Partially accepted; the other two show the amount in words.
+    assert.match(page, /v-if="decision === 'partially_accepted'"/);
+    assert.match(page, /confirm-disabled/);
+    assert.match(page, /:max="props\.branch\.today"/);
+    // Copy falls back to selectable text.
+    assert.match(page, /Copying was blocked\./);
+    // Classic keeps its own wording.
+    assert.ok(classic.includes('Edit claim amount'));
+});
+
 test('a dialog closes only after a request finished without an error, and checks what Classic required', () => {
     assert.match(
         page,
@@ -180,7 +195,7 @@ test('a dialog closes only after a request finished without an error, and checks
     assert.match(page, /Enter the decision details\./);
     assert.match(
         page,
-        /Confirm that the amount exceeds the invoice total before saving\./,
+        /Tick the box to confirm the claim is above the invoice amount\./,
     );
 
     // Classic's `required` attributes on these fields.
