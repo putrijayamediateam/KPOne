@@ -495,6 +495,7 @@ onBeforeUnmount(() => {
                     ><p
                         class="sr-only"
                         role="status"
+                        aria-live="polite"
                         data-test="step-announcer"
                     >
                         Langkah {{ step }} daripada 5
@@ -629,7 +630,7 @@ onBeforeUnmount(() => {
                                 id="full-name"
                                 v-model="form.full_name"
                                 autocomplete="name"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="!!errorFor('full_name')"
                             /><span
                                 v-if="errorFor('full_name')"
@@ -666,7 +667,7 @@ onBeforeUnmount(() => {
                                 ><select
                                     id="sex"
                                     v-model="form.sex"
-                                    class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                    class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 >
                                     <option value="female">Perempuan</option>
                                     <option value="male">Lelaki</option>
@@ -706,7 +707,7 @@ onBeforeUnmount(() => {
                                 :aria-invalid="!!errorFor('nationality_code')"
                                 maxlength="2"
                                 placeholder="MY"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground uppercase focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground uppercase focus-visible:ring-4 focus-visible:ring-ring/40"
                             /><span
                                 v-if="errorFor('nationality_code')"
                                 role="alert"
@@ -728,7 +729,7 @@ onBeforeUnmount(() => {
                                 type="tel"
                                 inputmode="tel"
                                 autocomplete="tel"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="!!errorFor('mobile_phone')"
                             /><span
                                 v-if="errorFor('mobile_phone')"
@@ -747,7 +748,7 @@ onBeforeUnmount(() => {
                                 <select
                                     v-model="form.identifier_type"
                                     aria-label="Jenis pengenalan"
-                                    class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                    class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 >
                                     <option value="nric">No. IC</option>
                                     <option value="passport">
@@ -756,7 +757,7 @@ onBeforeUnmount(() => {
                                 ><input
                                     v-model="form.identifier_value"
                                     autocomplete="off"
-                                    class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                    class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                     aria-label="Nombor pengenalan"
                                     :aria-invalid="
                                         !!errorFor('identifier_value')
@@ -768,7 +769,7 @@ onBeforeUnmount(() => {
                                 v-model="form.identifier_issuing_country_code"
                                 maxlength="2"
                                 aria-label="Kod negara pengeluar passport"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground uppercase focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground uppercase focus-visible:ring-4 focus-visible:ring-ring/40"
                                 placeholder="Kod negara, contoh MY"
                             /><span
                                 v-if="errorFor('identifier_value')"
@@ -807,7 +808,7 @@ onBeforeUnmount(() => {
                             ><select
                                 id="visit-purpose"
                                 v-model="form.visit_purpose"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="!!errorFor('visit_purpose')"
                             >
                                 <option value="" disabled>Pilih tujuan</option>
@@ -844,7 +845,7 @@ onBeforeUnmount(() => {
                                 v-model="form.chief_complaint"
                                 rows="3"
                                 maxlength="500"
-                                class="w-full min-w-0 rounded-xl border border-input bg-background px-3 py-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 py-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 placeholder="Contoh: Demam dan batuk sejak semalam."
                                 :aria-invalid="!!errorFor('chief_complaint')"
                             ></textarea
@@ -865,7 +866,7 @@ onBeforeUnmount(() => {
                                 id="complaint-duration"
                                 v-model="form.complaint_duration"
                                 maxlength="120"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 placeholder="Contoh: Sejak semalam"
                                 :aria-invalid="!!errorFor('complaint_duration')"
                             /><span
@@ -922,7 +923,7 @@ onBeforeUnmount(() => {
                             ><input
                                 v-model="form.guardian_name"
                                 autocomplete="name"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="!!errorFor('guardian_name')"
                             /><span
                                 v-if="errorFor('guardian_name')"
@@ -936,7 +937,7 @@ onBeforeUnmount(() => {
                             ><span class="text-sm font-medium">Hubungan *</span
                             ><select
                                 v-model="form.guardian_relationship"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="
                                     !!errorFor('guardian_relationship')
                                 "
@@ -973,7 +974,7 @@ onBeforeUnmount(() => {
                                 type="tel"
                                 inputmode="tel"
                                 autocomplete="tel"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="
                                     !!errorFor('guardian_contact_number')
                                 "
@@ -985,7 +986,7 @@ onBeforeUnmount(() => {
                             ></label
                         >
                         <label
-                            class="flex items-start gap-3 rounded-2xl border border-input bg-background p-4 text-sm"
+                            class="flex min-h-12 items-start gap-3 rounded-2xl border border-input bg-background p-4 text-sm"
                             ><input
                                 v-model="form.guardian_attestation"
                                 type="checkbox"
@@ -1049,7 +1050,7 @@ onBeforeUnmount(() => {
                         ><select
                             id="coverage-type"
                             v-model="form.coverage_type"
-                            class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                            class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                             :aria-invalid="!!errorFor('coverage_type')"
                         >
                             <option value="" disabled>Pilih satu</option>
@@ -1071,7 +1072,7 @@ onBeforeUnmount(() => {
                             ><select
                                 id="panel-id"
                                 v-model="form.panel_id"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="!!errorFor('panel_id')"
                             >
                                 <option value="" disabled>Pilih panel</option>
@@ -1106,7 +1107,7 @@ onBeforeUnmount(() => {
                                 v-model="form.coverage_member_reference"
                                 maxlength="100"
                                 autocomplete="off"
-                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 scroll-mb-32 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="
                                     !!errorFor('coverage_member_reference')
                                 "
@@ -1220,7 +1221,7 @@ onBeforeUnmount(() => {
                         </p>
                     </div>
                     <label
-                        class="flex items-start gap-3 rounded-2xl border border-input bg-background p-4 text-sm"
+                        class="flex min-h-12 items-start gap-3 rounded-2xl border border-input bg-background p-4 text-sm"
                         ><input
                             v-model="form.consent_confirmed"
                             type="checkbox"

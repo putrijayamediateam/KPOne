@@ -180,3 +180,54 @@ test('V2 show: at 320 the identity type sits above the number so all 12 digits s
         /grid-cols-1 gap-2 min-\[400px\]:grid-cols-\[7rem_minmax\(0,1fr\)\]/,
     );
 });
+
+test('V2 show: every icon-only back button is named "Kembali" on the button itself, with the arrow hidden from screen readers', () => {
+    const t = template(page);
+    const backs =
+        t.match(/<button[^>]*?@click="back"[\s\S]*?<\/button\s*>/g) ?? [];
+    assert.equal(backs.length, 4);
+
+    for (const b of backs) {
+        assert.match(b, /aria-label="Kembali"/);
+        assert.match(b, /<ArrowLeft[^>]*aria-hidden="true"/);
+        assert.match(b, /min-h-12 min-w-12/);
+    }
+});
+
+test('V2 show: the step announcer is polite, the error summary is a single alert, and the countdown stays silent', () => {
+    const t = template(page);
+    assert.match(
+        t,
+        /role="status"\s+aria-live="polite"\s+data-test="step-announcer"/,
+    );
+    const summary = t.slice(
+        t.indexOf('v-if="generalError || validationSummary.length"'),
+    );
+    assert.match(summary.slice(0, 260), /role="alert"/);
+    assert.equal(
+        (
+            t.match(
+                /role="alert"\s+aria-live="assertive"|aria-live="assertive"/g,
+            ) ?? []
+        ).length,
+        1,
+    );
+    assert.match(t, /sessionWarning/);
+});
+
+test('V2 show: focused fields clear the sticky bar (scroll margin) and the bar uses dvh and the safe area', () => {
+    const t = template(page);
+    assert.ok((t.match(/scroll-mb-32/g) ?? []).length >= 10);
+    assert.match(t, /min-h-dvh/);
+    assert.match(t, /pb-\[max\(1rem,env\(safe-area-inset-bottom\)\)\]/);
+});
+
+test('V2 show: both consent rows are whole-row labels at least 44 px tall, so the label text is clickable', () => {
+    const t = template(page);
+    const rows = [
+        ...t.matchAll(
+            /<label\s+class="flex min-h-12 items-start gap-3[^"]*"\s*>\s*<input\s+v-model="form\.(guardian_attestation|consent_confirmed)"\s+type="checkbox"/g,
+        ),
+    ];
+    assert.equal(rows.length, 2);
+});
