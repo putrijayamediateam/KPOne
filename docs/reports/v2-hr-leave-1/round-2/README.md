@@ -8,4 +8,4 @@ All from the real V2 shell with synthetic `.test` data. No page scrolls sideways
 - `apply-files-chosen-*`: two files chosen: "2 of 3 files chosen.", each listed with its size and a Remove named "Remove <file name>".
 - `evidence-files-*` and `evidence-files-bottom-*`: the evidence sheet with two synthetic photos, each with Remove, then the file chooser and "2 files added."
 
-The "Booked: waiting for approval, or approved and not yet started." line is under the balance heading on My leave. It is not in a round-2 shot; the round-1 `my-leave` shots predate it.
+- `my-leave-*`: "Booked: waiting for approval, or approved and not yet started." once under the balance heading.
