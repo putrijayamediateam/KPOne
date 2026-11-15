@@ -18,6 +18,8 @@ const files = {
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
+// The page's state and actions live in its composable (HR V2 Attendance), so the page source is both files.
+source.page += read('resources/js/composables/hr/useAttendancePage.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('every new component and the page compile', () => {

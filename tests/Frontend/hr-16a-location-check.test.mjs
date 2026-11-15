@@ -4,7 +4,9 @@ import test from 'node:test';
 
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const page = read('resources/js/pages/HR/Attendance.vue');
+const page =
+    read('resources/js/pages/HR/Attendance.vue') +
+    read('resources/js/composables/hr/useAttendancePage.ts');
 const card = read(
     'resources/js/components/hr/attendance/LocationCheckSettings.vue',
 );
