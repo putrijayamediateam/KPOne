@@ -30,3 +30,29 @@ export const updatePair = (
 
     return joinLocal(pair.date, pair.time);
 };
+
+const NBSP = ' ';
+
+/**
+ * Keeps a time or a duration on one line (Daniel): a non-breaking space before AM or PM, and "h" and "min" glued to
+ * their numbers. "8:00 AM" stays "8:00 AM" on screen; only the spaces that must not break change.
+ */
+export const glueTimes = (text: string | null | undefined): string =>
+    (text ?? '')
+        .replace(/(\d) (AM|PM)\b/g, `$1${NBSP}$2`)
+        .replace(/(\d) (h|min)\b/g, `$1${NBSP}$2`);
+
+/**
+ * "Morning, 8:00 AM to 2:00 PM" becomes { name: "Morning,", times: "8:00 AM to 2:00 PM" }, so the Shift cell may
+ * wrap only between the name and the times. A label with no name is all times.
+ */
+export const shiftParts = (
+    label: string | null | undefined,
+): { name: string; times: string } => {
+    const value = label ?? '';
+    const at = value.indexOf(', ');
+
+    return at === -1
+        ? { name: '', times: value }
+        : { name: value.slice(0, at + 1), times: value.slice(at + 2) };
+};

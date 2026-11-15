@@ -228,3 +228,51 @@ test('Settings: Save is filled before the first save, and the guard baseline com
     );
     assert.match(script, /const rulesSaved = computed\(savedRules\)/);
 });
+
+test('Daniel: times never split, chips stay on one line, and the Branch and Reason boxes are OperationalSelect', async () => {
+    const { glueTimes, shiftParts } = await loadLib();
+    assert.equal(glueTimes('8:00 AM to 2:00 PM'), '8:00 AM to 2:00 PM');
+    assert.equal(glueTimes('6 h 7 min'), '6 h 7 min');
+    assert.equal(glueTimes(null), '');
+    assert.deepEqual(shiftParts('Morning, 8:00 AM to 2:00 PM'), {
+        name: 'Morning,',
+        times: '8:00 AM to 2:00 PM',
+    });
+    assert.deepEqual(shiftParts('8:00 AM to 2:00 PM'), {
+        name: '',
+        times: '8:00 AM to 2:00 PM',
+    });
+    // Review: the shift times, In, Out and Worked are nowrap; the Flags cell keeps each chip on one line.
+    assert.match(
+        template,
+        /data-label="Worked"\s+class="whitespace-nowrap tabular-nums"/,
+    );
+    assert.match(template, /data-label="Flags"\s+class="whitespace-nowrap"/);
+    assert.match(
+        template,
+        /<span\s+class=\"whitespace-nowrap\"\s*>\{\{\s*glueTimes\(\s*r\.session\?\.in\s*\?\?\s*'–',?\s*\)/,
+    );
+    assert.match(
+        template,
+        /<span\s+class=\"whitespace-nowrap\"\s*>\{\{\s*glueTimes\(\s*r\.session\?\.out\s*\?\?\s*'–',?\s*\)/,
+    );
+    // The chip's own text-balance resets wrapping, so each Flags chip forces nowrap; the photo buttons do not wrap either.
+    assert.equal((template.match(/class="text-nowrap!"/g) ?? []).length, 2);
+    assert.match(
+        template,
+        /<td\s+data-label="In"\s+class="\[&_button\]:whitespace-nowrap"/,
+    );
+    assert.match(
+        template,
+        /<td\s+data-label="Out"\s+class="\[&_button\]:whitespace-nowrap"/,
+    );
+    // The Branch box on Review and the Reason box on the correction are the shared OperationalSelect.
+    assert.match(
+        template,
+        /<OperationalSelect\s+:model-value="\s*attendance\.review\.branch\.id\s*"/,
+    );
+    assert.match(
+        template,
+        /<OperationalSelect\s+:id="id"\s+v-model="correction\.reason"/,
+    );
+});

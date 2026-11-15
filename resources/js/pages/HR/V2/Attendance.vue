@@ -32,7 +32,12 @@ import type {
     Row,
 } from '@/composables/hr/useAttendancePage';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
-import { splitLocal, updatePair } from '@/lib/hr-attendance-v2';
+import {
+    glueTimes,
+    shiftParts,
+    splitLocal,
+    updatePair,
+} from '@/lib/hr-attendance-v2';
 
 /**
  * Version 2 Attendance (shown only in V2; Classic is `pages/HR/Attendance.vue`, untouched). Same props, routes,
@@ -431,9 +436,12 @@ const numberClass =
                                 >
                                     <span
                                         >{{ r.dateLabel }} · Clocked in at
-                                        <span class="tabular-nums">{{
-                                            r.session?.in
-                                        }}</span></span
+                                        <span
+                                            class="whitespace-nowrap tabular-nums"
+                                            >{{
+                                                glueTimes(r.session?.in)
+                                            }}</span
+                                        ></span
                                     >
                                     <button
                                         type="button"
@@ -527,9 +535,15 @@ const numberClass =
                                 >
                                     <p v-if="r.shift">
                                         Shift
-                                        <span class="tabular-nums">{{
-                                            r.shift.label
-                                        }}</span
+                                        {{ shiftParts(r.shift.label).name }}
+                                        <span
+                                            class="whitespace-nowrap tabular-nums"
+                                            >{{
+                                                glueTimes(
+                                                    shiftParts(r.shift.label)
+                                                        .times,
+                                                )
+                                            }}</span
                                         ><span v-if="r.shift.branch">
                                             · {{ r.shift.branch }}</span
                                         >
@@ -538,10 +552,22 @@ const numberClass =
                                         No shift
                                     </p>
                                     <p v-if="r.session" class="tabular-nums">
-                                        In {{ r.session.in }} · Out
-                                        {{ r.session.out ?? '–'
-                                        }}<span v-if="r.worked">
-                                            · Worked {{ r.worked }}</span
+                                        <span class="whitespace-nowrap"
+                                            >In
+                                            {{ glueTimes(r.session.in) }}</span
+                                        >
+                                        ·
+                                        <span class="whitespace-nowrap"
+                                            >Out
+                                            {{
+                                                glueTimes(r.session.out ?? '–')
+                                            }}</span
+                                        ><template v-if="r.worked">
+                                            ·
+                                            <span class="whitespace-nowrap"
+                                                >Worked
+                                                {{ glueTimes(r.worked) }}</span
+                                            ></template
                                         >
                                     </p>
                                     <div
@@ -875,15 +901,48 @@ const numberClass =
                                             data-label="Shift"
                                             class="tabular-nums"
                                         >
-                                            {{ r.shift?.label ?? 'No shift' }}
+                                            <template v-if="r.shift"
+                                                ><span
+                                                    v-if="
+                                                        shiftParts(
+                                                            r.shift.label,
+                                                        ).name
+                                                    "
+                                                    class="block"
+                                                    >{{
+                                                        shiftParts(
+                                                            r.shift.label,
+                                                        ).name
+                                                    }}</span
+                                                ><span
+                                                    class="whitespace-nowrap"
+                                                    >{{
+                                                        glueTimes(
+                                                            shiftParts(
+                                                                r.shift.label,
+                                                            ).times,
+                                                        )
+                                                    }}</span
+                                                ></template
+                                            >
+                                            <template v-else>No shift</template>
                                         </td>
-                                        <td data-label="In">
+                                        <td
+                                            data-label="In"
+                                            class="[&_button]:whitespace-nowrap"
+                                        >
                                             <div
                                                 class="flex flex-wrap items-center gap-2 tabular-nums"
                                             >
-                                                <span>{{
-                                                    r.session?.in ?? '–'
-                                                }}</span>
+                                                <span
+                                                    class="whitespace-nowrap"
+                                                    >{{
+                                                        glueTimes(
+                                                            r.session?.in ??
+                                                                '–',
+                                                        )
+                                                    }}</span
+                                                >
                                                 <ClockPhotoThumb
                                                     v-if="r.photos?.in"
                                                     :photo="r.photos.in"
@@ -898,13 +957,22 @@ const numberClass =
                                                 {{ r.location.in }}
                                             </p>
                                         </td>
-                                        <td data-label="Out">
+                                        <td
+                                            data-label="Out"
+                                            class="[&_button]:whitespace-nowrap"
+                                        >
                                             <div
                                                 class="flex flex-wrap items-center gap-2 tabular-nums"
                                             >
-                                                <span>{{
-                                                    r.session?.out ?? '–'
-                                                }}</span>
+                                                <span
+                                                    class="whitespace-nowrap"
+                                                    >{{
+                                                        glueTimes(
+                                                            r.session?.out ??
+                                                                '–',
+                                                        )
+                                                    }}</span
+                                                >
                                                 <ClockPhotoThumb
                                                     v-if="r.photos?.out"
                                                     :photo="r.photos.out"
@@ -921,11 +989,14 @@ const numberClass =
                                         </td>
                                         <td
                                             data-label="Worked"
-                                            class="tabular-nums"
+                                            class="whitespace-nowrap tabular-nums"
                                         >
-                                            {{ r.worked ?? '–' }}
+                                            {{ glueTimes(r.worked ?? '–') }}
                                         </td>
-                                        <td data-label="Flags">
+                                        <td
+                                            data-label="Flags"
+                                            class="whitespace-nowrap"
+                                        >
                                             <div
                                                 v-if="flagsOf(r)"
                                                 class="flex flex-wrap gap-1.5"
@@ -935,11 +1006,13 @@ const numberClass =
                                                     :key="f.code"
                                                     tone="warning"
                                                     :label="f.label"
+                                                    class="text-nowrap!"
                                                 />
                                                 <V2Chip
                                                     v-if="r.correctionWaiting"
                                                     tone="neutral"
                                                     label="Correction waiting"
+                                                    class="text-nowrap!"
                                                 />
                                             </div>
                                             <span
