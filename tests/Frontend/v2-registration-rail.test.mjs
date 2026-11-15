@@ -24,3 +24,24 @@ test('Edit visit puts the rail at 1280 px with the bar below it and guards unsav
         ),
     );
 });
+
+test('the unsaved-changes guard covers visit type, doctor, reasons, coverage and urgency', () => {
+    for (const key of [
+        'visit_type: props.visit.visitType',
+        'assigned_doctor_user_id: props.visit.doctor?.id',
+        'visit_reason_public_ids: props.visit.visitReasons.structured',
+        'coverage_type: props.visit.coverage.type',
+        'priority: props.visit.priority',
+    ]) {
+        assert.ok(edit.includes(key), `the form lacks ${key}`);
+    }
+
+    // All five live in the same useForm that the guard and the Save button read (form.isDirty).
+    assert.ok(edit.includes('const form = useForm({'));
+    assert.ok(edit.includes('form.isDirty && !form.processing'));
+});
+
+test('the crumb is a two-item trail so the phone view never shows a lone ellipsis', () => {
+    assert.ok(!/title: 'Registration', href: '\/registration'/.test(edit));
+    assert.ok(edit.includes("{ title: 'Edit' }"));
+});

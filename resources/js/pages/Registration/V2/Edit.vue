@@ -47,7 +47,6 @@ const panelOptions = [
     })),
 ];
 usePageCrumbs(() => [
-    { title: 'Registration', href: '/registration' },
     {
         title: props.visit.visitNumber,
         href: `/visits/${props.visit.visitNumber}`,
