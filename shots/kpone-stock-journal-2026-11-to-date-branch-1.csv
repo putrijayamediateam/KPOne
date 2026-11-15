@@ -1,0 +1,36 @@
+﻿"Management report — cost policy to be confirmed by the clinic's accountant. Set by KPOne defaults at the owner's instruction; not professional accounting advice."
+"No real accounting system receives this file."
+Scope,Cheras
+Month,"2026-11 (month to date, up to 2026-11-16)"
+Generated,"16 Nov 2026, 4:55 AM (Asia/Kuala_Lumpur)"
+
+Line,Date,Description,Account,"Debit (RM)","Credit (RM)",Note
+1,2026-11-16,"Purchases received at cost",Inventory,158.34,,
+1,2026-11-16,"Purchases received at cost","Accounts payable (goods received)",,158.34,
+2,2026-11-16,"Opening balances recorded this month",Inventory,2366.20,,
+2,2026-11-16,"Opening balances recorded this month","Opening stock (to be confirmed by accountant)",,2366.20,
+3,2026-11-16,"Transfers in",Inventory,1.20,,
+3,2026-11-16,"Transfers in","Inter-branch transfers",,1.20,
+4,2026-11-16,"Patient returns back into stock (at average cost)",Inventory,2.50,,"Returned medicine is quarantined in the patient returns location and is not usable."
+4,2026-11-16,"Patient returns back into stock (at average cost)","Cost of goods sold",,2.50,"Returned medicine is quarantined in the patient returns location and is not usable."
+5,2026-11-16,"Count gains and adjustments in",Inventory,0.30,,
+5,2026-11-16,"Count gains and adjustments in","Stock losses",,0.30,
+6,2026-11-16,"Cost of goods sold, dispensed","Cost of goods sold",27.26,,
+6,2026-11-16,"Cost of goods sold, dispensed",Inventory,,27.26,
+7,2026-11-16,"Cost of goods sold, treatment-room use","Cost of goods sold",84.18,,
+7,2026-11-16,"Cost of goods sold, treatment-room use",Inventory,,84.18,
+8,2026-11-16,"Treatment-room waste","Stock losses",0.40,,
+8,2026-11-16,"Treatment-room waste",Inventory,,0.40,
+9,2026-11-16,"Count losses and adjustments out","Stock losses",9.30,,
+9,2026-11-16,"Count losses and adjustments out",Inventory,,9.30,
+10,2026-11-16,"Supplier returns dispatched (at cost)","Accounts payable (goods received)",4.60,,
+10,2026-11-16,"Supplier returns dispatched (at cost)",Inventory,,4.60,
+11,2026-11-16,"Transfers out","Inter-branch transfers",2.40,,
+11,2026-11-16,"Transfers out",Inventory,,2.40,
+12,2026-11-16,"Supplier credit difference","Accounts payable (goods received)",11.65,,"Cost of the returned stock minus the supplier credit note amount."
+12,2026-11-16,"Supplier credit difference","Stock losses",,11.65,"Cost of the returned stock minus the supplier credit note amount."
+,2026-11-16,"Memo: opening stock value",Inventory,,,0.00
+,2026-11-16,"Memo: closing stock value",Inventory,,,2400.39
+,2026-11-16,"Check: opening stock value + debits − credits to Inventory = closing stock value",Inventory,,,"Difference 0.00"
+,2026-11-16,"Memo: rounding to sen",Inventory,,,"0.01 (each line is rounded to sen; the check above is exact)"
+,2026-11-16,"Note: some stock has no cost recorded and is left out of every value",,,,
