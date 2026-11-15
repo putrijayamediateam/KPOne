@@ -31,6 +31,7 @@ return [
         'Agents/Index',
         'Patient/Show',
         'HR/Roster',
+        'HR/Attendance',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
@@ -85,5 +86,6 @@ return [
     // A page is listed here only once its V2 file exists (V2PageDispatchTest checks both ways).
     'public_pages' => [
         'PublicCheckIn/Status',
+        'PublicCheckIn/Show',
     ],
 ];

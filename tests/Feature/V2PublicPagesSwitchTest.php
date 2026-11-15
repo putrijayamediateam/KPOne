@@ -56,7 +56,7 @@ class V2PublicPagesSwitchTest extends VisitTestCase
         $config = require base_path('config/v2-pages.php');
 
         $this->assertFalse($config['public']);
-        $this->assertSame(['PublicCheckIn/Status'], $config['public_pages']);
+        $this->assertSame(['PublicCheckIn/Status', 'PublicCheckIn/Show'], $config['public_pages']);
     }
 
     public function test_with_the_switch_off_a_patient_gets_classic_even_when_the_v2_file_exists(): void
@@ -109,16 +109,16 @@ class V2PublicPagesSwitchTest extends VisitTestCase
         config(['v2-pages.public' => false]);
 
         $this->assertSame('PublicCheckIn/Status', $resolver->pageFor('PublicCheckIn/Status'));
+        $this->assertSame('PublicCheckIn/Show', $resolver->pageFor('PublicCheckIn/Show'));
     }
 
-    public function test_with_the_switch_on_the_real_status_page_gets_its_v2_page_and_the_show_page_stays_classic(): void
+    public function test_with_the_switch_on_the_real_status_and_show_pages_get_their_v2_pages(): void
     {
         $resolver = app(UiVersionResolver::class);
         config(['v2-pages.public' => true, 'v2-pages.public_pages' => (require base_path('config/v2-pages.php'))['public_pages']]);
 
         $this->assertSame('PublicCheckIn/V2/Status', $resolver->pageFor('PublicCheckIn/Status'));
-        // The intake form has no V2 page yet and is not listed, so it is untouched.
-        $this->assertSame('PublicCheckIn/Show', $resolver->pageFor('PublicCheckIn/Show'));
+        $this->assertSame('PublicCheckIn/V2/Show', $resolver->pageFor('PublicCheckIn/Show'));
     }
 
     public function test_the_staff_pages_dispatch_is_unchanged(): void
