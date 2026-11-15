@@ -601,14 +601,16 @@ onBeforeUnmount(() => {
                         </p>
                     </div>
                     <div class="grid gap-4">
-                        <label class="grid gap-1.5" for="full-name"
+                        <label
+                            class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                            for="full-name"
                             ><span class="text-sm font-medium"
                                 >Nama penuh *</span
                             ><input
                                 id="full-name"
                                 v-model="form.full_name"
                                 autocomplete="name"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="!!errorFor('full_name')"
                             /><span
                                 v-if="errorFor('full_name')"
@@ -617,7 +619,9 @@ onBeforeUnmount(() => {
                                 >{{ errorFor('full_name') }}</span
                             ></label
                         >
-                        <div class="grid grid-cols-2 items-start gap-3">
+                        <div
+                            class="grid grid-cols-1 items-start gap-3 min-[400px]:grid-cols-2"
+                        >
                             <label
                                 class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
                                 for="dob"
@@ -643,7 +647,7 @@ onBeforeUnmount(() => {
                                 ><select
                                     id="sex"
                                     v-model="form.sex"
-                                    class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                    class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 >
                                     <option value="female">Perempuan</option>
                                     <option value="male">Lelaki</option>
@@ -654,16 +658,22 @@ onBeforeUnmount(() => {
                                 </select></label
                             >
                         </div>
-                        <RegistrationContactFields
-                            v-if="collectContactDetails"
-                            :model="form"
-                            :require-email="requirements?.requireEmail"
-                            :require-address="requirements?.requireAddress"
-                            :errors="contactErrors"
-                            public-form
-                            id-prefix="public-contact"
-                        />
-                        <label class="grid gap-1.5" for="nationality"
+                        <div
+                            class="min-w-0 [&_input]:w-full [&_input]:min-w-0 [&_select]:w-full [&_select]:min-w-0"
+                        >
+                            <RegistrationContactFields
+                                v-if="collectContactDetails"
+                                :model="form"
+                                :require-email="requirements?.requireEmail"
+                                :require-address="requirements?.requireAddress"
+                                :errors="contactErrors"
+                                public-form
+                                id-prefix="public-contact"
+                            />
+                        </div>
+                        <label
+                            class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                            for="nationality"
                             ><span class="text-sm font-medium"
                                 >Kod negara kewarganegaraan{{
                                     requirements?.requireNationality
@@ -677,7 +687,7 @@ onBeforeUnmount(() => {
                                 :aria-invalid="!!errorFor('nationality_code')"
                                 maxlength="2"
                                 placeholder="MY"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground uppercase focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground uppercase focus-visible:ring-4 focus-visible:ring-ring/40"
                             /><span
                                 v-if="errorFor('nationality_code')"
                                 role="alert"
@@ -685,7 +695,9 @@ onBeforeUnmount(() => {
                                 >{{ errorFor('nationality_code') }}</span
                             ></label
                         >
-                        <label class="grid gap-1.5" for="phone"
+                        <label
+                            class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                            for="phone"
                             ><span class="text-sm font-medium">{{
                                 knownMinor(form.date_of_birth)
                                     ? 'Nombor telefon anak (pilihan)'
@@ -697,7 +709,7 @@ onBeforeUnmount(() => {
                                 type="tel"
                                 inputmode="tel"
                                 autocomplete="tel"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="!!errorFor('mobile_phone')"
                             /><span
                                 v-if="errorFor('mobile_phone')"
@@ -710,11 +722,13 @@ onBeforeUnmount(() => {
                             <legend class="text-sm font-medium">
                                 Pengenalan *
                             </legend>
-                            <div class="grid grid-cols-[8rem_1fr] gap-2">
+                            <div
+                                class="grid grid-cols-[7rem_minmax(0,1fr)] gap-2"
+                            >
                                 <select
                                     v-model="form.identifier_type"
                                     aria-label="Jenis pengenalan"
-                                    class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                    class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 >
                                     <option value="nric">No. IC</option>
                                     <option value="passport">
@@ -723,7 +737,7 @@ onBeforeUnmount(() => {
                                 ><input
                                     v-model="form.identifier_value"
                                     autocomplete="off"
-                                    class="min-h-12 min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                    class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                     aria-label="Nombor pengenalan"
                                     :aria-invalid="
                                         !!errorFor('identifier_value')
@@ -735,7 +749,7 @@ onBeforeUnmount(() => {
                                 v-model="form.identifier_issuing_country_code"
                                 maxlength="2"
                                 aria-label="Kod negara pengeluar passport"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground uppercase focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground uppercase focus-visible:ring-4 focus-visible:ring-ring/40"
                                 placeholder="Kod negara, contoh MY"
                             /><span
                                 v-if="errorFor('identifier_value')"
@@ -774,7 +788,7 @@ onBeforeUnmount(() => {
                             ><select
                                 id="visit-purpose"
                                 v-model="form.visit_purpose"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="!!errorFor('visit_purpose')"
                             >
                                 <option value="" disabled>Pilih tujuan</option>
@@ -798,7 +812,9 @@ onBeforeUnmount(() => {
                                 >{{ errorFor('visit_purpose') }}</span
                             ></label
                         >
-                        <label class="grid gap-1.5" for="chief-complaint"
+                        <label
+                            class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                            for="chief-complaint"
                             ><span class="text-sm font-medium">{{
                                 form.visit_kind === 'otc'
                                     ? 'Ubat apa yang anda perlukan? (pilihan)'
@@ -809,7 +825,7 @@ onBeforeUnmount(() => {
                                 v-model="form.chief_complaint"
                                 rows="3"
                                 maxlength="500"
-                                class="rounded-xl border border-input bg-background px-3 py-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="w-full min-w-0 rounded-xl border border-input bg-background px-3 py-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 placeholder="Contoh: Demam dan batuk sejak semalam."
                                 :aria-invalid="!!errorFor('chief_complaint')"
                             ></textarea
@@ -830,7 +846,7 @@ onBeforeUnmount(() => {
                                 id="complaint-duration"
                                 v-model="form.complaint_duration"
                                 maxlength="120"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 placeholder="Contoh: Sejak semalam"
                                 :aria-invalid="!!errorFor('complaint_duration')"
                             /><span
@@ -877,13 +893,14 @@ onBeforeUnmount(() => {
                         v-if="form.submission_type === 'guardian'"
                         class="grid gap-4"
                     >
-                        <label class="grid gap-1.5"
+                        <label
+                            class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
                             ><span class="text-sm font-medium"
                                 >Nama penjaga *</span
                             ><input
                                 v-model="form.guardian_name"
                                 autocomplete="name"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="!!errorFor('guardian_name')"
                             /><span
                                 v-if="errorFor('guardian_name')"
@@ -892,11 +909,12 @@ onBeforeUnmount(() => {
                                 >{{ errorFor('guardian_name') }}</span
                             ></label
                         >
-                        <label class="grid gap-1.5"
+                        <label
+                            class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
                             ><span class="text-sm font-medium">Hubungan *</span
                             ><select
                                 v-model="form.guardian_relationship"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="
                                     !!errorFor('guardian_relationship')
                                 "
@@ -924,7 +942,8 @@ onBeforeUnmount(() => {
                                 >{{ errorFor('guardian_relationship') }}</span
                             ></label
                         >
-                        <label class="grid gap-1.5"
+                        <label
+                            class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
                             ><span class="text-sm font-medium"
                                 >Nombor telefon penjaga *</span
                             ><input
@@ -932,7 +951,7 @@ onBeforeUnmount(() => {
                                 type="tel"
                                 inputmode="tel"
                                 autocomplete="tel"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="
                                     !!errorFor('guardian_contact_number')
                                 "
@@ -998,12 +1017,14 @@ onBeforeUnmount(() => {
                             oleh staf sebelum pendaftaran.
                         </p>
                     </div>
-                    <label class="grid gap-1.5" for="coverage-type"
+                    <label
+                        class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                        for="coverage-type"
                         ><span class="text-sm font-medium">Jenis bayaran *</span
                         ><select
                             id="coverage-type"
                             v-model="form.coverage_type"
-                            class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                            class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                             :aria-invalid="!!errorFor('coverage_type')"
                         >
                             <option value="" disabled>Pilih satu</option>
@@ -1018,12 +1039,14 @@ onBeforeUnmount(() => {
                         ></label
                     >
                     <template v-if="form.coverage_type === 'panel'">
-                        <label class="grid gap-1.5" for="panel-id"
+                        <label
+                            class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
+                            for="panel-id"
                             ><span class="text-sm font-medium">Panel *</span
                             ><select
                                 id="panel-id"
                                 v-model="form.panel_id"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="!!errorFor('panel_id')"
                             >
                                 <option value="" disabled>Pilih panel</option>
@@ -1049,7 +1072,7 @@ onBeforeUnmount(() => {
                             ></label
                         >
                         <label
-                            class="grid gap-1.5"
+                            class="grid min-w-0 grid-cols-[minmax(0,1fr)] gap-1.5"
                             for="coverage-member-reference"
                             ><span class="text-sm font-medium"
                                 >Nombor ahli panel (jika ada)</span
@@ -1058,7 +1081,7 @@ onBeforeUnmount(() => {
                                 v-model="form.coverage_member_reference"
                                 maxlength="100"
                                 autocomplete="off"
-                                class="min-h-12 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
+                                class="min-h-12 w-full min-w-0 rounded-xl border border-input bg-background px-3 text-foreground focus-visible:ring-4 focus-visible:ring-ring/40"
                                 :aria-invalid="
                                     !!errorFor('coverage_member_reference')
                                 "
