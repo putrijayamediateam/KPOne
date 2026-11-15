@@ -50,6 +50,32 @@ class DocumentLetterheadTest extends BillingTestCase
         }
     }
 
+    public function test_a_missing_logo_file_refuses_invoice_and_receipt_issue_cleanly_instead_of_failing(): void
+    {
+        Storage::fake('local');
+        [, $ca, $visit, $invoice] = $this->finalizedFixture();
+        (new PaymentMethod)->forceFill(['organisation_id' => $visit->organisation_id, 'code' => 'cash', 'name' => 'Synthetic cash', 'requires_reference' => false, 'is_active' => true])->save();
+        $payment = app(PaymentService::class)->add($ca, $visit, $invoice, ['expected_branch_id' => $visit->branch_id, 'lock_version' => $invoice->lock_version, 'amount_sen' => 1000, 'method' => 'cash', 'idempotency_key' => (string) Str::uuid()]);
+        $editor = $this->actor('director');
+        $this->selectBranch($editor);
+        // A real 1 x 1 PNG. Saving it needs the GD extension, as the other logo tests here do (CI has it).
+        $png = base64_decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==');
+        app(BusinessDetailsService::class)->save($editor, [
+            'expected_branch_id' => $this->branch->id, 'organisation_lock_version' => 0, 'branch_lock_version' => 0,
+            'idempotency_key' => (string) Str::uuid(), 'legal_name' => 'Synthetic Group', 'clinic_name' => 'Synthetic Document Clinic',
+            'address_line_1' => '42 Synthetic Street', 'postcode' => '50000', 'city' => 'Synthetic City', 'state' => 'Synthetic State', 'country' => 'MY', 'email' => 'clinic@documents.test',
+        ], UploadedFile::fake()->createWithContent('synthetic-logo.png', $png));
+        Storage::disk('local')->delete(BusinessDetailAsset::query()->sole()->path);
+
+        $this->selectBranch($ca);
+        $input = ['expected_branch_id' => $visit->branch_id, 'idempotency_key' => (string) Str::uuid(), 'return_to' => 'billing'];
+        $message = 'The letterhead logo is unavailable. Restore it in Business details before printing.';
+        $this->post(route('billing.issue', [$visit, $invoice]), $input)->assertRedirect()->assertSessionHasErrors(['document' => $message]);
+        $this->post(route('billing.receipt.issue', [$visit, $invoice, $payment]), [...$input, 'idempotency_key' => (string) Str::uuid()])
+            ->assertRedirect()->assertSessionHasErrors(['document' => $message]);
+        $this->assertDatabaseCount('issued_billing_documents', 0);
+    }
+
     public function test_missing_configuration_omits_logo_and_never_borrows_another_branch_details(): void
     {
         [, $ca, $visit, $invoice] = $this->finalizedFixture();
