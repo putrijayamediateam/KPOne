@@ -533,7 +533,7 @@ final class PermissionCatalogue
             $roles[$holder][] = 'inventory.recalls.lift.organisation';
         }
 
-        // STK-28 (owner programme 2026-11-11; approved by B.E.R.N.I.S.S for the owner 2026-11-15): the stock value, cost of
+        // STK-28 (owner programme 2026-11-11; owner decision 2026-11-15: Director only): the stock value, cost of
         // goods sold, margin and losses report. Director only; KPOne default figures, not professional accounting advice.
         $roles['director'][] = 'inventory.valuation.view.organisation';
 

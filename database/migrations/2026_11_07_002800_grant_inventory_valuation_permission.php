@@ -7,7 +7,7 @@ use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
 /**
- * STK-28 (approved by B.E.R.N.I.S.S for the owner, 2026-11-15): only a Director opens the stock value, cost of goods
+ * STK-28 (owner decision 2026-11-15: Director only, with margin): only a Director opens the stock value, cost of goods
  * sold, margin and losses report. Additive: grants only what is missing, skips a missing role and never revokes.
  */
 return new class extends Migration
