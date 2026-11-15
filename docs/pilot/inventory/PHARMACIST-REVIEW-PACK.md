@@ -35,8 +35,9 @@ alongside it:
 - **The checker counts blind (owner's decision, 15 Nov 2026).** While someone may check a register, KPOne does not
   show them its balance, the in and out quantities, earlier checks' quantities or the print. They count, record the
   count, and only then see the register's balance and the difference. If the count differs, KPOne asks for a reason,
-  which tells them only that it differs. Known limit: other stock pages still show levels; a determined checker
-  could look there.
+  which tells them only that it differs. Known limits: other stock pages still show levels; a determined checker
+  could look there. A checker could also send guesses until no reason is asked for; each refused try is now recorded
+  in the audit trail, but nothing shows those tries on screen yet.
 - **Where controlled medicines are kept.** KPOne has no "locked" location type. A move to a locked cupboard is an
   ordinary transfer between two locations of the same branch, and the register shows it as both In and Out with
   no change to the balance. Where the cupboard is, and who holds the key, are for the clinic to decide (see the

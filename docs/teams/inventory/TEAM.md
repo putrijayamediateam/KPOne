@@ -275,6 +275,14 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     the difference. The checker rules, locks and audit are unchanged; a count that differs is still refused until a
     reason is chosen, which tells the checker only that it differs. Known limit, accepted: other stock pages still
     show levels; a determined checker could look there.
+43. STK-40 follow-ups (B.E.R.N.I.S.S for the owner, 2026-11-15): each refused "differs" try (no reason, or "other"
+    with no note) writes one audit row, `inventory.controlled_register.check_refused`, with ids and the code only,
+    after the check transaction has rolled back. Approved changes to existing tests: in `ControlledRegisterTest` the
+    list's first row expects `[null, true, 'never', null]` (balance, blind, status, last checked) plus two lines for
+    the recorder, and three tests view as the supervisor who recorded the movements (`$f['proposer']`), assertions
+    unchanged; in `v2-inventory-controlled-register.test.mjs` the intro regex drops "since the last check." and a new
+    assertion pins the blind sentence. A new test shows a Finance Officer and a Director get the full register after
+    their own check.
 
 ## 7. Open items and known limits
 
@@ -292,8 +300,9 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   and a re-save before completion loses the earlier reason; no report lists FEFO exceptions; no short-dated
   warning at Dispensary. Each waits for the pharmacist's answers and the owner.
 - **STK-40 blind count limits:** other stock pages (Inventory home, stock movement report, reorder list) still show
-  levels; a determined checker could look there. A checker could also learn the balance by sending guesses until no
-  reason is asked for (raised with B.E.R.N.I.S.S, 2026-11-15).
+  levels; a determined checker could look there. A checker could still learn the balance by sending guesses until
+  no reason is asked for, but each refused try now leaves an audit row (`inventory.controlled_register.check_refused`,
+  ids and "differs" only); nothing shows the refused tries on screen yet.
 - **Pilot staffing:** the controlled-register checker cannot be anyone who recorded a movement on that register
   since the last check, so a controlled-delivery day needs a third person (raised with the owner, 2026-11-12).
 - STK-31 limits: the cross-branch guard is insert-only; stock request creation takes an optional retry key since
