@@ -14,6 +14,7 @@ import V2Chip from '@/components/v2/V2Chip.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
+import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2PatientPickList from '@/components/v2/V2PatientPickList.vue';
 import V2SearchCombobox from '@/components/v2/V2SearchCombobox.vue';
@@ -70,8 +71,10 @@ const patientOptions = computed(() =>
         }`,
     })),
 );
+// The list sits in a narrow card: show the six most recent and say how to find the others.
+const RECENT_SHOWN = 6;
 const pickList = computed(() =>
-    props.recentPatients.map((patient) => ({
+    props.recentPatients.slice(0, RECENT_SHOWN).map((patient) => ({
         value: patient.patientNumber,
         name: patient.fullName,
         kpNumber: patient.patientNumber,
@@ -81,6 +84,13 @@ const pickList = computed(() =>
             ? formatDate(patient.dateOfBirth)
             : undefined,
     })),
+);
+// Unsaved work: a chosen patient, a new patient being typed, or any changed visit field.
+const dirty = computed(
+    () =>
+        form.isDirty ||
+        !!selectedPatient.value ||
+        (quickMode.value && quick.value.full_name.trim() !== ''),
 );
 const findPatient = (number: string) =>
     [...patientResults.value, ...props.recentPatients].find(
@@ -146,9 +156,11 @@ const inputClass =
 <template>
     <Head title="Register visit" />
     <PageFrame width="wide">
+        <V2LeaveGuard :dirty="dirty && !form.processing" />
         <V2WorkLayout
             title="Register visit"
             :description="`${options.branch.name} · current branch. Pick the patient, then the visit details.`"
+            rail-from="xl"
             rail-width="narrow"
         >
             <template #actions>
@@ -214,12 +226,15 @@ const inputClass =
                             class="[&_ul[role=listbox]:not(:has([role=option],[role=status]))]:hidden"
                             v-model="patientQuery"
                             label="Search patient"
-                            placeholder="Name, IC number, phone or Patient No."
+                            placeholder="Search patients"
                             :options="patientOptions"
                             :loading="searching"
                             empty-text="No matching Patient found."
                             @select="(option) => pick(option.id)"
                         />
+                        <p class="text-[13px] text-muted-foreground">
+                            Search by name, IC number, phone or Patient No.
+                        </p>
                         <p
                             v-if="
                                 patientQuery.trim().length > 0 &&
@@ -254,6 +269,10 @@ const inputClass =
                                 :patients="pickList"
                                 @update:model-value="pick"
                             />
+                            <p class="mt-2 text-[13px] text-muted-foreground">
+                                Showing the {{ pickList.length }} most recent.
+                                Search to find others.
+                            </p>
                         </div>
                         <div
                             v-if="
@@ -701,21 +720,27 @@ const inputClass =
                             c.errorFor('quick_patient')
                         }}
                     </p>
-
-                    <V2StickyBar>
-                        <button
-                            type="submit"
-                            class="inline-flex items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50"
-                            :disabled="form.processing"
-                        >
-                            {{
-                                form.processing
-                                    ? 'Registering…'
-                                    : 'Register visit'
-                            }}
-                        </button>
-                    </V2StickyBar>
                 </form>
+                <V2StickyBar>
+                    <button
+                        type="submit"
+                        form="v2-register-visit-form"
+                        class="inline-flex items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50"
+                        :disabled="!visitReady || form.processing"
+                        aria-describedby="v2-register-bar-hint"
+                    >
+                        {{
+                            form.processing ? 'Registering…' : 'Register visit'
+                        }}
+                    </button>
+                    <p
+                        v-if="!visitReady"
+                        id="v2-register-bar-hint"
+                        class="text-center text-[13px] text-muted-foreground sm:text-right"
+                    >
+                        Choose or create a patient first.
+                    </p>
+                </V2StickyBar>
             </template>
 
             <template #rail>
