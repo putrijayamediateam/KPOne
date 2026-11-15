@@ -19,6 +19,7 @@ return [
         'Registration/Show',
         'Registration/Edit',
         'PanelClaims/Index',
+        'PanelClaims/Create',
         'ClinicalService/Index',
         'Dispensary/Show',
         'Medicine/Index',

@@ -373,6 +373,18 @@ class PanelClaimsTest extends BillingTestCase
         $this->assertSame($allocation->panel_name_snapshot, $allocation->refresh()->panel_name_snapshot);
     }
 
+    public function test_create_claim_page_carries_the_panels_due_rule_and_the_date_it_falls_due(): void
+    {
+        [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
+        $this->selectBranch($panelOfficer, $this->branch);
+        DB::table('panels')->where('id', $allocation->panel_id)->update(['claim_due_days' => 30]);
+        $visitLocal = $visit->registered_at->setTimezone($this->branch->timezone);
+
+        $this->get(route('panel-claims.create', $allocation))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('allocation.dueRule', 'Submit 30 days after the visit')
+            ->where('allocation.dueBy', $visitLocal->startOfDay()->addDays(30)->format('j M Y')));
+    }
+
     public function test_claim_page_shows_summary_identity_for_the_panel_officer_and_hides_it_without_the_permission(): void
     {
         [$panelOfficer, $visit, , $allocation] = $this->approvedPanelFixture();
