@@ -186,3 +186,14 @@ test('page 8b: register dates are day-first boxes; an unreadable date or a rever
     assert.match(show.flat, /:disabled="!rangeReady"/);
     assert.ok(show.script.includes('From must be on or before To.'));
 });
+
+test('page 8b: the date row is top-aligned with an invisible label line, so an error under To leaves the boxes level', () => {
+    assert.match(
+        show.flat,
+        /class="flex min-w-0 flex-wrap items-start gap-2" aria-label="Register dates"/,
+    );
+    assert.match(
+        show.flat,
+        /<span aria-hidden="true" class="invisible hidden text-sm font-medium sm:block" >Show<\/span >/,
+    );
+});
