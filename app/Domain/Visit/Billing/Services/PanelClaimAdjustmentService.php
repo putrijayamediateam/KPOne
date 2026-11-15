@@ -39,6 +39,11 @@ final class PanelClaimAdjustmentService
 
     private const UNDECIDED = ['prepared', 'submitted', 'queried', 'rejected'];
 
+    /** Daniel's board v10, section 3: the refusal texts, verbatim (RM figures are live amounts). */
+    private const CHANGED = 'This record has changed. Reload and review it again.';
+
+    private const NOT_ADJUSTABLE = 'Only a finalized invoice with an approved Panel share can be adjusted.';
+
     public function __construct(private TransactionalActorAuthority $authority, private AuditRecorder $audit, private FinancialLedger $ledger) {}
 
     /** @param array<string, mixed> $a */
@@ -74,10 +79,10 @@ final class PanelClaimAdjustmentService
             }
             [$invoice, $allocation, $original, $supplementary] = $this->lockSources($actor, $branch, $routeAllocation->id);
             if ($invoice->lock_version !== (int) $a['invoice_lock_version']) {
-                throw ValidationException::withMessages(['adjustment' => 'The invoice changed. Reload before requesting an adjustment.']);
+                throw ValidationException::withMessages(['adjustment' => self::CHANGED]);
             }
             if (PanelClaimAdjustment::query()->where('invoice_id', $invoice->id)->where('status', 'requested')->exists()) {
-                throw ValidationException::withMessages(['adjustment' => 'An adjustment is already waiting for confirmation on this invoice. Confirm or withdraw it first.']);
+                throw ValidationException::withMessages(['adjustment' => 'A Panel adjustment is already waiting to be confirmed on this invoice. Confirm or withdraw it first.']);
             }
             $signed = $a['direction'] === 'add' ? $amount : -$amount;
             $this->plan($allocation, $original, $supplementary, $signed);
@@ -130,13 +135,13 @@ final class PanelClaimAdjustmentService
             [$invoice, $allocation, $original, $supplementary] = $this->lockSources($actor, $branch, $current->coverage_allocation_id);
             $adjustment = PanelClaimAdjustment::query()->whereKey($current->id)->lockForUpdate()->firstOrFail();
             if ($adjustment->status !== 'requested') {
-                throw ValidationException::withMessages(['adjustment' => 'This adjustment is no longer waiting for confirmation. Reload the page.']);
+                throw ValidationException::withMessages(['adjustment' => self::CHANGED]);
             }
             if ($adjustment->lock_version !== (int) $a['lock_version']) {
-                throw ValidationException::withMessages(['adjustment' => 'This adjustment changed. Reload the page.']);
+                throw ValidationException::withMessages(['adjustment' => self::CHANGED]);
             }
             if ($original?->status !== $adjustment->claim_status_at_request || ($original === null) !== ($adjustment->panel_claim_id === null)) {
-                throw ValidationException::withMessages(['adjustment' => 'The Panel claim changed since this request. Withdraw it and request again.']);
+                throw ValidationException::withMessages(['adjustment' => 'This claim was decided or paid after the request. Withdraw this request and adjust again. An increase will make a supplementary claim.']);
             }
             $plan = $this->plan($allocation, $original, $supplementary, $adjustment->signedSen());
 
@@ -172,10 +177,10 @@ final class PanelClaimAdjustmentService
             $this->lockSources($actor, $branch, $current->coverage_allocation_id);
             $adjustment = PanelClaimAdjustment::query()->whereKey($current->id)->lockForUpdate()->firstOrFail();
             if ($adjustment->status !== 'requested') {
-                throw ValidationException::withMessages(['adjustment' => 'This adjustment is no longer waiting for confirmation. Reload the page.']);
+                throw ValidationException::withMessages(['adjustment' => self::CHANGED]);
             }
             if ($adjustment->lock_version !== (int) $a['lock_version']) {
-                throw ValidationException::withMessages(['adjustment' => 'This adjustment changed. Reload the page.']);
+                throw ValidationException::withMessages(['adjustment' => self::CHANGED]);
             }
             $adjustment->forceFill(['status' => 'withdrawn', 'withdrawn_by_user_id' => $actor->id, 'withdrawn_at' => now()->utc(), 'lock_version' => $adjustment->lock_version + 1])->save();
             $this->audit->record('panel_claim_adjustment.withdrawn', $adjustment, ['amount_sen' => $adjustment->amount_sen], $actor, $branch);
@@ -206,9 +211,12 @@ final class PanelClaimAdjustmentService
         $allocation = CoverageAllocation::query()->whereKey($allocationId)->where('invoice_id', $invoice->id)->lockForUpdate()->firstOrFail();
         $claims = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->orderBy('id')->lockForUpdate()->get();
         $this->ledger->lock($invoice);
+        if ($invoice->status === 'voided') {
+            throw ValidationException::withMessages(['adjustment' => 'This invoice was voided. Request the adjustment again on the new invoice.']);
+        }
         if ($allocation->status !== 'approved' || (int) $allocation->current_invoice_guard !== $invoice->id || $allocation->panel_id === null
             || $invoice->status !== 'finalized' || $invoice->correction_hold || $invoice->source_stale) {
-            throw ValidationException::withMessages(['adjustment' => 'Only an approved Panel share on a current finalized invoice can be adjusted.']);
+            throw ValidationException::withMessages(['adjustment' => self::NOT_ADJUSTABLE]);
         }
 
         return [$invoice, $allocation, $claims->firstWhere('claim_kind', 'original'), $claims->where('claim_kind', 'supplementary')->values()];
@@ -225,15 +233,16 @@ final class PanelClaimAdjustmentService
         $share = PanelShare::effective($allocation);
         $newShare = $share + $signed;
         if ($newShare < 0) {
-            throw ValidationException::withMessages(['amount_sen' => 'The Panel share cannot go below RM 0.00.']);
+            throw ValidationException::withMessages(['amount_sen' => "The Panel share can't go below RM 0.00."]);
         }
         if ($original === null) {
             return ['kind' => 'unclaimed'];
         }
         $supplementarySum = (int) $supplementary->sum('claim_amount_sen');
         if (in_array($original->status, self::UNDECIDED, true) && ! $original->payments()->exists()) {
-            if ($original->claim_amount_sen !== $share - $supplementarySum) {
-                throw ValidationException::withMessages(['adjustment' => 'This claim has a claim-only amount change. Bring the claim amount back to the Panel share first.']);
+            // Owner default: an old claim-only excess must be brought back to the share first, so the two kinds never mix.
+            if ($original->claim_amount_sen > $share - $supplementarySum) {
+                throw ValidationException::withMessages(['adjustment' => 'This claim amount is above the Panel share. Bring the claim amount back to the Panel share first, so the two kinds of change do not mix.']);
             }
             $amount = $newShare - $supplementarySum;
             if ($amount < 1) {
@@ -259,13 +268,19 @@ final class PanelClaimAdjustmentService
             }
         }
         $committed = 0;
+        $accepted = 0;
+        $paid = 0;
         foreach (collect([$original])->merge($supplementary) as $claim) {
-            $committed += in_array($claim->status, PanelClaim::DECIDED, true)
-                ? (int) $claim->accepted_amount_sen
-                : $claim->claim_amount_sen - ($reductions[$claim->id] ?? 0);
+            $decided = in_array($claim->status, PanelClaim::DECIDED, true);
+            $accepted += $decided ? (int) $claim->accepted_amount_sen : 0;
+            $committed += $decided ? (int) $claim->accepted_amount_sen : $claim->claim_amount_sen - ($reductions[$claim->id] ?? 0);
+            $paid += (int) $claim->receivedPayments()->sum('amount_sen');
+        }
+        if ($newShare < $paid) {
+            throw ValidationException::withMessages(['amount_sen' => sprintf("The Panel has already paid %s. A refund to the Panel isn't available yet, so the Panel share can't go below %s.", self::myr($paid), self::myr($paid))]);
         }
         if ($newShare < $committed) {
-            throw ValidationException::withMessages(['amount_sen' => 'The Panel share cannot go below what the Panel has accepted. Record the Panel\'s revised decision on the claim first.']);
+            throw ValidationException::withMessages(['amount_sen' => sprintf("The Panel has accepted %s on this Panel share. Record the Panel's revised decision on the claim first, then deduct.", self::myr($accepted))]);
         }
 
         return ['kind' => 'decided', 'reductions' => $reductions];
@@ -321,6 +336,11 @@ final class PanelClaimAdjustmentService
                 $claim->status === 'submitted' ? 'Amount changed after submission: tell the Panel' : null);
             PanelShare::recordVersion($claim, $actor, $adjustment);
         }
+    }
+
+    private static function myr(int $sen): string
+    {
+        return 'RM '.number_format($sen / 100, 2);
     }
 
     private function event(PanelClaim $claim, User $actor, Branch $branch, string $type, ?int $previous, ?int $amount, ?string $note): void

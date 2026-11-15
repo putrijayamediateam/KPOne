@@ -99,7 +99,7 @@ class PostgresPanelAdjustmentRegressionTest extends BillingTestCase
         ]);
 
         $this->assertStringContainsString('SUCCESS '.$claim->public_id, $out);
-        $this->assertStringContainsString('STALE adjustment: The Panel claim changed since this request.', $out);
+        $this->assertStringContainsString('STALE adjustment: This claim was decided or paid after the request.', $out);
         $this->assertSame(['accepted', 3000], [$claim->refresh()->status, $claim->claim_amount_sen]);
         $this->assertSame('requested', $adjustment->refresh()->status);
     }
@@ -142,7 +142,7 @@ class PostgresPanelAdjustmentRegressionTest extends BillingTestCase
         ]);
 
         $this->assertSame(1, substr_count($out, 'SUCCESS'), $out);
-        $this->assertStringContainsString('STALE adjustment: This adjustment is no longer waiting for confirmation.', $out);
+        $this->assertStringContainsString('STALE adjustment: This record has changed. Reload and review it again.', $out);
         $this->assertSame(8000, $claim->refresh()->claim_amount_sen);
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'panel_claim_adjustment.confirmed')->count());
     }

@@ -495,6 +495,7 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                 <PanelClaimVersions
                     v-if="adjustmentClaim"
                     :claim="adjustmentClaim"
+                    :public-id="claim.publicId"
                     class="rounded-[14px] border bg-card p-4"
                 />
                 <div
@@ -503,7 +504,10 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                 >
                     <PanelAdjustmentPanel
                         :adjustment="panelAdjustment"
+                        :claim="adjustmentClaim"
+                        :can-claim-only="claim.canEditAmount"
                         class="border-0"
+                        @claim-only="open = 'amount'"
                     />
                 </div>
                 <p

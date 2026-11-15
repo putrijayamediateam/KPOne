@@ -247,7 +247,23 @@ export type IssuedCopy = {
 };
 
 /** PCA-2: the Panel share as original + confirmed Panel claim adjustments, with the waiting request and history. */
+export type PanelAdjustmentClaimRow = {
+    number: string;
+    url: string | null;
+    statusKey: string;
+    amountSen: number;
+    acceptedSen: number | null;
+    decided: boolean;
+    reason: string | null;
+};
+
 export type PanelAdjustment = {
+    invoiceNumber: string | null;
+    invoicePayableSen: number;
+    reasonsApplied: string[];
+    claim:
+        null | (PanelAdjustmentClaimRow & { changedAfterSubmission: boolean });
+    supplementaryClaims: PanelAdjustmentClaimRow[];
     originalShareSen: number;
     adjustmentSen: number;
     shareSen: number;
@@ -266,6 +282,7 @@ export type PanelAdjustment = {
         note: string | null;
         requestedBy: string;
         requestedAt: string | null;
+        newShareSen: number;
         requestedByYou: boolean;
         lockVersion: number;
         canConfirm: boolean;
@@ -280,6 +297,7 @@ export type PanelAdjustment = {
         confirmedAt: string | null;
         requestedBy: string;
         confirmedBy: string;
+        confirmedByRole: string | null;
         samePerson: boolean;
     }[];
 };
@@ -287,12 +305,24 @@ export type PanelAdjustment = {
 /** PCA-2: a claim's kind, its links and its recorded pack versions. */
 export type PanelAdjustmentClaim = {
     kind: 'original' | 'supplementary';
-    parent: null | { claimNo: string; url: string };
+    number: string;
+    decided: boolean;
+    reason: string | null;
+    parent: null | {
+        claimNo: string;
+        number: string;
+        url: string;
+        amountSen: number;
+        acceptedSen: number | null;
+        statusKey: string;
+    };
     supplementary: {
         claimNo: string;
+        number: string;
         url: string;
         amountSen: number;
         statusKey: string;
+        reason: string | null;
     }[];
     versions: {
         version: number;

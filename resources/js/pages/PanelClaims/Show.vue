@@ -415,12 +415,16 @@ const eventTitle = (type: string) =>
         <PanelClaimVersions
             v-if="claim.adjustmentClaim"
             :claim="claim.adjustmentClaim"
+            :public-id="claim.publicId"
             class="print:hidden"
         />
         <PanelAdjustmentPanel
             v-if="panelAdjustment"
             :adjustment="panelAdjustment"
+            :claim="claim.adjustmentClaim"
+            :can-claim-only="claim.canEditAmount"
             class="print:hidden"
+            @claim-only="editing = true"
         />
 
         <p

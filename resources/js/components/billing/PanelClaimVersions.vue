@@ -1,14 +1,19 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { formatStatusLabel } from '@/lib/presentation';
 import type { PanelAdjustmentClaim } from '@/types/billing';
 import { myr } from '@/types/billing';
 
 /**
- * PCA-2: a claim's kind and links ("Supplementary to claim …", its supplementary claims) and the recorded versions of
- * its pack totals. Versions are never rewritten; the newest is first.
+ * PCA-2 (Daniel's board v10, section 2): a supplementary claim names its original, and the claim pack's recorded
+ * versions are listed newest first, each viewable. Versions are never rewritten.
  */
-defineProps<{ claim: PanelAdjustmentClaim }>();
+const props = defineProps<{ claim: PanelAdjustmentClaim; publicId: string }>();
+const viewUrl = (version: number) =>
+    `/panel-claims/pack?${new URLSearchParams([
+        ['claims[]', props.publicId],
+        ['version', String(version)],
+        ['from', props.publicId],
+    ]).toString()}`;
 </script>
 
 <template>
@@ -18,36 +23,47 @@ defineProps<{ claim: PanelAdjustmentClaim }>();
             class="font-medium"
             data-testid="panel-claim-supplementary-label"
         >
-            Supplementary to
-            <Link :href="claim.parent.url" class="underline"
-                >claim {{ claim.parent.claimNo }}</Link
-            >
+            {{ claim.number }} · Supplementary to
+            <Link :href="claim.parent.url" class="underline">{{
+                claim.parent.number
+            }}</Link
+            ><template v-if="claim.reason"> · {{ claim.reason }}</template>
         </p>
-        <ul v-if="claim.supplementary.length" class="grid gap-1">
-            <li v-for="child in claim.supplementary" :key="child.claimNo">
-                Supplementary claim
-                <Link :href="child.url" class="underline">{{
-                    child.claimNo
-                }}</Link>
-                · {{ myr(child.amountSen) }} ·
-                {{ formatStatusLabel(child.statusKey) }}
-            </li>
-        </ul>
-        <details v-if="claim.versions.length > 1">
-            <summary class="min-h-11 cursor-pointer content-center">
-                Earlier versions ({{ claim.versions.length - 1 }})
-            </summary>
-            <ul class="mt-2 grid gap-1 text-muted-foreground tabular-nums">
+        <div v-if="claim.versions.length > 1" class="grid gap-2">
+            <h3 class="font-medium" data-testid="panel-claim-version-count">
+                Claim pack Version {{ claim.versions[0].version }} of
+                {{ claim.versions.length }}
+            </h3>
+            <ul class="grid gap-1 tabular-nums">
                 <li
-                    v-for="version in claim.versions.slice(1)"
+                    v-for="(version, index) in claim.versions"
                     :key="version.version"
+                    class="flex flex-wrap items-center justify-between gap-2"
                 >
-                    Version {{ version.version }} · {{ version.recordedAt }} ·
-                    claim {{ myr(version.claimAmountSen) }} · Panel share
-                    {{ myr(version.panelShareSen) }} · invoice
-                    {{ myr(version.invoiceTotalSen) }}
+                    <span
+                        >Version {{ version.version }} ·
+                        {{
+                            version.version === 1
+                                ? 'when created'
+                                : 'after the adjustment'
+                        }}, Panel share
+                        <span class="whitespace-nowrap">{{
+                            myr(version.panelShareSen)
+                        }}</span>
+                        · {{ version.recordedAt }}</span
+                    >
+                    <Link
+                        v-if="index > 0"
+                        :href="viewUrl(version.version)"
+                        class="inline-flex min-h-11 items-center underline"
+                        >View version {{ version.version }}</Link
+                    >
                 </li>
             </ul>
-        </details>
+            <p class="text-muted-foreground">
+                Earlier versions are kept and can be viewed. They are never
+                rewritten.
+            </p>
+        </div>
     </section>
 </template>

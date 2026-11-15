@@ -40,12 +40,23 @@ test('PCA-2: the wording says which button changes the invoice and that the pati
     const text = flat(panel);
 
     for (const wanted of [
+        // Daniel's board v10, sections 1 to 3.
         'Adjust Panel amount: changes the invoice',
-        'What the patient owes does not change.',
-        'Panel claim adjustment',
+        'Change claim amount only: the invoice stays the same',
+        'What the patient paid and owes does not change. No cash moves.',
+        'Invoice payable becomes',
+        'Panel share now',
+        'is kept in Logs.',
         'Open Panel claim',
-        'Nothing changes until it is confirmed.',
-        'requested and confirmed by',
+        'Amount changed after submission: tell the Panel.',
+        'Panel share on the invoice',
+        'Panel adjustment (confirmed)',
+        'This claim is decided, so it is not changed.',
+        'Open supplementary claim',
+        'Confirm adjustment',
+        'Withdraw request',
+        'Request adjustment',
+        'requested and confirmed by the same person:',
         'Enter an amount and choose a reason to request the adjustment.',
     ]) {
         assert.ok(text.includes(wanted), wanted);
@@ -84,6 +95,11 @@ test('PCA-2: Classic and Version 2 Billing and claim pages show the panel (a new
 test('PCA-2: a supplementary claim names its original and earlier versions stay listed', () => {
     const text = flat(versions);
     assert.ok(text.includes('Supplementary to'));
-    assert.ok(text.includes('Earlier versions'));
-    assert.match(versions, /claim\.versions\.slice\(1\)/);
+    assert.ok(text.includes('Claim pack Version'));
+    assert.ok(
+        text.includes(
+            'Earlier versions are kept and can be viewed. They are never rewritten.',
+        ),
+    );
+    assert.match(versions, /\['version', String\(version\)\]/);
 });

@@ -249,6 +249,59 @@ class PanelClaimAdjustmentTest extends BillingTestCase
         unset($ca);
     }
 
+    public function test_the_refusal_texts_name_the_live_amounts(): void
+    {
+        [, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
+        $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
+        $this->decide($officer, $visit, $claim, 'partially_accepted', '2000');
+        $this->assertSame('The Panel has accepted RM 20.00 on this Panel share. Record the Panel\'s revised decision on the claim first, then deduct.',
+            $this->refusal(fn () => $this->request($officer, $invoice, $allocation, 'deduct', 1500)));
+        $this->selectBranch($officer);
+        $this->post(route('panel-claims.payment', $claim), ['expected_branch_id' => $visit->branch_id, 'idempotency_key' => (string) Str::uuid(),
+            'amount_sen' => '2000', 'received_date' => now($this->branch->timezone)->toDateString()])->assertSessionHasNoErrors();
+        $this->assertSame("The Panel has already paid RM 20.00. A refund to the Panel isn't available yet, so the Panel share can't go below RM 20.00.",
+            $this->refusal(fn () => $this->request($officer, $invoice, $allocation, 'deduct', 1500)));
+        $this->assertSame("The Panel share can't go below RM 0.00.", $this->refusal(fn () => $this->request($officer, $invoice, $allocation, 'deduct', 3001)));
+        $this->assertSame('Enter an amount above RM 0.00.', $this->refusal(fn () => $this->request($officer, $invoice, $allocation, 'add', 0)));
+    }
+
+    public function test_the_pack_shows_the_latest_version_any_earlier_version_and_the_supplementary_heading(): void
+    {
+        [, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
+        $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
+        $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'add', 5000));
+        $this->selectBranch($officer);
+        $pack = fn (array $query) => $this->get(route('panel-claims.pack', $query))->assertOk();
+        $pack(['claims' => [$claim->public_id]])->assertInertia(fn (Assert $page) => $page
+            ->where('pack.claims.0.version.number', 2)->where('pack.claims.0.version.count', 2)->where('pack.claims.0.version.earlier', false)
+            ->where('pack.claims.0.panelAdjustmentSen', 5000)->where('pack.claims.0.invoiceTotalSen', 9000)->where('pack.claims.0.invoiceAdjustmentSen', 0)
+            ->where('pack.claims.0.claimAmountSen', 8000)->where('pack.claims.0.supplementary', null));
+        $pack(['claims' => [$claim->public_id], 'version' => 1])->assertInertia(fn (Assert $page) => $page
+            ->where('pack.claims.0.version.earlier', true)->where('pack.claims.0.panelAdjustmentSen', 0)
+            ->where('pack.claims.0.invoiceTotalSen', 4000)->where('pack.claims.0.claimAmountSen', 3000));
+        $this->get(route('panel-claims.pack', ['claims' => [$claim->public_id], 'version' => 9]))->assertNotFound();
+
+        $this->decide($officer, $visit, $claim, 'accepted', '8000');
+        $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'add', 1000));
+        $supplementary = PanelClaim::query()->where('claim_kind', 'supplementary')->sole();
+        $this->selectBranch($officer);
+        $pack(['claims' => [$supplementary->public_id]])->assertInertia(fn (Assert $page) => $page
+            ->where('pack.claims.0.supplementary.parentNumber', 'PCL-'.str_pad((string) $claim->id, 8, '0', STR_PAD_LEFT))
+            ->where('pack.claims.0.supplementary.parentAcceptedSen', 8000)->where('pack.claims.0.supplementary.reason', 'Panel service charge')
+            ->where('pack.claims.0.claimAmountSen', 1000)->has('pack.claims.0.lines', 0));
+        $this->get(route('panel-claims.follow-up'))->assertOk();
+    }
+
+    private function refusal(callable $action): string
+    {
+        try {
+            $action();
+        } catch (ValidationException $e) {
+            return (string) collect($e->errors())->flatten()->first();
+        }
+        $this->fail('Expected a refusal.');
+    }
+
     private function request(User $actor, Invoice $invoice, CoverageAllocation $allocation, string $direction, int $sen): PanelClaimAdjustment
     {
         $this->selectBranch($actor);
