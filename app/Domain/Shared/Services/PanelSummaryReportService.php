@@ -43,11 +43,15 @@ class PanelSummaryReportService extends BranchReportService
         $today = CarbonImmutable::now($branch->timezone)->startOfDay();
         $query->chunk(500, function ($allocations) use ($actor, $branch, $today, &$groups): void {
             $claims = PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-                ->whereIn('coverage_allocation_id', $allocations->pluck('id'))->get(['id', 'organisation_id', 'branch_id', 'coverage_allocation_id', 'claim_amount_sen', 'accepted_amount_sen', 'status'])->keyBy('coverage_allocation_id');
+                ->whereIn('coverage_allocation_id', $allocations->pluck('id'))->get(['id', 'organisation_id', 'branch_id', 'coverage_allocation_id', 'claim_amount_sen', 'accepted_amount_sen', 'status', 'claim_kind']);
+            // PCA-2: one original claim per Panel share decides claimed or unclaimed; supplementary claims add their money.
+            $supplementary = $claims->where('claim_kind', 'supplementary')->groupBy('coverage_allocation_id');
+            $allClaimIds = $claims->pluck('id');
+            $claims = $claims->where('claim_kind', 'original')->keyBy('coverage_allocation_id');
             $submittedDates = DB::table('panel_claim_events')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-                ->whereIn('panel_claim_id', $claims->pluck('id'))->where('event_type', 'submitted')->selectRaw('panel_claim_id, MIN(occurred_at) AS first_submitted')->groupBy('panel_claim_id')->pluck('first_submitted', 'panel_claim_id');
+                ->whereIn('panel_claim_id', $allClaimIds)->where('event_type', 'submitted')->selectRaw('panel_claim_id, MIN(occurred_at) AS first_submitted')->groupBy('panel_claim_id')->pluck('first_submitted', 'panel_claim_id');
             $payments = DB::table('panel_claim_payments')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
-                ->whereIn('panel_claim_id', $claims->pluck('id'))->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)->selectRaw('panel_claim_id, SUM(amount_sen) AS paid')->groupBy('panel_claim_id')->pluck('paid', 'panel_claim_id');
+                ->whereIn('panel_claim_id', $allClaimIds)->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)->selectRaw('panel_claim_id, SUM(amount_sen) AS paid')->groupBy('panel_claim_id')->pluck('paid', 'panel_claim_id');
             foreach ($allocations as $allocation) {
                 $id = (int) $allocation->panel_id;
                 $group = $groups[$id] ?? ['name' => (string) $allocation->name, 'values' => array_fill(0, 24, 0)];
@@ -56,18 +60,23 @@ class PanelSummaryReportService extends BranchReportService
                 $claim = $claims->get($allocation->id);
                 $submitted = $claim ? $submittedDates->get($claim->id) : null;
                 if ($claim && $submitted !== null) {
-                    $paid = (int) $payments->get($claim->id, 0);
-                    $money = PanelClaimAmounts::summary($claim, $paid);
                     $group['values'][2]++;
-                    foreach (['claimed' => 3, 'accepted' => 6, 'rejected' => 7, 'remitted' => 8, 'outstanding' => 9] as $key => $index) {
-                        $group['values'][$index] += $money[$key];
-                    }
-                    $index = $this->bucket(CarbonImmutable::parse((string) $submitted, 'UTC')->setTimezone($branch->timezone), $today);
-                    $group['values'][10 + $index] = ($group['values'][10 + $index] ?? 0) + $money['outstanding'];
-                    if (in_array($claim->status, ['submitted', 'queried'], true) && $claim->accepted_amount_sen === null) {
-                        $group['values'][18]++;
-                        $group['values'][19] += (int) $claim->claim_amount_sen;
-                        $group['values'][20 + $index] += (int) $claim->claim_amount_sen;
+                    foreach (collect([$claim])->merge($supplementary->get($allocation->id, collect())) as $each) {
+                        $eachSubmitted = $submittedDates->get($each->id);
+                        if ($eachSubmitted === null) {
+                            continue; // A supplementary claim counts once it is submitted, ageing from its own submission.
+                        }
+                        $money = PanelClaimAmounts::summary($each, (int) $payments->get($each->id, 0));
+                        foreach (['claimed' => 3, 'accepted' => 6, 'rejected' => 7, 'remitted' => 8, 'outstanding' => 9] as $key => $index) {
+                            $group['values'][$index] += $money[$key];
+                        }
+                        $index = $this->bucket(CarbonImmutable::parse((string) $eachSubmitted, 'UTC')->setTimezone($branch->timezone), $today);
+                        $group['values'][10 + $index] = ($group['values'][10 + $index] ?? 0) + $money['outstanding'];
+                        if (in_array($each->status, ['submitted', 'queried'], true) && $each->accepted_amount_sen === null) {
+                            $group['values'][18]++;
+                            $group['values'][19] += (int) $each->claim_amount_sen;
+                            $group['values'][20 + $index] += (int) $each->claim_amount_sen;
+                        }
                     }
                 } else {
                     $group['values'][4]++;

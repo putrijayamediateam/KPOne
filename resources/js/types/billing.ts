@@ -169,6 +169,7 @@ export type BillingPage = {
     };
     panel: Responsibility | null;
     panelShortfall: PanelShortfall | null;
+    panelAdjustment?: PanelAdjustment | null;
     deferment: Responsibility | null;
     payments: Receipt[];
     /** BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers. */
@@ -243,4 +244,62 @@ export type IssuedCopy = {
     /** PCA-1: false for a Panel patient's invoice copy (view only). */
     reprintable?: boolean;
     viewUrl?: string | null;
+};
+
+/** PCA-2: the Panel share as original + confirmed Panel claim adjustments, with the waiting request and history. */
+export type PanelAdjustment = {
+    originalShareSen: number;
+    adjustmentSen: number;
+    shareSen: number;
+    claimedSen: number;
+    claimUrl: string | null;
+    invoiceLockVersion: number;
+    canRequest: boolean;
+    requestUrl: string;
+    from: 'billing' | 'claim';
+    reasons: { value: string; label: string }[];
+    waiting: null | {
+        publicId: string;
+        direction: 'add' | 'deduct';
+        amountSen: number;
+        reason: string;
+        note: string | null;
+        requestedBy: string;
+        requestedAt: string | null;
+        requestedByYou: boolean;
+        lockVersion: number;
+        canConfirm: boolean;
+        canWithdraw: boolean;
+        confirmUrl: string;
+        withdrawUrl: string;
+    };
+    confirmed: {
+        direction: 'add' | 'deduct';
+        amountSen: number;
+        reason: string;
+        confirmedAt: string | null;
+        requestedBy: string;
+        confirmedBy: string;
+        samePerson: boolean;
+    }[];
+};
+
+/** PCA-2: a claim's kind, its links and its recorded pack versions. */
+export type PanelAdjustmentClaim = {
+    kind: 'original' | 'supplementary';
+    parent: null | { claimNo: string; url: string };
+    supplementary: {
+        claimNo: string;
+        url: string;
+        amountSen: number;
+        statusKey: string;
+    }[];
+    versions: {
+        version: number;
+        invoiceTotalSen: number;
+        panelAdjustmentSen: number;
+        panelShareSen: number;
+        claimAmountSen: number;
+        recordedAt: string;
+    }[];
 };

@@ -68,11 +68,15 @@ final class PanelClaimsSummaryTool implements SystemReadableTool
             $panels = [];
             $query->chunk(500, function ($allocations) use ($requester, $each, $now, &$panels): void {
                 $claims = PanelClaim::query()->where('organisation_id', $requester->organisation_id)->where('branch_id', $each->id)
-                    ->whereIn('coverage_allocation_id', $allocations->pluck('id'))->get(['id', 'organisation_id', 'branch_id', 'coverage_allocation_id', 'claim_amount_sen', 'accepted_amount_sen', 'status'])->keyBy('coverage_allocation_id');
+                    ->whereIn('coverage_allocation_id', $allocations->pluck('id'))->get(['id', 'organisation_id', 'branch_id', 'coverage_allocation_id', 'claim_amount_sen', 'accepted_amount_sen', 'status', 'claim_kind']);
+                // PCA-2: the original claim decides claimed or unclaimed; submitted supplementary claims add their money.
+                $supplementary = $claims->where('claim_kind', 'supplementary')->groupBy('coverage_allocation_id');
+                $allClaimIds = $claims->pluck('id');
+                $claims = $claims->where('claim_kind', 'original')->keyBy('coverage_allocation_id');
                 $submitted = DB::table('panel_claim_events')->where('organisation_id', $requester->organisation_id)->where('branch_id', $each->id)
-                    ->whereIn('panel_claim_id', $claims->pluck('id'))->where('event_type', 'submitted')->distinct()->pluck('panel_claim_id')->flip();
+                    ->whereIn('panel_claim_id', $allClaimIds)->where('event_type', 'submitted')->distinct()->pluck('panel_claim_id')->flip();
                 $paid = DB::table('panel_claim_payments')->where('organisation_id', $requester->organisation_id)->where('branch_id', $each->id)
-                    ->whereIn('panel_claim_id', $claims->pluck('id'))->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)->groupBy('panel_claim_id')->selectRaw('panel_claim_id, SUM(amount_sen) as paid')->pluck('paid', 'panel_claim_id');
+                    ->whereIn('panel_claim_id', $allClaimIds)->whereRaw(PanelClaimPaymentReversal::NOT_REVERSED)->groupBy('panel_claim_id')->selectRaw('panel_claim_id, SUM(amount_sen) as paid')->pluck('paid', 'panel_claim_id');
                 foreach ($allocations as $allocation) {
                     $id = (int) $allocation->panel_id;
                     $panel = $panels[$id] ?? ['panel' => (string) $allocation->panel_label, 'approvedInvoices' => 0, 'approvedSen' => 0, 'claimedInvoices' => 0, 'claimedSen' => 0,
@@ -82,13 +86,18 @@ final class PanelClaimsSummaryTool implements SystemReadableTool
                     $panel['approvedSen'] += (int) $allocation->amount_sen;
                     $claim = $claims->get($allocation->id);
                     if ($claim && $submitted->has($claim->id)) {
-                        $money = PanelClaimAmounts::summary($claim, (int) $paid->get($claim->id, 0));
                         $panel['claimedInvoices']++;
-                        $panel['claimedSen'] += $money['claimed'];
-                        $panel['acceptedSen'] += $money['accepted'];
-                        $panel['remittedSen'] += $money['remitted'];
-                        $panel['acceptedOutstandingSen'] += $money['outstanding'];
-                        $panel['acceptedUnpaidClaims'] += $money['outstanding'] > 0 ? 1 : 0;
+                        foreach (collect([$claim])->merge($supplementary->get($allocation->id, collect())) as $one) {
+                            if (! $submitted->has($one->id)) {
+                                continue;
+                            }
+                            $money = PanelClaimAmounts::summary($one, (int) $paid->get($one->id, 0));
+                            $panel['claimedSen'] += $money['claimed'];
+                            $panel['acceptedSen'] += $money['accepted'];
+                            $panel['remittedSen'] += $money['remitted'];
+                            $panel['acceptedOutstandingSen'] += $money['outstanding'];
+                            $panel['acceptedUnpaidClaims'] += $money['outstanding'] > 0 ? 1 : 0;
+                        }
                     } else {
                         $panel['unclaimedInvoices']++;
                         $panel['unclaimedSen'] += (int) $allocation->amount_sen;

@@ -1,6 +1,8 @@
 <script setup lang="ts">
-import { Head, Link } from '@inertiajs/vue3';
+import { Head, Link, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import PanelAdjustmentPanel from '@/components/billing/PanelAdjustmentPanel.vue';
+import PanelClaimVersions from '@/components/billing/PanelClaimVersions.vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -22,6 +24,7 @@ import type { Props } from '@/composables/panel-claims/usePanelClaimShow';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import { claimChipTone } from '@/lib/panel-claims-v2';
 import { displayFromIso } from '@/lib/v2-date';
+import type { PanelAdjustment, PanelAdjustmentClaim } from '@/types/billing';
 import { myr, toSen } from '@/types/billing';
 
 /**
@@ -35,6 +38,17 @@ usePageCrumbs(() => [
     { title: `Claim ${props.claim.claimNo}` },
 ]);
 const claimPage = usePanelClaimShow(props);
+// PCA-2: the Panel claim adjustment panel and the claim's versions (a new rule, so both layouts show them).
+const adjustmentPage = usePage<{
+    panelAdjustment?: PanelAdjustment | null;
+    claim: { adjustmentClaim?: PanelAdjustmentClaim };
+}>();
+const panelAdjustment = computed(
+    () => adjustmentPage.props.panelAdjustment ?? null,
+);
+const adjustmentClaim = computed(
+    () => adjustmentPage.props.claim.adjustmentClaim ?? null,
+);
 const {
     aboveInvoice,
     acceptedAmount,
@@ -478,6 +492,20 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
 
             <template #main>
                 <h2 class="sr-only">Panel claim</h2>
+                <PanelClaimVersions
+                    v-if="adjustmentClaim"
+                    :claim="adjustmentClaim"
+                    class="rounded-[14px] border bg-card p-4"
+                />
+                <div
+                    v-if="panelAdjustment"
+                    class="rounded-[14px] border bg-card"
+                >
+                    <PanelAdjustmentPanel
+                        :adjustment="panelAdjustment"
+                        class="border-0"
+                    />
+                </div>
                 <p
                     v-if="packError"
                     role="alert"

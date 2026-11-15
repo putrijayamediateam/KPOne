@@ -188,7 +188,7 @@ final class PanelClaimDirectoryService
                 'c.public_id as allocation_id',
                 'c.lock_version as allocation_lock_version',
                 'i.lock_version as invoice_lock_version',
-                'c.amount_sen',
+                DB::raw('kpone_panel_effective(i.id) as amount_sen'), // PCA-2: the effective Panel share.
                 'c.panel_name_snapshot',
                 'pn.code as panel_code',
                 'c.reason',
@@ -232,10 +232,10 @@ final class PanelClaimDirectoryService
             $query->where('v.registered_at', '<=', $end);
         }
         if (($filters['amount_min'] ?? '') !== '') {
-            $query->where('c.amount_sen', '>=', (int) round(((float) $filters['amount_min']) * 100));
+            $query->whereRaw('kpone_panel_effective(i.id) >= ?', [(int) round(((float) $filters['amount_min']) * 100)]);
         }
         if (($filters['amount_max'] ?? '') !== '') {
-            $query->where('c.amount_sen', '<=', (int) round(((float) $filters['amount_max']) * 100));
+            $query->whereRaw('kpone_panel_effective(i.id) <= ?', [(int) round(((float) $filters['amount_max']) * 100)]);
         }
 
         $this->applyClinicalFilters($query, 'v.id', $actor, $branch, $filters);
@@ -414,7 +414,7 @@ final class PanelClaimDirectoryService
         $received = $base()->where('status', 'paid');
         $rejected = $base()->where('status', 'rejected');
         $outstanding = $base()->whereIn('status', self::APPROVED)->whereRaw("coalesce(accepted_amount_sen, 0) - {$paid} > 0");
-        $figure = static fn (Builder $query): array => ['count' => (clone $query)->count(), 'amountSen' => (int) (clone $query)->sum('c.amount_sen')];
+        $figure = static fn (Builder $query): array => ['count' => (clone $query)->count(), 'amountSen' => (int) (clone $query)->sum(DB::raw('kpone_panel_effective(i.id)'))];
 
         return [
             'pending' => $figure($invoices('pending')),
@@ -513,11 +513,12 @@ final class PanelClaimDirectoryService
                 ->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
             abort_unless($allocation->status === 'approved' && (int) $allocation->current_invoice_guard === $invoice->id
                 && $invoice->status === 'finalized' && ! $invoice->correction_hold && ! $invoice->source_stale
-                && $allocation->amount_sen > 0, 422);
+                && PanelShare::effective($allocation) > 0, 422);
             // PNL-15: compare with the payable total after any invoice discount or surcharge, as creation does.
             $payableSen = app(FinancialLedger::class)->chargedBeforeCredits($invoice);
-            abort_unless($allocation->amount_sen <= $payableSen, 422);
-            $existing = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->first();
+            $shareSen = PanelShare::effective($allocation); // PCA-2: the effective Panel share.
+            abort_unless($shareSen <= $payableSen, 422);
+            $existing = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->where('claim_kind', 'original')->first();
             $patient = DB::table('patients')->where('id', $invoice->patient_id)
                 ->where('organisation_id', $actor->organisation_id)->first(['full_name']);
             abort_unless($patient !== null, 422);
@@ -528,7 +529,7 @@ final class PanelClaimDirectoryService
                 'allocation' => [
                     'publicId' => $allocation->public_id, 'lockVersion' => $allocation->lock_version,
                     'invoiceLockVersion' => $invoice->lock_version, 'panelName' => $allocation->panel_name_snapshot,
-                    'amountSen' => $allocation->amount_sen, 'patientName' => $patient->full_name,
+                    'amountSen' => $shareSen, 'patientName' => $patient->full_name,
                     'invoiceNumber' => $invoice->invoice_number, 'invoiceTotalSen' => $payableSen, 'invoiceBreakdown' => InvoiceAdjustmentService::summary($invoice),
                     'visitDate' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
                     'visitDateTime' => $visit->registered_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
@@ -687,7 +688,11 @@ final class PanelClaimDirectoryService
                     'canRecordDecision' => in_array($claim->status, ['submitted', 'queried'], true) && $paid === 0,
                     'canRecordPayment' => in_array($claim->status, ['accepted', 'partially_accepted', 'partially_paid'], true)
                         && $claim->accepted_amount_sen !== null && $paid < $claim->accepted_amount_sen,
+                    // PCA-2: the claim's kind, links and recorded pack versions.
+                    'adjustmentClaim' => PanelAdjustmentView::forClaim($claim, $branch),
                 ],
+                // PCA-2: the Panel share (original + adjustments) beside what is claimed, and the adjustment actions.
+                'panelAdjustment' => PanelAdjustmentView::forInvoice($actor, Invoice::query()->findOrFail($claim->invoice_id), $branch, 'claim'),
             ];
         });
     }

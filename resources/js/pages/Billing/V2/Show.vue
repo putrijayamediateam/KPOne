@@ -9,6 +9,7 @@ import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import IssuedCopies from '@/components/billing/IssuedCopies.vue';
 import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
+import PanelAdjustmentPanel from '@/components/billing/PanelAdjustmentPanel.vue';
 import ReceiptCorrections from '@/components/billing/ReceiptCorrections.vue';
 import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
 import BillingCompletionDialogV2 from '@/components/billing/v2/BillingCompletionDialogV2.vue';
@@ -696,6 +697,11 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                                 Shown for information only. What the patient
                                 owes is unchanged.
                             </p>
+                        </div>
+                        <div v-if="billing.panelAdjustment" class="m-3">
+                            <PanelAdjustmentPanel
+                                :adjustment="billing.panelAdjustment"
+                            />
                         </div>
                     </section>
 

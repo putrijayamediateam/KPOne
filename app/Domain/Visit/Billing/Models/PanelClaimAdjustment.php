@@ -71,6 +71,11 @@ class PanelClaimAdjustment extends Model
         ];
     }
 
+    public function getRouteKeyName(): string
+    {
+        return 'public_id';
+    }
+
     /** Signed amount: plus for add, minus for deduct. */
     public function signedSen(): int
     {

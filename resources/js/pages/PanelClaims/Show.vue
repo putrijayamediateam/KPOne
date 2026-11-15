@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { computed, ref, watch } from 'vue';
+import PanelAdjustmentPanel from '@/components/billing/PanelAdjustmentPanel.vue';
+import PanelClaimVersions from '@/components/billing/PanelClaimVersions.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
+import type { PanelAdjustment, PanelAdjustmentClaim } from '@/types/billing';
 import { myr, toSen } from '@/types/billing';
 
 type ClaimData = {
@@ -88,11 +91,13 @@ type ClaimData = {
     canRecordQuery: boolean;
     canRecordDecision: boolean;
     canRecordPayment: boolean;
+    adjustmentClaim?: PanelAdjustmentClaim;
 };
 
 const props = defineProps<{
     branch: { id: number; name: string; today: string };
     claim: ClaimData;
+    panelAdjustment?: PanelAdjustment | null;
 }>();
 const page = usePage();
 const busy = ref(false);
@@ -407,6 +412,16 @@ const eventTitle = (type: string) =>
         >
             {{ packError }}
         </p>
+        <PanelClaimVersions
+            v-if="claim.adjustmentClaim"
+            :claim="claim.adjustmentClaim"
+            class="print:hidden"
+        />
+        <PanelAdjustmentPanel
+            v-if="panelAdjustment"
+            :adjustment="panelAdjustment"
+            class="print:hidden"
+        />
 
         <p
             v-if="error || uploadRecoveryError"

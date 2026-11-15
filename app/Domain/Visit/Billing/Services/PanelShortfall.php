@@ -26,22 +26,25 @@ final class PanelShortfall
         if ($allocation === null) {
             return null;
         }
-        $claim = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->first(['claim_amount_sen', 'accepted_amount_sen']);
-        // A decision exists only once the accepted amount is recorded; a resubmission clears it again.
-        if ($claim === null || $claim->accepted_amount_sen === null) {
+        // PCA-2: the original and any supplementary claims together, against the effective Panel share.
+        $claims = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->get(['claim_amount_sen', 'accepted_amount_sen']);
+        // A decision exists only once the accepted amount is recorded on every claim; a resubmission clears it again.
+        if ($claims->isEmpty() || $claims->contains(fn (PanelClaim $c): bool => $c->accepted_amount_sen === null)) {
             return null;
         }
-        $accepted = $claim->accepted_amount_sen;
-        $shortfall = max(0, $allocation->amount_sen - $accepted);
+        $share = PanelShare::effective(CoverageAllocation::query()->findOrFail($allocation->id));
+        $accepted = (int) $claims->sum('accepted_amount_sen');
+        $claimed = (int) $claims->sum('claim_amount_sen');
+        $shortfall = max(0, $share - $accepted);
         if ($shortfall === 0) {
             return null;
         }
         $decision = match (true) {
             $accepted === 0 => 'rejected',
-            $accepted < $claim->claim_amount_sen => 'partially_accepted',
+            $accepted < $claimed => 'partially_accepted',
             default => 'claim_reduced',
         };
 
-        return ['shortfallSen' => $shortfall, 'panelShareSen' => $allocation->amount_sen, 'acceptedSen' => $accepted, 'decision' => $decision];
+        return ['shortfallSen' => $shortfall, 'panelShareSen' => $share, 'acceptedSen' => $accepted, 'decision' => $decision];
     }
 }

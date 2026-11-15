@@ -11,7 +11,9 @@ use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Services\ExactMoney;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
 use App\Domain\Visit\Billing\Services\PanelClaimAdjustmentService;
+use App\Domain\Visit\Billing\Services\PanelClaimEligibility;
 use App\Domain\Visit\Billing\Services\PanelShare;
+use App\Domain\Visit\Billing\Services\PanelShortfall;
 use App\Domain\Visit\Models\Panel;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
@@ -20,6 +22,7 @@ use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia as Assert;
 
 /**
  * PCA-2 (design note v3.2, owner approved 2026-11-15): a Panel claim adjustment moves the invoice payable and the Panel
@@ -176,6 +179,74 @@ class PanelClaimAdjustmentTest extends BillingTestCase
         }
         $this->assertSame('requested', $adjustment->refresh()->status);
         unset($visit);
+    }
+
+    public function test_the_claim_and_billing_pages_offer_the_two_buttons_the_waiting_request_and_the_history_through_the_routes(): void
+    {
+        [$ca, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
+        $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
+        $this->selectBranch($officer);
+        $this->get(route('panel-claims.show', $claim))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('panelAdjustment.shareSen', 3000)->where('panelAdjustment.claimedSen', 3000)->where('panelAdjustment.canRequest', true)
+            ->where('panelAdjustment.waiting', null)->where('panelAdjustment.from', 'claim')
+            ->where('claim.adjustmentClaim.kind', 'original')->has('claim.adjustmentClaim.versions', 1));
+
+        $this->post(route('panel-claim-adjustments.request', $allocation), ['expected_branch_id' => $visit->branch_id, 'invoice_lock_version' => $invoice->refresh()->lock_version,
+            'direction' => 'add', 'amount_sen' => '5000', 'reason_code' => 'panel_tax', 'note' => 'Synthetic private note', 'idempotency_key' => (string) Str::uuid(), 'from' => 'claim'])
+            ->assertRedirect(route('panel-claims.show', $claim))->assertSessionHasNoErrors();
+        $adjustment = PanelClaimAdjustment::query()->sole();
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page
+            ->where('panelAdjustment.waiting.amountSen', 5000)->where('panelAdjustment.waiting.reason', 'Panel tax')
+            ->where('panelAdjustment.waiting.note', 'Synthetic private note')->where('panelAdjustment.waiting.requestedByYou', true)
+            ->where('panelAdjustment.canRequest', false));
+        $this->selectBranch($ca);
+        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('billing.panelAdjustment.shareSen', 3000)->where('billing.panelAdjustment.canRequest', false)
+            ->where('billing.panelAdjustment.waiting.note', null)->where('billing.panelAdjustment.claimUrl', null))
+            ->assertDontSee('Synthetic private note');
+        $this->post(route('panel-claim-adjustments.confirm', $adjustment), ['expected_branch_id' => $visit->branch_id, 'lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
+
+        $this->selectBranch($officer);
+        $this->post(route('panel-claim-adjustments.confirm', $adjustment), ['expected_branch_id' => $visit->branch_id, 'lock_version' => 1, 'idempotency_key' => (string) Str::uuid(), 'from' => 'billing'])
+            ->assertRedirect(route('billing.show', $visit))->assertSessionHasNoErrors();
+        $this->get(route('billing.show', $visit))->assertInertia(fn (Assert $page) => $page
+            ->where('billing.panelAdjustment.shareSen', 8000)->where('billing.panelAdjustment.originalShareSen', 3000)->where('billing.panelAdjustment.adjustmentSen', 5000)
+            ->where('billing.panelAdjustment.claimedSen', 8000)->where('billing.panelAdjustment.claimUrl', route('panel-claims.show', $claim))
+            ->where('billing.panelAdjustment.confirmed.0.samePerson', true)->where('billing.invoice.state.due_now', 0));
+        $messages = array_column($this->getJson(route('billing.activity', [$visit, $invoice]).'?expected_branch_id='.$visit->branch_id)->assertOk()->assertDontSee('Synthetic private note')->json('data'), 'message');
+        $this->assertContains('Panel claim adjustment requested (Panel pays more)', $messages);
+        $this->assertContains('Panel claim adjustment requested and confirmed by the same person (Panel pays more)', $messages);
+    }
+
+    public function test_a_refusal_returns_to_the_page_it_was_pressed_on(): void
+    {
+        [, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
+        $this->selectBranch($officer);
+        $this->post(route('panel-claim-adjustments.request', $allocation), ['expected_branch_id' => $visit->branch_id, 'invoice_lock_version' => $invoice->refresh()->lock_version,
+            'direction' => 'deduct', 'amount_sen' => '9999', 'reason_code' => 'panel_tax', 'idempotency_key' => (string) Str::uuid(), 'from' => 'billing'])
+            ->assertRedirect(route('billing.show', $visit))->assertSessionHasErrors('amount_sen');
+        $this->assertDatabaseCount('panel_claim_adjustments', 0);
+    }
+
+    public function test_a_supplementary_claim_page_shows_its_parent_and_the_readers_count_it_once(): void
+    {
+        [$ca, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
+        $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
+        $this->decide($officer, $visit, $claim, 'partially_accepted', '2000');
+        $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'add', 5000));
+        $supplementary = PanelClaim::query()->where('claim_kind', 'supplementary')->sole();
+        $this->selectBranch($officer);
+        $this->get(route('panel-claims.show', $supplementary))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('claim.adjustmentClaim.kind', 'supplementary')->where('claim.adjustmentClaim.parent.claimNo', (string) $claim->id)
+            ->where('claim.claimAmountSen', 5000));
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page
+            ->where('claim.adjustmentClaim.supplementary.0.claimNo', (string) $supplementary->id));
+        // The Panel share stays out of the claim list once its original claim exists.
+        $this->get(route('panel-claims.index'))->assertOk();
+        $this->assertSame(0, app(PanelClaimEligibility::class)->query($visit->organisation_id, $visit->branch_id)->count());
+        // The shortfall reads every claim: one is still undecided, so no warning yet.
+        $this->assertNull(PanelShortfall::forInvoice($invoice->refresh()));
+        unset($ca);
     }
 
     private function request(User $actor, Invoice $invoice, CoverageAllocation $allocation, string $direction, int $sen): PanelClaimAdjustment
