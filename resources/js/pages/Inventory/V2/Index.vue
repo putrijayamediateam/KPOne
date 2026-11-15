@@ -1,13 +1,12 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
-import InventoryReferenceDataPanel from '@/components/inventory/InventoryReferenceDataPanel.vue';
 import InventorySearchSelect from '@/components/inventory/InventorySearchSelect.vue';
 import OlderRecordsSection from '@/components/inventory-v2/OlderRecordsSection.vue';
 import OrdersSection from '@/components/inventory-v2/OrdersSection.vue';
 import ReorderSection from '@/components/inventory-v2/ReorderSection.vue';
 import RequestsSection from '@/components/inventory-v2/RequestsSection.vue';
-import StockPanelBar from '@/components/inventory-v2/StockPanelBar.vue';
+import StockSetupSection from '@/components/inventory-v2/StockSetupSection.vue';
 import { Input } from '@/components/ui/input';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
@@ -720,14 +719,17 @@ const batchTone = (row: InventoryDirectory['data'][number]) =>
                 <V2DisclosureBar title="Older records (read only)">
                     <OlderRecordsSection :operations="operations" />
                 </V2DisclosureBar>
-                <StockPanelBar
+                <!-- Page 2d: Stock setup on the V2 blocks; no Classic panel is left on the V2 home. -->
+                <V2DisclosureBar
                     v-if="referenceData.canManage"
                     title="Stock setup"
+                    keep-mounted
                 >
-                    <InventoryReferenceDataPanel
+                    <StockSetupSection
                         :reference-data="referenceData"
+                        :timezone="inventory.branchTimezone"
                     />
-                </StockPanelBar>
+                </V2DisclosureBar>
             </template>
         </V2WorkLayout>
     </PageFrame>

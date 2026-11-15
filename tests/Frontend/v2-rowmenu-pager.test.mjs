@@ -55,7 +55,7 @@ test('V2RowMenu: an item with an href is a real link, and busy names the trigger
     assert.match(s, /:aria-label="busy \? 'Working…' : label"/);
     assert.match(s, /:aria-busy="busy"/);
     assert.match(s, /:disabled="busy"/);
-    assert.match(s, /:open="busy \? false : undefined"/);
+    assert.match(s, /:open="open && !busy"/);
     assert.match(s, /animate-spin motion-reduce:animate-none/);
 });
 
@@ -63,4 +63,15 @@ test('V2RowMenu: a group with an empty label renders no heading', () => {
     const s = read('resources/js/components/v2/V2RowMenu.vue');
     assert.match(s, /<DropdownMenuLabel\s+v-if="group\.label"/);
     assert.match(s, /:key="`\$\{index\}-\$\{group\.label\}`"/);
+});
+
+test('V2RowMenu: the open state is kept inside, so a menu opens again after busy ends', () => {
+    const s = v2('V2RowMenu');
+    assert.match(s, /const open = ref\(false\);/);
+    assert.match(s, /:open="open && !busy"/);
+    assert.match(s, /@update:open="\(value: boolean\) => \(open = value\)"/);
+    // busy closes it
+    assert.match(s, /if \(busy\) \{\s*open\.value = false;/);
+    // the old always-controlled binding is gone
+    assert.doesNotMatch(s, /:open="busy \? false : undefined"/);
 });

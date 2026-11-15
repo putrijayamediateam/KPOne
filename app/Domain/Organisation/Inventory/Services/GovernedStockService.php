@@ -205,11 +205,11 @@ final class GovernedStockService
         $data = Validator::make($input, ['q' => ['nullable', 'string', 'max:100'], 'page' => ['sometimes', 'integer', 'min:1', 'max:1000000'], 'targets_page' => ['sometimes', 'integer', 'min:1', 'max:1000000'], 'state' => ['nullable', Rule::in(['awaiting_count', 'awaiting_recount', 'awaiting_approval', 'closed_zero', 'posted'])]])->validate();
         $latest = DB::table('inventory_governed_actions')->select('case_id')->selectRaw('MAX(lock_version) as version')->groupBy('case_id');
         $query = DB::table('inventory_governed_cases as c')->joinSub($latest, 'latest', 'latest.case_id', '=', 'c.id')->join('inventory_governed_actions as a', fn ($j) => $j->on('a.case_id', '=', 'c.id')->on('a.lock_version', '=', 'latest.version'))
-            ->join('inventory_stock_balances as current', 'current.id', '=', 'c.balance_id')->join('inventory_skus as s', 's.id', '=', 'c.inventory_sku_id')->join('inventory_batches as b', 'b.id', '=', 'c.inventory_batch_id')->join('inventory_locations as l', 'l.id', '=', 'c.inventory_location_id')
+            ->join('inventory_stock_balances as current', 'current.id', '=', 'c.balance_id')->join('inventory_skus as s', 's.id', '=', 'c.inventory_sku_id')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')->join('inventory_batches as b', 'b.id', '=', 'c.inventory_batch_id')->join('inventory_locations as l', 'l.id', '=', 'c.inventory_location_id')
             ->where('c.organisation_id', $actor->organisation_id)->where('c.branch_id', $branch->id)->where(fn ($q) => $mode === 'count' ? $q->where('c.kind', 'count') : $q->whereIn('c.kind', ['writeoff', 'reversal']))
             ->when(filled($data['state'] ?? null), fn ($q) => $q->where('a.state', $data['state']));
         $this->search($query, $data['q'] ?? '');
-        $p = $query->orderByDesc('c.id')->paginate(25, ['c.*', 'current.lock_version as current_balance_version', 'a.state', 'a.lock_version', 'a.quantity as last_quantity', 's.sku_code', 'c.base_unit as stock_unit', 'b.batch_number', 'l.name as location'], 'page', (int) ($data['page'] ?? 1));
+        $p = $query->orderByDesc('c.id')->paginate(25, ['c.*', 'current.lock_version as current_balance_version', 'a.state', 'a.lock_version', 'a.quantity as last_quantity', 's.sku_code', 'i.generic_name as item', 'c.base_unit as stock_unit', 'b.batch_number', 'l.name as location'], 'page', (int) ($data['page'] ?? 1));
         $histories = DB::table('inventory_governed_actions')->whereIn('case_id', $p->pluck('id'))->orderBy('lock_version')->get(['id', 'case_id', 'action', 'state', 'actor_user_id', 'quantity', 'lock_version', 'movement_id', 'created_at'])->groupBy('case_id');
         $originalIds = $p->pluck('reverses_case_id')->filter()->all();
         $involved = DB::table('inventory_governed_actions')->whereIn('case_id', $originalIds)->whereIn('action', ['created', 'counted', 'recounted'])->get(['case_id', 'actor_user_id'])->groupBy('case_id');
@@ -236,8 +236,9 @@ final class GovernedStockService
         $targets = DB::table('inventory_stock_balances as r')->join('inventory_locations as l', 'l.id', '=', 'r.inventory_location_id')->join('inventory_skus as s', 's.id', '=', 'r.inventory_sku_id')->join('inventory_items as i', 'i.id', '=', 's.inventory_item_id')->join('inventory_batches as b', 'b.id', '=', 'r.inventory_batch_id')
             ->where('r.organisation_id', $actor->organisation_id)->where('l.branch_id', $branch->id)->where('l.is_active', true)->where('s.is_active', true)->where('i.is_active', true);
         $this->search($targets, $data['q'] ?? '');
-        // STK-23: in count mode the list to count from carries no on-hand quantity (blind counts).
-        $t = $targets->orderBy('s.sku_code')->orderBy('b.expiry_date')->orderBy('r.id')->paginate(25, [...($mode === 'count' ? [] : ['r.quantity']), 'r.id', 'r.lock_version', 's.sku_code', 's.stock_unit', 'b.batch_number', 'b.expiry_date', 'l.name as location'], 'targets_page', (int) ($data['targets_page'] ?? 1));
+        // STK-23: in count mode the list to count from carries no on-hand quantity (blind counts). V2 page 3: each row and case
+        // also names its item (read only), so the sheets can say "40 tablets of Paracetamol".
+        $t = $targets->orderBy('s.sku_code')->orderBy('b.expiry_date')->orderBy('r.id')->paginate(25, [...($mode === 'count' ? [] : ['r.quantity']), 'r.id', 'r.lock_version', 's.sku_code', 'i.generic_name as item', 's.stock_unit', 'b.batch_number', 'b.expiry_date', 'l.name as location'], 'targets_page', (int) ($data['targets_page'] ?? 1));
 
         return ['branchId' => $branch->id, 'branchName' => $branch->name, 'mode' => $mode, 'q' => $data['q'] ?? '', 'state' => $data['state'] ?? '', 'legacyLimit' => self::LEGACY_LIMIT, 'canPropose' => $actor->can($mode === 'count' ? InventoryControlService::STOCKTAKE_PERMISSION : InventoryControlService::ADJUST_PERMISSION), 'cases' => ['rows' => $rows, 'total' => $p->total(), 'page' => $p->currentPage(), 'lastPage' => $p->lastPage()], 'targets' => ['rows' => $t->items(), 'total' => $t->total(), 'page' => $t->currentPage(), 'lastPage' => $t->lastPage()]];
     }

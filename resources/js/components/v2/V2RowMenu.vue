@@ -9,6 +9,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger,
 } from 'reka-ui';
+import { ref, watch } from 'vue';
 
 /**
  * Version 2 row menu: the "…" popover with grouped items (Open, Move, Call, Money, Danger). It holds NO permission
@@ -30,7 +31,7 @@ export type RowMenuItem = {
 /** `label` may be '' for a one-group menu: no heading is rendered then. */
 export type RowMenuGroup = { label: string; items: RowMenuItem[] };
 
-defineProps<{
+const props = defineProps<{
     label: string;
     groups: RowMenuGroup[];
     showLabel?: boolean;
@@ -38,10 +39,26 @@ defineProps<{
 }>();
 
 const emit = defineEmits<{ select: [id: string] }>();
+
+// The open state is kept here, so a menu that was closed by `busy` opens again once `busy` ends. (Binding `:open` to
+// `busy ? false : undefined` left the menu controlled forever after the first busy, and it never opened again.)
+const open = ref(false);
+
+watch(
+    () => props.busy,
+    (busy) => {
+        if (busy) {
+            open.value = false;
+        }
+    },
+);
 </script>
 
 <template>
-    <DropdownMenuRoot :open="busy ? false : undefined">
+    <DropdownMenuRoot
+        :open="open && !busy"
+        @update:open="(value: boolean) => (open = value)"
+    >
         <DropdownMenuTrigger
             data-slot="v2-row-menu"
             :aria-label="busy ? 'Working…' : label"

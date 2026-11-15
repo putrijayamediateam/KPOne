@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, reactive, ref, watch } from 'vue';
 import V2PhoneField from '@/components/registration-v2/V2PhoneField.vue';
-import { DateField } from '@/components/ui/date-field';
+import V2DateField from '@/components/v2/V2DateField.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
@@ -29,7 +29,11 @@ const props = defineProps<{
     errors: Record<string, string | undefined>;
 }>();
 
-const emit = defineEmits<{ clear: [key: string] }>();
+const emit = defineEmits<{
+    clear: [key: string];
+    // true while the date of birth box holds text it could not read (the page must not save then).
+    dobInvalid: [value: boolean];
+}>();
 const fields = reactive(props.model);
 
 // A plain sentence for the "required" refusals; the server's own words for anything else (a duplicate, a stale
@@ -194,27 +198,20 @@ const inputClass =
                         </template>
                     </V2Field>
                 </div>
-                <V2Field
-                    :label="
-                        newPatient && requirements?.requireDateOfBirth
-                            ? 'Date of birth *'
-                            : 'Date of birth'
-                    "
+                <V2DateField
+                    v-model="fields.date_of_birth"
+                    label="Date of birth"
+                    subject="Date of birth"
                     :hint="dobWords"
                     :error="err('date_of_birth')"
-                >
-                    <template #default="{ id }">
-                        <DateField
-                            :id="id"
-                            :echo="false"
-                            v-model="fields.date_of_birth"
-                            :required="
-                                newPatient && requirements?.requireDateOfBirth
-                            "
-                            :aria-invalid="!!err('date_of_birth')"
-                        />
-                    </template>
-                </V2Field>
+                    :required="
+                        !!newPatient && !!requirements?.requireDateOfBirth
+                    "
+                    :max="guardianToday"
+                    @update:invalid="
+                        (value: boolean) => emit('dobInvalid', value)
+                    "
+                />
                 <V2Field
                     :label="
                         newPatient && requirements?.requireNationality
@@ -310,22 +307,24 @@ const inputClass =
                         :error="err('guardian.relationship')"
                     />
                 </div>
-                <V2Field
-                    label="Guardian full name"
-                    :error="err('guardian.full_name')"
-                >
-                    <template #default="{ id, describedBy, invalid }">
-                        <input
-                            :id="id"
-                            v-model="fields.guardian.full_name"
-                            :aria-describedby="describedBy"
-                            :aria-invalid="invalid"
-                            maxlength="255"
-                            autocomplete="off"
-                            :class="inputClass"
-                        />
-                    </template>
-                </V2Field>
+                <div class="md:col-span-2">
+                    <V2Field
+                        label="Guardian full name"
+                        :error="err('guardian.full_name')"
+                    >
+                        <template #default="{ id, describedBy, invalid }">
+                            <input
+                                :id="id"
+                                v-model="fields.guardian.full_name"
+                                :aria-describedby="describedBy"
+                                :aria-invalid="invalid"
+                                maxlength="255"
+                                autocomplete="off"
+                                :class="inputClass"
+                            />
+                        </template>
+                    </V2Field>
+                </div>
                 <div class="md:col-span-2">
                     <V2PhoneField
                         id="guardian-phone"

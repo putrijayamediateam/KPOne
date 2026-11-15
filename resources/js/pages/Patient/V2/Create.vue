@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link, useForm, usePage } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import PatientFormV2 from '@/components/patient-v2/PatientFormV2.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
@@ -97,8 +97,15 @@ const updateIdentifierType = (value: string | number) => {
     form.clearErrors('identifiers' as never);
 };
 
+// The date of birth box could not read what was typed: it says why, and nothing is sent.
+const dobInvalid = ref(false);
 const submit = () => {
     form.clearErrors();
+
+    if (dobInvalid.value) {
+        return focusInvalidField();
+    }
+
     const missingName = !form.full_name.trim();
 
     if (missingName) {
@@ -303,6 +310,7 @@ const inputClass =
                         :requirements="requirements"
                         :errors="form.errors"
                         new-patient
+                        @dob-invalid="(value: boolean) => (dobInvalid = value)"
                         @clear="(key: string) => form.clearErrors(key as never)"
                     />
 
