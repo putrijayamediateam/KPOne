@@ -6,6 +6,7 @@ const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 
 const page = read('resources/js/pages/Agents/Office.vue');
+const logic = read('resources/js/components/agents/office/useAgentOffice.ts');
 const scene = read('resources/js/components/agents/office/OfficeScene.vue');
 const figure = read('resources/js/components/agents/office/AgentFigure.vue');
 const layout = read('resources/js/components/agents/office/office-layout.ts');
@@ -53,10 +54,10 @@ test('lights follow the contract colours and labels', () => {
 });
 
 test('the page polls the office feed every 10 seconds and pauses when hidden', () => {
-    assert.match(page, /const POLL_MS = 10_000;/);
-    assert.match(page, /requestJson<OfficeFeed>\('\/agents\/office-feed'/);
-    assert.match(page, /document\.addEventListener\('visibilitychange'/);
-    assert.match(page, /if \(document\.hidden\) \{\s*clearTimeout\(timer\);/);
+    assert.match(logic, /const POLL_MS = 10_000;/);
+    assert.match(logic, /requestJson<OfficeFeed>\('\/agents\/office-feed'/);
+    assert.match(logic, /document\.addEventListener\('visibilitychange'/);
+    assert.match(logic, /if \(document\.hidden\) \{\s*clearTimeout\(timer\);/);
     assert.match(page, /Live updates paused\. Showing the last view\./);
 });
 
@@ -66,13 +67,13 @@ test('the Director desk shows the pending count and opens the inbox', () => {
         scene,
         /inboxCount = computed\(\(\) => props\.feed\.pendingProposals\)/,
     );
-    assert.match(page, /router\.visit\('\/agents\/inbox'\)/);
-    assert.match(page, /if \(props\.canOpenInbox\)/);
+    assert.match(logic, /router\.visit\('\/agents\/inbox'\)/);
+    assert.match(logic, /if \(props\.canOpenInbox\)/);
 });
 
 test('the click panel shows title, current task, last steps and pending proposals', () => {
     assert.match(
-        page,
+        logic,
         /\/agents\/office\/agents\/\$\{encodeURIComponent\(code\)\}/,
     );
     assert.match(page, /Last steps/);

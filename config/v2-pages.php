@@ -18,6 +18,7 @@ return [
         'Registration/Create',
         'Registration/Show',
         'Registration/Edit',
+        'PanelClaims/Index',
         'ClinicalService/Index',
         'Dispensary/Show',
         'Medicine/Index',
@@ -51,6 +52,7 @@ return [
         'Agents/Assistant',
         'Agents/DailySummary',
         'Inventory/TreatmentUsage',
+        'Agents/Office',
         'Inventory/GovernedStock',
     ],
 ];

@@ -14,7 +14,7 @@ use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Queue\QueueTestCase;
 use Tests\Support\GovernedStockFixture;
 
-/** AG-14: the maximum level (STK-30) reaches Hana's restock rows and proposals, and the inbox says "Fill to maximum (N)". */
+/** AG-14: the maximum level (STK-30) reaches Hana's restock rows and proposals, and the inbox says "to bring stock up to the maximum of N". */
 class HanaMaxLevelTest extends QueueTestCase
 {
     /** @var array<string, mixed> */
@@ -71,8 +71,9 @@ class HanaMaxLevelTest extends QueueTestCase
         $supervisor = $this->actor('ca_supervisor');
         $this->selectBranch($supervisor);
         $this->get(route('agents.inbox'))->assertInertia(fn (Assert $page) => $page->component('Agents/Inbox')
-            ->where('proposals.0.lines', fn ($lines) => collect($lines)->pluck('label')->contains(fn (string $l) => str_starts_with($l, 'Fill to maximum ('))
-                && ! collect($lines)->pluck('label')->contains('Suggested order')));
+            ->where('proposals.0.lines', fn ($lines) => collect($lines)->pluck('label')->contains('Suggested order')
+                && collect($lines)->pluck('value')->contains('22 units, to bring stock up to the maximum of 25')
+                && ! collect($lines)->pluck('label')->contains(fn (string $l) => str_starts_with($l, 'Fill to maximum'))));
     }
 
     public function test_without_max_level_the_inbox_row_stays_suggested_order_and_a_bad_max_is_refused(): void
