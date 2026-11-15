@@ -61,6 +61,7 @@ return [
         'Clinical/Show',
         'Inventory/BatchHolds',
         'Inventory/Recalls',
+        'Inventory/StockValue',
         'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
         'MedicalCertificates/Index',

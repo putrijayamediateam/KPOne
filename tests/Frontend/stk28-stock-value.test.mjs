@@ -1,0 +1,105 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import test from 'node:test';
+
+const read = (p) =>
+    readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
+const registry = read('config/v2-pages.php');
+const v2 = read('resources/js/pages/Inventory/V2/StockValue.vue');
+const classic = read('resources/js/pages/Inventory/StockValue.vue');
+const script = v2.slice(0, v2.indexOf('<template>'));
+const template = v2.slice(v2.indexOf('<template>'));
+const flat = template.replace(/\s+/g, ' ');
+
+test('STK-28: the report is a Version 2 page; the Classic page only offers to turn the new layout on', () => {
+    assert.match(registry, /'Inventory\/StockValue',/);
+    assert.match(
+        classic,
+        /This report is in the new layout\. Turn on Try the new layout to open it\./,
+    );
+    assert.match(classic, /router\.put\(\s*'\/spaces\/preference'/);
+    assert.match(classic, /enabled: true/);
+    assert.match(
+        classic,
+        /onSuccess: \(\) => router\.visit\('\/inventory\/stock-value'\)/,
+    );
+    // No figure ever reaches the Classic page.
+    assert.doesNotMatch(classic, /report\.|money\(|defineProps/);
+});
+
+test('STK-28: the disclaimer banner shows above the summary and on every tab, with an icon and words', () => {
+    assert.ok((template.match(/\{\{ report\.banner \}\}/g) ?? []).length >= 3);
+    assert.match(flat, /data-testid="valuation-banner"/);
+    assert.ok((template.match(/<TriangleAlert/g) ?? []).length >= 3);
+    assert.ok(
+        flat.indexOf('valuation-banner') <
+            flat.indexOf('valuation-summary-list'),
+    );
+});
+
+test('STK-28: a plain summary list below 640 px and tiles from 640 px, each figure named with its date', () => {
+    assert.match(
+        flat,
+        /class="flex flex-col divide-y rounded-\[14px\] border sm:hidden" data-testid="valuation-summary-list"/,
+    );
+    assert.match(
+        flat,
+        /class="hidden gap-3 sm:grid sm:grid-cols-2 xl:grid-cols-5" data-testid="valuation-summary-tiles"/,
+    );
+    assert.match(
+        script,
+        /label: `Stock value on \$\{formatDate\(props\.report\.periodEnd\)\}`/,
+    );
+});
+
+test('STK-28: money, percent and margin words never rely on colour or a hyphen for a negative figure', () => {
+    assert.match(script, /\$\{sen < 0 \? '\\u2212' : ''\}RM\\u00a0/);
+    assert.match(
+        script,
+        /\$\{value < 0 \? '\\u2212' : ''\}\$\{Math\.abs\(value\)\.toFixed\(1\)\}%/,
+    );
+    assert.match(script, /sen < 0 \? 'Loss' : sen === 0 \? 'No margin' : null/);
+    assert.match(script, /status: s\.lossesSen < 0 \? 'Net gain' : undefined/);
+    assert.match(
+        flat,
+        /<V2Chip v-if="row\.includesEstimate" tone="neutral" label="Includes an estimate" \/>/,
+    );
+    assert.match(flat, /No cost recorded, so not in the value:/);
+    assert.match(flat, />No cost recorded<\/span/);
+});
+
+test('STK-28: filters need an explicit Show, day-first dates and at most 92 days; Show is the only filled button', () => {
+    assert.equal((template.match(/<V2DateField/g) ?? []).length, 2);
+    assert.match(
+        script,
+        /`Choose \$\{props\.report\.filters\.maxDays\} days or fewer\.`/,
+    );
+    assert.match(flat, /:disabled="!ready \|\| busy"/);
+    assert.equal((template.match(/bg-primary /g) ?? []).length, 1);
+    assert.match(script, /\{ value: 'all', label: 'All branches' \}/);
+    assert.match(flat, /data-testid="valuation-refused"/);
+});
+
+test('STK-28: four tabs, "How this is counted" on every tab, 25 rows a page with a total row, and no download', () => {
+    for (const tab of [
+        "value: 'value'",
+        "value: 'margin'",
+        "value: 'losses'",
+        "value: 'counted'",
+    ]) {
+        assert.ok(script.includes(tab), tab);
+    }
+
+    assert.match(
+        flat,
+        /<V2DisclosureBar v-if="tab !== 'counted'" title="How this is counted"/,
+    );
+    assert.match(script, /const PAGE_SIZE = 25;/);
+    assert.ok((template.match(/<tr data-total>/g) ?? []).length === 3);
+    assert.ok((template.match(/cards="xl"/g) ?? []).length === 3);
+    assert.doesNotMatch(v2, /download|\.csv|export/i);
+    assert.match(
+        script,
+        /credit: 'Cost of the returned stock minus the supplier credit note amount\./,
+    );
+});
