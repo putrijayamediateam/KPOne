@@ -20,7 +20,7 @@ import type {
     DispensaryReturnRow,
     DispensaryReturnsPanel,
 } from '@/lib/dispensary-returns';
-import { quantityWords } from './quantity-words';
+import { quantityNumber, quantityWords } from './quantity-words';
 import { RETURN_SHEET_CLOSED } from './return-sheet';
 
 // DSP-7 step 2 (owner decisions 2026-11-05): a CA Supervisor who did not record the return checks it once. The
@@ -448,9 +448,9 @@ const sheetBlockedReason = computed((): string | null => {
 
     return null;
 });
-// Daniel: the placed line in words ("Placed 0 of 18 tablets · 18 left"); Classic's placedText stays for its announcement.
+// Daniel: the placed line in words, the unit once ("Placed 0 of 18 tablets · 18 left"); Classic's placedText stays for its announcement.
 const placedWords = computed(() => {
-    const base = `Placed ${quantityWords(fromThousandths(placed.value), props.line.unit)} of ${amountWords.value}`;
+    const base = `Placed ${quantityNumber(fromThousandths(placed.value))} of ${amountWords.value}`;
     const difference = returned.value - placed.value;
 
     if (difference === 0) {

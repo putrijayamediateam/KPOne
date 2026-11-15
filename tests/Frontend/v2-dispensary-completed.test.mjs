@@ -226,6 +226,11 @@ test('the split quarantine shows "Placed 0 of 18 tablets" from the V2 template (
     );
     assert.match(template(panel), /\{\{ placedWords \}\}/);
     assert.ok(!/\{\{ placedText \}\}/.test(template(panel)));
+    // The unit once: "Placed 1 of 1 tablet" (Daniel).
+    assert.match(
+        panel,
+        /`Placed \$\{quantityNumber\(fromThousandths\(placed\.value\)\)\} of \$\{amountWords\.value\}`/,
+    );
 });
 
 test('read-only quantities use plural unit words (Daniel)', () => {
