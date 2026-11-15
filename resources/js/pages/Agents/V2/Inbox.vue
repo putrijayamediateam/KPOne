@@ -392,6 +392,7 @@ const outline =
         "
         :tone="!refused && deciding?.action === 'reject' ? 'danger' : 'default'"
         :single-action="refused"
+        single-action-style="outline"
         :reason-label="
             !refused && deciding?.action === 'reject'
                 ? 'Reason for rejecting'

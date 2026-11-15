@@ -442,6 +442,7 @@ const { measure: measureScene, fadeStyle: sceneFade } = useScrollStrip(
         :description="panelDescription"
         confirm-label="Close"
         single-action
+        single-action-style="outline"
         @confirm="closePanel"
     >
         <div
