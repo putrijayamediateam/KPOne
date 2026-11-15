@@ -23,3 +23,7 @@ nothing here authorises anything.
 - At the pilot, the **Finance Officer** publishes prices. The **CA Supervisor** and the **Director** only check them, using Price list check and Price history.
 - This is a working procedure, not a permission change: the CA Supervisor, Finance Officer and Director all still hold the publish and reference permissions, and no grant has been removed. If the owner later wants it enforced in code, that is a separate permission decision.
 - Why: one named person publishes, and a different person checks the result, so a wrong price is caught before it reaches an invoice.
+
+## HR
+
+- **KPOne HR pilot setup: see [docs/pilot/hr/SETUP.md](hr/SETUP.md).** Location check OFF at the pilot branch (photo only) and clock-in photos kept 7 years as a DRAFT, both until the privacy review (owner decisions, 2026-11-15); leave and overtime from "Use KPOne defaults" (labelled, not professional advice); statutory tables from the official schedules with a second-person check.
