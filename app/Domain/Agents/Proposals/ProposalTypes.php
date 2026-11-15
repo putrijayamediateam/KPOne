@@ -21,6 +21,7 @@ final class ProposalTypes
             'inventory.restock_suggestion' => ['label' => 'Restock suggestion', 'agent' => 'inventory_analyst', 'permission' => $decide, 'rules' => [
                 'sku_public_id' => self::UUID, 'location_public_id' => self::UUID, 'current_quantity' => self::QUANTITY,
                 'reorder_level' => self::QUANTITY, 'suggested_quantity' => self::QUANTITY, 'reason_code' => ['required', 'in:at_or_below_reorder_level'],
+                'max_level' => ['nullable', 'string', self::QUANTITY[2]],
             ]],
             'inventory.expiry_warning' => ['label' => 'Expiry warning', 'agent' => 'inventory_analyst', 'permission' => $decide, 'rules' => [
                 'sku_public_id' => self::UUID, 'batch_public_id' => self::UUID, 'location_public_id' => self::UUID, 'quantity' => self::QUANTITY,

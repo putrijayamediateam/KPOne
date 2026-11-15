@@ -108,8 +108,9 @@ We keep it for **[period, see 04]**. You may ask to see or correct it: contact *
 
 **English.** If you apply, we collect your name, contact details, CV and answers. We use them only to assess
 your application and contact you about it. Only HR can see them. If you are not hired we delete your CV and
-personal details after **[period; HR sets it in KPOne]** unless you agree we may keep them longer. Contact **[HR / DPO]**
-to see, correct or delete your application.
+personal details after **[period; HR sets it in KPOne]** unless you agree we may keep them longer. You can withdraw
+or delete your application yourself at any time from your private link; once we have made you an offer, contact
+**[HR / DPO]** instead. Contact **[HR / DPO]** to see or correct your application.
 
 **Bahasa Melayu.** [Terjemahan setara.]
 

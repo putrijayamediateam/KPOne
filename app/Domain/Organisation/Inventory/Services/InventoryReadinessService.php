@@ -116,7 +116,9 @@ final class InventoryReadinessService
 
         return ['branchId' => $branch->id, 'branchName' => $branch->name, 'rows' => $rows, 'q' => $data['q'] ?? '', 'page' => $page->currentPage(), 'lastPage' => $page->lastPage(), 'total' => $page->total(), 'pending' => collect($pending->items())->map(fn ($row): array => [...(array) $row, 'canVerify' => $actor->can(self::VERIFY) && $row->actor_user_id !== $actor->id])->values()->all(), 'pendingLimited' => $pending->total() > 25, 'openingPage' => $pending->currentPage(), 'openingLastPage' => $pending->lastPage(), 'canVerifyUnits' => $actor->can(InventoryReferenceAdministrationService::PERMISSION),
             'sharedBarcodes' => app(InventoryCodeLookupService::class)->sharedCodes($actor->organisation_id),
-            'canFixBarcodes' => $actor->can(InventoryReferenceAdministrationService::PERMISSION)];
+            'canFixBarcodes' => $actor->can(InventoryReferenceAdministrationService::PERMISSION),
+            // STK-35: the opening import is for CA Supervisors, as recording an opening is.
+            'canImportOpening' => $actor->can(OpeningImportService::PERMISSION) && $actor->hasRole('ca_supervisor')];
     }
 
     /**

@@ -144,6 +144,7 @@ export type InsightsRangeReport =
               lowStockItems: number;
               expiringBatchesNext30Days: number;
               wastageUnits: number;
+              treatmentWasteUnits: number;
               inventoryValueAvailable: boolean;
               costOfInventorySoldAvailable: boolean;
           };

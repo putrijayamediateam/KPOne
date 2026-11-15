@@ -297,6 +297,11 @@ watch(
         form.clearErrors();
     },
 );
+// TIDY-4: the case type in words, not its id or stored code.
+const caseKindLabel = (kind: string) =>
+    ({ count: 'Stock count', writeoff: 'Write-off', reversal: 'Reversal' })[
+        kind
+    ] ?? kind;
 </script>
 
 <template>
@@ -567,11 +572,11 @@ watch(
                 class="min-w-0 space-y-2 rounded border p-3"
             >
                 <h3 class="font-semibold break-words">
-                    Case {{ row.id }} · {{ row.sku_code }} ·
+                    {{ caseKindLabel(row.kind) }} · {{ row.sku_code }} ·
                     {{ row.batch_number }}
                 </h3>
                 <p>
-                    {{ row.location }} · {{ row.kind }} ·
+                    {{ row.location }} ·
                     {{ formatInventoryReason(row.reason) }}
                 </p>
                 <p v-if="row.blind" data-testid="blind-count">

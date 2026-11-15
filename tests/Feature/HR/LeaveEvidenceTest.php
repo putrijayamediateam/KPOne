@@ -42,13 +42,29 @@ class LeaveEvidenceTest extends VisitTestCase
         $this->assertEqualsCanonicalizing(['director', 'hr_manager'], Role::query()->whereHas('permissions', fn ($q) => $q->where('name', LeavePermissions::EVIDENCE_VIEW))->pluck('name')->all());
     }
 
+    public function test_files_are_kept_at_most_seven_years_and_an_older_longer_number_shows_until_it_is_saved(): void
+    {
+        // PDPA 15 (owner, 2026-11-11: "cap at 7 years"): 2,555 days at most, refused in the domain.
+        $hr = $this->actor('hr_manager');
+        $this->selectBranch($hr);
+        $this->put(route('hr.leave.types.save'), $this->typeInput(['evidence_retention_days' => 2556]))
+            ->assertSessionHasErrors(['evidence_retention_days' => 'Enter how many days to keep files after the leave ends (1 to 2555).']);
+        $this->assertSame(0, LeaveType::query()->count());
+        $type = $this->type($hr, ['evidence_retention_days' => 2555]);
+        $this->assertSame(2555, (int) $type->fresh()?->evidence_retention_days);
+        // A type saved with more before the cap keeps its number, and the form says the 7 years win.
+        DB::table('hr_leave_types')->where('id', $type->id)->update(['evidence_retention_days' => 3650]);
+        $this->get(route('hr.leave.index', ['tab' => 'settings']))->assertInertia(fn (Assert $page) => $page
+            ->where('leave.settings.types.0.evidenceRetentionDays', '3650'));
+    }
+
     public function test_files_are_off_until_hr_switches_them_on_with_a_retention(): void
     {
         $hr = $this->actor('hr_manager');
         $ca = $this->actor('ca');
         $this->selectBranch($hr);
         $this->put(route('hr.leave.types.save'), $this->typeInput(['accepts_evidence_files' => true, 'evidence_retention_days' => '']))
-            ->assertSessionHasErrors(['evidence_retention_days' => 'Enter how many days to keep files after the leave ends (1 to 3650).']);
+            ->assertSessionHasErrors(['evidence_retention_days' => 'Enter how many days to keep files after the leave ends (1 to 2555).']);
         $type = $this->type($hr, ['accepts_evidence_files' => false]);
         $request = $this->applyFor($ca, $type);
         $this->addFile($ca, $request, $this->pdf())->assertSessionHasErrors(['file' => 'Sick leave does not take evidence files.']);

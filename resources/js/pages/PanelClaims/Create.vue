@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
 import { computed, ref } from 'vue';
+import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
@@ -98,9 +99,9 @@ const fieldAnnouncedErrors = new Set(['submitted_date', 'remarks', 'photos']);
                     <h1 class="text-2xl font-semibold">Create panel claim</h1>
                 </div>
                 <div class="flex items-center gap-3">
-                    <Link href="/panel-claims" class="rounded border px-4 py-2"
-                        >Cancel</Link
-                    >
+                    <Button variant="outline" as-child>
+                        <Link href="/panel-claims">Cancel</Link>
+                    </Button>
                     <Button type="submit" :disabled="form.processing">{{
                         form.processing ? 'Creating…' : 'Create claim'
                     }}</Button>
@@ -320,15 +321,22 @@ const fieldAnnouncedErrors = new Set(['submitted_date', 'remarks', 'photos']);
                             "
                         >
                             <p class="mb-3 text-sm text-muted-foreground">
-                                Drop photos here or choose files. JPG and PNG,
-                                max 5 MB each; up to 10 photos.
+                                <span class="max-lg:hidden"
+                                    >Drop photos here or choose files.
+                                </span>
+                                JPG and PNG, max 5 MB each; up to 10 photos.
                             </p>
-                            <input
+                            <FileChooseButton
                                 id="photos"
-                                type="file"
                                 accept="image/jpeg,image/png"
                                 multiple
-                                class="w-full text-sm"
+                                label="Choose photos"
+                                :status="
+                                    form.photos.length === 0
+                                        ? 'No photos chosen'
+                                        : `${form.photos.length} photo${form.photos.length === 1 ? '' : 's'} chosen`
+                                "
+                                status-id="photos-status"
                                 @change="
                                     selectPhotos(
                                         ($event.target as HTMLInputElement)

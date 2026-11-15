@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { router, usePage } from '@inertiajs/vue3';
+import { Link, router, usePage } from '@inertiajs/vue3';
 import { Printer } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
@@ -17,6 +17,15 @@ const props = defineProps<{
 }>();
 
 const page = usePage();
+// PCA-1: a Panel patient's invoice copy is view only (no reprint); open its last print instead.
+const viewHref = (copy: IssuedCopy) =>
+    `${copy.viewUrl}?from=${props.returnTo ?? 'billing'}`;
+// Daniel (PCA-1): when no copy can be reprinted, say so instead of describing printing.
+const viewOnlyAll = computed(
+    () =>
+        props.copies.length > 0 &&
+        props.copies.every((copy) => copy.reprintable === false),
+);
 const busy = ref<string | null>(null);
 const sent = ref(false);
 const error = computed(() => {
@@ -69,7 +78,14 @@ const name = (copy: IssuedCopy) =>
     >
         <div>
             <h3 class="font-medium">Issued copies</h3>
-            <p class="text-xs text-muted-foreground">
+            <p
+                v-if="viewOnlyAll"
+                class="text-xs text-muted-foreground"
+                data-testid="issued-view-only-all"
+            >
+                Earlier copies can be viewed. They cannot be reprinted.
+            </p>
+            <p v-else class="text-xs text-muted-foreground">
                 Each print is recorded. "Prints" counts presses of Print here,
                 not sheets of paper.
             </p>
@@ -81,7 +97,7 @@ const name = (copy: IssuedCopy) =>
         <EmptyState
             v-if="copies.length === 0"
             title="No copies issued yet."
-            description="Press Print invoice to issue the first one."
+            description="A copy appears here after the first print."
         />
         <template v-else>
             <!-- The table needs about 33rem; a narrower column (1024 px screens, phones) shows cards. -->
@@ -143,12 +159,30 @@ const name = (copy: IssuedCopy) =>
                             </td>
                             <td class="px-2 text-right">
                                 <Button
+                                    v-if="copy.reprintable !== false"
                                     size="sm"
                                     variant="outline"
                                     :disabled="busy !== null"
                                     :aria-label="`Reprint ${name(copy)} version ${copy.version} as COPY`"
                                     @click="ask(copy)"
                                     >Reprint</Button
+                                >
+                                <Button
+                                    v-else-if="copy.viewUrl"
+                                    size="sm"
+                                    variant="outline"
+                                    as-child
+                                    ><Link
+                                        :href="viewHref(copy)"
+                                        :aria-label="`View ${name(copy)} version ${copy.version}`"
+                                        >View</Link
+                                    ></Button
+                                >
+                                <span
+                                    v-else
+                                    class="text-muted-foreground"
+                                    data-testid="issued-view-only"
+                                    >View only</span
                                 >
                             </td>
                         </tr>
@@ -171,6 +205,7 @@ const name = (copy: IssuedCopy) =>
                         {{ copy.prints === 1 ? 'print' : 'prints' }}
                     </p>
                     <Button
+                        v-if="copy.reprintable !== false"
                         class="mt-2 h-11 w-full"
                         data-touch-target
                         variant="outline"
@@ -179,6 +214,19 @@ const name = (copy: IssuedCopy) =>
                         @click="ask(copy)"
                         >Reprint</Button
                     >
+                    <Button
+                        v-else-if="copy.viewUrl"
+                        class="mt-2 h-11 w-full"
+                        data-touch-target
+                        variant="outline"
+                        as-child
+                        ><Link
+                            :href="viewHref(copy)"
+                            :aria-label="`View ${name(copy)} version ${copy.version}`"
+                            >View</Link
+                        ></Button
+                    >
+                    <p v-else class="mt-2 text-muted-foreground">View only</p>
                 </li>
             </ul>
         </template>

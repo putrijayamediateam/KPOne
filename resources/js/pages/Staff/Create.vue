@@ -391,8 +391,10 @@ const submit = () => form.post('/staff');
                                 </div>
                             </div>
                         </div>
+                        <InputError :message="form.errors.assignments" />
+                        <!-- The server refuses some assignments under the key `assignment` (for example an expiring primary). -->
                         <InputError
-                            :message="form.errors.assignments"
+                            :message="errorFor('assignment')"
                         /> </CardContent
                 ></Card>
             </div>

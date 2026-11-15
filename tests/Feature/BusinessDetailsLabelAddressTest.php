@@ -97,6 +97,13 @@ class BusinessDetailsLabelAddressTest extends VisitTestCase
         $this->assertContains('branch.label_address', json_decode((string) $audit->metadata, true)['changed_fields']);
     }
 
+    public function test_a_tab_only_value_is_stored_as_empty_not_as_a_blank_looking_address(): void
+    {
+        $this->save(['label_address' => 'No. 19 G'])->assertSessionHasNoErrors();
+        $this->save(['label_address' => "\t\t"])->assertSessionHasNoErrors();
+        $this->assertNull($this->profile()->label_address);
+    }
+
     public function test_an_older_client_that_leaves_the_field_out_does_not_wipe_it(): void
     {
         $this->save(['label_address' => 'Short label address'])->assertSessionHasNoErrors();

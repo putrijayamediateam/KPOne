@@ -2,12 +2,14 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref, watch } from 'vue';
 import { formatInventoryReason } from '@/lib/inventory-picker';
+import { formatDate } from '@/lib/presentation';
 type Review = {
     public_id: string;
     order_public_id: string;
     order_number: string;
     kind: string;
     receiver_user_id: number;
+    receiver_name?: string | null;
     order_lock_version: number;
     version: number;
     approval_id: number | null;
@@ -35,6 +37,7 @@ type ReceiptRow = {
     delivery_reference: string;
     received_at_local: string;
     received_by_user_id: number;
+    received_by_name?: string | null;
     order_public_id: string;
     order_number: string;
     order_version: number;
@@ -56,6 +59,15 @@ type ReviewPage = {
     rows: Review[];
 };
 const props = defineProps<{ branchId: number; nonce: string }>();
+// TIDY-4: stored values in words.
+const reviewKindLabel = (kind: string) =>
+    ({ receipt: 'Receipt', correction: 'Correction' })[kind] ?? kind;
+const lotOutcomeLabel = (outcome: string) =>
+    ({
+        accepted: 'Accepted',
+        quarantined: 'Quarantined',
+        rejected: 'Rejected',
+    })[outcome] ?? outcome;
 const page = usePage<{ receiving?: ReviewPage }>();
 const loadedForBranch = ref<number | null>(null);
 const reviews = computed(() =>
@@ -167,11 +179,11 @@ watch(
         <p class="text-sm text-muted-foreground">
             A different CA Supervisor, Finance Officer or Director must approve.
             The original receiver posts the unchanged delivery after approval.
-            Release of quarantine remains a separate STK-2 action by Finance
-            Officer or Director.
+            Quarantined stock is released separately, as a batch hold release by
+            a Finance Officer or Director.
         </p>
         <button class="min-h-11 rounded border px-3" @click="load()">
-            Load receiving reviews (25 per page)
+            Load receiving reviews
         </button>
         <p
             v-for="error in errors"
@@ -200,9 +212,8 @@ watch(
                     {{ receipt.delivery_reference }}
                 </p>
                 <p class="text-sm">
-                    {{ receipt.received_at_local }} · Receiver: staff #{{
-                        receipt.received_by_user_id
-                    }}
+                    {{ receipt.received_at_local }} · Received by
+                    {{ receipt.received_by_name ?? 'Staff member' }}
                     ·
                     {{
                         receipt.correction_id
@@ -296,10 +307,10 @@ watch(
                 class="min-w-0 space-y-2 rounded border p-3"
             >
                 <h5 class="font-semibold wrap-anywhere">
-                    {{ row.order_number }} · {{ row.kind }}
+                    {{ row.order_number }} · {{ reviewKindLabel(row.kind) }}
                 </h5>
                 <p class="text-sm">
-                    Receiver: staff #{{ row.receiver_user_id }} ·
+                    Received by {{ row.receiver_name ?? 'Staff member' }} ·
                     {{
                         row.consumption_id
                             ? 'Posted'
@@ -327,8 +338,9 @@ watch(
                         :key="lotIndex"
                         class="wrap-anywhere"
                     >
-                        {{ lot.batch_number }} · {{ lot.expiry_date }} ·
-                        {{ lot.quantity }} · {{ lot.outcome }}
+                        {{ lot.batch_number }} · Expires
+                        {{ formatDate(lot.expiry_date) }} · {{ lot.quantity }} ·
+                        {{ lotOutcomeLabel(lot.outcome) }}
                         {{ formatInventoryReason(lot.reason) }}
                     </p>
                 </div>

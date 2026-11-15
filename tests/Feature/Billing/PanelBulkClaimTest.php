@@ -245,7 +245,8 @@ class PanelBulkClaimTest extends BillingTestCase
         $sources = [$this->approvedAllocation($panel), $this->approvedAllocation($panel)];
         $payload = $this->payload($sources);
 
-        foreach (['ca', 'ca_supervisor', 'resident_doctor', 'director', 'finance_officer', 'administrator', 'technical_admin'] as $role) {
+        // PCA-1: Director and Finance Officer may create claims (owner decision 2026-11-13).
+        foreach (['ca', 'ca_supervisor', 'resident_doctor', 'administrator', 'technical_admin'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor, $this->branch);
             $this->post(route('panel-claims.bulk-store'), $payload)->assertForbidden();

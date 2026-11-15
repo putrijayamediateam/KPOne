@@ -67,7 +67,9 @@ final class BusinessDetailsService
             $branchFields['phone_secondary'] = $data['phone_secondary'];
         }
         if (array_key_exists('label_address', $data)) {
-            $branchFields['label_address'] = ($data['label_address'] ?? '') === '' ? null : $data['label_address'];
+            // Trim all whitespace (tabs included) so a direct service call cannot store a blank-looking value.
+            $labelAddress = trim((string) ($data['label_address'] ?? ''));
+            $branchFields['label_address'] = $labelAddress === '' ? null : $labelAddress;
         }
         $hash = hash('sha256', json_encode([(int) $data['expected_branch_id'], (int) $data['organisation_lock_version'],
             (int) $data['branch_lock_version'], $organisationFields, $branchFields, $remove, $image['sha256'] ?? null], JSON_THROW_ON_ERROR));

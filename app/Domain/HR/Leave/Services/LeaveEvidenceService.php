@@ -218,10 +218,11 @@ final class LeaveEvidenceService
                         return null;
                     }
                     // Lock the request, then the file (the add and remove order), and decide under the locks.
-                    $request = LeaveRequest::query()->whereKey($requestId)->lockForUpdate()->firstOrFail();
-                    /** @var LeaveEvidenceFile $file */
-                    $file = LeaveEvidenceFile::query()->whereKey($candidate->id)->lockForUpdate()->firstOrFail();
-                    if ($file->status !== 'active' || ! $this->due($request)) {
+                    // Either may be gone by now: the leave purge (PDPA 15) deletes a request and its files 7 years on,
+                    // and one missing row must never stop the rest of the night's run (Suresh).
+                    $request = LeaveRequest::query()->whereKey($requestId)->lockForUpdate()->first();
+                    $file = $request === null ? null : LeaveEvidenceFile::query()->whereKey($candidate->id)->lockForUpdate()->first();
+                    if ($request === null || $file === null || $file->status !== 'active' || ! $this->due($request)) {
                         return null;
                     }
                     $file->forceFill(['status' => 'purged', 'removed_at' => now()->utc(), 'lock_version' => $file->lock_version + 1])->save();

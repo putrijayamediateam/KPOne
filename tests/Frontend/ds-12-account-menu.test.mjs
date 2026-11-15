@@ -53,7 +53,12 @@ test('DS-12: the phone clock row hides only where the top-bar button shows, so t
         menu,
         /inSpaceShell = computed\(\(\) => page\.url\.startsWith\('\/spaces'\)\)/,
     );
-    assert.match(menu, /:class="\{ 'lg:hidden': inSpaceShell \}"/);
+    assert.match(
+        menu,
+        /:class="\{ 'lg:hidden': inSpaceShell \|\| topBarClock \}"/,
+    );
+    // UX-24: topBarClock comes from the V2 shell and is true only where its top-bar button is drawn.
+    assert.match(menu, /const topBarClock = inject\(\s*TOP_BAR_CLOCK,/);
     assert.doesNotMatch(
         menu,
         /class="cursor-pointer max-lg:min-h-11 lg:hidden"/,

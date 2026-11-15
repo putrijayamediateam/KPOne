@@ -7,7 +7,8 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Access\ClinicManagementNavigation;
 use App\Domain\Access\WorkspaceLandingService;
 use App\Domain\DepartmentSpace\AccountMenuLinks;
-use App\Domain\DepartmentSpace\SpacePreferenceService;
+use App\Domain\DepartmentSpace\UiVersionResolver;
+use App\Domain\DepartmentSpace\V2ShellNavigation;
 use App\Domain\Patient\Models\PublicPatientIntake;
 use Closure;
 use Illuminate\Http\Request;
@@ -90,10 +91,14 @@ class HandleInertiaRequests extends Middleware
 
             $landing = app(WorkspaceLandingService::class);
             $canEnterClinic = $landing->canEnterClinic($user);
+            $spaces = app(UiVersionResolver::class)->state($user);
             $workspace = [
                 'defaultUrl' => route('workspace', absolute: false),
                 'canEnterClinic' => $canEnterClinic,
-                'spaces' => app(SpacePreferenceService::class)->state($user),
+                'spaces' => $spaces,
+                // UX-17 and UX-24: the Version 2 sidebar, sent with every page that renders in V2 (the switch on, or a
+                // /spaces page) and never with a Classic one. A closure, so JSON polls never build it.
+                'shell' => app(UiVersionResolver::class)->isV2($user, $request) ? fn () => app(V2ShellNavigation::class)->for($user, $request->path()) : null,
                 'accountMenu' => app(AccountMenuLinks::class)->for($user),
                 'navigation' => [
                     'clinicManagement' => app(ClinicManagementNavigation::class)->hasDestinations($user),

@@ -5,6 +5,7 @@ import { ActionLink } from '@/components/ui/action-link';
 import { PageHeader } from '@/components/ui/page-header';
 import { CompactPagination } from '@/components/ui/pagination';
 import { EmptyState } from '@/components/ui/state';
+import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { myr } from '@/types/billing';
 
@@ -27,6 +28,8 @@ const props = defineProps<{
         /** BIL-17: money due after a receipt correction, by visit number; it is paid before pay-later. */
         dueNow?: Record<string, number>;
         payLaterDue?: Record<string, string>;
+        /** BIL-26: visit numbers on this page whose invoice must be reviewed before settlement. */
+        reviewRequired?: string[];
         data: Array<{
             patientName: string;
             patientNumber: string;
@@ -48,6 +51,10 @@ const dueNowOf = (row: { visitNumber: string }) =>
     props.collections.dueNow?.[row.visitNumber] ?? 0;
 const owedOf = (row: { visitNumber: string; remainingSen: number }) =>
     row.remainingSen + dueNowOf(row);
+// BIL-26: the invoice is on hold for a correction or its items changed, so the amount may change (Siti: neutral tag,
+// "Review required" as on the Billing page and Outstanding bills; amber stays for past due).
+const needsReview = (row: { visitNumber: string }) =>
+    props.collections.reviewRequired?.includes(row.visitNumber) ?? false;
 // Money due now with no pay-later date counts from the visit day (owner decision, BIL-23).
 const daysSinceVisit = (days: number) =>
     `${days} ${days === 1 ? 'day' : 'days'} since visit`;
@@ -119,6 +126,11 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                 does not record anything. Due now is money that should have been
                 paid at the visit; it counts from the visit day. A payment pays
                 due now before pay later.
+                <template v-if="collections.reviewRequired?.length">
+                    Review required: the invoice is being corrected or its items
+                    changed, so the amount may change. Open billing before
+                    asking the patient to pay.</template
+                >
             </p>
         </div>
 
@@ -145,6 +157,17 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
             >
                 <div class="flex flex-wrap items-end justify-between gap-2">
                     <div>
+                        <p v-if="needsReview(row)" class="mb-1">
+                            <StatusBadge
+                                status="review_required"
+                                label="Review required"
+                                tone="neutral"
+                                data-testid="bill-review-required"
+                            /><span class="sr-only"
+                                >, the amount may change; open billing before
+                                collecting.</span
+                            >
+                        </p>
                         <p class="text-xs text-muted-foreground">Still owed</p>
                         <p class="text-xl font-semibold tabular-nums">
                             {{ myr(owedOf(row)) }}
@@ -355,6 +378,17 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
                             class="text-right font-semibold whitespace-nowrap tabular-nums"
                         >
                             {{ myr(owedOf(row)) }}
+                            <span v-if="needsReview(row)" class="mt-1 block">
+                                <StatusBadge
+                                    status="review_required"
+                                    label="Review required"
+                                    tone="neutral"
+                                    data-testid="bill-review-required"
+                                /><span class="sr-only"
+                                    >, the amount may change; open billing
+                                    before collecting.</span
+                                >
+                            </span>
                         </td>
                         <td class="text-right">
                             <ActionLink

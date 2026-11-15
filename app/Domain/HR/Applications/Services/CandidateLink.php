@@ -6,6 +6,8 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\HR\Applications\HiringTemplates;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -101,6 +103,8 @@ final class CandidateLink
             'stageLabel' => self::CANDIDATE_STAGES[$application->status] ?? 'Closed',
             'stageLabelMs' => self::CANDIDATE_STAGES_MS[$application->status] ?? 'Ditutup',
             'open' => in_array($application->status, JobApplicationService::OPEN, true),
+            // Owner decision 2026-11-11: the candidate may delete their application, except at Offered (HR closes that).
+            'canDelete' => $application->status !== 'offered',
             'interview' => self::interviewView($application),
             // HR-17d: the clinic's documents for a confirmed interview (title and size only).
             'documents' => InterviewDocuments::candidateList($application),
@@ -157,18 +161,72 @@ final class CandidateLink
             if (! in_array($row->status, JobApplicationService::OPEN, true)) {
                 throw ValidationException::withMessages(['withdraw' => 'This application is already closed. / Permohonan ini sudah ditutup.']);
             }
-            $now = now()->utc();
-            InterviewSlots::releaseOnWithdraw((int) $row->id, null);
-            DB::table('hr_job_applications')->where('id', $row->id)->update(['status' => 'withdrawn', 'closed_at' => $now, 'stage_entered_at' => $now,
-                'lock_version' => (int) $row->lock_version + 1, 'updated_at' => $now]);
-            DB::table('hr_job_application_events')->insert([
-                ['organisation_id' => $row->organisation_id, 'application_id' => $row->id, 'action' => 'candidate_withdrew', 'from_status' => null,
-                    'to_status' => null, 'actor_user_id' => null, 'created_at' => $now],
-                ['organisation_id' => $row->organisation_id, 'application_id' => $row->id, 'action' => 'status_changed', 'from_status' => $row->status,
-                    'to_status' => 'withdrawn', 'actor_user_id' => null, 'created_at' => $now],
-            ]);
-            $this->audit->record('hr.applications.withdrawn_by_candidate', null, ['application_id' => (int) $row->id, 'from' => $row->status], null, null, (int) $row->organisation_id);
-            $this->messenger->record($row, 'withdrawn', 'withdrawn');
+            $this->withdrawLocked($row, true);
         }, 3);
+    }
+
+    /**
+     * Self-service deletion (owner, 2026-11-11): the candidate deletes their application through their private link,
+     * together with its talent-pool pair (the application they ticked the pool on and every application HR invited them
+     * to from it, which hold copies of the same details; Suresh, M1). An open one is withdrawn first (interview slots
+     * released) and no message is sent, since there is nobody left to write to; then every personal value is cleared as
+     * the retention purge does, the CV files are deleted and the links stop working. If any of them is at Offered, it is
+     * kept for HR to close, so the candidate asks HR instead.
+     */
+    public function erase(mixed $token, JobApplicationService $applications): void
+    {
+        $paths = DB::transaction(function () use ($token, $applications): array {
+            $row = $this->resolve($token, true);
+            if ($row === null) {
+                throw ValidationException::withMessages(['link' => self::INVALID]);
+            }
+            $root = (int) ($row->invited_from_application_id ?? $row->id);
+            $pair = DB::table('hr_job_applications')->where('organisation_id', $row->organisation_id)
+                ->where(fn ($q) => $q->where('id', $root)->orWhere('invited_from_application_id', $root))
+                ->orderBy('id')->lockForUpdate()->get();
+            if ($pair->contains('status', 'offered')) {
+                throw ValidationException::withMessages(['erase' => 'You have an offer from us. Please contact HR to close or delete your application. / Anda mempunyai tawaran daripada kami. Sila hubungi HR untuk menutup atau memadam permohonan anda.']);
+            }
+            $paths = [];
+            foreach ($pair as $application) {
+                if ($application->purged_at !== null) {
+                    continue;
+                }
+                if (in_array($application->status, JobApplicationService::OPEN, true)) {
+                    $this->withdrawLocked($application, false);
+                    $application = DB::table('hr_job_applications')->where('id', $application->id)->first() ?? $application;
+                }
+                $applications->erase($application, (int) $application->organisation_id, 'hr.applications.erased_by_candidate');
+                if ($application->cv_path !== null) {
+                    $paths[] = (string) $application->cv_path;
+                }
+            }
+
+            return $paths;
+        }, 3);
+        foreach ($paths as $path) {
+            if (! Storage::disk(JobApplicationIntake::DISK)->delete($path)) {
+                Log::warning('HR application CV could not be deleted after the candidate deleted their application');
+            }
+        }
+    }
+
+    /** Withdraws one locked, open application: slots released, two events, audit, and the "withdrawn" message if asked. */
+    private function withdrawLocked(\stdClass $row, bool $notify): void
+    {
+        $now = now()->utc();
+        InterviewSlots::releaseOnWithdraw((int) $row->id, null);
+        DB::table('hr_job_applications')->where('id', $row->id)->update(['status' => 'withdrawn', 'closed_at' => $now, 'stage_entered_at' => $now,
+            'lock_version' => (int) $row->lock_version + 1, 'updated_at' => $now]);
+        DB::table('hr_job_application_events')->insert([
+            ['organisation_id' => $row->organisation_id, 'application_id' => $row->id, 'action' => 'candidate_withdrew', 'from_status' => null,
+                'to_status' => null, 'actor_user_id' => null, 'created_at' => $now],
+            ['organisation_id' => $row->organisation_id, 'application_id' => $row->id, 'action' => 'status_changed', 'from_status' => $row->status,
+                'to_status' => 'withdrawn', 'actor_user_id' => null, 'created_at' => $now],
+        ]);
+        $this->audit->record('hr.applications.withdrawn_by_candidate', null, ['application_id' => (int) $row->id, 'from' => $row->status], null, null, (int) $row->organisation_id);
+        if ($notify) {
+            $this->messenger->record($row, 'withdrawn', 'withdrawn');
+        }
     }
 }
