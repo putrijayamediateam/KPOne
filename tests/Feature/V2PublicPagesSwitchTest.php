@@ -114,7 +114,7 @@ class V2PublicPagesSwitchTest extends VisitTestCase
     public function test_with_the_switch_on_the_real_status_page_gets_its_v2_page_and_the_show_page_stays_classic(): void
     {
         $resolver = app(UiVersionResolver::class);
-        config(['v2-pages.public' => true]);
+        config(['v2-pages.public' => true, 'v2-pages.public_pages' => (require base_path('config/v2-pages.php'))['public_pages']]);
 
         $this->assertSame('PublicCheckIn/V2/Status', $resolver->pageFor('PublicCheckIn/Status'));
         // The intake form has no V2 page yet and is not listed, so it is untouched.
