@@ -30,6 +30,7 @@ use App\Domain\Visit\Billing\Models\ChargeDefinition;
 use App\Domain\Visit\Billing\Services\ConsultationTariffAdministrationService;
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use LogicException;
@@ -113,6 +114,7 @@ class KPOneDemoSetupSeeder extends Seeder
 
         $this->actAs();
         $this->saveBusinessDetails($organisation, $branch, $director);
+        $this->ensureLogo($organisation, $branch, $director);
         $this->saveFooter($organisation, $branch, $director);
 
         $recorder = $this->actAs('demo.ca_supervisor@kpone.test');
@@ -265,6 +267,54 @@ class KPOneDemoSetupSeeder extends Seeder
             'phone' => null,
             'email' => 'demo.clinic@kpone.test',
         ]);
+    }
+
+    /**
+     * The Klinik Putrijaya mark (public/kp-mark.png, also used by the TV) becomes the Business details logo, through the
+     * Business details service, so every demo MC, referral, attendance letter, invoice and receipt shows it. A logo that is
+     * already set is never replaced. Local and testing only, like the rest of this seeder.
+     */
+    private function ensureLogo(Organisation $organisation, Branch $branch, User $director): void
+    {
+        $profile = OrganisationBusinessProfile::query()->where('organisation_id', $organisation->id)->first();
+        $branchProfile = BranchBusinessProfile::query()
+            ->where('organisation_id', $organisation->id)
+            ->where('branch_id', $branch->id)
+            ->first();
+        $mark = public_path('kp-mark.png');
+        if ($profile === null || $branchProfile === null || $profile->logo_asset_id !== null || ! is_file($mark)) {
+            return;
+        }
+        if (! extension_loaded('gd')) {
+            // Business details checks and re-encodes the image with GD; without it the demo simply has no logo.
+            logger()->warning('The PHP GD extension is not installed, so the Klinik Putrijaya logo was not set.');
+
+            return;
+        }
+
+        $data = [
+            'expected_branch_id' => $branch->id,
+            'idempotency_key' => (string) Str::uuid(),
+            'organisation_lock_version' => $profile->lock_version,
+            'branch_lock_version' => $branchProfile->lock_version,
+            'legal_name' => $profile->legal_name,
+            'registration_type' => $profile->registration_type,
+            'registration_number' => $profile->registration_number,
+            'clinic_name' => $branchProfile->clinic_name,
+            'address_line_1' => $branchProfile->address_line_1,
+            'address_line_2' => $branchProfile->address_line_2,
+            'postcode' => $branchProfile->postcode,
+            'city' => $branchProfile->city,
+            'state' => $branchProfile->state,
+            'country' => $branchProfile->country,
+            'phone' => $branchProfile->phone,
+            'email' => $branchProfile->email,
+        ];
+        if ($branchProfile->phone_secondary !== null) {
+            $data['phone_secondary'] = $branchProfile->phone_secondary;
+        }
+
+        app(BusinessDetailsService::class)->save($director, $data, new UploadedFile($mark, 'kp-mark.png', 'image/png', null, true));
     }
 
     private function saveFooter(Organisation $organisation, Branch $branch, User $director): void
