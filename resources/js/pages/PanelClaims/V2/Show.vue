@@ -338,7 +338,7 @@ const rail = computed(() => [
         label: 'Panel accepted',
         value:
             claim.value.acceptedAmountSen === null
-                ? 'Not decided yet'
+                ? 'Pending'
                 : myr(claim.value.acceptedAmountSen),
     },
     { label: 'Received', value: myr(claim.value.paidAmountSen) },
@@ -430,7 +430,7 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
 
             <template #rail-collapsed>
                 <section
-                    class="grid grid-cols-2 gap-3 rounded-[14px] border bg-card p-4 lg:grid-cols-4"
+                    class="grid grid-cols-1 gap-3 rounded-[14px] border bg-card p-4 min-[420px]:grid-cols-2 lg:grid-cols-4"
                     aria-label="Claim figures"
                 >
                     <V2Stat
