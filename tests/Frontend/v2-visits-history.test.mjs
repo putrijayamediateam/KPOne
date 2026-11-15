@@ -134,3 +134,27 @@ test('V2 money card shows method, number and amount only, and codes never break'
         ),
     );
 });
+
+test('V2 Documents keeps the PCA-1 branch: the invoice button follows printUrl and a Panel visit says why', () => {
+    for (const piece of [
+        'history.financial?.panelNoInvoicePrint',
+        "'Panel patient: no invoice is printed. A receipt prints only for cash the patient paid.'",
+        "'No printable documents for your access.'",
+        '<li v-if="history.financial?.printUrl">',
+    ]) {
+        assert.ok(
+            tight(classic).includes(tight(piece)),
+            `Classic lacks ${piece}`,
+        );
+        assert.ok(tight(page).includes(tight(piece)), `V2 lacks ${piece}`);
+    }
+
+    // V2 reads the same two conditions through one computed.
+    assert.ok(
+        tight(page).includes(
+            tight(
+                '!!props.history.financial?.printUrl || !!props.history.financial?.payments.some((p) => p.printUrl)',
+            ),
+        ),
+    );
+});

@@ -558,7 +558,11 @@ const linkButton =
                                 v-if="!hasDocuments"
                                 class="text-sm text-muted-foreground"
                             >
-                                No printable documents for your access.
+                                {{
+                                    history.financial?.panelNoInvoicePrint
+                                        ? 'Panel patient: no invoice is printed. A receipt prints only for cash the patient paid.'
+                                        : 'No printable documents for your access.'
+                                }}
                             </p>
                             <ul
                                 v-else
