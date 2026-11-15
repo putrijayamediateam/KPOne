@@ -6,6 +6,7 @@ import V2Chip from '@/components/v2/V2Chip.vue';
 import V2DateField from '@/components/v2/V2DateField.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2DisclosureBar from '@/components/v2/V2DisclosureBar.vue';
+import V2Field from '@/components/v2/V2Field.vue';
 import V2KeyValueList from '@/components/v2/V2KeyValueList.vue';
 import type { KeyValueItem } from '@/components/v2/V2KeyValueList.vue';
 import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
@@ -20,6 +21,7 @@ import V2Table from '@/components/v2/V2Table.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
+import { quantityWithUnit } from '@/lib/inventory-v2-words';
 import { trimQuantity } from '@/lib/supplier-terms';
 
 /**
@@ -175,8 +177,6 @@ const difference = (line: InvoiceLine) => {
 
     return `${money(Math.abs(gap))} ${gap > 0 ? 'higher' : 'lower'}`;
 };
-const quantity = (value: string, unit: string) =>
-    `${trimQuantity(value)} ${unit}`;
 
 const page = usePage();
 const errors = computed(
@@ -619,32 +619,26 @@ const decisionBlocked = computed<string | null>(() => {
                                         "
                                     />
                                 </div>
-                                <label
-                                    class="flex min-w-0 flex-col gap-1.5 text-sm font-medium"
-                                    >Invoice number
-                                    <span class="sr-only">(required)</span>
+                                <V2Field
+                                    v-slot="{ id, describedBy, invalid }"
+                                    label="Invoice number"
+                                    required
+                                    :error="fieldErrors.invoice_number"
+                                >
                                     <input
-                                        id="invoice-number"
+                                        :id="id"
                                         v-model="form.number"
                                         maxlength="60"
-                                        :aria-invalid="
-                                            !!fieldErrors.invoice_number
-                                        "
-                                        aria-describedby="invoice-number-error"
+                                        :aria-invalid="invalid"
+                                        :aria-describedby="describedBy"
                                         class="h-11 w-full min-w-0 rounded-[10px] border bg-card px-3 text-base md:text-[15px] lg:h-9"
                                         :class="
-                                            fieldErrors.invoice_number
+                                            invalid
                                                 ? 'border-destructive'
                                                 : 'border-input'
                                         "
                                     />
-                                    <span
-                                        v-if="fieldErrors.invoice_number"
-                                        id="invoice-number-error"
-                                        class="text-sm font-normal text-destructive"
-                                        >{{ fieldErrors.invoice_number }}</span
-                                    >
-                                </label>
+                                </V2Field>
                                 <V2DateField
                                     v-model="form.date"
                                     label="Invoice date"
@@ -685,7 +679,7 @@ const decisionBlocked = computed<string | null>(() => {
                                             line.item
                                         }}</span>
                                         <span
-                                            class="block text-xs whitespace-nowrap text-muted-foreground"
+                                            class="block text-xs [overflow-wrap:anywhere] text-muted-foreground"
                                             >{{ unbroken(line.sku) }}</span
                                         >
                                         <span
@@ -698,60 +692,46 @@ const decisionBlocked = computed<string | null>(() => {
                                             }}
                                             of
                                             {{
-                                                quantity(
+                                                quantityWithUnit(
                                                     line.orderedQuantity,
                                                     line.stockUnit,
                                                 )
                                             }}</span
                                         >
                                     </p>
-                                    <label
-                                        class="flex min-w-0 flex-col gap-1.5 text-sm font-medium"
-                                        >Invoiced quantity ({{
-                                            line.stockUnit
-                                        }})
+                                    <V2Field
+                                        v-slot="{ id, describedBy, invalid }"
+                                        :label="`Invoiced quantity (${line.stockUnit})`"
+                                        required
+                                        :error="
+                                            fieldErrors[
+                                                `lines.${index}.quantity`
+                                            ]
+                                        "
+                                    >
                                         <input
-                                            :id="`invoice-line-${index}-quantity`"
+                                            :id="id"
                                             v-model="
                                                 form.lines[line.publicId]
                                                     .quantity
                                             "
                                             inputmode="decimal"
-                                            :aria-invalid="
-                                                !!fieldErrors[
-                                                    `lines.${index}.quantity`
-                                                ]
-                                            "
-                                            :aria-describedby="`invoice-line-${index}-quantity-error`"
+                                            :aria-invalid="invalid"
+                                            :aria-describedby="describedBy"
                                             class="h-11 w-full min-w-0 rounded-[10px] border bg-card px-3 text-right text-base tabular-nums md:text-[15px] lg:h-9"
                                             :class="
-                                                fieldErrors[
-                                                    `lines.${index}.quantity`
-                                                ]
+                                                invalid
                                                     ? 'border-destructive'
                                                     : 'border-input'
                                             "
                                         />
-                                        <span
-                                            v-if="
-                                                fieldErrors[
-                                                    `lines.${index}.quantity`
-                                                ]
-                                            "
-                                            :id="`invoice-line-${index}-quantity-error`"
-                                            class="text-sm font-normal text-destructive"
-                                            >{{
-                                                fieldErrors[
-                                                    `lines.${index}.quantity`
-                                                ]
-                                            }}</span
-                                        >
-                                    </label>
+                                    </V2Field>
                                     <V2MoneyInput
                                         v-model="
                                             form.lines[line.publicId].total
                                         "
                                         label="Line total"
+                                        required
                                         :error="
                                             fieldErrors[`lines.${index}.total`]
                                         "
@@ -790,6 +770,17 @@ const decisionBlocked = computed<string | null>(() => {
                                 data-testid="record-sentence"
                             >
                                 {{ recordSentence }}
+                            </p>
+                            <p
+                                v-if="
+                                    missing &&
+                                    selectedOrder &&
+                                    form.number.trim()
+                                "
+                                class="text-sm text-muted-foreground"
+                                data-testid="record-blocked"
+                            >
+                                {{ missing }}
                             </p>
                             <button
                                 type="submit"
@@ -867,7 +858,7 @@ const decisionBlocked = computed<string | null>(() => {
                                     >
                                         <div class="min-w-0">
                                             <span
-                                                class="block font-mono text-sm whitespace-nowrap"
+                                                class="block font-mono text-sm [overflow-wrap:anywhere]"
                                                 >{{
                                                     unbroken(invoice.number)
                                                 }}</span
@@ -881,7 +872,7 @@ const decisionBlocked = computed<string | null>(() => {
                                     <td data-stack data-label="Order">
                                         <div class="min-w-0 text-sm">
                                             <span
-                                                class="block whitespace-nowrap"
+                                                class="block [overflow-wrap:anywhere]"
                                                 >{{
                                                     unbroken(
                                                         invoice.orderNumber,
@@ -1028,7 +1019,7 @@ const decisionBlocked = computed<string | null>(() => {
                                 line.item
                             }}</span>
                             <span
-                                class="block text-xs whitespace-nowrap text-muted-foreground"
+                                class="block text-xs [overflow-wrap:anywhere] text-muted-foreground"
                                 >{{ unbroken(line.sku) }}</span
                             >
                         </p>
@@ -1040,11 +1031,26 @@ const decisionBlocked = computed<string | null>(() => {
                     </div>
                     <p class="text-xs text-muted-foreground">
                         Ordered
-                        {{ quantity(line.orderedQuantity, line.stockUnit) }} ·
-                        Received
-                        {{ quantity(line.receivedQuantity, line.stockUnit) }} ·
-                        Invoiced
-                        {{ quantity(line.invoicedQuantity, line.stockUnit) }}
+                        {{
+                            quantityWithUnit(
+                                line.orderedQuantity,
+                                line.stockUnit,
+                            )
+                        }}
+                        · Received
+                        {{
+                            quantityWithUnit(
+                                line.receivedQuantity,
+                                line.stockUnit,
+                            )
+                        }}
+                        · Invoiced
+                        {{
+                            quantityWithUnit(
+                                line.invoicedQuantity,
+                                line.stockUnit,
+                            )
+                        }}
                     </p>
                     <p v-if="invoices.showAmounts" class="text-xs tabular-nums">
                         Invoiced {{ money(line.invoicedSen) }} · Expected

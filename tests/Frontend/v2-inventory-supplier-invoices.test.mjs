@@ -52,7 +52,6 @@ test('page 6: the Classic script is copied verbatim (types, labels, money, recor
         'money',
         'rm',
         'difference',
-        'quantity',
         'errors',
         'busy',
         'visit',
@@ -79,6 +78,14 @@ test('page 6: the Classic script is copied verbatim (types, labels, money, recor
     ]) {
         assert.ok(classic.includes(path) && page.includes(path), path);
     }
+});
+
+test('page 6: quantities read in plain words ("30 units"), not the Classic "30 unit"', () => {
+    assert.ok(!script.includes('const quantity ='));
+    assert.match(
+        template,
+        /quantityWithUnit\(\s*line\.invoicedQuantity,\s*line\.stockUnit,?\s*\)/,
+    );
 });
 
 test('page 6: registered, uses the V2 blocks, and Classic does not import V2', () => {
