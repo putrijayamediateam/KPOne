@@ -393,13 +393,15 @@ onBeforeUnmount(() => {
                 type="button"
                 class="flex min-h-12 w-full items-center justify-center gap-2 rounded-xl border bg-card font-semibold hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-60"
                 :disabled="refreshing"
+                :aria-busy="refreshing"
+                data-test="check-status"
                 @click="refresh"
             >
                 <RefreshCw
                     class="size-5"
                     :class="{ 'motion-safe:animate-spin': refreshing }"
                     aria-hidden="true"
-                />Semak status
+                />{{ refreshing ? 'Menyemak…' : 'Semak status' }}
             </button>
             <section
                 v-if="status.branches.length > 1"
@@ -463,7 +465,7 @@ onBeforeUnmount(() => {
                             </p>
                             <p
                                 v-if="branch.address"
-                                class="truncate text-xs text-muted-foreground"
+                                class="text-xs break-words text-muted-foreground"
                             >
                                 {{ branch.address }}
                             </p>

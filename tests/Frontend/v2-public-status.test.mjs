@@ -168,3 +168,55 @@ test('V2 status uses theme tokens, 44 px or taller targets, and one filled butto
     );
     assert.ok(t.includes('motion-safe:animate-pulse'));
 });
+
+test('V2 status: the called banner is a polite live region that mounts once, so the 10 s poll never re-announces it', () => {
+    const t = template(page);
+    const banner = t.slice(
+        t.indexOf('data-testid="called-banner"') - 300,
+        t.indexOf('data-testid="called-banner"') + 100,
+    );
+    assert.match(banner, /v-if="called"/);
+    assert.match(banner, /role="status"/);
+    assert.match(banner, /aria-live="polite"/);
+    assert.doesNotMatch(t, /role="alert"|aria-live="assertive"/);
+    // The poll only reloads the status prop; no live region is bound to it.
+    assert.match(script(page), /setInterval\(refresh, 10_000\)/);
+    assert.match(script(page), /router\.reload\(\{\s*only: \['status'\]/);
+    // The announcer is written only when the key facts change (a watch on the computed text), never by the poll.
+    assert.match(
+        script(page),
+        /watch\(announcement,\s*\(text\) => \{\s*if \(text !== null\) \{\s*announced\.value = text;/,
+    );
+    // Exactly two live regions, both polite: the key-facts announcer and the called banner.
+    assert.equal((t.match(/aria-live="polite"/g) ?? []).length, 2);
+    assert.equal((t.match(/aria-live=/g) ?? []).length, 2);
+});
+
+test('V2 status: Semak status shows a visible checking state and is not a live region', () => {
+    const t = template(page);
+    assert.match(t, /data-test="check-status"/);
+    assert.match(t, /:aria-busy="refreshing"/);
+    assert.match(t, /refreshing \? 'Menyemak…' : 'Semak status'/);
+    assert.match(t, /motion-safe:animate-spin/);
+});
+
+test('V2 status: branch addresses wrap instead of being cut, and Buka peta keeps a 44 px target', () => {
+    const t = template(page);
+    const at = t.indexOf('{{ branch.address }}');
+    assert.ok(at > 0);
+    const addr = t.slice(at - 200, at);
+    assert.match(addr, /break-words/);
+    assert.doesNotMatch(addr, /truncate/);
+    assert.match(
+        t,
+        /min-h-11[^"]*"[^>]*>Buka peta|min-h-11 items-center[^"]*"\s*>\s*Buka peta/,
+    );
+});
+
+test('V2 status: the called-banner pulse pauses under reduced motion', () => {
+    assert.match(template(page), /motion-safe:animate-pulse/);
+    assert.doesNotMatch(
+        template(page).replace(/motion-safe:animate-/g, ''),
+        /animate-pulse|animate-ping/,
+    );
+});
