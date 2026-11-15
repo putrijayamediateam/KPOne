@@ -60,6 +60,8 @@ return [
         'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
         'MedicalCertificates/Index',
+        'Visits/History',
+        'Referrals/Index',
     ],
 
     /*
