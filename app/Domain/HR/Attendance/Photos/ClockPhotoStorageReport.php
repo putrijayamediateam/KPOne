@@ -24,7 +24,7 @@ final class ClockPhotoStorageReport
     public function __construct(private AttendanceSettingsService $settings) {}
 
     /**
-     * @return array{photos: int, bytes: int, size: string, oldest: ?string, thisMonth: int, perMonth: ?int, perMonthSize: ?string,
+     * @return array{photos: int, bytes: int, size: string, oldest: ?string, thisMonth: int, perMonth: ?int, perMonthSize: ?string, forecastMonths: int,
      *     forecastOneYear: ?string, forecastRetention: ?string, retentionYears: int, earliestDelete: ?string, draft: bool}
      */
     public function card(int $organisationId): array
@@ -62,6 +62,7 @@ final class ClockPhotoStorageReport
             'thisMonth' => $thisMonth,
             'perMonth' => $perMonth,
             'perMonthSize' => $perMonthBytes === null ? null : PurgeAttendanceRecords::size($perMonthBytes),
+            'forecastMonths' => self::FORECAST_MONTHS,
             // At the current rate, on top of what is stored now; at the retention mark deletes start, so it stops growing.
             'forecastOneYear' => $perMonthBytes === null ? null : PurgeAttendanceRecords::size($bytes + 12 * $perMonthBytes),
             'forecastRetention' => $perMonthBytes === null ? null : PurgeAttendanceRecords::size(12 * $years * $perMonthBytes),

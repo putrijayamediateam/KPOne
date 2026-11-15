@@ -9,6 +9,7 @@ import { weekTone } from '@/components/hr/attendance/types';
 import LocationCheckCardV2 from '@/components/hr/attendance/v2/LocationCheckCardV2.vue';
 import OvertimeRulesCardV2 from '@/components/hr/attendance/v2/OvertimeRulesCardV2.vue';
 import OvertimeTabV2 from '@/components/hr/attendance/v2/OvertimeTabV2.vue';
+import PhotoStorageCardV2 from '@/components/hr/attendance/v2/PhotoStorageCardV2.vue';
 import SummaryTabV2 from '@/components/hr/attendance/v2/SummaryTabV2.vue';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -1355,6 +1356,10 @@ const numberClass =
                             :primary="filledCard === 'location'"
                             :others-above="rulesDirty || overtimeDirty"
                             @dirty="locationDirty = $event"
+                        />
+                        <PhotoStorageCardV2
+                            v-if="attendance.settings.photoStorage"
+                            :card="attendance.settings.photoStorage"
                         />
                     </section>
                 </div>

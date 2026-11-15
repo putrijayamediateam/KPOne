@@ -322,6 +322,7 @@ class ClockPhotoTest extends VisitTestCase
             ->where('attendance.settings.photoStorage.perMonth', 3)
             ->where('attendance.settings.photoStorage.perMonthSize', PurgeAttendanceRecords::size((int) round($window / 3)))
             ->where('attendance.settings.photoStorage.forecastRetention', PurgeAttendanceRecords::size(84 * (int) round($window / 3)))
+            ->where('attendance.settings.photoStorage.forecastMonths', 3)
             ->where('attendance.settings.photoStorage.retentionYears', 7)
             ->where('attendance.settings.photoStorage.earliestDelete', '21 Nov 2033')
             ->where('attendance.settings.photoStorage.draft', true)
