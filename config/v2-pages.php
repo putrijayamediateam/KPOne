@@ -31,6 +31,7 @@ return [
         'Agents/Index',
         'Patient/Show',
         'HR/Roster',
+        'HR/Attendance',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
