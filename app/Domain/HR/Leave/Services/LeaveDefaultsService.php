@@ -18,7 +18,8 @@ use Illuminate\Validation\ValidationException;
  *
  * Annual, sick and hospitalisation leave count against a yearly balance by length of service at 1 January of the
  * year. Hospitalisation is 60 days a year including sick leave, so its balance is 60 less the sick figure in force
- * (HR's own, or the default). Service runs back through employment periods that join up. Maternity
+ * (HR's own, or the default). Service runs back through employment periods that join up. Someone who joins or leaves
+ * during the year gets annual leave by completed months (s.60E(1A)); sick leave is not pro-rated. Maternity
  * (98 days a confinement) and paternity (7 days a birth) are not yearly figures, so they are paid types without a
  * balance and the approver checks the days. Nothing is granted here; "Give this year's entitlement" still does that.
  */
@@ -49,7 +50,7 @@ final class LeaveDefaultsService
     /**
      * What "Use KPOne defaults" would add for a year, and who to check by hand.
      *
-     * @return array{year:int, typesToAdd:list<string>, typesKept:list<string>, rows:int, base:int, middle:int, long:int, noRecord:int, crossing:int}
+     * @return array{year:int, typesToAdd:list<string>, typesKept:list<string>, rows:int, base:int, middle:int, long:int, noRecord:int, crossing:int, prorated:int}
      */
     public function preview(User $actor, mixed $year): array
     {
@@ -113,7 +114,7 @@ final class LeaveDefaultsService
      *
      * @param  list<int>  $people
      * @param  array<string, int>|null  $typeIds  code => id; null reads the existing types
-     * @return array{typesToAdd:list<string>, typesKept:list<string>, rows:list<array{leave_type_id:int, role:?string, user_id:?int, halves:int}>, counts:array{base:int, middle:int, long:int, noRecord:int, crossing:int}}
+     * @return array{typesToAdd:list<string>, typesKept:list<string>, rows:list<array{leave_type_id:int, role:?string, user_id:?int, halves:int}>, counts:array{base:int, middle:int, long:int, noRecord:int, crossing:int, prorated:int}}
      */
     private function plan(int $organisationId, int $year, array $people, ?array $typeIds = null): array
     {
@@ -148,14 +149,16 @@ final class LeaveDefaultsService
             }
         }
 
-        $counts = ['base' => 0, 'middle' => 0, 'long' => 0, 'noRecord' => 0, 'crossing' => 0];
+        $counts = ['base' => 0, 'middle' => 0, 'long' => 0, 'noRecord' => 0, 'crossing' => 0, 'prorated' => 0];
         foreach ($people as $id) {
             $s = $service[$id] ?? null;
             $tier = $s === null ? 0 : ($s['years'] >= 5 ? 2 : ($s['years'] >= 2 ? 1 : 0));
             $counts[['base', 'middle', 'long'][$tier]]++;
             $counts['noRecord'] += $s === null ? 1 : 0;
             $counts['crossing'] += $s !== null && $s['crossing'] ? 1 : 0;
-            if ($tier === 0) {
+            $months = $s['months'] ?? 12;
+            $counts['prorated'] += $months < 12 ? 1 : 0;
+            if ($tier === 0 && $months === 12) {
                 continue;
             }
             $mine = $roles[$id] ?? [];
@@ -176,12 +179,17 @@ final class LeaveDefaultsService
             foreach (['ANNUAL', 'SICK'] as $code) {
                 $k = $key($code, 'u'.$id);
                 $target = self::TIERS[$code][$tier] * 2;
+                if ($code === 'ANNUAL' && $months < 12) {
+                    $target = self::prorate(self::TIERS[$code][$tier], $months) * 2;
+                }
                 if ($has($k)) {
                     $value = $current[(string) $k]; // a person row already there stays as it is
                 } elseif (($hr = $fromHr($code)) !== null && $hr >= $target) {
                     $value = $fromRoles($code);    // HR's own role figure already gives at least the tier
                 } else {
-                    $rows[] = ['leave_type_id' => $typeIds[$code] ?? 0, 'role' => null, 'user_id' => $id, 'halves' => $target];
+                    if ($target !== $fromRoles($code)) {
+                        $rows[] = ['leave_type_id' => $typeIds[$code] ?? 0, 'role' => null, 'user_id' => $id, 'halves' => $target];
+                    }
                     $value = $target;
                 }
                 $sick = $code === 'SICK' ? $value : $sick;
@@ -206,7 +214,7 @@ final class LeaveDefaultsService
      * per-person entitlement for the rest of that year by hand.
      *
      * @param  list<int>  $people
-     * @return array<int, array{years:int, crossing:bool}>
+     * @return array<int, array{years:int, crossing:bool, months:int}>
      */
     private function service(int $organisationId, int $year, array $people): array
     {
@@ -236,17 +244,36 @@ final class LeaveDefaultsService
                 }
                 $i--;
             }
+            // Forward through periods that join up, to where this run of service ends (null while it is still open).
+            $j = $i;
+            while ($j + 1 < $periods->count() && ($e = $date($periods[$j]->ends_on)) !== null && $e->addDay()->greaterThanOrEqualTo($date((string) $periods[$j + 1]->starts_on))) {
+                $j++;
+            }
+            $ends = $date($periods[$j]->ends_on);
             $start = $date((string) $periods[$i]->starts_on);
+            // s.60E(1A): completed months of service in the year, for someone who joins or leaves during it.
+            $from = $start->greaterThan($jan) ? $start : $jan;
+            $to = ($ends === null || $ends->greaterThan($dec) ? $dec : $ends)->addDay();
+            $months = min(12, max(0, (int) $from->diffInMonths($to)));
             $years = $start->greaterThan($jan) ? 0 : (int) $start->diffInYears($jan);
             $crossing = false;
             foreach ([2, 5] as $mark) {
                 $anniversary = $start->addYears($mark);
                 $crossing = $crossing || ($anniversary->greaterThan($jan) && $anniversary->lessThanOrEqualTo($dec));
             }
-            $out[(int) $userId] = ['years' => $years, 'crossing' => $crossing];
+            $out[(int) $userId] = ['years' => $years, 'crossing' => $crossing, 'months' => $months];
         }
 
         return $out;
+    }
+
+    /**
+     * Employment Act 1955 s.60E(1A): with less than 12 months of service in the year, annual leave is in proportion to
+     * the completed months; a fraction of a day under one half is dropped and one half or more counts as a day.
+     */
+    public static function prorate(int $days, int $months): int
+    {
+        return intdiv(2 * $days * $months + 12, 24);
     }
 
     private function year(mixed $value): int

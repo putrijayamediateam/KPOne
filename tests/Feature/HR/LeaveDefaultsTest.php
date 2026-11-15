@@ -125,6 +125,26 @@ class LeaveDefaultsTest extends VisitTestCase
             ->where('leave.settings.defaults.long', 1)->where('leave.settings.defaults.crossing', 1));
     }
 
+    public function test_annual_leave_is_pro_rated_for_joiners_and_leavers_in_the_year(): void
+    {
+        // s.60E(1A): completed months of service in the year; under half a day is dropped, half or more is a day.
+        $this->assertSame([6, 5, 1, 1, 8, 16], [LeaveDefaultsService::prorate(8, 9), LeaveDefaultsService::prorate(8, 7), LeaveDefaultsService::prorate(8, 1),
+            LeaveDefaultsService::prorate(16, 1), LeaveDefaultsService::prorate(16, 6), LeaveDefaultsService::prorate(16, 12)]);
+
+        $hr = $this->actor('hr_manager');
+        $joiner = $this->staffSince('ca', '2027-03-15');               // 9 completed months in 2027
+        $leaver = $this->staffSince('resident_doctor', '2018-01-01', '2027-09-30'); // 9 years, leaves after 9 months
+        $this->defaults($hr)->assertSessionHasNoErrors();
+        $types = LeaveType::query()->pluck('id', 'code');
+        $this->assertSame(12, $this->row($types['ANNUAL'], $joiner));
+        $this->assertNull($this->row($types['SICK'], $joiner), 'Sick leave is not pro-rated.');
+        $this->assertSame(24, $this->row($types['ANNUAL'], $leaver)); // 16 days x 9/12 = 12
+        $this->assertSame(44, $this->row($types['SICK'], $leaver));
+        $this->assertSame(76, $this->row($types['HOSPITAL'], $leaver));
+        $this->selectBranch($hr);
+        $this->get(route('hr.leave.index', ['tab' => 'settings', 'year' => 2027]))->assertInertia(fn (Assert $page) => $page->where('leave.settings.defaults.prorated', 2));
+    }
+
     public function test_hospitalisation_follows_the_sick_figure_hr_entered(): void
     {
         $hr = $this->actor('hr_manager');

@@ -157,6 +157,7 @@ type Settings = {
         long: number;
         noRecord: number;
         crossing: number;
+        prorated: number;
         label: string;
     };
     people: { id: number; label: string }[];
@@ -2979,13 +2980,16 @@ const calendarDays = computed(() =>
                         leave (7 days a birth): paid, no yearly balance; the
                         approver checks the days.
                     </li>
+                    <li>
+                        Someone who joins or leaves during the year gets annual
+                        leave by completed months (Employment Act section
+                        60E(1A)); sick leave is not pro-rated.
+                    </li>
                     <li>No carry-forward.</li>
                 </ul>
                 <p class="text-muted-foreground">
                     Check that the clinic does not already have these types
-                    under other codes. Someone who joins during the year gets
-                    the full year's days; lower it by hand if the clinic
-                    pro-rates the first year.
+                    under other codes.
                 </p>
                 <p class="text-muted-foreground">
                     {{
@@ -2994,6 +2998,18 @@ const calendarDays = computed(() =>
                     under 2 years ·
                     {{ leave.settings.defaults.middle }} with 2 to 5 years ·
                     {{ leave.settings.defaults.long }} with 5 years or more.
+                    <template v-if="leave.settings.defaults.prorated > 0"
+                        >{{ ' '
+                        }}{{
+                            plural(
+                                leave.settings.defaults.prorated,
+                                'person joins or leaves',
+                                'people join or leave',
+                            )
+                        }}
+                        during {{ leave.year }}, so their annual leave is
+                        pro-rated.</template
+                    >
                 </p>
                 <p
                     v-if="

@@ -35,6 +35,11 @@ test('every default carries the owner-instruction label, and the dialog lists wh
     assert.match(leave, />KPOne default<\/Badge/);
     assert.match(leave, /· KPOne default<\/span/);
     assert.match(leave, /Check by hand:/);
+    assert.match(
+        leave,
+        /gets annual\s+leave by completed months \(Employment Act section\s+60E\(1A\)\)/,
+    );
+    assert.doesNotMatch(leave, /full year's days/);
     assert.match(leave, /no employment start date in their staff file/);
 });
 

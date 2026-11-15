@@ -10,7 +10,7 @@ PDPA review; nothing here is production approval.
 | Clock-in location check | **OFF** (photo only). The check is off by default; leave it off in Attendance > Settings > Location check. | The privacy review |
 | Clock-in photos | Compulsory, as built (HR-PHOTO). | — |
 | Clock-in photo retention | **7 years, DRAFT** ("to confirm" stays on screen). | The privacy review |
-| Leave types and entitlements | "Use KPOne defaults" in Leave > Settings (Employment Act 1955 minimums), labelled "Set by KPOne defaults at the owner's instruction; not professional advice". | The clinic's own leave policy |
+| Leave types and entitlements | "Use KPOne defaults" in Leave > Settings (Employment Act 1955 minimums; annual leave pro-rated by completed months for joiners and leavers, s.60E(1A)), labelled "Set by KPOne defaults at the owner's instruction; not professional advice". | The clinic's own leave policy |
 | Overtime rates | 1.5x, 2x and 3x (KPOne defaults, same label). HR ticks the roles that may claim. | The clinic's own policy |
 | Statutory tables (EPF, SOCSO, EIS, HRD) | Entered from the official KWSP, PERKESO and HRD Corp schedules with the source and the date they apply from, never from memory, then checked by a second person. | The accountant's confirmation |
 | MTD | LHDN's published method, labelled as a draft. | The accountant's confirmation |
@@ -18,7 +18,7 @@ PDPA review; nothing here is production approval.
 ## People
 
 - HR Manager and Director accounts at the pilot branch. The HR Manager is the data protection officer (by role).
-- A second person (the owner or a Director) to check statutory tables and pay profiles, since there is no accountant yet.
+- A second person (the owner or a Director) to check statutory tables and pay profiles.
 
 ## Setup at the branch
 
@@ -32,7 +32,7 @@ PDPA review; nothing here is production approval.
 
 - Who the Act's overtime, rest-day and public-holiday pay rules cover depends on wages and job category (since the 2022
   amendment, mainly staff earning up to the wage threshold or in the listed categories, which likely leaves out
-  doctors). The 1.5x, 2x and 3x rates also simplify the Act's rest-day and public-holiday rules. Confirm with the
-  accountant or a lawyer before real pay.
+  doctors). The 1.5x, 2x and 3x rates also simplify the Act's rest-day and public-holiday rules. Set by KPOne defaults
+  at the owner's instruction; check against current law (Employment Act) before real pay.
 - The PDPA review, above all for clock-in photos (and location results, if the check is ever turned on).
 - A check of the defaults against current law, and the clinic's own leave and overtime policy where it differs.
