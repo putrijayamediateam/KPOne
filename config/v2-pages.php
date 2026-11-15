@@ -80,5 +80,6 @@ return [
         'PublicCheckIn/Show',
         'PublicCheckIn/Status',
         'Visits/History',
+        'Referrals/Index',
     ],
 ];
