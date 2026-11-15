@@ -228,3 +228,29 @@ test('the held branch-switch replay is one-shot, so a cancelled visit cannot lea
     assert.doesNotMatch(flat, /onFinish: \(\) => \(replaying = false\)/);
     assert.doesNotMatch(flat, /@discard=/);
 });
+
+test('while the visit is held the clinical record and the treatment plan are read-only (disabled fieldsets), so no unsaved text can exist then', () => {
+    const flat = page.replace(/\s+/g, ' ');
+
+    assert.match(
+        flat,
+        /<fieldset :disabled="clinical\.hold\.isHeld" class="[^"]*" data-testid="consultation-record-fields"/,
+    );
+    assert.match(
+        flat,
+        /<fieldset :disabled="clinical\.hold\.isHeld" class="[^"]*" data-testid="consultation-treatment-fields"/,
+    );
+    // The Resume button and the held notice are outside both fieldsets.
+    const record = flat.slice(
+        flat.indexOf('consultation-record-fields'),
+        flat.indexOf('</fieldset>', flat.indexOf('consultation-record-fields')),
+    );
+
+    assert.doesNotMatch(record, /changeHoldState\('resume'\)/);
+    assert.doesNotMatch(record, /HeldCallNext/);
+});
+
+test('the two-column workspace starts at 1280 px, so the right column stacks at 1024', () => {
+    assert.match(page, /xl:grid-cols-\[minmax\(0,55fr\)_minmax\(0,45fr\)\]/);
+    assert.doesNotMatch(page, /lg:grid-cols-\[minmax\(0,55fr\)/);
+});

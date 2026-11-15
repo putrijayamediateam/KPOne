@@ -546,7 +546,7 @@ const saveStatus = () =>
             </header>
 
             <div
-                class="grid min-h-0 gap-5 lg:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]"
+                class="grid min-h-0 gap-5 xl:grid-cols-[minmax(0,55fr)_minmax(0,45fr)]"
             >
                 <div class="min-w-0 space-y-4" data-testid="consultation-left">
                     <section
@@ -731,357 +731,403 @@ const saveStatus = () =>
                         data-testid="consultation-record-card"
                         @submit.prevent="save"
                     >
-                        <div
-                            class="flex min-w-0 items-baseline gap-2 rounded-[10px] border bg-muted/30 px-3 py-2.5"
-                            data-testid="consultation-visit-bar"
-                        >
-                            <span
-                                class="shrink-0 text-[13px] font-medium text-muted-foreground"
-                                >Visit note</span
-                            >
-                            <span class="min-w-0 break-words">{{
-                                clinical.visit.registrationReason ??
-                                'No reason recorded'
-                            }}</span>
-                        </div>
-
-                        <section
-                            class="space-y-3"
-                            data-testid="consultation-vitals-bar"
-                            aria-labelledby="vitals-heading"
+                        <!-- Read-only while the consultation is held: nothing can be typed, so no unsaved text can exist then. -->
+                        <fieldset
+                            :disabled="clinical.hold.isHeld"
+                            class="m-0 min-w-0 space-y-5 border-0 p-0"
+                            data-testid="consultation-record-fields"
                         >
                             <div
-                                class="flex flex-wrap items-center justify-between gap-2"
+                                class="flex min-w-0 items-baseline gap-2 rounded-[10px] border bg-muted/30 px-3 py-2.5"
+                                data-testid="consultation-visit-bar"
                             >
-                                <h2
-                                    id="vitals-heading"
-                                    class="text-base font-semibold"
+                                <span
+                                    class="shrink-0 text-[13px] font-medium text-muted-foreground"
+                                    >Visit note</span
                                 >
-                                    Vital signs
-                                </h2>
-                                <Button
-                                    type="button"
-                                    variant="outline"
-                                    class="h-11 lg:h-9"
-                                    :aria-expanded="vitalsExpanded"
-                                    @click="vitalsExpanded = !vitalsExpanded"
-                                    >Record new</Button
-                                >
+                                <span class="min-w-0 break-words">{{
+                                    clinical.visit.registrationReason ??
+                                    'No reason recorded'
+                                }}</span>
                             </div>
-                            <dl
-                                v-if="hasVitals"
-                                class="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-sm"
-                                data-testid="vitals-summary"
-                            >
-                                <div class="inline-flex items-baseline gap-1">
-                                    <dt class="text-muted-foreground">BP</dt>
-                                    <dd class="font-medium">
-                                        {{ form.vitals.systolic_bp || '—' }}/{{
-                                            form.vitals.diastolic_bp || '—'
-                                        }}
-                                    </dd>
-                                </div>
-                                <div class="inline-flex items-baseline gap-1">
-                                    <dt class="text-muted-foreground">Pulse</dt>
-                                    <dd class="font-medium">
-                                        {{ form.vitals.pulse_bpm || '—' }}
-                                    </dd>
-                                </div>
-                                <div class="inline-flex items-baseline gap-1">
-                                    <dt class="text-muted-foreground">Temp</dt>
-                                    <dd class="font-medium">
-                                        {{
-                                            form.vitals.temperature_celsius ||
-                                            '—'
-                                        }}
-                                        °C
-                                    </dd>
-                                </div>
-                                <div class="inline-flex items-baseline gap-1">
-                                    <dt class="text-muted-foreground">SpO₂</dt>
-                                    <dd class="font-medium">
-                                        {{ form.vitals.spo2_percent || '—' }}%
-                                    </dd>
-                                </div>
-                                <div class="inline-flex items-baseline gap-1">
-                                    <dt class="text-muted-foreground">
-                                        Weight
-                                    </dt>
-                                    <dd class="font-medium">
-                                        {{ form.vitals.weight_kg || '—' }} kg
-                                    </dd>
-                                </div>
-                                <div class="inline-flex items-baseline gap-1">
-                                    <dt class="text-muted-foreground">
-                                        Height
-                                    </dt>
-                                    <dd class="font-medium">
-                                        {{ form.vitals.height_cm || '—' }} cm
-                                    </dd>
-                                </div>
-                                <div class="inline-flex items-baseline gap-1">
-                                    <dt class="text-muted-foreground">BMI</dt>
-                                    <dd class="font-medium">{{ bmi }}</dd>
-                                </div>
-                            </dl>
-                            <p v-else class="text-sm text-muted-foreground">
-                                No vital signs recorded.
-                            </p>
-                            <div
-                                v-show="
-                                    vitalsExpanded ||
-                                    Object.keys(form.errors).some((key) =>
-                                        key.startsWith('vitals.'),
-                                    )
-                                "
-                                class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-                            >
-                                <V2Field
-                                    v-for="field in vitalFields"
-                                    :key="field.key"
-                                    v-slot="{ id, describedBy, invalid }"
-                                    :label="field.label"
-                                    :error="form.errors[`vitals.${field.key}`]"
-                                >
-                                    <Input
-                                        :id="id"
-                                        :model-value="
-                                            form.vitals[field.key] ?? ''
-                                        "
-                                        @update:model-value="
-                                            (value) =>
-                                                (form.vitals[field.key] =
-                                                    value === ''
-                                                        ? ''
-                                                        : Number(value))
-                                        "
-                                        :inputmode="field.mode"
-                                        type="number"
-                                        :min="field.min"
-                                        :max="
-                                            'max' in field
-                                                ? field.max
-                                                : undefined
-                                        "
-                                        :step="
-                                            'step' in field
-                                                ? field.step
-                                                : undefined
-                                        "
-                                        :aria-describedby="describedBy"
-                                        :aria-invalid="invalid"
-                                    />
-                                </V2Field>
-                                <div class="rounded-[10px] bg-muted/40 p-3">
-                                    <div
-                                        class="text-[13px] text-muted-foreground"
-                                    >
-                                        Derived BMI
-                                    </div>
-                                    <div class="mt-1 text-lg font-semibold">
-                                        {{ bmi }}
-                                    </div>
-                                </div>
-                            </div>
-                        </section>
 
-                        <section
-                            class="space-y-2"
-                            aria-labelledby="clinical-note-heading"
-                        >
-                            <h2
-                                id="clinical-note-heading"
-                                class="text-base font-semibold"
-                                title="Consultation findings only. This is separate from the Visit Reason."
+                            <section
+                                class="space-y-3"
+                                data-testid="consultation-vitals-bar"
+                                aria-labelledby="vitals-heading"
                             >
-                                Clinical Note
-                            </h2>
-                            <div
-                                class="overflow-hidden rounded-[10px] border border-input"
-                            >
-                                <textarea
-                                    v-model="form.clinical_note"
-                                    aria-labelledby="clinical-note-heading"
-                                    maxlength="20000"
-                                    rows="4"
-                                    class="block min-h-24 w-full resize-y border-0 bg-card p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-[15px]"
-                                    placeholder="Record the clinical consultation note…"
-                                />
-                                <InputError
-                                    :message="form.errors.clinical_note"
-                                />
                                 <div
-                                    class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t px-3 py-2"
+                                    class="flex flex-wrap items-center justify-between gap-2"
                                 >
-                                    <span class="text-sm"
-                                        >{{
-                                            form.clinical_note.length.toLocaleString()
-                                        }}
-                                        / 20,000</span
+                                    <h2
+                                        id="vitals-heading"
+                                        class="text-base font-semibold"
                                     >
-                                    <span
-                                        class="text-[13px] text-muted-foreground"
-                                        role="status"
-                                        >{{ saveStatus() }}</span
-                                    >
-                                    <Button
-                                        type="submit"
-                                        class="h-11 max-sm:hidden lg:h-9"
-                                        variant="outline"
-                                        :disabled="saveDisabled()"
-                                    >
-                                        <LoaderCircle
-                                            v-if="form.processing"
-                                            class="size-4 animate-spin"
-                                            aria-hidden="true"
-                                        />
-                                        {{
-                                            form.processing
-                                                ? 'Saving…'
-                                                : 'Save clinical record'
-                                        }}
-                                    </Button>
-                                </div>
-                            </div>
-                        </section>
-
-                        <section
-                            class="space-y-3"
-                            aria-labelledby="diagnoses-heading"
-                        >
-                            <div
-                                class="flex flex-wrap items-center justify-between gap-2"
-                            >
-                                <h2
-                                    id="diagnoses-heading"
-                                    class="text-base font-semibold"
-                                >
-                                    Diagnoses
-                                </h2>
-                                <div class="flex flex-wrap justify-end gap-2">
-                                    <div class="contents">
-                                        <DiagnosisPresetPicker
-                                            :visit-number="
-                                                clinical.visit.visitNumber
-                                            "
-                                            :branch-id="clinical.branch.id"
-                                            :disabled="
-                                                !clinical.encounter
-                                                    .canChooseDiagnosisPreset ||
-                                                clinical.hold.isHeld ||
-                                                form.processing ||
-                                                recordDrifted ||
-                                                form.diagnoses.length >= 20
-                                            "
-                                            @select="choosePreset"
-                                        />
-                                    </div>
+                                        Vital signs
+                                    </h2>
                                     <Button
                                         type="button"
                                         variant="outline"
                                         class="h-11 lg:h-9"
-                                        @click="addDiagnosis"
+                                        :aria-expanded="vitalsExpanded"
+                                        @click="
+                                            vitalsExpanded = !vitalsExpanded
+                                        "
+                                        >Record new</Button
                                     >
-                                        <Plus
+                                </div>
+                                <dl
+                                    v-if="hasVitals"
+                                    class="flex min-w-0 flex-wrap gap-x-4 gap-y-1 text-sm"
+                                    data-testid="vitals-summary"
+                                >
+                                    <div
+                                        class="inline-flex items-baseline gap-1"
+                                    >
+                                        <dt class="text-muted-foreground">
+                                            BP
+                                        </dt>
+                                        <dd class="font-medium">
+                                            {{
+                                                form.vitals.systolic_bp || '—'
+                                            }}/{{
+                                                form.vitals.diastolic_bp || '—'
+                                            }}
+                                        </dd>
+                                    </div>
+                                    <div
+                                        class="inline-flex items-baseline gap-1"
+                                    >
+                                        <dt class="text-muted-foreground">
+                                            Pulse
+                                        </dt>
+                                        <dd class="font-medium">
+                                            {{ form.vitals.pulse_bpm || '—' }}
+                                        </dd>
+                                    </div>
+                                    <div
+                                        class="inline-flex items-baseline gap-1"
+                                    >
+                                        <dt class="text-muted-foreground">
+                                            Temp
+                                        </dt>
+                                        <dd class="font-medium">
+                                            {{
+                                                form.vitals
+                                                    .temperature_celsius || '—'
+                                            }}
+                                            °C
+                                        </dd>
+                                    </div>
+                                    <div
+                                        class="inline-flex items-baseline gap-1"
+                                    >
+                                        <dt class="text-muted-foreground">
+                                            SpO₂
+                                        </dt>
+                                        <dd class="font-medium">
+                                            {{
+                                                form.vitals.spo2_percent || '—'
+                                            }}%
+                                        </dd>
+                                    </div>
+                                    <div
+                                        class="inline-flex items-baseline gap-1"
+                                    >
+                                        <dt class="text-muted-foreground">
+                                            Weight
+                                        </dt>
+                                        <dd class="font-medium">
+                                            {{ form.vitals.weight_kg || '—' }}
+                                            kg
+                                        </dd>
+                                    </div>
+                                    <div
+                                        class="inline-flex items-baseline gap-1"
+                                    >
+                                        <dt class="text-muted-foreground">
+                                            Height
+                                        </dt>
+                                        <dd class="font-medium">
+                                            {{ form.vitals.height_cm || '—' }}
+                                            cm
+                                        </dd>
+                                    </div>
+                                    <div
+                                        class="inline-flex items-baseline gap-1"
+                                    >
+                                        <dt class="text-muted-foreground">
+                                            BMI
+                                        </dt>
+                                        <dd class="font-medium">{{ bmi }}</dd>
+                                    </div>
+                                </dl>
+                                <p v-else class="text-sm text-muted-foreground">
+                                    No vital signs recorded.
+                                </p>
+                                <div
+                                    v-show="
+                                        vitalsExpanded ||
+                                        Object.keys(form.errors).some((key) =>
+                                            key.startsWith('vitals.'),
+                                        )
+                                    "
+                                    class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
+                                >
+                                    <V2Field
+                                        v-for="field in vitalFields"
+                                        :key="field.key"
+                                        v-slot="{ id, describedBy, invalid }"
+                                        :label="field.label"
+                                        :error="
+                                            form.errors[`vitals.${field.key}`]
+                                        "
+                                    >
+                                        <Input
+                                            :id="id"
+                                            :model-value="
+                                                form.vitals[field.key] ?? ''
+                                            "
+                                            @update:model-value="
+                                                (value) =>
+                                                    (form.vitals[field.key] =
+                                                        value === ''
+                                                            ? ''
+                                                            : Number(value))
+                                            "
+                                            :inputmode="field.mode"
+                                            type="number"
+                                            :min="field.min"
+                                            :max="
+                                                'max' in field
+                                                    ? field.max
+                                                    : undefined
+                                            "
+                                            :step="
+                                                'step' in field
+                                                    ? field.step
+                                                    : undefined
+                                            "
+                                            :aria-describedby="describedBy"
+                                            :aria-invalid="invalid"
+                                        />
+                                    </V2Field>
+                                    <div class="rounded-[10px] bg-muted/40 p-3">
+                                        <div
+                                            class="text-[13px] text-muted-foreground"
+                                        >
+                                            Derived BMI
+                                        </div>
+                                        <div class="mt-1 text-lg font-semibold">
+                                            {{ bmi }}
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section
+                                class="space-y-2"
+                                aria-labelledby="clinical-note-heading"
+                            >
+                                <h2
+                                    id="clinical-note-heading"
+                                    class="text-base font-semibold"
+                                    title="Consultation findings only. This is separate from the Visit Reason."
+                                >
+                                    Clinical Note
+                                </h2>
+                                <div
+                                    class="overflow-hidden rounded-[10px] border border-input"
+                                >
+                                    <textarea
+                                        v-model="form.clinical_note"
+                                        aria-labelledby="clinical-note-heading"
+                                        maxlength="20000"
+                                        rows="4"
+                                        class="block min-h-24 w-full resize-y border-0 bg-card p-3 text-base outline-none focus-visible:ring-2 focus-visible:ring-ring md:text-[15px]"
+                                        placeholder="Record the clinical consultation note…"
+                                    />
+                                    <InputError
+                                        :message="form.errors.clinical_note"
+                                    />
+                                    <div
+                                        class="flex flex-wrap items-center justify-between gap-x-3 gap-y-2 border-t px-3 py-2"
+                                    >
+                                        <span class="text-sm"
+                                            >{{
+                                                form.clinical_note.length.toLocaleString()
+                                            }}
+                                            / 20,000</span
+                                        >
+                                        <span
+                                            class="text-[13px] text-muted-foreground"
+                                            role="status"
+                                            >{{ saveStatus() }}</span
+                                        >
+                                        <Button
+                                            type="submit"
+                                            class="h-11 max-sm:hidden lg:h-9"
+                                            variant="outline"
+                                            :disabled="saveDisabled()"
+                                        >
+                                            <LoaderCircle
+                                                v-if="form.processing"
+                                                class="size-4 animate-spin"
+                                                aria-hidden="true"
+                                            />
+                                            {{
+                                                form.processing
+                                                    ? 'Saving…'
+                                                    : 'Save clinical record'
+                                            }}
+                                        </Button>
+                                    </div>
+                                </div>
+                            </section>
+
+                            <section
+                                class="space-y-3"
+                                aria-labelledby="diagnoses-heading"
+                            >
+                                <div
+                                    class="flex flex-wrap items-center justify-between gap-2"
+                                >
+                                    <h2
+                                        id="diagnoses-heading"
+                                        class="text-base font-semibold"
+                                    >
+                                        Diagnoses
+                                    </h2>
+                                    <div
+                                        class="flex flex-wrap justify-end gap-2"
+                                    >
+                                        <div class="contents">
+                                            <DiagnosisPresetPicker
+                                                :visit-number="
+                                                    clinical.visit.visitNumber
+                                                "
+                                                :branch-id="clinical.branch.id"
+                                                :disabled="
+                                                    !clinical.encounter
+                                                        .canChooseDiagnosisPreset ||
+                                                    clinical.hold.isHeld ||
+                                                    form.processing ||
+                                                    recordDrifted ||
+                                                    form.diagnoses.length >= 20
+                                                "
+                                                @select="choosePreset"
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            class="h-11 lg:h-9"
+                                            @click="addDiagnosis"
+                                        >
+                                            <Plus
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                            Add diagnosis
+                                        </Button>
+                                    </div>
+                                </div>
+                                <InputError :message="form.errors.diagnoses" />
+                                <div
+                                    v-for="(diagnosis, index) in form.diagnoses"
+                                    :key="index"
+                                    class="grid gap-3 rounded-[10px] border p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]"
+                                >
+                                    <V2Field
+                                        v-slot="{ id, describedBy, invalid }"
+                                        label="Diagnosis"
+                                        :error="
+                                            form.errors[
+                                                `diagnoses.${index}.diagnosis_text`
+                                            ]
+                                        "
+                                    >
+                                        <Input
+                                            :id="id"
+                                            v-model="diagnosis.diagnosis_text"
+                                            maxlength="500"
+                                            :aria-describedby="describedBy"
+                                            :aria-invalid="invalid"
+                                        />
+                                    </V2Field>
+                                    <V2Field
+                                        v-slot="{ id, describedBy, invalid }"
+                                        label="Code"
+                                        :error="
+                                            form.errors[
+                                                `diagnoses.${index}.diagnosis_code`
+                                            ]
+                                        "
+                                    >
+                                        <Input
+                                            :id="id"
+                                            v-model="diagnosis.diagnosis_code"
+                                            maxlength="50"
+                                            :aria-describedby="describedBy"
+                                            :aria-invalid="invalid"
+                                        />
+                                    </V2Field>
+                                    <V2Field
+                                        v-slot="{ id, describedBy, invalid }"
+                                        label="Code system"
+                                        :error="
+                                            form.errors[
+                                                `diagnoses.${index}.code_system`
+                                            ]
+                                        "
+                                    >
+                                        <Input
+                                            :id="id"
+                                            v-model="diagnosis.code_system"
+                                            maxlength="50"
+                                            :aria-describedby="describedBy"
+                                            :aria-invalid="invalid"
+                                        />
+                                    </V2Field>
+                                    <label
+                                        class="flex min-h-11 items-center gap-2 self-center text-sm"
+                                    >
+                                        <input
+                                            type="radio"
+                                            :checked="diagnosis.is_primary"
+                                            @change="setPrimary(index)"
+                                        />
+                                        Primary
+                                    </label>
+                                    <Button
+                                        type="button"
+                                        size="icon"
+                                        variant="ghost"
+                                        class="size-11 self-center lg:size-9"
+                                        aria-label="Remove diagnosis"
+                                        @click="removeDiagnosis(index)"
+                                    >
+                                        <Trash2
                                             class="size-4"
                                             aria-hidden="true"
                                         />
-                                        Add diagnosis
                                     </Button>
                                 </div>
-                            </div>
-                            <InputError :message="form.errors.diagnoses" />
-                            <div
-                                v-for="(diagnosis, index) in form.diagnoses"
-                                :key="index"
-                                class="grid gap-3 rounded-[10px] border p-3 sm:grid-cols-2 xl:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1fr)]"
-                            >
-                                <V2Field
-                                    v-slot="{ id, describedBy, invalid }"
-                                    label="Diagnosis"
-                                    :error="
-                                        form.errors[
-                                            `diagnoses.${index}.diagnosis_text`
-                                        ]
-                                    "
+                                <p
+                                    v-if="!form.diagnoses.length"
+                                    class="text-sm text-muted-foreground"
                                 >
-                                    <Input
-                                        :id="id"
-                                        v-model="diagnosis.diagnosis_text"
-                                        maxlength="500"
-                                        :aria-describedby="describedBy"
-                                        :aria-invalid="invalid"
-                                    />
-                                </V2Field>
-                                <V2Field
-                                    v-slot="{ id, describedBy, invalid }"
-                                    label="Code"
-                                    :error="
-                                        form.errors[
-                                            `diagnoses.${index}.diagnosis_code`
-                                        ]
-                                    "
-                                >
-                                    <Input
-                                        :id="id"
-                                        v-model="diagnosis.diagnosis_code"
-                                        maxlength="50"
-                                        :aria-describedby="describedBy"
-                                        :aria-invalid="invalid"
-                                    />
-                                </V2Field>
-                                <V2Field
-                                    v-slot="{ id, describedBy, invalid }"
-                                    label="Code system"
-                                    :error="
-                                        form.errors[
-                                            `diagnoses.${index}.code_system`
-                                        ]
-                                    "
-                                >
-                                    <Input
-                                        :id="id"
-                                        v-model="diagnosis.code_system"
-                                        maxlength="50"
-                                        :aria-describedby="describedBy"
-                                        :aria-invalid="invalid"
-                                    />
-                                </V2Field>
-                                <label
-                                    class="flex min-h-11 items-center gap-2 self-center text-sm"
-                                >
-                                    <input
-                                        type="radio"
-                                        :checked="diagnosis.is_primary"
-                                        @change="setPrimary(index)"
-                                    />
-                                    Primary
-                                </label>
-                                <Button
-                                    type="button"
-                                    size="icon"
-                                    variant="ghost"
-                                    class="size-11 self-center lg:size-9"
-                                    aria-label="Remove diagnosis"
-                                    @click="removeDiagnosis(index)"
-                                >
-                                    <Trash2 class="size-4" aria-hidden="true" />
-                                </Button>
-                            </div>
-                            <p
-                                v-if="!form.diagnoses.length"
-                                class="text-sm text-muted-foreground"
-                            >
-                                No diagnosis recorded yet.
-                            </p>
-                        </section>
+                                    No diagnosis recorded yet.
+                                </p>
+                            </section>
+                        </fieldset>
                     </form>
                 </div>
 
                 <aside
                     id="consultation-treatment"
                     data-testid="consultation-right"
-                    class="min-w-0 space-y-3 lg:sticky lg:top-3 lg:self-start"
+                    class="min-w-0 space-y-3 xl:sticky xl:top-3 xl:self-start"
                 >
                     <V2Tabs
                         v-model="workspaceTab"
@@ -1097,16 +1143,25 @@ const saveStatus = () =>
                         class="consultation-dense"
                         data-testid="consultation-treatment-pane"
                     >
-                        <TreatmentPlanPanel
-                            ref="treatmentPlanPanelRef"
-                            :visit-number="clinical.visit.visitNumber"
-                            :branch-id="clinical.branch.id"
-                            :plan="clinical.treatmentPlan"
-                            :visit-version="clinical.visit.lockVersion"
-                            :queue-version="clinical.queue.lockVersion"
-                            :encounter-version="clinical.encounter.lockVersion"
-                            :allergies="clinical.allergies"
-                        />
+                        <!-- Read-only while held (Classic cannot save a held plan either), so no unsaved draft can exist then. -->
+                        <fieldset
+                            :disabled="clinical.hold.isHeld"
+                            class="m-0 min-w-0 border-0 p-0"
+                            data-testid="consultation-treatment-fields"
+                        >
+                            <TreatmentPlanPanel
+                                ref="treatmentPlanPanelRef"
+                                :visit-number="clinical.visit.visitNumber"
+                                :branch-id="clinical.branch.id"
+                                :plan="clinical.treatmentPlan"
+                                :visit-version="clinical.visit.lockVersion"
+                                :queue-version="clinical.queue.lockVersion"
+                                :encounter-version="
+                                    clinical.encounter.lockVersion
+                                "
+                                :allergies="clinical.allergies"
+                            />
+                        </fieldset>
                     </div>
                     <div
                         v-show="workspaceTab === 'history'"
@@ -1114,7 +1169,7 @@ const saveStatus = () =>
                         role="tabpanel"
                         aria-labelledby="consultation-tab-history"
                         data-testid="consultation-history-pane"
-                        class="consultation-dense min-h-0 rounded-[14px] border bg-card p-4 lg:h-[calc(100dvh-12rem)] lg:[&>div]:h-full"
+                        class="consultation-dense min-h-0 rounded-[14px] border bg-card p-4 xl:h-[calc(100dvh-12rem)] xl:[&>div]:h-full"
                     >
                         <ClinicalHistoryPanel
                             :history="clinical.history"
