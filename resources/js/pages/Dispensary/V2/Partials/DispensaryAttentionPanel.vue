@@ -9,6 +9,11 @@ import { router } from '@inertiajs/vue3';
 import { AlertTriangle, LoaderCircle } from '@lucide/vue';
 import { computed, nextTick, ref, watch } from 'vue';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import {
+    needReviewLabel,
+    showAllLabel,
+    visibleLimit,
+} from '@/pages/Dispensary/V2/Partials/attention-panel';
 import { quantityWords } from '@/pages/Dispensary/V2/Partials/quantity-words';
 import type { DoctorDispensaryAttention } from '@/types';
 
@@ -19,7 +24,6 @@ const processing = ref<string | null>(null);
 const errorFor = ref<{ id: string; message: string } | null>(null);
 const status = ref('');
 const showAll = ref(false);
-const visibleLimit = 5;
 
 // V2 (Daniel, Hakim): Classic's order with the rows that still need the doctor first, fixed for the life of the
 // panel, so a row the doctor acts on stays where it is; rows that arrive later go to the end.
@@ -69,16 +73,15 @@ const hiddenReview = computed(
             (item) => item.status === 'awaiting_acknowledgement',
         ).length,
 );
-const showAllLabel = computed(() => {
-    const more =
-        hiddenReview.value === 1
-            ? ' · 1 more needs review'
-            : hiddenReview.value > 1
-              ? ` · ${hiddenReview.value} more need review`
-              : '';
-
-    return `Show all ${ordered.value.length}${more}`;
-});
+const showAllText = computed(() =>
+    showAllLabel(ordered.value.length, hiddenReview.value),
+);
+// Mira: the total waiting count is always in the heading, not only inside the toggle.
+const waitingCount = computed(
+    () =>
+        props.items.filter((i) => i.status === 'awaiting_acknowledgement')
+            .length,
+);
 
 const medicine = (item: DoctorDispensaryAttention) =>
     item.strength ? `${item.medicineName} ${item.strength}` : item.medicineName;
@@ -165,6 +168,12 @@ const outlineButton =
             >
                 Dispensary attention required
             </h2>
+            <V2Chip
+                v-if="waitingCount > 0"
+                tone="warning"
+                :label="needReviewLabel(waitingCount)"
+                data-testid="v2-dispensary-attention-waiting"
+            />
         </header>
         <ul
             id="dispensary-attention-rows"
@@ -268,7 +277,7 @@ const outlineButton =
                 data-testid="v2-dispensary-attention-show-all"
                 @click="showAll = !showAll"
             >
-                {{ showAll ? 'Show fewer' : showAllLabel }}
+                {{ showAll ? 'Show fewer' : showAllText }}
             </button>
         </div>
         <p class="sr-only" role="status" aria-live="polite">{{ status }}</p>
