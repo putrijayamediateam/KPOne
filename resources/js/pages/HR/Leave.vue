@@ -118,6 +118,7 @@ type TypeRow = {
     isActive: boolean;
     acceptsEvidenceFiles: boolean;
     evidenceRetentionDays: string;
+    setByDefaults: boolean;
     lockVersion: number;
 };
 type Entry = {
@@ -143,8 +144,22 @@ type Settings = {
         userId: number | null;
         person: string | null;
         days: string;
+        setByDefaults: boolean;
     }[];
     grantPreview: { people: number; lines: number };
+    defaults: {
+        year: number;
+        typesToAdd: string[];
+        typesKept: string[];
+        rows: number;
+        base: number;
+        middle: number;
+        long: number;
+        noRecord: number;
+        crossing: number;
+        prorated: number;
+        label: string;
+    };
     people: { id: number; label: string }[];
     workingDays: {
         branchId: number;
@@ -857,7 +872,7 @@ const savePerson = () =>
         });
 
 // Year-end actions share one dialog.
-type YearAction = 'grant' | 'carry-forward' | 'expire';
+type YearAction = 'grant' | 'carry-forward' | 'expire' | 'defaults';
 const yearAction = reactive({
     open: false,
     kind: 'grant' as YearAction,
@@ -883,6 +898,12 @@ const yearText = computed(() => {
             description: `Unused days, up to each type’s limit, move to ${y + 1}. This runs once per type.`,
             confirm: 'Carry forward',
         },
+        // HR-DEFAULTS: the owner's draft defaults (Employment Act 1955 minimums); it only adds, never replaces.
+        defaults: {
+            title: `Use KPOne defaults for ${y}?`,
+            description: defaultsDescription.value,
+            confirm: 'Add these defaults',
+        },
         expire: {
             title: `Expire carried days for ${y}?`,
             description:
@@ -890,6 +911,21 @@ const yearText = computed(() => {
             confirm: 'Expire carried days',
         },
     }[yearAction.kind];
+});
+const plural = (n: number, one: string, many: string) =>
+    `${n} ${n === 1 ? one : many}`;
+const defaultsDescription = computed(() => {
+    const d = props.leave.settings?.defaults;
+
+    if (!d) {
+        return '';
+    }
+
+    if (d.typesToAdd.length === 0 && d.rows === 0) {
+        return 'The KPOne defaults are already in place. Nothing will change.';
+    }
+
+    return `This adds ${plural(d.typesToAdd.length, 'leave type', 'leave types')} and ${plural(d.rows, 'entitlement row', 'entitlement rows')}. Types and figures you already entered stay as they are. Nothing reaches a balance until you give the entitlement.`;
 });
 const openYear = (kind: YearAction) => {
     yearAction.kind = kind;
@@ -1663,16 +1699,33 @@ const calendarDays = computed(() =>
                     <div>
                         <h3 class="text-base font-semibold">Leave types</h3>
                         <p class="text-xs text-muted-foreground">
-                            KPOne ships none. Add the types the clinic uses.
+                            Add the types the clinic uses, or start from the
+                            KPOne defaults.
                         </p>
                     </div>
-                    <Button
-                        variant="outline"
-                        class="min-h-11 sm:min-h-9"
-                        @click="openType()"
-                        >Add leave type</Button
-                    >
+                    <div class="flex flex-wrap gap-2">
+                        <Button
+                            variant="outline"
+                            class="min-h-11 sm:min-h-9"
+                            data-test="use-defaults"
+                            @click="openYear('defaults')"
+                            >Use KPOne defaults</Button
+                        >
+                        <Button
+                            variant="outline"
+                            class="min-h-11 sm:min-h-9"
+                            @click="openType()"
+                            >Add leave type</Button
+                        >
+                    </div>
                 </div>
+                <p
+                    v-if="leave.settings.types.some((t) => t.setByDefaults)"
+                    class="mt-2 text-xs text-muted-foreground"
+                    data-test="defaults-label"
+                >
+                    {{ leave.settings.defaults.label }}
+                </p>
                 <p
                     v-if="leave.settings.types.length === 0"
                     class="mt-3 text-sm text-muted-foreground"
@@ -1696,6 +1749,12 @@ const calendarDays = computed(() =>
                                     variant="outline"
                                     class="ml-1"
                                     >Archived</Badge
+                                >
+                                <Badge
+                                    v-if="t.setByDefaults"
+                                    variant="outline"
+                                    class="ml-1"
+                                    >KPOne default</Badge
                                 >
                             </p>
                             <p class="text-xs text-muted-foreground">
@@ -1742,6 +1801,16 @@ const calendarDays = computed(() =>
                     Days per year by role, in steps of 0.5. A person row wins
                     over the role. Nothing reaches a balance until you give the
                     entitlement.
+                </p>
+                <p
+                    v-if="
+                        leave.settings.entitlements.some((e) => e.setByDefaults)
+                    "
+                    class="mt-1 text-xs text-muted-foreground"
+                    data-test="defaults-entitlement-label"
+                >
+                    Some figures here come from KPOne defaults:
+                    {{ leave.settings.defaults.label }}
                 </p>
                 <ErrorState
                     v-if="errors.entitlements"
@@ -1895,7 +1964,10 @@ const calendarDays = computed(() =>
                             :key="`${e.leaveTypeId}:${e.userId}`"
                         >
                             {{ e.person }} · {{ typeName(e.leaveTypeId) }} ·
-                            {{ e.days }}
+                            {{ e.days
+                            }}<span v-if="e.setByDefaults">
+                                · KPOne default</span
+                            >
                         </li>
                     </ul>
                     <form
@@ -2883,6 +2955,101 @@ const calendarDays = computed(() =>
             <template #icon>
                 <CalendarCheck class="size-5" />
             </template>
+            <div
+                v-if="
+                    yearAction.kind === 'defaults' &&
+                    leave.settings &&
+                    (leave.settings.defaults.typesToAdd.length > 0 ||
+                        leave.settings.defaults.rows > 0)
+                "
+                class="grid gap-2 text-sm"
+                data-test="defaults-details"
+            >
+                <ul class="list-disc pl-5">
+                    <li>
+                        Annual leave 8, 12 or 16 days and sick leave 14, 18 or
+                        22 days a year, by service under 2 years, 2 to 5 years,
+                        and 5 years or more at 1 January.
+                    </li>
+                    <li>
+                        Hospitalisation leave: 60 days a year including sick
+                        leave, so 60 less the sick days in force.
+                    </li>
+                    <li>
+                        Maternity leave (98 days a confinement) and paternity
+                        leave (7 days a birth): paid, no yearly balance; the
+                        approver checks the days.
+                    </li>
+                    <li>
+                        Annual leave by completed months for someone who leaves
+                        during the year (Employment Act section 60E(1A)) and, as
+                        KPOne's default, for someone who joins during it. It
+                        uses the dates in the staff file when you press; press
+                        again after a join or a leave to update them. Sick leave
+                        is not pro-rated.
+                    </li>
+                    <li>No carry-forward.</li>
+                </ul>
+                <p class="text-muted-foreground">
+                    Check that the clinic does not already have these types
+                    under other codes.
+                </p>
+                <p class="text-muted-foreground">
+                    {{
+                        plural(leave.settings.defaults.base, 'person', 'people')
+                    }}
+                    under 2 years ·
+                    {{ leave.settings.defaults.middle }} with 2 to 5 years ·
+                    {{ leave.settings.defaults.long }} with 5 years or more.
+                    <template v-if="leave.settings.defaults.prorated > 0"
+                        >{{ ' '
+                        }}{{
+                            plural(
+                                leave.settings.defaults.prorated,
+                                'person joins or leaves',
+                                'people join or leave',
+                            )
+                        }}
+                        during {{ leave.year }}, so their annual leave is
+                        pro-rated.</template
+                    >
+                </p>
+                <p
+                    v-if="
+                        leave.settings.defaults.noRecord > 0 ||
+                        leave.settings.defaults.crossing > 0
+                    "
+                    class="text-muted-foreground"
+                >
+                    Check by hand:
+                    <template v-if="leave.settings.defaults.noRecord > 0"
+                        >{{
+                            plural(
+                                leave.settings.defaults.noRecord,
+                                'person has',
+                                'people have',
+                            )
+                        }}
+                        no employment start date in their staff file, so they
+                        get the first tier.</template
+                    >
+                    <template v-if="leave.settings.defaults.crossing > 0"
+                        >{{ ' '
+                        }}{{
+                            plural(
+                                leave.settings.defaults.crossing,
+                                'person reaches',
+                                'people reach',
+                            )
+                        }}
+                        2 or 5 years during {{ leave.year }}; add a person
+                        entitlement if needed.</template
+                    >
+                </p>
+                <p class="text-xs text-muted-foreground">
+                    {{ leave.settings.defaults.label }}
+                </p>
+            </div>
         </OperationalConfirmDialog>
     </div>
 </template>

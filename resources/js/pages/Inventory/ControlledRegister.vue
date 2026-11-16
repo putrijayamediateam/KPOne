@@ -11,7 +11,8 @@ type Row = {
     medicine: string;
     skuCode: string;
     stockUnit: string;
-    balance: string;
+    balance: string | null;
+    blind: boolean;
     status: 'checked' | 'moved_since' | 'never' | 'no_longer_controlled';
     lastCheckedOn: string | null;
     lastOutcome: 'matches' | 'differs' | null;
@@ -90,9 +91,11 @@ const statusTone = (row: Row) =>
                     </div>
                     <p class="text-sm">
                         On hand:
-                        <span class="font-medium tabular-nums"
-                            >{{ row.balance }} {{ row.stockUnit }}</span
-                        >
+                        <span class="font-medium tabular-nums">{{
+                            row.blind
+                                ? 'Shown after your count'
+                                : `${row.balance} ${row.stockUnit}`
+                        }}</span>
                     </p>
                     <StatusBadge
                         :status="row.status"
@@ -141,7 +144,11 @@ const statusTone = (row: Row) =>
                             <td
                                 class="p-3 text-right whitespace-nowrap tabular-nums"
                             >
-                                {{ row.balance }} {{ row.stockUnit }}
+                                {{
+                                    row.blind
+                                        ? 'Shown after your count'
+                                        : `${row.balance} ${row.stockUnit}`
+                                }}
                             </td>
                             <td class="p-3">
                                 <StatusBadge

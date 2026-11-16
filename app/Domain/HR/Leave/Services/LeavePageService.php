@@ -200,6 +200,7 @@ final class LeavePageService
         $names = User::query()->where('organisation_id', $actor->organisation_id)->pluck('name', 'id');
         $typeNames = $types->pluck('name', 'id');
         $rows = $this->settings->entitlementRows($actor->organisation_id, $year);
+        $byDefaults = $this->settings->defaultEntitlementKeys($actor->organisation_id, $year);
         $entry = fn (LeaveBalanceEntry $e, string $kind): array => ['publicId' => $e->public_id, 'kind' => $kind, 'person' => (string) ($names[$e->user_id] ?? 'Staff member'),
             'type' => (string) ($typeNames[$e->leave_type_id] ?? 'Leave'), 'year' => $e->year, 'days' => LeaveSupport::days($e->halves),
             'reason' => $kind === 'adjustment' ? (LeaveEntryService::ADJUSTMENT_REASONS[$e->reason_code ?? ''] ?? null) : null,
@@ -219,16 +220,19 @@ final class LeavePageService
                 'allowHalfDays' => $t->allow_half_days, 'evidenceNeeded' => $t->evidence_needed, 'allowNegative' => $t->allow_negative,
                 'carryMaxDays' => $t->carry_max_halves === null ? '' : LeaveSupport::days($t->carry_max_halves), 'carryExpiresOn' => $t->carry_expires_on ?? '',
                 'isActive' => $t->is_active, 'acceptsEvidenceFiles' => $t->accepts_evidence_files, 'evidenceRetentionDays' => $t->evidence_retention_days === null ? '' : (string) $t->evidence_retention_days,
-                'lockVersion' => $t->lock_version])->values()->all(),
+                'setByDefaults' => (bool) $t->set_by_defaults, 'lockVersion' => $t->lock_version])->values()->all(),
             'roles' => collect(RosterPermissions::HUMAN_ROLES)->map(fn (string $r): array => ['value' => $r, 'label' => RosterRules::ROLE_LABELS[$r] ?? $r])->values()->all(),
-            'entitlements' => collect($rows)->map(function (int $halves, string $key) use ($names): array {
+            'entitlements' => collect($rows)->map(function (int $halves, string $key) use ($names, $byDefaults): array {
                 [$typeId, $who] = explode(':', $key, 2);
                 $isPerson = str_starts_with($who, 'u');
 
                 return ['leaveTypeId' => (int) $typeId, 'role' => $isPerson ? null : $who, 'userId' => $isPerson ? (int) substr($who, 1) : null,
-                    'person' => $isPerson ? (string) ($names[(int) substr($who, 1)] ?? 'Staff member') : null, 'days' => LeaveSupport::days($halves)];
+                    'person' => $isPerson ? (string) ($names[(int) substr($who, 1)] ?? 'Staff member') : null, 'days' => LeaveSupport::days($halves),
+                    'setByDefaults' => in_array($key, $byDefaults, true)];
             })->values()->all(),
             'grantPreview' => $this->settings->grantPreview($actor, $year),
+            // HR-DEFAULTS: what "Use KPOne defaults" would add for the year shown, and the label every default carries.
+            'defaults' => [...app(LeaveDefaultsService::class)->preview($actor, $year), 'label' => LeaveDefaultsService::LABEL],
             'people' => $people->map(fn (User $u): array => ['id' => $u->id, 'label' => trim($u->name.' · '.$this->roleLabel($u), ' ·')])->values()->all(),
             'workingDays' => $branches->map(fn (Branch $b): array => ['branchId' => $b->id, 'branch' => $b->name,
                 'weekdays' => $working->has($b->id) ? array_map('intval', json_decode((string) $working[$b->id]->weekdays, true) ?: []) : [],

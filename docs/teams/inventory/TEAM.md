@@ -268,6 +268,23 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 41. Approved changes to existing tests (B.E.R.N.I.S.S for the owner, 2026-11-12): in DD-75, the DD-12 task link pin
     expects each link twice (`[...grouped, ...grouped]`), once in the desktop groups and once in the phone groups.
     The compact tiles (#633, Daniel's OK) changed no existing assertion; they add one test.
+42. STK-40 blind count (owner, "blind count yes", 2026-11-15; option A approved by B.E.R.N.I.S.S for the owner):
+    while someone may check a controlled register now, the server sends no figure that gives its balance away (the
+    list's on hand, the register's balances, in and out, earlier checks' quantities) and the print waits. Everything
+    comes back once they have checked, or whenever a rule blocks them; their check then shows the expected balance and
+    the difference. The checker rules, locks and audit are unchanged; a count that differs is still refused until a
+    reason is chosen, which tells the checker only that it differs. Known limit, accepted: other stock pages still
+    show levels; a determined checker could look there.
+43. STK-40 follow-ups (B.E.R.N.I.S.S for the owner, 2026-11-15): each refused "differs" try (no reason, or "other"
+    with no note) writes one audit row, `inventory.controlled_register.check_refused`, with ids and the code only,
+    after the check transaction has rolled back. Approved changes to existing tests: in `ControlledRegisterTest` the
+    list's first row expects `[null, true, 'never', null]` (balance, blind, status, last checked) plus two lines for
+    the recorder, and three tests view as the supervisor who recorded the movements (`$f['proposer']`), assertions
+    unchanged; in `v2-inventory-controlled-register.test.mjs` the intro regex drops "since the last check." and a new
+    assertion pins the blind sentence. A new test shows a Finance Officer and a Director get the full register after
+    their own check. Each check also shows "N earlier attempts" (refused tries since the previous check, read from
+    those audit rows; nothing when there were none). Option (b), never saying "differs" before recording, is an open
+    owner question.
 
 ## 7. Open items and known limits
 
@@ -284,6 +301,13 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   the FEFO audit entry records that an exception was chosen, not which reason,
   and a re-save before completion loses the earlier reason; no report lists FEFO exceptions; no short-dated
   warning at Dispensary. Each waits for the pharmacist's answers and the owner.
+- **STK-40 blind count limits:** other stock pages (Inventory home, stock movement report, reorder list) still show
+  levels; a determined checker could look there. A checker could still learn the balance by sending guesses until
+  no reason is asked for, but each refused try now leaves an audit row (`inventory.controlled_register.check_refused`,
+  ids and "differs" only), and each check shows "N earlier attempts" for the refused tries before it.
+- **Open owner question (STK-40 (b), on the owner's morning list, 2026-11-15):** should KPOne never say "differs" before
+  a check is recorded (record whatever was counted, with the reason added after)? That changes the checker rule, so it
+  waits for the owner.
 - **Pilot staffing:** the controlled-register checker cannot be anyone who recorded a movement on that register
   since the last check, so a controlled-delivery day needs a third person (raised with the owner, 2026-11-12).
 - STK-31 limits: the cross-branch guard is insert-only; stock request creation takes an optional retry key since
@@ -390,6 +414,18 @@ matching proposal in `docs/reports/ANALYSIS-STOCK.md` section 8 unless an owner 
    - Merged: STK-12 to STK-26, STK-30, STK-30b, STK-31, STK-33 to STK-37, STK-15b and STK-15c (section 5).
      Design follow-ups merged: DD-75 and DD-76 (#629) and the compact summary tiles (#633).
      STK-37 was added on 2026-11-12 from a gap found while writing STK-36.
-   - Parked by B.E.R.N.I.S.S until the accountant's cost policy exists: STK-27 (cost policy and weighted
-     average cost), STK-28 (stock value, COGS, margin and RM losses) and STK-29 (monthly journal summary CSV).
+   - Unparked on 2026-11-15: the owner has no accountant or clinic policy ("just do first ... act like one"), so
+     B.E.R.N.I.S.S set draft defaults as the accountant. STK-27 (weighted average cost, the read-only engine
+     `WeightedAverageCostService`, gap defaults a to f) is built; STK-28 (stock value, COGS, margin and RM losses,
+     with a "supplier credit difference" line and the new permission `inventory.valuation.view.organisation` for the
+     Director, to be approved) and STK-29 (monthly journal summary CSV) follow. Every figure says "Set by KPOne
+     defaults at the owner's instruction; not professional accounting advice."
+   - STK-28 merged (#829): the permission is the owner's decision (Director only, with margin). STK-29 (this PR): the
+     monthly journal summary CSV on the Stock value page, one calendar month, plain journal lines with debit and
+     credit columns, a check line that must be exactly 0.00 (an unbalanced journal is refused), and one audit row per
+     download. The supplier credit difference sits between Stock losses and Accounts payable (a credit note does not
+     move the average); All branches counts stock in transit, so transfers net to zero (B.E.R.N.I.S.S for the owner).
+     For the accountant's review (Daniel, readability, not built): a header line "Lines are dated at the end of the
+     period shown."; and the memo amounts (opening, closing, check) in their own "Memo (RM)" column or block rather
+     than in the Note column.
    - Parked until there is real usage history: STK-32 (seasonal usage forecast).

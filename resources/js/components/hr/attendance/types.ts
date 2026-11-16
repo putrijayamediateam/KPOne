@@ -130,6 +130,23 @@ export const weekTone = (level: WeekHours['level']): 'warning' | 'neutral' =>
     level === 'none' ? 'neutral' : 'warning';
 
 /** HR-16a: the Director's location check card (one branch at a time; off by default). */
+// HR-PHOTO-STORAGE: the read-only "Clock-in photo storage" card (Director, HR Manager). Counts only, never a name.
+export type PhotoStorageCard = {
+    photos: number;
+    bytes: number;
+    size: string;
+    oldest: string | null;
+    thisMonth: number;
+    perMonth: number | null;
+    perMonthSize: string | null;
+    forecastMonths: number;
+    forecastOneYear: string | null;
+    forecastRetention: string | null;
+    retentionYears: number;
+    earliestDelete: string | null;
+    draft: boolean;
+};
+
 export type LocationCheckCard = {
     suggestedRadius: number;
     draftConsentEn: string;
