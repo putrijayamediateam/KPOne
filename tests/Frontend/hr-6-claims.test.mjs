@@ -17,7 +17,14 @@ const source = Object.fromEntries(
 );
 const types = read('resources/js/components/hr/claims/types.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
-const script = (key) => parse(source[key]).descriptor.scriptSetup.content;
+// The request logic moved into two composables shared with Version 2; the script is the page plus its composable.
+const composables = {
+    page: read('resources/js/composables/hr/useClaimsPage.ts'),
+    sheet: read('resources/js/composables/hr/useClaimSheet.ts'),
+};
+const script = (key) =>
+    parse(source[key]).descriptor.scriptSetup.content +
+    (composables[key] ?? '');
 
 test('the new page and components compile', () => {
     for (const [key, path] of Object.entries(files)) {

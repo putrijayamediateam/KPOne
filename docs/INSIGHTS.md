@@ -87,9 +87,20 @@ Reversed invoice adjustments have zero effect. Adjustments recorded on a later d
 existing finalisation-date cohort, interpreted in the selected branch's timezone; adjustment timestamps do
 not create a new sales cohort. The same rule applies to comparison periods.
 
+**Panel claim adjustments (PCA-3, design note v3.2 section 6).** A confirmed Panel claim adjustment is its own
+signed row ("Panel claim adjustments"), counted on the day it was confirmed, like a refund credit, so a past day
+never changes. It is in net invoice sales, the daily trend, provider rows (its invoice's doctor or the OTC row),
+the Today tab and hourly trend, Payments "Panel sales" and each Panel's billed and approved figures. Only
+adjustments on an approved Panel share of a finalised invoice count (the same rule as `kpone_panel_adjustment_sum`);
+waiting and withdrawn requests count nowhere. Item rankings stay gross. The Daily summary keeps the original Panel
+share on the finalisation day and adds a last column, "Panel claim adjustments (confirmation date, MYR)", which is
+not part of Total received. Billing Detail and Panel invoices show the current Panel share, with a separate
+"Panel adjustment" column.
+
 Receipts and Panel remittances remain actual recorded money received, using their existing receipt/remittance
 date rules. Approved Panel responsibility and pay-later remain distinct from cash. Claim-only adjustments
-remain separate from invoice adjustments and never change invoice sales or patient payable.
+remain separate from invoice adjustments and never change invoice sales or patient payable. A Panel claim
+adjustment (PCA-2) changes the invoice's Panel share and payable but never what the patient owes.
 
 Reports select only numeric adjustment effects. Private adjustment reasons are never included in report
 payloads, claim projections, print views or exports. Existing aggregate-only Insights access is unchanged;
@@ -140,7 +151,8 @@ Two aggregate-only downloads, separate from the RPT-01a summary:
   date in that same cohort, deduplicated across invoices and selected branches. The on-screen daily
   trend displays this count. A patient can count again on another date, so daily counts need not sum
   to the period distinct count. Zero-value finalised invoices count; empty export dates have zero patients.
-  Later adjustments restate the original finalisation date; draft and
+  Later invoice adjustments restate the original finalisation date; refund credits and Panel claim adjustments
+  count on the day they were approved or confirmed; draft and
   voided invoices are excluded. The chart still omits absent dates; the export makes those zeros explicit.
 - **Payments → Download receipts by payment method CSV:** the new receipt-date reconciliation table
   and CSV share `dailyReceipts` in `ClinicInsightsReportService`. One row per date and governed method

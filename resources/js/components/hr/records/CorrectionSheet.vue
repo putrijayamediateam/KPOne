@@ -1,8 +1,6 @@
 <script setup lang="ts">
 // HR-4a "Ask for a correction" (HR-PLAN 11.3 rule 6), following the HR-3a sheet: "Recorded: … · New: …", a reason, the
 // note warning and each error under its field.
-import { router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
@@ -18,78 +16,13 @@ import {
 } from '@/components/ui/sheet';
 import { ErrorState } from '@/components/ui/state';
 import { Textarea } from '@/components/ui/textarea';
-import type { Option } from './types';
+import { useCorrectionSheet } from '@/composables/hr/useCorrectionSheet';
+import type { CorrectionSheetProps } from '@/composables/hr/useCorrectionSheet';
 
-const props = defineProps<{
-    kind: string;
-    kinds: Option[];
-    reasons: Option[];
-    /** What KPOne holds now, already worded ("Not given" when empty). */
-    recorded: string;
-}>();
+const props = defineProps<CorrectionSheetProps>();
 const open = defineModel<boolean>('open', { required: true });
 
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-
-const blank = () => ({
-    value: '',
-    identityKind: 'ic',
-    identityNumber: '',
-    passportCountry: '',
-    bankName: '',
-    holder: '',
-    account: '',
-    reason: '',
-    note: '',
-    key: '',
-    processing: false,
-});
-const form = reactive(blank());
-watch(open, (value) => {
-    if (value) {
-        Object.assign(form, blank(), { key: crypto.randomUUID() });
-    }
-});
-
-const kindLabel = computed(
-    () => props.kinds.find((k) => k.value === props.kind)?.label ?? '',
-);
-const send = () => {
-    form.processing = true;
-    router.post(
-        '/hr/records/my/corrections',
-        {
-            kind: props.kind,
-            value: ['legal_name', 'nationality', 'date_of_birth'].includes(
-                props.kind,
-            )
-                ? form.value
-                : undefined,
-            identity_kind:
-                props.kind === 'identity' ? form.identityKind : undefined,
-            identity_number:
-                props.kind === 'identity' ? form.identityNumber : undefined,
-            passport_country:
-                props.kind === 'identity' && form.identityKind === 'passport'
-                    ? form.passportCountry
-                    : undefined,
-            bank_name: props.kind === 'bank' ? form.bankName : undefined,
-            holder: props.kind === 'bank' ? form.holder : undefined,
-            account: props.kind === 'bank' ? form.account : undefined,
-            reason: form.reason,
-            note: form.note,
-            idempotency_key: form.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => (open.value = false),
-            onFinish: () => (form.processing = false),
-        },
-    );
-};
+const { errors, form, kindLabel, send } = useCorrectionSheet(props, open);
 </script>
 
 <template>
