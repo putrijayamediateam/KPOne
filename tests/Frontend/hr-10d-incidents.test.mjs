@@ -19,6 +19,9 @@ const script = (key) =>
     parse(source[key]).descriptor.scriptSetup.content +
     (key === 'list'
         ? read('resources/js/composables/hr/useIncidentsPage.ts')
+        : '') +
+    (key === 'report'
+        ? read('resources/js/composables/hr/useIncidentPage.ts')
         : '');
 
 test('the new pages compile', () => {
