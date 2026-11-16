@@ -63,6 +63,8 @@ its own, and props, routes and permissions are the same. Each page is registered
 - Nurul's team builds HR V2 pages under the HR rules; Suresh reviews each one for the HR team.
 - A frontend test that reads a Classic page's script may also read its composable; that is a setup change with the
   expectations unchanged (as in `hr-5c-sops.test.mjs`, `hr-8-memos.test.mjs`, `hr-14-messages.test.mjs`, `hr-15b-open-shifts.test.mjs` and `hr-15b-needs-posting.test.mjs`).
+- V2 Open shifts: the Post sheet's Start and End times move to `V2TimeField` next time the page is touched
+  (Daniel, design debt DD-79).
 - When the Classic SOPs restyle (`lastOpened`, which fills "I have read and understood" for the SOP just opened)
   reaches main, the V2 SOPs page takes the same binding from `useSopsPage.ts`, so the two match (Suresh, PR #872).
 
