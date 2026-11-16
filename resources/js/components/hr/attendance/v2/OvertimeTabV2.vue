@@ -332,6 +332,16 @@ const {
                     Fewer minutes than asked: choose why.
                 </p>
                 <p
+                    v-if="
+                        dialog.mode === 'approve' && dialog.target?.lockedMonth
+                    "
+                    class="text-sm"
+                    data-test="overtime-locked-month"
+                >
+                    {{ dialog.target.lockedMonth }}'s payroll is already locked:
+                    after approving, add this on an adjustment run.
+                </p>
+                <p
                     v-if="dialog.mode === 'reverse' && dialog.target?.paidIn"
                     class="text-sm"
                     data-test="overtime-paid-in"

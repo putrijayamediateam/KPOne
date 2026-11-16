@@ -53,6 +53,16 @@ type RunPerson = {
     manual: { id: string }[];
 };
 type Step = 'approve' | 'return' | 'lock';
+// G2a: overtime approved after the regular run was locked (never paid automatically).
+type LateItem = {
+    id: string;
+    name: string;
+    date: string;
+    duration: string;
+    approvedAt: string;
+    state: 'waiting' | 'here' | 'elsewhere';
+    itemId: string | null;
+};
 
 const props = defineProps<{
     run: {
@@ -70,6 +80,13 @@ const props = defineProps<{
         people: RunPerson[];
         total: Totals;
         errorCount: number;
+        late: LateItem[];
+        lateAdjustment: {
+            id: string | null;
+            draft: boolean;
+            payGroupId: string;
+            month: string;
+        } | null;
         canEdit: boolean;
         sendRefusal: string | null;
         draftRefusal: string | null;
@@ -192,6 +209,30 @@ const removeManual = (index: number) => {
 // ---- steps ----
 const asking = ref<'send' | Step | null>(null);
 const returnReason = ref('');
+const addLate = (item: LateItem) => post(`late/${item.id}`, {});
+const removeLate = (item: LateItem) =>
+    item.itemId && post(`late/${item.itemId}/remove`, {});
+// A locked regular run with late overtime and no open adjustment run: start one from here (Daniel, point 4).
+const startAdjustment = () => {
+    const target = props.run.lateAdjustment;
+
+    if (!target) {
+        return;
+    }
+
+    busy.value = true;
+    router.post(
+        '/hr/payroll/runs',
+        {
+            pay_group_id: target.payGroupId,
+            month: target.month,
+            kind: 'adjustment',
+            idempotency_key: crypto.randomUUID(),
+        },
+        { onFinish: () => (busy.value = false) },
+    );
+};
+
 const confirm = () => {
     const step = asking.value;
 
@@ -377,6 +418,247 @@ const statusTone = computed(() =>
         >
             Warnings don't stop you sending.
         </p>
+
+        <section
+            v-if="run.late.length"
+            class="grid gap-3 rounded-xl border bg-card p-4"
+            aria-labelledby="run-late-heading"
+            data-test="run-late"
+        >
+            <div class="grid gap-1">
+                <span
+                    class="inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                >
+                    <span
+                        class="size-2 rounded-full bg-muted-foreground"
+                        aria-hidden="true"
+                    />Late overtime
+                </span>
+                <h2 id="run-late-heading" class="font-semibold">
+                    Approved after this run was locked
+                </h2>
+                <p class="text-sm text-muted-foreground">
+                    {{
+                        run.kind === 'regular'
+                            ? 'This overtime is in this month but was approved after the lock, so this run does not pay it. Pay is worked out on an adjustment run.'
+                            : 'Overtime approved after the locked run. Nothing is added unless you add it here.'
+                    }}
+                </p>
+            </div>
+
+            <div
+                v-if="run.lateAdjustment"
+                class="flex flex-wrap items-center gap-2"
+                data-test="run-late-next"
+            >
+                <template v-if="run.lateAdjustment.id === null">
+                    <p class="text-sm">Start an adjustment run to add these.</p>
+                    <Button
+                        variant="outline"
+                        class="min-h-11 lg:min-h-9"
+                        :disabled="busy"
+                        data-test="run-late-start"
+                        @click="startAdjustment"
+                    >
+                        Start adjustment run
+                    </Button>
+                </template>
+                <template v-else-if="run.lateAdjustment.draft">
+                    <p class="text-sm">
+                        An adjustment run for this month is open: add these
+                        there.
+                    </p>
+                    <Button
+                        variant="outline"
+                        class="min-h-11 lg:min-h-9"
+                        as-child
+                    >
+                        <Link
+                            :href="`/hr/payroll/runs/${run.lateAdjustment.id}`"
+                            data-test="run-late-open"
+                            >Open adjustment run</Link
+                        >
+                    </Button>
+                </template>
+                <p v-else class="text-sm text-muted-foreground">
+                    An adjustment run for this month is waiting for approval.
+                    Once it is locked, start another to add these.
+                </p>
+            </div>
+
+            <!-- 1024 px and wider: a table. -->
+            <div class="hidden overflow-x-auto lg:block">
+                <table class="w-full text-sm" data-test="run-late-table">
+                    <thead class="text-left text-muted-foreground">
+                        <tr>
+                            <th scope="col" class="py-2 pr-3 font-medium">
+                                Person
+                            </th>
+                            <th scope="col" class="py-2 pr-3 font-medium">
+                                Overtime on
+                            </th>
+                            <th scope="col" class="py-2 pr-3 font-medium">
+                                Time
+                            </th>
+                            <th scope="col" class="py-2 pr-3 font-medium">
+                                Approved on
+                            </th>
+                            <th scope="col" class="py-2 font-medium">
+                                <span class="sr-only">Status or action</span>
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr
+                            v-for="item in run.late"
+                            :key="item.id"
+                            class="border-t align-middle"
+                            data-test="run-late-item"
+                        >
+                            <td class="py-2 pr-3 font-medium break-words">
+                                {{ item.name }}
+                            </td>
+                            <td class="py-2 pr-3 whitespace-nowrap">
+                                {{ item.date }}
+                            </td>
+                            <td class="py-2 pr-3 whitespace-nowrap">
+                                {{ item.duration }}
+                            </td>
+                            <td class="py-2 pr-3 whitespace-nowrap">
+                                {{ item.approvedAt ? on(item.approvedAt) : '' }}
+                            </td>
+                            <td class="py-2">
+                                <div
+                                    class="flex flex-wrap items-center justify-end gap-2"
+                                >
+                                    <template
+                                        v-if="
+                                            run.kind === 'adjustment' &&
+                                            run.canEdit &&
+                                            item.state === 'waiting'
+                                        "
+                                    >
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            :disabled="busy"
+                                            data-test="run-late-add"
+                                            @click="addLate(item)"
+                                        >
+                                            Add to this adjustment<span
+                                                class="sr-only"
+                                            >
+                                                : {{ item.name }},
+                                                {{ item.date }}</span
+                                            >
+                                        </Button>
+                                    </template>
+                                    <template v-else-if="item.state === 'here'">
+                                        <span
+                                            class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                                            data-test="run-late-added"
+                                            ><span
+                                                class="size-2 rounded-full bg-success"
+                                                aria-hidden="true"
+                                            />Added to this adjustment</span
+                                        >
+                                        <Button
+                                            v-if="run.canEdit"
+                                            variant="ghost"
+                                            size="sm"
+                                            :disabled="busy"
+                                            data-test="run-late-remove"
+                                            @click="removeLate(item)"
+                                        >
+                                            Take off<span class="sr-only">
+                                                : {{ item.name }},
+                                                {{ item.date }}</span
+                                            >
+                                        </Button>
+                                    </template>
+                                    <span
+                                        v-else-if="item.state === 'elsewhere'"
+                                        class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                                        data-test="run-late-elsewhere"
+                                        ><span
+                                            class="size-2 rounded-full bg-muted-foreground"
+                                            aria-hidden="true"
+                                        />On an adjustment run</span
+                                    >
+                                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Below 1024 px: one card per item. -->
+            <ul class="grid gap-2 lg:hidden">
+                <li
+                    v-for="item in run.late"
+                    :key="item.id"
+                    class="grid gap-2 rounded-lg border p-3"
+                    data-test="run-late-card"
+                >
+                    <span class="font-medium break-words">{{ item.name }}</span>
+                    <span class="text-sm text-muted-foreground"
+                        >Overtime on {{ item.date }} · {{ item.duration }}</span
+                    >
+                    <span
+                        v-if="item.approvedAt"
+                        class="text-sm text-muted-foreground"
+                        >Approved on {{ on(item.approvedAt) }}</span
+                    >
+                    <Button
+                        v-if="
+                            run.kind === 'adjustment' &&
+                            run.canEdit &&
+                            item.state === 'waiting'
+                        "
+                        variant="outline"
+                        class="min-h-11"
+                        :disabled="busy"
+                        @click="addLate(item)"
+                    >
+                        Add to this adjustment<span class="sr-only">
+                            : {{ item.name }}, {{ item.date }}</span
+                        >
+                    </Button>
+                    <div
+                        v-else-if="item.state === 'here'"
+                        class="flex flex-wrap items-center gap-2"
+                    >
+                        <span
+                            class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                            ><span
+                                class="size-2 rounded-full bg-success"
+                                aria-hidden="true"
+                            />Added to this adjustment</span
+                        >
+                        <Button
+                            v-if="run.canEdit"
+                            variant="ghost"
+                            class="min-h-11"
+                            :disabled="busy"
+                            @click="removeLate(item)"
+                        >
+                            Take off<span class="sr-only">
+                                : {{ item.name }}, {{ item.date }}</span
+                            >
+                        </Button>
+                    </div>
+                    <span
+                        v-else-if="item.state === 'elsewhere'"
+                        class="inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                        data-test="run-late-elsewhere"
+                        ><span
+                            class="size-2 rounded-full bg-muted-foreground"
+                            aria-hidden="true"
+                        />On an adjustment run</span
+                    >
+                </li>
+            </ul>
+        </section>
 
         <EmptyState
             v-if="!run.people.length"

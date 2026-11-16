@@ -9,6 +9,7 @@ import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
+import V2TimeField from '@/components/v2/V2TimeField.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { useOpenShiftsPage } from '@/composables/hr/useOpenShiftsPage';
 import type { OpenShiftsPageProps } from '@/composables/hr/useOpenShiftsPage';
@@ -35,7 +36,7 @@ const {
     busy,
     form,
     startPost,
-    missing,
+    missing: sharedMissing,
     submit,
     confirming,
     confirm,
@@ -79,6 +80,17 @@ const shiftLabel = (s: {
           : s.status === 'filled'
             ? 'Filled'
             : 'Withdrawn';
+// A time that was typed but is not a time leaves the field empty; the shared logic would send it, so V2 blocks Send
+// here. The name `missing` is kept so the dialog's bindings stay as they were.
+const missing = computed<string | null>(
+    () =>
+        sharedMissing.value ??
+        (!form.start_time
+            ? 'Enter a start time such as 8:00 AM.'
+            : !form.end_time
+              ? 'Enter an end time such as 2:00 PM.'
+              : null),
+);
 const declineMissing = computed(() =>
     declining.reason === '' ? 'Pick a reason to continue.' : '',
 );
@@ -529,37 +541,19 @@ const declineMissing = computed(() =>
                 :error="errors.date"
             />
             <div class="grid gap-4 sm:grid-cols-2 sm:items-start">
-                <V2Field
-                    v-slot="{ id, describedBy }"
+                <V2TimeField
+                    v-model="form.start_time"
                     label="Start time"
                     required
                     :error="errors.start_time"
-                >
-                    <input
-                        :id="id"
-                        v-model="form.start_time"
-                        type="time"
-                        :class="inputClass"
-                        :aria-invalid="errors.start_time ? 'true' : undefined"
-                        :aria-describedby="describedBy"
-                    />
-                </V2Field>
-                <V2Field
-                    v-slot="{ id, describedBy }"
+                />
+                <V2TimeField
+                    v-model="form.end_time"
                     label="End time"
                     required
                     hint="If the end is earlier than the start, the shift ends the next day."
                     :error="errors.end_time"
-                >
-                    <input
-                        :id="id"
-                        v-model="form.end_time"
-                        type="time"
-                        :class="inputClass"
-                        :aria-invalid="errors.end_time ? 'true' : undefined"
-                        :aria-describedby="describedBy"
-                    />
-                </V2Field>
+                />
             </div>
             <V2OptionGroup
                 :model-value="form.session_type || null"

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AlertTriangle, CircleHelp, LoaderCircle } from '@lucide/vue';
-import { useTemplateRef } from 'vue';
+import { useId, useTemplateRef } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -22,6 +22,9 @@ const props = withDefaults(
         processing?: boolean;
         destructive?: boolean;
         error?: string;
+        /** Switches the confirm button off and says why in `confirmDisabledReason`; both optional, so existing dialogs are unchanged. */
+        confirmDisabled?: boolean;
+        confirmDisabledReason?: string;
         /** Optional third choice, rendered between Cancel and Confirm. Omit for the classic two-choice dialog. */
         secondaryLabel?: string;
         secondaryProcessingLabel?: string;
@@ -35,12 +38,16 @@ const props = withDefaults(
         processing: false,
         destructive: false,
         error: '',
+        confirmDisabled: false,
+        confirmDisabledReason: '',
         secondaryLabel: undefined,
         secondaryProcessingLabel: 'Working…',
         secondaryVariant: 'outline',
         processingAction: 'confirm',
     },
 );
+
+const reasonId = useId();
 
 const emit = defineEmits<{
     'update:open': [value: boolean];
@@ -75,8 +82,22 @@ const secondaryAction = () => {
 const confirmButtonRef = useTemplateRef<InstanceType<typeof Button>>(
     'confirmButton',
 );
+const firstField =
+    'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [role="combobox"]:not([disabled])';
 const onOpenAutoFocus = (event: Event) => {
     event.preventDefault();
+
+    // A disabled Confirm cannot take focus (Suresh, #916): focus the first field of the form instead, so keyboard
+    // focus is not lost. Every dialog whose Confirm is enabled behaves exactly as before.
+    if (props.confirmDisabled) {
+        const content = event.target as HTMLElement | null;
+        const field = content?.querySelector<HTMLElement>(firstField);
+
+        (field ?? content)?.focus();
+
+        return;
+    }
+
     (confirmButtonRef.value?.$el as HTMLElement | undefined)?.focus();
 };
 </script>
@@ -117,6 +138,15 @@ const onOpenAutoFocus = (event: Event) => {
             <slot />
 
             <p
+                v-if="confirmDisabled && confirmDisabledReason"
+                :id="reasonId"
+                class="text-sm text-muted-foreground"
+                data-testid="confirm-disabled-reason"
+            >
+                {{ confirmDisabledReason }}
+            </p>
+
+            <p
                 v-if="error"
                 role="alert"
                 class="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive"
@@ -154,7 +184,12 @@ const onOpenAutoFocus = (event: Event) => {
                     ref="confirmButton"
                     type="button"
                     :variant="destructive ? 'destructive' : 'default'"
-                    :disabled="processing"
+                    :disabled="processing || confirmDisabled"
+                    :aria-describedby="
+                        confirmDisabled && confirmDisabledReason
+                            ? reasonId
+                            : undefined
+                    "
                     @click="confirm"
                 >
                     <LoaderCircle

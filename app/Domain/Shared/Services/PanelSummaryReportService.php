@@ -28,9 +28,21 @@ class PanelSummaryReportService extends BranchReportService
         return 'Panel summary';
     }
 
-    public function basis(): string
+    public function basisLines(): array
     {
-        return 'Invoice finalisation-date cohort: current approved Panel responsibility on finalised, non-void invoices, including correction holds. Claim figures are current recorded amounts, not invoice adjustments. Claimed means a first submitted event exists; never-submitted prepared packs remain unclaimed. Accepted is the recorded accepted amount; Rejected is current fully rejected claim amount (not a partial-decision remainder). Remitted is recorded claim payments, not patient receipts. Outstanding is accepted less remitted, floored at zero, matching claim detail; unaccepted claims are not accepted receivables. Age as of branch-local today, from first submitted date; unclaimed responsibility ages separately from invoice finalisation. Awaiting decision is current claim amount of submitted or queried claims with no Panel decision yet, aged from first submitted date; it is not counted in Outstanding. Buckets: 0-30, 31-60, 61-90, over 90 days. MYR. Current Panel names; no patient content. Only Panels with qualifying invoices appear.';
+        return [
+            ['label' => 'Invoices', 'text' => 'The current approved Panel share on finalised invoices that are not void, including ones on a correction hold, counted on the day each invoice was finalised. Only Panels with invoices in the period appear.'],
+            ['label' => 'Claims', 'text' => 'Claim figures are the amounts recorded on the claims now. Claimed means the claim was submitted at least once; a claim pack prepared but never submitted still counts as unclaimed.'],
+            ['label' => 'Decisions and payments', 'text' => 'Accepted is what the Panel accepted; Rejected is the amount of claims the Panel fully rejected (not the unpaid part of a partial decision). Remitted is what the Panel has paid on claims, not patient receipts.'],
+            ['label' => 'Outstanding', 'text' => 'Accepted less remitted, never below zero, as on the claim page; a claim not yet accepted is not counted as owed. Awaiting decision is the amount of submitted or queried claims with no Panel decision yet; it is not part of Outstanding.'],
+            ['label' => 'Ages', 'text' => 'Counted up to today (branch time) from the first submitted date, for Outstanding and Awaiting decision; an unclaimed share ages from the day its invoice was finalised. Age groups: 0-30, 31-60, 61-90 and over 90 days.'],
+            ['label' => 'Notes', 'text' => 'Amounts in MYR. Current Panel names; no patient details.'],
+        ];
+    }
+
+    public function basisSummary(): string
+    {
+        return 'Invoices count on the day they were finalised; claim figures and ages are as they stand today.';
     }
 
     protected function project(User $actor, Branch $branch, array $filters): array

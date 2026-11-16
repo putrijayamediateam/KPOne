@@ -185,7 +185,11 @@ class AttendanceController extends Controller
 
     public function decideOvertime(Request $request, OvertimeService $overtime, string $overtimeRequest, string $decision): RedirectResponse
     {
-        return $this->run($request, 'overtime', $decision === 'approve' ? 'Overtime approved.' : 'Overtime rejected.',
+        // G2a: overtime approved after its month's payroll was locked is not paid by that run, so the notice says what to do.
+        return $this->run($request, 'overtime', $decision === 'approve'
+            ? fn (OvertimeRequest $approved): string => ($month = $overtime->lockedMonth($approved)) === null ? 'Overtime approved.'
+                : "Overtime approved. {$month}'s payroll is already locked: add it on an adjustment run."
+            : 'Overtime rejected.',
             fn () => $overtime->decide($request->user(), $overtimeRequest, $decision, $request->only(['expected_lock_version', 'minutes', 'reason', 'idempotency_key'])));
     }
 
