@@ -269,8 +269,7 @@ cookie); `.dark` on `<html>` switches the tokens.
   drug label marker is "Ubat Terkawal/Controlled Medicine". The Malay staff guides (`docs/guides/ms/`) stay in Malay.
   Three examples: a QR form step is Malay; a Registration or Dispensary screen is English; a printed medical
   certificate shows its own English and Malay lines (its on-screen preview, "Date / Tarikh: [issue_date]", matches the
-  document). Never mix both languages in one sentence of a screen. The Careers pages (applicants) are English, and
-  the staff location-check consent text carries an English line beside the Malay one.
+  document). Never mix both languages in one sentence of a screen.
 - **Sentence case** for titles, buttons and labels: "Register visit", "Return to workspace". Proper nouns keep
   their capitals (Panel, KPOne, CA). The survey found "Return to Workspace" and "Return to workspace" side by side.
 - **Buttons are verbs**: "Save prices", "Run report", "Add panel". Not "OK" or "Submit".
