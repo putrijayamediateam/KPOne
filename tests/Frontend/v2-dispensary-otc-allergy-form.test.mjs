@@ -130,3 +130,24 @@ test('a leave guard asks only when something is typed; Cancel asks before discar
     );
     assert.match(v2, /guard\.value\?\.ask\(\(\) => emit\('cancel'\)\);/);
 });
+
+test("Daniel (#860): the focused control clears the case page's sticky bar below 1536 px", () => {
+    assert.match(template(v2), /@focusin="clearOfStickyBar"/);
+    assert.match(v2, /window\.matchMedia\('\(max-width: 1535\.98px\)'\)/);
+    assert.match(v2, /target\.scrollIntoView\(\{ block: 'nearest' \}\);/);
+    assert.match(template(v2), /\[&_textarea\]:scroll-mb-48/);
+    assert.match(page, /2xl:hidden"\s+data-testid="dispensary-bar"/);
+});
+
+test('Daniel (#860): an off Complete button reads as off on the V2 case page (dashed and muted, not faded blue)', () => {
+    assert.match(
+        page,
+        /aria-disabled:border-dashed aria-disabled:border-border aria-disabled:bg-muted aria-disabled:text-muted-foreground/,
+    );
+    assert.ok(!/aria-disabled:opacity-60 lg:h-9';/.test(page));
+    assert.match(
+        page,
+        /'Confirm what the patient reports about allergies, then complete\.'/,
+    );
+    assert.match(page, /:aria-disabled="primaryDisabled"/);
+});

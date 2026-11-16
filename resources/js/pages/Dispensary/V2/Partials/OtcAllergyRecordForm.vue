@@ -96,6 +96,22 @@ const submit = () => {
     });
 };
 
+// Daniel: below 1536 px the case page's sticky Complete bar covers the bottom of the screen, and a field under it still
+// counts as on screen, so the browser does not scroll it. Bring the focused control clear of the bar (scroll-mb on the
+// controls); from 1536 px the bar is not shown.
+const clearOfStickyBar = (event: FocusEvent) => {
+    const target = event.target as HTMLElement | null;
+
+    if (
+        !target?.matches('input, textarea, button') ||
+        !window.matchMedia('(max-width: 1535.98px)').matches
+    ) {
+        return;
+    }
+
+    target.scrollIntoView({ block: 'nearest' });
+};
+
 const cancel = () => {
     if (typed.value) {
         guard.value?.ask(() => emit('cancel'));
@@ -114,12 +130,13 @@ const outlineButton =
 
 <template>
     <form
-        class="mt-3 grid gap-4 rounded-[14px] border bg-card p-4 dark:border-foreground/20"
+        class="mt-3 grid gap-4 rounded-[14px] border bg-card p-4 dark:border-foreground/20 [&_button]:scroll-mb-48 2xl:[&_button]:scroll-mb-0 [&_input]:scroll-mb-48 2xl:[&_input]:scroll-mb-0 [&_textarea]:scroll-mb-48 2xl:[&_textarea]:scroll-mb-0"
         novalidate
         data-testid="otc-allergy-form"
         :aria-busy="form.processing"
         aria-labelledby="otc-allergy-heading"
         @submit.prevent="submit"
+        @focusin="clearOfStickyBar"
     >
         <!-- Hakim: this is the V2 case page's only leave guard; a page-level guard added later must merge with it. -->
         <V2LeaveGuard ref="guard" :dirty="typed" @discard="form.reset()" />
