@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { router } from '@inertiajs/vue3';
-import { Check, RefreshCcw, X } from '@lucide/vue';
+import { AlertCircle, Check, RefreshCcw, X } from '@lucide/vue';
 import {
     DialogContent,
     DialogDescription,
@@ -437,19 +437,27 @@ onBeforeUnmount(() => {
                         <p
                             v-if="state.error && state.step === 'review'"
                             id="clock-photo-error"
-                            class="mb-3 rounded-lg bg-white/10 px-3 py-2 text-center text-sm"
+                            class="mb-3 flex items-start justify-center gap-2 text-center text-sm text-white"
                             role="alert"
                             data-test="clock-photo-error"
                         >
-                            {{ state.error }}
+                            <AlertCircle
+                                class="mt-0.5 size-4 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <span>{{ state.error }}</span>
                         </p>
                         <p
                             v-if="cameraNote && state.step === 'camera'"
-                            class="mb-3 rounded-lg bg-white/10 px-3 py-2 text-center text-sm"
+                            class="mb-3 flex items-start justify-center gap-2 text-center text-sm text-white"
                             role="alert"
                             data-test="clock-photo-camera-note"
                         >
-                            {{ cameraNote }}
+                            <AlertCircle
+                                class="mt-0.5 size-4 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <span>{{ cameraNote }}</span>
                         </p>
                         <div
                             v-if="state.step === 'camera'"
@@ -500,7 +508,8 @@ onBeforeUnmount(() => {
                                         : 'bg-[#6ba6ff] text-[#0b1a33]'
                                 "
                                 data-test="clock-photo-use"
-                                :disabled="state.step === 'sending' || refused"
+                                :disabled="state.step === 'sending'"
+                                :aria-disabled="refused ? 'true' : undefined"
                                 :aria-describedby="
                                     refused ? 'clock-photo-error' : undefined
                                 "

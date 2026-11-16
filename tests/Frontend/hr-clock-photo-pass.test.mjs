@@ -50,7 +50,8 @@ test('a pass that ran out throws the photo away and goes back to the camera with
 test('after any other refusal "Use photo" is off and says why, and Retake is the filled action', () => {
     assert.match(usePhoto, /state\.error = message;\s*refused\.value = true;/);
     assert.match(usePhoto, /state\.step !== 'review' \|\| refused\.value/);
-    assert.match(dialog, /:disabled="state\.step === 'sending' \|\| refused"/);
+    // Daniel: aria-disabled, so a screen reader still reaches it and hears why it is off.
+    assert.match(dialog, /:aria-disabled="refused \? 'true' : undefined"/);
     assert.match(
         dialog,
         /:aria-describedby="\s*refused \? 'clock-photo-error' : undefined\s*"/,
@@ -59,6 +60,18 @@ test('after any other refusal "Use photo" is off and says why, and Retake is the
         dialog,
         /refused\s*\?\s*'bg-\[#6ba6ff\] text-\[#0b1a33\]'\s*:\s*'border-2 border-white\/70 bg-transparent'[\s\S]*?data-test="clock-photo-retake"/,
     );
+});
+
+test('Daniel: the refusal lines are alerts in plain text, never a box that looks like a button', () => {
+    for (const id of ['clock-photo-error', 'clock-photo-camera-note']) {
+        assert.match(
+            dialog,
+            new RegExp(
+                `class="mb-3 flex items-start justify-center gap-2 text-center text-sm text-white"\\s+role="alert"\\s+data-test="${id}"`,
+            ),
+        );
+    }
+    assert.doesNotMatch(dialog, /rounded-lg bg-white\/10/);
 });
 
 test('the preview title says which press it is', () => {
