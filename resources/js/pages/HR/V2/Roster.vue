@@ -35,6 +35,7 @@ import { useRosterPage } from '@/composables/hr/useRosterPage';
 import type { RosterProps, Version } from '@/composables/hr/useRosterPage';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
 import { groupChecks, restWarningsByDay } from '@/lib/hr-roster-v2';
+import { parseTime } from '@/lib/v2-time';
 
 /**
  * Version 2 Roster (shown only in V2; Classic is `pages/HR/Roster.vue`, untouched). Same props, routes, permissions,
@@ -146,12 +147,27 @@ const moreGroups = computed<RowMenuGroup[]>(() => {
 });
 
 // A time box with text that is not a time leaves its value empty (V2TimeField), so Save waits for both times (DD-79).
-const shiftTimeMissing = computed(() =>
-    shiftForm.start_time === ''
-        ? 'Enter a start time to continue.'
-        : shiftForm.end_time === ''
-          ? 'Enter an end time to continue.'
-          : '',
+// A box whose text is already a time but not yet saved (the field saves on leaving or Enter) says so (Daniel).
+const startTyped = ref('');
+const endTyped = ref('');
+watch(
+    () => shiftForm.start_time,
+    () => (startTyped.value = ''),
+);
+watch(
+    () => shiftForm.end_time,
+    () => (endTyped.value = ''),
+);
+const timeLine = (value: string, typed: string, name: string) =>
+    value !== ''
+        ? ''
+        : typed !== '' && parseTime(typed)
+          ? 'Press Enter or leave the box to continue.'
+          : `Enter ${name} to continue.`;
+const shiftTimeMissing = computed(
+    () =>
+        timeLine(shiftForm.start_time, startTyped.value, 'a start time') ||
+        timeLine(shiftForm.end_time, endTyped.value, 'an end time'),
 );
 const checks = computed(() => planner.value?.warnings ?? []);
 // Counted the way the panel shows them: one per day below minimum, one per other check, one per rule warning.
@@ -940,19 +956,32 @@ const numberClass =
                     />
                 </V2Field>
                 <div class="grid gap-4 sm:grid-cols-2">
-                    <V2TimeField
-                        v-model="shiftForm.start_time"
-                        label="Start time"
-                        required
-                        :error="shiftForm.errors.start_time"
-                    />
-                    <V2TimeField
-                        v-model="shiftForm.end_time"
-                        label="End time"
-                        required
-                        hint="If the end is earlier than the start, the shift ends the next day."
-                        :error="shiftForm.errors.end_time"
-                    />
+                    <div
+                        @input="
+                            startTyped = ($event.target as HTMLInputElement)
+                                .value
+                        "
+                    >
+                        <V2TimeField
+                            v-model="shiftForm.start_time"
+                            label="Start time"
+                            required
+                            :error="shiftForm.errors.start_time"
+                        />
+                    </div>
+                    <div
+                        @input="
+                            endTyped = ($event.target as HTMLInputElement).value
+                        "
+                    >
+                        <V2TimeField
+                            v-model="shiftForm.end_time"
+                            label="End time"
+                            required
+                            hint="If the end is earlier than the start, the shift ends the next day."
+                            :error="shiftForm.errors.end_time"
+                        />
+                    </div>
                 </div>
                 <V2Field
                     v-slot="{ id, describedBy, invalid }"

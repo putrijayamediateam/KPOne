@@ -311,8 +311,12 @@ test('DD-79: the shift times use the V2 time field, and Save waits for both time
         template,
         /<V2TimeField\s+v-model="shiftForm\.end_time"\s+label="End time"\s+required/,
     );
-    assert.match(script, /'Enter a start time to continue\.'/);
-    assert.match(script, /'Enter an end time to continue\.'/);
+    assert.match(script, /`Enter \$\{name\} to continue\.`/);
+    assert.match(script, /'a start time'/);
+    assert.match(script, /'an end time'/);
+    // Text that is already a time but not yet saved says how to finish (Daniel).
+    assert.match(script, /'Press Enter or leave the box to continue\.'/);
+    assert.match(script, /parseTime\(typed\)/);
     assert.match(template, /:confirm-disabled="shiftTimeMissing !== ''"/);
     assert.match(
         template,
