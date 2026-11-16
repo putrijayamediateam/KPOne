@@ -38,6 +38,7 @@ return [
         'HR/Sops',
         'HR/Memos',
         'HR/Messages',
+        'HR/OpenShifts',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
