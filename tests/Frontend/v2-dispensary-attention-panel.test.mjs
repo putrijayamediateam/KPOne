@@ -66,21 +66,46 @@ test('rows keep a fixed order (waiting first, then Classic order); new rows go t
     assert.match(v2, /\.filter\(\(id\) => !known\.has\(id\)\)/);
 });
 
-test("collapsed: the first 5 plus acted-on rows, and the toggle names hidden review rows (owner's middle way)", () => {
-    assert.match(v2, /const visibleLimit = 5;/);
+test("collapsed: the first 5 plus acted-on rows; the toggle names hidden review rows (owner's middle way)", () => {
     assert.match(
         v2,
         /index < visibleLimit \|\| pinned\.value\.has\(item\.exceptionPublicId\)/,
     );
-    assert.match(v2, /' · 1 more needs review'/);
-    assert.match(v2, /` · \$\{hiddenReview\.value\} more need review`/);
-    assert.match(v2, /`Show all \$\{ordered\.value\.length\}\$\{more\}`/);
+    assert.match(
+        v2,
+        /showAllLabel\(ordered\.value\.length, hiddenReview\.value\)/,
+    );
     assert.match(v2, /showAll\.value = true;/);
-    assert.match(template(v2), /v-if="hiddenRows\.length > 0"/);
-    assert.match(template(v2), /:aria-expanded="showAll"/);
-    assert.match(template(v2), /aria-controls="dispensary-attention-rows"/);
-    assert.match(template(v2), /id="dispensary-attention-rows"/);
-    assert.match(template(v2), /'lg:h-11!'/);
+    // Mira: a real button right under the list, 44 px, aria-expanded and aria-controls, its text is its name.
+    assert.match(template(v2), /<\/ul>\s*<div\s+v-if="hiddenRows\.length > 0"/);
+    const toggle = template(v2).slice(
+        template(v2).indexOf('data-testid="v2-dispensary-attention-show-all"') -
+            400,
+        template(v2).indexOf("{{ showAll ? 'Show fewer' : showAllText }}"),
+    );
+    assert.match(toggle, /:aria-expanded="showAll"/);
+    assert.match(toggle, /aria-controls="dispensary-attention-rows"/);
+    assert.match(toggle, /'lg:h-11!'/);
+    assert.ok(!/aria-label/.test(toggle), 'the visible text is the name');
+});
+
+test('the toggle and heading words (Mira): 7 review rows collapsed reads "2 more need review"', async () => {
+    const { showAllLabel, needReviewLabel, visibleLimit } =
+        await import('../../resources/js/pages/Dispensary/V2/Partials/attention-panel.ts');
+
+    assert.equal(visibleLimit, 5);
+    assert.equal(
+        showAllLabel(7, 7 - visibleLimit),
+        'Show all 7 · 2 more need review',
+    );
+    assert.equal(showAllLabel(6, 1), 'Show all 6 · 1 more needs review');
+    assert.equal(showAllLabel(7, 0), 'Show all 7');
+    assert.equal(needReviewLabel(6), '6 need review');
+    assert.equal(needReviewLabel(1), '1 needs review');
+    assert.match(
+        template(v2),
+        /<V2Chip\s+v-if="waitingCount > 0"\s+tone="warning"\s+:label="needReviewLabel\(waitingCount\)"/,
+    );
 });
 
 test('the acknowledge request is a verbatim copy of Classic (Mira)', () => {

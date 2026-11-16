@@ -156,7 +156,7 @@ const outlineButton =
         class="overflow-hidden rounded-[14px] border border-l-4 border-l-warning bg-card dark:border-foreground/20 dark:border-l-warning"
         data-testid="v2-dispensary-attention"
     >
-        <header class="flex items-center gap-2 px-4 pt-3 pb-1">
+        <header class="flex flex-wrap items-center gap-2 px-4 pt-3 pb-1">
             <AlertTriangle
                 class="size-4 shrink-0 text-warning-strong"
                 aria-hidden="true"
