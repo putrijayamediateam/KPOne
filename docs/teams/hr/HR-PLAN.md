@@ -2500,6 +2500,7 @@ The pay group's name and pay day are copied onto the run when it is prepared (Su
   - if the locker is that claim's claimant or approver, the lock is refused and names the claim;
   - a two-process race test covers a lock against a Finance payment of the same claim.
   - This adds `payroll` to the HR-6 payment method CHECK in a new HR migration.
+- **Checking again at approve and lock (G1, owner, 16 Nov 2026).** Approve and Lock work the run out again from today's sources and compare it with the run as prepared. If anything changed since it was sent (for example overtime approved or reversed meanwhile), both are refused with "Something in this run changed after it was sent. Send it back to draft and prepare it again." Send back stays allowed. The check runs when the button is pressed; the run page does not work it out in advance.
 
 ### 16.6 Corrections
 An adjustment run references the locked run and holds only the differences, with the same two-person steps. One open adjustment per run at a time. A locked run and its lines never change.
