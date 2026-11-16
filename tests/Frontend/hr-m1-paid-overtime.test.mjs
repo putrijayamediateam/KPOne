@@ -19,6 +19,7 @@ test('the reverse dialog names the locked run that paid the overtime, in Classic
             file,
         );
     }
+
     assert.match(
         read('resources/js/components/hr/attendance/types.ts'),
         /paidIn: string \| null;/,
