@@ -120,15 +120,15 @@ final class HiringDeadlines
 
     /**
      * The last day to choose interview times as words, the same on the candidate's page and in the emails (Daniel):
-     * English "Mon 16 Nov 2026" and Malay "Isnin 16 Nov 2026".
+     * English, for example "Mon 16 Nov 2026".
      *
-     * @return array{deadline: string, tarikh: string}
+     * @return array{deadline: string}
      */
     public static function chooseByLabels(string $date): array
     {
         $day = CarbonImmutable::parse($date);
 
-        return ['deadline' => $day->format('D j M Y'), 'tarikh' => $day->settings(['locale' => 'ms'])->isoFormat('dddd').' '.$day->format('j M Y')];
+        return ['deadline' => $day->format('D j M Y')];
     }
 
     /** The branch's local date today for an application. */

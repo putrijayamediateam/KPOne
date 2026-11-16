@@ -44,7 +44,7 @@ class HiringStagesTest extends VisitTestCase
 
         $this->get(route('hr-applications.show'))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('positions.0.type', 'intern')->where('positions.1.type', 'locum')->where('positions.2.type', 'resident_doctor')
-            ->has('branches', 3)->where('privacyNoticeVersion', 'draft-hr17-applications-v1'));
+            ->has('branches', 3)->where('privacyNoticeVersion', 'draft-hr17-applications-en-v2'));
 
         // Each type's own questions are required; a CA's are not asked of them.
         $this->apply($doctor, [])->assertSessionHasErrors(['mmc_number', 'apc_year', 'apc_expiry'])->assertSessionDoesntHaveErrors(['institution', 'availability']);
