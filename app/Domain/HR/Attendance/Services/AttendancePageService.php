@@ -110,6 +110,8 @@ final class AttendancePageService
             'staleLabel' => $stale ? 'Your clock-in on '.AttendanceSupport::day($open->local_date).' has no clock-out. Add your clock-out time below.' : null,
             'todayShift' => $todayShifts->isEmpty() ? null : $todayShifts->map(fn (RosterShift $s): string => (RosterRules::SESSIONS[$s->session_type] ?? 'Other')
                 .', '.AttendanceSupport::time($s->starts_at, $s->timezone).' to '.AttendanceSupport::time($s->ends_at, $s->timezone).', '.$s->version->week->branch->name)->implode('; '),
+            // S1 (Daniel): the "stay clocked in for your break" line shows only when today's shift has a rostered break.
+            'todayHasBreak' => $todayShifts->contains(fn (RosterShift $s): bool => (int) $s->break_minutes > 0),
             'week' => $week->all(),
             'weekLabel' => AttendanceSupport::day($weekStart).' to '.AttendanceSupport::day($weekStart->addDays(6)),
             'attention' => $attention->all(),
