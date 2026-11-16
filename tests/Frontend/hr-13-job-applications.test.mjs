@@ -14,6 +14,8 @@ const files = {
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
+// The page's script now lives in the composable (setup only): read both.
+source.hr += read('resources/js/composables/hr/useApplicationsPage.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('the public form, the thank-you page and the HR page compile', () => {
