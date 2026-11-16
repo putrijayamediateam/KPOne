@@ -23,6 +23,7 @@ test('DD-98: phone cards below md, the wide table from md up', () => {
         flat,
         /class="hidden overflow-x-auto rounded-xl border bg-card md:block"/,
     );
+
     for (const label of [
         'Member reference',
         'Invoice total',
@@ -40,6 +41,7 @@ test('DD-98: phone cards below md, the wide table from md up', () => {
             label,
         );
     }
+
     assert.match(flat, /\{\{ adjustment\(row\.panelAdjustmentSen\) \}\}/);
     assert.match(flat, /sen === 0 \? myr\(0\) : `\$\{sen > 0 \? '\+' : '−'\}/);
 });
