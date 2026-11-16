@@ -130,18 +130,34 @@ final class AttendanceDays
         return max(0, (int) $shift->starts_at->diffInMinutes($shift->ends_at) - $shift->break_minutes);
     }
 
-    /** Minutes worked in a closed session: the shift's break comes off only when the session covers the whole shift. */
+    /**
+     * Minutes worked in a closed session, less the share of the matched shift's break that the session covered. The roster
+     * keeps only the break's length, not when it is taken, so the share is the break times the part of the shift the
+     * session overlaps: a whole shift gives the whole break, as before, and a session outside the shift gives none.
+     * Arriving later or leaving earlier therefore never adds worked time (HR month dry run, S1: before, a late or early
+     * session kept its whole break as worked time).
+     */
     public static function worked(ClockSession $session, ?RosterShift $shift): ?int
     {
         if ($session->clock_out_at === null) {
             return null;
         }
-        $minutes = (int) $session->clock_in_at->diffInMinutes($session->clock_out_at);
-        if ($shift !== null && $session->clock_in_at->lessThanOrEqualTo($shift->starts_at) && $session->clock_out_at->greaterThanOrEqualTo($shift->ends_at)) {
-            $minutes -= $shift->break_minutes;
-        }
+        $minutes = intdiv($session->clock_out_at->getTimestamp() - $session->clock_in_at->getTimestamp(), 60);
 
-        return max(0, $minutes);
+        return max(0, $minutes - ($shift === null ? 0 : self::breakShare($session, $shift)));
+    }
+
+    /** S1: the matched shift's break minutes in proportion to the part of the shift the session overlaps, rounded. */
+    public static function breakShare(ClockSession $session, RosterShift $shift): int
+    {
+        $length = $shift->ends_at->getTimestamp() - $shift->starts_at->getTimestamp();
+        if ($session->clock_out_at === null || $length <= 0 || $shift->break_minutes <= 0) {
+            return 0;
+        }
+        $overlap = min($session->clock_out_at->getTimestamp(), $shift->ends_at->getTimestamp())
+            - max($session->clock_in_at->getTimestamp(), $shift->starts_at->getTimestamp());
+
+        return $overlap <= 0 ? 0 : (int) round($shift->break_minutes * $overlap / $length);
     }
 
     /**
