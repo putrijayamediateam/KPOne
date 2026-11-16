@@ -50,7 +50,6 @@ const {
 
 const button =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-9';
-const dangerButton = `${button} text-destructive`;
 const primaryButton =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-9';
 const inputClass =
@@ -276,7 +275,7 @@ const criteriaMissing = computed(() =>
                                     <button
                                         v-if="c.status === 'open'"
                                         type="button"
-                                        :class="dangerButton"
+                                        :class="button"
                                         :aria-label="`Close ${c.name}`"
                                         @click="askClose(c)"
                                     >
@@ -459,7 +458,7 @@ const criteriaMissing = computed(() =>
                 <button
                     v-if="criteriaForm.items.length > 1"
                     type="button"
-                    :class="`${dangerButton} self-start`"
+                    :class="`${button} self-start`"
                     :aria-label="`Remove criterion ${i + 1}`"
                     @click="removeCriterion(i)"
                 >
