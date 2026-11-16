@@ -70,6 +70,7 @@ const props = defineProps<{
             doneLabel: string | null;
             staleLabel: string | null;
             todayShift: string | null;
+            todayHasBreak: boolean;
             week: Row[];
             weekLabel: string;
             attention: Row[];
