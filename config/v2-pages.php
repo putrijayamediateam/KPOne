@@ -43,6 +43,7 @@ return [
         'HR/Claims',
         'HR/Applications',
         'HR/Dashboard',
+        'HR/Letters',
         'HR/Records',
         'HR/StaffFile',
         'HR/Appraisals',

@@ -17,7 +17,11 @@ const source = Object.fromEntries(
 // The request logic moved into composables shared with Version 2; the source is the file plus its composable.
 source.records += read('resources/js/composables/hr/useRecordsPage.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
-const script = (key) => parse(source[key]).descriptor.scriptSetup.content;
+const script = (key) =>
+    parse(source[key]).descriptor.scriptSetup.content +
+    (key === 'page'
+        ? read('resources/js/composables/hr/useLettersPage.ts')
+        : '');
 
 test('the new pages and the changed page compile', () => {
     for (const [key, path] of Object.entries(files)) {
