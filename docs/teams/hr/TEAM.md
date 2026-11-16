@@ -64,10 +64,11 @@ its own, and props, routes and permissions are the same. Each page is registered
 | `HR/Claims` | `useClaimsPage.ts`, with `useClaimSheet.ts` for the claim sheet | `pages/HR/V2/Claims.vue` | Nurul's team (PR #904) |
 | `HR/Records` | `useRecordsPage.ts`, with `useCorrectionSheet.ts`, `useOutsideExport.ts` and `useChecklistTab.ts` (the checklist one not used by V2 yet) | `pages/HR/V2/Records.vue` | Nurul's team (PR #910) |
 | `HR/StaffFile` | `useStaffFilePage.ts`; the audited Show is one shared function, `lib/hr-show-value.ts`, used by Classic's `MaskedValue` and V2 alike | `pages/HR/V2/StaffFile.vue` | Nurul's team (PR #915) |
+| `HR/Dashboard` | `useDashboardPage.ts` (the month request); read only | `pages/HR/V2/Dashboard.vue` | Nurul's team (PR #922) |
 
 - Nurul's team builds HR V2 pages under the HR rules; Suresh reviews each one for the HR team.
 - A frontend test that reads a Classic page's script may also read its composable; that is a setup change with the
-  expectations unchanged (as in `hr-5c-sops.test.mjs`, `hr-8-memos.test.mjs`, `hr-14-messages.test.mjs`, `hr-15b-open-shifts.test.mjs`, `hr-15b-needs-posting.test.mjs` seven Applications tests `hr-5a-credentials.test.mjs` `hr-6-claims.test.mjs`, six Records-related tests, and `hr-4a-records`, `hr-4b-documents` and `hr-15a-locum-sign-in` for the Staff file).
+  expectations unchanged (as in `hr-5c-sops.test.mjs`, `hr-8-memos.test.mjs`, `hr-14-messages.test.mjs`, `hr-15b-open-shifts.test.mjs`, `hr-15b-needs-posting.test.mjs` seven Applications tests `hr-5a-credentials.test.mjs` `hr-6-claims.test.mjs`, six Records-related tests, and `hr-4a-records`, `hr-4b-documents` and `hr-15a-locum-sign-in` for the Staff file, and `hr-9-dashboard` for the Dashboard).
 - V2 Open shifts: the Post sheet's Start and End times move to `V2TimeField` next time the page is touched
   (Daniel, design debt DD-79).
 - When the Classic SOPs restyle (`lastOpened`, which fills "I have read and understood" for the SOP just opened)
