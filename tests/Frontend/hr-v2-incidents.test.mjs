@@ -61,6 +61,6 @@ test('a date alone never saves a time nobody chose; a future time is refused', (
         /form\.occurredAt = date && time \? `\$\{date\}T\$\{time\}` : ''/,
     );
     assert.doesNotMatch(code, /00:00/);
-    assert.match(code, /form\.occurredAt > props\.incidents\.today/);
-    assert.match(code, /It cannot be in the future\./);
+    assert.match(code, /whenDate\.value > todayDate\.value/);
+    assert.match(code, /The date cannot be in the future\./);
 });

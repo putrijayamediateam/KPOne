@@ -85,8 +85,8 @@ const confirmReason = computed(() =>
         ? 'Choose what kind of incident it was to continue.'
         : !form.occurredAt
           ? 'Choose the date and the time it happened to continue.'
-          : form.occurredAt > props.incidents.today
-            ? 'It cannot be in the future. Choose the date and time it happened to continue.'
+          : whenDate.value > todayDate.value
+            ? 'The date cannot be in the future. Choose the date it happened to continue.'
             : form.description.trim().length < 10
               ? 'Describe what happened to continue.'
               : '',
@@ -135,7 +135,9 @@ const confirmReason = computed(() =>
                             {{
                                 incidents.tab === 'mine'
                                     ? 'You have not reported anything.'
-                                    : 'Nothing here.'
+                                    : incidents.tab === 'clinical'
+                                      ? 'No reports need clinical review.'
+                                      : 'Nothing here.'
                             }}
                         </p>
                         <p class="text-sm text-muted-foreground">
