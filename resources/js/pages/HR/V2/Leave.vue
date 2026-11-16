@@ -202,6 +202,26 @@ const typeDirty = computed(
         typeSnapshot.value !== '' &&
         typeFields() !== typeSnapshot.value,
 );
+// Daniel: "Send for a check" stays off until the required choices are made, and says what is missing in words.
+const entryMissing = computed(() =>
+    entryForm.user_id === ''
+        ? 'Choose a person to continue.'
+        : entryForm.leave_type_id === ''
+          ? 'Choose a leave type to continue.'
+          : String(entryForm.days).trim() === ''
+            ? 'Enter the days to continue.'
+            : entryForm.kind === 'adjustment' && entryForm.reason_code === ''
+              ? 'Choose a reason to continue.'
+              : '',
+);
+// "Use KPOne defaults" with nothing to add (Daniel): only a Close button, and the sheet sizes to its content.
+const defaultsNothing = computed(
+    () =>
+        yearAction.kind === 'defaults' &&
+        !!props.leave.settings &&
+        props.leave.settings.defaults.typesToAdd.length === 0 &&
+        props.leave.settings.defaults.rows === 0,
+);
 const settingsBranch = computed(() => branchName.value || 'this branch');
 const typeMenu = (t: TypeRow): RowMenuGroup[] => [
     {
@@ -1036,9 +1056,9 @@ const inputClass =
                                 {{ leave.settings.defaults.label }}
                             </p>
                             <V2Table
+                                class="hidden lg:block"
                                 label="Leave types"
                                 :columns="7"
-                                cards="lg"
                                 min-width="760px"
                                 :empty="leave.settings.types.length === 0"
                                 empty-message="No leave types yet."
@@ -1118,7 +1138,7 @@ const inputClass =
                                         </td>
                                         <td data-actions class="text-right">
                                             <V2RowMenu
-                                                :label="`Actions for ${t.name}`"
+                                                :label="`More actions for ${t.name}`"
                                                 :groups="typeMenu(t)"
                                                 @select="
                                                     (id: string) =>
@@ -1131,6 +1151,113 @@ const inputClass =
                                     </tr>
                                 </template>
                             </V2Table>
+                            <!-- Below 1024 px (Daniel): name and chips, then the four facts as a compact two-column list. -->
+                            <p
+                                v-if="leave.settings.types.length === 0"
+                                class="rounded-[14px] border bg-card px-4 py-6 text-center text-sm text-muted-foreground lg:hidden"
+                            >
+                                No leave types yet.
+                            </p>
+                            <ul
+                                v-else
+                                class="flex flex-col gap-3 lg:hidden"
+                                data-test="type-cards"
+                            >
+                                <li
+                                    v-for="t in leave.settings.types"
+                                    :key="t.id"
+                                    class="flex flex-col gap-3 rounded-[14px] border bg-card p-4"
+                                >
+                                    <div
+                                        class="flex items-start justify-between gap-2"
+                                    >
+                                        <div
+                                            class="flex min-w-0 flex-col gap-1"
+                                        >
+                                            <span
+                                                class="font-medium break-words"
+                                                >{{ t.name }}
+                                                <span
+                                                    class="text-sm font-normal text-muted-foreground"
+                                                    >· {{ t.code }}</span
+                                                ></span
+                                            >
+                                            <span
+                                                v-if="
+                                                    !t.isActive ||
+                                                    t.setByDefaults
+                                                "
+                                                class="flex flex-wrap gap-1"
+                                            >
+                                                <V2Chip
+                                                    v-if="!t.isActive"
+                                                    tone="neutral"
+                                                    label="Archived"
+                                                />
+                                                <V2Chip
+                                                    v-if="t.setByDefaults"
+                                                    tone="neutral"
+                                                    label="KPOne default"
+                                                    plain
+                                                />
+                                            </span>
+                                        </div>
+                                        <V2RowMenu
+                                            :label="`More actions for ${t.name}`"
+                                            :groups="typeMenu(t)"
+                                            @select="
+                                                (id: string) =>
+                                                    id === 'edit'
+                                                        ? openType(t)
+                                                        : askArchive(t)
+                                            "
+                                        />
+                                    </div>
+                                    <dl
+                                        class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm"
+                                    >
+                                        <div class="flex justify-between gap-2">
+                                            <dt class="text-muted-foreground">
+                                                Paid
+                                            </dt>
+                                            <dd>{{ yesNo(t.isPaid) }}</dd>
+                                        </div>
+                                        <div class="flex justify-between gap-2">
+                                            <dt class="text-muted-foreground">
+                                                Balance
+                                            </dt>
+                                            <dd>{{ yesNo(t.usesBalance) }}</dd>
+                                        </div>
+                                        <div class="flex justify-between gap-2">
+                                            <dt class="text-muted-foreground">
+                                                Half days
+                                            </dt>
+                                            <dd>
+                                                {{ yesNo(t.allowHalfDays) }}
+                                            </dd>
+                                        </div>
+                                        <div class="flex justify-between gap-2">
+                                            <dt class="text-muted-foreground">
+                                                Evidence
+                                            </dt>
+                                            <dd>
+                                                {{ yesNo(t.evidenceNeeded) }}
+                                            </dd>
+                                        </div>
+                                        <div
+                                            v-if="t.carryMaxDays"
+                                            class="col-span-2 flex justify-between gap-2"
+                                        >
+                                            <dt class="text-muted-foreground">
+                                                Carry up to
+                                            </dt>
+                                            <dd class="tabular-nums">
+                                                {{ t.carryMaxDays }} days
+                                            </dd>
+                                        </div>
+                                    </dl>
+                                </li>
+                            </ul>
                         </div>
 
                         <!-- Entitlements -->
@@ -1139,7 +1266,7 @@ const inputClass =
                             id="leave-settings-panel-entitlements"
                             role="tabpanel"
                             aria-labelledby="leave-settings-tab-entitlements"
-                            class="flex flex-col gap-4"
+                            class="flex flex-col gap-4 max-md:pb-24"
                             data-test="entitlements-card"
                         >
                             <V2FormCard
@@ -1249,9 +1376,7 @@ const inputClass =
                                             <h4 class="text-sm font-medium">
                                                 {{ role.label }}
                                             </h4>
-                                            <div
-                                                class="mt-2 grid grid-cols-2 gap-3"
-                                            >
+                                            <div class="mt-2 grid gap-3">
                                                 <div
                                                     v-for="t in balanceTypes"
                                                     :key="t.id"
@@ -1289,9 +1414,13 @@ const inputClass =
                                         :key="key"
                                         :message="message"
                                     />
-                                    <div class="flex justify-end">
+                                    <!-- Below 768 px the save is a bar at the bottom of the screen (Daniel): twelve role cards put the end of the card too far away. -->
+                                    <div
+                                        class="flex justify-end max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-20 max-md:border-t max-md:bg-card max-md:pt-3 max-md:pr-[max(16px,env(safe-area-inset-right,0px))] max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] max-md:pl-[max(16px,env(safe-area-inset-left,0px))]"
+                                        data-test="save-entitlements-bar"
+                                    >
                                         <Button
-                                            class="min-h-11 w-full sm:w-fit lg:min-h-9"
+                                            class="min-h-11 w-full md:w-fit lg:min-h-9"
                                             :disabled="entitlementSaving"
                                             data-test="save-entitlements"
                                             @click="saveEntitlements"
@@ -1594,25 +1723,18 @@ const inputClass =
                                                 {{ h.name }}
                                             </td>
                                             <td data-actions class="text-right">
-                                                <V2RowMenu
-                                                    :label="`Actions for ${h.name}, ${h.label}`"
-                                                    :groups="[
-                                                        {
-                                                            label: 'Holiday',
-                                                            items: [
-                                                                {
-                                                                    id: 'remove',
-                                                                    label: 'Remove',
-                                                                    allowed: true,
-                                                                    tone: 'danger',
-                                                                },
-                                                            ],
-                                                        },
-                                                    ]"
-                                                    @select="
-                                                        removeHoliday(h.id)
-                                                    "
-                                                />
+                                                <Button
+                                                    variant="outline"
+                                                    class="min-h-11 max-lg:w-full lg:min-h-9"
+                                                    data-test="remove-holiday"
+                                                    @click="removeHoliday(h.id)"
+                                                    >Remove<span
+                                                        class="sr-only"
+                                                    >
+                                                        {{ h.name }},
+                                                        {{ h.label }}</span
+                                                    ></Button
+                                                >
                                             </td>
                                         </tr>
                                     </template>
@@ -1635,7 +1757,9 @@ const inputClass =
                             >
                                 <form
                                     class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-                                    @submit.prevent="saveEntry"
+                                    @submit.prevent="
+                                        entryMissing === '' && saveEntry()
+                                    "
                                 >
                                     <V2Field label="Entry">
                                         <template
@@ -1786,12 +1910,33 @@ const inputClass =
                                     <div
                                         class="flex items-end sm:col-span-2 lg:col-span-3 lg:justify-end"
                                     >
-                                        <Button
-                                            type="submit"
-                                            class="min-h-11 w-full sm:w-fit lg:min-h-9"
-                                            :disabled="entryForm.processing"
-                                            >Send for a check</Button
+                                        <div
+                                            class="flex w-full flex-col gap-1 lg:w-fit lg:items-end"
                                         >
+                                            <Button
+                                                type="submit"
+                                                class="min-h-11 w-full sm:w-fit lg:min-h-9"
+                                                :disabled="
+                                                    entryForm.processing ||
+                                                    entryMissing !== ''
+                                                "
+                                                :aria-describedby="
+                                                    entryMissing
+                                                        ? 'entry-missing'
+                                                        : undefined
+                                                "
+                                                data-test="send-entry"
+                                                >Send for a check</Button
+                                            >
+                                            <p
+                                                v-if="entryMissing"
+                                                id="entry-missing"
+                                                class="text-sm text-muted-foreground"
+                                                data-test="entry-missing"
+                                            >
+                                                {{ entryMissing }}
+                                            </p>
+                                        </div>
                                     </div>
                                 </form>
                             </V2FormCard>
@@ -2512,14 +2657,28 @@ const inputClass =
             :title="yearText.title"
             :description="yearText.description"
             :confirm-label="
-                yearAction.processing ? 'Working…' : yearText.confirm
+                defaultsNothing
+                    ? 'Close'
+                    : yearAction.processing
+                      ? 'Working…'
+                      : yearText.confirm
             "
             :busy="yearAction.processing"
-            :size="yearAction.kind === 'defaults' ? 'tall' : 'default'"
+            :size="
+                defaultsNothing
+                    ? 'default'
+                    : yearAction.kind === 'defaults'
+                      ? 'tall'
+                      : 'default'
+            "
+            :single-action="defaultsNothing"
+            single-action-style="outline"
             :tone="yearAction.kind === 'expire' ? 'danger' : 'default'"
             data-test="year-dialog"
             @update:open="yearAction.open = $event"
-            @confirm="confirmYear"
+            @confirm="
+                defaultsNothing ? (yearAction.open = false) : confirmYear()
+            "
         >
             <div
                 v-if="

@@ -69,8 +69,33 @@ test('each sub-tab keeps its content and its data-test hooks', () => {
     }
 
     // Types and holidays are V2 tables that become cards below 1024 px; row actions sit in the row menu.
-    assert.match(settings, /<V2Table\s+label="Leave types"[\s\S]*?cards="lg"/);
-    assert.match(settings, /<V2RowMenu\s+:label="`Actions for \$\{t\.name\}`"/);
+    // Types: a table from 1024 px, compact cards below (name, chips, a two-column list; no empty "Carry up to").
+    assert.match(
+        settings,
+        /<V2Table\s+class="hidden lg:block"\s+label="Leave types"/,
+    );
+    assert.match(
+        settings,
+        /data-test="type-cards"[\s\S]*?<dl\s+class="grid grid-cols-2/,
+    );
+    assert.match(settings, /v-if="t\.carryMaxDays"\s+class="col-span-2/);
+    assert.match(settings, /:label="`More actions for \$\{t\.name\}`"/);
+    assert.match(settings, /label="Archived"/);
+    // A single action is a named outline button, not a menu (Daniel): Remove <holiday>.
+    assert.match(
+        settings,
+        /data-test="remove-holiday"\s+@click="removeHoliday\(h\.id\)"\s*>Remove<span\s+class="sr-only"/,
+    );
+    assert.doesNotMatch(settings, /Actions for \$\{h\.name\}/);
+    // Entitlements below 768 px: one column, and the save is a bar at the bottom of the screen.
+    assert.match(settings, /class="mt-2 grid gap-3"/);
+    assert.match(
+        settings,
+        /max-md:fixed max-md:inset-x-0 max-md:bottom-0[\s\S]*?data-test="save-entitlements-bar"/,
+    );
+    // "Send for a check" stays off until the person, type and days (and a reason) are chosen, and says what is missing.
+    assert.match(settings, /entryForm\.processing \|\|\s*entryMissing !== ''/);
+    assert.match(script, /'Choose a person to continue\.'/);
     assert.match(
         settings,
         /<V2Table\s+label="Public holidays"[\s\S]*?cards="lg"/,
@@ -119,9 +144,19 @@ test('the type sheet and the year confirm are V2 dialogs with the same requests'
     );
     assert.match(
         html,
-        /<V2Dialog\s+:open="yearAction\.open"[\s\S]*?:title="yearText\.title"[\s\S]*?@confirm="confirmYear"/,
+        /<V2Dialog\s+:open="yearAction\.open"[\s\S]*?:title="yearText\.title"[\s\S]*?defaultsNothing \? \(yearAction\.open = false\) : confirmYear\(\)/,
+    );
+    // Nothing to add from the KPOne defaults: a Close button only, sized to its content (Daniel).
+    assert.match(
+        html,
+        /:single-action="defaultsNothing"\s+single-action-style="outline"/,
     );
     assert.match(html, /data-test="defaults-details"/);
+    // Nothing to add from the KPOne defaults: a Close button only, sized to its content (Daniel).
+    assert.match(
+        html,
+        /:single-action="defaultsNothing"\s+single-action-style="outline"/,
+    );
     // Expire and Archive confirm first, in red (Daniel); Archive still calls the same archiveType.
     assert.match(
         html,
