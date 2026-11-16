@@ -53,8 +53,8 @@ import type { BoxBatchHint } from '@/lib/gs1-batch';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate, formatStatusLabel } from '@/lib/presentation';
 import type { Gs1Read, ScannedSku } from '@/lib/scan';
-import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
 import AllergyMatchWarning from '@/pages/Dispensary/V2/Partials/AllergyMatchWarning.vue';
+import OtcAllergyRecordForm from '@/pages/Dispensary/V2/Partials/OtcAllergyRecordForm.vue';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Dispensary', href: '/registration' }] },
