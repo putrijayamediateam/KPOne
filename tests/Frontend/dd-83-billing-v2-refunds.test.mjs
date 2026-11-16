@@ -53,11 +53,13 @@ test('DD-83: a reversed receipt shows the full amount in words; the action stays
     );
 });
 
-test('DD-83: one filled action, red only in the Reject confirm, 44 px below lg', () => {
+test('DD-83: Record refund outline, state chip with a dot, red only in the Reject confirm, 44 px below lg', () => {
+    assert.match(flat, /<Button type="submit" variant="outline"/);
     assert.match(
         flat,
-        /:variant="hasDecision\(receipt\) \? 'outline' : 'default'"/,
+        /<V2Chip :tone="stateTone\[refund\.state\]" :label="stateText\[refund\.state\]" \/>/,
     );
+    assert.doesNotMatch(v2, /StatusBadge/);
     assert.match(
         flat,
         /variant="outline" class="max-lg:min-h-11" :aria-label="`Reject refund of/,

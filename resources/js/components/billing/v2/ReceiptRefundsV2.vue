@@ -3,7 +3,7 @@ import { router, usePage } from '@inertiajs/vue3';
 import { computed, reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
-import { StatusBadge } from '@/components/ui/status';
+import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2MoneyInput from '@/components/v2/V2MoneyInput.vue';
 import V2Picker from '@/components/v2/V2Picker.vue';
@@ -15,7 +15,7 @@ import { myr, toSen } from '@/types/billing';
  * ReceiptRefunds.vue (BIL-6 refunds for a reversed receipt, BIL-10 refunds after completion), which stays
  * unchanged for the Classic page. V2 parts only: V2Picker for the method and reasons (they start empty and the
  * action stays off until both are picked), V2MoneyInput for a part refund, a reversed receipt's amount in words
- * ("Full amount RM x"), one filled action per receipt, and red only in the Reject confirm dialog.
+ * ("Full amount RM x"), Record refund as an outline button (the page keeps its one filled action), the state as a V2Chip (dot and word), and red only in the Reject confirm dialog. Approve acts on one press, as in Classic.
  */
 const props = defineProps<{
     refunds: RefundsContext;
@@ -104,8 +104,6 @@ const missing = (receipt: Receipt): string | null => {
 
     return `Pick ${list} to continue.`;
 };
-const hasDecision = (receipt: Receipt) =>
-    receipt.refunds.some((refund) => refund.canDecide);
 
 const send = (
     id: string,
@@ -264,8 +262,7 @@ const confirmReject = () => {
                         >Refund {{ myr(refund.amountSen) }} by
                         {{ refund.method }} · {{ refund.reason }}</span
                     >
-                    <StatusBadge
-                        :status="`refund_${refund.state}`"
+                    <V2Chip
                         :tone="stateTone[refund.state]"
                         :label="stateText[refund.state]"
                     />
@@ -362,7 +359,7 @@ const confirmReject = () => {
                 <div class="flex flex-wrap items-center gap-3 sm:col-span-2">
                     <Button
                         type="submit"
-                        :variant="hasDecision(receipt) ? 'outline' : 'default'"
+                        variant="outline"
                         class="max-lg:min-h-11"
                         :disabled="
                             busy[receipt.publicId] || missing(receipt) !== null
