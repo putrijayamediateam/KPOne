@@ -274,7 +274,7 @@ class ClockPhotoTest extends VisitTestCase
         $this->assertContains($real->addDays(21)->format('Y-m'), array_column($preview['months'], 'month'));
 
         $this->artisan('hr-attendance:purge', ['--dry-run' => true])
-            ->expectsOutputToContain('Dry run: nothing is deleted. Attendance records are kept 7 years (draft, to confirm).')
+            ->expectsOutputToContain('Dry run: nothing is deleted. Attendance records are kept 7 years (owner decision 16 Nov 2026).')
             ->expectsOutputToContain('Next falls due')
             ->assertSuccessful();
 
@@ -325,7 +325,8 @@ class ClockPhotoTest extends VisitTestCase
             ->where('attendance.settings.photoStorage.forecastMonths', 3)
             ->where('attendance.settings.photoStorage.retentionYears', 7)
             ->where('attendance.settings.photoStorage.earliestDelete', '21 Nov 2033')
-            ->where('attendance.settings.photoStorage.draft', true)
+            ->where('attendance.settings.photoStorage.draft', false)
+            ->where('attendance.settings.photoStorage.basis', 'owner decision 16 Nov 2026')
             // Counts only: no names, photo ids or per-person figures anywhere on the card.
             ->where('attendance.settings.photoStorage', fn ($card): bool => ! str_contains((string) json_encode($card), $ca->name)
                 && ! str_contains((string) json_encode($card), (string) ClockPhoto::query()->value('public_id'))));

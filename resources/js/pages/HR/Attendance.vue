@@ -8,9 +8,11 @@ import MyOvertimeSection from '@/components/hr/attendance/MyOvertime.vue';
 import OvertimeAskSheet from '@/components/hr/attendance/OvertimeAskSheet.vue';
 import OvertimeSettingsForm from '@/components/hr/attendance/OvertimeSettingsForm.vue';
 import OvertimeTab from '@/components/hr/attendance/OvertimeTab.vue';
+import PhotoStorageCard from '@/components/hr/attendance/PhotoStorageCard.vue';
 import SummaryTab from '@/components/hr/attendance/SummaryTab.vue';
 import type {
     LocationCheckCard,
+    PhotoStorageCard as PhotoStorageData,
     MyOvertime,
     OvertimeOptions,
     OvertimeSettingsCard,
@@ -128,6 +130,8 @@ const props = defineProps<{
             }[];
             overtime: OvertimeSettingsCard;
             location: LocationCheckCard | null;
+            /** HR-PHOTO-STORAGE (owner, 16 Nov 2026): the read-only storage card, Director and HR Manager only. */
+            photoStorage?: PhotoStorageData;
         } | null;
         overtime: OvertimeTabData | null;
         summary: SummaryTabData | null;
@@ -1238,6 +1242,10 @@ const {
             <LocationCheckSettings
                 v-if="attendance.settings.location"
                 :card="attendance.settings.location"
+            />
+            <PhotoStorageCard
+                v-if="attendance.settings.photoStorage"
+                :card="attendance.settings.photoStorage"
             />
         </section>
 
