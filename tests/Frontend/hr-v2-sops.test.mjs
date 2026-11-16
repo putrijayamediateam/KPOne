@@ -86,3 +86,34 @@ test('the names and wording Classic shows are kept; V2 adds no name', () => {
     assert.match(flat, /\{\{ v\.publishedBy \}\}/);
     assert.doesNotMatch(template, /\.email|\.phone|\.identifier|\.bank/);
 });
+
+test('Daniel: the manager sentence is on the manager tab only; Open in Versions and Withdrawn is an outline button', () => {
+    assert.match(
+        script,
+        /props\.sops\.tab === 'manage'\s*\?\s*'Publish SOPs to the roles that must read them/,
+    );
+    assert.match(
+        script,
+        /'Read each SOP, then say you have read and understood it\.'/,
+    );
+    assert.doesNotMatch(source, /textLink/);
+    assert.equal(
+        (template.match(/:href="openUrl\([^)]*\)"\s+:class="button"/g) ?? [])
+            .length,
+        4,
+    );
+});
+
+test('Daniel: the faded Publish names the next missing thing, in order, as each is filled', () => {
+    const order = [
+        'Enter a title to continue.',
+        'Choose at least one role to continue.',
+        'Choose the PDF to continue.',
+    ].map((text) => script.indexOf(text));
+    assert.ok(
+        order.every((i) => i > 0) && order[0] < order[1] && order[1] < order[2],
+    );
+    assert.match(script, /form\.title\.trim\(\) === ''/);
+    assert.match(script, /form\.roles\.length === 0/);
+    assert.match(script, /!form\.file/);
+});

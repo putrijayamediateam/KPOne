@@ -52,15 +52,14 @@ const button =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:min-h-9';
 const primaryButton =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50 lg:min-h-9';
-const textLink =
-    'inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
 const inputClass =
     'h-11 w-full rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9';
 
+// The manager sentence belongs to the manager tab only; everyone else reads a staff sentence (Daniel).
 const description = computed(() =>
-    props.sops.canManage
+    props.sops.tab === 'manage'
         ? 'Publish SOPs to the roles that must read them, and see who has not acknowledged yet. A new file is a new version, read again by everyone it is for.'
-        : 'SOPs for your role. Open each one, then press I have read and understood.',
+        : 'Read each SOP, then say you have read and understood it.',
 );
 const fileStatus = computed(() =>
     form.file
@@ -383,7 +382,7 @@ const publishMissing = computed(() => {
                                             >
                                             <a
                                                 :href="openUrl(v.versionId)"
-                                                :class="textLink"
+                                                :class="button"
                                                 :aria-label="`Open version ${v.version} (PDF)`"
                                                 >Open</a
                                             >
@@ -422,7 +421,7 @@ const publishMissing = computed(() => {
                                     <a
                                         v-if="sop.versionId"
                                         :href="openUrl(sop.versionId)"
-                                        :class="textLink"
+                                        :class="button"
                                         :aria-label="`Open ${sop.title}, version ${sop.version} (PDF)`"
                                         >Open</a
                                     >
