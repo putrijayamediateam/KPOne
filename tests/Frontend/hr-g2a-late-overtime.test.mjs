@@ -27,15 +27,41 @@ test('the approve dialog says the month is locked, in Classic and V2', () => {
 
 test('the run page lists late overtime and adds it only on a draft adjustment', () => {
     const source = read('resources/js/pages/HR/PayrollRun.vue');
+
     assert.match(source, /late: LateItem\[\];/);
     assert.match(
         source,
-        /v-if="run\.late\.length"[\s\S]*?Approved after this run was locked/,
+        /v-if="run\.late\.length"[\s\S]*?Late overtime[\s\S]*?Approved after this run was locked/,
+    );
+    // No draft adjustment: a sentence and a Start button, never disabled per-item buttons.
+    assert.match(
+        source,
+        /run\.lateAdjustment\.id === null[\s\S]*?Start an adjustment run to add these\.[\s\S]*?data-test="run-late-start"[\s\S]*?Start adjustment run/,
+    );
+    // A table from 1024 px, cards below; no money in the card.
+    assert.match(
+        source,
+        /hidden overflow-x-auto lg:block[\s\S]*?data-test="run-late-table"/,
     );
     assert.match(
         source,
-        /v-if="run\.kind === 'adjustment' && run\.canEdit"[\s\S]*?v-if="item\.state === 'waiting'"[\s\S]*?data-test="run-late-add"[\s\S]*?Add to this adjustment[\s\S]*?v-else-if="item\.state === 'here'"[\s\S]*?data-test="run-late-remove"[\s\S]*?Take off/,
+        /class="grid gap-2 lg:hidden"[\s\S]*?data-test="run-late-card"/,
+    );
+    assert.doesNotMatch(
+        source.slice(
+            source.indexOf('data-test="run-late"'),
+            source.indexOf('data-test="run-late-card"'),
+        ),
+        /myr\(|amountSen/,
+    );
+    assert.match(
+        source,
+        /item\.state === 'waiting'[\s\S]*?data-test="run-late-add"[\s\S]*?Add to this adjustment[\s\S]*?item\.state === 'here'[\s\S]*?data-test="run-late-added"[\s\S]*?Added to this adjustment[\s\S]*?data-test="run-late-remove"[\s\S]*?Take off/,
     );
     assert.match(source, /post\(`late\/\$\{item\.id\}`, \{\}\)/);
     assert.match(source, /post\(`late\/\$\{item\.itemId\}\/remove`, \{\}\)/);
+    assert.match(
+        source,
+        /kind: 'adjustment',\s*idempotency_key: crypto\.randomUUID\(\)/,
+    );
 });

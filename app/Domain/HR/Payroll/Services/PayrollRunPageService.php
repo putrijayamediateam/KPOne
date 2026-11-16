@@ -107,7 +107,8 @@ final class PayrollRunPageService
             'sentBy' => $run->sent_by_user_id === null ? null : (string) ($names->get($run->sent_by_user_id) ?? 'Staff member'),
             'approvedBy' => $run->approved_by_user_id === null ? null : (string) ($names->get($run->approved_by_user_id) ?? 'Staff member'),
             'lockedAt' => $run->locked_at === null ? null : CarbonImmutable::parse((string) $run->locked_at)->toIso8601String(),
-            'people' => $rows->all(), 'total' => $total, 'errorCount' => $errorCount, 'late' => $this->late($org, $run),
+            'people' => $rows->all(), 'total' => $total, 'errorCount' => $errorCount, 'late' => $late = $this->late($org, $run),
+            'lateAdjustment' => $this->lateAdjustment($run, $late),
             'canEdit' => $draft, 'sendRefusal' => $sendRefusal, 'steps' => $steps,
             'draftRefusal' => $draft ? $this->runs->lastApproverRefusal($actor, $run) : null,
             'options' => ['itemTypes' => $types->map(fn (\stdClass $t): array => ['value' => (string) $t->public_id, 'label' => $t->name.' ('.(PayrollSetupService::KINDS[$t->kind] ?? $t->kind).')'])->all(),
@@ -134,6 +135,24 @@ final class PayrollRunPageService
             'duration' => PayrollRunCalculator::duration($i['minutes']), 'approvedAt' => $i['approvedAt'],
             'state' => $i['inRunId'] === null ? 'waiting' : ($run->kind === 'adjustment' && $i['inRunId'] === (int) $run->id ? 'here' : 'elsewhere'),
             'itemId' => $here->has($i['overtimeId']) ? (string) $here->get($i['overtimeId']) : null], $this->lateAfterLock->forRegularRun($org, $regular));
+    }
+
+    /**
+     * G2a (Daniel): on a locked regular run with late items, the open adjustment run to add them on, or what is needed
+     * to start one. Null on any other run.
+     *
+     * @param  list<array<string, mixed>>  $late
+     * @return array{id: ?string, draft: bool, payGroupId: string, month: string}|null
+     */
+    private function lateAdjustment(\stdClass $run, array $late): ?array
+    {
+        if ($run->kind !== 'regular' || $late === []) {
+            return null;
+        }
+        $open = DB::table('hr_payroll_runs')->where('adjusts_run_id', $run->id)->where('status', '<>', 'locked')->first(['public_id', 'status']);
+
+        return ['id' => $open === null ? null : (string) $open->public_id, 'draft' => $open !== null && $open->status === 'draft', 'payGroupId' => (string) DB::table('hr_pay_groups')->where('id', $run->pay_group_id)->value('public_id'),
+            'month' => CarbonImmutable::parse((string) $run->month)->format('Y-m')];
     }
 
     /** @return array<string, int> */

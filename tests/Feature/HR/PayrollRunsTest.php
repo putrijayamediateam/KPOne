@@ -331,13 +331,17 @@ class PayrollRunsTest extends VisitTestCase
         // The locked run lists it and pays nothing for it; it cannot go on a regular run.
         $this->selectBranch($this->hr);
         $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page
-            ->where('run.late.0.id', $late->public_id)->where('run.late.0.state', 'waiting')->where('run.late.0.duration', '1 h'));
+            ->where('run.late.0.id', $late->public_id)->where('run.late.0.state', 'waiting')->where('run.late.0.duration', '1 h')
+            ->where('run.lateAdjustment.id', null)->where('run.lateAdjustment.month', '2026-11')->where('run.lateAdjustment.payGroupId', $this->group));
         $this->assertCount(1, array_filter($this->lines($aina), fn (array $l): bool => $l[0] === 'overtime'));
 
         // A draft adjustment offers it; nothing is added until HR presses the button.
         $this->prepare($this->hr, 'adjustment')->assertRedirect();
         $adjustment = (string) DB::table('hr_payroll_runs')->where('kind', 'adjustment')->value('public_id');
         $this->assertSame(0, DB::table('hr_payroll_late_items')->count());
+        $this->selectBranch($this->hr);
+        $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('run.lateAdjustment.id', $adjustment)->where('run.lateAdjustment.draft', true));
         $this->selectBranch($this->hr);
         $this->get(route('hr.payroll.runs.show', $adjustment))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('run.late.0.state', 'waiting')->where('run.late.0.itemId', null));
@@ -362,7 +366,7 @@ class PayrollRunsTest extends VisitTestCase
 
         // Once a locked run pays it, it is no longer late, and approving more overtime in November is still flagged.
         $this->selectBranch($this->hr);
-        $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('run.late', []));
+        $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('run.late', [])->where('run.lateAdjustment', null));
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'hr.payroll.run_late_removed')->count());
         $this->assertSame(2, DB::table('audit_logs')->where('event', 'hr.payroll.run_late_added')->count());
 
