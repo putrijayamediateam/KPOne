@@ -14,14 +14,14 @@ const page = readFileSync(
 );
 const flat = page.replace(/\s+/g, ' ');
 
-test('DD-98: phone cards below md, the wide table from md up', () => {
+test('DD-98: cards below lg (two columns from md), the wide table from lg up', () => {
     assert.match(
         flat,
-        /<ul v-else class="grid gap-3 md:hidden" data-testid="panel-invoice-cards" >/,
+        /<ul v-else class="grid gap-3 md:grid-cols-2 lg:hidden" data-testid="panel-invoice-cards" >/,
     );
     assert.match(
         flat,
-        /class="hidden overflow-x-auto rounded-xl border bg-card md:block"/,
+        /class="hidden overflow-x-auto rounded-xl border bg-card lg:block"/,
     );
 
     for (const label of [
@@ -62,4 +62,13 @@ test('DD-98: shared dropdowns, no native select, and Download CSV is an outline 
 
 test('DD-98: money cells line up as tabular numbers', () => {
     assert.ok([...page.matchAll(/tabular-nums/g)].length >= 6);
+});
+
+test('DD-98: the claim reads "PCL-00000001 · Paid" in cards and table', () => {
+    assert.match(
+        flat,
+        /row\.claimNo \? `PCL-\$\{row\.claimNo\.padStart\(8, '0'\)\} · \$\{row\.claimStatus\}` : row\.claimStatus/,
+    );
+    assert.equal([...page.matchAll(/\{\{ claimLabel\(row\) \}\}/g)].length, 2);
+    assert.doesNotMatch(page, /· \{\{ row\.claimNo \}\}/);
 });

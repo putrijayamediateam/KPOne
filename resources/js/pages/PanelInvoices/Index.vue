@@ -58,6 +58,12 @@ const myr = (sen: number) =>
 
 const adjustment = (sen: number) =>
     sen === 0 ? myr(0) : `${sen > 0 ? '+' : '−'}${myr(Math.abs(sen))}`;
+// DD-98 (Daniel): "PCL-00000001 · Paid", not a bare "Paid · 1". Display only;
+// the payload and the CSV keep the plain claim id.
+const claimLabel = (row: Row) =>
+    row.claimNo
+        ? `PCL-${row.claimNo.padStart(8, '0')} · ${row.claimStatus}`
+        : row.claimStatus;
 const panelOptions = computed(() =>
     props.panels.map((name) => ({ value: name, label: name })),
 );
@@ -233,7 +239,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
             </div>
             <ul
                 v-else
-                class="grid gap-3 md:hidden"
+                class="grid gap-3 md:grid-cols-2 lg:hidden"
                 data-testid="panel-invoice-cards"
             >
                 <li
@@ -280,10 +286,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
                         <div class="min-w-0">
                             <dt class="text-xs text-muted-foreground">Claim</dt>
                             <dd class="wrap-anywhere">
-                                {{ row.claimStatus
-                                }}<span v-if="row.claimNo">
-                                    · {{ row.claimNo }}</span
-                                >
+                                {{ claimLabel(row) }}
                             </dd>
                         </div>
                         <div class="min-w-0">
@@ -315,7 +318,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
             </ul>
             <div
                 v-if="rows.length > 0"
-                class="hidden overflow-x-auto rounded-xl border bg-card md:block"
+                class="hidden overflow-x-auto rounded-xl border bg-card lg:block"
             >
                 <table class="w-full min-w-[1000px] text-left text-sm">
                     <thead>
@@ -372,12 +375,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
                                         : `${row.panelAdjustmentSen > 0 ? '+' : '−'}${myr(Math.abs(row.panelAdjustmentSen))}`
                                 }}
                             </td>
-                            <td class="p-3">
-                                {{ row.claimStatus
-                                }}<span v-if="row.claimNo">
-                                    · {{ row.claimNo }}</span
-                                >
-                            </td>
+                            <td class="p-3">{{ claimLabel(row) }}</td>
                         </tr>
                     </tbody>
                 </table>
