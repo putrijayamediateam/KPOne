@@ -126,7 +126,8 @@ final class PanelInvoiceReportService
             ->leftJoin('users as d', function ($join): void {
                 $join->on('d.id', '=', 'v.assigned_doctor_user_id')->on('d.organisation_id', '=', 'v.organisation_id');
             })
-            ->leftJoin('panel_claims as pc', 'pc.coverage_allocation_id', '=', 'c.id')
+            // PCA-2: the original claim only, so a supplementary claim never doubles the row (its column comes with the reports PR).
+            ->leftJoin('panel_claims as pc', fn ($j) => $j->on('pc.coverage_allocation_id', '=', 'c.id')->where('pc.claim_kind', 'original'))
             ->where('c.organisation_id', $actor->organisation_id)->where('c.branch_id', $branch->id)
             ->where('c.status', 'approved')
             ->whereColumn('c.current_invoice_guard', 'i.id')->whereColumn('c.invoice_id', 'i.id')

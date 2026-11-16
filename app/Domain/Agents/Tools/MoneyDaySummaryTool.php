@@ -73,7 +73,7 @@ final class MoneyDaySummaryTool implements SystemReadableTool
                 ->where('finalized_at', '>=', CarbonImmutable::parse($date, $each->timezone)->startOfDay()->utc())
                 ->where('finalized_at', '<', CarbonImmutable::parse($date, $each->timezone)->addDay()->startOfDay()->utc())
                 ->chunkById(500, function ($invoices) use (&$panel, &$due): void {
-                    foreach ($this->ledger->states($invoices) as $state) {
+                    foreach ($this->ledger->states($invoices, withPanelAdjustments: false) as $state) { // PCA-2: day story, as the Daily summary.
                         $panel += (int) $state['panel'];
                         $due += (int) $state['deferred'];
                     }

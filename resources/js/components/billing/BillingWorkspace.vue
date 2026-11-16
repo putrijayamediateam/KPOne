@@ -11,6 +11,7 @@ import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import IssuedCopies from '@/components/billing/IssuedCopies.vue';
 import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
+import PanelAdjustmentPanel from '@/components/billing/PanelAdjustmentPanel.vue';
 import ReceiptCorrections from '@/components/billing/ReceiptCorrections.vue';
 import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
 import { ActionLink } from '@/components/ui/action-link';
@@ -1187,6 +1188,10 @@ const reverse = (receipt: Receipt) =>
                         unchanged.
                     </p>
                 </div>
+                <PanelAdjustmentPanel
+                    v-if="!manage && billing.panelAdjustment"
+                    :adjustment="billing.panelAdjustment"
+                />
                 <details v-if="!manage && billing.can.void">
                     <summary class="cursor-pointer">
                         Governed correction

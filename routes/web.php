@@ -73,6 +73,7 @@ use App\Http\Controllers\MedicalCertificateController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\OpeningImportController;
+use App\Http\Controllers\PanelClaimAdjustmentController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
 use App\Http\Controllers\PanelPaymentCorrectionsController;
@@ -764,6 +765,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::get('panel-responsibility', [BillingWorkController::class, 'panel'])->middleware('sensitive.no-store')->name('clinic.panel-responsibility');
+    // PCA-2: Panel claim adjustments (request and withdraw need the request permission; confirm needs the confirm permission).
+    Route::post('panel-claims/allocations/{allocation}/adjustments', [PanelClaimAdjustmentController::class, 'request'])->middleware(['permission:panel.claims.adjustments.request.branch', 'throttle:20,1'])->name('panel-claim-adjustments.request');
+    Route::post('panel-claim-adjustments/{adjustment}/confirm', [PanelClaimAdjustmentController::class, 'confirm'])->whereUuid('adjustment')->middleware(['permission:panel.claims.adjustments.confirm.branch', 'throttle:20,1'])->name('panel-claim-adjustments.confirm');
+    Route::post('panel-claim-adjustments/{adjustment}/withdraw', [PanelClaimAdjustmentController::class, 'withdraw'])->whereUuid('adjustment')->middleware(['permission:panel.claims.adjustments.request.branch', 'throttle:20,1'])->name('panel-claim-adjustments.withdraw');
     Route::middleware(['permission:panel.claims.manage.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-claims', [PanelClaimsController::class, 'index'])->name('panel-claims.index');
         Route::get('panel-claims/follow-up', [PanelClaimsController::class, 'followUp'])->name('panel-claims.follow-up');
