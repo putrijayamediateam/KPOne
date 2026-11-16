@@ -355,6 +355,11 @@ class PanelStatementService
     private function amount(string $text): ?int
     {
         $clean = preg_replace('/^(?:rm|myr)\s*/i', '', str_replace(' ', '', trim($text))) ?? '';
+        // "1.234,50" (dots group thousands in whole groups of three, then a comma and exactly two digits) is the European
+        // form of 1,234.50. Only that full shape is read this way, so "1.000" or "1.5" never turn into other amounts.
+        if (preg_match('/\A([0-9]{1,3}(?:\.[0-9]{3})+),([0-9]{2})\z/', $clean, $eu) === 1) {
+            $clean = str_replace('.', '', $eu[1]).'.'.$eu[2];
+        }
         // "10,00" (a comma before exactly two final digits and no dot) is ringgit and sen; other commas group thousands.
         $clean = preg_match('/\A[0-9]{1,9},[0-9]{2}\z/', $clean) === 1 ? str_replace(',', '.', $clean) : str_replace(',', '', $clean);
         if (preg_match('/\A([0-9]{1,9})(?:\.([0-9]{1,2}))?\z/', $clean, $m) !== 1) {
@@ -390,6 +395,13 @@ class PanelStatementService
             // claims that still wait for payment.
             $byInvoice = $invoices[$i] === '' ? collect() : $claims->filter(fn (PanelClaim $c): bool => strtolower($c->invoice_number) === $invoices[$i]);
             $byClaim = $claimNumbers[$i] === '' ? collect() : $claims->filter(fn (PanelClaim $c): bool => (string) $c->id === $claimNumbers[$i]);
+            // PCA-2: an invoice with an original and a supplementary claim is told apart by the claim number, then by amount.
+            if ($byInvoice->count() > 1) {
+                $byNumber = $byInvoice->filter(fn (PanelClaim $c): bool => $byClaim->contains('id', $c->id));
+                $statementSen = $this->amount($cell($row, $columns['amount']));
+                $byAmount = $statementSen === null ? collect() : $byInvoice->filter(fn (PanelClaim $c): bool => $outstanding($c) === $statementSen);
+                $byInvoice = $byNumber->count() === 1 ? $byNumber : ($byAmount->count() === 1 ? $byAmount : $byInvoice);
+            }
             $found = match (true) {
                 $byInvoice->isNotEmpty() => $byInvoice->count() === 1 && $byClaim->isNotEmpty() && $byClaim->first()->id !== $byInvoice->first()->id
                     ? $byInvoice->concat($byClaim) : $byInvoice,

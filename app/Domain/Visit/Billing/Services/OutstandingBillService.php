@@ -86,7 +86,7 @@ final class OutstandingBillService
             return DB::query()->fromSub($this->eligibility->query($actor->organisation_id, $visit->branch_id)
                 ->whereIn('i.patient_id', PatientMergeLinks::groupIds($visit->patient_id))->where('i.visit_id', '<>', $visit->id)
                 ->select(['i.id', 'i.invoice_number', 'v.visit_number', 'v.registered_at'])
-                ->selectRaw('sum(c.amount_sen) as amount_sen, false as review_required')
+                ->selectRaw('kpone_panel_effective(i.id) as amount_sen, false as review_required') // PCA-2: the effective Panel share.
                 ->groupBy('i.id', 'i.invoice_number', 'v.visit_number', 'v.registered_at'), 'bills');
         }
         $sum = fn (string $table) => DB::table($table)->where('organisation_id', $actor->organisation_id)

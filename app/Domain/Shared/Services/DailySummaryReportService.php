@@ -56,7 +56,7 @@ class DailySummaryReportService extends BranchReportService
             $query->whereIn('visit_id', DB::table('visits')->where('organisation_id', $actor->organisation_id)->whereIn('visit_type', $filters['visit_types'])->select('id'));
         }
         $query->chunkById(500, function ($invoices) use (&$days, $branch): void {
-            $states = app(FinancialLedger::class)->states($invoices);
+            $states = app(FinancialLedger::class)->states($invoices, withPanelAdjustments: false); // PCA-2: day story, original Panel share.
             foreach ($invoices as $invoice) {
                 $date = $invoice->finalized_at?->setTimezone($branch->timezone)->toDateString();
                 $state = $states[$invoice->id];

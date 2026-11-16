@@ -115,6 +115,16 @@ final class InvoiceActivityService
                 $queries[] = $this->rows(clone $base, $rank, $name.' proposed', 'created_at', 'requested_by_user_id', 'amount_sen');
                 $queries[] = $this->rows((clone $base)->whereNotNull('approved_at'), $rank + 1, $name.' approved', 'approved_at', 'approved_by_user_id', 'amount_sen');
             }
+            // PCA-2: Panel claim adjustments (figures and people only; the reason stays private, like invoice adjustments).
+            if ($panel) {
+                foreach (['add' => 'Panel pays more', 'deduct' => 'Panel pays less'] as $direction => $label) {
+                    $adjusted = $tenant('panel_claim_adjustments')->where('invoice_id', $invoice->id)->where('direction', $direction);
+                    $queries[] = $this->rows(clone $adjusted, 19, "Panel claim adjustment requested ({$label})", "(requested_at AT TIME ZONE 'UTC')", 'requested_by_user_id', 'amount_sen');
+                    $queries[] = $this->rows((clone $adjusted)->where('status', 'confirmed')->whereColumn('confirmed_by_user_id', '<>', 'requested_by_user_id'), 20, "Panel claim adjustment confirmed ({$label})", "(confirmed_at AT TIME ZONE 'UTC')", 'confirmed_by_user_id', 'amount_sen');
+                    $queries[] = $this->rows((clone $adjusted)->where('status', 'confirmed')->whereColumn('confirmed_by_user_id', 'requested_by_user_id'), 21, "Panel claim adjustment requested and confirmed by the same person ({$label})", "(confirmed_at AT TIME ZONE 'UTC')", 'confirmed_by_user_id', 'amount_sen');
+                    $queries[] = $this->rows((clone $adjusted)->where('status', 'withdrawn'), 22, "Panel claim adjustment withdrawn ({$label})", "(withdrawn_at AT TIME ZONE 'UTC')", 'withdrawn_by_user_id', 'amount_sen');
+                }
+            }
         }
         $union = array_shift($queries);
         foreach ($queries as $query) {

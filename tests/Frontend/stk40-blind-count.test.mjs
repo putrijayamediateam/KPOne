@@ -15,28 +15,25 @@ const lists = {
 };
 const script = (s) => s.slice(0, s.indexOf('</script>'));
 
-test('STK-40: in both layouts a blind checker relies on the server to say the count differs', () => {
+test('STK-40b: in both layouts the count is always recorded and nothing says it differs before it is saved', () => {
     for (const [name, source] of Object.entries(pages)) {
         const s = flat(script(source));
-        assert.match(s, /const toldDiffers = ref\(false\);/, name);
+        // The record form sends the count only; the server never answers "differs" before it is saved.
+        assert.doesNotMatch(s, /toldDiffers/, name);
         assert.match(
             s,
-            /if \(props\.register\.blind\) \{ return toldDiffers\.value; \}/,
+            /seen_check_sequence: props\.register\.newestCheckSequence, counted: form\.counted\.trim\(\), \}/,
             name,
         );
         assert.match(
             s,
-            /const ledger = milli\(props\.register\.balanceNow \?\? ''\);/,
+            /const form = reactive\(\{ counted: '', key: crypto\.randomUUID\(\), \}\);/,
             name,
         );
+        // The reason goes afterwards, to its own address, by the checker.
         assert.match(
             s,
-            /if \(bag\.reason && props\.register\.blind && !toldDiffers\.value\) \{ toldDiffers\.value = true; delete errors\.value\.reason; \}/,
-            name,
-        );
-        assert.match(
-            s,
-            /watch\( \(\) => form\.counted, \(\) => \{ toldDiffers\.value = false; \}, \);/,
+            /`\$\{base\.value\}\/checks\/\$\{check\.publicId\}\/reason`/,
             name,
         );
         assert.match(s, /balanceNow: string \| null; blind: boolean;/, name);
@@ -68,7 +65,7 @@ test('STK-40: in both layouts the page says the balance comes after the count, w
     }
 });
 
-test('STK-40: while blind the In, Out and Balance columns are left out, the differs note says what to do, and a match reads "no difference"', () => {
+test('STK-40: while blind the In, Out and Balance columns are left out, the differs note says to add the reason (STK-40b), and a match reads "no difference"', () => {
     for (const [name, source] of Object.entries(pages)) {
         const t = flat(source.slice(source.indexOf('<template>')));
         assert.equal(
@@ -83,7 +80,7 @@ test('STK-40: while blind the In, Out and Balance columns are left out, the diff
         );
         assert.match(
             t,
-            /Your count differs from the register\. Choose a reason below, then press Record check\./,
+            /Your count differs from the register\. Add the reason/,
             name,
         );
         assert.match(
@@ -105,7 +102,7 @@ test('STK-40: in both layouts the list shows "Shown after your count" for a blin
     }
 });
 
-test('STK-40: in both layouts a check shows "N earlier attempts" only when there were refused tries', () => {
+test('STK-40: in both layouts a check shows "N earlier attempts" only when there were refused tries (kept for older checks, STK-40b)', () => {
     for (const [name, source] of Object.entries(pages)) {
         const t = flat(source.slice(source.indexOf('<template>')));
         assert.match(
@@ -119,12 +116,11 @@ test('STK-40: in both layouts a check shows "N earlier attempts" only when there
             name,
         );
         assert.match(flat(script(source)), /attempts: number;/, name);
-        // Under the count box: tries since the last check, in words only.
-        assert.match(
-            t,
-            /v-if="register\.attemptsSinceCheck > 0"[^>]*data-testid="cd-attempts-since"/,
+        // STK-40b: the live "since the last check" line is retired; only older checks carry attempts.
+        assert.doesNotMatch(
+            source,
+            /attemptsSinceCheck|cd-attempts-since/,
             name,
         );
-        assert.match(t, /'1 earlier attempt since the last check'/, name);
     }
 });
