@@ -25,8 +25,8 @@ const word = (n: number) =>
             <div class="flex flex-col gap-2">
                 <div>
                     <V2Chip
-                        tone="warning"
-                        :label="`Retention: ${card.retentionYears} years${card.draft ? ' · draft, to confirm' : ''}`"
+                        :tone="card.draft ? 'warning' : 'neutral'"
+                        :label="`Retention: ${card.retentionYears} years${card.draft ? ' · draft, to confirm' : ` · ${card.basis}`}`"
                         class="text-nowrap!"
                         data-test="photo-storage-retention"
                     />
