@@ -72,3 +72,11 @@ test('DD-98: the claim reads "PCL-00000001 · Paid" in cards and table', () => {
     assert.equal([...page.matchAll(/\{\{ claimLabel\(row\) \}\}/g)].length, 2);
     assert.doesNotMatch(page, /· \{\{ row\.claimNo \}\}/);
 });
+
+test('DD-98: both Panel payment links at the top are outline buttons', () => {
+    assert.doesNotMatch(page, /variant="secondary"/);
+    assert.match(
+        flat,
+        /<Button v-if="can\.recordRemittances" as-child variant="outline" size="sm" >/,
+    );
+});

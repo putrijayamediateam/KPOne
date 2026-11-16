@@ -123,7 +123,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
             <Button
                 v-if="can.recordRemittances"
                 as-child
-                variant="secondary"
+                variant="outline"
                 size="sm"
             >
                 <Link href="/panel-remittances">Record Panel payment</Link>
