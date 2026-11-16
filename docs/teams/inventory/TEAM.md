@@ -300,6 +300,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     reason from the person who recorded it. You can still record your check." The owner then decided (16 Nov, his
     own choice): **only the recorder adds the reason, for now**; a missing reason keeps showing "Difference: reason
     needed" to everyone, and later checks still go ahead.
+45. DEMO-2 (owner, 16 Nov 2026: "build the inventory walk seeder", for Kavitha's Malay CA Supervisor guide):
+    `KPOneInventoryWalkSeeder`, run after DEMO-1 on a disposable database, adds a Cheras store, two fictional
+    suppliers, a controlled medicine with stock, a second, earlier-expiring Paracetamol batch, and one approved
+    purchase order waiting to be received, all through the domain services as demo accounts (recorder and
+    verifier, raiser and approver kept apart). Local and testing only; `.test` accounts only; reruns add nothing.
+    Commands and details in `docs/DEVELOPMENT.md`.
 
 ## 7. Open items and known limits
 
