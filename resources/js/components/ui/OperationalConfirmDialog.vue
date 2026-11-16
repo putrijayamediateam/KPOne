@@ -22,6 +22,9 @@ const props = withDefaults(
         processing?: boolean;
         destructive?: boolean;
         error?: string;
+        /** Switches the confirm button off and says why in `confirmDisabledReason`; both optional, so existing dialogs are unchanged. */
+        confirmDisabled?: boolean;
+        confirmDisabledReason?: string;
         /** Optional third choice, rendered between Cancel and Confirm. Omit for the classic two-choice dialog. */
         secondaryLabel?: string;
         secondaryProcessingLabel?: string;
@@ -35,6 +38,8 @@ const props = withDefaults(
         processing: false,
         destructive: false,
         error: '',
+        confirmDisabled: false,
+        confirmDisabledReason: '',
         secondaryLabel: undefined,
         secondaryProcessingLabel: 'Working…',
         secondaryVariant: 'outline',
@@ -117,6 +122,14 @@ const onOpenAutoFocus = (event: Event) => {
             <slot />
 
             <p
+                v-if="confirmDisabled && confirmDisabledReason"
+                class="text-sm text-muted-foreground"
+                data-testid="confirm-disabled-reason"
+            >
+                {{ confirmDisabledReason }}
+            </p>
+
+            <p
                 v-if="error"
                 role="alert"
                 class="rounded-lg border border-destructive/20 bg-destructive/5 px-3 py-2 text-sm text-destructive"
@@ -154,7 +167,7 @@ const onOpenAutoFocus = (event: Event) => {
                     ref="confirmButton"
                     type="button"
                     :variant="destructive ? 'destructive' : 'default'"
-                    :disabled="processing"
+                    :disabled="processing || confirmDisabled"
                     @click="confirm"
                 >
                     <LoaderCircle

@@ -187,7 +187,7 @@ export function useClaimsPage(props: ClaimsPageProps) {
     // ---- Pay ----
     const payment = reactive({
         row: null as PayRow | null,
-        method: 'bank_transfer',
+        method: '',
         paidOn: '',
         reference: '',
         key: '',
@@ -195,7 +195,7 @@ export function useClaimsPage(props: ClaimsPageProps) {
     const askPay = (row: PayRow) =>
         Object.assign(payment, {
             row,
-            method: 'bank_transfer',
+            method: '',
             paidOn: props.claims.today,
             reference: '',
             key: crypto.randomUUID(),

@@ -108,3 +108,14 @@ test('Pay: a table from 1024 px and cards below, outline actions, and every writ
     assert.equal((s.match(/expected_lock_version:/g) ?? []).length, 5);
     assert.match(script('sheet'), /idempotency_key: form\.key/);
 });
+
+test('Classic Record payment: no method is pre-picked, and Record payment stays off until one is chosen', () => {
+    assert.doesNotMatch(composables.page, /method: 'bank_transfer'/);
+    assert.match(composables.page, /method: ''/);
+    assert.match(template('page'), /:confirm-disabled="!payment\.method"/);
+    assert.match(
+        template('page'),
+        /confirm-disabled-reason="Pick how it was paid to continue\."/,
+    );
+    assert.match(composables.page, /method: payment\.method,/);
+});
