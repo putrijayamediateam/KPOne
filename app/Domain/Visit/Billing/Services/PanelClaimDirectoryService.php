@@ -13,6 +13,7 @@ use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
+use App\Domain\Visit\Billing\Models\PanelClaimSnapshot;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -563,6 +564,9 @@ final class PanelClaimDirectoryService
             $amounts = PanelClaimAmounts::summary($claim, $paid);
             // Only saved claim evidence: never reconstruct older claims from the live Invoice.
             $originalSubtotal = (int) $claim->lines->sum('line_total_sen');
+            $latestVersion = PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->orderByDesc('version')->first(['invoice_total_sen', 'panel_adjustment_sen']);
+            $currentInvoiceTotal = (int) ($latestVersion->invoice_total_sen ?? $claim->invoice_total_sen);
+            $panelAdjustment = (int) ($latestVersion->panel_adjustment_sen ?? 0);
             $lineRows = $claim->lines->map(static fn ($line): array => [
                 'number' => $line->line_number,
                 'type' => $line->line_type,
@@ -677,12 +681,15 @@ final class PanelClaimDirectoryService
                     'visitNumber' => $claim->visit_number,
                     'visitDate' => $claim->visit_date->format('j M Y'),
                     'invoiceNumber' => $claim->invoice_number,
-                    'invoiceTotalSen' => $claim->invoice_total_sen,
+                    // PCA-2: the latest recorded claim version holds the invoice payable after confirmed Panel
+                    // adjustments, so a plus is never mistaken for a claim-only amount above the invoice.
+                    'invoiceTotalSen' => $currentInvoiceTotal,
                     'invoiceSubtotalSen' => $originalSubtotal,
-                    'invoiceAdjustmentSen' => $claim->invoice_total_sen - $originalSubtotal,
-                    'claimOnlyAdjustmentSen' => max(0, $claim->claim_amount_sen - $claim->invoice_total_sen),
+                    'invoiceAdjustmentSen' => $currentInvoiceTotal - $panelAdjustment - $originalSubtotal,
+                    'panelAdjustmentSen' => $panelAdjustment,
+                    'claimOnlyAdjustmentSen' => max(0, $claim->claim_amount_sen - $currentInvoiceTotal),
                     'claimAmountSen' => $claim->claim_amount_sen,
-                    'adjustmentSen' => max(0, $claim->claim_amount_sen - $claim->invoice_total_sen),
+                    'adjustmentSen' => max(0, $claim->claim_amount_sen - $currentInvoiceTotal),
                     'acceptedAmountSen' => $claim->accepted_amount_sen,
                     'paidAmountSen' => $paid,
                     'outstandingSen' => $amounts['outstanding'],

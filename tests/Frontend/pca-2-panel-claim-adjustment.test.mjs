@@ -129,3 +129,16 @@ test('PCA-2: claim logs name the adjustment events in words on Classic and Versi
         assert.match(src, /cancelled: 'Cancelled'/);
     }
 });
+
+test('PCA-2: the claim page shows the Panel adjustment as its own line and a supplementary claim points to the original', () => {
+    for (const src of [classicClaim, v2Claim]) {
+        const text = flat(src);
+        assert.ok(text.includes('Panel adjustment (confirmed)'));
+        assert.match(src, /claim\.panelAdjustmentSen !== 0/);
+        assert.ok(
+            text.includes(
+                'This supplementary claim covers only the Panel adjustment. The invoice items are on the original claim.',
+            ),
+        );
+    }
+});

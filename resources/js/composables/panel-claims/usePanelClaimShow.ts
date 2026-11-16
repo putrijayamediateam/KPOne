@@ -20,6 +20,7 @@ export type ClaimData = {
     invoiceNumber: string;
     invoiceTotalSen: number;
     invoiceSubtotalSen: number;
+    panelAdjustmentSen: number;
     invoiceAdjustmentSen: number;
     claimOnlyAdjustmentSen: number;
     claimAmountSen: number;

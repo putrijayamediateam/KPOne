@@ -13,6 +13,7 @@ use App\Domain\Visit\Billing\Models\PanelClaimDocument;
 use App\Domain\Visit\Billing\Models\PanelClaimEvent;
 use App\Domain\Visit\Billing\Models\PanelClaimLine;
 use App\Domain\Visit\Billing\Models\PanelClaimPayment;
+use App\Domain\Visit\Billing\Models\PanelClaimSnapshot;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -308,7 +309,9 @@ final class PanelClaimService
             if (! in_array($claim->status, ['prepared', 'submitted', 'queried', 'rejected'], true) || $claim->payments()->exists()) {
                 throw ValidationException::withMessages(['claim' => 'Only an unpaid prepared, submitted, queried or rejected claim can be adjusted.']);
             }
-            if ($amount > $claim->invoice_total_sen && ! filter_var($a['confirm_over_invoice'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            // PCA-2: compare with the invoice payable of the latest claim version, after confirmed Panel adjustments.
+            $invoiceTotal = (int) (PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->orderByDesc('version')->value('invoice_total_sen') ?? $claim->invoice_total_sen);
+            if ($amount > $invoiceTotal && ! filter_var($a['confirm_over_invoice'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
                 throw ValidationException::withMessages(['confirm_over_invoice' => 'Confirm the separate above-invoice adjustment before saving this claim amount.']);
             }
             if ($amount === $claim->claim_amount_sen) {

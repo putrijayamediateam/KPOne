@@ -71,7 +71,10 @@ class PanelClaimAdjustmentTest extends BillingTestCase
         $this->assertDatabaseHas('panel_claim_events', ['panel_claim_id' => $claim->id, 'event_type' => 'panel_adjusted', 'previous_amount_sen' => 3000, 'amount_sen' => 8000, 'note' => 'Amount changed after submission: tell the Panel']);
         // The re-sync lands in the same second as the submission here (frozen clock): the page still says so.
         $this->selectBranch($officer);
-        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('panelAdjustment.claim.changedAfterSubmission', true));
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('panelAdjustment.claim.changedAfterSubmission', true)
+            // A plus above the invoice total saved at creation is a Panel adjustment, never a claim-only amount.
+            ->where('claim.invoiceTotalSen', 9000)->where('claim.panelAdjustmentSen', 5000)->where('claim.invoiceAdjustmentSen', 0)
+            ->where('claim.claimOnlyAdjustmentSen', 0)->where('claim.adjustmentSen', 0));
 
         $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'deduct', 2000));
         $this->assertSame(6000, $claim->refresh()->claim_amount_sen);
