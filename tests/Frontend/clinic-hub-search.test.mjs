@@ -118,3 +118,64 @@ test('the search only filters the cards the server sent: it adds no link and sen
     assert.match(page, /text-muted-foreground[^"]*hover:text-foreground/);
     assert.match(page, /\[&::-webkit-search-cancel-button\]:hidden/);
 });
+
+test('hidden search words: "refund" finds Finance / Billing and "stock count" finds Inventory; a page the server did not send is never found', async () => {
+    const { searchWords, hubLinkMatches, extraWordsFor } = await load();
+    const links = [
+        {
+            group: 'Patients',
+            title: 'Finance / Billing',
+            description:
+                'Review invoices and outstanding balances for this branch.',
+        },
+        {
+            group: 'Inventory & services',
+            title: 'Inventory',
+            description: 'Review stock, batches and movements for this branch.',
+        },
+        {
+            group: 'Inventory & services',
+            title: 'Suppliers',
+            description: 'Manage supplier names and contact details.',
+        },
+    ];
+    const find = (query) =>
+        links
+            .filter((l) => hubLinkMatches(searchWords(query), l.group, l))
+            .map((l) => l.title);
+
+    assert.deepEqual(find('refund'), ['Finance / Billing']);
+    assert.deepEqual(find('stock count'), ['Inventory']);
+    assert.deepEqual(find('vendor'), ['Suppliers']);
+    // the extra words are hidden: they are not in the title or the description
+    assert.ok(extraWordsFor('Inventory').includes('stock count'));
+    assert.equal(extraWordsFor('A page that is not in the map'), '');
+    // a person whose list has no Finance / Billing link cannot find it, whatever they type
+    const without = links.filter((l) => l.title !== 'Finance / Billing');
+    assert.deepEqual(
+        without
+            .filter((l) => hubLinkMatches(searchWords('refund'), l.group, l))
+            .map((l) => l.title),
+        [],
+    );
+});
+
+test('every key in the hidden-word map is a real hub title, so the list cannot drift', async () => {
+    const { HUB_EXTRA_WORDS } = await load();
+    const php = read('app/Domain/Access/ClinicManagementNavigation.php');
+    const missing = Object.keys(HUB_EXTRA_WORDS).filter(
+        (title) => !php.includes(`'${title}'`),
+    );
+
+    assert.ok(Object.keys(HUB_EXTRA_WORDS).length > 30);
+    assert.deepEqual(missing, [], `not a hub title: ${missing.join(', ')}`);
+    // both hubs use the same words
+    assert.match(
+        read('resources/js/pages/ClinicManagement/V2/Index.vue'),
+        /extraWordsFor\(link\.fullTitle\)/,
+    );
+    assert.match(
+        read('resources/js/lib/clinic-hub-search.ts'),
+        /extraWordsFor\(link\.title\)/,
+    );
+});
