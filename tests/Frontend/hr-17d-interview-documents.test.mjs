@@ -13,6 +13,8 @@ const files = {
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
+// The page's script now lives in the composable (setup only): read both.
+source.hr += read('resources/js/composables/hr/useApplicationsPage.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('both pages compile', () => {
@@ -35,7 +37,7 @@ test('the candidate sees the documents only inside the confirmed interview card,
 
     assert.match(card, /data-test="status-documents"/);
     assert.match(card, /Please read before your interview/);
-    assert.match(card, /Sila baca sebelum temu duga anda/);
+    assert.doesNotMatch(card, /Sila baca sebelum temu duga anda/);
     assert.match(card, /`\/careers\/status\/documents\/\$\{doc\.id\}`/);
     assert.match(card, /min-h-11/);
     assert.doesNotMatch(source.status, /localStorage|sessionStorage/);

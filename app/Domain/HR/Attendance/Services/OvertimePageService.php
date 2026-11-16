@@ -29,6 +29,7 @@ final class OvertimePageService
         private OvertimeDayTypes $dayTypes,
         private AttendanceTotals $totals,
         private AttendanceDays $days,
+        private OvertimePaidIn $paidIn,
     ) {}
 
     /** @return array<string, array<int, array{value: string, label: string}>> */
@@ -316,6 +317,9 @@ final class OvertimePageService
         // An approved request whose session was corrected after the approval: its minutes stay, and a manager decides.
         $corrected = DB::table('hr_attendance_corrections')->whereIn('clock_session_id', $requests->where('status', 'approved')->pluck('clock_session_id'))
             ->where('status', 'approved')->get(['clock_session_id', 'decided_at'])->groupBy('clock_session_id');
+        // M1: which locked payroll run already paid an approved or reversed request.
+        $paid = $this->paidIn->runs($actor->organisation_id, array_values($requests->whereIn('status', ['approved', 'reversed'])->pluck('id')
+            ->map(fn ($id): int => (int) $id)->all()));
         $weeks = [];
         if ($withWeek) {
             foreach ($requests->groupBy(fn (OvertimeRequest $r): string => $r->local_date->startOfWeek(CarbonImmutable::MONDAY)->toDateString()) as $start => $group) {
@@ -323,7 +327,7 @@ final class OvertimePageService
             }
         }
 
-        return $requests->map(function (OvertimeRequest $r) use ($names, $sessions, $corrected, $weeks, $actor, $withWeek): array {
+        return $requests->map(function (OvertimeRequest $r) use ($names, $sessions, $corrected, $weeks, $actor, $withWeek, $paid): array {
             $branch = $this->branch($r->branch_id);
             $session = $sessions[$r->clock_session_id] ?? null;
             $zone = $session !== null ? (string) $session->timezone : 'UTC';
@@ -370,6 +374,7 @@ final class OvertimePageService
                 'changedLabel' => $changedLabel,
                 'week' => $week,
                 'canDecide' => $r->status === 'pending' && $actor->can(ClockPermissions::OVERTIME_APPROVE) && $r->user_id !== $actor->id && $r->requested_by_user_id !== $actor->id,
+                'paidIn' => $paid[$r->id]['label'] ?? null,
                 'canReverse' => $r->status === 'approved' && $actor->can(ClockPermissions::OVERTIME_APPROVE) && $r->user_id !== $actor->id,
                 'canWithdraw' => $r->status === 'pending' && $r->requested_by_user_id === $actor->id,
                 'lockVersion' => $r->lock_version,

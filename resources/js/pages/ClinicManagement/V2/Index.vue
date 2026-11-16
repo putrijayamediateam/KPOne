@@ -19,6 +19,7 @@ import type { Component } from 'vue';
 import { computed, ref } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
+import { extraWordsFor } from '@/lib/clinic-hub-search';
 
 /**
  * UX-21: the Version 2 Clinic management hub. Same props, route and permissions as Classic (`ClinicManagement/Index`):
@@ -120,7 +121,12 @@ const shown = computed(() =>
                 const text =
                     `${link.fullTitle} ${link.description} ${group.title}`.toLowerCase();
 
-                return words.value.every((word) => text.includes(word));
+                // Owner-approved hidden words (lib/clinic-hub-search.ts), never shown: "refund" finds Finance / Billing.
+                const extra = extraWordsFor(link.fullTitle).toLowerCase();
+
+                return words.value.every(
+                    (word) => text.includes(word) || extra.includes(word),
+                );
             }),
         }))
         .filter((group) => group.links.length > 0),
