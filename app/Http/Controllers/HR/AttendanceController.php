@@ -61,6 +61,13 @@ class AttendanceController extends Controller
         return $this->press($request, 'out', fn () => $clock->clockOut($request->user(), $this->pressInput($request)), $result);
     }
 
+    /** Undo clock-out (owner, 16 Nov 2026): the person's own clock-out, within 15 minutes; the same session reopens. */
+    public function undoClockOut(Request $request, ClockService $clock): RedirectResponse
+    {
+        return $this->run($request, 'my', 'Clock-out undone. You are clocked in again.',
+            fn () => $clock->undoClockOut($request->user(), $request->only(['session_id', 'expected_lock_version', 'idempotency_key'])));
+    }
+
     /**
      * HR-PHOTO: the camera dialog asks for JSON and gets the confirmation (time and chip) or the 422 errors; the
      * Attendance page's own form keeps its redirect and toast.

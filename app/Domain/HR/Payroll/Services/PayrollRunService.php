@@ -28,6 +28,8 @@ final class PayrollRunService
 
     public const RETURN_REASONS = ['wrong_amount' => 'Wrong amount', 'wrong_person' => 'Wrong person', 'missing_record' => 'A record is missing', 'other' => 'Other'];
 
+    public const CHANGED_SINCE_SENT = 'Something in this run changed after it was sent. Send it back to draft and prepare it again.';
+
     public function __construct(private RecordSupport $support, private PayrollRunCalculator $calculator, private PayslipService $payslips,
         private LateAfterLock $late) {}
 
@@ -347,6 +349,11 @@ final class PayrollRunService
             $claimRefusal = $decision === 'return' ? null : $this->claimRefusal($actor, $run);
             if ($claimRefusal !== null) {
                 throw ValidationException::withMessages(['payroll' => $claimRefusal]);
+            }
+            // G1 (owner, 16 Nov 2026): approving or locking checks again that nothing the run was prepared from has changed
+            // since it was sent (for example overtime reversed or approved meanwhile), so a stale run is never approved or paid.
+            if ($decision !== 'return' && $this->calculator->calculate($actor->organisation_id, $run, $this->mtd($run))['fingerprint'] !== $run->fingerprint) {
+                throw ValidationException::withMessages(['payroll' => self::CHANGED_SINCE_SENT]);
             }
             $now = now()->utc();
             $claims = 0;

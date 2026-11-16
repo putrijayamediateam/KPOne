@@ -92,6 +92,7 @@ final class LocationCheckService
         }
         [$result, $band, $reason] = $consented ? $this->evaluate($setting, $input) : ['unavailable', null, 'declined'];
         DB::table('hr_clock_location_checks')->insert(['organisation_id' => $actor->organisation_id, 'clock_session_id' => $session->id, 'kind' => $kind,
+            'attempt' => ClockSession::attemptFor((int) $session->id, $kind),
             'setting_id' => $setting->id, 'result' => $result, 'accuracy_band' => $band, 'unavailable_reason' => $reason, 'created_at' => now()->utc()]);
         // The result itself stays behind Review; the audit log holds only that a press was checked (Suresh, M1).
         $this->support->audit->record('hr.attendance.location_checked', $session, ['kind' => $kind, 'setting_id' => (int) $setting->id], $actor,
@@ -248,7 +249,7 @@ final class LocationCheckService
     public function labels(array $sessionIds): array
     {
         $out = [];
-        foreach (DB::table('hr_clock_location_checks')->whereIn('clock_session_id', $sessionIds)->get() as $row) {
+        foreach (DB::table('hr_clock_location_checks')->whereIn('clock_session_id', $sessionIds)->orderBy('attempt')->get() as $row) {
             $text = self::line($row);
             $entry = $out[(int) $row->clock_session_id] ?? ['in' => null, 'out' => null, 'outside' => false];
             $entry[$row->kind === 'out' ? 'out' : 'in'] = $text;

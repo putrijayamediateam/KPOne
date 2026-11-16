@@ -2500,6 +2500,10 @@ The pay group's name and pay day are copied onto the run when it is prepared (Su
   - if the locker is that claim's claimant or approver, the lock is refused and names the claim;
   - a two-process race test covers a lock against a Finance payment of the same claim.
   - This adds `payroll` to the HR-6 payment method CHECK in a new HR migration.
+- **Checking again at approve and lock (G1, owner, 16 Nov 2026).** Approve and Lock work the run out again from today's sources and compare it with the run as prepared. If anything changed since it was sent (for example overtime approved or reversed meanwhile), both are refused with "Something in this run changed after it was sent. Send it back to draft and prepare it again." Send back stays allowed. The check runs when the button is pressed; the run page does not work it out in advance.
+  - "Changed" means anything in the run as worked out, warnings included (for example a bank account confirmed meanwhile), the same as at Send.
+  - Known limit (Suresh): an hourly worker's clock session that is still open is counted up to now, so a run for the current month keeps being refused while such a session is open; it settles once the session closes or is corrected.
+  - Known limit (Suresh): the source rows are not locked during the check, so a change committed a moment after it is not seen. Send has the same window.
 
 ### 16.6 Corrections
 An adjustment run references the locked run and holds only the differences, with the same two-person steps. One open adjustment per run at a time. A locked run and its lines never change.
@@ -3359,3 +3363,16 @@ So HR-PHOTO-STORAGE does **not** add a delete. It adds a way to see what is stor
 - No export of photos and no per-person storage figures.
 - No notification.
 - Synthetic data only until the PDPA review.
+
+## 25. Undo clock-out, as built (owner, 16 Nov 2026)
+
+The owner asked that someone who presses Clock out by mistake can clock in again. Decided: a **15-minute** window from their own clock-out, by server time; **staff only** (HR uses the correction); the rest of the design note as written.
+
+- **The same session reopens.** There is no new session, no split day and no second break. The person's latest session must be closed by their own button press within the last 15 minutes. The undo is refused once a correction or an overtime request points at the session, once a payroll run for that month that includes the person has left Draft, or once they have clocked in again.
+- **Nothing is deleted or rewritten.** The undone press keeps its event and photo. A new `out_undone` event records the undo, with the time of the undone press. The next Clock out is a new **attempt** with its own photo (and location result where the branch checks location). Photos and location results carry `attempt`, one per session, kind and attempt; screens show the latest attempt.
+- **PostgreSQL** allows exactly one reopen path. Inside the undo's own transaction, a local flag names the session; the session must have been clocked out within 15 minutes; and the `out_undone` event for that clock-out must already exist. Every other reopen is refused as before. A clock-out photo or location result must belong to the current attempt.
+- **No photo is taken to undo**, and the location check isn't asked again.
+- **Screens (Classic and V2):** while the server offers it, the clock card shows an outline "Undo clock-out" with "Clocked out by mistake? You can undo this until 5:17 PM." It asks to confirm first: "Undo your clock-out at 5:02 PM?" Review shows HR "Clock-out undone at 5:02 PM" on that day.
+- **The usual protections:** a fresh permission check under lock, `DB::transaction`, a row lock on the session, `lock_version`, an idempotency key, and an audit row `hr.attendance.clock_out_undone` (ids and seconds only).
+- **Known limit (Suresh):** an undo needs no photo, and the next clock-out's photo proves who pressed, not where. With the location check off, someone could clock out, leave, undo from their phone within 15 minutes and clock out later; this is the same limit HR-PHOTO records. The "Clock-out undone at …" line on Review is the safeguard. The button is offered only when the server would accept it (payroll included), and a press in the last seconds that PostgreSQL judges late gets "The time to undo has passed".
+- **Not in this slice:** the global clock shortcut does not offer the undo (it opens the Attendance page, which does); HR cannot undo for someone (HR uses the correction).

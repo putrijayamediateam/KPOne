@@ -164,6 +164,34 @@ class PayrollRunsTest extends VisitTestCase
         $this->assertStringNotContainsString('Basic salary', (string) DB::table('hr_payroll_lines')->value('explanation_encrypted'));
     }
 
+    public function test_g1_a_run_whose_sources_changed_after_it_was_sent_is_not_approved_or_locked(): void
+    {
+        [$aina] = $this->clinic();
+        $this->lineTypes($this->hr);
+        $this->prepare($this->hr)->assertRedirect();
+        $id = (string) DB::table('hr_payroll_runs')->value('public_id');
+        $this->step($this->hr, $id, 'mtd', ['worker_id' => $aina->public_id, 'mtd' => '12.00'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+
+        // Overtime approved after the run was sent: approving is refused, and the run stays Sent.
+        $this->approvedOvertime($aina->user, $this->closedSession($aina->user, '2026-11-20', '18:00', '19:00'), 60);
+        $this->step($this->director, $id, 'approve')->assertSessionHasErrors(['payroll' => PayrollRunService::CHANGED_SINCE_SENT]);
+        $this->assertSame('sent', DB::table('hr_payroll_runs')->value('status'));
+
+        // Sending it back still works; prepared again, it is sent and approved.
+        $this->step($this->director, $id, 'return', ['reason' => 'missing_record'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'again')->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director, $id, 'approve')->assertSessionHasNoErrors();
+
+        // Another change after approval: locking is refused, nothing is paid and no payslip is issued.
+        $this->approvedOvertime($aina->user, $this->closedSession($aina->user, '2026-11-21', '18:00', '18:30'), 30);
+        $this->step($this->director, $id, 'lock')->assertSessionHasErrors(['payroll' => PayrollRunService::CHANGED_SINCE_SENT]);
+        $this->assertSame('approved', DB::table('hr_payroll_runs')->value('status'));
+        $this->assertSame(0, DB::table('hr_payslips')->count());
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'hr.payroll.run_locked')->count());
+    }
+
     public function test_a_stale_draft_is_not_sent_and_a_claim_paid_meanwhile_stops_the_lock(): void
     {
         [$aina] = $this->clinic();
@@ -384,6 +412,26 @@ class PayrollRunsTest extends VisitTestCase
             'run_id' => $adjustmentId, 'worker_id' => $aina->id, 'overtime_request_id' => $late->id, 'added_by_user_id' => $this->hr->id, 'created_at' => now()]));
         $this->assertRefused('P0001', fn () => DB::table('hr_payroll_late_items')->where('run_id', $adjustmentId)->update(['created_at' => now()]));
         $this->assertRefused('P0001', fn () => DB::table('hr_payroll_late_items')->where('run_id', $adjustmentId)->delete());
+    }
+
+    public function test_g1_covers_late_overtime_reversed_after_its_adjustment_run_was_sent(): void
+    {
+        [$aina] = $this->lockedClinic();
+        $session = $this->closedSession($aina->user, '2026-11-26', '18:00', '19:00');
+        $this->approvedOvertime($aina->user, $session, 60);
+        $late = DB::table('hr_overtime_requests')->where('clock_session_id', $session->id)->first();
+        $this->assertNotNull($late);
+        $this->prepare($this->hr, 'adjustment')->assertRedirect();
+        $adjustment = (string) DB::table('hr_payroll_runs')->where('kind', 'adjustment')->value('public_id');
+        $this->lateStep($adjustment, 'hr.payroll.runs.late.add', $late->public_id)->assertSessionHasNoErrors();
+        $this->step($this->hr, $adjustment, 'send')->assertSessionHasNoErrors();
+
+        // The late overtime is reversed after the adjustment was sent: its line would change, so approving is refused.
+        $this->selectBranch($this->director);
+        $this->post(route('hr.attendance.overtime.reverse', $late->public_id), ['reason' => 'mistake', 'expected_lock_version' => (int) DB::table('hr_overtime_requests')
+            ->where('id', $late->id)->value('lock_version'), 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->step($this->director2, $adjustment, 'approve')->assertSessionHasErrors(['payroll' => PayrollRunService::CHANGED_SINCE_SENT]);
+        $this->assertSame('sent', DB::table('hr_payroll_runs')->where('public_id', $adjustment)->value('status'));
     }
 
     public function test_postgresql_refuses_what_the_service_refuses(): void
