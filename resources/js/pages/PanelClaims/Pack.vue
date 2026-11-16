@@ -34,6 +34,23 @@ type PackClaim = {
     invoiceTotalSen: number;
     claimOnlyAdjustmentSen: number;
     claimAmountSen: number;
+    /** PCA-2: confirmed Panel claim adjustments in the version shown, and that version. */
+    panelAdjustmentSen?: number;
+    version?: null | {
+        number: number;
+        count: number;
+        earlier: boolean;
+        panelShareSen: number;
+        recordedAt: string;
+    };
+    supplementary?: null | {
+        parentNumber: string;
+        parentAmountSen: number;
+        parentAcceptedSen: number | null;
+        parentStatus: string;
+        reason: string | null;
+        confirmedOn: string | null;
+    };
     photos: string[];
 };
 
@@ -318,9 +335,31 @@ const print = () => window.print();
                 <div
                     class="my-5 flex flex-wrap items-start justify-between gap-3"
                 >
-                    <h2 class="text-lg font-bold">
-                        PANEL CLAIM {{ claim.claimNo }}
-                    </h2>
+                    <div>
+                        <h2 class="text-lg font-bold">
+                            PANEL CLAIM {{ claim.claimNo }}
+                        </h2>
+                        <p
+                            v-if="claim.supplementary"
+                            class="font-semibold"
+                            data-testid="pack-supplementary-heading"
+                        >
+                            Supplementary claim to
+                            {{ claim.supplementary.parentNumber }}
+                        </p>
+                        <p
+                            v-if="claim.version && claim.version.count > 1"
+                            data-testid="pack-version"
+                        >
+                            Claim pack Version {{ claim.version.number }} of
+                            {{ claim.version.count
+                            }}<template v-if="claim.version.earlier"
+                                >, an earlier version recorded
+                                {{ claim.version.recordedAt }}. It is never
+                                rewritten.</template
+                            >
+                        </p>
+                    </div>
                     <div class="sm:text-right">
                         <p>Status: {{ claim.status }}</p>
                         <p v-if="claim.submittedOn">
@@ -359,8 +398,46 @@ const print = () => window.print();
                         <p>Invoice: {{ claim.invoiceNumber }}</p>
                     </section>
                 </div>
-                <h3 class="mt-5 mb-2 font-semibold">Invoice items</h3>
-                <div class="pack-table-frame">
+                <dl
+                    v-if="claim.supplementary"
+                    class="pack-totals mt-5"
+                    data-testid="pack-supplementary"
+                >
+                    <div>
+                        <dt>
+                            Original claim
+                            {{ claim.supplementary.parentNumber }} ({{
+                                claim.supplementary.parentStatus
+                            }})
+                        </dt>
+                        <dd>
+                            {{ myr(claim.supplementary.parentAmountSen) }}
+                        </dd>
+                    </div>
+                    <div v-if="claim.supplementary.parentAcceptedSen !== null">
+                        <dt>Accepted by the Panel</dt>
+                        <dd>
+                            {{ myr(claim.supplementary.parentAcceptedSen) }}
+                        </dd>
+                    </div>
+                    <div>
+                        <dt>
+                            Panel claim adjustment<template
+                                v-if="claim.supplementary.reason"
+                            >
+                                · {{ claim.supplementary.reason }}</template
+                            ><template v-if="claim.supplementary.confirmedOn">
+                                ·
+                                {{ claim.supplementary.confirmedOn }}</template
+                            >
+                        </dt>
+                        <dd>{{ signed(claim.claimAmountSen) }}</dd>
+                    </div>
+                </dl>
+                <h3 v-if="claim.lines.length" class="mt-5 mb-2 font-semibold">
+                    Invoice items
+                </h3>
+                <div v-if="claim.lines.length" class="pack-table-frame">
                     <table class="pack-table" aria-label="Invoice items">
                         <thead>
                             <!-- PNL-12: printed only; repeats on every page of a long claim so a loose page can be matched. -->
@@ -413,15 +490,30 @@ const print = () => window.print();
                         {{ claim.invoiceNumber }}
                     </p>
                     <dl class="pack-totals">
-                        <div>
+                        <div v-if="!claim.supplementary">
                             <dt>Invoice subtotal</dt>
                             <dd>{{ myr(claim.invoiceSubtotalSen) }}</dd>
                         </div>
-                        <div v-if="claim.invoiceAdjustmentSen !== 0">
+                        <div
+                            v-if="
+                                claim.invoiceAdjustmentSen !== 0 &&
+                                !claim.supplementary
+                            "
+                        >
                             <dt>Invoice adjustment</dt>
                             <dd>{{ signed(claim.invoiceAdjustmentSen) }}</dd>
                         </div>
-                        <div>
+                        <div
+                            v-if="
+                                (claim.panelAdjustmentSen ?? 0) !== 0 &&
+                                !claim.supplementary
+                            "
+                            data-testid="pack-panel-adjustment"
+                        >
+                            <dt>Panel claim adjustment (confirmed)</dt>
+                            <dd>{{ signed(claim.panelAdjustmentSen ?? 0) }}</dd>
+                        </div>
+                        <div v-if="!claim.supplementary">
                             <dt>Invoice total</dt>
                             <dd>{{ myr(claim.invoiceTotalSen) }}</dd>
                         </div>

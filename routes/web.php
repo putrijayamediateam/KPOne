@@ -73,6 +73,7 @@ use App\Http\Controllers\MedicalCertificateController;
 use App\Http\Controllers\MedicineCatalogueController;
 use App\Http\Controllers\MedicineOptionSettingsController;
 use App\Http\Controllers\OpeningImportController;
+use App\Http\Controllers\PanelClaimAdjustmentController;
 use App\Http\Controllers\PanelClaimsController;
 use App\Http\Controllers\PanelInvoicesController;
 use App\Http\Controllers\PanelPaymentCorrectionsController;
@@ -764,6 +765,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     });
 
     Route::get('panel-responsibility', [BillingWorkController::class, 'panel'])->middleware('sensitive.no-store')->name('clinic.panel-responsibility');
+    // PCA-2: Panel claim adjustments (request and withdraw need the request permission; confirm needs the confirm permission).
+    Route::post('panel-claims/allocations/{allocation}/adjustments', [PanelClaimAdjustmentController::class, 'request'])->middleware(['permission:panel.claims.adjustments.request.branch', 'throttle:20,1'])->name('panel-claim-adjustments.request');
+    Route::post('panel-claim-adjustments/{adjustment}/confirm', [PanelClaimAdjustmentController::class, 'confirm'])->whereUuid('adjustment')->middleware(['permission:panel.claims.adjustments.confirm.branch', 'throttle:20,1'])->name('panel-claim-adjustments.confirm');
+    Route::post('panel-claim-adjustments/{adjustment}/withdraw', [PanelClaimAdjustmentController::class, 'withdraw'])->whereUuid('adjustment')->middleware(['permission:panel.claims.adjustments.request.branch', 'throttle:20,1'])->name('panel-claim-adjustments.withdraw');
     Route::middleware(['permission:panel.claims.manage.branch', 'sensitive.no-store'])->group(function () {
         Route::get('panel-claims', [PanelClaimsController::class, 'index'])->name('panel-claims.index');
         Route::get('panel-claims/follow-up', [PanelClaimsController::class, 'followUp'])->name('panel-claims.follow-up');
@@ -909,6 +914,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::get('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'print'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store'])->name('inventory.controlled-register.print');
         Route::post('inventory/controlled-register/{sku}/print', [ControlledRegisterController::class, 'recordPrint'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.view.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.print.record');
         Route::post('inventory/controlled-register/{sku}/checks', [ControlledRegisterController::class, 'check'])->whereUuid('sku')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.check');
+        Route::post('inventory/controlled-register/{sku}/checks/{check}/reason', [ControlledRegisterController::class, 'addReason'])->whereUuid('sku')->whereUuid('check')->middleware(['permission:inventory.controlled_register.check.branch', 'sensitive.no-store', 'throttle:30,1'])->name('inventory.controlled-register.reason');
         Route::get('inventory/stock-value/journal', [StockValuationController::class, 'journal'])->middleware(['permission:inventory.valuation.view.organisation', 'sensitive.no-store', 'throttle:10,1'])->name('inventory.stock-value.journal');
         Route::get('inventory/stock-value', StockValuationController::class)->middleware(['permission:inventory.valuation.view.organisation', 'sensitive.no-store', 'throttle:60,1'])->name('inventory.stock-value');
         Route::get('inventory/recalls', [InventoryRecallController::class, 'index'])->middleware(['permission:inventory.view.branch', 'sensitive.no-store'])->name('inventory.recalls');

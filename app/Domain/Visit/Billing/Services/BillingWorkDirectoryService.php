@@ -36,7 +36,8 @@ final class BillingWorkDirectoryService
                 $query->join('coverage_allocations as c', 'c.current_invoice_guard', '=', 'invoices.id')
                     ->whereColumn('c.invoice_id', 'invoices.id')->where('c.organisation_id', $actor->organisation_id)
                     ->where('c.branch_id', $branch->id)->whereIn('c.status', ['proposed', 'approved'])
-                    ->addSelect(['c.amount_sen as panel_amount', 'c.status as panel_status', 'c.created_at as requested_at']);
+                    // PCA-2: an approved share shows its effective amount (confirmed Panel claim adjustments included).
+                    ->addSelect([DB::raw("CASE WHEN c.status = 'approved' THEN kpone_panel_effective(invoices.id) ELSE c.amount_sen END as panel_amount"), 'c.status as panel_status', 'c.created_at as requested_at']);
             }
             $results = $query->orderByDesc('invoices.id')->paginate(25, page: $page);
 

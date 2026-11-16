@@ -8,6 +8,8 @@ use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\BusinessDetails\BranchLetterheadAssembler;
 use App\Domain\Shared\PrintedPhone;
 use App\Domain\Visit\Billing\Models\PanelClaim;
+use App\Domain\Visit\Billing\Models\PanelClaimAdjustment;
+use App\Domain\Visit\Billing\Models\PanelClaimSnapshot;
 use App\Models\User;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
@@ -48,6 +50,8 @@ final class PanelClaimPackService
         $data = Validator::make($input, [
             'claims' => ['required', 'array', 'min:1', 'max:'.self::MAX_CLAIMS],
             'claims.*' => ['required', 'uuid', 'distinct'],
+            // PCA-2: an earlier recorded version of one claim's pack ("View version 1"), never rewritten.
+            'version' => ['sometimes', 'nullable', 'integer', 'min:1'],
         ], [
             'claims.required' => 'Choose at least one claim.',
             'claims.min' => 'Choose at least one claim.',
@@ -57,11 +61,12 @@ final class PanelClaimPackService
             'claims.*.distinct' => 'A claim was chosen twice. Refresh the list and try again.',
         ])->validate();
         $publicIds = array_values(array_map(static fn (mixed $id): string => strtolower((string) $id), $data['claims']));
+        $requestedVersion = isset($data['version']) && count($publicIds) === 1 ? (int) $data['version'] : null;
 
         $branch = $this->branches->activeBranch($actor);
         abort_unless($branch !== null && $branch->organisation_id === $actor->organisation_id, 404);
 
-        return DB::transaction(function () use ($actor, $branch, $publicIds): array {
+        return DB::transaction(function () use ($actor, $branch, $publicIds, $requestedVersion): array {
             $actor = $this->authority->lock($actor, $branch, self::PERMISSION);
             $claims = PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
                 ->whereIn('public_id', $publicIds)->with(['lines', 'documents'])->orderBy('id')->get();
@@ -83,8 +88,26 @@ final class PanelClaimPackService
                 ->whereIn('panel_claim_id', $claims->pluck('id')->all())->where('event_type', 'submitted')
                 ->orderBy('occurred_at')->orderBy('id')->get(['panel_claim_id', 'occurred_at'])->unique('panel_claim_id')->keyBy('panel_claim_id');
 
-            $rows = $claims->map(function (PanelClaim $claim) use ($branch, $identifiers, $submitted, $canSeeIdentity): array {
+            $snapshots = PanelClaimSnapshot::query()->whereIn('panel_claim_id', $claims->pluck('id')->all())->orderBy('version')->get()->groupBy('panel_claim_id');
+            $rows = $claims->map(function (PanelClaim $claim) use ($branch, $identifiers, $submitted, $canSeeIdentity, $snapshots, $requestedVersion): array {
                 $subtotal = (int) $claim->lines->sum('line_total_sen');
+                // PCA-2: the pack shows one recorded version's totals: the latest (with the live claim amount, so a later
+                // claim-only edit is never stale) or, when asked, an earlier one. A claim without versions prints as before.
+                $versions = $snapshots->get($claim->id, collect());
+                $latest = $versions->last();
+                $shown = $requestedVersion === null ? $latest : $versions->firstWhere('version', $requestedVersion);
+                abort_if($requestedVersion !== null && $shown === null, 404);
+                $earlier = $shown !== null && $latest !== null && $shown->version !== $latest->version;
+                $invoiceTotal = $shown->invoice_total_sen ?? (int) $claim->invoice_total_sen;
+                $panelAdjustment = $shown->panel_adjustment_sen ?? 0;
+                $claimAmount = $earlier ? $shown->claim_amount_sen : (int) $claim->claim_amount_sen;
+                $parent = $claim->parent_claim_id === null ? null : PanelClaim::query()->find($claim->parent_claim_id);
+                if ($parent !== null) {
+                    // A supplementary claim asks only for its adjustment: no invoice lines, totals or unclaimed balance.
+                    $invoiceTotal = $claimAmount;
+                    $panelAdjustment = 0;
+                }
+                $own = $claim->panel_claim_adjustment_id === null ? null : PanelClaimAdjustment::query()->find($claim->panel_claim_adjustment_id);
                 $identifier = $identifiers->get($claim->patient_id);
                 $submittedAt = $submitted->get($claim->id)?->occurred_at;
 
@@ -111,10 +134,21 @@ final class PanelClaimPackService
                         'totalSen' => (int) $line->line_total_sen,
                     ])->all(),
                     'invoiceSubtotalSen' => $subtotal,
-                    'invoiceAdjustmentSen' => (int) $claim->invoice_total_sen - $subtotal,
-                    'invoiceTotalSen' => (int) $claim->invoice_total_sen,
-                    'claimOnlyAdjustmentSen' => max(0, (int) $claim->claim_amount_sen - (int) $claim->invoice_total_sen),
-                    'claimAmountSen' => (int) $claim->claim_amount_sen,
+                    'invoiceAdjustmentSen' => $invoiceTotal - $panelAdjustment - $subtotal,
+                    'panelAdjustmentSen' => $panelAdjustment,
+                    'invoiceTotalSen' => $invoiceTotal,
+                    'claimOnlyAdjustmentSen' => max(0, $claimAmount - $invoiceTotal),
+                    'claimAmountSen' => $claimAmount,
+                    'version' => $shown === null ? null : ['number' => $shown->version, 'count' => $versions->count(), 'earlier' => $earlier,
+                        'panelShareSen' => $shown->panel_share_sen, 'recordedAt' => $shown->created_at->setTimezone($branch->timezone)->format('j M Y, g:i A')],
+                    'supplementary' => $parent === null ? null : [
+                        'parentNumber' => PanelAdjustmentView::number($parent->id),
+                        'parentAmountSen' => $parent->claim_amount_sen,
+                        'parentAcceptedSen' => $parent->accepted_amount_sen,
+                        'parentStatus' => PanelClaimDirectoryService::statusLabel($parent),
+                        'reason' => $own === null ? null : (PanelClaimAdjustment::REASONS[$own->reason_code] ?? null),
+                        'confirmedOn' => $own?->confirmed_at?->setTimezone($branch->timezone)->format('j M Y'),
+                    ],
                     'photos' => $claim->documents->sortBy('id')->values()->map(static fn ($document): string => (string) $document->original_name)->all(),
                 ];
             })->values()->all();

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
 import { ArrowLeft } from '@lucide/vue';
-import { computed, nextTick, reactive, ref, watch } from 'vue';
+import { computed, nextTick, reactive, ref } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
@@ -33,8 +33,11 @@ type Check = {
     ledger: string | null;
     counted: string | null;
     difference: string | null;
-    /** STK-40: refused "differs" tries before this check. */
+    /** STK-40: refused "differs" tries before this check (only checks recorded before STK-40b can have any). */
     attempts: number;
+    /** STK-40b: it differs and its reason has not been added yet; only its checker may add it. */
+    reasonNeeded: boolean;
+    canAddReason: boolean;
     checkedBy: string;
     checkedOn: string;
 };
@@ -57,7 +60,6 @@ type Register = {
     newestMovementId: number;
     newestCheckSequence: number;
     movementsSinceCheck: number;
-    attemptsSinceCheck: number;
     checks: Check[];
     can: { check: boolean };
     checkBlockedReason: string | null;
@@ -97,39 +99,14 @@ const milli = (text: string): number | null => {
         : null;
 };
 
+// STK-40b (owner, 16 Nov 2026): the count is always recorded, matching or not, so nothing says "differs" before it is
+// saved. The reason for a difference is added afterwards by the same checker (below).
 const form = reactive({
     counted: '',
-    reason: '',
-    note: '',
     key: crypto.randomUUID(),
 });
 const errors = ref<Record<string, string>>({});
 const busy = ref(false);
-// STK-40: a blind checker never sees the balance; the server says when the count differs and a reason is needed.
-const toldDiffers = ref(false);
-const differs = computed(() => {
-    if (props.register.blind) {
-        return toldDiffers.value;
-    }
-
-    const counted = milli(form.counted);
-    const ledger = milli(props.register.balanceNow ?? '');
-
-    return counted !== null && ledger !== null && counted !== ledger;
-});
-watch(differs, (value) => {
-    if (!value) {
-        form.reason = '';
-        form.note = '';
-    }
-});
-// A new count needs the server to say again whether it differs.
-watch(
-    () => form.counted,
-    () => {
-        toldDiffers.value = false;
-    },
-);
 
 const submit = () => {
     errors.value = {};
@@ -140,16 +117,6 @@ const submit = () => {
         errors.value = {
             counted: 'Enter a number, with up to 3 decimal places.',
         };
-    } else if (differs.value && form.reason === '') {
-        errors.value = {
-            reason: 'The count differs from the register. Choose a reason.',
-        };
-    } else if (
-        differs.value &&
-        form.reason === 'other' &&
-        form.note.trim() === ''
-    ) {
-        errors.value = { note: 'Add a note to explain the difference.' };
     }
 
     if (Object.keys(errors.value).length) {
@@ -170,8 +137,6 @@ const submit = () => {
             seen_movement_id: props.register.newestMovementId,
             seen_check_sequence: props.register.newestCheckSequence,
             counted: form.counted.trim(),
-            reason: differs.value ? form.reason : null,
-            note: differs.value && form.note.trim() ? form.note.trim() : null,
         },
         {
             preserveScroll: true,
@@ -179,20 +144,10 @@ const submit = () => {
             onFinish: () => (busy.value = false),
             onSuccess: () => {
                 form.counted = '';
-                form.reason = '';
-                form.note = '';
                 form.key = crypto.randomUUID();
             },
             onError: (bag) => {
                 errors.value = bag as Record<string, string>;
-
-                // STK-40: when counting blind, the server is what says the count differs. The first time it is news, not
-                // a mistake: the differs note says what to do, and the red line returns only if Record check is pressed
-                // again without a reason.
-                if (bag.reason && props.register.blind && !toldDiffers.value) {
-                    toldDiffers.value = true;
-                    delete errors.value.reason;
-                }
 
                 // A stale page or an earlier key needs a fresh one after the reload.
                 if (
@@ -207,7 +162,7 @@ const submit = () => {
     );
 };
 // Errors with no field of their own (a stale page, someone else's check, a branch change) show above the form.
-const fieldKeys = ['counted', 'reason', 'note'];
+const fieldKeys = ['counted'];
 const formError = computed(
     () =>
         Object.entries(errors.value).find(
@@ -223,6 +178,78 @@ const difference = (value: string | null) =>
           : value.startsWith('-')
             ? `difference \u2212${value.slice(1)}`
             : `difference +${value}`;
+
+// STK-40b: the reason for a check that differs, added once by the person who recorded it (no second person).
+const reasonForm = reactive({
+    reason: '',
+    note: '',
+    key: crypto.randomUUID(),
+});
+const reasonErrors = ref<Record<string, string>>({});
+const reasonBusy = ref(false);
+const submitReason = (check: Check) => {
+    reasonErrors.value = {};
+
+    if (reasonForm.reason === '') {
+        reasonErrors.value = { reason: 'Choose a reason.' };
+    } else if (reasonForm.reason === 'other' && reasonForm.note.trim() === '') {
+        reasonErrors.value = { note: 'Add a note to explain the difference.' };
+    }
+
+    if (Object.keys(reasonErrors.value).length) {
+        void nextTick(() =>
+            document
+                .querySelector<HTMLElement>('[aria-invalid="true"]')
+                ?.focus(),
+        );
+
+        return;
+    }
+
+    router.post(
+        `${base.value}/checks/${check.publicId}/reason`,
+        {
+            expected_branch_id: props.register.expectedBranchId,
+            idempotency_key: reasonForm.key,
+            reason: reasonForm.reason,
+            note: reasonForm.note.trim() || null,
+        },
+        {
+            preserveScroll: true,
+            onStart: () => (reasonBusy.value = true),
+            onFinish: () => (reasonBusy.value = false),
+            onSuccess: () => {
+                reasonForm.reason = '';
+                reasonForm.note = '';
+                reasonForm.key = crypto.randomUUID();
+            },
+            onError: (bag) => {
+                reasonErrors.value = bag as Record<string, string>;
+
+                if (bag.idempotency_key) {
+                    reasonForm.key = crypto.randomUUID();
+                }
+            },
+        },
+    );
+};
+const reasonFormError = computed(
+    () =>
+        Object.entries(reasonErrors.value).find(
+            ([key]) => !['reason', 'note'].includes(key),
+        )?.[1] ?? null,
+);
+/** The check whose reason this viewer still has to add, if any (their own latest differing check). */
+const ownReasonNeeded = computed(
+    () => props.register.checks.find((check) => check.canAddReason) ?? null,
+);
+/** STK-40b (owner, 16 Nov 2026): an earlier differing check whose reason only its recorder can add; later checks still go ahead. */
+const waitingReason = computed(
+    () =>
+        props.register.checks.find(
+            (check) => check.reasonNeeded && !check.canAddReason,
+        ) ?? null,
+);
 </script>
 
 <template>
@@ -480,6 +507,15 @@ const difference = (value: string | null) =>
                 >
             </p>
             <p
+                v-if="ownReasonNeeded"
+                class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
+                data-testid="cd-own-reason-needed"
+            >
+                Your count differs from the register. Add the reason under
+                Earlier checks. Recording it did not change stock; correct stock
+                with a governed stock count.
+            </p>
+            <p
                 v-if="register.checkBlockedReason"
                 class="rounded-md border border-warning bg-warning/10 p-3 text-sm text-warning-strong"
                 data-testid="cd-check-blocked"
@@ -492,6 +528,15 @@ const difference = (value: string | null) =>
                 novalidate
                 @submit.prevent="submit"
             >
+                <p
+                    v-if="waitingReason"
+                    class="rounded-md border border-warning bg-warning/10 p-3 text-sm text-warning-strong"
+                    data-testid="cd-earlier-reason-waiting"
+                >
+                    Check {{ waitingReason.sequence }} differs from the register
+                    and still waits for its reason from the person who recorded
+                    it. You can still record your check.
+                </p>
                 <p
                     v-if="formError"
                     role="alert"
@@ -514,80 +559,13 @@ const difference = (value: string | null) =>
                     "
                 />
                 <InputError id="cd-counted-error" :message="errors.counted" />
-                <p
-                    v-if="register.attemptsSinceCheck > 0"
-                    class="text-sm text-muted-foreground"
-                    data-testid="cd-attempts-since"
-                >
-                    {{
-                        register.attemptsSinceCheck === 1
-                            ? '1 earlier attempt since the last check'
-                            : `${register.attemptsSinceCheck} earlier attempts since the last check`
-                    }}
+                <p class="text-sm text-muted-foreground">
+                    Recording your count never changes stock. If it differs from
+                    the register, you add the reason next.
                 </p>
-                <template v-if="differs">
-                    <p
-                        class="rounded-md border border-warning bg-warning/10 p-3 text-sm font-medium text-warning-strong"
-                        data-testid="cd-differs-note"
-                    >
-                        <template v-if="register.blind"
-                            >Your count differs from the register. Choose a
-                            reason below, then press Record check. Recording it
-                            does not change stock; correct stock with a governed
-                            stock count.</template
-                        >
-                        <template v-else
-                            >This differs from the register. Recording it does
-                            not change stock; correct stock with a governed
-                            stock count.</template
-                        >
-                    </p>
-                    <label class="block text-sm font-medium" for="cd-reason"
-                        >Reason</label
-                    >
-                    <select
-                        id="cd-reason"
-                        v-model="form.reason"
-                        class="min-h-11 w-full rounded-md border bg-background px-3 text-sm text-foreground"
-                        :aria-invalid="errors.reason ? 'true' : undefined"
-                        :aria-describedby="
-                            errors.reason ? 'cd-reason-error' : undefined
-                        "
-                    >
-                        <option value="" disabled>Choose a reason</option>
-                        <option
-                            v-for="(label, value) in reasons"
-                            :key="value"
-                            :value="value"
-                        >
-                            {{ label }}
-                        </option>
-                    </select>
-                    <InputError id="cd-reason-error" :message="errors.reason" />
-                    <label class="block text-sm font-medium" for="cd-note"
-                        >Note{{
-                            form.reason === 'other' ? '' : ' (optional)'
-                        }}</label
-                    >
-                    <p id="cd-note-hint" class="text-sm text-muted-foreground">
-                        Do not enter patient or prescriber details.
-                    </p>
-                    <Input
-                        id="cd-note"
-                        v-model="form.note"
-                        maxlength="200"
-                        class="min-h-11"
-                        :aria-invalid="errors.note ? 'true' : undefined"
-                        :aria-describedby="
-                            errors.note
-                                ? 'cd-note-hint cd-note-error'
-                                : 'cd-note-hint'
-                        "
-                    />
-                    <InputError id="cd-note-error" :message="errors.note" />
-                </template>
                 <Button
                     type="submit"
+                    :variant="ownReasonNeeded ? 'outline' : 'default'"
                     class="min-h-11 w-full lg:min-h-9 lg:w-auto"
                     :disabled="busy"
                     >Record check</Button
@@ -617,7 +595,9 @@ const difference = (value: string | null) =>
                             :label="
                                 check.outcome === 'matches'
                                     ? 'Matches'
-                                    : 'Differs'
+                                    : check.reasonNeeded
+                                      ? 'Difference: reason needed'
+                                      : 'Differs'
                             "
                             :tone="
                                 check.outcome === 'matches'
@@ -657,6 +637,97 @@ const difference = (value: string | null) =>
                         }}<template v-if="check.note"
                             >: {{ check.note }}</template
                         >
+                    </p>
+                    <form
+                        v-if="check.canAddReason"
+                        class="max-w-xl space-y-3 border-t pt-3"
+                        novalidate
+                        data-testid="cd-add-reason"
+                        @submit.prevent="submitReason(check)"
+                    >
+                        <p
+                            v-if="reasonFormError"
+                            role="alert"
+                            class="text-sm text-destructive"
+                        >
+                            {{ reasonFormError }}
+                        </p>
+                        <label class="block text-sm font-medium" for="cd-reason"
+                            >Reason for the difference</label
+                        >
+                        <select
+                            id="cd-reason"
+                            v-model="reasonForm.reason"
+                            class="min-h-11 w-full rounded-md border bg-background px-3 text-sm text-foreground"
+                            :aria-invalid="
+                                reasonErrors.reason ? 'true' : undefined
+                            "
+                            :aria-describedby="
+                                reasonErrors.reason
+                                    ? 'cd-reason-error'
+                                    : undefined
+                            "
+                        >
+                            <option value="" disabled>Choose a reason</option>
+                            <option
+                                v-for="(label, value) in reasons"
+                                :key="value"
+                                :value="value"
+                            >
+                                {{ label }}
+                            </option>
+                        </select>
+                        <InputError
+                            id="cd-reason-error"
+                            :message="reasonErrors.reason"
+                        />
+                        <label class="block text-sm font-medium" for="cd-note"
+                            >Note{{
+                                reasonForm.reason === 'other'
+                                    ? ''
+                                    : ' (optional)'
+                            }}</label
+                        >
+                        <p
+                            id="cd-note-hint"
+                            class="text-sm text-muted-foreground"
+                        >
+                            Do not enter patient or prescriber details.
+                        </p>
+                        <Input
+                            id="cd-note"
+                            v-model="reasonForm.note"
+                            maxlength="200"
+                            class="min-h-11"
+                            :aria-invalid="
+                                reasonErrors.note ? 'true' : undefined
+                            "
+                            :aria-describedby="
+                                reasonErrors.note
+                                    ? 'cd-note-hint cd-note-error'
+                                    : 'cd-note-hint'
+                            "
+                        />
+                        <InputError
+                            id="cd-note-error"
+                            :message="reasonErrors.note"
+                        />
+                        <p class="text-sm text-muted-foreground">
+                            The reason is added once and cannot be changed.
+                        </p>
+                        <Button
+                            type="submit"
+                            class="min-h-11 w-full lg:min-h-9 lg:w-auto"
+                            :disabled="reasonBusy"
+                            >Add reason</Button
+                        >
+                    </form>
+                    <p
+                        v-else-if="check.reasonNeeded"
+                        class="text-muted-foreground"
+                        data-testid="cd-reason-waiting"
+                    >
+                        The person who recorded this check adds the reason.
                     </p>
                 </li>
             </ul>
