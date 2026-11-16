@@ -73,7 +73,12 @@ const signed = (value: string) =>
           : `+${value}`;
 // The first column (date or row) stays in view while a wide report scrolls sideways.
 // Opaque backgrounds mix the header and hover tints over the card so scrolled cells never show through.
-const stickyBase = 'sticky left-0 z-10 shadow-[1px_0_0_var(--border)]';
+// DD-97: a clear edge (a solid line and a soft shadow strip) so columns that
+// scroll under the first column read as passing beneath it, not as cut off.
+// Drawn with ::after because browsers do not paint box-shadow on cells of a
+// border-collapse table.
+const stickyBase =
+    "sticky left-0 z-10 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-2 after:translate-x-full after:border-l after:border-border after:bg-gradient-to-r after:from-[color-mix(in_oklab,var(--foreground)_14%,transparent)] after:to-transparent after:content-['']";
 const stickyHead = `${stickyBase} bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]`;
 const stickyCell = `${stickyBase} bg-card transition-colors [tr:hover_&]:bg-[color-mix(in_oklab,var(--muted)_40%,var(--card))]`;
 const pending = ref<Record<string, boolean>>({});
