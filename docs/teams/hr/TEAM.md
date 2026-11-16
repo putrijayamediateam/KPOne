@@ -54,7 +54,7 @@ its own, and props, routes and permissions are the same. Each page is registered
 |---|---|---|---|
 | `HR/Roster` | `useRosterPage.ts` | `pages/HR/V2/Roster.vue` | HR team |
 | `HR/Attendance` | `useAttendancePage.ts`, with `useOvertimeTab.ts`, `useSummaryTab.ts`, `useOvertimeSettings.ts` and `useLocationCheckSettings.ts` | `pages/HR/V2/Attendance.vue` | HR team |
-| `HR/Leave` | `useLeavePage.ts` (Settings follows in a second PR) | `pages/HR/V2/Leave.vue` | HR team (PR #841) |
+| `HR/Leave` | `useLeavePage.ts` | `pages/HR/V2/Leave.vue` | HR team (PR #841; Settings in four sub-tabs in PR #925) |
 | `HR/Sops` | `useSopsPage.ts` | `pages/HR/V2/Sops.vue` | Nurul's team (PR #872) |
 | `HR/Memos` | `useMemosPage.ts` | `pages/HR/V2/Memos.vue` | Nurul's team (PR #874) |
 | `HR/Messages` | `useMessagesPage.ts` | `pages/HR/V2/Messages.vue` | Nurul's team (PR #880) |
