@@ -558,7 +558,6 @@ const withdrawMissing = computed(() =>
         <V2Dialog
             :open="form.open"
             title="Write a memo"
-            description="A published memo cannot be edited. To correct it, publish a new memo that replaces it."
             size="tall"
             :confirm-label="form.processing ? 'Publishing…' : 'Publish memo'"
             :busy="form.processing"
