@@ -58,6 +58,17 @@ const unbroken = computed(
 const cells = computed(
     () => data.value?.rows.map((row) => row.map(reportCell)) ?? [],
 );
+// PCA-3 (Daniel): Panel claim adjustments read as one signed form everywhere: + or a real minus, zero plain.
+const ADJUSTMENTS = 'Panel claim adjustments (confirmation date, MYR)';
+const adjustmentColumn = computed(
+    () => data.value?.columns.indexOf(ADJUSTMENTS) ?? -1,
+);
+const signed = (value: string) =>
+    value === '0.00'
+        ? value
+        : value.startsWith('-')
+          ? `−${value.slice(1)}`
+          : `+${value}`;
 // The first column (date or row) stays in view while a wide report scrolls sideways.
 // Opaque backgrounds mix the header and hover tints over the card so scrolled cells never show through.
 const stickyBase = 'sticky left-0 z-10 shadow-[1px_0_0_var(--border)]';
@@ -308,7 +319,15 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                     class="rounded-lg border bg-card p-3 text-sm"
                 >
                     <dt class="text-muted-foreground">{{ label }}</dt>
-                    <dd class="font-semibold tabular-nums">{{ value }}</dd>
+                    <dd class="font-semibold tabular-nums">
+                        {{ label === ADJUSTMENTS ? signed(value) : value }}
+                    </dd>
+                    <dd
+                        v-if="label === ADJUSTMENTS"
+                        class="text-xs text-muted-foreground"
+                    >
+                        Counted on the day it was confirmed.
+                    </dd>
                 </div>
             </dl>
             <!-- Wider when a report has more than 12 columns (Daily summary has 15 since BIL-6b). -->
@@ -353,7 +372,9 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                                 v-if="cells[i]?.[j]?.datetime"
                                 :datetime="cells[i][j].datetime ?? undefined"
                                 >{{ cells[i][j].text }}</time
-                            ><template v-else>{{ cell }}</template>
+                            ><template v-else>{{
+                                j === adjustmentColumn ? signed(cell) : cell
+                            }}</template>
                         </td>
                     </tr>
                 </template>

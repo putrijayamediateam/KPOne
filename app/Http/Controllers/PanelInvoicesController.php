@@ -32,7 +32,7 @@ class PanelInvoicesController extends Controller
             }
             fwrite($out, "\xEF\xBB\xBF");
             foreach ($table as $row) {
-                fputcsv($out, array_map(static fn (string $cell): string => PanelInvoiceReportService::safeCell($cell), $row), ',', '"', '\\');
+                fputcsv($out, array_map(static fn (string $cell): string => PanelInvoiceReportService::csvCell($cell), $row), ',', '"', '\\');
             }
             fclose($out);
         }, $name, ['Content-Type' => 'text/csv; charset=UTF-8', 'Cache-Control' => 'no-store, private']);
