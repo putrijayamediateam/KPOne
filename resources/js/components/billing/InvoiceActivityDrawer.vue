@@ -227,7 +227,7 @@ const icon = (entry: InvoiceActivityEntry) =>
                             >
                                 {{ entry.method }}
                             </p>
-                            <p class="mt-1 text-[11px] text-muted-foreground">
+                            <p class="mt-1 text-xs text-muted-foreground">
                                 {{ entry.scope }}
                             </p>
                             <p
