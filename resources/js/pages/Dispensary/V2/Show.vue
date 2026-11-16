@@ -53,8 +53,8 @@ import type { BoxBatchHint } from '@/lib/gs1-batch';
 import { formatInventoryReason } from '@/lib/inventory-picker';
 import { formatDate, formatStatusLabel } from '@/lib/presentation';
 import type { Gs1Read, ScannedSku } from '@/lib/scan';
-import OtcAllergyRecordForm from '@/pages/Dispensary/Partials/OtcAllergyRecordForm.vue';
 import AllergyMatchWarning from '@/pages/Dispensary/V2/Partials/AllergyMatchWarning.vue';
+import OtcAllergyRecordForm from '@/pages/Dispensary/V2/Partials/OtcAllergyRecordForm.vue';
 
 defineOptions({
     layout: { breadcrumbs: [{ title: 'Dispensary', href: '/registration' }] },
@@ -1579,8 +1579,9 @@ onMounted(() => {
 });
 const outlineButton =
     'inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-60 lg:h-9';
+// Daniel (#860): an off filled button reads as off (dashed, muted), not a lighter blue; the reason sits beside it.
 const filledButton =
-    'inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none aria-disabled:cursor-not-allowed aria-disabled:opacity-60 lg:h-9';
+    'inline-flex h-11 w-full items-center justify-center gap-2 rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none aria-disabled:cursor-not-allowed aria-disabled:border aria-disabled:border-dashed aria-disabled:border-border aria-disabled:bg-muted aria-disabled:text-muted-foreground aria-disabled:hover:bg-muted lg:h-9 dark:aria-disabled:border-foreground/30';
 </script>
 
 <template>
