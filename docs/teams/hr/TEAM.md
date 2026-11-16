@@ -43,6 +43,27 @@ memos, the HR dashboard, appraisal, letters and discipline records, and the clin
 | Controllers | `app/Http/Controllers/HR/*` |
 | Tests | `tests/Feature/HR/*`, `tests/Frontend/hr-*.test.mjs` |
 
+### V2 pages (the Version 2 look)
+
+Each HR page that has a Version 2 look keeps one shared composable in `resources/js/composables/hr/`, which holds the
+page's state and every request. The Classic page and the V2 page both use it, so they send exactly the same requests,
+fields, idempotency keys and lock versions. The Classic `<template>` stays unchanged, the V2 page sends no request of
+its own, and props, routes and permissions are the same. Each page is registered in `config/v2-pages.php`.
+
+| Page | Composable | V2 page | By |
+|---|---|---|---|
+| `HR/Roster` | `useRosterPage.ts` | `pages/HR/V2/Roster.vue` | HR team |
+| `HR/Attendance` | `useAttendancePage.ts`, with `useOvertimeTab.ts`, `useSummaryTab.ts`, `useOvertimeSettings.ts` and `useLocationCheckSettings.ts` | `pages/HR/V2/Attendance.vue` | HR team |
+| `HR/Leave` | `useLeavePage.ts` (Settings follows in a second PR) | `pages/HR/V2/Leave.vue` | HR team (PR #841) |
+| `HR/Sops` | `useSopsPage.ts` | `pages/HR/V2/Sops.vue` | Nurul's team (PR #872) |
+| `HR/Memos` | `useMemosPage.ts` | `pages/HR/V2/Memos.vue` | Nurul's team (PR #874) |
+
+- Nurul's team builds HR V2 pages under the HR rules; Suresh reviews each one for the HR team. Next is `HR/Messages`.
+- A frontend test that reads a Classic page's script may also read its composable; that is a setup change with the
+  expectations unchanged (as in `hr-5c-sops.test.mjs` and `hr-8-memos.test.mjs`).
+- When the Classic SOPs restyle (`lastOpened`, which fills "I have read and understood" for the SOP just opened)
+  reaches main, the V2 SOPs page takes the same binding from `useSopsPage.ts`, so the two match (Suresh, PR #872).
+
 ## 4. Permissions
 
 New permissions use the `hr.` prefix and explicit `.own` or `.organisation` scope, are added by additive migrations
