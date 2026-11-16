@@ -253,6 +253,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
         Route::middleware(['permission:hr.attendance.clock.own', 'throttle:10,1'])->group(function (): void {
             Route::post('clock-in', 'clockIn')->name('hr.attendance.clock-in');
             Route::post('clock-out', 'clockOut')->name('hr.attendance.clock-out');
+            Route::post('clock-out/undo', 'undoClockOut')->name('hr.attendance.clock-out.undo');
         });
         Route::middleware(['permission:hr.attendance.clock.own,hr.attendance.review.organisation', 'throttle:30,1'])->group(function (): void {
             Route::post('corrections', 'propose')->name('hr.attendance.corrections.store');

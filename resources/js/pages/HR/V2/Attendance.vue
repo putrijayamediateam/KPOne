@@ -75,6 +75,9 @@ const {
     withdrawing,
     cancelCorrection,
     decision,
+    undo,
+    openUndo,
+    confirmUndo,
     openDecision,
     confirmDecision,
     ask,
@@ -355,6 +358,26 @@ const numberClass =
                             >
                                 {{ attendance.my.doneLabel }}
                             </p>
+                            <!-- Undo clock-out (owner, 16 Nov 2026): outline, for 15 minutes; the filled action is in the dialog. -->
+                            <div
+                                v-if="attendance.my.undo"
+                                class="flex flex-col gap-1"
+                                data-test="undo-clock-out"
+                            >
+                                <button
+                                    type="button"
+                                    :class="button"
+                                    class="self-start"
+                                    data-test="undo-clock-out-button"
+                                    @click="openUndo"
+                                >
+                                    Undo clock-out
+                                </button>
+                                <p class="text-sm text-muted-foreground">
+                                    Clocked out by mistake? You can undo this
+                                    until {{ attendance.my.undo.until }}.
+                                </p>
+                            </div>
                             <button
                                 v-if="attendance.my.state === 'out'"
                                 type="button"
@@ -1022,6 +1045,13 @@ const numberClass =
                                             >
                                                 {{ r.location.out }}
                                             </p>
+                                            <p
+                                                v-if="r.undoneLabel"
+                                                class="text-[13px] text-muted-foreground"
+                                                data-test="review-undone"
+                                            >
+                                                {{ r.undoneLabel }}
+                                            </p>
                                         </td>
                                         <td
                                             data-label="Worked"
@@ -1372,6 +1402,25 @@ const numberClass =
         />
 
         <!-- Clock out (only Clock out asks) -->
+        <V2Dialog
+            :open="undo.open"
+            :title="`Undo your clock-out at ${attendance.my?.undo?.pressedAt ?? ''}?`"
+            description="You stay clocked in from your clock-in. Clock out again when you leave; that takes a new photo."
+            confirm-label="Undo clock-out"
+            :busy="undo.processing"
+            @update:open="undo.open = $event"
+            @confirm="confirmUndo"
+        >
+            <p
+                v-if="undo.error"
+                role="alert"
+                class="text-sm text-destructive"
+                data-test="undo-error"
+            >
+                {{ undo.error }}
+            </p>
+        </V2Dialog>
+
         <V2Dialog
             :open="clock.confirmOut"
             title="Clock out now?"

@@ -3343,3 +3343,15 @@ So HR-PHOTO-STORAGE does **not** add a delete. It adds a way to see what is stor
 - No export of photos and no per-person storage figures.
 - No notification.
 - Synthetic data only until the PDPA review.
+
+## 25. Undo clock-out, as built (owner, 16 Nov 2026)
+
+The owner asked that someone who presses Clock out by mistake can clock in again. Decided: a **15-minute** window from their own clock-out, by server time; **staff only** (HR uses the correction); the rest of the design note as written.
+
+- **The same session reopens.** There is no new session, no split day and no second break. The person's latest session must be closed by their own button press within the last 15 minutes. The undo is refused once a correction or an overtime request points at the session, once a payroll run for that month that includes the person has left Draft, or once they have clocked in again.
+- **Nothing is deleted or rewritten.** The undone press keeps its event and photo. A new `out_undone` event records the undo, with the time of the undone press. The next Clock out is a new **attempt** with its own photo (and location result where the branch checks location). Photos and location results carry `attempt`, one per session, kind and attempt; screens show the latest attempt.
+- **PostgreSQL** allows exactly one reopen path. Inside the undo's own transaction, a local flag names the session; the session must have been clocked out within 15 minutes; and the `out_undone` event for that clock-out must already exist. Every other reopen is refused as before. A clock-out photo or location result must belong to the current attempt.
+- **No photo is taken to undo**, and the location check isn't asked again.
+- **Screens (Classic and V2):** while the server offers it, the clock card shows an outline "Undo clock-out" with "Clocked out by mistake? You can undo this until 5:17 PM." It asks to confirm first: "Undo your clock-out at 5:02 PM?" Review shows HR "Clock-out undone at 5:02 PM" on that day.
+- **The usual protections:** a fresh permission check under lock, `DB::transaction`, a row lock on the session, `lock_version`, an idempotency key, and an audit row `hr.attendance.clock_out_undone` (ids and seconds only).
+- **Not in this slice:** the global clock shortcut does not offer the undo (it opens the Attendance page, which does); HR cannot undo for someone (HR uses the correction).

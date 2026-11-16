@@ -58,6 +58,8 @@ export type Row = {
     week?: WeekHours | null;
     /** HR-PHOTO: each press's photo; anyone else's needs Show. */
     photos?: { in: ClockPhotoEntry | null; out: ClockPhotoEntry | null } | null;
+    /** Undo clock-out: "Clock-out undone at 5:02 PM" on Review when the person took a clock-out back. */
+    undoneLabel?: string | null;
     /** HR-16a: each press's location result in plain words; never a position. */
     location?: {
         in: string | null;
@@ -105,6 +107,13 @@ export type AttendanceProps = {
             state: 'out' | 'in' | 'done';
             clockedInLabel: string | null;
             doneLabel: string | null;
+            // Undo clock-out (owner, 16 Nov 2026): the latest own clock-out, for 15 minutes; null otherwise.
+            undo: {
+                sessionId: string;
+                lockVersion: number;
+                pressedAt: string;
+                until: string;
+            } | null;
             staleLabel: string | null;
             todayShift: string | null;
             week: Row[];
@@ -533,6 +542,46 @@ export const useAttendancePage = (props: AttendanceProps) => {
         );
     };
 
+    // ---- Undo clock-out (owner, 16 Nov 2026): within 15 minutes, staff only; asks to confirm first ----
+    const undo = reactive({
+        open: false,
+        processing: false,
+        key: '',
+        error: '',
+    });
+    const openUndo = () =>
+        Object.assign(undo, {
+            open: true,
+            processing: false,
+            key: crypto.randomUUID(),
+            error: '',
+        });
+    const confirmUndo = () => {
+        const offer = props.attendance.my?.undo;
+
+        if (!offer || undo.processing) {
+            return;
+        }
+
+        undo.processing = true;
+        router.post(
+            '/hr/attendance/clock-out/undo',
+            {
+                session_id: offer.sessionId,
+                expected_lock_version: offer.lockVersion,
+                idempotency_key: undo.key,
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => (undo.open = false),
+                onError: (e: Record<string, string>) =>
+                    (undo.error =
+                        e.clock ?? e.attendance ?? 'This did not go through.'),
+                onFinish: () => (undo.processing = false),
+            },
+        );
+    };
+
     // ---- Decisions (outline buttons in the list; the primary action is in the dialog) ----
     const decision = reactive({
         open: false,
@@ -729,6 +778,9 @@ export const useAttendancePage = (props: AttendanceProps) => {
         decision,
         openDecision,
         confirmDecision,
+        undo,
+        openUndo,
+        confirmUndo,
         ask,
         myChoices,
         choiceFor,
