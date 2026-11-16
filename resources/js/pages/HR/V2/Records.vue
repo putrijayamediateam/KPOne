@@ -386,9 +386,7 @@ const payslipLabel = (p: PayslipRow) =>
                                             <dd class="flex flex-col gap-1">
                                                 <template v-if="my.bank">
                                                     <span class="break-words"
-                                                        >{{
-                                                            my.bank.bankName
-                                                        }}
+                                                        >{{ my.bank.bankName }}
                                                         ·
                                                         {{
                                                             my.bank.holder
