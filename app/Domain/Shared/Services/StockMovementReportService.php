@@ -28,9 +28,20 @@ class StockMovementReportService extends BranchReportService
         return 'Stock movement summary';
     }
 
-    public function basis(): string
+    public function basisLines(): array
     {
-        return 'Quantities only, by retained SKU and stock unit; no valuation or cost. Branch-local movement dates. Opening is all signed retained movements before the period; closing is all movements through the period end, not a live balance snapshot. Received is purchase receipts; dispensed is quantity out; adjusted includes stocktakes, adjustments and opening entries recorded during the period. Transfers are signed net; transfers between locations in the same branch cancel. Opening + received - dispensed + adjusted + transferred = closing. Three decimal places, exact integer milliunits. Units/SKUs are never summed together. Legacy balances without movements are not invented; only SKUs with retained branch movements appear. Archived locations and items remain included.';
+        return [
+            ['label' => 'Quantities', 'text' => 'Quantities only, by item and stock unit; no prices or cost. Three decimal places, exact; different units are never added together.'],
+            ['label' => 'Period', 'text' => 'Dates are branch dates. Opening is everything recorded before the period; closing is everything up to the end of the period (not a live stock count).'],
+            ['label' => 'Movements', 'text' => 'Received is stock received from suppliers; dispensed is stock given out; adjusted includes stock counts, adjustments and opening stock recorded in the period. Transfers show the net in or out; a move between two places in the same branch cancels out.'],
+            ['label' => null, 'text' => 'Opening + received - dispensed + adjusted + transferred = closing.'],
+            ['label' => 'Notes', 'text' => 'Old balances with no recorded movements are not made up; only items that moved at this branch appear. Archived places and items are still included.'],
+        ];
+    }
+
+    public function basisSummary(): string
+    {
+        return 'Quantities from recorded stock movements, by branch date; closing is the record at the end of the period, not a live count.';
     }
 
     protected function project(User $actor, Branch $branch, array $filters): array

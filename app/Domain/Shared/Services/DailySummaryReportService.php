@@ -26,9 +26,23 @@ class DailySummaryReportService extends BranchReportService
         return 'Daily summary';
     }
 
-    public function basis(): string
+    public function basisLines(): array
     {
-        return 'Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow (see refund columns). Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Panel claim adjustments are confirmed changes to a Panel share, signed (a minus lowers it), on the day each was confirmed, so a past day never changes; they are not included in Total received. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Refunds (waiting or approved, not rejected) use payout date and the refund\'s method, and are not deducted from Total received. Cash closing = Cash net + Cash reversed, refund recorded minus Cash refunds paid. Refunded after completion is the part of Cash and Non-cash refunds paid that gives back money on a receipt of a completed visit (BIL-10); it is already inside those two columns, so it is never added to them. Payment-method filters apply to receipt columns only, and to refunds by refund method (refunds paid) or receipt method (refund recorded). Visit type filters apply to both cohorts, to Panel claim adjustments and to refunds (through the receipt\'s invoice); unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.';
+        return [
+            ['label' => 'Receipts', 'text' => 'Cash, Non-cash and Total count money on the day the receipt was taken, not the day the invoice was finalised. Each shows received, reversed and net; a reversed receipt is taken off its own receipt day.'],
+            ['label' => 'Panel and Due', 'text' => 'Panel is the Panel\'s approved share and Due is approved pay-later still owed. Both count on the day the invoice was finalised.'],
+            ['label' => 'Panel claim adjustments', 'text' => 'Confirmed changes to a Panel share, with + or − for up or down. Each counts on the day it was confirmed, so a past day never changes.'],
+            ['label' => null, 'text' => 'Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received, and neither are Panel claim adjustments or refunds.'],
+            ['label' => 'Refunds', 'text' => 'Refunds that are waiting or approved (not rejected) count on the day they were paid out, under the refund\'s own payment method. Refunded after completion is the part of Cash and Non-cash refunds paid that gives back money for a completed visit; it is already inside those two columns, so do not add it again.'],
+            ['label' => null, 'text' => 'Cash closing = Cash net + Cash reversed, refund recorded − Cash refunds paid.'],
+            ['label' => 'Filters and settings', 'text' => 'Payment-method filters apply to receipt columns only, and to refunds by the refund\'s method (refunds paid) or the receipt\'s method (refund recorded). Visit type filters apply to every column; a receipt not linked to an invoice cannot match a visit filter. Each payment method\'s current Cash or Non-cash setting (Not classified counts as Non-cash) is used for every period: if the setting changes, older days change too.'],
+            ['label' => 'Notes', 'text' => 'Amounts in MYR, two decimals; days with nothing show zeros. Figures are today\'s records, not a saved copy from the past.'],
+        ];
+    }
+
+    public function basisSummary(): string
+    {
+        return 'Receipts count on the day taken; Panel and Due on the day the invoice was finalised; adjustments on the day they were confirmed.';
     }
 
     protected function project(User $actor, Branch $branch, array $filters): array
