@@ -193,7 +193,8 @@ final class PanelClaimPackService
                     'branchName' => (string) $branch->name,
                     'printedAt' => now()->setTimezone($branch->timezone)->format('j M Y, g:i A'),
                     'claimCount' => $claims->count(),
-                    'totalClaimSen' => (int) $claims->sum('claim_amount_sen'),
+                    // PCA-2: a cancelled supplementary claim was never submitted and is counted in no total.
+                    'totalClaimSen' => (int) $claims->where('status', '!=', 'cancelled')->sum('claim_amount_sen'),
                     'claims' => $rows,
                 ],
             ];
