@@ -94,7 +94,16 @@ test('each sub-tab keeps its content and its data-test hooks', () => {
         /max-md:fixed max-md:inset-x-0 max-md:bottom-0[\s\S]*?data-test="save-entitlements-bar"/,
     );
     // "Send for a check" stays off until the person, type and days (and a reason) are chosen, and says what is missing.
-    assert.match(settings, /entryForm\.processing \|\|\s*entryMissing !== ''/);
+    assert.match(
+        settings,
+        /:disabled="entryForm\.processing"\s*:aria-disabled="\s*entryMissing !== '' \|\|\s*undefined\s*"/,
+    );
+    // The reason stays in the page as a live region, so each change is read out (Suresh).
+    assert.match(settings, /id="entry-missing"\s*aria-live="polite"/);
+    assert.match(
+        settings,
+        /@submit\.prevent="\s*entryMissing === '' && saveEntry\(\)\s*"/,
+    );
     assert.match(script, /'Choose a person to continue\.'/);
     assert.match(
         settings,

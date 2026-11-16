@@ -1214,7 +1214,7 @@ const inputClass =
                                         />
                                     </div>
                                     <dl
-                                        class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm"
+                                        class="grid grid-cols-2 gap-x-8 gap-y-1 text-sm"
                                     >
                                         <div class="flex justify-between gap-2">
                                             <dt class="text-muted-foreground">
@@ -1266,7 +1266,7 @@ const inputClass =
                             id="leave-settings-panel-entitlements"
                             role="tabpanel"
                             aria-labelledby="leave-settings-tab-entitlements"
-                            class="flex flex-col gap-4 max-md:pb-24"
+                            class="flex flex-col gap-4 max-md:pb-[calc(6rem+env(safe-area-inset-bottom,0px))]"
                             data-test="entitlements-card"
                         >
                             <V2FormCard
@@ -1916,9 +1916,15 @@ const inputClass =
                                             <Button
                                                 type="submit"
                                                 class="min-h-11 w-full sm:w-fit lg:min-h-9"
-                                                :disabled="
-                                                    entryForm.processing ||
+                                                :disabled="entryForm.processing"
+                                                :aria-disabled="
+                                                    entryMissing !== '' ||
+                                                    undefined
+                                                "
+                                                :class="
                                                     entryMissing !== ''
+                                                        ? 'cursor-not-allowed opacity-50'
+                                                        : ''
                                                 "
                                                 :aria-describedby="
                                                     entryMissing
@@ -1928,10 +1934,11 @@ const inputClass =
                                                 data-test="send-entry"
                                                 >Send for a check</Button
                                             >
+                                            <!-- Always in the page, so a screen reader hears each change (Suresh). -->
                                             <p
-                                                v-if="entryMissing"
                                                 id="entry-missing"
-                                                class="text-sm text-muted-foreground"
+                                                aria-live="polite"
+                                                class="text-sm text-muted-foreground empty:hidden"
                                                 data-test="entry-missing"
                                             >
                                                 {{ entryMissing }}
