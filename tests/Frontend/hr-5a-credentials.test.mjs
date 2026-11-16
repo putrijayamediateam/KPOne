@@ -18,6 +18,9 @@ const files = {
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
+// The page's and the sheet's script now live in composables (setup only): read both.
+source.page += read('resources/js/composables/hr/useCredentialsPage.ts');
+source.sheet += read('resources/js/composables/hr/useCredentialRecordSheet.ts');
 const types = read('resources/js/components/hr/credentials/types.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
