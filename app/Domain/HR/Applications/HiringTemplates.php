@@ -5,11 +5,10 @@ namespace App\Domain\HR\Applications;
 use InvalidArgumentException;
 
 /**
- * HR-17b fixed hiring messages (HR-PLAN 19.2; owner, 2026-11-10). English and Bahasa Melayu side by side; no free text
+ * HR-17b fixed hiring messages (HR-PLAN 19.2; owner, 2026-11-10). English only (owner, 2026-11-16); no free text
  * from any KPOne user beyond the position title HR entered, and never a rating, a call note, a reason for a decision
  * or anything the candidate sent. The reminder to the hiring mailbox names no candidate, only a short reference. The
- * Malay wording is a draft until the clinic checks it. The text is rebuilt from here whenever it is shown and is
- * never stored.
+ * text is rebuilt from here whenever it is shown and is never stored.
  */
 final class HiringTemplates
 {

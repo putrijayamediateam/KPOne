@@ -31,7 +31,7 @@ final class JobApplicationIntake
 
     public const HONEYPOT = 'website';
 
-    // Applicants see English and Bahasa Melayu side by side (owner, 2026-11-07).
+    // Applicants see English only (owner, 2026-11-16).
     public const ALREADY_SENT = 'This form was already sent. Reload the page to apply again.';
 
     public const NOT_PDF = 'Your CV must be a PDF file.';

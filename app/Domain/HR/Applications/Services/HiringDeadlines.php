@@ -120,7 +120,7 @@ final class HiringDeadlines
 
     /**
      * The last day to choose interview times as words, the same on the candidate's page and in the emails (Daniel):
-     * English "Mon 16 Nov 2026" and Malay "Isnin 16 Nov 2026".
+     * English, for example "Mon 16 Nov 2026".
      *
      * @return array{deadline: string}
      */
