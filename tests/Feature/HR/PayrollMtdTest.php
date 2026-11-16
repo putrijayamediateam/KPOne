@@ -164,6 +164,50 @@ class PayrollMtdTest extends VisitTestCase
         $this->assertSame(43000, $this->mtdLine($worker, $feb)[2]);
     }
 
+    public function test_s3_a_correction_pays_statutory_parts_on_the_difference_and_its_mtd_is_typed(): void
+    {
+        $worker = $this->clinic(['mtd_category' => '1', 'mtd_children' => '0']);
+        $this->travelTo(CarbonImmutable::parse('2026-02-03 09:00', $this->branch->timezone));
+        $schedule = $this->enterSchedule($this->hr);
+        $this->selectBranch($this->director);
+        $this->post(route('hr.payroll.mtd-schedules.decide', [$schedule, 'check']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $jan = $this->prepareRun('2026-01');
+        // January: EPF 11% and 13% of RM 5,000.00.
+        $this->assertSame([['employee', 55000], ['employer', 65000]], $this->statutory($jan));
+        $this->lock($jan);
+
+        // A RM 1,000.00 bonus counted for EPF and MTD: the wage becomes RM 6,000.00, so the parts are 660.00 and 780.00
+        // and the correction pays only what January did not.
+        $setup = app(PayrollSetupService::class);
+        $bonus = $setup->saveItemType($this->hr, ['name' => 'Bonus', 'kind' => 'earnings', 'counts_epf' => true, 'counts_mtd' => true, 'is_active' => true,
+            'idempotency_key' => (string) Str::uuid()]);
+        $fix = $this->prepareRun('2026-01', 'adjustment');
+        $this->step($this->hr, $fix, 'manual', ['worker_id' => $worker->public_id, 'item_type_id' => $bonus, 'amount' => '1,000.00', 'reason_code' => 'bonus'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame([['employee', 11000], ['employer', 13000]], $this->statutory($fix));
+        $this->assertSame('EPF employee · on the RM 1,000.00 difference (wage now RM 6,000.00)', $this->statutoryText($fix)[0]);
+        // KPOne does not work out MTD on one-off pay: an error until HR types it, and RM 0.00 is allowed.
+        $this->assertSame(['Type the MTD for this correction (RM 0.00 if none): KPOne does not work out MTD on one-off pay'], $this->person($fix)['errors']);
+        $this->assertTrue($this->person($fix)['needsMtd']);
+        $this->assertNull($this->mtdLine($worker, $fix));
+        $this->step($this->hr, $fix, 'mtd', ['worker_id' => $worker->public_id, 'mtd' => '0.00'])->assertSessionHasNoErrors();
+        $this->assertSame([], $this->person($fix)['errors']);
+        $this->assertSame(['mtd', 'mtd', 0, 'MTD (PCB) · entered for this correction'], $this->mtdLine($worker, $fix));
+        $this->lock($fix);
+
+        // A second correction takes RM 500.00 back for EPF only: the wage was RM 6,000.00 over January's two locked runs,
+        // so the parts become 605.00 and 715.00 and the lines take back 55.00 and 65.00, with a warning. MTD is not touched.
+        $recovery = $setup->saveItemType($this->hr, ['name' => 'Recovery', 'kind' => 'deduction', 'counts_epf' => true, 'is_active' => true,
+            'idempotency_key' => (string) Str::uuid()]);
+        $back = $this->prepareRun('2026-01', 'adjustment');
+        $this->step($this->hr, $back, 'manual', ['worker_id' => $worker->public_id, 'item_type_id' => $recovery, 'amount' => '500.00', 'reason_code' => 'recovery'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame([['employee', -5500], ['employer', -6500]], $this->statutory($back));
+        $this->assertContains('This correction lowers a scheme wage: the contribution lines take money back', $this->person($back)['warnings']);
+        $this->assertSame([], $this->person($back)['errors']);
+        $this->assertNull($this->mtdLine($worker, $back));
+    }
+
     public function test_category_2_children_and_the_joiner_warning(): void
     {
         $worker = $this->clinic(['mtd_category' => '2', 'mtd_children' => '2'], '2026-01-05');
@@ -336,10 +380,10 @@ SQL);
         return $worker;
     }
 
-    private function prepareRun(string $month): string
+    private function prepareRun(string $month, string $kind = 'regular'): string
     {
         $this->selectBranch($this->hr);
-        $this->post(route('hr.payroll.runs.prepare'), ['pay_group_id' => $this->group, 'month' => $month, 'kind' => 'regular', 'idempotency_key' => (string) Str::uuid()])
+        $this->post(route('hr.payroll.runs.prepare'), ['pay_group_id' => $this->group, 'month' => $month, 'kind' => $kind, 'idempotency_key' => (string) Str::uuid()])
             ->assertSessionHasNoErrors();
 
         return (string) DB::table('hr_payroll_runs')->orderByDesc('id')->value('public_id');
@@ -385,6 +429,27 @@ SQL);
 
         return $line === null ? null : [(string) $line->kind, (string) $line->section, (int) Crypt::decryptString((string) $line->amount_encrypted),
             Crypt::decryptString((string) $line->explanation_encrypted)];
+    }
+
+    /** @return list<array{0:string, 1:int}> the EPF employee and employer lines of the run's one person */
+    private function statutory(string $runId): array
+    {
+        return array_map(fn (\stdClass $l): array => [(string) $l->kind, (int) Crypt::decryptString((string) $l->amount_encrypted)], $this->statutoryRows($runId));
+    }
+
+    /** @return list<string> */
+    private function statutoryText(string $runId): array
+    {
+        return array_map(fn (\stdClass $l): string => Crypt::decryptString((string) $l->explanation_encrypted), $this->statutoryRows($runId));
+    }
+
+    /** @return list<\stdClass> */
+    private function statutoryRows(string $runId): array
+    {
+        $run = DB::table('hr_payroll_runs')->where('public_id', $runId)->value('id');
+        $person = DB::table('hr_payroll_run_people')->where('run_id', $run)->value('id');
+
+        return array_values(DB::table('hr_payroll_lines')->where('run_person_id', $person)->where('scheme', 'epf')->whereIn('kind', ['employee', 'employer'])->orderBy('id')->get()->all());
     }
 
     private function assertRefused(string $state, callable $write): void
