@@ -105,7 +105,7 @@ final class HiringMessenger
     }
 
     /** PDPA 15: shown for an interview email once its booking was deleted (6 months after an unsuccessful close). */
-    public const INTERVIEW_PURGED = "The interview details were deleted after the retention period.\nButiran temu duga telah dipadam selepas tempoh simpanan.";
+    public const INTERVIEW_PURGED = 'The interview details were deleted after the retention period.';
 
     /**
      * One message row as shown, its text rebuilt from the fixed template.
