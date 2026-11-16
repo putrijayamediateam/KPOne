@@ -1,3 +1,11 @@
+<script lang="ts">
+// A page whose tabs are links (a visit that rebuilds the whole page) builds a new strip after the key press, so the focus the
+// key press moved is gone. The strip that was used remembers which tab was chosen by keyboard, and the new strip takes the
+// focus back for that tab. It expires after a few seconds so a later, unrelated strip never steals focus.
+let keyboardChoice: { label: string; value: string; at: number } | null = null;
+const KEYBOARD_FOCUS_MS = 4000;
+</script>
+
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
@@ -59,6 +67,23 @@ onMounted(() => {
     reveal();
     measure();
 
+    const chosen = keyboardChoice;
+
+    keyboardChoice = null;
+
+    if (
+        chosen &&
+        chosen.label === props.ariaLabel &&
+        chosen.value === props.modelValue &&
+        Date.now() - chosen.at < KEYBOARD_FOCUS_MS
+    ) {
+        nextTick(() =>
+            list.value
+                ?.querySelector<HTMLElement>('[role=tab][aria-selected="true"]')
+                ?.focus({ preventScroll: true }),
+        );
+    }
+
     if (typeof ResizeObserver !== 'undefined' && list.value) {
         observer = new ResizeObserver(measure);
         observer.observe(list.value);
@@ -88,6 +113,11 @@ const move = (event: KeyboardEvent, index: number) => {
     }
 
     event.preventDefault();
+    keyboardChoice = {
+        label: props.ariaLabel,
+        value: next.t.value,
+        at: Date.now(),
+    };
     emit('update:modelValue', next.t.value);
     nextTick(() =>
         list.value
