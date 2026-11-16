@@ -115,7 +115,6 @@ const buttonOff =
                     <V2Field
                         v-slot="{ id, describedBy }"
                         label="Find on this page"
-                        hint="Search covers this page only."
                     >
                         <input
                             :id="id"
