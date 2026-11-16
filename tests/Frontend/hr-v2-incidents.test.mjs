@@ -46,8 +46,21 @@ test('the lists show no report text and nothing is kept in the browser', () => {
 
 test('Send stays off with the reason in words; the form starts empty', () => {
     assert.match(code, /Choose what kind of incident it was to continue\./);
-    assert.match(code, /Choose the date and time it happened to continue\./);
+    assert.match(
+        code,
+        /Choose the date and the time it happened to continue\./,
+    );
     assert.match(code, /Describe what happened to continue\./);
     assert.match(tpl, /:confirm-disabled="confirmReason !== ''"/);
     assert.match(tpl, /Send to the Director only/);
+});
+
+test('a date alone never saves a time nobody chose; a future time is refused', () => {
+    assert.match(
+        code,
+        /form\.occurredAt = date && time \? `\$\{date\}T\$\{time\}` : ''/,
+    );
+    assert.doesNotMatch(code, /00:00/);
+    assert.match(code, /form\.occurredAt > props\.incidents\.today/);
+    assert.match(code, /It cannot be in the future\./);
 });

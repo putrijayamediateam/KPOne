@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
 import { X } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, ref, watch } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -52,33 +52,44 @@ const cardClass = 'flex flex-col gap-3 rounded-[14px] border bg-card p-4';
 const chipTone = (s: 'reported' | 'acknowledged' | 'closed') =>
     s === 'reported' ? 'warning' : s === 'acknowledged' ? 'info' : 'neutral';
 
-// The date and the time are two fields over the one value the shared logic sends ("yyyy-mm-ddThh:mm").
-const whenDate = computed({
-    get: () => form.occurredAt.slice(0, 10),
-    set: (v: string) =>
-        (form.occurredAt = v
-            ? `${v}T${form.occurredAt.slice(11, 16) || '00:00'}`
-            : ''),
+// The date and the time are two fields with their own local values. The one value the shared logic sends
+// ("yyyy-mm-ddThh:mm") is set only when BOTH are chosen, so a date alone is still missing and nothing is guessed.
+const whenDate = ref('');
+const whenTime = ref('');
+watch(
+    () => form.open,
+    (open) => {
+        if (open) {
+            whenDate.value = form.occurredAt.slice(0, 10);
+            whenTime.value = form.occurredAt.slice(11, 16);
+        }
+    },
+);
+watch([whenDate, whenTime], ([date, time]) => {
+    form.occurredAt = date && time ? `${date}T${time}` : '';
 });
-const whenTime = computed({
-    get: () => form.occurredAt.slice(11, 16),
-    set: (v: string) =>
-        (form.occurredAt = whenDate.value
-            ? `${whenDate.value}T${v || '00:00'}`
-            : ''),
-});
+// Branch names arrive in capitals (CHERAS); V2 shows them in title case like the rest of V2.
+const titleCase = (name: string) =>
+    name
+        .toLowerCase()
+        .replace(/(^|[\s-])([a-z])/g, (_, a, b) => a + b.toUpperCase());
 const todayDate = computed(() => props.incidents.today.slice(0, 10));
 const branchOptions = computed(() =>
-    props.incidents.branches.map((b) => ({ value: b.id, label: b.name })),
+    props.incidents.branches.map((b) => ({
+        value: b.id,
+        label: titleCase(b.name),
+    })),
 );
 const confirmReason = computed(() =>
     !form.category
         ? 'Choose what kind of incident it was to continue.'
         : !form.occurredAt
-          ? 'Choose the date and time it happened to continue.'
-          : form.description.trim().length < 10
-            ? 'Describe what happened to continue.'
-            : '',
+          ? 'Choose the date and the time it happened to continue.'
+          : form.occurredAt > props.incidents.today
+            ? 'It cannot be in the future. Choose the date and time it happened to continue.'
+            : form.description.trim().length < 10
+              ? 'Describe what happened to continue.'
+              : '',
 );
 </script>
 
@@ -167,7 +178,7 @@ const confirmReason = computed(() =>
                                     />
                                 </div>
                                 <p class="text-sm text-muted-foreground">
-                                    {{ r.branch }} · {{ r.occurredAt
+                                    {{ titleCase(r.branch) }} · {{ r.occurredAt
                                     }}<template v-if="r.reporter">
                                         · reported by {{ r.reporter }}</template
                                     ><template
