@@ -196,12 +196,14 @@ Halaman ini untuk dibaca; tiada apa yang dipesan atau dihantar daripadanya.
 
 ## Penerimaan dengan pengecualian (contoh yang diikuti pada skrin)
 
+Bahagian penerimaan, pulangan kepada pembekal dan recall di sini mengikut tampilan Classic. Tampilan baharu menggunakan lembaran terima sendiri; nama butang di sana mungkin berbeza: [PERLU DISAHKAN].
+
 1. Pada “Split lots and delivery exceptions”, isi “Delivery note or supplier invoice reference”, tandakan “Include this order line” hanya untuk baris yang tiba, dan isi “Physical quantity counted”. Nyahtanda baris yang tidak tiba; baris yang ditanda mesti mempunyai kuantiti.
 2. Isi setiap lot: “Batch number”, “Real expiry date”, “Lot quantity” dan “Outcome” (“accepted”, “quarantined” atau “rejected”). Pilih “Add lot” untuk lot lain (contohnya 480 diterima dan 20 rosak).
 3. Untuk lot “quarantined” atau “rejected”, pilih sebab terkawal: “Damaged”, “Wrong item”, “Short expiry”, “Missing documentation” atau “Other approved reason”. Jika sebab tiada, skrin menyatakan “Accepted lots have no exception reason. Quarantined and rejected lots need a controlled reason.”
 4. Pilih “Request exception approval”. Pada “Delivery exceptions and corrections”, orang lain (CA Supervisor lain, Finance Officer atau Director) memilih “Load receiving reviews”, menyemak resit yang “Awaiting independent approval” dan memilih “Approve delivery exception”. Skrin menyatakan “Delivery exception approved. The original receiver may post the unchanged delivery.”
 5. Penerima asal memilih “Load receiving reviews”, kemudian “Post approved delivery”. Skrin menyatakan “Goods Receipt posted.”
-6. Lot yang “quarantined” diletakkan tahanan secara automatik pada “Batch safety holds” (contohnya “Held: Damaged”). Pelepasan tahanan memerlukan Finance Officer atau Director.
+6. Lot yang “quarantined” diletakkan tahanan secara automatik pada “Batch safety holds” (contohnya “Held: Damaged”; untuk sebab lain, tahanan itu menjadi “Held: Other safety concern”). Pelepasan tahanan memerlukan Finance Officer atau Director.
 
 ## Pulangan beberapa lot sekali gus
 
@@ -210,12 +212,12 @@ Pada “Supplier returns”, bahagian “Return several lots from one delivery�
 ## Recall
 
 1. Buka “Inventory” > “Count and adjust” > “Recalls”. Skrin menyatakan recall menyekat batch yang dinamakan di setiap cawangan, dan tidak menggerakkan stok. Tab menunjukkan “Active” dan “Lifted”.
-2. CA Supervisor hanya melihat senarai. Director memilih “Start a recall”, mencari SKU dan memilih batch, memilih “Reason” (“Supplier recall”, “Regulator notice”, “Quality issue” atau “Other”), boleh mengisi “Notice reference (optional)” dan “Note (optional)” (tanpa nama pesakit atau nombor IC), kemudian “Start recall”. Orang lain mengangkat recall itu.
+2. CA Supervisor hanya melihat senarai. Director memilih “Start a recall”, mencari SKU dan memilih batch, memilih “Reason” (“Supplier recall”, “Regulator notice”, “Quality issue” atau “Other”), boleh mengisi “Notice reference (optional)” dan “Note (optional)” (tanpa nama pesakit atau nombor IC), kemudian “Start recall”. Hanya Director boleh mengangkat recall, dan bukan Director yang memulakannya, jadi mengangkat recall memerlukan Director kedua. Jika hanya ada seorang Director, recall tidak dapat diangkat.
 3. Batch yang di bawah recall tidak boleh digunakan sehingga recall diangkat.
 
 ## Kiraan yang patut dibuat (“Counts due”)
 
-Pada “Stock count (governed)”, bahagian “Counts due” menyenaraikan SKU dan lokasi yang patut dikira. Kelas A dikira setiap 30 hari, B setiap 60 dan C setiap 90; kelas bergantung pada berapa kerap item dikeluarkan di cawangan ini dalam 90 hari lepas, dan ubat terkawal sentiasa kelas A. Warna kuning bermaksud sudah patut atau lewat sehingga 29 hari; merah bermaksud 30 hari atau lebih. Langkah mengira dan mengira semula ada dalam bahagian “Buat kiraan, kiraan semula dan hapus kira” di atas.
+Pada “Stock count (governed)”, bahagian “Counts due” menyenaraikan SKU dan lokasi yang patut dikira. Kelas A dikira setiap 30 hari, B setiap 60 dan C setiap 90; kelas bergantung pada berapa kerap item dikeluarkan di cawangan ini dalam 90 hari lepas, dan ubat terkawal sentiasa kelas A. Warna kuning bermaksud sudah patut, lewat sehingga 29 hari, atau belum pernah dikira (“Never counted”; baris ini dipaparkan dahulu); merah bermaksud 30 hari atau lebih. Langkah mengira dan mengira semula ada dalam bahagian “Buat kiraan, kiraan semula dan hapus kira” di atas.
 
 ## Halaman inventori lain
 
