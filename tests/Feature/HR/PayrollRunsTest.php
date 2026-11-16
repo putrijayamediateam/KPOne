@@ -278,6 +278,37 @@ class PayrollRunsTest extends VisitTestCase
             'reason_code' => 'bonus'])->assertSessionMissing('_old_input.amount');
     }
 
+    public function test_m1_reversing_overtime_a_locked_run_paid_is_allowed_and_says_which_run(): void
+    {
+        [$aina] = $this->clinic();
+        $this->lineTypes($this->hr);
+        $this->prepare($this->hr)->assertRedirect();
+        $id = (string) DB::table('hr_payroll_runs')->value('public_id');
+        $this->step($this->hr, $id, 'mtd', ['worker_id' => $aina->public_id, 'mtd' => '12.00'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director2, $id, 'approve')->assertSessionHasNoErrors();
+        $this->step($this->director2, $id, 'lock')->assertSessionHasNoErrors();
+        $overtime = DB::table('hr_overtime_requests')->where('user_id', $aina->user_id)->first();
+        $this->assertNotNull($overtime);
+
+        // Before reversing, the Overtime tab names the locked run that paid it.
+        $this->selectBranch($this->director);
+        $this->get(route('hr.attendance.index', ['tab' => 'overtime', 'month' => '2026-11']))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->where('attendance.overtime.decided.0.paidIn', 'November 2026 payroll run'));
+
+        // Reversing is still allowed: the locked run and its payslip keep the line, the notice says where to recover it,
+        // and the audit names the run.
+        $this->post(route('hr.attendance.overtime.reverse', $overtime->public_id), ['reason' => 'mistake', 'expected_lock_version' => $overtime->lock_version,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors()
+            ->assertSessionHas('inertia.flash_data.toast', ['type' => 'success',
+                'message' => 'Overtime reversed. It was paid in the locked November 2026 payroll run: add a recovery on an adjustment run.']);
+        $this->assertSame('reversed', DB::table('hr_overtime_requests')->where('id', $overtime->id)->value('status'));
+        $metadata = json_decode((string) DB::table('audit_logs')->where('event', 'hr.overtime.reversed')->value('metadata'), true);
+        $this->assertSame((int) DB::table('hr_payroll_runs')->value('id'), $metadata['paid_in_run']);
+        $this->assertSame([['overtime', 'earnings', 6563, 'Overtime · 3 h 30 min × 1.5 (normal, 12 Nov)']], array_values(array_filter($this->lines($aina),
+            fn (array $l): bool => $l[0] === 'overtime')));
+    }
+
     public function test_postgresql_refuses_what_the_service_refuses(): void
     {
         [$aina] = $this->clinic();
@@ -486,7 +517,12 @@ class PayrollRunsTest extends VisitTestCase
         // apart, because rows are grouped by the worker, not the name (Suresh, S2).
         DB::table('users')->where('id', $cara->user_id)->update(['name' => $aina->user->name]);
         $csv = $this->unzip((string) $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']), self::FILE_PASSWORD)->assertOk()->getContent(), 'payroll-accountant-2026-11.csv');
-        $this->assertStringContainsString("Set by KPOne defaults at the owner's instruction; check against current law (official KWSP/PERKESO/HRD Corp/LHDN schedules) before real use. Synthetic data only.", $csv);
+        $this->assertStringContainsString('Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/EPF, PERKESO/SOCSO, HRD Corp and LHDN schedules) before real use. Synthetic data only.', $csv);
+        // Daniel (M4): the title row first, then the Note as one quoted cell that never splits on its commas.
+        $lines = explode("\r\n", ltrim($csv, "\xEF\xBB\xBF"));
+        $this->assertSame('Payroll run', str_getcsv($lines[0], ',', '"', '')[0]);
+        $this->assertStringContainsString('"Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/EPF, PERKESO/SOCSO, HRD Corp and LHDN schedules) before real use. Synthetic data only."', $lines[1]);
+        $this->assertSame(['Note', 'Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/EPF, PERKESO/SOCSO, HRD Corp and LHDN schedules) before real use. Synthetic data only.'], str_getcsv($lines[1], ',', '"', ''));
         $rows = $this->csvRows($csv);
         $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '2600.00'], $rows);
         $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '1500.00'], $rows);

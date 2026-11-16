@@ -7,7 +7,8 @@ import { compileTemplate, parse } from '@vue/compiler-sfc';
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const path = 'resources/js/pages/HR/Messages.vue';
-const source = read(path);
+const source =
+    read(path) + read('resources/js/composables/hr/useMessagesPage.ts');
 const template = parse(source).descriptor.template.content;
 
 test('the messages page compiles', () => {

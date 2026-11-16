@@ -12,7 +12,7 @@ const signed = (sign: '+' | '−', sen: number) =>
         aria-label="Gross to net invoice sales"
     >
         <h2 class="font-semibold">Gross to net invoice sales</h2>
-        <dl class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-5">
+        <dl class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
             <div>
                 <dt class="text-xs text-muted-foreground">
                     Gross item sales (all lines)
@@ -42,6 +42,19 @@ const signed = (sign: '+' | '−', sen: number) =>
                 </dd>
             </div>
             <div>
+                <dt class="text-xs text-muted-foreground">
+                    Panel claim adjustments
+                </dt>
+                <dd class="mt-1 font-semibold tabular-nums">
+                    {{
+                        signed(
+                            totals.panelAdjustmentsSen < 0 ? '−' : '+',
+                            Math.abs(totals.panelAdjustmentsSen),
+                        )
+                    }}
+                </dd>
+            </div>
+            <div>
                 <dt class="text-xs text-muted-foreground">Net invoice sales</dt>
                 <dd class="mt-1 font-semibold tabular-nums">
                     {{ myr(totals.netSen) }}
@@ -49,11 +62,13 @@ const signed = (sign: '+' | '−', sen: number) =>
             </div>
         </dl>
         <p class="mt-3 text-xs text-muted-foreground">
-            Gross items + surcharges − discounts − refund credits = net invoice
-            sales. Reversed adjustments have no effect. Items, surcharges and
-            discounts use the invoice finalisation-date cohort, including
-            adjustments recorded later. Refund credits count on the day the
-            refund after completion was approved. Rankings remain gross item
+            Gross items + surcharges − discounts − refund credits ± Panel claim
+            adjustments = net invoice sales. Reversed adjustments have no
+            effect. Items, surcharges and discounts use the invoice
+            finalisation-date cohort, including adjustments recorded later.
+            Refund credits count on the day the refund after completion was
+            approved. Panel claim adjustments count on the day they were
+            confirmed, so past days never change. Rankings remain gross item
             values; no proportional item discounts are applied.
         </p>
     </section>

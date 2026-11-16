@@ -3,7 +3,7 @@
 // server records the view, and is dropped again on Hide, on leaving the tab or the page. Nothing is copied.
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 import { Button } from '@/components/ui/button';
-import { csrf } from './types';
+import { requestShowValue } from '@/lib/hr-show-value';
 
 const props = defineProps<{
     label: string;
@@ -52,34 +52,17 @@ const show = async () => {
     const mine = ++generation;
 
     try {
-        const response = await fetch(
+        const { ok, data } = await requestShowValue(
             props.url ?? `/hr/records/${props.workerId}/show-value`,
-            {
-                method: 'POST',
-                credentials: 'same-origin',
-                cache: 'no-store',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Accept: 'application/json',
-                    'X-XSRF-TOKEN': csrf(),
-                },
-                body: JSON.stringify({
-                    field: props.showField,
-                    ...(props.extra ?? {}),
-                }),
-            },
+            props.showField,
+            props.extra,
         );
-        const data = (await response.json().catch(() => ({}))) as {
-            value?: string;
-            shownAt?: string;
-            errors?: Record<string, string>;
-        };
 
         if (mine !== generation) {
             return;
         }
 
-        if (!response.ok || typeof data.value !== 'string') {
+        if (!ok || typeof data.value !== 'string') {
             error.value =
                 Object.values(data.errors ?? {})[0] ??
                 'This could not be shown. Try again.';

@@ -300,9 +300,21 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     reason from the person who recorded it. You can still record your check." The owner then decided (16 Nov, his
     own choice): **only the recorder adds the reason, for now**; a missing reason keeps showing "Difference: reason
     needed" to everyone, and later checks still go ahead.
+45. DEMO-2 (owner, 16 Nov 2026: "build the inventory walk seeder", for Kavitha's Malay CA Supervisor guide):
+    `KPOneInventoryWalkSeeder`, run after DEMO-1 on a disposable database, adds a Cheras store, two fictional
+    suppliers, a controlled medicine with stock, a second, earlier-expiring Paracetamol batch, and one approved
+    purchase order waiting to be received, all through the domain services as demo accounts (recorder and
+    verifier, raiser and approver kept apart). Local and testing only; `.test` accounts only; reruns add nothing.
+    Commands and details in `docs/DEVELOPMENT.md`.
 
 ## 7. Open items and known limits
 
+- **Recall lifting with one Director (owner, 16 Nov 2026: "note it, decide before go-live"):** only a Director
+  holds `inventory.recalls.lift.organisation`, and the Director who started a recall can never lift it (STK-25:
+  service and PostgreSQL). With one Director, a recall started in the pilot cannot be lifted. Options to decide
+  before go-live: (a) a second Director account; or (b) let a Finance Officer lift a recall a Director started,
+  which grants a new permission and needs the owner's approval. Found while checking Kavitha's guide (#906); the
+  guide says it plainly.
 - **Planned, not built:** STK-10 valuation (accountant policy first). STK-10B (cost evidence) is merged; its
   limits: opening balances still take a whole-sen cost per stock unit with no cost source; the legacy goods
   receipt line keeps only `unit_cost_sen`; Ask KPOne does not show `cost_total_sen` or `cost_source` until the

@@ -1624,6 +1624,16 @@ const reverse = (receipt: Receipt) =>
         min-height: 44px;
     }
 }
+/* DD-29 (owner's design clean-up): below 1024 px every Billing button reaches 44 px, as on the Dispensary pages
+   (DD-24). The compact 30 px height stays on wide screens. */
+@media (max-width: 1023.98px) {
+    .billing-entry :deep(button),
+    .billing-workspace :deep(button),
+    .billing-workspace :deep(a[data-slot='button']) {
+        height: auto;
+        min-height: 44px;
+    }
+}
 .billing-entry :deep(input),
 .billing-entry :deep(textarea),
 .billing-workspace :deep(input),

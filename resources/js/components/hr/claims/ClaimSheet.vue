@@ -2,8 +2,6 @@
 // HR-6 New claim (HR-PLAN 13.2 and 13.6): category, date spent, amount in RM, what it was for and receipts, for the
 // active branch. "Send a new claim" after a Wrong amount rejection copies the purpose in, and the server copies that
 // claim's receipts. Errors show under each field, all in one submit.
-import { router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
@@ -19,95 +17,24 @@ import {
 } from '@/components/ui/sheet';
 import { ErrorState } from '@/components/ui/state';
 import { Textarea } from '@/components/ui/textarea';
+import { useClaimSheet } from '@/composables/hr/useClaimSheet';
+import type { ClaimSheetProps } from '@/composables/hr/useClaimSheet';
 import { myr } from '@/types/billing';
-import type { CategoryOption, ClaimRow } from './types';
 
-const props = defineProps<{
-    open: boolean;
-    categories: CategoryOption[];
-    branch: string | null;
-    today: string;
-    maxReceipts: number;
-    /** The claim rejected for Wrong amount that is being sent again, if any. */
-    from: ClaimRow | null;
-}>();
+const props = defineProps<ClaimSheetProps>();
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const form = reactive({
-    categoryId: '',
-    spentOn: '',
-    amount: '',
-    purpose: '',
-    files: [] as File[],
-    key: '',
-    processing: false,
-});
-watch(
-    () => props.open,
-    (open) => {
-        if (open) {
-            Object.assign(form, {
-                categoryId:
-                    props.categories.find(
-                        (c) => c.label === props.from?.category,
-                    )?.value ?? '',
-                spentOn: '',
-                amount: '',
-                purpose: props.from?.purpose ?? '',
-                files: [],
-                key: crypto.randomUUID(),
-            });
-        }
-    },
-);
-const category = computed(() =>
-    props.categories.find((c) => c.value === form.categoryId),
-);
-const copied = computed(() => props.from?.receipts.length ?? 0);
-const room = computed(() => props.maxReceipts - copied.value);
-const receiptError = computed(() => {
-    const keyed = Object.entries(errors.value).find(
-        ([k, v]) => k.startsWith('receipts.') && v,
-    );
-
-    return errors.value.receipts ?? keyed?.[1];
-});
-const onFiles = (event: Event) => {
-    const input = event.target as HTMLInputElement;
-    form.files = [...form.files, ...Array.from(input.files ?? [])].slice(
-        0,
-        room.value,
-    );
-    input.value = '';
-};
-const removeFile = (index: number) => {
-    form.files = form.files.filter((_, i) => i !== index);
-};
-const send = () => {
-    form.processing = true;
-    router.post(
-        '/hr/claims',
-        {
-            category_id: form.categoryId,
-            spent_on: form.spentOn,
-            amount: form.amount,
-            purpose: form.purpose,
-            ...(props.from ? { copy_from: props.from.id } : {}),
-            ...(form.files.length ? { receipts: form.files } : {}),
-            idempotency_key: form.key,
-        },
-        {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => emit('update:open', false),
-            onFinish: () => (form.processing = false),
-        },
-    );
-};
+const {
+    errors,
+    form,
+    category,
+    copied,
+    room,
+    receiptError,
+    onFiles,
+    removeFile,
+    send,
+} = useClaimSheet(props, () => emit('update:open', false));
 </script>
 
 <template>

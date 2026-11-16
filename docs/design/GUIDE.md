@@ -263,9 +263,13 @@ cookie); `.dark` on `<html>` switches the tokens.
 
 ## 15. Wording
 
-- **Language:** staff screens are English unless the screen's rule says Bahasa Melayu. Registration and Patient
-  screens are English (owner, 2026-11-05); "Panggil semula" stays. Patient-facing QR pages are Bahasa Melayu except
-  the REG-2 messages. Drug-label headings are Bahasa Melayu. Never mix both languages in one sentence.
+- **Language (owner decision, 2026-11-16):** staff screens are in English. Patient-facing screens (the public QR
+  check-in form and status page, and anything a patient reads) are in Bahasa Melayu. "Panggil semula" stays. Printed
+  documents follow their own wording: the medical certificate, referral and attendance letters are bilingual, and the
+  drug label marker is "Ubat Terkawal/Controlled Medicine". The Malay staff guides (`docs/guides/ms/`) stay in Malay.
+  Three examples: a QR form step is Malay; a Registration or Dispensary screen is English; a printed medical
+  certificate shows its own English and Malay lines (its on-screen preview, "Date / Tarikh: [issue_date]", matches the
+  document). Never mix both languages in one sentence of a screen.
 - **Sentence case** for titles, buttons and labels: "Register visit", "Return to workspace". Proper nouns keep
   their capitals (Panel, KPOne, CA). The survey found "Return to Workspace" and "Return to workspace" side by side.
 - **Buttons are verbs**: "Save prices", "Run report", "Add panel". Not "OK" or "Submit".
