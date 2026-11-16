@@ -32,13 +32,13 @@ alongside it:
 - **The second-person check.** The person who checks a register cannot be anyone who recorded a movement on that
   register since the last check, and cannot be whoever did the last check. So the person who received a
   controlled delivery never checks it.
-- **The checker counts blind (owner's decision, 15 Nov 2026).** While someone may check a register, KPOne does not
-  show them its balance, the in and out quantities, earlier checks' quantities or the print. They count, record the
-  count, and only then see the register's balance and the difference. If the count differs, KPOne asks for a reason,
-  which tells them only that it differs. Known limits: other stock pages still show levels; a determined checker
-  could look there. A checker could also send guesses until no reason is asked for; each refused try is recorded in
-  the audit trail and shown on the check as "N earlier attempts". Whether KPOne should never say "differs" before the
-  check is recorded is an open question for the owner.
+- **The checker counts blind (owner's decisions, 15 and 16 Nov 2026).** While someone may check a register, KPOne does
+  not show them its balance, the in and out quantities, earlier checks' quantities or the print. They count and record
+  the count; KPOne always records it, whether it matches or not, and never says "differs" before it is saved. Only then
+  do they see the register's balance and the difference. If it differs, the same person adds the reason afterwards
+  (a governed stock count will follow; stock is held somewhere else; difference to investigate; other, with a note),
+  once; it cannot be changed. Until then the register shows "Difference: reason needed". Known limit: other stock pages
+  still show levels; a determined checker could look there.
 - **Where controlled medicines are kept.** KPOne has no "locked" location type. A move to a locked cupboard is an
   ordinary transfer between two locations of the same branch, and the register shows it as both In and Out with
   no change to the balance. Where the cupboard is, and who holds the key, are for the clinic to decide (see the
