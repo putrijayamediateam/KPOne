@@ -418,6 +418,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
             Route::post('line-types', 'saveLineTypes')->name('hr.payroll.line-types.save');
             Route::post('runs', 'prepareRun')->name('hr.payroll.runs.prepare');
             Route::post('runs/{run}/manual/{line}/remove', 'removeManual')->whereUuid('run')->whereUuid('line')->name('hr.payroll.runs.manual.remove');
+            Route::post('runs/{run}/late/{overtime}', 'addLate')->whereUuid('run')->whereUuid('overtime')->name('hr.payroll.runs.late.add');
+            Route::post('runs/{run}/late/{lateItem}/remove', 'removeLate')->whereUuid('run')->whereUuid('lateItem')->name('hr.payroll.runs.late.remove');
             Route::post('runs/{run}/{step}', 'runStep')->whereUuid('run')->whereIn('step', ['again', 'mtd', 'manual', 'send', 'approve', 'return', 'lock'])->name('hr.payroll.runs.step');
         });
     });

@@ -43,6 +43,8 @@ export type OvertimeRequestRow = {
     canDecide: boolean;
     // M1: the locked payroll run that already paid it ("October 2026 payroll run"), or null.
     paidIn: string | null;
+    // G2a: the month whose payroll is already locked, so approving now will not be paid by it ("November 2026"), or null.
+    lockedMonth: string | null;
     canReverse: boolean;
     canWithdraw: boolean;
     lockVersion: number;

@@ -53,6 +53,16 @@ type RunPerson = {
     manual: { id: string }[];
 };
 type Step = 'approve' | 'return' | 'lock';
+// G2a: overtime approved after the regular run was locked (never paid automatically).
+type LateItem = {
+    id: string;
+    name: string;
+    date: string;
+    duration: string;
+    approvedAt: string;
+    state: 'waiting' | 'here' | 'elsewhere';
+    itemId: string | null;
+};
 
 const props = defineProps<{
     run: {
@@ -70,6 +80,7 @@ const props = defineProps<{
         people: RunPerson[];
         total: Totals;
         errorCount: number;
+        late: LateItem[];
         canEdit: boolean;
         sendRefusal: string | null;
         draftRefusal: string | null;
@@ -192,6 +203,19 @@ const removeManual = (index: number) => {
 // ---- steps ----
 const asking = ref<'send' | Step | null>(null);
 const returnReason = ref('');
+const lateState = (item: LateItem): string => {
+    if (props.run.kind === 'regular') {
+        return item.state === 'waiting'
+            ? 'Not paid yet: add it on an adjustment run.'
+            : 'On a draft adjustment run.';
+    }
+
+    return item.state === 'elsewhere' ? 'On another adjustment run.' : '';
+};
+const addLate = (item: LateItem) => post(`late/${item.id}`, {});
+const removeLate = (item: LateItem) =>
+    item.itemId && post(`late/${item.itemId}/remove`, {});
+
 const confirm = () => {
     const step = asking.value;
 
@@ -377,6 +401,75 @@ const statusTone = computed(() =>
         >
             Warnings don't stop you sending.
         </p>
+
+        <section
+            v-if="run.late.length"
+            class="grid gap-3 rounded-xl border bg-card p-4"
+            aria-labelledby="run-late-heading"
+            data-test="run-late"
+        >
+            <div class="grid gap-1">
+                <h2 id="run-late-heading" class="font-semibold">
+                    Approved after this run was locked
+                </h2>
+                <p class="text-sm text-muted-foreground">
+                    {{
+                        run.kind === 'regular'
+                            ? 'This overtime falls in this month but was approved after the lock, so this run does not pay it.'
+                            : 'Overtime approved after the locked run. Nothing is added unless you add it here.'
+                    }}
+                </p>
+            </div>
+            <ul class="grid gap-2">
+                <li
+                    v-for="item in run.late"
+                    :key="item.id"
+                    class="flex flex-wrap items-center justify-between gap-2 rounded-lg border p-3"
+                    data-test="run-late-item"
+                >
+                    <div class="grid min-w-0 gap-0.5">
+                        <span class="font-medium break-words">{{
+                            item.name
+                        }}</span>
+                        <span class="text-sm text-muted-foreground"
+                            >Overtime on {{ item.date }} ·
+                            {{ item.duration }}</span
+                        >
+                        <span
+                            v-if="lateState(item)"
+                            class="text-sm text-muted-foreground"
+                            >{{ lateState(item) }}</span
+                        >
+                    </div>
+                    <template v-if="run.kind === 'adjustment' && run.canEdit">
+                        <Button
+                            v-if="item.state === 'waiting'"
+                            variant="outline"
+                            class="min-h-11 sm:min-h-9"
+                            :disabled="busy"
+                            data-test="run-late-add"
+                            @click="addLate(item)"
+                        >
+                            Add to this adjustment<span class="sr-only">
+                                : {{ item.name }}, {{ item.date }}</span
+                            >
+                        </Button>
+                        <Button
+                            v-else-if="item.state === 'here'"
+                            variant="outline"
+                            class="min-h-11 sm:min-h-9"
+                            :disabled="busy"
+                            data-test="run-late-remove"
+                            @click="removeLate(item)"
+                        >
+                            Take off<span class="sr-only">
+                                : {{ item.name }}, {{ item.date }}</span
+                            >
+                        </Button>
+                    </template>
+                </li>
+            </ul>
+        </section>
 
         <EmptyState
             v-if="!run.people.length"
