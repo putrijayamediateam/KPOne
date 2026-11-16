@@ -136,21 +136,21 @@ class KPOneDemoSetupSeeder extends Seeder
         }
     }
 
-    private function assertSafeEnvironment(): void
+    protected function assertSafeEnvironment(): void
     {
         if (! app()->environment(['local', 'testing'])) {
-            throw new LogicException('KPOneDemoSetupSeeder is restricted to local and testing environments.');
+            throw new LogicException(class_basename(static::class).' is restricted to local and testing environments.');
         }
 
         $nonTest = User::query()
             ->whereRaw("LOWER(email) NOT LIKE '%.test'")
             ->count();
         if ($nonTest > 0) {
-            throw new LogicException("KPOneDemoSetupSeeder stopped: {$nonTest} user account(s) have an email that does not end in .test. Run it only on a synthetic database.");
+            throw new LogicException(class_basename(static::class)." stopped: {$nonTest} user account(s) have an email that does not end in .test. Run it only on a synthetic database.");
         }
     }
 
-    private function requireUser(string $email): User
+    protected function requireUser(string $email): User
     {
         return User::query()->where('email', $email)->first()
             ?? throw new LogicException("Demo account {$email} is missing. Run KPOnePresentationSeeder first.");
@@ -160,7 +160,7 @@ class KPOneDemoSetupSeeder extends Seeder
      * Resets the cached branch context so the next service call resolves the
      * actor's own primary branch, as a fresh sign-in would.
      */
-    private function actAs(?string $email = null): ?User
+    protected function actAs(?string $email = null): ?User
     {
         app()->forgetScopedInstances();
         session()->forget(BranchAccessService::SESSION_KEY);
@@ -388,7 +388,7 @@ class KPOneDemoSetupSeeder extends Seeder
     }
 
     /** @param array{code: string, display_name: string, generic_name: string, strength_text: string, dosage_form: string, order_unit: string, self_pay_sen: int, panel_default_sen: int} $medicine */
-    private function ensureMedicine(User $actor, Branch $branch, array $medicine): InventorySku
+    protected function ensureMedicine(User $actor, Branch $branch, array $medicine): InventorySku
     {
         $existing = MedicineCatalogueItem::query()
             ->where('organisation_id', $actor->organisation_id)
@@ -432,7 +432,7 @@ class KPOneDemoSetupSeeder extends Seeder
         return InventorySku::query()->whereKey($mapping->inventory_sku_id)->firstOrFail();
     }
 
-    private function ensureUnitVerified(User $actor, Branch $branch, InventorySku $sku): void
+    protected function ensureUnitVerified(User $actor, Branch $branch, InventorySku $sku): void
     {
         if (DB::table('inventory_unit_contracts')->where('inventory_sku_id', $sku->id)->exists()) {
             return;
@@ -481,7 +481,7 @@ class KPOneDemoSetupSeeder extends Seeder
         ]);
     }
 
-    private function ensureOpeningSignedOff(User $verifier, Branch $branch, StockMovement $opening): void
+    protected function ensureOpeningSignedOff(User $verifier, Branch $branch, StockMovement $opening): void
     {
         if (DB::table('inventory_opening_verifications')->where('stock_movement_id', $opening->id)->exists()) {
             return;

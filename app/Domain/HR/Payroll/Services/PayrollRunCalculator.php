@@ -20,6 +20,7 @@ final class PayrollRunCalculator
 {
     public const ERRORS = [
         'mtd_missing' => 'MTD not entered',
+        'mtd_adjustment' => 'Type the MTD for this correction (RM 0.00 if none): KPOne does not work out MTD on one-off pay',
         'no_mtd_schedule' => 'No checked MTD schedule for this year',
         'no_mtd_band' => 'No MTD band for this chargeable income',
         'mtd_one_off' => 'One-off pay on this run counts for MTD: type the MTD for this person',
@@ -41,9 +42,13 @@ final class PayrollRunCalculator
         'no_period' => 'No employment period recorded; counted for the whole month',
         'profile_waiting' => 'A pay profile change is waiting for confirmation',
         'net_negative_adjustment' => 'This correction takes money back: net below zero',
+        'adjustment_lowers_wage' => 'This correction lowers a scheme wage: the contribution lines take money back',
+        'adjustment_scheme_new' => 'A scheme was not charged on this month\'s locked run: its lines cover the whole month\'s wage, not only the difference',
+        'adjustment_no_profile' => 'No confirmed pay profile: this correction carries no contributions or MTD',
         'mtd_typed' => 'MTD typed for this run instead of the worked-out figure',
         'mtd_tp3' => 'Joined this year: pay from a previous employer (TP3) is not counted in MTD',
         'mtd_not_worked' => 'MTD could not be worked out for this run; the typed figure is used',
+        'mtd_earlier_months' => 'Employed earlier this year in months with no locked KPOne run: that pay is not counted, so the worked-out MTD may be too low',
     ];
 
     public const SCHEME_LABELS = ['epf' => 'EPF', 'socso' => 'SOCSO', 'eis' => 'EIS', 'hrd' => 'HRD levy'];
@@ -77,12 +82,62 @@ final class PayrollRunCalculator
         $people = [];
 
         if ($run->kind === 'adjustment') {
-            foreach (DB::table('hr_payroll_manual_lines')->where('run_id', $run->id)->orderBy('id')->get()->groupBy('worker_id') as $workerId => $manual) {
+            $manualByWorker = DB::table('hr_payroll_manual_lines')->where('run_id', $run->id)->orderBy('id')->get()->groupBy('worker_id');
+            $workerIds = array_values($manualByWorker->keys()->map(fn ($v): int => (int) $v)->all());
+            // S3 (owner, 16 Nov 2026): statutory parts on the difference, from the same checked tables as the regular run.
+            $profiles = DB::table('hr_pay_profiles')->where('organisation_id', $org)->whereIn('worker_id', $workerIds)->where('status', 'confirmed')
+                ->where('effective_from', '<=', $to)->orderByDesc('effective_from')->orderByDesc('id')->get()->groupBy('worker_id')
+                ->map(fn (Collection $c): \stdClass => $c->first());
+            $tables = $this->tables($org, $to);
+            $before = $this->lockedMonthStatutory($org, $run, $types, $workerIds);
+            foreach ($manualByWorker as $workerId => $manual) {
                 $lines = [];
+                $errors = [];
+                $warnings = [];
                 foreach ($manual as $m) {
                     $lines[] = $this->manual($m, $types, $versions);
                 }
-                $people[(int) $workerId] = $this->finish((int) $workerId, null, $lines, [], [], []);
+                $profile = $profiles->get($workerId);
+                if (! $profile instanceof \stdClass) {
+                    $warnings[] = 'adjustment_no_profile';
+                } else {
+                    $versions['profiles'][] = (int) $profile->id;
+                    $statutory = [];
+                    foreach (['epf', 'socso', 'eis', 'hrd'] as $scheme) {
+                        $difference = self::schemeWage($lines, $types, $scheme);
+                        if (! $profile->{$scheme} || $difference === 0) {
+                            continue;
+                        }
+                        if ($difference < 0) {
+                            $warnings[] = 'adjustment_lowers_wage';
+                        }
+                        $was = $before[(int) $workerId]['wage'][$scheme] ?? 0;
+                        // Suresh M1: switched on (or a category changed) since the locked run, so nothing was charged on a wage.
+                        if ($was > 0 && ($before[(int) $workerId]['paid'][$scheme] ?? []) === []) {
+                            $warnings[] = 'adjustment_scheme_new';
+                        }
+                        $now = max(0, $was + $difference);
+                        $found = $this->contribution($scheme, $profile, $tables, $now, $errors, $versions);
+                        foreach ($found['parts'] ?? [] as $part => $c) {
+                            $amount = $c['amount'] - ($before[(int) $workerId]['paid'][$scheme][$part] ?? 0);
+                            if ($amount !== 0) {
+                                $statutory[] = $this->line($part, $part, $amount, self::SCHEME_LABELS[$scheme].' '.$part.' · on the '.PayrollMoney::rm($difference)
+                                    .' difference (wage now '.PayrollMoney::rm($now).')', 'table', $found['tableId'], null, null, $scheme);
+                            }
+                        }
+                    }
+                    $lines = [...$lines, ...$statutory];
+                    // MTD on a correction is one-off pay (additional remuneration): HR types it, RM 0.00 allowed (S3, owner).
+                    // Only when the correction changes the MTD wage; a typed figure always counts.
+                    if ($profile->mtd && (self::schemeWage($lines, $types, 'mtd') !== 0 || array_key_exists((int) $workerId, $mtd))) {
+                        if (array_key_exists((int) $workerId, $mtd)) {
+                            $lines[] = $this->line('mtd', 'mtd', $mtd[(int) $workerId], 'MTD (PCB) · entered for this correction', 'profile', (int) $profile->id);
+                        } else {
+                            $errors[] = 'mtd_adjustment';
+                        }
+                    }
+                }
+                $people[(int) $workerId] = $this->finish((int) $workerId, $profile instanceof \stdClass ? (int) $profile->id : null, $lines, $errors, $warnings, $mtd);
             }
 
             return $this->result($people, $versions);
@@ -100,6 +155,7 @@ final class PayrollRunCalculator
         $yearToDate = $this->mtdYearToDate($org, $run, $types, array_values($profiles->keys()->map(fn ($v): int => (int) $v)->all()));
         $openEarlier = $this->openEarlierThisYear($org, $run);
         $periods = DB::table('hr_employment_periods')->whereIn('worker_id', $profiles->keys()->all())->get()->groupBy('worker_id');
+        $paidMonths = $this->lockedMonthsThisYear($org, $run, array_values($profiles->keys()->map(fn ($v): int => (int) $v)->all()));
 
         foreach ($profiles as $workerId => $profile) {
             $worker = $workers->get($workerId);
@@ -198,35 +254,9 @@ final class PayrollRunCalculator
                 if (! $profile->{$scheme}) {
                     continue;
                 }
-                $wage = max(0, self::schemeWage($lines, $types, $scheme));
-                $category = in_array($scheme, ['epf', 'socso'], true) ? mb_strtolower((string) $profile->{"{$scheme}_category"}) : null;
-                $candidates = ($tables[$scheme] ?? collect())->filter(fn (array $t): bool => $category === null || mb_strtolower($t['category']) === $category);
-                if ($candidates->isEmpty()) {
-                    $errors[] = "no_table_{$scheme}";
-
-                    continue;
-                }
-                if ($category === null && $candidates->count() > 1) {
-                    $errors[] = "two_tables_{$scheme}";
-
-                    continue;
-                }
-                $table = $candidates->first();
-                $versions['tables'][] = $table['id'];
-                $band = collect($table['rows'])->first(fn (\stdClass $r): bool => $wage >= (int) $r->wage_from_sen && ($r->wage_to_sen === null || $wage <= (int) $r->wage_to_sen));
-                if (! $band instanceof \stdClass) {
-                    $errors[] = "no_band_{$scheme}";
-
-                    continue;
-                }
-                $label = self::SCHEME_LABELS[$scheme];
-                foreach (['employee', 'employer'] as $part) {
-                    $kind = (string) $band->{"{$part}_kind"};
-                    $value = (int) $band->{"{$part}_value"};
-                    $amount = $kind === 'rate' ? PayrollMath::fraction([$wage, $value], 10000, PayrollMath::forTable($table['rounding'])) : $value;
-                    $how = $kind === 'rate' ? PayrollMoney::percent($value).' of '.PayrollMoney::rm($wage).' ('.strtolower(PayrollSetupService::ROUNDING[$table['rounding']] ?? '').')'
-                        : 'fixed for wages '.PayrollMoney::rm((int) $band->wage_from_sen).($band->wage_to_sen === null ? ' and above' : ' to '.PayrollMoney::rm((int) $band->wage_to_sen));
-                    $lines[] = $this->line($part, $part, $amount, "{$label} ".($part === 'employee' ? 'employee' : 'employer').' · '.$how, 'table', $table['id'], null, null, $scheme);
+                $found = $this->contribution($scheme, $profile, $tables, max(0, self::schemeWage($lines, $types, $scheme)), $errors, $versions);
+                foreach ($found['parts'] ?? [] as $part => $c) {
+                    $lines[] = $this->line($part, $part, $c['amount'], self::SCHEME_LABELS[$scheme].' '.$part.' · '.$c['how'], 'table', $found['tableId'], null, null, $scheme);
                 }
             }
 
@@ -259,6 +289,10 @@ final class PayrollRunCalculator
                             ['y' => $ytd['y'], 'k' => $ytd['k'], 'x' => $ytd['x'], 'y1' => self::schemeWage($lines, $types, 'mtd'), 'k1' => $epf], (int) $start->format('n'));
                         if ($worked === null) {
                             $stop = 'no_mtd_band';
+                        } elseif (! $typed && $this->earlierMonthsMissing($periods->get($workerId, collect()), $paidMonths[(int) $workerId] ?? [], $start)) {
+                            // HR month dry run, S2: the method only sees pay from locked KPOne runs, so say so when earlier months are missing
+                            // and the worked-out figure is the one used (a typed MTD replaces it; Suresh m2).
+                            $warnings[] = 'mtd_earlier_months';
                         }
                     }
                     if ($this->joinedThisYear($periods->get($workerId, collect()), $year)) {
@@ -300,6 +334,50 @@ final class PayrollRunCalculator
         }
 
         return $this->result($people, $versions);
+    }
+
+    /**
+     * The statutory table band for a scheme and wage, and each part's amount (16.3 items 3 to 5), or null with an error
+     * when no checked table or band applies. Shared by regular runs and, on the difference, by adjustment runs (S3).
+     *
+     * @param  array<string, Collection<int, array{id:int, category:string, rounding:string, rows:list<\stdClass>}>>  $tables
+     * @param  list<string>  $errors
+     * @param  array<string, mixed>  $versions
+     * @return array{tableId:int, parts:array<string, array{amount:int, how:string}>}|null
+     */
+    private function contribution(string $scheme, \stdClass $profile, array $tables, int $wage, array &$errors, array &$versions): ?array
+    {
+        $category = in_array($scheme, ['epf', 'socso'], true) ? mb_strtolower((string) $profile->{"{$scheme}_category"}) : null;
+        $candidates = ($tables[$scheme] ?? collect())->filter(fn (array $t): bool => $category === null || mb_strtolower($t['category']) === $category);
+        if ($candidates->isEmpty()) {
+            $errors[] = "no_table_{$scheme}";
+
+            return null;
+        }
+        if ($category === null && $candidates->count() > 1) {
+            $errors[] = "two_tables_{$scheme}";
+
+            return null;
+        }
+        $table = $candidates->first();
+        $versions['tables'][] = $table['id'];
+        $band = collect($table['rows'])->first(fn (\stdClass $r): bool => $wage >= (int) $r->wage_from_sen && ($r->wage_to_sen === null || $wage <= (int) $r->wage_to_sen));
+        if (! $band instanceof \stdClass) {
+            $errors[] = "no_band_{$scheme}";
+
+            return null;
+        }
+        $parts = [];
+        foreach (['employee', 'employer'] as $part) {
+            $kind = (string) $band->{"{$part}_kind"};
+            $value = (int) $band->{"{$part}_value"};
+            $amount = $kind === 'rate' ? PayrollMath::fraction([$wage, $value], 10000, PayrollMath::forTable($table['rounding'])) : $value;
+            $how = $kind === 'rate' ? PayrollMoney::percent($value).' of '.PayrollMoney::rm($wage).' ('.strtolower(PayrollSetupService::ROUNDING[$table['rounding']] ?? '').')'
+                : 'fixed for wages '.PayrollMoney::rm((int) $band->wage_from_sen).($band->wage_to_sen === null ? ' and above' : ' to '.PayrollMoney::rm((int) $band->wage_to_sen));
+            $parts[$part] = ['amount' => $amount, 'how' => $how];
+        }
+
+        return ['tableId' => (int) $table['id'], 'parts' => $parts];
     }
 
     /**
@@ -521,6 +599,91 @@ final class PayrollRunCalculator
     }
 
     /**
+     * S3: for each person, the scheme wages and the contributions already in this month's locked runs (the regular run
+     * and any earlier locked adjustments), so an adjustment works out only the difference.
+     *
+     * @param  Collection<string, \stdClass>  $types
+     * @param  list<int>  $workerIds
+     * @return array<int, array{wage: array<string, int>, paid: array<string, array<string, int>>}>
+     */
+    private function lockedMonthStatutory(int $org, \stdClass $run, Collection $types, array $workerIds): array
+    {
+        if ($workerIds === []) {
+            return [];
+        }
+        // Contributions belong to the person and the month, whichever pay group ran them (Suresh m2).
+        $runs = DB::table('hr_payroll_runs')->where('organisation_id', $org)->where('month', $run->month)
+            ->where('status', 'locked')->where('id', '<>', $run->id)->pluck('id')->all();
+        $people = DB::table('hr_payroll_run_people')->whereIn('run_id', $runs)->whereIn('worker_id', $workerIds)->pluck('worker_id', 'id');
+        $out = [];
+        foreach (DB::table('hr_payroll_lines')->whereIn('run_person_id', $people->keys()->all())->orderBy('id')->get()->groupBy('run_person_id') as $personId => $rows) {
+            $workerId = (int) $people[$personId];
+            $lines = $rows->map(fn (\stdClass $l): array => ['kind' => (string) $l->kind, 'section' => (string) $l->section, 'amount' => (int) $this->decrypt((string) $l->amount_encrypted, true),
+                'itemTypeId' => $l->item_type_id === null ? null : (int) $l->item_type_id, 'itemTypeVersion' => $l->item_type_version === null ? null : (int) $l->item_type_version,
+                'scheme' => $l->scheme])->values()->all();
+            $lines = array_values($lines);
+            $out[$workerId] ??= ['wage' => [], 'paid' => []];
+            foreach (['epf', 'socso', 'eis', 'hrd'] as $scheme) {
+                $out[$workerId]['wage'][$scheme] = ($out[$workerId]['wage'][$scheme] ?? 0) + self::schemeWage($lines, $types, $scheme);
+            }
+            foreach ($lines as $line) {
+                if (in_array($line['kind'], ['employee', 'employer'], true) && is_string($line['scheme'])) {
+                    $out[$workerId]['paid'][$line['scheme']][$line['kind']] = ($out[$workerId]['paid'][$line['scheme']][$line['kind']] ?? 0) + $line['amount'];
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * S2: for each person, the months (1 to 12) of this year before the run's month that have a locked KPOne run with
+     * that person in it, regular or adjustment.
+     *
+     * @param  list<int>  $workerIds
+     * @return array<int, list<int>>
+     */
+    private function lockedMonthsThisYear(int $org, \stdClass $run, array $workerIds): array
+    {
+        $start = CarbonImmutable::parse((string) $run->month)->startOfMonth();
+        if ($workerIds === [] || (int) $start->format('n') === 1) {
+            return [];
+        }
+        $rows = DB::table('hr_payroll_run_people')->join('hr_payroll_runs', 'hr_payroll_runs.id', '=', 'hr_payroll_run_people.run_id')
+            ->where('hr_payroll_runs.organisation_id', $org)->where('hr_payroll_runs.status', 'locked')->where('hr_payroll_runs.id', '<>', $run->id)
+            ->where('hr_payroll_runs.month', '>=', $start->startOfYear()->toDateString())->where('hr_payroll_runs.month', '<', $start->toDateString())
+            ->whereIn('hr_payroll_run_people.worker_id', $workerIds)->get(['hr_payroll_run_people.worker_id', 'hr_payroll_runs.month']);
+        $out = [];
+        foreach ($rows as $row) {
+            $out[(int) $row->worker_id][] = (int) CarbonImmutable::parse((string) $row->month)->format('n');
+        }
+
+        return array_map(fn (array $months): array => array_values(array_unique($months)), $out);
+    }
+
+    /**
+     * S2: true when an employment period covers some month of this year before the run's month that has no locked KPOne
+     * run for the person, so pay from that month is missing from the year to date.
+     *
+     * @param  Collection<int, \stdClass>  $periods
+     * @param  list<int>  $paidMonths
+     */
+    private function earlierMonthsMissing(Collection $periods, array $paidMonths, CarbonImmutable $start): bool
+    {
+        for ($m = 1; $m < (int) $start->format('n'); $m++) {
+            $first = $start->setDate((int) $start->format('Y'), $m, 1);
+            $from = $first->toDateString();
+            $to = $first->endOfMonth()->toDateString();
+            $employed = $periods->contains(fn (\stdClass $p): bool => (string) $p->starts_on <= $to && ($p->ends_on === null || (string) $p->ends_on >= $from));
+            if ($employed && ! in_array($m, $paidMonths, true)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Whether the person's employment began this year after 1 January, so pay from a previous employer may be missing.
      *
      * @param  Collection<int, \stdClass>  $periods
@@ -559,7 +722,8 @@ final class PayrollRunCalculator
         return count($covered);
     }
 
-    private function decrypt(string $value): string
+    /** A saved amount; $signed allows a negative one, as on an adjustment run's take-back lines (S3). */
+    private function decrypt(string $value, bool $signed = false): string
     {
         try {
             $plain = Crypt::decryptString($value);
@@ -568,7 +732,7 @@ final class PayrollRunCalculator
 
             return '0';
         }
-        if (preg_match('/\A[0-9]{1,9}\z/', $plain) !== 1) {
+        if (preg_match($signed ? '/\A-?[0-9]{1,9}\z/' : '/\A[0-9]{1,9}\z/', $plain) !== 1) {
             $this->unreadable = true;
 
             return '0';

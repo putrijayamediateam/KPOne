@@ -56,7 +56,7 @@ class TalentPoolTest extends VisitTestCase
         [$poolId, $poolToken] = $this->filedWithToken('Synthetic Assistant Two', true);
         $this->assertSame([false, null], [(bool) $this->row($plainId)->talent_pool_consent, $this->row($plainId)->talent_pool_text_version]);
         // The tick keeps the version of the wording agreed to (Suresh, HR-17e M2).
-        $this->assertSame([true, 'draft-hr17e-pool-v1'], [(bool) $this->row($poolId)->talent_pool_consent, $this->row($poolId)->talent_pool_text_version]);
+        $this->assertSame([true, 'draft-hr17e-pool-en-v2'], [(bool) $this->row($poolId)->talent_pool_consent, $this->row($poolId)->talent_pool_text_version]);
 
         $this->statusPage($plainToken)->assertInertia(fn (Assert $p) => $p->where('application.pool', ['consented' => false, 'left' => false]));
         $this->leave($plainToken)->assertSessionHasErrors('pool');
@@ -176,7 +176,7 @@ class TalentPoolTest extends VisitTestCase
         // PostgreSQL: an invited application can never hold a tick of its own.
         $new = DB::table('hr_job_applications')->where('invited_from_application_id', $this->row($source)->id)->sole();
         $this->assertDatabaseRefuses(fn () => DB::table('hr_job_applications')->where('id', $new->id)->update(['talent_pool_consent' => true,
-            'talent_pool_text_version' => 'draft-hr17e-pool-v1']));
+            'talent_pool_text_version' => 'draft-hr17e-pool-en-v2']));
     }
 
     public function test_deleting_through_either_link_deletes_the_whole_pool_pair(): void

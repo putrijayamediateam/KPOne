@@ -41,6 +41,8 @@ export type OvertimeRequestRow = {
     changedLabel: string | null;
     week: WeekHours | null;
     canDecide: boolean;
+    // M1: the locked payroll run that already paid it ("October 2026 payroll run"), or null.
+    paidIn: string | null;
     canReverse: boolean;
     canWithdraw: boolean;
     lockVersion: number;
