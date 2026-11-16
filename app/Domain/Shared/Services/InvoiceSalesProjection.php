@@ -14,15 +14,17 @@ final class InvoiceSalesProjection
      * BIL-10 (decisions 2026-11-06, A and B): refund credits are their own row, taken off net sales on the day the
      * refund was approved, so past days never change. Pass the credits approved in the same period as the cohort.
      *
-     * @return array{grossSen: int, discountsSen: int, surchargesSen: int, refundCreditsSen: int, netSen: int}
+     * PCA-3: confirmed Panel claim adjustments are their own row too, added on the day they were confirmed.
+     *
+     * @return array{grossSen: int, discountsSen: int, surchargesSen: int, refundCreditsSen: int, panelAdjustmentsSen: int, netSen: int}
      */
-    public static function reconciliation(Builder $invoices, int $refundCreditsSen = 0): array
+    public static function reconciliation(Builder $invoices, int $refundCreditsSen = 0, int $panelAdjustmentsSen = 0): array
     {
         $payable = self::PAYABLE;
         $row = (clone $invoices)->selectRaw("COALESCE(SUM(invoices.total_sen),0) AS gross, COALESCE(SUM(GREATEST(invoices.total_sen-{$payable},0)),0) AS discounts, COALESCE(SUM(GREATEST({$payable}-invoices.total_sen,0)),0) AS surcharges, COALESCE(SUM({$payable}),0) AS net")->first();
 
         return ['grossSen' => (int) $row->gross, 'discountsSen' => (int) $row->discounts, 'surchargesSen' => (int) $row->surcharges,
-            'refundCreditsSen' => $refundCreditsSen, 'netSen' => (int) $row->net - $refundCreditsSen];
+            'refundCreditsSen' => $refundCreditsSen, 'panelAdjustmentsSen' => $panelAdjustmentsSen, 'netSen' => (int) $row->net - $refundCreditsSen + $panelAdjustmentsSen];
     }
 
     /**
@@ -38,6 +40,41 @@ final class InvoiceSalesProjection
             ->leftJoin('consultation_checkouts as cc', 'cc.id', '=', 'i.consultation_checkout_id')
             ->where('d.decision', 'approved')->where('i.organisation_id', $organisationId)->where('i.status', 'finalized')
             ->select(['c.amount_sen', 'i.branch_id', 'd.decided_at', 'i.consultation_checkout_id', 'i.dispensary_case_id', 'cc.attending_doctor_user_id as doctor_id']), 'credits');
+    }
+
+    /**
+     * PCA-3 (design note v3.2, section 6): confirmed Panel claim adjustments of one organisation, one row each, signed
+     * (a plus is positive), as a plain derived table with amount_sen, invoice_id, branch_id, confirmed_at (UTC), panel_id, panel_name,
+     * consultation_checkout_id, dispensary_case_id and doctor_id. Day-story reports count each one on the day it was
+     * confirmed, so past days never change. Only adjustments on an approved Panel share of a finalised invoice count:
+     * the same rule as kpone_panel_adjustment_sum, so the days add up to each invoice's current adjustment.
+     */
+    public static function confirmedPanelAdjustments(int $organisationId): Builder
+    {
+        return DB::query()->fromSub(DB::table('panel_claim_adjustments as a')
+            ->join('coverage_allocations as ca', function ($join): void {
+                $join->on('ca.id', '=', 'a.coverage_allocation_id')->where('ca.status', 'approved');
+            })
+            ->join('invoices as i', 'i.id', '=', 'a.invoice_id')
+            ->leftJoin('consultation_checkouts as cc', 'cc.id', '=', 'i.consultation_checkout_id')
+            ->where('a.status', 'confirmed')->where('a.organisation_id', $organisationId)->where('i.organisation_id', $organisationId)->where('i.status', 'finalized')
+            ->selectRaw("CASE a.direction WHEN 'add' THEN a.amount_sen ELSE -a.amount_sen END AS amount_sen")
+            ->addSelect(['a.invoice_id', 'a.branch_id', 'a.confirmed_at', 'ca.panel_id', 'ca.panel_name_snapshot as panel_name', 'i.consultation_checkout_id', 'i.dispensary_case_id', 'cc.attending_doctor_user_id as doctor_id']), 'panel_adjustments');
+    }
+
+    /**
+     * PCA-3: the offsets that move net sales after the invoice day, as one credit-shaped table (amount taken off,
+     * by its own date): approved refund credits as they are, and confirmed Panel claim adjustments with the sign
+     * turned (a plus adds to sales). Callers scope it with the column `decided_at` like approvedCredits().
+     */
+    public static function netOffsets(int $organisationId): Builder
+    {
+        $credits = DB::query()->fromSub(self::approvedCredits($organisationId), 'c')
+            ->select(['amount_sen', 'branch_id', 'decided_at', 'consultation_checkout_id', 'dispensary_case_id', 'doctor_id']);
+        $adjustments = DB::query()->fromSub(self::confirmedPanelAdjustments($organisationId), 'p')
+            ->selectRaw('-amount_sen AS amount_sen, branch_id, confirmed_at AS decided_at, consultation_checkout_id, dispensary_case_id, doctor_id');
+
+        return DB::query()->fromSub($credits->unionAll($adjustments), 'offsets');
     }
 
     /**

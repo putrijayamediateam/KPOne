@@ -187,6 +187,40 @@ class ClinicInsightsReportService
     }
 
     /**
+     * PCA-3: confirmed Panel claim adjustments by confirmation time (signed), in the same branch periods and doctor
+     * filter as invoices.
+     *
+     * @param  InsightPeriods  $periods
+     */
+    private function panelAdjustmentQuery(User $actor, array $periods, ?int $doctorId): Builder
+    {
+        $query = InvoiceSalesProjection::confirmedPanelAdjustments($actor->organisation_id);
+        $this->scopePeriod($query, $periods, 'confirmed_at', 'branch_id');
+        if ($doctorId !== null) {
+            $query->whereIn('consultation_checkout_id', DB::table('consultation_checkouts')->where('attending_doctor_user_id', $doctorId)->select('id'));
+        }
+
+        return $query;
+    }
+
+    /**
+     * PCA-3: refund credits and Panel claim adjustments as one credit-shaped table (amount taken off, by its own day),
+     * for the daily trend and the provider rows.
+     *
+     * @param  InsightPeriods  $periods
+     */
+    private function offsetQuery(User $actor, array $periods, ?int $doctorId): Builder
+    {
+        $query = InvoiceSalesProjection::netOffsets($actor->organisation_id);
+        $this->scopePeriod($query, $periods, 'decided_at', 'branch_id');
+        if ($doctorId !== null) {
+            $query->whereIn('consultation_checkout_id', DB::table('consultation_checkouts')->where('attending_doctor_user_id', $doctorId)->select('id'));
+        }
+
+        return $query;
+    }
+
+    /**
      * @param  InsightPeriods  $periods
      */
     private function invoiceQuery(User $actor, array $periods, ?int $doctorId = null): Builder
@@ -218,11 +252,15 @@ class ClinicInsightsReportService
         $prior = $this->invoiceQuery($actor, $previous, $doctorId);
         $credits = $this->creditQuery($actor, $periods, $doctorId);
         $creditSen = (int) (clone $credits)->sum('amount_sen');
+        $adjustmentSen = (int) $this->panelAdjustmentQuery($actor, $periods, $doctorId)->sum('amount_sen');
+        $offsets = $this->offsetQuery($actor, $periods, $doctorId);
         $invoiceTotal = (int) (clone $current)->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
-        // BIL-10: refund credits come off net sales on the day the refund was approved.
-        $total = $invoiceTotal - $creditSen;
+        // BIL-10: refund credits come off net sales on the day the refund was approved. PCA-3: confirmed Panel claim
+        // adjustments count on the day they were confirmed, so past days never change.
+        $total = $invoiceTotal - $creditSen + $adjustmentSen;
         $patientCount = (int) (clone $current)->distinct()->count('invoices.patient_id');
-        $previousTotal = (int) (clone $prior)->sum(DB::raw(InvoiceSalesProjection::PAYABLE)) - (int) $this->creditQuery($actor, $previous, $doctorId)->sum('amount_sen');
+        $previousTotal = (int) (clone $prior)->sum(DB::raw(InvoiceSalesProjection::PAYABLE)) - (int) $this->creditQuery($actor, $previous, $doctorId)->sum('amount_sen')
+            + (int) $this->panelAdjustmentQuery($actor, $previous, $doctorId)->sum('amount_sen');
         $previousPatients = (int) (clone $prior)->distinct()->count('invoices.patient_id');
 
         $returning = DB::table('invoices')
@@ -253,7 +291,7 @@ class ClinicInsightsReportService
             $days[$key] = ($days[$key] ?? 0) + (int) $row->total_sen;
             $dailyPatients[$key][$row->patient_id] = true;
         }
-        foreach ((clone $credits)->get(['branch_id', 'decided_at', 'amount_sen']) as $credit) {
+        foreach ((clone $offsets)->get(['branch_id', 'decided_at', 'amount_sen']) as $credit) {
             $key = CarbonImmutable::parse($credit->decided_at, 'UTC')->setTimezone($periods[$credit->branch_id]['branch']->timezone)->toDateString();
             $days[$key] = ($days[$key] ?? 0) - (int) $credit->amount_sen;
         }
@@ -323,14 +361,15 @@ class ClinicInsightsReportService
             $otc = OtcProviderRow::from($otcQuery);
         }
         // BIL-12: refund credits come off their invoice's doctor (or the OTC row) on the approval day.
-        $withCredits = InvoiceSalesProjection::withCredits($actor->organisation_id, $providers, $credits, $otc, $doctorId === null, $providersTruncated);
+        // PCA-3: Panel claim adjustments are added to the same rows on their confirmation day.
+        $withCredits = InvoiceSalesProjection::withCredits($actor->organisation_id, $providers, $offsets, $otc, $doctorId === null, $providersTruncated);
         $providers = $withCredits['otc'] === null ? $withCredits['doctors'] : [...$withCredits['doctors'], $withCredits['otc']];
 
         return [
             'kind' => 'sales',
             'summary' => [
                 'totalSen' => $total,
-                'reconciliation' => InvoiceSalesProjection::reconciliation($current, $creditSen),
+                'reconciliation' => InvoiceSalesProjection::reconciliation($current, $creditSen, $adjustmentSen),
                 'newSen' => $newTotal,
                 'returningSen' => $returningTotal,
                 'patients' => $patientCount,
@@ -598,6 +637,10 @@ class ClinicInsightsReportService
             ->whereColumn('visits.id', 'invoices.visit_id')->where('visits.coverage_type', 'self_pay'))->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
         $panelSales = (int) (clone $invoices)->whereExists(fn (Builder $visit) => $visit->selectRaw('1')->from('visits')
             ->whereColumn('visits.id', 'invoices.visit_id')->where('visits.coverage_type', 'panel'))->sum(DB::raw(InvoiceSalesProjection::PAYABLE));
+        // PCA-3: confirmed Panel claim adjustments count as Panel sales on the day they were confirmed.
+        $panelAdjustments = $this->panelAdjustmentQuery($actor, $periods, $doctorId);
+        $panelSales += (int) (clone $panelAdjustments)->sum('amount_sen');
+        $adjustmentByPanel = (clone $panelAdjustments)->selectRaw('panel_name, SUM(amount_sen) AS amount')->groupBy('panel_name')->pluck('amount', 'panel_name');
         $paid = DB::table('payments')
             ->join('payment_allocations', 'payment_allocations.payment_id', '=', 'payments.id')
             ->join('invoices', 'invoices.id', '=', 'payment_allocations.invoice_id')
@@ -740,7 +783,7 @@ class ClinicInsightsReportService
             'paymentMethods' => $methodRows,
             'dailyReceipts' => $this->dailyReceipts($actor, $periods, $doctorId),
             'panelClaims' => $claimRanking,
-            'panels' => $panelRows->selectRaw('coverage_allocations.panel_name_snapshot as name, SUM(coverage_allocations.amount_sen) as billed_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as approved_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as rejected_sen', ['approved', 'rejected'])
+            'panels' => self::withPanelAdjustments($panelRows->selectRaw('coverage_allocations.panel_name_snapshot as name, SUM(coverage_allocations.amount_sen) as billed_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as approved_sen, SUM(CASE WHEN coverage_allocations.status = ? THEN coverage_allocations.amount_sen ELSE 0 END) as rejected_sen', ['approved', 'rejected'])
                 ->groupBy('coverage_allocations.panel_name_snapshot')
                 ->orderByDesc('billed_sen')
                 ->limit(50)
@@ -750,8 +793,30 @@ class ClinicInsightsReportService
                     'billedSen' => (int) $row->billed_sen,
                     'approvedSen' => (int) $row->approved_sen,
                     'rejectedSen' => (int) $row->rejected_sen,
-                ])->all(),
+                ])->all(), $adjustmentByPanel->all()),
         ];
+    }
+
+    /**
+     * PCA-3: confirmed Panel claim adjustments are added to each Panel's billed and approved figures on the day they
+     * were confirmed. A Panel with only an adjustment in the period still gets its row.
+     *
+     * @param  list<array{name: string, billedSen: int, approvedSen: int, rejectedSen: int}>  $rows
+     * @param  array<string, int|string>  $adjustments  signed sum by Panel name
+     * @return list<array{name: string, billedSen: int, approvedSen: int, rejectedSen: int}>
+     */
+    private static function withPanelAdjustments(array $rows, array $adjustments): array
+    {
+        if ($adjustments === []) {
+            return $rows;
+        }
+        $byName = collect($rows)->keyBy('name')->all();
+        foreach ($adjustments as $name => $amount) {
+            $row = $byName[$name] ?? ['name' => (string) $name, 'billedSen' => 0, 'approvedSen' => 0, 'rejectedSen' => 0];
+            $byName[$name] = [...$row, 'billedSen' => $row['billedSen'] + (int) $amount, 'approvedSen' => $row['approvedSen'] + (int) $amount];
+        }
+
+        return collect($byName)->sortByDesc('billedSen')->take(50)->values()->all();
     }
 
     /**

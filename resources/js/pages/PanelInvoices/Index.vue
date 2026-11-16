@@ -18,6 +18,7 @@ type Row = {
     visitType: string;
     invoiceTotalSen: number;
     panelAmountSen: number;
+    panelAdjustmentSen: number;
     claimNo: string;
     claimStatus: string;
 };
@@ -233,6 +234,9 @@ const canDownload = computed(() => props.ready && props.total > 0);
                             <th class="p-3 text-right font-medium">
                                 Panel amount
                             </th>
+                            <th class="p-3 text-right font-medium">
+                                Panel adjustment
+                            </th>
                             <th class="p-3 font-medium">Claim</th>
                         </tr>
                     </thead>
@@ -262,6 +266,13 @@ const canDownload = computed(() => props.ready && props.total > 0);
                             </td>
                             <td class="p-3 text-right">
                                 {{ myr(row.panelAmountSen) }}
+                            </td>
+                            <td class="p-3 text-right tabular-nums">
+                                {{
+                                    row.panelAdjustmentSen === 0
+                                        ? '—'
+                                        : `${row.panelAdjustmentSen > 0 ? '+' : '−'}${myr(Math.abs(row.panelAdjustmentSen))}`
+                                }}
                             </td>
                             <td class="p-3">
                                 {{ row.claimStatus

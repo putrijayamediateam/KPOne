@@ -35,6 +35,7 @@ type Row = {
     netSen: number;
     receivedSen: number;
     panelSen: number;
+    panelAdjustmentSen: number;
     deferredSen: number;
     dueSen: number;
     methods: Method[];
@@ -93,6 +94,7 @@ const columns = [
     { key: 'netSen', label: 'Net invoice' },
     { key: 'receivedSen', label: 'Net patient receipts' },
     { key: 'panelSen', label: 'Approved Panel' },
+    { key: 'panelAdjustmentSen', label: 'Panel adjustment' },
     { key: 'deferredSen', label: 'Pay-later outstanding' },
     { key: 'dueSen', label: 'Due now' },
 ] as const;

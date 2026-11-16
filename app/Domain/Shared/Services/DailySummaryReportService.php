@@ -28,14 +28,14 @@ class DailySummaryReportService extends BranchReportService
 
     public function basis(): string
     {
-        return 'Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow (see refund columns). Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Refunds (waiting or approved, not rejected) use payout date and the refund\'s method, and are not deducted from Total received. Cash closing = Cash net + Cash reversed, refund recorded minus Cash refunds paid. Refunded after completion is the part of Cash and Non-cash refunds paid that gives back money on a receipt of a completed visit (BIL-10); it is already inside those two columns, so it is never added to them. Payment-method filters apply to receipt columns only, and to refunds by refund method (refunds paid) or receipt method (refund recorded). Visit type filters apply to both cohorts and to refunds (through the receipt\'s invoice); unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.';
+        return 'Cash, Non-cash and Total use original receipt date, not invoice finalisation; original, reversed and net are explicit. Reversals restate the original receipt date, not refund-date cash flow (see refund columns). Panel is approved responsibility; Due is approved pay-later outstanding, both from the invoice finalisation-date cohort. Panel claim adjustments (PCA-3) are confirmed changes to a Panel share, signed (a minus lowers it), on the day each was confirmed, so a past day never changes; they are not included in Total received. Total is net receipts only: Total received (Cash + Non-cash). Panel and Due are not included in Total received. Refunds (waiting or approved, not rejected) use payout date and the refund\'s method, and are not deducted from Total received. Cash closing = Cash net + Cash reversed, refund recorded minus Cash refunds paid. Refunded after completion is the part of Cash and Non-cash refunds paid that gives back money on a receipt of a completed visit (BIL-10); it is already inside those two columns, so it is never added to them. Payment-method filters apply to receipt columns only, and to refunds by refund method (refunds paid) or receipt method (refund recorded). Visit type filters apply to both cohorts, to Panel claim adjustments and to refunds (through the receipt\'s invoice); unallocated receipts cannot match a visit filter. Current classification applies to historical periods; Not classified counts as Non-cash. MYR, two decimals. Empty dates are zero rows. Current records at generation, not a historical snapshot.';
     }
 
     protected function project(User $actor, Branch $branch, array $filters): array
     {
         $days = [];
         for ($date = CarbonImmutable::parse($filters['from']); $date->toDateString() <= $filters['to']; $date = $date->addDay()) {
-            $days[$date->toDateString()] = array_fill(0, 15, 0);
+            $days[$date->toDateString()] = array_fill(0, 16, 0);
         }
         $methods = PaymentMethod::query()->where('organisation_id', $actor->organisation_id)->get()->keyBy('code');
         foreach (app(ClinicInsightsReportService::class)->branchReceiptRows($actor, $branch, $filters['from'], $filters['to'], $filters['visit_types']) as $row) {
@@ -65,8 +65,20 @@ class DailySummaryReportService extends BranchReportService
             }
         });
         $this->refunds($actor, $branch, $filters, $methods->keyBy('id'), $days);
-        $columns = ['Local date', 'Cash original (receipt date, MYR)', 'Cash reversed (receipt date, MYR)', 'Cash net (receipt date, MYR)', 'Non-cash original (receipt date, MYR)', 'Non-cash reversed (receipt date, MYR)', 'Non-cash net (receipt date, MYR)', 'Panel approved (invoice finalisation date, MYR)', 'Due approved pay-later outstanding (invoice finalisation date, MYR)', 'Total original receipts (receipt date, MYR)', 'Total reversed receipts (receipt date, MYR)', 'Total received (Cash + Non-cash) (receipt date, MYR)', 'Cash refunds paid (payout date, MYR)', 'Cash reversed, refund recorded (receipt date, MYR)', 'Non-cash refunds paid (payout date, MYR)', 'Refunded after completion (payout date, MYR)'];
-        $sums = array_fill(0, 15, 0);
+        // PCA-3: confirmed Panel claim adjustments on their confirmation day (the Panel column keeps the original share).
+        $adjustments = InvoiceSalesProjection::confirmedPanelAdjustments($actor->organisation_id)->where('branch_id', $branch->id)
+            ->where('confirmed_at', '>=', CarbonImmutable::parse($filters['from'], $branch->timezone)->startOfDay()->utc())
+            ->where('confirmed_at', '<', CarbonImmutable::parse($filters['to'], $branch->timezone)->addDay()->startOfDay()->utc());
+        if ($filters['visit_types'] !== []) {
+            $adjustments->whereIn('invoice_id', DB::table('invoices')->where('organisation_id', $actor->organisation_id)
+                ->whereIn('visit_id', DB::table('visits')->where('organisation_id', $actor->organisation_id)->whereIn('visit_type', $filters['visit_types'])->select('id'))->select('id'));
+        }
+        foreach ($adjustments->get(['confirmed_at', 'amount_sen']) as $adjustment) {
+            $date = CarbonImmutable::parse((string) $adjustment->confirmed_at, 'UTC')->setTimezone($branch->timezone)->toDateString();
+            $days[$date][15] = ($days[$date][15] ?? 0) + (int) $adjustment->amount_sen;
+        }
+        $columns = ['Local date', 'Cash original (receipt date, MYR)', 'Cash reversed (receipt date, MYR)', 'Cash net (receipt date, MYR)', 'Non-cash original (receipt date, MYR)', 'Non-cash reversed (receipt date, MYR)', 'Non-cash net (receipt date, MYR)', 'Panel approved (invoice finalisation date, MYR)', 'Due approved pay-later outstanding (invoice finalisation date, MYR)', 'Total original receipts (receipt date, MYR)', 'Total reversed receipts (receipt date, MYR)', 'Total received (Cash + Non-cash) (receipt date, MYR)', 'Cash refunds paid (payout date, MYR)', 'Cash reversed, refund recorded (receipt date, MYR)', 'Non-cash refunds paid (payout date, MYR)', 'Refunded after completion (payout date, MYR)', 'Panel claim adjustments (confirmation date, MYR)'];
+        $sums = array_fill(0, 16, 0);
         $rows = [];
         foreach ($days as $date => $values) {
             foreach ($values as $i => $value) {
