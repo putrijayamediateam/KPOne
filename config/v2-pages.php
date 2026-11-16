@@ -85,6 +85,7 @@ return [
         'PublicCheckInLinks/Index',
         'MedicalCertificateTemplates/Index',
         'AuditLogs/Index',
+        'Branches/Index',
     ],
 
     /*
