@@ -51,7 +51,7 @@ test('the badge sits on its own row before the refunded line, with Version 2-onl
     );
     assert.ok(
         readOnlyList.includes(
-            'class="text-[11px] break-words text-muted-foreground v2:mt-1"',
+            'class="text-xs break-words text-muted-foreground v2:mt-1"',
         ),
     );
 });

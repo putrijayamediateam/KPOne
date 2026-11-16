@@ -56,7 +56,8 @@ export function useDisciplinePage(props: DisciplinePageProps) {
     });
     const startCase = () => {
         form.worker = '';
-        form.incidentOn = props.discipline.today;
+        // The date of an allegation is a fact the person states, so it starts empty (owner decision, 2026-11-16).
+        form.incidentOn = '';
         form.allegation = '';
         form.key = crypto.randomUUID();
         form.open = true;

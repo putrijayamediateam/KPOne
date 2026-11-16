@@ -361,7 +361,7 @@ const reverse = (receipt: Receipt) =>
             <span v-if="isCompleted" class="text-xs text-muted-foreground"
                 >Read-only Visit record</span
             >
-            <span class="ml-auto text-[11px] text-muted-foreground"
+            <span class="ml-auto text-xs text-muted-foreground"
                 >{{ billing.branch }} · {{ billing.visit.visitNumber }}</span
             >
             <ActionLink v-if="manage" :href="base" variant="outline"
@@ -877,7 +877,7 @@ const reverse = (receipt: Receipt) =>
                     >
                         <table class="w-full text-left text-xs">
                             <thead
-                                class="border-b bg-muted/20 text-[11px] text-muted-foreground"
+                                class="border-b bg-muted/20 text-xs text-muted-foreground"
                             >
                                 <tr>
                                     <th class="p-3">Receipt / method</th>
@@ -985,7 +985,7 @@ const reverse = (receipt: Receipt) =>
                                     myr(receipt.amountSen)
                                 }}</span>
                             </div>
-                            <p class="text-[11px] text-muted-foreground">
+                            <p class="text-xs text-muted-foreground">
                                 {{ receipt.number }} · {{ receipt.receivedAt }}
                             </p>
                             <p
@@ -1001,7 +1001,7 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="text-[11px] break-words text-muted-foreground"
+                                class="text-xs break-words text-muted-foreground"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>
@@ -1047,7 +1047,7 @@ const reverse = (receipt: Receipt) =>
                                     myr(receipt.amountSen)
                                 }}</span>
                             </div>
-                            <div class="mt-1 text-[11px] text-muted-foreground">
+                            <div class="mt-1 text-xs text-muted-foreground">
                                 {{ receipt.number }} · {{ receipt.receivedAt }}
                                 <span class="v2:hidden"
                                     >·
@@ -1076,7 +1076,7 @@ const reverse = (receipt: Receipt) =>
                             </p>
                             <p
                                 v-if="receipt.recordedBy"
-                                class="text-[11px] break-words text-muted-foreground v2:mt-1"
+                                class="text-xs break-words text-muted-foreground v2:mt-1"
                             >
                                 Recorded by {{ receipt.recordedBy }}
                             </p>
