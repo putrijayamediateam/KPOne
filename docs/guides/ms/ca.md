@@ -2,6 +2,10 @@ Draf untuk semakan klinik. Bukan dokumen rasmi.
 
 # Pembantu Klinik
 
+## Cari halaman dalam “Clinic management”
+
+Pada halaman “Clinic management”, taip dalam kotak “Find a page” untuk menapis halaman. Taip perkataan yang anda cari, contohnya “refund” atau “stock count”; halaman yang berkaitan muncul walaupun perkataan itu tiada pada tajuk kad. Skrin menyatakan, contohnya, “3 pages match”. Jika tiada padanan, kad kosong dipaparkan. Pilih “Clear search” untuk memaparkan semua halaman semula.
+
 ## Cari pesakit sebelum mendaftar
 
 1. Buka halaman “Register Visit”.
@@ -85,7 +89,8 @@ Imbasan ditolak semasa simpanan sedang berjalan, atau jika anda sudah menaip ara
 1. Pada kes “Dispensary” yang masih terbuka, klik dalam kotak “Scan or type barcode”, kemudian imbas kotak ubat yang telah anda ambil.
 2. Jika kotak itu sepadan dengan baris ubat yang disimpan, baris itu ditanda “Checked by scan”. Mesej di bawah kotak imbasan menyatakan, contohnya, “Matches: … 1 of 2 lines checked by scan. Shown on this screen only.”, dan ringkasan di sebelah kanan menunjukkan “Checked by scan” dengan “1 of 2 (not saved)”.
 3. Jika kotak itu bukan untuk kes ini, panel merah menyatakan “Not on this case: …”. Jika kotak itu hanya pada baris yang telah dibuang, panel merah menyatakan “On this case but removed: …”. Semak sama ada anda mengambil ubat atau kekuatan yang betul.
-4. Tanda ini hanya pada skrin dan tidak disimpan; ia hilang selepas muat semula. Imbasan tidak menyemak kuantiti atau batch, dan tidak menghalang “Complete Dispensary”.
+4. Jika kotak ubat membawa kod GS1 dengan nombor batch, skrin boleh membandingkan batch itu dengan batch yang disimpan pada baris, dan menyatakan, contohnya, “Saved batch … matches the box.” Jika satu baris dibahagikan kepada beberapa batch, skrin menyatakan kotak itu ialah salah satu batch yang disimpan. Cara skrin menunjukkan batch yang tidak sepadan: [PERLU DISAHKAN].
+5. Tanda “Checked by scan” hanya pada skrin dan tidak disimpan; ia hilang selepas muat semula. Imbasan tidak menghalang “Complete Dispensary”.
 
 ## Cetak label ubat
 
@@ -128,11 +133,13 @@ Jika Panel menerima kurang daripada bahagiannya, “Panel shortfall: RM …” d
 
 Setiap resit pada tab “Documents”, senarai bayaran dan halaman “Payments” menunjukkan “Recorded by …” (nama staf, atau “Staff member”). Nama ini hanya pada skrin, tidak pada cetakan.
 
-## Senarai bayar kemudian untuk dikutip
+## Bil untuk dikutip (“Bills to collect”)
 
-1. Buka menu pengguna > “Clinic management” > “Patients” > “Pay later to collect”.
-2. Senarai menunjukkan pesakit dengan bayaran kemudian yang belum dibayar, yang paling awal dahulu. Tandakan “Show only bills past their due date” untuk melihat yang sudah lewat sahaja.
-3. Untuk merekod bayaran, pilih “Open billing” dan rekod bayaran pada halaman bil pesakit. Senarai ini sendiri tidak merekod apa-apa.
+1. Buka menu pengguna > “Clinic management” > “Patients” > “Bills to collect”. Pada halaman bil pesakit, pautan “View all bills to collect at this branch” membuka halaman yang sama.
+2. Halaman ini menyenaraikan wang yang masih terhutang di cawangan ini: bayaran kemudian yang telah diluluskan dan wang yang patut dibayar semasa lawatan, yang paling awal dahulu. Tandakan “Show only bills past their due date” untuk melihat yang sudah lewat sahaja. Jika tiada apa-apa, skrin menyatakan “Nothing to collect”.
+3. Setiap kad menunjukkan “Still owed”. “Due now” ialah wang yang sepatutnya dibayar semasa lawatan; satu bayaran melunaskan “due now” dahulu, kemudian bayaran kemudian.
+4. Jika kad bertanda “Review required”, invois sedang dibetulkan atau itemnya berubah, jadi amaun mungkin berubah. Buka halaman bil dahulu sebelum meminta pesakit membayar.
+5. Untuk merekod bayaran, buka halaman bil pesakit. Senarai ini sendiri tidak merekod apa-apa.
 
 ## Kiraan tunai harian
 
@@ -199,3 +206,7 @@ Pautan “Medical certificates” pada halaman lawatan hanya muncul selepas dokt
 - Mesej kecil (toast) kini muncul di bahagian atas tengah skrin, supaya tidak menutup butang di bawah.
 - Pada telefon, menu tertutup sendiri selepas anda memilih satu pautan.
 - Mesej ralat untuk nombor telefon dan IC/pasport dipaparkan dalam bahasa Inggeris.
+
+## Tampilan baharu (“Try the new layout”)
+
+Pada menu pengguna, pilih “Try the new layout” untuk mencuba tampilan baharu; pilih “Back to Classic layout” untuk kembali. Langkah dalam panduan ini ditulis untuk tampilan Classic. Dalam tampilan baharu, tindakan yang sama dan nama butang yang sama digunakan, tetapi susunan skrin berbeza: bar sisi di tepi, jejak kecil (crumb) di atas halaman, dan halaman tertentu sahaja menggunakan rupa baharu. Satu perbezaan: pada tab “Documents”, resit menunjukkan lencana (badge) dan bukan teks biasa. Langkah yang tidak dapat dipastikan dalam tampilan baharu: [PERLU DISAHKAN].
