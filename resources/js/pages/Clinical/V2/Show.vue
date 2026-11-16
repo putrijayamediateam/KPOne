@@ -44,8 +44,8 @@ import { getInitials } from '@/composables/useInitials';
 import { waitedDurationLabel } from '@/lib/r1c2-presentation';
 import AllergyProblemPanel from '@/pages/Clinical/Partials/AllergyProblemPanel.vue';
 import ClinicalHistoryPanel from '@/pages/Clinical/Partials/ClinicalHistoryPanel.vue';
-import DispensaryAttentionPanel from '@/pages/Clinical/Partials/DispensaryAttentionPanel.vue';
 import TreatmentPlanPanel from '@/pages/Clinical/Partials/TreatmentPlanPanel.vue';
+import DispensaryAttentionPanel from '@/pages/Dispensary/V2/Partials/DispensaryAttentionPanel.vue';
 
 /**
  * Version 2 consultation page, the shell only (shown only in V2; Classic is `pages/Clinical/Show.vue`, untouched).
@@ -713,11 +713,9 @@ const saveStatus = () =>
                         </div>
                     </section>
 
-                    <div class="consultation-dense">
-                        <DispensaryAttentionPanel
-                            :items="clinical.dispensaryAttention"
-                        />
-                    </div>
+                    <DispensaryAttentionPanel
+                        :items="clinical.dispensaryAttention"
+                    />
 
                     <div
                         v-if="stateError"
