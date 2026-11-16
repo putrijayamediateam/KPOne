@@ -46,6 +46,7 @@ return [
         'HR/Records',
         'HR/StaffFile',
         'HR/Appraisals',
+        'HR/Appraisal',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
