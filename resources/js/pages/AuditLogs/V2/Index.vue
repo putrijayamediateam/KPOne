@@ -139,7 +139,11 @@ const buttonOff =
                         :columns="4"
                         cards="xl"
                         min-width="880px"
-                        empty-message="No events on this page match your search."
+                        :empty-message="
+                            logs.data.length === 0
+                                ? 'No events recorded yet.'
+                                : 'No events on this page match your search.'
+                        "
                         :empty="shown.length === 0"
                     >
                         <template #head>
@@ -175,7 +179,7 @@ const buttonOff =
                                 </td>
                                 <td data-label="Actor">
                                     <span
-                                        class="[overflow-wrap:anywhere] max-xl:text-right"
+                                        class="[overflow-wrap:anywhere] max-xl:text-left"
                                         >{{ row.log.actor }}</span
                                     >
                                 </td>

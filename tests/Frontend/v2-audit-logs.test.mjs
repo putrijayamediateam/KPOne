@@ -225,3 +225,13 @@ test('the page-only search sentence is always visible, and V2 sends nothing and 
         assert.ok(!source.includes(banned), banned);
     }
 });
+
+test('an empty log says "No events recorded yet."; the search wording is only for a search', () => {
+    const source = read('resources/js/pages/AuditLogs/V2/Index.vue');
+    const flatSource = source.replace(/\s+/g, ' ');
+    assert.ok(
+        flatSource.includes(
+            "logs.data.length === 0 ? 'No events recorded yet.' : 'No events on this page match your search.'",
+        ),
+    );
+});
