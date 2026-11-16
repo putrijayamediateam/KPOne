@@ -101,7 +101,7 @@ test('a refusal shows once above the buttons and focus returns to Allergen', () 
     assert.equal((template(v2).match(/role="alert"/g) ?? []).length, 1);
     assert.match(
         v2,
-        /onError: async \(\) => \{\s*await nextTick\(\);\s*allergenInput\.value\?\.focus\(\);/,
+        /onFinish: async \(\) => \{\s*if \(!form\.hasErrors\) \{\s*return;\s*\}\s*await nextTick\(\);\s*allergenInput\.value\?\.focus\(\);/,
     );
     assert.ok(
         template(v2).indexOf('data-testid="otc-allergy-refusal"') <

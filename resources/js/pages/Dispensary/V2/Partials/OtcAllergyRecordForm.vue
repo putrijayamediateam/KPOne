@@ -83,7 +83,13 @@ const submit = () => {
             form.reset();
             emit('saved');
         },
-        onError: async () => {
+        // V2: the inputs are disabled until the request finishes, so focus Allergen once it has (in Classic the focus
+        // runs while the field is still disabled and is lost).
+        onFinish: async () => {
+            if (!form.hasErrors) {
+                return;
+            }
+
             await nextTick();
             allergenInput.value?.focus();
         },
