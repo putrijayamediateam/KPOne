@@ -96,7 +96,12 @@ const focusRow = (item: DoctorDispensaryAttention, button: boolean) => {
             const target = button
                 ? row?.querySelector<HTMLElement>('button[data-acknowledge]')
                 : row;
-            (target ?? row)?.focus({ preventScroll: true });
+            // Hakim: if the row has gone (for example, the case closed elsewhere), fall back to the panel heading.
+            (
+                target ??
+                row ??
+                document.getElementById('dispensary-attention-heading')
+            )?.focus({ preventScroll: true });
         }, 0),
     );
 };
@@ -149,7 +154,8 @@ const outlineButton =
             />
             <h2
                 id="dispensary-attention-heading"
-                class="text-[15px] font-semibold"
+                tabindex="-1"
+                class="text-[15px] font-semibold outline-none"
             >
                 Dispensary attention required
             </h2>
