@@ -76,7 +76,6 @@ type Question = {
         | 'apc_year'
         | 'apc_expiry';
     label: string;
-    ms: string;
     type: 'text' | 'date' | 'number';
     inputmode?: 'numeric';
 };
@@ -86,25 +85,21 @@ const typeQuestions = computed<Question[]>(() => {
             {
                 key: 'institution',
                 label: 'College or university',
-                ms: 'Kolej atau universiti',
                 type: 'text',
             },
             {
                 key: 'programme',
                 label: 'Course or programme',
-                ms: 'Kursus atau program',
                 type: 'text',
             },
             {
                 key: 'intern_from',
                 label: 'Internship starts',
-                ms: 'Latihan industri bermula',
                 type: 'date',
             },
             {
                 key: 'intern_to',
                 label: 'Internship ends',
-                ms: 'Latihan industri tamat',
                 type: 'date',
             },
         ];
@@ -115,21 +110,18 @@ const typeQuestions = computed<Question[]>(() => {
             {
                 key: 'mmc_number',
                 label: 'MMC registration number',
-                ms: 'Nombor pendaftaran MMC',
                 type: 'text',
                 inputmode: 'numeric',
             },
             {
                 key: 'apc_year',
                 label: 'Year of your current APC',
-                ms: 'Tahun APC semasa',
                 type: 'number',
                 inputmode: 'numeric',
             },
             {
                 key: 'apc_expiry',
                 label: 'APC expiry date',
-                ms: 'Tarikh APC tamat',
                 type: 'date',
             },
         ];
@@ -139,9 +131,9 @@ const typeQuestions = computed<Question[]>(() => {
 });
 const typeTitle: Record<PositionType, string> = {
     ca: '',
-    intern: 'About your internship / Tentang latihan industri anda',
-    locum: 'Your availability / Masa anda lapang',
-    resident_doctor: 'Your registration / Pendaftaran anda',
+    intern: 'About your internship',
+    locum: 'Your availability',
+    resident_doctor: 'Your registration',
 };
 
 const formError = computed(
@@ -237,7 +229,7 @@ const field =
 </script>
 
 <template>
-    <Head title="Apply for a job / Mohon jawatan"
+    <Head title="Apply for a job"
         ><meta name="referrer" content="no-referrer"
     /></Head>
     <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
@@ -258,14 +250,7 @@ const field =
                         >
                             {{ clinicName }}
                         </p>
-                        <h1 class="text-xl font-semibold">
-                            Apply for a job
-                            <span
-                                lang="ms"
-                                class="block text-base font-normal text-zinc-600 dark:text-zinc-400"
-                                >Mohon jawatan</span
-                            >
-                        </h1>
+                        <h1 class="text-xl font-semibold">Apply for a job</h1>
                     </div>
                 </header>
 
@@ -276,12 +261,6 @@ const field =
                 >
                     There are no open positions right now. Please check again
                     later.
-                    <span
-                        lang="ms"
-                        class="mt-1 block text-zinc-600 dark:text-zinc-400"
-                        >Tiada jawatan kosong buat masa ini. Sila semak semula
-                        kemudian.</span
-                    >
                 </p>
 
                 <form
@@ -296,10 +275,6 @@ const field =
                             class="text-xs font-medium text-zinc-600 dark:text-zinc-400"
                         >
                             Step {{ step }} of {{ STEP_COUNT }}
-                            <span lang="ms"
-                                >/ Langkah {{ step }} daripada
-                                {{ STEP_COUNT }}</span
-                            >
                         </p>
                         <div
                             class="h-2 overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800"
@@ -322,10 +297,7 @@ const field =
                         class="rounded-lg border border-red-300 bg-red-50 p-3 text-sm text-red-800 focus-visible:outline-2 focus-visible:outline-red-600 dark:border-red-900 dark:bg-red-950 dark:text-red-200"
                         data-test="apply-error-summary"
                     >
-                        <p class="font-semibold">
-                            Please check these answers.
-                            <span lang="ms">/ Sila semak jawapan ini.</span>
-                        </p>
+                        <p class="font-semibold">Please check these answers.</p>
                         <ul class="mt-1 list-disc space-y-0.5 pl-5">
                             <li v-for="e in errorList" :key="e.key">
                                 {{ e.message }}
@@ -343,24 +315,13 @@ const field =
 
                     <template v-if="step === 1">
                         <h2 class="text-base font-semibold">
-                            You and the position<span
-                                lang="ms"
-                                class="font-normal text-zinc-600 dark:text-zinc-400"
-                            >
-                                / Anda dan jawatan</span
-                            >
+                            You and the position
                         </h2>
                         <div class="space-y-1.5">
                             <label
                                 for="apply-position"
                                 class="text-sm font-medium"
-                                >Position<span
-                                    lang="ms"
-                                    class="font-normal text-zinc-600 dark:text-zinc-400"
-                                >
-                                    / Jawatan</span
-                                >
-                                *</label
+                                >Position *</label
                             >
                             <select
                                 id="apply-position"
@@ -377,7 +338,7 @@ const field =
                                 required
                             >
                                 <option value="" disabled>
-                                    Choose a position / Pilih jawatan
+                                    Choose a position
                                 </option>
                                 <option
                                     v-for="p in positions"
@@ -406,21 +367,18 @@ const field =
                                 {
                                     key: 'name',
                                     label: 'Full name',
-                                    ms: 'Nama penuh',
                                     type: 'text',
                                     auto: 'name',
                                 },
                                 {
                                     key: 'phone',
                                     label: 'Phone number',
-                                    ms: 'Nombor telefon',
                                     type: 'tel',
                                     auto: 'tel',
                                 },
                                 {
                                     key: 'email',
                                     label: 'Email',
-                                    ms: 'E-mel',
                                     type: 'email',
                                     auto: 'email',
                                 },
@@ -431,14 +389,7 @@ const field =
                             <label
                                 :for="`apply-${item.key}`"
                                 class="text-sm font-medium"
-                                >{{ item.label
-                                }}<span
-                                    lang="ms"
-                                    class="font-normal text-zinc-600 dark:text-zinc-400"
-                                >
-                                    / {{ item.ms }}</span
-                                >
-                                *</label
+                                >{{ item.label }} *</label
                             >
                             <input
                                 :id="`apply-${item.key}`"
@@ -470,25 +421,14 @@ const field =
                     <template v-if="step === 2">
                         <fieldset class="space-y-4" data-test="apply-about">
                             <legend class="text-base font-semibold">
-                                About you<span
-                                    lang="ms"
-                                    class="font-normal text-zinc-600 dark:text-zinc-400"
-                                >
-                                    / Tentang anda</span
-                                >
+                                About you
                             </legend>
                             <div class="grid gap-4 sm:grid-cols-2">
                                 <div class="space-y-1.5">
                                     <label
                                         for="apply-preferred_branch"
                                         class="text-sm font-medium"
-                                        >Preferred branch<span
-                                            lang="ms"
-                                            class="font-normal text-zinc-600 dark:text-zinc-400"
-                                        >
-                                            / Cawangan pilihan</span
-                                        >
-                                        *</label
+                                        >Preferred branch *</label
                                     >
                                     <select
                                         id="apply-preferred_branch"
@@ -506,11 +446,9 @@ const field =
                                         "
                                     >
                                         <option value="" disabled>
-                                            Choose / Pilih
+                                            Choose
                                         </option>
-                                        <option value="any">
-                                            Any branch / Mana-mana cawangan
-                                        </option>
+                                        <option value="any">Any branch</option>
                                         <option
                                             v-for="b in branches"
                                             :key="b.value"
@@ -532,13 +470,7 @@ const field =
                                     <label
                                         for="apply-start_date"
                                         class="text-sm font-medium"
-                                        >Earliest start date<span
-                                            lang="ms"
-                                            class="font-normal text-zinc-600 dark:text-zinc-400"
-                                        >
-                                            / Tarikh terawal boleh mula</span
-                                        >
-                                        *</label
+                                        >Earliest start date *</label
                                     >
                                     <!-- The shared dd/mm/yyyy date box (UX-17), never the browser's own. -->
                                     <DateField
@@ -562,10 +494,6 @@ const field =
                                         class="text-sm text-zinc-600 dark:text-zinc-400"
                                     >
                                         From today, within a year.
-                                        <span lang="ms"
-                                            >/ Dari hari ini, dalam tempoh
-                                            setahun.</span
-                                        >
                                     </p>
                                     <p
                                         v-if="errorOf('start_date')"
@@ -580,13 +508,7 @@ const field =
                                     <label
                                         for="apply-education"
                                         class="text-sm font-medium"
-                                        >Highest education<span
-                                            lang="ms"
-                                            class="font-normal text-zinc-600 dark:text-zinc-400"
-                                        >
-                                            / Pendidikan tertinggi</span
-                                        >
-                                        *</label
+                                        >Highest education *</label
                                     >
                                     <select
                                         id="apply-education"
@@ -604,7 +526,7 @@ const field =
                                         "
                                     >
                                         <option value="" disabled>
-                                            Choose / Pilih
+                                            Choose
                                         </option>
                                         <option
                                             v-for="e in education"
@@ -627,13 +549,7 @@ const field =
                                     <label
                                         for="apply-years_experience"
                                         class="text-sm font-medium"
-                                        >Years of relevant work<span
-                                            lang="ms"
-                                            class="font-normal text-zinc-600 dark:text-zinc-400"
-                                        >
-                                            / Tahun pengalaman berkaitan</span
-                                        >
-                                        *</label
+                                        >Years of relevant work *</label
                                     >
                                     <input
                                         id="apply-years_experience"
@@ -676,13 +592,7 @@ const field =
                                 "
                             >
                                 <legend class="text-sm font-medium">
-                                    Languages you speak<span
-                                        lang="ms"
-                                        class="font-normal text-zinc-600 dark:text-zinc-400"
-                                    >
-                                        / Bahasa yang anda tuturkan</span
-                                    >
-                                    *
+                                    Languages you speak *
                                 </legend>
                                 <div class="flex flex-wrap gap-x-5 gap-y-1">
                                     <label
@@ -730,14 +640,7 @@ const field =
                                     <label
                                         :for="`apply-${q.key}`"
                                         class="text-sm font-medium"
-                                        >{{ q.label
-                                        }}<span
-                                            lang="ms"
-                                            class="font-normal text-zinc-600 dark:text-zinc-400"
-                                        >
-                                            / {{ q.ms }}</span
-                                        >
-                                        *</label
+                                        >{{ q.label }} *</label
                                     >
                                     <DateField
                                         v-if="q.type === 'date'"
@@ -785,13 +688,7 @@ const field =
                                 <label
                                     for="apply-availability"
                                     class="text-sm font-medium"
-                                    >Days and times you are usually free<span
-                                        lang="ms"
-                                        class="font-normal text-zinc-600 dark:text-zinc-400"
-                                    >
-                                        / Hari dan masa anda biasanya
-                                        lapang</span
-                                    >
+                                    >Days and times you are usually free
                                     *</label
                                 >
                                 <textarea
@@ -826,10 +723,6 @@ const field =
                             >
                                 HR checks your MMC registration and APC with you
                                 at the interview.
-                                <span lang="ms" class="block"
-                                    >HR akan menyemak pendaftaran MMC dan APC
-                                    anda semasa temu duga.</span
-                                >
                             </p>
                         </fieldset>
 
@@ -837,12 +730,7 @@ const field =
                             <label
                                 for="apply-message"
                                 class="text-sm font-medium"
-                                >Short message (optional)<span
-                                    lang="ms"
-                                    class="font-normal text-zinc-600 dark:text-zinc-400"
-                                >
-                                    / Mesej ringkas (pilihan)</span
-                                ></label
+                                >Short message (optional)</label
                             >
                             <textarea
                                 id="apply-message"
@@ -861,11 +749,6 @@ const field =
                             >
                                 Up to 1,000 characters. Please do not include
                                 your IC number or health details.
-                                <span lang="ms" class="block"
-                                    >Sehingga 1,000 aksara. Jangan sertakan
-                                    nombor kad pengenalan atau maklumat
-                                    kesihatan anda.</span
-                                >
                             </p>
                             <p
                                 v-if="form.errors.message"
@@ -880,24 +763,16 @@ const field =
                     <template v-if="step === 3">
                         <div class="space-y-1.5" data-field="cv">
                             <label for="apply-cv" class="text-sm font-medium"
-                                >Your CV (PDF)<span
-                                    lang="ms"
-                                    class="font-normal text-zinc-600 dark:text-zinc-400"
-                                >
-                                    / CV anda (PDF)</span
-                                >
-                                *</label
+                                >Your CV (PDF) *</label
                             >
                             <FileChooseButton
                                 id="apply-cv"
                                 ref="cvPicker"
                                 accept="application/pdf,.pdf"
-                                label="Choose PDF / Pilih PDF"
+                                label="Choose PDF"
                                 status-id="apply-cv-status"
                                 :status="
-                                    form.cv
-                                        ? form.cv.name
-                                        : 'No file chosen / Tiada fail dipilih'
+                                    form.cv ? form.cv.name : 'No file chosen'
                                 "
                                 :aria-invalid="
                                     form.errors.cv ? 'true' : undefined
@@ -910,10 +785,6 @@ const field =
                                 class="text-sm text-zinc-600 dark:text-zinc-400"
                             >
                                 One PDF file, up to {{ cvMaxMb }} MB.
-                                <span lang="ms"
-                                    >/ Satu fail PDF, sehingga
-                                    {{ cvMaxMb }} MB.</span
-                                >
                             </p>
                             <p
                                 v-if="form.errors.cv"
@@ -945,12 +816,7 @@ const field =
                             data-test="apply-privacy"
                         >
                             <h2 id="apply-privacy-title" class="font-semibold">
-                                Privacy notice<span
-                                    lang="ms"
-                                    class="font-normal text-zinc-600 dark:text-zinc-400"
-                                >
-                                    / Notis privasi</span
-                                >
+                                Privacy notice
                             </h2>
                             <p>
                                 {{ clinicName }} uses what you send here only to
@@ -960,21 +826,9 @@ const field =
                                 Your details and CV are deleted after the period
                                 the clinic sets.
                             </p>
-                            <p
-                                lang="ms"
-                                class="text-zinc-600 dark:text-zinc-400"
-                            >
-                                {{ clinicName }} menggunakan maklumat yang anda
-                                hantar di sini hanya untuk menimbang permohonan
-                                anda bagi jawatan ini, dan mungkin menghantar
-                                e-mel kepada anda tentangnya. Hanya pasukan HR
-                                klinik boleh melihatnya. Ia tidak sekali-kali
-                                digunakan untuk pemasaran. Maklumat dan CV anda
-                                dipadam selepas tempoh yang ditetapkan oleh
-                                klinik.
-                            </p>
+
                             <p class="text-xs text-zinc-600 dark:text-zinc-400">
-                                Notice version / Versi notis
+                                Notice version
                                 {{ privacyNoticeVersion }}
                             </p>
                             <label class="flex items-start gap-3 pt-1">
@@ -993,15 +847,7 @@ const field =
                                     >I have read the privacy notice and agree
                                     that the clinic may use my details to
                                     consider my application.
-                                    <span
-                                        lang="ms"
-                                        class="block text-zinc-600 dark:text-zinc-400"
-                                        >Saya telah membaca notis privasi dan
-                                        bersetuju klinik menggunakan maklumat
-                                        saya untuk menimbang permohonan
-                                        saya.</span
-                                    ></span
-                                >
+                                </span>
                             </label>
                             <p
                                 v-if="form.errors.privacy_accepted"
@@ -1027,20 +873,7 @@ const field =
                                     of the same kind and use the answers and CV
                                     I sent, for a period it sets. I can remove
                                     myself at any time on my private page.
-                                    <span
-                                        lang="ms"
-                                        class="block text-zinc-600 dark:text-zinc-400"
-                                        >Pilihan: simpan butiran saya untuk
-                                        jawatan akan datang. Walau apa pun
-                                        keputusan permohonan ini, klinik boleh
-                                        menghubungi saya tentang jawatan lain
-                                        yang sama jenis dan menggunakan jawapan
-                                        serta CV yang saya hantar, untuk tempoh
-                                        yang ditetapkannya. Saya boleh
-                                        mengeluarkan diri saya pada bila-bila
-                                        masa di halaman peribadi saya.</span
-                                    ></span
-                                >
+                                </span>
                             </label>
                         </section>
                     </template>
@@ -1053,7 +886,7 @@ const field =
                             data-test="apply-back"
                             @click="back"
                         >
-                            Back / Kembali
+                            Back
                         </button>
                         <button
                             v-if="step < STEP_COUNT"
@@ -1062,7 +895,7 @@ const field =
                             data-test="apply-next"
                             @click="next"
                         >
-                            Next / Seterusnya
+                            Next
                         </button>
                         <button
                             v-else
@@ -1073,8 +906,8 @@ const field =
                         >
                             {{
                                 form.processing
-                                    ? 'Sending… / Menghantar…'
-                                    : 'Send application / Hantar permohonan'
+                                    ? 'Sending…'
+                                    : 'Send application'
                             }}
                         </button>
                     </div>

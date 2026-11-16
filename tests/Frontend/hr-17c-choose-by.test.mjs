@@ -8,7 +8,7 @@ const page = readFileSync(
     'utf8',
 );
 
-test('the slot picker says the last day to choose, in both languages', () => {
+test('the slot picker says the last day to choose, in English', () => {
     assert.match(page, /chooseBy\?: string \| null;/);
     assert.match(page, /v-if="application\.interview\.chooseBy"/);
     assert.match(page, /data-test="status-choose-by"/);
@@ -16,8 +16,8 @@ test('the slot picker says the last day to choose, in both languages', () => {
     assert.match(page, /Choose by the end of/);
     assert.match(
         page,
-        /Pilih hingga akhir\s+\{\{ application\.interview\.chooseByMs \}\}/,
+        /Choose by the end of\s+\{\{ application\.interview\.chooseBy \}\}/,
     );
     assert.match(page, /the application closes\./);
-    assert.match(page, /Selepas itu, permohonan ini ditutup\./);
+    assert.match(page, /that, the application closes\./);
 });
