@@ -108,3 +108,32 @@ test('Pay: a table from 1024 px and cards below, outline actions, and every writ
     assert.equal((s.match(/expected_lock_version:/g) ?? []).length, 5);
     assert.match(script('sheet'), /idempotency_key: form\.key/);
 });
+
+test('Classic Record payment: no method is pre-picked, and Record payment stays off until the method and the reference are filled', () => {
+    assert.doesNotMatch(composables.page, /method: 'bank_transfer'/);
+    assert.match(composables.page, /method: ''/);
+    assert.match(template('page'), /:confirm-disabled="payMissing !== ''"/);
+    assert.match(template('page'), /:confirm-disabled-reason="payMissing"/);
+    assert.match(composables.page, /'Pick how it was paid to continue\.'/);
+    assert.match(composables.page, /'Enter the reference to continue\.'/);
+    assert.match(
+        composables.page,
+        /payment\.method !== 'cash' && payment\.reference\.trim\(\) === ''/,
+    );
+    assert.match(composables.page, /method: payment\.method,/);
+});
+
+test('OperationalConfirmDialog: a disabled Confirm sends focus to the first field; an enabled Confirm is focused as before', () => {
+    const dialog = read(
+        'resources/js/components/ui/OperationalConfirmDialog.vue',
+    );
+    assert.match(dialog, /if \(props\.confirmDisabled\) \{/);
+    assert.match(dialog, /content\?\.querySelector<HTMLElement>\(firstField\)/);
+    assert.match(dialog, /\[role="combobox"\]:not\(\[disabled\]\)/);
+    // The enabled path is unchanged: prevent Reka's default and focus Confirm.
+    assert.match(
+        dialog,
+        /event\.preventDefault\(\);[\s\S]*?\(confirmButtonRef\.value\?\.\$el as HTMLElement \| undefined\)\?\.focus\(\);/,
+    );
+    assert.match(dialog, /:disabled="processing \|\| confirmDisabled"/);
+});

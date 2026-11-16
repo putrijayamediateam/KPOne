@@ -6,6 +6,7 @@ use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Models\OvertimeRequest;
+use App\Domain\HR\Payroll\Services\LateAfterLock;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -273,6 +274,17 @@ final class OvertimeService
     public function paidIn(OvertimeRequest $request): ?string
     {
         return $this->paidIn->runs((int) $request->organisation_id, [(int) $request->id])[(int) $request->id]['label'] ?? null;
+    }
+
+    /** G2a: the month ("November 2026") whose locked payroll run will not pay this approved overtime, or null. */
+    public function lockedMonth(OvertimeRequest $request): ?string
+    {
+        if ($request->status !== 'approved') {
+            return null;
+        }
+
+        return app(LateAfterLock::class)->lockedMonths((int) $request->organisation_id,
+            [(int) $request->id => ['userId' => (int) $request->user_id, 'date' => $request->local_date->toDateString()]])[(int) $request->id] ?? null;
     }
 
     private function minutes(mixed $value, int $max, string $field): int
