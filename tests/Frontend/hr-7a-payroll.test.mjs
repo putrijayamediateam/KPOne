@@ -33,7 +33,7 @@ test('the new page and components compile', () => {
 test('every payroll page carries the accountant line, and nothing is red', () => {
     assert.match(
         template('note'),
-        /Set\s+by\s+KPOne\s+defaults\s+at\s+the\s+owner's\s+instruction;\s+check\s+against\s+current\s+law\s+\(official\s+KWSP\/PERKESO\/HRD\s+Corp\/LHDN\s+schedules\)\s+before\s+real\s+use\.\s+Synthetic\s+data\s+only\./,
+        /Statutory\s+figures\s+come\s+from\s+the\s+tables\s+the\s+clinic\s+entered\s+and\s+checked\s+in\s+KPOne\.\s+Check\s+them\s+against\s+current\s+law\s+\(official\s+KWSP\/PERKESO\/HRD\s+Corp\/LHDN\s+schedules\)\s+before\s+real\s+use\.\s+Synthetic\s+data\s+only\./,
     );
     assert.match(template('page'), /<AccountantNote \/>/);
     assert.match(

@@ -103,7 +103,7 @@ final class PayrollExportService
             $period = CarbonImmutable::parse((string) $run->month)->format('F Y');
             $csv = ReportCsv::encode(['Name', 'Section', 'Item', 'Amount (MYR)'], $rows, [
                 ['Payroll run', (string) $run->group_name.' · '.$period.($run->kind === 'adjustment' ? ' (adjustment)' : '')],
-                ['Note', 'Set by KPOne defaults at the owner\'s instruction; check against current law (official KWSP/PERKESO/HRD Corp/LHDN schedules) before real use. Synthetic data only.']]);
+                ['Note', 'Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/PERKESO/HRD Corp/LHDN schedules) before real use. Synthetic data only.']]);
             $this->record($actor, $run, 'accountant', 'summary_csv', count($rows));
 
             return ['name' => 'payroll-accountant-'.CarbonImmutable::parse((string) $run->month)->format('Y-m').($run->kind === 'adjustment' ? '-adjustment' : '').'.csv', 'csv' => $csv];
