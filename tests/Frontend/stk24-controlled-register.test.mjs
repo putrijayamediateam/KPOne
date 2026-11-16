@@ -50,7 +50,7 @@ test('STK-24: every register screen and every printed page carries the draft ban
     assert.match(print, /counter\(page\) ' of ' counter\(pages\)/);
 });
 
-test('STK-24: the check sends the newest movement seen and a retry key, and asks for a reason only when the count differs', () => {
+test('STK-24: the check sends the newest movement seen and a retry key, and asks for the reason only after a count that differs (STK-40b)', () => {
     const page = read('ControlledRegisterShow');
     assert.match(page, /seen_movement_id: props\.register\.newestMovementId/);
     assert.match(page, /idempotency_key: form\.key/);
@@ -61,10 +61,10 @@ test('STK-24: the check sends the newest movement seen and a retry key, and asks
     assert.match(page, /Do not enter patient or prescriber details\./);
     // Daniel: full-width 44 px Record check on phones, 36 px from 1024 px; the amber note stays apart from errors.
     assert.match(page, /class="min-h-11 w-full lg:min-h-9 lg:w-auto"/);
-    assert.match(page, /data-testid="cd-differs-note"/);
+    assert.match(page, /data-testid="cd-own-reason-needed"/);
     assert.match(page, /Showing \{\{ register\.lines\.rows\.length \}\} of/);
-    assert.match(page, /reason: differs\.value \? form\.reason : null/);
-    assert.match(page, /<template v-if="differs">/);
+    assert.match(page, /reason: reasonForm\.reason,/);
+    assert.match(page, /v-if="check\.canAddReason"/);
     assert.match(page, /v-if="register\.checkBlockedReason"/);
     // No patient or prescriber column on the register.
     // (The note's hint tells staff not to type them; no field or column carries them.)

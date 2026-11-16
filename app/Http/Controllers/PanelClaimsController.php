@@ -157,7 +157,7 @@ class PanelClaimsController extends Controller
         $from = is_string($from) && Str::isUuid($from) ? strtolower($from) : null;
         $back = $from !== null ? route('panel-claims.show', ['claim' => $from]) : route('panel-claims.index');
         try {
-            $pack = $packs->pack($actor, ['claims' => $request->query('claims')]);
+            $pack = $packs->pack($actor, ['claims' => $request->query('claims'), 'version' => $request->query('version')]);
         } catch (ValidationException $e) {
             // A GET has no form to return to: go back to the page the pack was asked from, never "previous".
             throw $e->redirectTo($back);

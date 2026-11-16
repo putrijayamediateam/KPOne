@@ -19,7 +19,7 @@ use Symfony\Component\Process\Process;
 use Tests\Support\ContentionTimeouts;
 
 /**
- * PNL-19 (Panel pilot work): a bulk creation that includes an invoice whose claim already exists, racing with
+ * PNL-24 (Panel pilot work): a bulk creation that includes an invoice whose claim already exists, racing with
  * that claim's own decision or submission. Bulk creation locks invoice then allocation and never the claim row;
  * the decision locks the claim row; submit locks claim, then invoice, then allocation. The tests prove that none
  * of these can deadlock or leave a half-kept batch: the batch is refused as a whole, and the claim action applies.
