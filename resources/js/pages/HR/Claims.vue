@@ -51,6 +51,7 @@ const {
     payment,
     askPay,
     pay,
+    payMissing,
     reversal,
     askReverse,
     reverse,
@@ -878,8 +879,8 @@ const {
             confirm-label="Record payment"
             processing-label="Saving…"
             :processing="busy"
-            :confirm-disabled="!payment.method"
-            confirm-disabled-reason="Pick how it was paid to continue."
+            :confirm-disabled="payMissing !== ''"
+            :confirm-disabled-reason="payMissing"
             :error="errors.claims"
             @update:open="(v: boolean) => !v && (payment.row = null)"
             @confirm="pay"

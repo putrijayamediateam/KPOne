@@ -109,13 +109,16 @@ test('Pay: a table from 1024 px and cards below, outline actions, and every writ
     assert.match(script('sheet'), /idempotency_key: form\.key/);
 });
 
-test('Classic Record payment: no method is pre-picked, and Record payment stays off until one is chosen', () => {
+test('Classic Record payment: no method is pre-picked, and Record payment stays off until the method and the reference are filled', () => {
     assert.doesNotMatch(composables.page, /method: 'bank_transfer'/);
     assert.match(composables.page, /method: ''/);
-    assert.match(template('page'), /:confirm-disabled="!payment\.method"/);
+    assert.match(template('page'), /:confirm-disabled="payMissing !== ''"/);
+    assert.match(template('page'), /:confirm-disabled-reason="payMissing"/);
+    assert.match(composables.page, /'Pick how it was paid to continue\.'/);
+    assert.match(composables.page, /'Enter the reference to continue\.'/);
     assert.match(
-        template('page'),
-        /confirm-disabled-reason="Pick how it was paid to continue\."/,
+        composables.page,
+        /payment\.method !== 'cash' && payment\.reference\.trim\(\) === ''/,
     );
     assert.match(composables.page, /method: payment\.method,/);
 });

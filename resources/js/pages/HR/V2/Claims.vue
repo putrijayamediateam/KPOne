@@ -49,6 +49,7 @@ const {
     payment,
     askPay,
     pay,
+    payMissing,
     reversal,
     askReverse,
     reverse,
@@ -129,19 +130,6 @@ const decisionMissing = computed(() =>
         ? 'Pick a reason to continue.'
         : '',
 );
-const payMissing = computed(() => {
-    if (payment.method === '') {
-        return 'Pick how it was paid to continue.';
-    }
-
-    if (payment.paidOn === '') {
-        return 'Choose the date paid to continue.';
-    }
-
-    return payment.method !== 'cash' && payment.reference.trim() === ''
-        ? 'Enter the payment reference to continue.'
-        : '';
-});
 const reverseMissing = computed(() =>
     reversal.reason === '' ? 'Pick a reason to continue.' : '',
 );
