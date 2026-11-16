@@ -25,7 +25,7 @@ final class ClockPhotoStorageReport
 
     /**
      * @return array{photos: int, bytes: int, size: string, oldest: ?string, thisMonth: int, perMonth: ?int, perMonthSize: ?string, forecastMonths: int,
-     *     forecastOneYear: ?string, forecastRetention: ?string, retentionYears: int, earliestDelete: ?string, draft: bool}
+     *     forecastOneYear: ?string, forecastRetention: ?string, retentionYears: int, earliestDelete: ?string, draft: bool, basis: string}
      */
     public function card(int $organisationId): array
     {
@@ -69,8 +69,9 @@ final class ClockPhotoStorageReport
             'forecastRetention' => $perMonthBytes === null ? null : PurgeAttendanceRecords::size(12 * $years * $perMonthBytes),
             'retentionYears' => $years,
             'earliestDelete' => $earliest === null ? null : AttendanceSupport::day($earliest),
-            // The 7 years is the owner's draft, to confirm (HR-3a 2026-11-11, HR-PHOTO 2026-11-12).
-            'draft' => true,
+            // The 7 years is the owner's decision ("keep 7 years, keep the daily delete on", 16 Nov 2026), no longer a draft.
+            'draft' => false,
+            'basis' => AttendanceRetentionPurge::RETENTION_BASIS,
         ];
     }
 }
