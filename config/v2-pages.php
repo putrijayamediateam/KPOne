@@ -81,7 +81,9 @@ return [
         'MedicalCertificates/Index',
         'Visits/History',
         'Referrals/Index',
+        'ClinicianCredentials/Index',
         'PublicCheckInLinks/Index',
+        'MedicalCertificateTemplates/Index',
     ],
 
     /*
