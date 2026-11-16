@@ -43,6 +43,7 @@ return [
         'HR/Claims',
         'HR/Applications',
         'HR/Records',
+        'HR/StaffFile',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',

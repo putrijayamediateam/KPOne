@@ -5,7 +5,9 @@ import test from 'node:test';
 // HR-15a locum sign-ins (HR-PLAN 21.3; B.E.R.N.I.S.S for the owner, 2026-11-10).
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const file = read('resources/js/pages/HR/StaffFile.vue');
+const file =
+    read('resources/js/pages/HR/StaffFile.vue') +
+    read('resources/js/composables/hr/useStaffFilePage.ts');
 const staff = read('resources/js/pages/Staff/Index.vue');
 
 test('a locum file asks for a sign-in by email and HR creates no account', () => {
