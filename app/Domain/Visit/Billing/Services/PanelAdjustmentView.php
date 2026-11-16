@@ -58,14 +58,15 @@ final class PanelAdjustmentView
             'claim' => $original === null ? null : [
                 ...$claimRow($original),
                 // Daniel's board: an undecided claim re-synced after it was submitted tells staff to tell the Panel.
+                // Events are ordered as recorded (by id): a re-sync in the same second as the submission still counts.
                 'changedAfterSubmission' => $original->status === 'submitted' && DB::table('panel_claim_events')->where('panel_claim_id', $original->id)->where('event_type', 'panel_adjusted')
-                    ->where('occurred_at', '>', DB::table('panel_claim_events')->where('panel_claim_id', $original->id)->where('event_type', 'submitted')->max('occurred_at') ?? '1970-01-01')->exists(),
+                    ->where('id', '>', (int) DB::table('panel_claim_events')->where('panel_claim_id', $original->id)->where('event_type', 'submitted')->max('id'))->exists(),
             ],
             'supplementaryClaims' => $claims->where('claim_kind', 'supplementary')->values()->map($claimRow)->all(),
             'originalShareSen' => $allocation->amount_sen,
             'adjustmentSen' => $sum,
             'shareSen' => $allocation->amount_sen + $sum,
-            'claimedSen' => (int) $claims->sum('claim_amount_sen'),
+            'claimedSen' => (int) $claims->where('status', '!=', 'cancelled')->sum('claim_amount_sen'),
             'claimUrl' => $original === null || ! $actor->can('panel.claims.manage.branch') ? null : route('panel-claims.show', $original),
             'invoiceLockVersion' => $invoice->lock_version,
             'canRequest' => $canRequest && $invoice->status === 'finalized' && $waiting === null,
@@ -114,6 +115,8 @@ final class PanelAdjustmentView
             'number' => self::number($claim->id),
             'decided' => in_array($claim->status, PanelClaim::DECIDED, true),
             'reason' => $own === null ? null : (PanelClaimAdjustment::REASONS[$own->reason_code] ?? null),
+            // Daniel's wording for a cancelled supplementary claim, shown muted under its status.
+            'cancelledNote' => $claim->status === 'cancelled' ? 'Cancelled because the Panel adjustment that created it was reversed. Kept on record; counted in no total.' : null,
             'parent' => $parent === null ? null : ['claimNo' => (string) $parent->id, 'number' => self::number($parent->id), 'url' => route('panel-claims.show', $parent),
                 'amountSen' => $parent->claim_amount_sen, 'acceptedSen' => $parent->accepted_amount_sen, 'statusKey' => $parent->status],
             'supplementary' => $children->map(fn (PanelClaim $c): array => [

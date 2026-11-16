@@ -12,6 +12,7 @@ final class PanelClaimEligibility
     {
         return $this->approvedAllocations($organisationId, $branchId)
             ->where('i.correction_hold', false)->where('i.source_stale', false)
+            ->whereRaw('kpone_panel_effective(i.id) > 0') // PCA-2: a share deducted to RM 0.00 has nothing to claim.
             // PCA-2: a Panel share leaves the list once its original claim exists; supplementary claims never put it back.
             ->whereNotExists(fn (Builder $existing) => $existing->selectRaw('1')->from('panel_claims')->whereColumn('panel_claims.coverage_allocation_id', 'c.id')->where('panel_claims.claim_kind', 'original'));
     }

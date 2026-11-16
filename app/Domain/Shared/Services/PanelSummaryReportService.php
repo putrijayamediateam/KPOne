@@ -39,13 +39,13 @@ class PanelSummaryReportService extends BranchReportService
         $query = app(PanelClaimEligibility::class)->approvedAllocations($actor->organisation_id, $branch->id)
             ->where('i.finalized_at', '>=', CarbonImmutable::parse($filters['from'], $branch->timezone)->startOfDay()->utc())
             ->where('i.finalized_at', '<', CarbonImmutable::parse($filters['to'], $branch->timezone)->addDay()->startOfDay()->utc())
-            ->orderByRaw('pn.name COLLATE "C"')->orderBy('c.id')->select(['c.id', 'c.panel_id', 'c.amount_sen', 'pn.name', 'i.finalized_at']);
+            ->orderByRaw('pn.name COLLATE "C"')->orderBy('c.id')->select(['c.id', 'c.panel_id', DB::raw('kpone_panel_effective(i.id) as amount_sen'), 'pn.name', 'i.finalized_at']); // PCA-2: approved and unclaimed use the current Panel share.
         $today = CarbonImmutable::now($branch->timezone)->startOfDay();
         $query->chunk(500, function ($allocations) use ($actor, $branch, $today, &$groups): void {
             $claims = PanelClaim::query()->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
                 ->whereIn('coverage_allocation_id', $allocations->pluck('id'))->get(['id', 'organisation_id', 'branch_id', 'coverage_allocation_id', 'claim_amount_sen', 'accepted_amount_sen', 'status', 'claim_kind']);
             // PCA-2: one original claim per Panel share decides claimed or unclaimed; supplementary claims add their money.
-            $supplementary = $claims->where('claim_kind', 'supplementary')->groupBy('coverage_allocation_id');
+            $supplementary = $claims->where('claim_kind', 'supplementary')->where('status', '!=', 'cancelled')->groupBy('coverage_allocation_id');
             $allClaimIds = $claims->pluck('id');
             $claims = $claims->where('claim_kind', 'original')->keyBy('coverage_allocation_id');
             $submittedDates = DB::table('panel_claim_events')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)

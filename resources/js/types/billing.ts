@@ -307,6 +307,7 @@ export type PanelAdjustmentClaim = {
     kind: 'original' | 'supplementary';
     number: string;
     decided: boolean;
+    cancelledNote: string | null;
     reason: string | null;
     parent: null | {
         claimNo: string;

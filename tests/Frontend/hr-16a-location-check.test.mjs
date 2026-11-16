@@ -4,10 +4,13 @@ import test from 'node:test';
 
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const page = read('resources/js/pages/HR/Attendance.vue');
-const card = read(
-    'resources/js/components/hr/attendance/LocationCheckSettings.vue',
-);
+const page =
+    read('resources/js/pages/HR/Attendance.vue') +
+    read('resources/js/composables/hr/useAttendancePage.ts');
+// The card's state and actions live in its composable (HR V2 Attendance PR 2), so the card source is both files.
+const card =
+    read('resources/js/components/hr/attendance/LocationCheckSettings.vue') +
+    read('resources/js/composables/hr/useLocationCheckSettings.ts');
 
 test('the location is read once, at the press, and never tracked or kept in the browser', () => {
     assert.equal(page.match(/getCurrentPosition\(/g)?.length, 1);

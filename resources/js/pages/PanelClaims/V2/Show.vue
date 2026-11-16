@@ -378,10 +378,11 @@ const rail = computed(() => [
     { label: 'Claimed', value: myr(claim.value.claimAmountSen) },
     {
         label: 'Panel accepted',
-        value:
-            claim.value.acceptedAmountSen === null
-                ? 'Pending'
-                : myr(claim.value.acceptedAmountSen),
+        value: adjustmentClaim.value?.cancelledNote
+            ? 'Cancelled'
+            : claim.value.acceptedAmountSen === null
+              ? 'Pending'
+              : myr(claim.value.acceptedAmountSen),
     },
     { label: 'Received', value: myr(claim.value.paidAmountSen) },
     { label: 'Amount due', value: myr(claim.value.amountDueSen) },
@@ -498,18 +499,14 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                     :public-id="claim.publicId"
                     class="rounded-[14px] border bg-card p-4"
                 />
-                <div
+                <PanelAdjustmentPanel
                     v-if="panelAdjustment"
-                    class="rounded-[14px] border bg-card"
-                >
-                    <PanelAdjustmentPanel
-                        :adjustment="panelAdjustment"
-                        :claim="adjustmentClaim"
-                        :can-claim-only="claim.canEditAmount"
-                        class="border-0"
-                        @claim-only="open = 'amount'"
-                    />
-                </div>
+                    :adjustment="panelAdjustment"
+                    :claim="adjustmentClaim"
+                    :can-claim-only="claim.canEditAmount"
+                    class="rounded-[14px] bg-card"
+                    @claim-only="open = 'amount'"
+                />
                 <p
                     v-if="packError"
                     role="alert"
@@ -552,6 +549,12 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                         :tone="claimChipTone(claim.status)"
                         :label="claim.status"
                     />
+                    <p
+                        v-if="adjustmentClaim?.cancelledNote"
+                        class="w-full text-sm text-muted-foreground"
+                    >
+                        {{ adjustmentClaim.cancelledNote }}
+                    </p>
                     <p
                         class="min-w-0 flex-1 text-sm text-muted-foreground max-sm:w-full"
                     >
@@ -716,31 +719,61 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                     <p class="text-xs text-muted-foreground">
                         Total: {{ claim.lines.length }} items
                     </p>
+                    <p
+                        v-if="adjustmentClaim?.kind === 'supplementary'"
+                        class="text-sm text-muted-foreground"
+                    >
+                        This supplementary claim covers only the Panel
+                        adjustment. The invoice items are on the original claim.
+                    </p>
                     <dl class="ml-auto grid w-full max-w-sm gap-2 text-sm">
-                        <div class="flex justify-between gap-4">
-                            <dt>Original subtotal (snapshot)</dt>
-                            <dd class="shrink-0 whitespace-nowrap tabular-nums">
-                                {{ myr(claim.invoiceSubtotalSen) }}
-                            </dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <dt>Invoice adjustment (snapshot)</dt>
-                            <dd class="shrink-0 whitespace-nowrap tabular-nums">
-                                {{ signed(claim.invoiceAdjustmentSen) }}
-                            </dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <dt>Adjusted invoice total (snapshot)</dt>
-                            <dd class="shrink-0 whitespace-nowrap tabular-nums">
-                                {{ myr(claim.invoiceTotalSen) }}
-                            </dd>
-                        </div>
-                        <div class="flex justify-between gap-4">
-                            <dt>Claim-only adjustment (above invoice)</dt>
-                            <dd class="shrink-0 whitespace-nowrap tabular-nums">
-                                {{ signed(claim.claimOnlyAdjustmentSen) }}
-                            </dd>
-                        </div>
+                        <template
+                            v-if="adjustmentClaim?.kind !== 'supplementary'"
+                        >
+                            <div class="flex justify-between gap-4">
+                                <dt>Original subtotal (snapshot)</dt>
+                                <dd
+                                    class="shrink-0 whitespace-nowrap tabular-nums"
+                                >
+                                    {{ myr(claim.invoiceSubtotalSen) }}
+                                </dd>
+                            </div>
+                            <div class="flex justify-between gap-4">
+                                <dt>Invoice adjustment (snapshot)</dt>
+                                <dd
+                                    class="shrink-0 whitespace-nowrap tabular-nums"
+                                >
+                                    {{ signed(claim.invoiceAdjustmentSen) }}
+                                </dd>
+                            </div>
+                            <div
+                                v-if="claim.panelAdjustmentSen !== 0"
+                                class="flex justify-between gap-4"
+                            >
+                                <dt>Panel adjustment (confirmed)</dt>
+                                <dd
+                                    class="shrink-0 whitespace-nowrap tabular-nums"
+                                >
+                                    {{ signed(claim.panelAdjustmentSen) }}
+                                </dd>
+                            </div>
+                            <div class="flex justify-between gap-4">
+                                <dt>Adjusted invoice total (snapshot)</dt>
+                                <dd
+                                    class="shrink-0 whitespace-nowrap tabular-nums"
+                                >
+                                    {{ myr(claim.invoiceTotalSen) }}
+                                </dd>
+                            </div>
+                            <div class="flex justify-between gap-4">
+                                <dt>Claim-only adjustment (above invoice)</dt>
+                                <dd
+                                    class="shrink-0 whitespace-nowrap tabular-nums"
+                                >
+                                    {{ signed(claim.claimOnlyAdjustmentSen) }}
+                                </dd>
+                            </div>
+                        </template>
                         <div class="flex justify-between gap-4">
                             <dt>Claimed amount</dt>
                             <dd class="shrink-0 whitespace-nowrap tabular-nums">

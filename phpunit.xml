@@ -11,7 +11,10 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
             <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</exclude>
             <exclude>tests/Feature/HR/PostgresRosterContentionTest.php</exclude>
@@ -31,6 +34,8 @@
             <exclude>tests/Feature/Inventory/PostgresBatchHoldTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresGovernedStockTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresStockReadinessTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresOpeningImportTest.php</exclude>
+            <exclude>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresSupplierReturnTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresPurchaseRequestTest.php</exclude>
             <exclude>tests/Feature/Inventory/PostgresReorderLevelTest.php</exclude>
@@ -63,7 +68,10 @@
              test that starts a process is missing here. Order does not matter: TestCase restores the unseeded
              schema when seeded role grants were left committed. -->
         <testsuite name="Contention">
+            <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
             <file>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</file>
@@ -84,6 +92,8 @@
             <file>tests/Feature/Inventory/PostgresBatchHoldTest.php</file>
             <file>tests/Feature/Inventory/PostgresGovernedStockTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
+            <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</file>
             <file>tests/Feature/Inventory/PostgresSupplierReturnTest.php</file>
             <file>tests/Feature/Inventory/PostgresPurchaseRequestTest.php</file>
             <file>tests/Feature/Inventory/PostgresReorderLevelTest.php</file>
@@ -117,6 +127,7 @@
              measured time (run 2537 of PR 599) so that each shard's Unit/Feature and Contention work finishes together. The full
              Contention suite stays as it was for local runs. -->
         <testsuite name="Contention1">
+            <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
             <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
             <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>
@@ -135,6 +146,8 @@
         </testsuite>
         <testsuite name="Contention2">
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelClaimEditRaceTest.php</file>
+            <file>tests/Feature/Billing/PostgresPanelBulkVsDecisionRaceTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
             <file>tests/Feature/HR/PostgresCredentialsContentionTest.php</file>
             <file>tests/Feature/HR/PostgresDisciplineContentionTest.php</file>
@@ -156,6 +169,8 @@
             <file>tests/Feature/HR/PostgresMemosContentionTest.php</file>
             <file>tests/Feature/HR/PostgresOvertimeContentionTest.php</file>
             <file>tests/Feature/Inventory/PostgresStockReadinessTest.php</file>
+            <file>tests/Feature/Inventory/PostgresOpeningImportTest.php</file>
+            <file>tests/Feature/Inventory/PostgresStockRequestRetryTest.php</file>
             <file>tests/Feature/Inventory/PostgresSupplierReturnGroupTest.php</file>
             <file>tests/Feature/Inventory/PostgresTransferShortageTest.php</file>
             <file>tests/Feature/Patient/PostgresPatientMergeRegressionTest.php</file>

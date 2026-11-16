@@ -28,6 +28,10 @@ final class PanelClaimFollowUpService
         'submitted' => 'Submitted to Panel',
         'queried' => 'Panel query',
         'amount_adjusted' => 'Claim amount changed',
+        // PCA-2: Panel claim adjustments.
+        'panel_adjusted' => 'Panel amount changed',
+        'supplementary_created' => 'Supplementary claim created',
+        'cancelled' => 'Cancelled',
         'decision_accepted' => 'Panel accepted claim',
         'decision_partially_accepted' => 'Panel partially accepted claim',
         'decision_rejected' => 'Panel rejected claim',
@@ -44,6 +48,7 @@ final class PanelClaimFollowUpService
         'accepted' => 'Accepted, unpaid',
         'partially_accepted' => 'Partially accepted, unpaid',
         'partially_paid' => 'Partially paid',
+        'cancelled' => 'Cancelled', // PCA-2: never open, so never listed; kept so the word is never lost.
     ];
 
     public function __construct(

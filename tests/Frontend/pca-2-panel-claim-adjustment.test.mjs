@@ -103,3 +103,42 @@ test('PCA-2: a supplementary claim names its original and earlier versions stay 
     );
     assert.match(versions, /\['version', String\(version\)\]/);
 });
+
+test('PCA-2: a cancelled supplementary claim is explained on its page and under the Panel summary', () => {
+    const report = read('resources/js/pages/Reports/BranchReport.vue');
+    assert.ok(
+        flat(report).includes(
+            'v-if="endpoint === \'/reports/panel-summary\'" class="text-sm text-muted-foreground" > Cancelled supplementary claims are not counted.',
+        ),
+    );
+    assert.match(classicClaim, /claim\.adjustmentClaim\?\.cancelledNote/);
+    assert.match(v2Claim, /adjustmentClaim\?\.cancelledNote/);
+});
+
+test('PCA-2: claim logs name the adjustment events in words on Classic and Version 2', () => {
+    const composable = read(
+        'resources/js/composables/panel-claims/usePanelClaimShow.ts',
+    );
+
+    for (const src of [classicClaim, composable]) {
+        assert.match(src, /panel_adjusted: 'Panel amount changed'/);
+        assert.match(
+            src,
+            /supplementary_created: 'Supplementary claim created'/,
+        );
+        assert.match(src, /cancelled: 'Cancelled'/);
+    }
+});
+
+test('PCA-2: the claim page shows the Panel adjustment as its own line and a supplementary claim points to the original', () => {
+    for (const src of [classicClaim, v2Claim]) {
+        const text = flat(src);
+        assert.ok(text.includes('Panel adjustment (confirmed)'));
+        assert.match(src, /claim\.panelAdjustmentSen !== 0/);
+        assert.ok(
+            text.includes(
+                'This supplementary claim covers only the Panel adjustment. The invoice items are on the original claim.',
+            ),
+        );
+    }
+});

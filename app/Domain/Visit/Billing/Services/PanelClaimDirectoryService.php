@@ -13,6 +13,7 @@ use App\Domain\Visit\Billing\Models\Invoice;
 use App\Domain\Visit\Billing\Models\InvoiceLine;
 use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimPaymentReversal;
+use App\Domain\Visit\Billing\Models\PanelClaimSnapshot;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -523,6 +524,11 @@ final class PanelClaimDirectoryService
                 ->where('organisation_id', $actor->organisation_id)->first(['full_name']);
             abort_unless($patient !== null, 422);
 
+            // Read-only: the Panel's own claim due rule, in words, and the date it falls due for this visit (Create claim page).
+            $dueRow = DB::table('panels')->where('id', $allocation->panel_id)->where('organisation_id', $actor->organisation_id)
+                ->first(['claim_due_days', 'claim_due_rule', 'claim_due_time', 'claim_due_offset']);
+            $visitLocal = $visit->registered_at->setTimezone($branch->timezone);
+
             return [
                 'existingClaimUrl' => $existing === null ? null : route('panel-claims.show', $existing),
                 'branch' => ['id' => $branch->id, 'today' => now()->setTimezone($branch->timezone)->toDateString()],
@@ -533,6 +539,8 @@ final class PanelClaimDirectoryService
                     'invoiceNumber' => $invoice->invoice_number, 'invoiceTotalSen' => $payableSen, 'invoiceBreakdown' => InvoiceAdjustmentService::summary($invoice),
                     'visitDate' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
                     'visitDateTime' => $visit->registered_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                    'dueRule' => $dueRow === null ? null : PanelClaimDueRule::describe($dueRow),
+                    'dueBy' => $dueRow === null ? null : PanelClaimDueRule::dueAt($dueRow, CarbonImmutable::instance($visitLocal))->format('j M Y'),
                     'lines' => InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()
                         ->map(static fn (InvoiceLine $line): array => [
                             'id' => $line->id, 'name' => $line->display_name, 'quantity' => (string) $line->quantity,
@@ -556,6 +564,9 @@ final class PanelClaimDirectoryService
             $amounts = PanelClaimAmounts::summary($claim, $paid);
             // Only saved claim evidence: never reconstruct older claims from the live Invoice.
             $originalSubtotal = (int) $claim->lines->sum('line_total_sen');
+            $latestVersion = PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->orderByDesc('version')->first(['invoice_total_sen', 'panel_adjustment_sen']);
+            $currentInvoiceTotal = (int) ($latestVersion->invoice_total_sen ?? $claim->invoice_total_sen);
+            $panelAdjustment = (int) ($latestVersion->panel_adjustment_sen ?? 0);
             $lineRows = $claim->lines->map(static fn ($line): array => [
                 'number' => $line->line_number,
                 'type' => $line->line_type,
@@ -654,7 +665,8 @@ final class PanelClaimDirectoryService
                     'dueRule' => PanelClaimDueRule::describe($panel ?? (object) []),
                     'verificationUrl' => $panel?->verification_url,
                     'receivedOn' => $lastPayment?->received_at->setTimezone($branch->timezone)->format('j F Y'),
-                    'amountDueSen' => max(0, $payoutBase - $paid),
+                    // PCA-2: a cancelled supplementary claim is counted in no total, so nothing is due on it.
+                    'amountDueSen' => $claim->status === 'cancelled' ? 0 : max(0, $payoutBase - $paid),
                     'identityVisible' => $canSeeIdentity,
                     'canWhatsapp' => $canSeeIdentity && WhatsAppNumber::normalize($patientRow?->mobile_phone) !== null,
                     'patientPhone' => $canSeeIdentity ? $patientRow?->mobile_phone : null,
@@ -669,12 +681,15 @@ final class PanelClaimDirectoryService
                     'visitNumber' => $claim->visit_number,
                     'visitDate' => $claim->visit_date->format('j M Y'),
                     'invoiceNumber' => $claim->invoice_number,
-                    'invoiceTotalSen' => $claim->invoice_total_sen,
+                    // PCA-2: the latest recorded claim version holds the invoice payable after confirmed Panel
+                    // adjustments, so a plus is never mistaken for a claim-only amount above the invoice.
+                    'invoiceTotalSen' => $currentInvoiceTotal,
                     'invoiceSubtotalSen' => $originalSubtotal,
-                    'invoiceAdjustmentSen' => $claim->invoice_total_sen - $originalSubtotal,
-                    'claimOnlyAdjustmentSen' => max(0, $claim->claim_amount_sen - $claim->invoice_total_sen),
+                    'invoiceAdjustmentSen' => $currentInvoiceTotal - $panelAdjustment - $originalSubtotal,
+                    'panelAdjustmentSen' => $panelAdjustment,
+                    'claimOnlyAdjustmentSen' => max(0, $claim->claim_amount_sen - $currentInvoiceTotal),
                     'claimAmountSen' => $claim->claim_amount_sen,
-                    'adjustmentSen' => max(0, $claim->claim_amount_sen - $claim->invoice_total_sen),
+                    'adjustmentSen' => max(0, $claim->claim_amount_sen - $currentInvoiceTotal),
                     'acceptedAmountSen' => $claim->accepted_amount_sen,
                     'paidAmountSen' => $paid,
                     'outstandingSen' => $amounts['outstanding'],
@@ -743,6 +758,7 @@ final class PanelClaimDirectoryService
             'rejected' => 'Rejected',
             'partially_paid' => 'Partially paid',
             'paid' => 'Paid',
+            'cancelled' => 'Cancelled', // PCA-2: a supplementary claim fully covered by a later minus adjustment.
             default => 'Unknown',
         };
     }

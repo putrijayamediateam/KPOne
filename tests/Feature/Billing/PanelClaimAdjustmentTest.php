@@ -10,6 +10,7 @@ use App\Domain\Visit\Billing\Models\PanelClaimSnapshot;
 use App\Domain\Visit\Billing\Models\PaymentMethod;
 use App\Domain\Visit\Billing\Services\ExactMoney;
 use App\Domain\Visit\Billing\Services\FinancialLedger;
+use App\Domain\Visit\Billing\Services\PanelAdjustmentView;
 use App\Domain\Visit\Billing\Services\PanelClaimAdjustmentService;
 use App\Domain\Visit\Billing\Services\PanelClaimEligibility;
 use App\Domain\Visit\Billing\Services\PanelShare;
@@ -55,6 +56,7 @@ class PanelClaimAdjustmentTest extends BillingTestCase
 
     public function test_an_undecided_claim_is_resynced_and_versioned_and_a_submitted_claim_says_tell_the_panel(): void
     {
+        $this->freezeSecond();
         [, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
         $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
         $this->assertSame([1], PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->pluck('version')->all());
@@ -67,6 +69,12 @@ class PanelClaimAdjustmentTest extends BillingTestCase
         $latest = PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->orderByDesc('version')->firstOrFail();
         $this->assertSame([2, 5000, 8000, 8000, 9000], [$latest->version, $latest->panel_adjustment_sen, $latest->panel_share_sen, $latest->claim_amount_sen, $latest->invoice_total_sen]);
         $this->assertDatabaseHas('panel_claim_events', ['panel_claim_id' => $claim->id, 'event_type' => 'panel_adjusted', 'previous_amount_sen' => 3000, 'amount_sen' => 8000, 'note' => 'Amount changed after submission: tell the Panel']);
+        // The re-sync lands in the same second as the submission here (frozen clock): the page still says so.
+        $this->selectBranch($officer);
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('panelAdjustment.claim.changedAfterSubmission', true)
+            // A plus above the invoice total saved at creation is a Panel adjustment, never a claim-only amount.
+            ->where('claim.invoiceTotalSen', 9000)->where('claim.panelAdjustmentSen', 5000)->where('claim.invoiceAdjustmentSen', 0)
+            ->where('claim.claimOnlyAdjustmentSen', 0)->where('claim.adjustmentSen', 0));
 
         $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'deduct', 2000));
         $this->assertSame(6000, $claim->refresh()->claim_amount_sen);
@@ -290,6 +298,81 @@ class PanelClaimAdjustmentTest extends BillingTestCase
             ->where('pack.claims.0.supplementary.parentAcceptedSen', 8000)->where('pack.claims.0.supplementary.reason', 'Panel service charge')
             ->where('pack.claims.0.claimAmountSen', 1000)->has('pack.claims.0.lines', 0));
         $this->get(route('panel-claims.follow-up'))->assertOk();
+    }
+
+    public function test_the_migration_gives_an_existing_claim_its_original_amount_as_version_1_and_the_page_keeps_the_live_amount(): void
+    {
+        [, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
+        $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
+        $this->patch(route('panel-claims.amount', $claim), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $claim->refresh()->lock_version,
+            'amount_sen' => '2500', 'reason' => 'Synthetic claim-only edit before the migration'])->assertSessionHasNoErrors();
+        // A claim from before PCA-2 has no versions: remove the one written at creation, as the migration found them.
+        DB::statement('ALTER TABLE panel_claim_snapshots DISABLE TRIGGER panel_claim_snapshots_guard');
+        DB::table('panel_claim_snapshots')->where('panel_claim_id', $claim->id)->delete();
+        DB::statement('ALTER TABLE panel_claim_snapshots ENABLE TRIGGER panel_claim_snapshots_guard');
+
+        $migration = require base_path('database/migrations/2026_11_16_000100_create_panel_claim_adjustments.php');
+        $migration->backfillVersionOne();
+        $migration->backfillVersionOne(); // Idempotent.
+        $version = PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->sole();
+        $this->assertSame([1, 3000, 3000, 0], [$version->version, $version->claim_amount_sen, $version->panel_share_sen, $version->panel_adjustment_sen]);
+        $this->selectBranch($officer);
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page
+            ->where('claim.claimAmountSen', 2500)->where('claim.adjustmentClaim.versions.0.claimAmountSen', 3000));
+        $this->get(route('panel-claims.pack', ['claims' => [$claim->public_id]]))->assertInertia(fn (Assert $page) => $page
+            ->where('pack.claims.0.claimAmountSen', 2500)->where('pack.claims.0.version.number', 1));
+    }
+
+    public function test_a_mistaken_plus_on_a_decided_claim_is_fully_undone_by_an_equal_minus_and_the_supplementary_claim_is_cancelled(): void
+    {
+        [, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
+        $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
+        $this->decide($officer, $visit, $claim, 'accepted', '3000');
+        $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'add', 2000));
+        $supplementary = PanelClaim::query()->where('claim_kind', 'supplementary')->sole();
+        $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'deduct', 2000));
+
+        $this->assertSame(['cancelled', 2000, null], [$supplementary->refresh()->status, $supplementary->claim_amount_sen, $supplementary->accepted_amount_sen]);
+        $this->assertSame(3000, PanelShare::effective($allocation->refresh()));
+        $this->assertSame(self::SETTLED, app(FinancialLedger::class)->state($invoice->refresh()));
+        $number = PanelAdjustmentView::number($supplementary->id);
+        $this->assertDatabaseHas('panel_claim_events', ['panel_claim_id' => $supplementary->id, 'event_type' => 'cancelled', 'amount_sen' => 2000,
+            'note' => "Supplementary claim {$number} (RM 20.00) was cancelled by a Panel claim adjustment. Nothing was submitted."]);
+        $this->selectBranch($officer);
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('panelAdjustment.claimedSen', 3000));
+        $this->get(route('panel-claims.show', $supplementary))->assertInertia(fn (Assert $page) => $page->where('claim.status', 'Cancelled')
+            ->where('claim.canSubmit', false)->where('claim.canEditAmount', false)
+            ->where('claim.amountDueSen', 0)
+            ->where('claim.adjustmentClaim.cancelledNote', 'Cancelled because the Panel adjustment that created it was reversed. Kept on record; counted in no total.'));
+    }
+
+    public function test_a_rejected_supplementary_claim_commits_nothing_so_a_minus_can_cover_it(): void
+    {
+        [, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
+        $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
+        $this->decide($officer, $visit, $claim, 'accepted', '3000');
+        $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'add', 2000));
+        $supplementary = PanelClaim::query()->where('claim_kind', 'supplementary')->sole();
+        $this->selectBranch($officer);
+        $this->post(route('panel-claims.submit', $supplementary), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $supplementary->lock_version])->assertSessionHasNoErrors();
+        $this->decide($officer, $visit, $supplementary->refresh(), 'rejected', '0');
+        $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'deduct', 2000));
+        $this->assertSame('cancelled', $supplementary->refresh()->status);
+        $this->assertSame(3000, PanelShare::effective($allocation->refresh()));
+        $number = PanelAdjustmentView::number($supplementary->id);
+        $this->assertDatabaseHas('panel_claim_events', ['panel_claim_id' => $supplementary->id, 'event_type' => 'cancelled',
+            'note' => "Supplementary claim {$number} (RM 20.00) was cancelled by a Panel claim adjustment. Tell the Panel."]);
+    }
+
+    public function test_a_minus_moves_a_claim_kept_below_the_share_down_and_never_raises_it(): void
+    {
+        [, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
+        $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
+        $this->patch(route('panel-claims.amount', $claim), ['expected_branch_id' => $visit->branch_id, 'lock_version' => $claim->refresh()->lock_version,
+            'amount_sen' => '2000', 'reason' => 'Synthetic claim-only lower amount'])->assertSessionHasNoErrors();
+        $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'deduct', 500));
+        $this->assertSame(1500, $claim->refresh()->claim_amount_sen);
+        $this->assertSame(2500, PanelShare::effective($allocation->refresh()));
     }
 
     private function refusal(callable $action): string

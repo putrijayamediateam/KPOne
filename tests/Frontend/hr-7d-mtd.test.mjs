@@ -67,7 +67,7 @@ test('the lines panel says which MTD figure counts, next to the figure', () => {
     assert.match(template('run'), /data-test="run-mtd-note"/);
     assert.match(
         source.run,
-        /Worked out by KPOne\. Check it with the clinic's accountant before real use\./,
+        /Worked out by KPOne\. Check it against LHDN's published schedule before real use\./,
     );
     assert.match(source.run, /The typed figure counts for this run\./);
     // An employer-only scheme's zero employee line is not shown.

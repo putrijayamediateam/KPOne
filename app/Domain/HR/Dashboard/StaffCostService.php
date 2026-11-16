@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\DB;
  * HR-9b staff cost on the HR dashboard (docs/teams/hr/HR-9-DESIGN.md section 3). Read only: it sums the totals of
  * approved or locked pay runs for one month into a single clinic-wide figure. It never returns a person, a branch or a
  * pay group, and it returns nothing at all to anyone without the approve-payroll permission (the Director).
- * To confirm with the clinic's accountant before real use. Synthetic data only.
+ * To check against current law before real use (owner, 2026-11-15: no accountant). Synthetic data only.
  */
 final class StaffCostService
 {
