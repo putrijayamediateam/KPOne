@@ -21,8 +21,6 @@ class TransactionReportService extends BranchReportService
 
     public const EXPORT = 'reports.transactions.export.branch';
 
-    public const BASIS = 'Original receipt date in the branch timezone, not invoice finalisation. Whole receipt amounts use the same posted/reversed cohort as receipt reconciliation: original, recording-reversed and net are explicit. A recording reversal is not evidence of a cash refund; later reversals restate the original receipt date. Current patient names and governed classification; payment-method names are receipt snapshots. Not classified counts as Non-cash. One row per receipt, even if several invoice references exist. Unallocated receipts remain included for money reconciliation but patient identity is masked and no invoice/visit is invented. Visit-type filters select any linked invoice and keep the whole receipt; separately filtered cohorts can overlap. Current records at generation, not an issued snapshot. MYR, two decimals. Empty periods have no patient rows. Refunded after completion is the money given back on that receipt after the visit was completed (waiting or approved, not rejected), whatever its payout date (BIL-10); original, reversed and net are unchanged by it.';
-
     public function key(): string
     {
         return 'transactions';
@@ -33,9 +31,21 @@ class TransactionReportService extends BranchReportService
         return 'Transaction Detail';
     }
 
-    public function basis(): string
+    public function basisLines(): array
     {
-        return self::BASIS;
+        return [
+            ['label' => 'Receipts', 'text' => 'Each receipt counts on the day it was taken (branch time), not the day the invoice was finalised. One row per receipt, even when it covers several invoices; received, reversed and net use the same receipts as the receipt reconciliation.'],
+            ['label' => 'Reversals', 'text' => 'A reversed receipt is a correction of the record, not proof that cash was refunded. A later reversal is taken off the original receipt day.'],
+            ['label' => 'Refunds', 'text' => 'Refunded after completion is money given back on that receipt after the visit was completed (waiting or approved, not rejected), whatever day it was paid out. It does not change received, reversed or net.'],
+            ['label' => 'Receipts with no invoice', 'text' => 'Still counted, with the patient hidden and no invoice or visit shown.'],
+            ['label' => 'Filters and settings', 'text' => 'A visit type filter keeps a whole receipt when any of its invoices matches, so two filtered lists can share a receipt. Patient names and Cash or Non-cash settings are current (Not classified counts as Non-cash): if a setting changes, older days change too. Payment-method names are as they were on the receipt.'],
+            ['label' => 'Notes', 'text' => 'Figures are today\'s records, not a saved copy. Amounts in MYR, two decimals; a period with no receipts has no rows.'],
+        ];
+    }
+
+    public function basisSummary(): string
+    {
+        return 'One row per receipt, counted on the day it was taken; names and Cash or Non-cash settings are as they are today.';
     }
 
     protected function tooManyRowsMessage(): string

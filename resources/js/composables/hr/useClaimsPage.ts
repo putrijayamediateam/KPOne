@@ -187,7 +187,7 @@ export function useClaimsPage(props: ClaimsPageProps) {
     // ---- Pay ----
     const payment = reactive({
         row: null as PayRow | null,
-        method: 'bank_transfer',
+        method: '',
         paidOn: '',
         reference: '',
         key: '',
@@ -195,7 +195,7 @@ export function useClaimsPage(props: ClaimsPageProps) {
     const askPay = (row: PayRow) =>
         Object.assign(payment, {
             row,
-            method: 'bank_transfer',
+            method: '',
             paidOn: props.claims.today,
             reference: '',
             key: crypto.randomUUID(),
@@ -224,6 +224,20 @@ export function useClaimsPage(props: ClaimsPageProps) {
             },
         );
     };
+    // What the Record payment dialog still needs, in words ("" when it is ready): shared by Classic and Version 2.
+    const payMissing = computed(() => {
+        if (payment.method === '') {
+            return 'Pick how it was paid to continue.';
+        }
+
+        if (payment.paidOn === '') {
+            return 'Choose the date paid to continue.';
+        }
+
+        return payment.method !== 'cash' && payment.reference.trim() === ''
+            ? 'Enter the reference to continue.'
+            : '';
+    });
     const reversal = reactive({
         row: null as PayRow | null,
         reason: '',
@@ -399,6 +413,7 @@ export function useClaimsPage(props: ClaimsPageProps) {
         payment,
         askPay,
         pay,
+        payMissing,
         reversal,
         askReverse,
         reverse,

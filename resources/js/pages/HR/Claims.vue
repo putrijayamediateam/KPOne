@@ -51,6 +51,7 @@ const {
     payment,
     askPay,
     pay,
+    payMissing,
     reversal,
     askReverse,
     reverse,
@@ -878,6 +879,8 @@ const {
             confirm-label="Record payment"
             processing-label="Saving…"
             :processing="busy"
+            :confirm-disabled="payMissing !== ''"
+            :confirm-disabled-reason="payMissing"
             :error="errors.claims"
             @update:open="(v: boolean) => !v && (payment.row = null)"
             @confirm="pay"
@@ -893,6 +896,7 @@ const {
                     v-model="payment.method"
                     labelledby="claim-pay-method-label"
                     label="How it was paid"
+                    placeholder="Choose how it was paid"
                     trigger-class="max-lg:h-11"
                     :options="claims.options.methods"
                     :invalid="!!errors.method"
