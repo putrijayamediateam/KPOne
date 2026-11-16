@@ -196,6 +196,34 @@ services as a named demo account, so permissions, branch checks, locks and audit
 It creates no patients beyond the presentation seeder's, and no visits, payment methods, Panels or bills; those
 are entered through the screens during the demo. Never run it with real data or in production.
 
+## Inventory walk addition (DEMO-2)
+
+For walking the pilot CA Supervisor's Inventory screens (purchase orders, receiving, supplier invoices, counts,
+recalls, transfers and the controlled register), run one more seeder after DEMO-1, on the same disposable
+database:
+
+```bash
+php artisan db:seed --class=KPOneInventoryWalkSeeder
+```
+
+It has the same safety rules as DEMO-1: `local` and `testing` only, it stops if any user email does not end in
+`.test`, and it stops with "Run KPOneDemoSetupSeeder first" when the CHERAS demo dispensary is missing. A rerun
+adds nothing. Every change goes through the domain services as a named demo account:
+
+- As `demo.ca_supervisor@kpone.test`: creates a "Cheras Store (Demo)" branch store; adds a controlled medicine,
+  Codeine phosphate 15 mg tablet (its own SKU, base unit verified, 100 on hand at the demo dispensary in batch
+  `DEMO-C001`), and marks it controlled, so the controlled register has a row; records a second Paracetamol batch,
+  `DEMO-B101`, 300 in the store, expiring about 8 months ahead (earlier than the dispensary batch), so FEFO,
+  recalls and transfers have something to show.
+- As `demo.ca_supervisor2@kpone.test`: signs off both new opening counts.
+- As `demo.finance_officer@kpone.test`: creates two fictional suppliers, "Demo Pharma Supplies (fictional)" and
+  "Demo Medical Trading (fictional)" (a contact name, no phone number).
+- As `demo.ca_supervisor@kpone.test`, then `demo.finance_officer@kpone.test`: raises, submits and approves one
+  purchase order from the first supplier into the store (Amoxicillin 500 and Cetirizine 300, with estimated
+  unit costs), so receiving can start at once. Nothing is received.
+
+It adds no Panels, patients, visits or cost policy. Never run it with real data or in production.
+
 ## Ask KPOne read login (AG-7)
 
 Ask KPOne lets the owner ask Claude Code, on the computer that runs KPOne, about the data in KPOne. Claude reads
