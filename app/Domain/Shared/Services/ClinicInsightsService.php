@@ -100,7 +100,7 @@ class ClinicInsightsService
 
     /**
      * @param  array<int, array{branch: Branch, todayStart: CarbonImmutable, tomorrowStart: CarbonImmutable, yesterdayStart: CarbonImmutable}>  $periods
-     * @return array{totalSen: int, newSen: int, returningSen: int, reconciliation: array{grossSen: int, discountsSen: int, surchargesSen: int, refundCreditsSen: int, netSen: int}}
+     * @return array{totalSen: int, newSen: int, returningSen: int, reconciliation: array{grossSen: int, discountsSen: int, surchargesSen: int, refundCreditsSen: int, panelAdjustmentsSen: int, netSen: int}}
      */
     private function salesSummary(User $actor, array $periods, string $period): array
     {
@@ -112,8 +112,12 @@ class ClinicInsightsService
         $credits = InvoiceSalesProjection::approvedCredits($actor->organisation_id);
         $this->applyPeriod($credits, $periods, 'decided_at', $period);
         $creditSen = (int) $credits->sum('amount_sen');
-        $reconciliation = InvoiceSalesProjection::reconciliation($query, $creditSen);
-        $total = (int) $query->sum(DB::raw(InvoiceSalesProjection::PAYABLE)) - $creditSen;
+        // PCA-3: confirmed Panel claim adjustments count on the day they were confirmed.
+        $adjustments = InvoiceSalesProjection::confirmedPanelAdjustments($actor->organisation_id);
+        $this->applyPeriod($adjustments, $periods, 'confirmed_at', $period);
+        $adjustmentSen = (int) $adjustments->sum('amount_sen');
+        $reconciliation = InvoiceSalesProjection::reconciliation($query, $creditSen, $adjustmentSen);
+        $total = (int) $query->sum(DB::raw(InvoiceSalesProjection::PAYABLE)) - $creditSen + $adjustmentSen;
 
         if ($period !== 'today') {
             return ['totalSen' => $total, 'newSen' => 0, 'returningSen' => 0, 'reconciliation' => $reconciliation];
@@ -162,7 +166,8 @@ class ClinicInsightsService
             $hour = CarbonImmutable::parse($invoice->finalized_at, 'UTC')->setTimezone($branch->timezone)->hour;
             $salesByHour[$hour] += (int) $invoice->total_sen;
         }
-        $credits = InvoiceSalesProjection::approvedCredits($actor->organisation_id);
+        // PCA-3: refund credits and Panel claim adjustments on the hour they were approved or confirmed.
+        $credits = InvoiceSalesProjection::netOffsets($actor->organisation_id);
         $this->applyPeriod($credits, $periods, 'decided_at', 'today');
         foreach ($credits->get(['branch_id', 'decided_at', 'amount_sen']) as $credit) {
             $salesByHour[CarbonImmutable::parse($credit->decided_at, 'UTC')->setTimezone($periods[$credit->branch_id]['branch']->timezone)->hour] -= (int) $credit->amount_sen;
@@ -234,7 +239,8 @@ class ClinicInsightsService
                 'patients' => (int) $row->patients,
             ])->all());
         // BIL-12: refund credits approved today come off their invoice's doctor (or the OTC row), as in the headline.
-        $credits = InvoiceSalesProjection::approvedCredits($actor->organisation_id);
+        // PCA-3: Panel claim adjustments confirmed today are added to the same rows.
+        $credits = InvoiceSalesProjection::netOffsets($actor->organisation_id);
         $this->applyPeriod($credits, $periods, 'decided_at', 'today');
         $withCredits = InvoiceSalesProjection::withCredits($actor->organisation_id, $doctors, $credits, $otc, true);
 
