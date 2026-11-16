@@ -212,7 +212,7 @@ Pada “Supplier returns”, bahagian “Return several lots from one delivery�
 ## Recall
 
 1. Buka “Inventory” > “Count and adjust” > “Recalls”. Skrin menyatakan recall menyekat batch yang dinamakan di setiap cawangan, dan tidak menggerakkan stok. Tab menunjukkan “Active” dan “Lifted”.
-2. CA Supervisor hanya melihat senarai. Director memilih “Start a recall”, mencari SKU dan memilih batch, memilih “Reason” (“Supplier recall”, “Regulator notice”, “Quality issue” atau “Other”), boleh mengisi “Notice reference (optional)” dan “Note (optional)” (tanpa nama pesakit atau nombor IC), kemudian “Start recall”. Hanya Director boleh mengangkat recall, dan bukan Director yang memulakannya, jadi mengangkat recall memerlukan Director kedua. Jika hanya ada seorang Director, recall tidak dapat diangkat.
+2. CA Supervisor hanya melihat senarai. Director memilih “Start a recall”, mencari SKU dan memilih batch, memilih “Reason” (“Supplier recall”, “Regulator notice”, “Quality issue” atau “Other”), boleh mengisi “Notice reference (optional)” dan “Note (optional)” (tanpa nama pesakit atau nombor IC), kemudian “Start recall”. Hanya Director boleh mengangkat recall, dan bukan Director yang memulakannya, jadi mengangkat recall memerlukan Director kedua. Dalam rintis dengan seorang Director sahaja, recall belum dapat diangkat; pemilik akan memutuskan perkara ini sebelum go-live.
 3. Batch yang di bawah recall tidak boleh digunakan sehingga recall diangkat.
 
 ## Kiraan yang patut dibuat (“Counts due”)
