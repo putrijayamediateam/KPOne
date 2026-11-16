@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { Clock3, MapPin } from '@lucide/vue';
+import { Clock3 } from '@lucide/vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
@@ -8,7 +8,7 @@ import { usePageCrumbs } from '@/composables/usePageCrumbs';
 
 /**
  * Version 2 Branches (Classic is `pages/Branches/Index.vue`, untouched). Same props and the same link to each branch;
- * read only. The branch you are working in says "Current branch" in words, not only with a coloured border.
+ * read only. The branch opened from the list (`selectedBranchId`) says "Selected" in words, not only with a coloured border. The server sends no address, so no location line is shown.
  */
 defineProps<{
     branches: Array<{
@@ -58,11 +58,11 @@ usePageCrumbs(() => [{ title: 'Branches' }]);
                                 <V2Chip
                                     v-if="selectedBranchId === branch.id"
                                     tone="info"
-                                    label="Current branch"
+                                    label="Selected"
                                 />
                                 <V2Chip
                                     :tone="
-                                        branch.isActive ? 'success' : 'danger'
+                                        branch.isActive ? 'success' : 'neutral'
                                     "
                                     :label="
                                         branch.isActive ? 'Active' : 'Inactive'
@@ -71,10 +71,6 @@ usePageCrumbs(() => [{ title: 'Branches' }]);
                             </div>
                         </header>
                         <div class="grid gap-2 text-sm text-muted-foreground">
-                            <p class="flex items-center gap-2">
-                                <MapPin class="size-4" aria-hidden="true" />
-                                Klinik Putrijaya branch
-                            </p>
                             <p class="flex items-center gap-2">
                                 <Clock3 class="size-4" aria-hidden="true" />
                                 {{ branch.timezone }}

@@ -28,11 +28,10 @@ test('V2 keeps the Classic props and the link to each branch', () => {
     }
 });
 
-test('V2 keeps the Classic wording and says "Current branch" in words, not only a coloured border', () => {
+test('V2 keeps the Classic wording and says "Selected" in words, not only a coloured border', () => {
     for (const text of [
         'Branches',
         'Locations available within your current permission scope.',
-        'Klinik Putrijaya branch',
         'Active',
         'Inactive',
     ]) {
@@ -43,7 +42,8 @@ test('V2 keeps the Classic wording and says "Current branch" in words, not only 
         assert.ok(tight(page).includes(tight(text)), `V2 lacks: ${text}`);
     }
 
-    assert.ok(flat(page).includes('label="Current branch"'));
+    assert.ok(flat(page).includes('label="Selected"'));
+    assert.ok(!page.includes('Current branch'));
     assert.ok(flat(page).includes('selectedBranchId === branch.id'));
 });
 
@@ -73,4 +73,20 @@ test('V2 branch header wraps, so a long name keeps its words whole beside the st
     );
     assert.ok(f.includes('min-w-[11rem] flex-1'));
     assert.ok(!f.includes('flex shrink-0 flex-wrap justify-end'));
+});
+
+test('V2 shows no placeholder location line (the server sends no address), and Inactive is a neutral state, not an error', () => {
+    // Classic repeats the fixed words "Klinik Putrijaya branch" with a map pin on every card; V2 leaves the line out.
+    assert.ok(classic.includes('Klinik Putrijaya branch'));
+    assert.ok(!page.includes('Klinik Putrijaya branch'));
+    assert.ok(!page.includes('MapPin'));
+    assert.ok(flat(page).includes("branch.isActive ? 'success' : 'neutral'"));
+    assert.ok(!page.includes("'danger'"));
+    // Props carry no address, so none may be invented.
+    assert.ok(!/address/i.test(page.replace(/\/\*[\s\S]*?\*\//, '')));
+});
+
+test('the branch link opens /branches/{id}, which renders this same list with that branch marked Selected', () => {
+    assert.ok(tight(page).includes(':href="`/branches/${branch.id}`"'));
+    assert.ok(flat(page).includes('selectedBranchId === branch.id'));
 });
