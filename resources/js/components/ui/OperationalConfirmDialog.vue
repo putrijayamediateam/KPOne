@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { AlertTriangle, CircleHelp, LoaderCircle } from '@lucide/vue';
-import { useTemplateRef } from 'vue';
+import { useId, useTemplateRef } from 'vue';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -46,6 +46,8 @@ const props = withDefaults(
         processingAction: 'confirm',
     },
 );
+
+const reasonId = useId();
 
 const emit = defineEmits<{
     'update:open': [value: boolean];
@@ -123,6 +125,7 @@ const onOpenAutoFocus = (event: Event) => {
 
             <p
                 v-if="confirmDisabled && confirmDisabledReason"
+                :id="reasonId"
                 class="text-sm text-muted-foreground"
                 data-testid="confirm-disabled-reason"
             >
@@ -168,6 +171,11 @@ const onOpenAutoFocus = (event: Event) => {
                     type="button"
                     :variant="destructive ? 'destructive' : 'default'"
                     :disabled="processing || confirmDisabled"
+                    :aria-describedby="
+                        confirmDisabled && confirmDisabledReason
+                            ? reasonId
+                            : undefined
+                    "
                     @click="confirm"
                 >
                     <LoaderCircle
