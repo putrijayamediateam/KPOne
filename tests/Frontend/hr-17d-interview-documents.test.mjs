@@ -35,7 +35,7 @@ test('the candidate sees the documents only inside the confirmed interview card,
 
     assert.match(card, /data-test="status-documents"/);
     assert.match(card, /Please read before your interview/);
-    assert.match(card, /Sila baca sebelum temu duga anda/);
+    assert.doesNotMatch(card, /Sila baca sebelum temu duga anda/);
     assert.match(card, /`\/careers\/status\/documents\/\$\{doc\.id\}`/);
     assert.match(card, /min-h-11/);
     assert.doesNotMatch(source.status, /localStorage|sessionStorage/);

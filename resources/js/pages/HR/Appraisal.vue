@@ -282,11 +282,8 @@ const textareaClass =
 
         <!-- Ratings -->
         <p class="text-sm text-muted-foreground" data-test="rating-scale">
-            <span class="font-medium text-foreground"
-                >1 lowest · 5 highest</span
-            >
-            <span lang="ms"> (1 terendah · 5 tertinggi)</span>. Each criterion
-            stands on its own; KPOne adds no total.
+            <span class="font-medium text-foreground">1 lowest · 5 highest</span
+            >. Each criterion stands on its own; KPOne adds no total.
         </p>
         <form
             class="flex flex-col gap-3"
