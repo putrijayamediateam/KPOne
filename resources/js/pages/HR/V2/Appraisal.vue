@@ -48,6 +48,8 @@ const button =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-9';
 const primaryButton =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-9';
+// The send button names the person, so a long name wraps instead of widening the page.
+const sendButton = `${primaryButton.replace('whitespace-nowrap', 'max-w-full min-w-0 whitespace-normal break-words py-2 text-center')}`;
 const cardClass = 'flex flex-col gap-3 rounded-[14px] border bg-card p-4';
 const statusTone = computed(() =>
     props.appraisal.status === 'signed_off'
@@ -303,7 +305,7 @@ const signDescription = computed(
                             </button>
                             <button
                                 type="button"
-                                :class="primaryButton"
+                                :class="sendButton"
                                 :disabled="form.processing || unrated > 0"
                                 :aria-describedby="
                                     unrated > 0 ? 'v2-send-hint' : undefined
