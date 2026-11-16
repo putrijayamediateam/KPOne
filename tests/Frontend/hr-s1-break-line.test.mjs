@@ -14,7 +14,7 @@ test('Classic and V2 attendance tell staff to stay clocked in for their break', 
     ]) {
         assert.match(
             read(page),
-            /data-test="break-line"[^>]*>\s*Stay\s+clocked\s+in\s+for\s+your\s+break;\s+KPOne\s+takes\s+the\s+rostered\s+break\s+off\./,
+            /v-if="attendance\.my\.todayHasBreak"[\s\S]{0,160}data-test="break-line"[^>]*>\s*Stay\s+clocked\s+in\s+for\s+your\s+break;\s+KPOne\s+takes\s+the\s+rostered\s+break\s+off\./,
             page,
         );
     }

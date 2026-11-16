@@ -371,6 +371,18 @@ class AttendanceTest extends VisitTestCase
         $this->assertSame($before, $this->untouched());
     }
 
+    public function test_s1_the_break_line_shows_only_when_today_has_a_rostered_break(): void
+    {
+        $hr = $this->actor('hr_manager');
+        $director = $this->actor('director');
+        $ca = $this->actor('ca');
+        $this->settings($hr)->assertSessionHasNoErrors();
+        $this->roster($hr, $director, [[$ca, '08:00', '14:00', 30]]);
+        $this->at('2027-03-08 07:58');
+        $this->selectBranch($ca);
+        $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.todayHasBreak', true));
+    }
+
     public function test_review_lists_the_day_and_my_roster_offers_a_clock_in_link(): void
     {
         $hr = $this->actor('hr_manager');
@@ -382,7 +394,7 @@ class AttendanceTest extends VisitTestCase
         $this->clock($ca, 'in')->assertSessionHasNoErrors();
         $this->selectBranch($ca);
         $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page
-            ->where('attendance.my.todayShift', "Full day, 8:00 AM to 2:00 PM, {$this->branch->name}")
+            ->where('attendance.my.todayShift', "Full day, 8:00 AM to 2:00 PM, {$this->branch->name}")->where('attendance.my.todayHasBreak', false)
             ->where('attendance.my.week.0.session.in', '7:58 AM')->where('attendance.my.week.0.flags', []));
         $this->get(route('hr.roster.index', ['week' => self::WEEK]))->assertInertia(fn (Assert $page) => $page->where('roster.my.canClock', true));
 

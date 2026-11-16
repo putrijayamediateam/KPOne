@@ -332,6 +332,7 @@ const {
                     </p>
                     <!-- HR month dry run S1 (owner, 16 Nov 2026): the break comes off the worked time, so nobody clocks out for it. -->
                     <p
+                        v-if="attendance.my.todayHasBreak"
                         class="text-xs text-muted-foreground"
                         data-test="break-line"
                     >
