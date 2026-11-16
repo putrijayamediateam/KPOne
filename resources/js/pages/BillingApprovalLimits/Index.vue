@@ -194,7 +194,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                             type="number"
                                             min="0"
                                             max="999999999999"
-                                            class="w-44"
+                                            class="w-44 tabular-nums"
                                         />
                                         <Button
                                             size="sm"
@@ -223,7 +223,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                             )
                                         "
                                         :id="`limit-echo-${row.id}-panel`"
-                                        class="mt-1 text-xs text-muted-foreground"
+                                        class="mt-1 text-xs text-muted-foreground tabular-nums"
                                     >
                                         {{
                                             limitEcho(
@@ -268,7 +268,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                             type="number"
                                             min="0"
                                             max="999999999999"
-                                            class="w-44"
+                                            class="w-44 tabular-nums"
                                         />
                                         <Button
                                             size="sm"
@@ -301,7 +301,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                             )
                                         "
                                         :id="`limit-echo-${row.id}-deferment`"
-                                        class="mt-1 text-xs text-muted-foreground"
+                                        class="mt-1 text-xs text-muted-foreground tabular-nums"
                                     >
                                         {{
                                             limitEcho(
