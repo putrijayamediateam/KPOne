@@ -62,3 +62,15 @@ test('V2 is read only, names each branch for screen readers and has 44 px action
         ),
     );
 });
+
+test('V2 branch header wraps, so a long name keeps its words whole beside the status chips', () => {
+    const f = flat(page);
+
+    assert.ok(
+        f.includes(
+            'flex flex-wrap items-start justify-between gap-x-3 gap-y-2',
+        ),
+    );
+    assert.ok(f.includes('min-w-[11rem] flex-1'));
+    assert.ok(!f.includes('flex shrink-0 flex-wrap justify-end'));
+});

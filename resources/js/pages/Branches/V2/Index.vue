@@ -43,8 +43,10 @@ usePageCrumbs(() => [{ title: 'Branches' }]);
                                 : ''
                         "
                     >
-                        <header class="flex items-start justify-between gap-3">
-                            <div class="min-w-0">
+                        <header
+                            class="flex flex-wrap items-start justify-between gap-x-3 gap-y-2"
+                        >
+                            <div class="min-w-[11rem] flex-1">
                                 <h2 class="text-base font-semibold break-words">
                                     {{ branch.name }}
                                 </h2>
@@ -52,9 +54,7 @@ usePageCrumbs(() => [{ title: 'Branches' }]);
                                     {{ branch.code }}
                                 </p>
                             </div>
-                            <div
-                                class="flex shrink-0 flex-wrap justify-end gap-2"
-                            >
+                            <div class="flex flex-wrap gap-2">
                                 <V2Chip
                                     v-if="selectedBranchId === branch.id"
                                     tone="info"
