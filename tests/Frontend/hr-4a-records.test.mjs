@@ -22,6 +22,7 @@ const source = Object.fromEntries(
 source.records += read('resources/js/composables/hr/useRecordsPage.ts');
 source.masked += read('resources/js/lib/hr-show-value.ts');
 source.correction += read('resources/js/composables/hr/useCorrectionSheet.ts');
+source.file += read('resources/js/composables/hr/useStaffFilePage.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 const buttons = (key) =>
     template(key).match(/<Button[\s\S]*?<\/Button>/g) ?? [];
