@@ -67,7 +67,6 @@ const {
 
 const button =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-9';
-const dangerButton = `${button} text-destructive`;
 const primaryButton =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-9';
 const inputClass =
@@ -375,7 +374,7 @@ const issueDialogOpen = computed(() => issue.open);
                                         </button>
                                         <button
                                             type="button"
-                                            :class="dangerButton"
+                                            :class="button"
                                             :aria-label="`Void ${letter.reference}`"
                                             data-test="letter-void"
                                             @click="askVoid(letter)"
@@ -448,7 +447,7 @@ const issueDialogOpen = computed(() => issue.open);
                                         </button>
                                         <button
                                             type="button"
-                                            :class="dangerButton"
+                                            :class="button"
                                             :aria-label="`Retire ${template.title}`"
                                             @click="askRetire(template)"
                                         >
