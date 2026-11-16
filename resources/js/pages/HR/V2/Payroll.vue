@@ -82,14 +82,16 @@ const {
     saveRates,
 } = usePayrollPage(props);
 
-// The Runs tab: the same Prepare request and key as Classic's tab. Its props are read once, as the Classic tab's are.
-const runsProps = {
+// The Runs tab: the same Prepare request and key as Classic's tab. `useRunsTab` gets its props once, for the form
+// defaults, as Classic's tab does; the template reads `runsView`, which follows the page props live (Suresh m1).
+const runsView = computed(() => ({
     runs: props.payroll.runs?.runs ?? [],
     months: props.payroll.runs?.months ?? [],
     groups: props.payroll.options.groups,
     ready: props.payroll.setUp.groups && props.payroll.setUp.checkedTables,
     prepareRefusal: props.payroll.runs?.prepareRefusal ?? null,
-};
+}));
+const runsProps = runsView.value;
 const { form: runForm, kinds, prepare } = useRunsTab(runsProps);
 
 // The Exports tab: the same password dialog and recorded download as Classic's tab.
@@ -207,18 +209,18 @@ const runTone = (status: string) =>
                                 Prepare a run
                             </h3>
                             <p
-                                v-if="!runsProps.ready"
+                                v-if="!runsView.ready"
                                 class="text-sm text-muted-foreground"
                             >
                                 Add a pay group, pay profiles and checked tables
                                 first.
                             </p>
                             <p
-                                v-if="runsProps.prepareRefusal"
+                                v-if="runsView.prepareRefusal"
                                 id="v2-prepare-refusal"
                                 class="text-sm text-muted-foreground"
                             >
-                                {{ runsProps.prepareRefusal }}
+                                {{ runsView.prepareRefusal }}
                             </p>
                             <div class="grid gap-3 sm:grid-cols-3">
                                 <div class="grid gap-1.5">
@@ -238,7 +240,7 @@ const runTone = (status: string) =>
                                         label="Pay group"
                                         placeholder="Choose a pay group"
                                         trigger-class="max-lg:h-11"
-                                        :options="runsProps.groups"
+                                        :options="runsView.groups"
                                         :invalid="!!errors.pay_group_id"
                                     />
                                     <InputError
@@ -261,7 +263,7 @@ const runTone = (status: string) =>
                                         labelledby="v2-run-month-label"
                                         label="Month"
                                         trigger-class="max-lg:h-11"
-                                        :options="runsProps.months"
+                                        :options="runsView.months"
                                         :invalid="!!errors.month"
                                     />
                                     <InputError :message="errors.month" />
@@ -284,8 +286,8 @@ const runTone = (status: string) =>
                             <p
                                 v-if="
                                     prepareMissing &&
-                                    runsProps.groups.length &&
-                                    !runsProps.prepareRefusal
+                                    runsView.groups.length &&
+                                    !runsView.prepareRefusal
                                 "
                                 id="v2-prepare-missing"
                                 class="text-sm text-muted-foreground"
@@ -298,14 +300,14 @@ const runTone = (status: string) =>
                                 class="self-start"
                                 :disabled="
                                     runForm.processing ||
-                                    !runsProps.groups.length ||
-                                    !!runsProps.prepareRefusal
+                                    !runsView.groups.length ||
+                                    !!runsView.prepareRefusal
                                 "
                                 :aria-disabled="
                                     prepareMissing ? 'true' : undefined
                                 "
                                 :aria-describedby="
-                                    runsProps.prepareRefusal
+                                    runsView.prepareRefusal
                                         ? 'v2-prepare-refusal'
                                         : prepareMissing
                                           ? 'v2-prepare-missing'
@@ -322,7 +324,7 @@ const runTone = (status: string) =>
                         </form>
 
                         <div
-                            v-if="!runsProps.runs.length"
+                            v-if="!runsView.runs.length"
                             :class="card"
                             class="p-6 text-center"
                         >
@@ -333,7 +335,7 @@ const runTone = (status: string) =>
                             </p>
                         </div>
                         <ul v-else :class="card" class="flex flex-col divide-y">
-                            <li v-for="r in runsProps.runs" :key="r.id">
+                            <li v-for="r in runsView.runs" :key="r.id">
                                 <Link
                                     :href="`/hr/payroll/runs/${r.id}`"
                                     class="flex min-h-11 flex-wrap items-start justify-between gap-2 p-4 first:rounded-t-[14px] last:rounded-b-[14px] hover:bg-muted/40 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset"
@@ -371,10 +373,18 @@ const runTone = (status: string) =>
                                             ></span
                                         >
                                     </span>
-                                    <V2Chip
-                                        :tone="runTone(r.status)"
-                                        :label="runWords[r.status]"
-                                    />
+                                    <span class="flex items-center gap-3">
+                                        <V2Chip
+                                            :tone="runTone(r.status)"
+                                            :label="runWords[r.status]"
+                                        />
+                                        <!-- The whole row is the link (one focus stop); this shows it can be pressed (Daniel). -->
+                                        <span
+                                            aria-hidden="true"
+                                            class="inline-flex min-h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium lg:min-h-9"
+                                            >Open</span
+                                        >
+                                    </span>
                                 </Link>
                             </li>
                         </ul>

@@ -92,6 +92,13 @@ test('Runs, Exports and Settings are in the V2 look', () => {
         /<V2Chip :tone="runTone\(r\.status\)" :label="runWords\[r\.status\]"/,
     );
     assert.match(script, /'Choose a pay group to continue\.'/);
+    // Each run row is one link (one focus stop) with a visible outline "Open" (Daniel), and the list reads live props.
+    assert.match(
+        flat,
+        /<span aria-hidden="true" class="[^"]*min-h-11[^"]*lg:min-h-9" >Open<\/span >/,
+    );
+    assert.match(script, /const runsView = computed\(/);
+    assert.match(flat, /v-for="r in runsView\.runs"/);
     // Exports: the password dialog is a V2Dialog fed by the shared composable; the password is never kept here.
     assert.match(template, /title="Protect the file with a password"/);
     assert.match(flat, /@confirm="download"/);
