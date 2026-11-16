@@ -47,6 +47,7 @@ return [
         'HR/Records',
         'HR/StaffFile',
         'HR/Discipline',
+        'HR/DisciplineCase',
         'HR/Incidents',
         'HR/Incident',
         'HR/Appraisals',
