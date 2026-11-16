@@ -7,7 +7,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
 
 /**
- * HR-3a retention (owner, 2026-11-11; the 7 years is a draft, to confirm): deletes attendance records older than 7 years.
+ * HR-3a retention (owner, 2026-11-11; the 7 years confirmed by the owner on 16 Nov 2026): deletes attendance records older than 7 years.
  * HR-PHOTO-STORAGE: `--dry-run` only reports what the purge would delete today and what falls due over the next 12
  * months; it reads and never deletes, locks or audits anything.
  */
@@ -32,7 +32,7 @@ class PurgeAttendanceRecords extends Command
     {
         $preview = $purge->preview();
         $due = $preview['due'];
-        $this->components->info('Dry run: nothing is deleted. Attendance records are kept '.AttendanceRetentionPurge::RETENTION_YEARS.' years (draft, to confirm).');
+        $this->components->info('Dry run: nothing is deleted. Attendance records are kept '.AttendanceRetentionPurge::RETENTION_YEARS.' years ('.AttendanceRetentionPurge::RETENTION_BASIS.').');
         $this->components->twoColumnDetail('Clock sessions due today', (string) $due['sessions']);
         $this->components->twoColumnDetail('Photos due today', $due['photos'].' ('.self::size($due['photo_bytes']).')');
         $this->components->twoColumnDetail('Corrections due today', (string) $due['corrections']);
