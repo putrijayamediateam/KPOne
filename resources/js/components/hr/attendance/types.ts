@@ -147,6 +147,8 @@ export type PhotoStorageCard = {
     retentionYears: number;
     earliestDelete: string | null;
     draft: boolean;
+    /** Why the retention is what it is, e.g. "owner decision 16 Nov 2026". */
+    basis: string;
 };
 
 export type LocationCheckCard = {

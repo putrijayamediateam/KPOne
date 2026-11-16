@@ -12,7 +12,7 @@ const template = parse(source).descriptor.template.content;
 const v2 = read('resources/js/pages/HR/V2/Attendance.vue');
 const classic = read('resources/js/pages/HR/Attendance.vue');
 
-test('the card compiles and sits on the V2 Settings tab only', () => {
+test('the card compiles and sits on the V2 and Classic Settings tabs (owner, 16 Nov 2026: "photo card in classic too")', () => {
     const { errors } = compileTemplate({
         source: template,
         filename: file,
@@ -23,7 +23,10 @@ test('the card compiles and sits on the V2 Settings tab only', () => {
         v2,
         /<PhotoStorageCardV2\s+v-if="attendance\.settings\.photoStorage"\s+:card="attendance\.settings\.photoStorage"/,
     );
-    assert.doesNotMatch(classic, /PhotoStorage|photoStorage/);
+    assert.match(
+        classic,
+        /<PhotoStorageCard\s+v-if="attendance\.settings\.photoStorage"\s+:card="attendance\.settings\.photoStorage"/,
+    );
 });
 
 test('it is read only: no Save, no form, no request, and totals only', () => {
@@ -33,10 +36,10 @@ test('it is read only: no Save, no form, no request, and totals only', () => {
     assert.doesNotMatch(template, /\bname\b|public_id|publicId/);
 });
 
-test('Daniel: the draft retention is a warning chip, the earliest delete stays in the sentence', () => {
+test('the retention chip names the owner decision (neutral) and keeps the earliest delete in the sentence', () => {
     assert.match(
         template,
-        /<V2Chip\s+tone="warning"\s+:label="`Retention: \$\{card\.retentionYears\} years\$\{card\.draft \? ' · draft, to confirm' : ''\}`"/,
+        /<V2Chip\s+:tone="card\.draft \? 'warning' : 'neutral'"\s+:label="`Retention: \$\{card\.retentionYears\} years\$\{card\.draft \? ' · draft, to confirm' : ` · \$\{card\.basis\}`\}`"/,
     );
     assert.match(template, /The earliest delete is/);
     assert.match(template, /No clock-in photos yet\./);
@@ -76,4 +79,35 @@ test('Daniel: quantities carry their unit, in tabular figures, and never split f
     for (const dd of template.match(/<dd[^>]*>/g) ?? []) {
         assert.match(dd, /whitespace-nowrap tabular-nums/);
     }
+});
+
+const classicFile =
+    'resources/js/components/hr/attendance/PhotoStorageCard.vue';
+const classicSource = read(classicFile);
+const classicTemplate = parse(classicSource).descriptor.template.content;
+
+test('Classic card: same figures and words, read only, totals only, in Classic style', () => {
+    const { errors } = compileTemplate({
+        source: classicTemplate,
+        filename: classicFile,
+        id: 'photo-storage-classic',
+    });
+    assert.deepEqual(errors, []);
+    assert.doesNotMatch(classicTemplate, /<button|<form|<input|@click/);
+    assert.doesNotMatch(classicSource, /router\.|useForm|fetch\(/);
+    assert.match(classicTemplate, /<StatusBadge/);
+    assert.doesNotMatch(classicTemplate, /V2Chip|V2FormCard/);
+
+    for (const words of [
+        'Clock-in photo storage',
+        'The earliest delete is',
+        'No clock-in photos yet.',
+        'Totals only. No names.',
+        'A forecast appears after',
+    ]) {
+        assert.ok(classicTemplate.includes(words), words);
+    }
+
+    assert.match(classicTemplate, /` · \$\{card\.basis\}`/);
+    assert.doesNotMatch(classicSource, /\u00A0/);
 });
