@@ -330,6 +330,10 @@ const eventTitle = (type: string) =>
         decision_partially_accepted: 'Panel partially accepted claim',
         decision_rejected: 'Panel rejected claim',
         note: 'Note added',
+        // PCA-2: Panel claim adjustments.
+        panel_adjusted: 'Panel amount changed',
+        supplementary_created: 'Supplementary claim created',
+        cancelled: 'Cancelled',
     })[type] ?? type;
 </script>
 

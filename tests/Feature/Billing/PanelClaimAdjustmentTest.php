@@ -56,6 +56,7 @@ class PanelClaimAdjustmentTest extends BillingTestCase
 
     public function test_an_undecided_claim_is_resynced_and_versioned_and_a_submitted_claim_says_tell_the_panel(): void
     {
+        $this->freezeSecond();
         [, $officer, $visit, $invoice, $allocation] = $this->completedPanelVisit();
         $claim = $this->createClaim($officer, $visit, $invoice, $allocation);
         $this->assertSame([1], PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->pluck('version')->all());
@@ -68,6 +69,9 @@ class PanelClaimAdjustmentTest extends BillingTestCase
         $latest = PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->orderByDesc('version')->firstOrFail();
         $this->assertSame([2, 5000, 8000, 8000, 9000], [$latest->version, $latest->panel_adjustment_sen, $latest->panel_share_sen, $latest->claim_amount_sen, $latest->invoice_total_sen]);
         $this->assertDatabaseHas('panel_claim_events', ['panel_claim_id' => $claim->id, 'event_type' => 'panel_adjusted', 'previous_amount_sen' => 3000, 'amount_sen' => 8000, 'note' => 'Amount changed after submission: tell the Panel']);
+        // The re-sync lands in the same second as the submission here (frozen clock): the page still says so.
+        $this->selectBranch($officer);
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('panelAdjustment.claim.changedAfterSubmission', true));
 
         $this->confirm($officer, $this->request($officer, $invoice, $allocation, 'deduct', 2000));
         $this->assertSame(6000, $claim->refresh()->claim_amount_sen);
@@ -335,6 +339,7 @@ class PanelClaimAdjustmentTest extends BillingTestCase
         $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('panelAdjustment.claimedSen', 3000));
         $this->get(route('panel-claims.show', $supplementary))->assertInertia(fn (Assert $page) => $page->where('claim.status', 'Cancelled')
             ->where('claim.canSubmit', false)->where('claim.canEditAmount', false)
+            ->where('claim.amountDueSen', 0)
             ->where('claim.adjustmentClaim.cancelledNote', 'Cancelled because the Panel adjustment that created it was reversed. Kept on record; counted in no total.'));
     }
 

@@ -11,6 +11,7 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
             <exclude>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</exclude>
+            <exclude>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</exclude>
             <exclude>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</exclude>
             <exclude>tests/Feature/Clinical/PostgresDrugLabelPrintTest.php</exclude>
@@ -63,6 +64,7 @@
              test that starts a process is missing here. Order does not matter: TestCase restores the unseeded
              schema when seeded role grants were left committed. -->
         <testsuite name="Contention">
+            <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelPaymentRegressionTest.php</file>
             <file>tests/Feature/Billing/PostgresPanelBulkClaimRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
@@ -117,6 +119,7 @@
              measured time (run 2537 of PR 599) so that each shard's Unit/Feature and Contention work finishes together. The full
              Contention suite stays as it was for local runs. -->
         <testsuite name="Contention1">
+            <file>tests/Feature/Billing/PostgresPanelAdjustmentRegressionTest.php</file>
             <file>tests/Feature/Clinical/PostgresDispensaryReturnTest.php</file>
             <file>tests/Feature/HR/PostgresAttendanceContentionTest.php</file>
             <file>tests/Feature/HR/PostgresClaimsContentionTest.php</file>

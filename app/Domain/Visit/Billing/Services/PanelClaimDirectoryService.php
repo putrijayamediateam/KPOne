@@ -654,7 +654,8 @@ final class PanelClaimDirectoryService
                     'dueRule' => PanelClaimDueRule::describe($panel ?? (object) []),
                     'verificationUrl' => $panel?->verification_url,
                     'receivedOn' => $lastPayment?->received_at->setTimezone($branch->timezone)->format('j F Y'),
-                    'amountDueSen' => max(0, $payoutBase - $paid),
+                    // PCA-2: a cancelled supplementary claim is counted in no total, so nothing is due on it.
+                    'amountDueSen' => $claim->status === 'cancelled' ? 0 : max(0, $payoutBase - $paid),
                     'identityVisible' => $canSeeIdentity,
                     'canWhatsapp' => $canSeeIdentity && WhatsAppNumber::normalize($patientRow?->mobile_phone) !== null,
                     'patientPhone' => $canSeeIdentity ? $patientRow?->mobile_phone : null,

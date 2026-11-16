@@ -246,6 +246,7 @@ const signed = (dir: string, value: number) =>
                 <div class="flex flex-wrap gap-2">
                     <Button
                         class="max-lg:min-h-11"
+                        data-touch-target
                         v-if="adjustment.canRequest"
                         variant="outline"
                         data-testid="panel-adjustment-open"
@@ -254,6 +255,7 @@ const signed = (dir: string, value: number) =>
                     >
                     <Button
                         class="max-lg:min-h-11"
+                        data-touch-target
                         v-if="canClaimOnly"
                         variant="outline"
                         data-testid="panel-adjustment-claim-only"
@@ -290,12 +292,13 @@ const signed = (dir: string, value: number) =>
                         >, Status {{ formatStatusLabel(child.statusKey) }}</span
                     >
                     <Button
-                        class="max-lg:min-h-11"
+                        class="max-lg:min-h-11 max-sm:!h-auto max-sm:!min-h-11"
+                        data-touch-target
                         v-if="child.url"
                         variant="outline"
                         size="sm"
                         as-child
-                        ><Link :href="child.url"
+                        ><Link data-touch-target :href="child.url"
                             >Open supplementary claim</Link
                         ></Button
                     >
@@ -308,17 +311,19 @@ const signed = (dir: string, value: number) =>
             class="flex flex-wrap gap-2"
         >
             <Button
-                class="max-lg:min-h-11"
+                class="max-lg:min-h-11 max-sm:!h-auto max-sm:!min-h-11"
+                data-touch-target
                 v-if="adjustment.claimUrl"
                 variant="outline"
                 size="sm"
                 as-child
-                ><Link :href="adjustment.claimUrl"
+                ><Link data-touch-target :href="adjustment.claimUrl"
                     >Open Panel claim</Link
                 ></Button
             >
             <Button
                 class="max-lg:min-h-11"
+                data-touch-target
                 v-if="adjustment.canRequest"
                 variant="outline"
                 size="sm"
@@ -358,6 +363,7 @@ const signed = (dir: string, value: number) =>
             <div class="flex flex-wrap gap-2">
                 <Button
                     class="max-lg:min-h-11"
+                    data-touch-target
                     v-if="adjustment.waiting.canConfirm"
                     :disabled="busy"
                     data-testid="panel-adjustment-confirm"
@@ -366,6 +372,7 @@ const signed = (dir: string, value: number) =>
                 >
                 <Button
                     class="max-lg:min-h-11"
+                    data-touch-target
                     v-if="adjustment.waiting.canWithdraw"
                     variant="outline"
                     :disabled="busy"
@@ -505,6 +512,7 @@ const signed = (dir: string, value: number) =>
                     <div class="flex gap-2">
                         <Button
                             class="max-lg:min-h-11"
+                            data-touch-target
                             variant="outline"
                             :disabled="busy"
                             @click="open = false"
@@ -512,6 +520,7 @@ const signed = (dir: string, value: number) =>
                         >
                         <Button
                             class="max-lg:min-h-11"
+                            data-touch-target
                             :disabled="!ready || busy"
                             data-testid="panel-adjustment-submit"
                             @click="submit"

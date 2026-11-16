@@ -58,8 +58,9 @@ final class PanelAdjustmentView
             'claim' => $original === null ? null : [
                 ...$claimRow($original),
                 // Daniel's board: an undecided claim re-synced after it was submitted tells staff to tell the Panel.
+                // Events are ordered as recorded (by id): a re-sync in the same second as the submission still counts.
                 'changedAfterSubmission' => $original->status === 'submitted' && DB::table('panel_claim_events')->where('panel_claim_id', $original->id)->where('event_type', 'panel_adjusted')
-                    ->where('occurred_at', '>', DB::table('panel_claim_events')->where('panel_claim_id', $original->id)->where('event_type', 'submitted')->max('occurred_at') ?? '1970-01-01')->exists(),
+                    ->where('id', '>', (int) DB::table('panel_claim_events')->where('panel_claim_id', $original->id)->where('event_type', 'submitted')->max('id'))->exists(),
             ],
             'supplementaryClaims' => $claims->where('claim_kind', 'supplementary')->values()->map($claimRow)->all(),
             'originalShareSen' => $allocation->amount_sen,

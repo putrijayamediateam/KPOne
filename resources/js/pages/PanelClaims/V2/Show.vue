@@ -378,10 +378,11 @@ const rail = computed(() => [
     { label: 'Claimed', value: myr(claim.value.claimAmountSen) },
     {
         label: 'Panel accepted',
-        value:
-            claim.value.acceptedAmountSen === null
-                ? 'Pending'
-                : myr(claim.value.acceptedAmountSen),
+        value: adjustmentClaim.value?.cancelledNote
+            ? 'Cancelled'
+            : claim.value.acceptedAmountSen === null
+              ? 'Pending'
+              : myr(claim.value.acceptedAmountSen),
     },
     { label: 'Received', value: myr(claim.value.paidAmountSen) },
     { label: 'Amount due', value: myr(claim.value.amountDueSen) },

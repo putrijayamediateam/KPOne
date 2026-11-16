@@ -114,3 +114,18 @@ test('PCA-2: a cancelled supplementary claim is explained on its page and under 
     assert.match(classicClaim, /claim\.adjustmentClaim\?\.cancelledNote/);
     assert.match(v2Claim, /adjustmentClaim\?\.cancelledNote/);
 });
+
+test('PCA-2: claim logs name the adjustment events in words on Classic and Version 2', () => {
+    const composable = read(
+        'resources/js/composables/panel-claims/usePanelClaimShow.ts',
+    );
+
+    for (const src of [classicClaim, composable]) {
+        assert.match(src, /panel_adjusted: 'Panel amount changed'/);
+        assert.match(
+            src,
+            /supplementary_created: 'Supplementary claim created'/,
+        );
+        assert.match(src, /cancelled: 'Cancelled'/);
+    }
+});
