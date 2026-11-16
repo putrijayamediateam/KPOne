@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { TriangleAlert } from '@lucide/vue';
 import { computed } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import { statusLine, statusTone } from '@/components/hr/credentials/types';
@@ -272,7 +273,19 @@ const addTypeMissing = computed(() =>
                                         class="inline-flex items-center gap-1"
                                         data-test="credential-status"
                                     >
+                                        <TriangleAlert
+                                            v-if="
+                                                card.status.code === 'expired'
+                                            "
+                                            class="size-3.5 shrink-0 text-warning-strong"
+                                            aria-hidden="true"
+                                        />
                                         <V2Chip
+                                            :class="
+                                                card.status.code === 'expired'
+                                                    ? 'font-semibold'
+                                                    : undefined
+                                            "
                                             :tone="chipTone(card.status.code)"
                                             :label="
                                                 chipLabel(
@@ -511,10 +524,7 @@ const addTypeMissing = computed(() =>
                                     />
                                 </div>
                                 <div class="flex flex-wrap gap-2">
-                                    <button
-                                        type="submit"
-                                        :class="primaryButton"
-                                    >
+                                    <button type="submit" :class="button">
                                         Show
                                     </button>
                                     <button
@@ -742,7 +752,27 @@ const addTypeMissing = computed(() =>
                                                             row.cells[t.typeId]
                                                         "
                                                     >
+                                                        <TriangleAlert
+                                                            v-if="
+                                                                row.cells[
+                                                                    t.typeId
+                                                                ]!.status
+                                                                    .code ===
+                                                                'expired'
+                                                            "
+                                                            class="size-3.5 shrink-0 text-warning-strong"
+                                                            aria-hidden="true"
+                                                        />
                                                         <V2Chip
+                                                            :class="
+                                                                row.cells[
+                                                                    t.typeId
+                                                                ]!.status
+                                                                    .code ===
+                                                                'expired'
+                                                                    ? 'font-semibold'
+                                                                    : undefined
+                                                            "
                                                             :tone="
                                                                 chipTone(
                                                                     row.cells[
@@ -847,7 +877,21 @@ const addTypeMissing = computed(() =>
                                                     class="min-w-0 [overflow-wrap:anywhere]"
                                                     >{{ a.type.name }}</span
                                                 >
+                                                <TriangleAlert
+                                                    v-if="
+                                                        a.cell.status.code ===
+                                                        'expired'
+                                                    "
+                                                    class="size-3.5 shrink-0 text-warning-strong"
+                                                    aria-hidden="true"
+                                                />
                                                 <V2Chip
+                                                    :class="
+                                                        a.cell.status.code ===
+                                                        'expired'
+                                                            ? 'font-semibold'
+                                                            : undefined
+                                                    "
                                                     :tone="
                                                         chipTone(
                                                             a.cell.status.code,

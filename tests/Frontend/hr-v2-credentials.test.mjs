@@ -78,3 +78,33 @@ test('the Classic templates did not change', () => {
     assert.doesNotMatch(classic, /V2WorkLayout|V2Dialog/);
     assert.doesNotMatch(classicSheet, /V2Dialog/);
 });
+
+test("Expired keeps Classic's mark: an alert icon and bold text, in all three places, and is never red", () => {
+    const flatT = template
+        .replace(/\s+/g, ' ')
+        .replace(/="\s+/g, '="')
+        .replace(/\s+"/g, '"')
+        .replace(/\[ /g, '[')
+        .replace(/ \]/g, ']')
+        .replace(/ \./g, '.');
+    const marks =
+        flatT.match(/<TriangleAlert v-if="[^"]*status\.code === 'expired'"/g) ??
+        [];
+    assert.equal(marks.length, 3);
+    assert.equal(
+        (flatT.match(/text-warning-strong[^"]*" aria-hidden="true"/g) ?? [])
+            .length,
+        3,
+    );
+    const bold =
+        flatT.match(
+            /status\.code === 'expired' \? 'font-semibold' : undefined/g,
+        ) ?? [];
+    assert.equal(bold.length, 3);
+    assert.doesNotMatch(
+        template,
+        /expired[^"]*destructive|destructive[^"]*expired/,
+    );
+    // The filter's Show only re-runs the filter, so it is outline; Accept is outline too.
+    assert.doesNotMatch(flatT, /type="submit" :class="primaryButton"> Show/);
+});
