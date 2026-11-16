@@ -31,6 +31,8 @@ type Result = {
 type Payload = {
     title: string;
     basis: string;
+    basisSummary?: string;
+    basisLines?: { label: string | null; text: string }[];
     endpoint: string;
     branch: { id: number; name: string; timezone: string };
     canExport: boolean;
@@ -71,7 +73,12 @@ const signed = (value: string) =>
           : `+${value}`;
 // The first column (date or row) stays in view while a wide report scrolls sideways.
 // Opaque backgrounds mix the header and hover tints over the card so scrolled cells never show through.
-const stickyBase = 'sticky left-0 z-10 shadow-[1px_0_0_var(--border)]';
+// DD-97: a clear edge (a solid line and a soft shadow strip) so columns that
+// scroll under the first column read as passing beneath it, not as cut off.
+// Drawn with ::after because browsers do not paint box-shadow on cells of a
+// border-collapse table.
+const stickyBase =
+    "sticky left-0 z-10 after:pointer-events-none after:absolute after:inset-y-0 after:right-0 after:w-2 after:translate-x-full after:border-l after:border-border after:bg-gradient-to-r after:from-[color-mix(in_oklab,var(--foreground)_14%,transparent)] after:to-transparent after:content-['']";
 const stickyHead = `${stickyBase} bg-[color-mix(in_oklab,var(--muted)_60%,var(--card))]`;
 const stickyCell = `${stickyBase} bg-card transition-colors [tr:hover_&]:bg-[color-mix(in_oklab,var(--muted)_40%,var(--card))]`;
 const pending = ref<Record<string, boolean>>({});
@@ -253,9 +260,29 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
             <summary
                 class="cursor-pointer font-medium marker:text-muted-foreground"
             >
-                How this report counts (read before comparing totals)
+                How this report counts<template v-if="basisSummary"
+                    >:
+                    <span class="font-normal">{{
+                        basisSummary
+                    }}</span></template
+                ><template v-else> (read before comparing totals)</template>
             </summary>
-            <p class="mt-2 max-w-prose text-muted-foreground">{{ basis }}</p>
+            <div
+                v-if="basisLines?.length"
+                class="mt-2 max-w-prose space-y-2 text-muted-foreground"
+            >
+                <p v-for="(line, i) in basisLines" :key="i">
+                    <template v-if="line.label"
+                        ><strong class="font-semibold text-foreground"
+                            >{{ line.label }}:</strong
+                        >
+                    </template>
+                    {{ line.text }}
+                </p>
+            </div>
+            <p v-else class="mt-2 max-w-prose text-muted-foreground">
+                {{ basis }}
+            </p>
         </details>
         <section
             aria-label="Report filters"

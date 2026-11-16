@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { CalendarCheck } from '@lucide/vue';
-import { computed } from 'vue';
+import { Check } from '@lucide/vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -9,24 +9,18 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { DateField } from '@/components/ui/date-field';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
-import {
-    Sheet,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-} from '@/components/ui/sheet';
-import { StatusBadge } from '@/components/ui/status';
 import { OperationalTable } from '@/components/ui/table';
 import { Textarea } from '@/components/ui/textarea';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2DateField from '@/components/v2/V2DateField.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Field from '@/components/v2/V2Field.vue';
+import V2FormCard from '@/components/v2/V2FormCard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
+import V2RowMenu from '@/components/v2/V2RowMenu.vue';
+import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
 import V2Table from '@/components/v2/V2Table.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
@@ -35,6 +29,7 @@ import type {
     Balance,
     LeavePageProps,
     RequestRow,
+    TypeRow,
 } from '@/composables/hr/useLeavePage';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
 
@@ -128,6 +123,120 @@ const {
 usePageCrumbs(() => [{ title: 'KPOne HR', href: '/hr' }, { title: 'Leave' }]);
 
 const dayWord = (days: string) => (days === '1' ? 'day' : 'days');
+
+// Settings (PR 2, Daniel): four sub-tabs. The chosen one is a per-viewer convenience kept in this browser only, not in
+// the URL, so a link still opens the same page; Types when nothing is kept or storage is blocked.
+type SettingsTab = 'types' | 'entitlements' | 'calendar' | 'balances';
+const settingsTabs: { value: SettingsTab; label: string }[] = [
+    { value: 'types', label: 'Types' },
+    { value: 'entitlements', label: 'Entitlements' },
+    { value: 'calendar', label: 'Calendar' },
+    { value: 'balances', label: 'Opening balances' },
+];
+const SETTINGS_KEY = 'kpone.v2.leave.settings-tab';
+const readSettingsTab = (): SettingsTab => {
+    try {
+        const kept = window.localStorage.getItem(SETTINGS_KEY);
+
+        return settingsTabs.some((t) => t.value === kept)
+            ? (kept as SettingsTab)
+            : 'types';
+    } catch {
+        return 'types';
+    }
+};
+const settingsTab = ref<SettingsTab>(
+    typeof window === 'undefined' ? 'types' : readSettingsTab(),
+);
+const chooseSettingsTab = (value: string) => {
+    settingsTab.value = value as SettingsTab;
+
+    try {
+        window.localStorage.setItem(SETTINGS_KEY, value);
+    } catch {
+        // Storage blocked: the choice lasts for this visit only.
+    }
+};
+const archiving = reactive<{ open: boolean; type: TypeRow | null }>({
+    open: false,
+    type: null,
+});
+const askArchive = (t: TypeRow) => {
+    archiving.type = t;
+    archiving.open = true;
+};
+const confirmArchive = () => {
+    if (archiving.type) {
+        archiveType(archiving.type);
+    }
+
+    archiving.open = false;
+};
+// The type dialog asks before discarding only when something changed since it opened (Suresh): openType fills the
+// form field by field, so Inertia's isDirty would count an untouched Edit as changed.
+const typeFields = () =>
+    JSON.stringify({
+        code: typeForm.code,
+        name: typeForm.name,
+        is_paid: typeForm.is_paid,
+        uses_balance: typeForm.uses_balance,
+        allow_half_days: typeForm.allow_half_days,
+        evidence_needed: typeForm.evidence_needed,
+        allow_negative: typeForm.allow_negative,
+        accepts_evidence_files: typeForm.accepts_evidence_files,
+        evidence_retention_days: typeForm.evidence_retention_days,
+        carry_max_days: typeForm.carry_max_days,
+        carry_expires_on: typeForm.carry_expires_on,
+    });
+const typeSnapshot = ref('');
+watch(typeOpen, (open) => {
+    if (open) {
+        void nextTick(() => (typeSnapshot.value = typeFields()));
+    } else {
+        typeSnapshot.value = '';
+    }
+});
+const typeDirty = computed(
+    () =>
+        typeOpen.value &&
+        typeSnapshot.value !== '' &&
+        typeFields() !== typeSnapshot.value,
+);
+// Daniel: "Send for a check" stays off until the required choices are made, and says what is missing in words.
+const entryMissing = computed(() =>
+    entryForm.user_id === ''
+        ? 'Choose a person to continue.'
+        : entryForm.leave_type_id === ''
+          ? 'Choose a leave type to continue.'
+          : String(entryForm.days).trim() === ''
+            ? 'Enter the days to continue.'
+            : entryForm.kind === 'adjustment' && entryForm.reason_code === ''
+              ? 'Choose a reason to continue.'
+              : '',
+);
+// "Use KPOne defaults" with nothing to add (Daniel): only a Close button, and the sheet sizes to its content.
+const defaultsNothing = computed(
+    () =>
+        yearAction.kind === 'defaults' &&
+        !!props.leave.settings &&
+        props.leave.settings.defaults.typesToAdd.length === 0 &&
+        props.leave.settings.defaults.rows === 0,
+);
+const settingsBranch = computed(() => branchName.value || 'this branch');
+const typeMenu = (t: TypeRow): RowMenuGroup[] => [
+    {
+        label: t.name,
+        items: [
+            { id: 'edit', label: 'Edit', allowed: true },
+            {
+                id: 'archive',
+                label: t.isActive ? 'Archive' : 'Restore',
+                allowed: true,
+                tone: t.isActive ? 'danger' : 'default',
+            },
+        ],
+    },
+];
 
 // Daniel (a): the big figure is what is left, the line under it the rest. "Booked" is the server's own figure: waiting
 // requests plus approved leave that has not started, so it is not called "pending". A type with no yearly balance
@@ -859,7 +968,7 @@ const inputClass =
                         </ul>
                     </section>
 
-                    <!-- Settings: the Classic settings inside the V2 frame until PR 2 (V2Tabs). -->
+                    <!-- Settings (PR 2, Daniel): four sub-tabs, Types · Entitlements · Calendar · Opening balances. -->
                     <section
                         v-if="leave.tab === 'settings' && leave.settings"
                         aria-labelledby="settings-title"
@@ -868,48 +977,53 @@ const inputClass =
                         <h2 id="settings-title" class="sr-only">
                             Leave settings
                         </h2>
-                        <div class="flex flex-wrap items-end gap-3">
-                            <div class="grid w-full gap-2 sm:w-40">
-                                <Label for="settings-year">Year</Label>
-                                <OperationalSelect
-                                    id="settings-year"
-                                    :model-value="leave.year"
-                                    :options="yearOptions"
-                                    label="Year"
-                                    @update:model-value="
-                                        (v: string | number) =>
-                                            visit({ year: v })
-                                    "
-                                />
-                            </div>
-                            <div class="grid w-full gap-2 sm:w-56">
-                                <Label for="settings-branch">Branch</Label>
-                                <OperationalSelect
-                                    id="settings-branch"
-                                    :model-value="leave.branchId ?? ''"
-                                    :options="branchOptions"
-                                    label="Branch"
-                                    @update:model-value="
-                                        (v: string | number) =>
-                                            visit({ branch: v })
-                                    "
-                                />
-                            </div>
+                        <div
+                            class="flex flex-wrap items-end gap-3"
+                            data-test="settings-filters"
+                        >
+                            <V2Field label="Year" class="w-full sm:w-40">
+                                <template #default="{ id, describedBy }">
+                                    <OperationalSelect
+                                        :id="id"
+                                        :describedby="describedBy"
+                                        :model-value="leave.year"
+                                        :options="yearOptions"
+                                        label="Year"
+                                        @update:model-value="
+                                            (v: string | number) =>
+                                                visit({ year: v })
+                                        "
+                                    />
+                                </template>
+                            </V2Field>
                         </div>
 
-                        <!-- 1. Leave types -->
+                        <V2Tabs
+                            :model-value="settingsTab"
+                            :tabs="settingsTabs"
+                            ariaLabel="Leave settings sections"
+                            id-prefix="leave-settings"
+                            data-test="settings-tabs"
+                            @update:model-value="chooseSettingsTab"
+                        />
+
+                        <!-- Types -->
                         <div
-                            class="rounded-xl border bg-card p-4"
+                            v-if="settingsTab === 'types'"
+                            id="leave-settings-panel-types"
+                            role="tabpanel"
+                            aria-labelledby="leave-settings-tab-types"
+                            class="flex flex-col gap-3"
                             data-test="types-card"
                         >
                             <div
                                 class="flex flex-wrap items-center justify-between gap-2"
                             >
-                                <div>
-                                    <h3 class="text-base font-semibold">
+                                <div class="min-w-0">
+                                    <h2 class="text-base font-semibold">
                                         Leave types
-                                    </h3>
-                                    <p class="text-xs text-muted-foreground">
+                                    </h2>
+                                    <p class="text-sm text-muted-foreground">
                                         Add the types the clinic uses, or start
                                         from the KPOne defaults.
                                     </p>
@@ -917,14 +1031,14 @@ const inputClass =
                                 <div class="flex flex-wrap gap-2">
                                     <Button
                                         variant="outline"
-                                        class="min-h-11 sm:min-h-9"
+                                        class="min-h-11 lg:min-h-9"
                                         data-test="use-defaults"
                                         @click="openYear('defaults')"
                                         >Use KPOne defaults</Button
                                     >
                                     <Button
-                                        variant="outline"
-                                        class="min-h-11 sm:min-h-9"
+                                        class="min-h-11 lg:min-h-9"
+                                        data-test="add-type"
                                         @click="openType()"
                                         >Add leave type</Button
                                     >
@@ -936,681 +1050,1015 @@ const inputClass =
                                         (t) => t.setByDefaults,
                                     )
                                 "
-                                class="mt-2 text-xs text-muted-foreground"
+                                class="text-sm text-muted-foreground"
                                 data-test="defaults-label"
                             >
                                 {{ leave.settings.defaults.label }}
                             </p>
+                            <V2Table
+                                class="hidden lg:block"
+                                label="Leave types"
+                                :columns="7"
+                                min-width="760px"
+                                :empty="leave.settings.types.length === 0"
+                                empty-message="No leave types yet."
+                            >
+                                <template #head>
+                                    <tr>
+                                        <th scope="col">Type</th>
+                                        <th scope="col">Paid</th>
+                                        <th scope="col">Balance</th>
+                                        <th scope="col">Half days</th>
+                                        <th scope="col">Evidence</th>
+                                        <th scope="col" class="text-right">
+                                            Carry up to
+                                        </th>
+                                        <th scope="col">
+                                            <span class="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                </template>
+                                <template #body>
+                                    <tr
+                                        v-for="t in leave.settings.types"
+                                        :key="t.id"
+                                        data-test="type-row"
+                                    >
+                                        <td data-label="Type">
+                                            <div class="flex flex-col gap-1">
+                                                <span class="font-medium"
+                                                    >{{ t.name }}
+                                                    <span
+                                                        class="text-sm font-normal text-muted-foreground"
+                                                        >· {{ t.code }}</span
+                                                    ></span
+                                                >
+                                                <span
+                                                    v-if="
+                                                        !t.isActive ||
+                                                        t.setByDefaults
+                                                    "
+                                                    class="flex flex-wrap gap-1"
+                                                >
+                                                    <V2Chip
+                                                        v-if="!t.isActive"
+                                                        tone="neutral"
+                                                        label="Archived"
+                                                    />
+                                                    <V2Chip
+                                                        v-if="t.setByDefaults"
+                                                        tone="neutral"
+                                                        label="KPOne default"
+                                                        plain
+                                                    />
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td data-label="Paid">
+                                            {{ yesNo(t.isPaid) }}
+                                        </td>
+                                        <td data-label="Balance">
+                                            {{ yesNo(t.usesBalance) }}
+                                        </td>
+                                        <td data-label="Half days">
+                                            {{ yesNo(t.allowHalfDays) }}
+                                        </td>
+                                        <td data-label="Evidence">
+                                            {{ yesNo(t.evidenceNeeded) }}
+                                        </td>
+                                        <td
+                                            data-label="Carry up to"
+                                            class="text-right"
+                                        >
+                                            {{
+                                                t.carryMaxDays
+                                                    ? `${t.carryMaxDays} days`
+                                                    : '—'
+                                            }}
+                                        </td>
+                                        <td data-actions class="text-right">
+                                            <V2RowMenu
+                                                :label="`More actions for ${t.name}`"
+                                                :groups="typeMenu(t)"
+                                                @select="
+                                                    (id: string) =>
+                                                        id === 'edit'
+                                                            ? openType(t)
+                                                            : askArchive(t)
+                                                "
+                                            />
+                                        </td>
+                                    </tr>
+                                </template>
+                            </V2Table>
+                            <!-- Below 1024 px (Daniel): name and chips, then the four facts as a compact two-column list. -->
                             <p
                                 v-if="leave.settings.types.length === 0"
-                                class="mt-3 text-sm text-muted-foreground"
+                                class="rounded-[14px] border bg-card px-4 py-6 text-center text-sm text-muted-foreground lg:hidden"
                             >
                                 No leave types yet.
                             </p>
-                            <ul v-else class="mt-3 flex flex-col divide-y">
+                            <ul
+                                v-else
+                                class="flex flex-col gap-3 lg:hidden"
+                                data-test="type-cards"
+                            >
                                 <li
                                     v-for="t in leave.settings.types"
                                     :key="t.id"
-                                    class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
+                                    class="flex flex-col gap-3 rounded-[14px] border bg-card p-4"
                                 >
-                                    <div class="min-w-0">
-                                        <p class="font-medium">
-                                            {{ t.name }}
+                                    <div
+                                        class="flex items-start justify-between gap-2"
+                                    >
+                                        <div
+                                            class="flex min-w-0 flex-col gap-1"
+                                        >
                                             <span
-                                                class="text-xs text-muted-foreground"
-                                                >· {{ t.code }}</span
+                                                class="font-medium break-words"
+                                                >{{ t.name }}
+                                                <span
+                                                    class="text-sm font-normal text-muted-foreground"
+                                                    >· {{ t.code }}</span
+                                                ></span
                                             >
-                                            <Badge
-                                                v-if="!t.isActive"
-                                                variant="outline"
-                                                class="ml-1"
-                                                >Archived</Badge
+                                            <span
+                                                v-if="
+                                                    !t.isActive ||
+                                                    t.setByDefaults
+                                                "
+                                                class="flex flex-wrap gap-1"
                                             >
-                                            <Badge
-                                                v-if="t.setByDefaults"
-                                                variant="outline"
-                                                class="ml-1"
-                                                >KPOne default</Badge
-                                            >
-                                        </p>
-                                        <p
-                                            class="text-xs text-muted-foreground"
-                                        >
-                                            Paid {{ yesNo(t.isPaid) }} · Balance
-                                            {{ yesNo(t.usesBalance) }} · Half
-                                            days {{ yesNo(t.allowHalfDays) }} ·
-                                            Evidence
-                                            {{ yesNo(t.evidenceNeeded) }}
-                                            <template v-if="t.carryMaxDays">
-                                                · Carry up to
-                                                {{ t.carryMaxDays }}</template
-                                            >
-                                        </p>
+                                                <V2Chip
+                                                    v-if="!t.isActive"
+                                                    tone="neutral"
+                                                    label="Archived"
+                                                />
+                                                <V2Chip
+                                                    v-if="t.setByDefaults"
+                                                    tone="neutral"
+                                                    label="KPOne default"
+                                                    plain
+                                                />
+                                            </span>
+                                        </div>
+                                        <V2RowMenu
+                                            :label="`More actions for ${t.name}`"
+                                            :groups="typeMenu(t)"
+                                            @select="
+                                                (id: string) =>
+                                                    id === 'edit'
+                                                        ? openType(t)
+                                                        : askArchive(t)
+                                            "
+                                        />
                                     </div>
-                                    <div class="flex gap-2">
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            class="min-h-11 sm:min-h-8"
-                                            @click="openType(t)"
-                                            >Edit</Button
+                                    <dl
+                                        class="grid grid-cols-2 gap-x-8 gap-y-1 text-sm"
+                                    >
+                                        <div class="flex justify-between gap-2">
+                                            <dt class="text-muted-foreground">
+                                                Paid
+                                            </dt>
+                                            <dd>{{ yesNo(t.isPaid) }}</dd>
+                                        </div>
+                                        <div class="flex justify-between gap-2">
+                                            <dt class="text-muted-foreground">
+                                                Balance
+                                            </dt>
+                                            <dd>{{ yesNo(t.usesBalance) }}</dd>
+                                        </div>
+                                        <div class="flex justify-between gap-2">
+                                            <dt class="text-muted-foreground">
+                                                Half days
+                                            </dt>
+                                            <dd>
+                                                {{ yesNo(t.allowHalfDays) }}
+                                            </dd>
+                                        </div>
+                                        <div class="flex justify-between gap-2">
+                                            <dt class="text-muted-foreground">
+                                                Evidence
+                                            </dt>
+                                            <dd>
+                                                {{ yesNo(t.evidenceNeeded) }}
+                                            </dd>
+                                        </div>
+                                        <div
+                                            v-if="t.carryMaxDays"
+                                            class="col-span-2 flex justify-between gap-2"
                                         >
-                                        <Button
-                                            size="sm"
-                                            variant="ghost"
-                                            class="min-h-11 sm:min-h-8"
-                                            @click="archiveType(t)"
-                                            >{{
-                                                t.isActive
-                                                    ? 'Archive'
-                                                    : 'Restore'
-                                            }}</Button
-                                        >
-                                    </div>
+                                            <dt class="text-muted-foreground">
+                                                Carry up to
+                                            </dt>
+                                            <dd class="tabular-nums">
+                                                {{ t.carryMaxDays }} days
+                                            </dd>
+                                        </div>
+                                    </dl>
                                 </li>
                             </ul>
                         </div>
 
-                        <!-- 2. Entitlements -->
+                        <!-- Entitlements -->
                         <div
-                            class="rounded-xl border bg-card p-4"
+                            v-if="settingsTab === 'entitlements'"
+                            id="leave-settings-panel-entitlements"
+                            role="tabpanel"
+                            aria-labelledby="leave-settings-tab-entitlements"
+                            class="flex flex-col gap-4 max-md:pb-[calc(6rem+env(safe-area-inset-bottom,0px))]"
                             data-test="entitlements-card"
                         >
-                            <h3 class="text-base font-semibold">
-                                Entitlements for {{ leave.year }}
-                            </h3>
-                            <p class="text-xs text-muted-foreground">
-                                Days per year by role, in steps of 0.5. A person
-                                row wins over the role. Nothing reaches a
-                                balance until you give the entitlement.
-                            </p>
-                            <p
-                                v-if="
-                                    leave.settings.entitlements.some(
-                                        (e) => e.setByDefaults,
-                                    )
-                                "
-                                class="mt-1 text-xs text-muted-foreground"
-                                data-test="defaults-entitlement-label"
+                            <V2FormCard
+                                :title="`Entitlements for ${leave.year}`"
+                                description="Days per year by role, in steps of 0.5. A person row wins over the role. Nothing reaches a balance until you give the entitlement."
                             >
-                                Some figures here come from KPOne defaults:
-                                {{ leave.settings.defaults.label }}
-                            </p>
-                            <ErrorState
-                                v-if="errors.entitlements"
-                                :message="errors.entitlements"
-                                class="mt-2"
-                            />
-                            <p
-                                v-if="balanceTypes.length === 0"
-                                class="mt-3 text-sm text-muted-foreground"
-                            >
-                                Add a leave type that counts against a balance
-                                first.
-                            </p>
-                            <template v-else>
-                                <div
-                                    class="mt-3 hidden overflow-x-auto md:block"
+                                <p
+                                    v-if="
+                                        leave.settings.entitlements.some(
+                                            (e) => e.setByDefaults,
+                                        )
+                                    "
+                                    class="text-sm text-muted-foreground"
+                                    data-test="defaults-entitlement-label"
                                 >
-                                    <table class="w-full min-w-[560px] text-sm">
-                                        <caption class="sr-only">
-                                            Days per year by role and leave type
-                                        </caption>
-                                        <thead>
-                                            <tr
-                                                class="text-left text-xs text-muted-foreground"
-                                            >
-                                                <th
-                                                    scope="col"
-                                                    class="py-1 pr-2"
+                                    Some figures here come from KPOne defaults:
+                                    {{ leave.settings.defaults.label }}
+                                </p>
+                                <p
+                                    v-if="errors.entitlements"
+                                    role="alert"
+                                    class="text-sm text-destructive"
+                                >
+                                    {{ errors.entitlements }}
+                                </p>
+                                <p
+                                    v-if="balanceTypes.length === 0"
+                                    class="text-sm text-muted-foreground"
+                                >
+                                    Add a leave type that counts against a
+                                    balance first.
+                                </p>
+                                <template v-else>
+                                    <div
+                                        class="hidden overflow-x-auto md:block"
+                                    >
+                                        <table
+                                            class="w-full min-w-[560px] text-sm"
+                                        >
+                                            <caption class="sr-only">
+                                                Days per year by role and leave
+                                                type
+                                            </caption>
+                                            <thead>
+                                                <tr
+                                                    class="text-left text-[13px] text-muted-foreground"
                                                 >
-                                                    Role
-                                                </th>
-                                                <th
+                                                    <th
+                                                        scope="col"
+                                                        class="py-2 pr-2 font-medium"
+                                                    >
+                                                        Role
+                                                    </th>
+                                                    <th
+                                                        v-for="t in balanceTypes"
+                                                        :key="t.id"
+                                                        scope="col"
+                                                        class="py-2 pr-2 font-medium"
+                                                    >
+                                                        {{ t.name }}
+                                                    </th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr
+                                                    v-for="role in leave
+                                                        .settings.roles"
+                                                    :key="role.value"
+                                                    class="border-t border-border/70"
+                                                >
+                                                    <th
+                                                        scope="row"
+                                                        class="py-2 pr-2 text-left font-normal"
+                                                    >
+                                                        {{ role.label }}
+                                                    </th>
+                                                    <td
+                                                        v-for="t in balanceTypes"
+                                                        :key="t.id"
+                                                        class="py-2 pr-2"
+                                                    >
+                                                        <Input
+                                                            v-model="
+                                                                entitlementValues[
+                                                                    `${t.id}:${role.value}`
+                                                                ]
+                                                            "
+                                                            inputmode="decimal"
+                                                            class="h-11 w-20 tabular-nums lg:h-9"
+                                                            :aria-label="`${t.name} days for ${role.label}`"
+                                                        />
+                                                    </td>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    <!-- Below 768 px: one card per role, one labelled field per leave type (Daniel). -->
+                                    <ul
+                                        class="flex flex-col gap-3 md:hidden"
+                                        data-test="entitlement-cards"
+                                    >
+                                        <li
+                                            v-for="role in leave.settings.roles"
+                                            :key="role.value"
+                                            class="rounded-lg border p-3"
+                                        >
+                                            <h4 class="text-sm font-medium">
+                                                {{ role.label }}
+                                            </h4>
+                                            <div class="mt-2 grid gap-3">
+                                                <div
                                                     v-for="t in balanceTypes"
                                                     :key="t.id"
-                                                    scope="col"
-                                                    class="py-1 pr-2"
+                                                    class="grid gap-1"
                                                 >
-                                                    {{ t.name }}
-                                                </th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr
-                                                v-for="role in leave.settings
-                                                    .roles"
-                                                :key="role.value"
-                                            >
-                                                <th
-                                                    scope="row"
-                                                    class="py-1 pr-2 text-left font-normal"
-                                                >
-                                                    {{ role.label }}
-                                                </th>
-                                                <td
-                                                    v-for="t in balanceTypes"
-                                                    :key="t.id"
-                                                    class="py-1 pr-2"
-                                                >
+                                                    <Label
+                                                        :for="`ent-${t.id}-${role.value}`"
+                                                        class="text-xs"
+                                                        ><span class="sr-only"
+                                                            >{{
+                                                                role.label
+                                                            }}, </span
+                                                        >{{
+                                                            t.name
+                                                        }}
+                                                        days</Label
+                                                    >
                                                     <Input
+                                                        :id="`ent-${t.id}-${role.value}`"
                                                         v-model="
                                                             entitlementValues[
                                                                 `${t.id}:${role.value}`
                                                             ]
                                                         "
                                                         inputmode="decimal"
-                                                        class="h-11 w-20 tabular-nums sm:h-9"
-                                                        :aria-label="`${t.name} days for ${role.label}`"
+                                                        class="h-11 tabular-nums"
                                                     />
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                <!-- Below 768 px: one card per role, one labelled field per leave type (Daniel). -->
-                                <ul
-                                    class="mt-3 flex flex-col gap-3 md:hidden"
-                                    data-test="entitlement-cards"
-                                >
-                                    <li
-                                        v-for="role in leave.settings.roles"
-                                        :key="role.value"
-                                        class="rounded-lg border p-3"
-                                    >
-                                        <h4 class="text-sm font-medium">
-                                            {{ role.label }}
-                                        </h4>
-                                        <div
-                                            class="mt-2 grid grid-cols-2 gap-3"
-                                        >
-                                            <div
-                                                v-for="t in balanceTypes"
-                                                :key="t.id"
-                                                class="grid gap-1"
-                                            >
-                                                <Label
-                                                    :for="`ent-${t.id}-${role.value}`"
-                                                    class="text-xs"
-                                                    ><span class="sr-only"
-                                                        >{{
-                                                            role.label
-                                                        }}, </span
-                                                    >{{ t.name }} days</Label
-                                                >
-                                                <Input
-                                                    :id="`ent-${t.id}-${role.value}`"
-                                                    v-model="
-                                                        entitlementValues[
-                                                            `${t.id}:${role.value}`
-                                                        ]
-                                                    "
-                                                    inputmode="decimal"
-                                                    class="h-11 tabular-nums"
-                                                />
+                                                </div>
                                             </div>
-                                        </div>
-                                    </li>
-                                </ul>
-                                <InputError
-                                    v-for="(message, key) in errors"
-                                    v-show="String(key).startsWith('rows.')"
-                                    :key="key"
-                                    :message="message"
-                                />
-                                <div
-                                    class="mt-3 flex flex-col gap-2 sm:flex-row sm:flex-wrap"
-                                >
-                                    <Button
-                                        class="min-h-11 sm:min-h-9"
-                                        :disabled="entitlementSaving"
-                                        @click="saveEntitlements"
-                                        >Save entitlements</Button
+                                        </li>
+                                    </ul>
+                                    <InputError
+                                        v-for="(message, key) in errors"
+                                        v-show="String(key).startsWith('rows.')"
+                                        :key="key"
+                                        :message="message"
+                                    />
+                                    <!-- Below 768 px the save is a bar at the bottom of the screen (Daniel): twelve role cards put the end of the card too far away. -->
+                                    <div
+                                        class="flex justify-end max-md:fixed max-md:inset-x-0 max-md:bottom-0 max-md:z-20 max-md:border-t max-md:bg-card max-md:pt-3 max-md:pr-[max(16px,env(safe-area-inset-right,0px))] max-md:pb-[calc(0.75rem+env(safe-area-inset-bottom,0px))] max-md:pl-[max(16px,env(safe-area-inset-left,0px))]"
+                                        data-test="save-entitlements-bar"
                                     >
+                                        <Button
+                                            class="min-h-11 w-full md:w-fit lg:min-h-9"
+                                            :disabled="entitlementSaving"
+                                            data-test="save-entitlements"
+                                            @click="saveEntitlements"
+                                            >Save entitlements</Button
+                                        >
+                                    </div>
+                                </template>
+                            </V2FormCard>
+
+                            <V2FormCard
+                                v-if="balanceTypes.length > 0"
+                                :title="`The ${leave.year} year`"
+                                description="Each of these runs only when you press it, never on a schedule."
+                            >
+                                <div
+                                    class="flex flex-col gap-2 sm:flex-row sm:flex-wrap"
+                                    data-test="year-actions"
+                                >
                                     <Button
                                         variant="outline"
-                                        class="min-h-11 sm:min-h-9"
+                                        class="min-h-11 lg:min-h-9"
                                         data-test="grant"
                                         @click="openYear('grant')"
                                         >Give this year's entitlement</Button
                                     >
                                     <Button
                                         variant="outline"
-                                        class="min-h-11 sm:min-h-9"
+                                        class="min-h-11 lg:min-h-9"
                                         @click="openYear('carry-forward')"
                                         >Carry forward from
                                         {{ leave.year }}</Button
                                     >
                                     <Button
-                                        variant="ghost"
-                                        class="min-h-11 sm:min-h-9"
+                                        variant="outline"
+                                        class="min-h-11 lg:min-h-9"
                                         @click="openYear('expire')"
                                         >Expire carried days</Button
                                     >
                                 </div>
                                 <InputError :message="errors.year" />
+                            </V2FormCard>
 
-                                <h4 class="mt-4 text-sm font-semibold">
-                                    Set for one person
-                                </h4>
+                            <V2FormCard
+                                v-if="balanceTypes.length > 0"
+                                title="Set for one person"
+                                description="A person's figure wins over their role's for that leave type."
+                            >
                                 <ul
                                     v-if="personEntitlements.length > 0"
-                                    class="mt-1 text-sm text-muted-foreground"
+                                    class="flex flex-col divide-y text-sm"
+                                    data-test="person-entitlements"
                                 >
                                     <li
                                         v-for="e in personEntitlements"
                                         :key="`${e.leaveTypeId}:${e.userId}`"
+                                        class="flex flex-wrap items-center gap-2 py-2"
                                     >
-                                        {{ e.person }} ·
-                                        {{ typeName(e.leaveTypeId) }} ·
-                                        {{ e.days
-                                        }}<span v-if="e.setByDefaults">
-                                            · KPOne default</span
+                                        <span class="font-medium">{{
+                                            e.person
+                                        }}</span>
+                                        <span class="text-muted-foreground"
+                                            >{{ typeName(e.leaveTypeId) }} ·
+                                            <span class="tabular-nums">{{
+                                                e.days
+                                            }}</span>
+                                            days</span
                                         >
+                                        <V2Chip
+                                            v-if="e.setByDefaults"
+                                            tone="neutral"
+                                            label="KPOne default"
+                                            plain
+                                        />
                                     </li>
                                 </ul>
                                 <form
-                                    class="mt-2 grid gap-3 sm:grid-cols-[1fr_1fr_6rem_auto] sm:items-end"
+                                    class="grid gap-3 sm:grid-cols-[1fr_1fr_6rem_auto] sm:items-end"
                                     @submit.prevent="savePerson"
                                 >
-                                    <div class="grid gap-2">
-                                        <Label for="person-entitlement-user"
-                                            >Person</Label
+                                    <V2Field label="Person">
+                                        <template
+                                            #default="{ id, describedBy }"
                                         >
-                                        <OperationalSelect
-                                            id="person-entitlement-user"
-                                            v-model="personForm.user_id"
-                                            :options="peopleOptions"
-                                            label="Person"
-                                            placeholder="Choose a person"
-                                        />
-                                    </div>
-                                    <div class="grid gap-2">
-                                        <Label for="person-entitlement-type"
-                                            >Leave type</Label
+                                            <OperationalSelect
+                                                :id="id"
+                                                :describedby="describedBy"
+                                                v-model="personForm.user_id"
+                                                :options="peopleOptions"
+                                                label="Person"
+                                                placeholder="Choose a person"
+                                            />
+                                        </template>
+                                    </V2Field>
+                                    <V2Field label="Leave type">
+                                        <template
+                                            #default="{ id, describedBy }"
                                         >
-                                        <OperationalSelect
-                                            id="person-entitlement-type"
-                                            v-model="personForm.leave_type_id"
-                                            :options="balanceTypeOptions"
-                                            label="Leave type"
-                                            placeholder="Choose a type"
-                                        />
-                                    </div>
-                                    <div class="grid gap-2">
-                                        <Label for="person-entitlement-days"
-                                            >Days</Label
+                                            <OperationalSelect
+                                                :id="id"
+                                                :describedby="describedBy"
+                                                v-model="
+                                                    personForm.leave_type_id
+                                                "
+                                                :options="balanceTypeOptions"
+                                                label="Leave type"
+                                                placeholder="Choose a type"
+                                            />
+                                        </template>
+                                    </V2Field>
+                                    <V2Field label="Days">
+                                        <template
+                                            #default="{ id, describedBy }"
                                         >
-                                        <Input
-                                            id="person-entitlement-days"
-                                            v-model="personForm.days"
-                                            inputmode="decimal"
-                                            class="h-11 sm:h-9"
-                                        />
-                                    </div>
+                                            <Input
+                                                :id="id"
+                                                :aria-describedby="describedBy"
+                                                v-model="personForm.days"
+                                                inputmode="decimal"
+                                                class="h-11 tabular-nums lg:h-9"
+                                            />
+                                        </template>
+                                    </V2Field>
                                     <Button
                                         type="submit"
                                         variant="outline"
-                                        class="min-h-11 sm:min-h-9"
+                                        class="min-h-11 lg:min-h-9"
                                         :disabled="personForm.processing"
                                         >Save for person</Button
                                     >
                                 </form>
-                            </template>
+                            </V2FormCard>
                         </div>
 
-                        <!-- 3. Working days -->
+                        <!-- Calendar: working days and public holidays for the chosen branch -->
                         <div
-                            class="rounded-xl border bg-card p-4"
-                            data-test="working-days-card"
+                            v-if="settingsTab === 'calendar'"
+                            id="leave-settings-panel-calendar"
+                            role="tabpanel"
+                            aria-labelledby="leave-settings-tab-calendar"
+                            class="flex flex-col gap-4"
                         >
-                            <h3 class="text-base font-semibold">
-                                Working days ·
-                                {{
-                                    leave.branches.find(
-                                        (b) => b.id === leave.branchId,
-                                    )?.name
-                                }}
-                            </h3>
-                            <p class="text-xs text-muted-foreground">
-                                Leave counts only these weekdays. Requests
-                                already sent keep their day count.
-                            </p>
-                            <fieldset class="mt-3">
-                                <legend class="sr-only">
-                                    Working weekdays
-                                </legend>
-                                <div class="flex flex-wrap gap-x-4 gap-y-2">
-                                    <div
-                                        v-for="d in weekdays"
-                                        :key="d.value"
-                                        class="flex min-h-11 items-center gap-2 sm:min-h-9"
-                                    >
-                                        <Checkbox
-                                            :id="`weekday-${d.value}`"
-                                            :model-value="
+                            <!-- Branch filters only the calendar (Daniel), so it lives here, not above the sub-tabs. -->
+                            <V2Field label="Branch" class="w-full sm:w-56">
+                                <template #default="{ id, describedBy }">
+                                    <OperationalSelect
+                                        :id="id"
+                                        :describedby="describedBy"
+                                        :model-value="leave.branchId ?? ''"
+                                        :options="branchOptions"
+                                        label="Branch"
+                                        @update:model-value="
+                                            (v: string | number) =>
+                                                visit({ branch: v })
+                                        "
+                                    />
+                                </template>
+                            </V2Field>
+                            <V2FormCard
+                                :title="`Working days · ${settingsBranch}`"
+                                description="Leave counts only these weekdays. Requests already sent keep their day count."
+                                data-test="working-days-card"
+                            >
+                                <fieldset>
+                                    <legend class="sr-only">
+                                        Working weekdays
+                                    </legend>
+                                    <div class="flex flex-wrap gap-2">
+                                        <button
+                                            v-for="d in weekdays"
+                                            :key="d.value"
+                                            type="button"
+                                            role="checkbox"
+                                            :aria-checked="
                                                 workingDays.includes(d.value)
                                             "
-                                            @update:model-value="
-                                                (v) =>
-                                                    toggleDay(
-                                                        d.value,
-                                                        v === true,
-                                                    )
+                                            class="inline-flex min-h-11 items-center gap-1.5 rounded-full border px-3 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                                            :class="
+                                                workingDays.includes(d.value)
+                                                    ? 'border-foreground bg-foreground text-background'
+                                                    : 'bg-card text-foreground'
                                             "
-                                        />
-                                        <Label :for="`weekday-${d.value}`">{{
-                                            d.label
-                                        }}</Label>
+                                            :data-test="`weekday-${d.value}`"
+                                            @click="
+                                                toggleDay(
+                                                    d.value,
+                                                    !workingDays.includes(
+                                                        d.value,
+                                                    ),
+                                                )
+                                            "
+                                        >
+                                            <Check
+                                                v-if="
+                                                    workingDays.includes(
+                                                        d.value,
+                                                    )
+                                                "
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />{{ d.label }}
+                                        </button>
                                     </div>
-                                </div>
-                            </fieldset>
-                            <InputError :message="errors.weekdays" />
-                            <Button
-                                class="mt-3 min-h-11 sm:min-h-9"
-                                @click="saveWorkingDays"
-                                >Save working days</Button
-                            >
-                        </div>
-
-                        <!-- 4. Public holidays -->
-                        <div
-                            class="rounded-xl border bg-card p-4"
-                            data-test="holidays-card"
-                        >
-                            <h3 class="text-base font-semibold">
-                                Public holidays {{ leave.year }} ·
-                                {{
-                                    leave.branches.find(
-                                        (b) => b.id === leave.branchId,
-                                    )?.name
-                                }}
-                            </h3>
-                            <p class="text-xs text-muted-foreground">
-                                KPOne ships no holiday list. Add each one for
-                                this branch.
-                            </p>
-                            <InputError :message="errors.holiday" />
-                            <p
-                                v-if="leave.settings.holidays.length === 0"
-                                class="mt-3 text-sm text-muted-foreground"
-                            >
-                                No public holidays for {{ leave.year }} yet.
-                            </p>
-                            <ul v-else class="mt-3 flex flex-col divide-y">
-                                <li
-                                    v-for="h in leave.settings.holidays"
-                                    :key="h.id"
-                                    class="flex items-center justify-between gap-2 py-2 text-sm"
-                                >
-                                    <span
-                                        ><span class="tabular-nums">{{
-                                            h.label
-                                        }}</span>
-                                        · {{ h.name }}</span
-                                    >
+                                </fieldset>
+                                <InputError :message="errors.weekdays" />
+                                <div class="flex justify-end">
                                     <Button
-                                        size="sm"
-                                        variant="ghost"
-                                        class="min-h-11 sm:min-h-8"
-                                        :aria-label="`Remove ${h.name}, ${h.label}`"
-                                        @click="removeHoliday(h.id)"
-                                        >Remove</Button
+                                        class="min-h-11 w-full sm:w-fit lg:min-h-9"
+                                        data-test="save-working-days"
+                                        @click="saveWorkingDays"
+                                        >Save working days</Button
                                     >
-                                </li>
-                            </ul>
-                            <form
-                                class="mt-3 grid gap-3 sm:grid-cols-[12rem_1fr_auto] sm:items-end"
-                                @submit.prevent="addHoliday"
+                                </div>
+                            </V2FormCard>
+
+                            <V2FormCard
+                                :title="`Public holidays ${leave.year} · ${settingsBranch}`"
+                                description="KPOne ships no holiday list. Add each one for this branch."
+                                data-test="holidays-card"
                             >
-                                <div class="grid gap-2">
-                                    <Label for="holiday-date">Date</Label>
-                                    <DateField
-                                        id="holiday-date"
-                                        v-model="holidayForm.holiday_date"
-                                    />
-                                    <InputError
-                                        :message="
-                                            holidayForm.errors.holiday_date
-                                        "
-                                    />
-                                </div>
-                                <div class="grid gap-2">
-                                    <Label for="holiday-name">Name</Label>
-                                    <Input
-                                        id="holiday-name"
-                                        v-model="holidayForm.name"
-                                        maxlength="80"
-                                        class="h-11 sm:h-9"
-                                    />
-                                    <InputError
-                                        :message="holidayForm.errors.name"
-                                    />
-                                </div>
-                                <Button
-                                    type="submit"
-                                    variant="outline"
-                                    class="min-h-11 sm:min-h-9"
-                                    :disabled="holidayForm.processing"
-                                    >Add holiday</Button
+                                <form
+                                    class="grid gap-3 sm:grid-cols-[12rem_1fr_auto] sm:items-end"
+                                    @submit.prevent="addHoliday"
                                 >
-                            </form>
+                                    <V2Field
+                                        label="Date"
+                                        :error="holidayForm.errors.holiday_date"
+                                    >
+                                        <template
+                                            #default="{ id, describedBy }"
+                                        >
+                                            <DateField
+                                                :id="id"
+                                                :aria-describedby="describedBy"
+                                                v-model="
+                                                    holidayForm.holiday_date
+                                                "
+                                            />
+                                        </template>
+                                    </V2Field>
+                                    <V2Field
+                                        label="Name"
+                                        :error="holidayForm.errors.name"
+                                    >
+                                        <template
+                                            #default="{ id, describedBy }"
+                                        >
+                                            <Input
+                                                :id="id"
+                                                :aria-describedby="describedBy"
+                                                v-model="holidayForm.name"
+                                                maxlength="80"
+                                                class="h-11 lg:h-9"
+                                            />
+                                        </template>
+                                    </V2Field>
+                                    <Button
+                                        type="submit"
+                                        variant="outline"
+                                        class="min-h-11 lg:min-h-9"
+                                        :disabled="holidayForm.processing"
+                                        >Add holiday</Button
+                                    >
+                                </form>
+                                <InputError :message="errors.holiday" />
+                                <V2Table
+                                    label="Public holidays"
+                                    :columns="3"
+                                    cards="lg"
+                                    min-width="480px"
+                                    dense
+                                    :empty="
+                                        leave.settings.holidays.length === 0
+                                    "
+                                    :empty-message="`No public holidays for ${leave.year} yet.`"
+                                >
+                                    <template #head>
+                                        <tr>
+                                            <th scope="col">Date</th>
+                                            <th scope="col">Name</th>
+                                            <th scope="col">
+                                                <span class="sr-only"
+                                                    >Actions</span
+                                                >
+                                            </th>
+                                        </tr>
+                                    </template>
+                                    <template #body>
+                                        <tr
+                                            v-for="h in leave.settings.holidays"
+                                            :key="h.id"
+                                            data-test="holiday-row"
+                                        >
+                                            <td
+                                                data-label="Date"
+                                                class="tabular-nums"
+                                            >
+                                                {{ h.label }}
+                                            </td>
+                                            <td data-label="Name">
+                                                {{ h.name }}
+                                            </td>
+                                            <td data-actions class="text-right">
+                                                <Button
+                                                    variant="outline"
+                                                    class="min-h-11 max-lg:w-full lg:min-h-9"
+                                                    data-test="remove-holiday"
+                                                    @click="removeHoliday(h.id)"
+                                                    >Remove<span
+                                                        class="sr-only"
+                                                    >
+                                                        {{ h.name }},
+                                                        {{ h.label }}</span
+                                                    ></Button
+                                                >
+                                            </td>
+                                        </tr>
+                                    </template>
+                                </V2Table>
+                            </V2FormCard>
                         </div>
 
-                        <!-- 5. Opening balances and adjustments -->
+                        <!-- Opening balances and adjustments -->
                         <div
-                            class="rounded-xl border bg-card p-4"
+                            v-if="settingsTab === 'balances'"
+                            id="leave-settings-panel-balances"
+                            role="tabpanel"
+                            aria-labelledby="leave-settings-tab-balances"
+                            class="flex flex-col gap-4"
                             data-test="entries-card"
                         >
-                            <h3 class="text-base font-semibold">
-                                Opening balances and adjustments
-                            </h3>
-                            <p class="text-xs text-muted-foreground">
-                                Another manager checks each one before it
-                                counts.
-                            </p>
-                            <form
-                                class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
-                                @submit.prevent="saveEntry"
+                            <V2FormCard
+                                title="Opening balances and adjustments"
+                                description="Another manager checks each one before it counts."
                             >
-                                <div class="grid gap-2">
-                                    <Label for="entry-kind">Entry</Label>
-                                    <OperationalSelect
-                                        id="entry-kind"
-                                        v-model="entryForm.kind"
-                                        :options="[
-                                            {
-                                                value: 'opening',
-                                                label: 'Opening balance',
-                                            },
-                                            {
-                                                value: 'adjustment',
-                                                label: 'Adjustment',
-                                            },
-                                        ]"
-                                        label="Entry"
-                                    />
-                                </div>
-                                <div class="grid gap-2">
-                                    <Label for="entry-person">Person *</Label>
-                                    <OperationalSelect
-                                        id="entry-person"
-                                        v-model="entryForm.user_id"
-                                        :options="peopleOptions"
+                                <form
+                                    class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3"
+                                    @submit.prevent="
+                                        entryMissing === '' && saveEntry()
+                                    "
+                                >
+                                    <V2Field label="Entry">
+                                        <template
+                                            #default="{ id, describedBy }"
+                                        >
+                                            <OperationalSelect
+                                                :id="id"
+                                                :describedby="describedBy"
+                                                v-model="entryForm.kind"
+                                                :options="[
+                                                    {
+                                                        value: 'opening',
+                                                        label: 'Opening balance',
+                                                    },
+                                                    {
+                                                        value: 'adjustment',
+                                                        label: 'Adjustment',
+                                                    },
+                                                ]"
+                                                label="Entry"
+                                            />
+                                        </template>
+                                    </V2Field>
+                                    <V2Field
                                         label="Person"
-                                        placeholder="Choose a person"
-                                        :invalid="!!entryForm.errors.user_id"
-                                    />
-                                    <InputError
-                                        :message="entryForm.errors.user_id"
-                                    />
-                                </div>
-                                <div class="grid gap-2">
-                                    <Label for="entry-type">Leave type *</Label>
-                                    <OperationalSelect
-                                        id="entry-type"
-                                        v-model="entryForm.leave_type_id"
-                                        :options="balanceTypeOptions"
-                                        label="Leave type"
-                                        placeholder="Choose a type"
-                                        :invalid="
-                                            !!entryForm.errors.leave_type_id
-                                        "
-                                    />
-                                    <InputError
-                                        :message="
-                                            entryForm.errors.leave_type_id
-                                        "
-                                    />
-                                </div>
-                                <div class="grid gap-2">
-                                    <Label for="entry-days">Days *</Label>
-                                    <Input
-                                        id="entry-days"
-                                        v-model="entryForm.days"
-                                        inputmode="decimal"
-                                        class="h-11 sm:h-9"
-                                        aria-describedby="entry-days-help"
-                                    />
-                                    <p
-                                        id="entry-days-help"
-                                        class="text-xs text-muted-foreground"
+                                        required
+                                        :error="entryForm.errors.user_id"
                                     >
-                                        {{
+                                        <template
+                                            #default="{
+                                                id,
+                                                invalid,
+                                                describedBy,
+                                            }"
+                                        >
+                                            <OperationalSelect
+                                                :id="id"
+                                                :describedby="describedBy"
+                                                v-model="entryForm.user_id"
+                                                :options="peopleOptions"
+                                                label="Person"
+                                                placeholder="Choose a person"
+                                                :invalid="invalid"
+                                            />
+                                        </template>
+                                    </V2Field>
+                                    <V2Field
+                                        label="Leave type"
+                                        required
+                                        :error="entryForm.errors.leave_type_id"
+                                    >
+                                        <template
+                                            #default="{
+                                                id,
+                                                invalid,
+                                                describedBy,
+                                            }"
+                                        >
+                                            <OperationalSelect
+                                                :id="id"
+                                                :describedby="describedBy"
+                                                v-model="
+                                                    entryForm.leave_type_id
+                                                "
+                                                :options="balanceTypeOptions"
+                                                label="Leave type"
+                                                placeholder="Choose a type"
+                                                :invalid="invalid"
+                                            />
+                                        </template>
+                                    </V2Field>
+                                    <V2Field
+                                        label="Days"
+                                        required
+                                        :hint="
                                             entryForm.kind === 'opening'
                                                 ? 'Days left on the day the clinic starts using KPOne leave.'
                                                 : 'Use a minus sign to remove days, for example -1.'
-                                        }}
-                                    </p>
-                                    <InputError
-                                        :message="entryForm.errors.days"
-                                    />
-                                </div>
-                                <template
-                                    v-if="entryForm.kind === 'adjustment'"
-                                >
-                                    <div class="grid gap-2">
-                                        <Label for="entry-reason"
-                                            >Reason *</Label
+                                        "
+                                        :error="entryForm.errors.days"
+                                    >
+                                        <template
+                                            #default="{ id, describedBy }"
                                         >
-                                        <OperationalSelect
-                                            id="entry-reason"
-                                            v-model="entryForm.reason_code"
-                                            :options="
-                                                leave.settings.adjustmentReasons
-                                            "
+                                            <Input
+                                                :id="id"
+                                                v-model="entryForm.days"
+                                                inputmode="decimal"
+                                                class="h-11 tabular-nums lg:h-9"
+                                                :aria-describedby="describedBy"
+                                            />
+                                        </template>
+                                    </V2Field>
+                                    <template
+                                        v-if="entryForm.kind === 'adjustment'"
+                                    >
+                                        <V2Field
                                             label="Reason"
-                                            placeholder="Choose a reason"
-                                            :invalid="
-                                                !!entryForm.errors.reason_code
-                                            "
-                                        />
-                                        <InputError
-                                            :message="
+                                            required
+                                            :error="
                                                 entryForm.errors.reason_code
                                             "
-                                        />
-                                    </div>
-                                    <div class="grid gap-2">
-                                        <Label for="entry-note">Note</Label>
-                                        <Textarea
-                                            id="entry-note"
-                                            v-model="entryForm.note"
-                                            maxlength="200"
-                                            rows="2"
-                                        />
-                                        <InputError
-                                            :message="entryForm.errors.note"
-                                        />
-                                    </div>
-                                </template>
-                                <div class="flex items-end">
-                                    <Button
-                                        type="submit"
-                                        class="min-h-11 w-full sm:min-h-9 sm:w-fit"
-                                        :disabled="entryForm.processing"
-                                        >Send for a check</Button
+                                        >
+                                            <template
+                                                #default="{
+                                                    id,
+                                                    invalid,
+                                                    describedBy,
+                                                }"
+                                            >
+                                                <OperationalSelect
+                                                    :id="id"
+                                                    :aria-describedby="
+                                                        describedBy
+                                                    "
+                                                    v-model="
+                                                        entryForm.reason_code
+                                                    "
+                                                    :options="
+                                                        leave.settings
+                                                            .adjustmentReasons
+                                                    "
+                                                    label="Reason"
+                                                    placeholder="Choose a reason"
+                                                    :invalid="invalid"
+                                                />
+                                            </template>
+                                        </V2Field>
+                                        <V2Field
+                                            label="Note"
+                                            :error="entryForm.errors.note"
+                                        >
+                                            <template
+                                                #default="{ id, describedBy }"
+                                            >
+                                                <Textarea
+                                                    :id="id"
+                                                    :aria-describedby="
+                                                        describedBy
+                                                    "
+                                                    v-model="entryForm.note"
+                                                    maxlength="200"
+                                                    rows="2"
+                                                />
+                                            </template>
+                                        </V2Field>
+                                    </template>
+                                    <div
+                                        class="flex items-end sm:col-span-2 lg:col-span-3 lg:justify-end"
                                     >
-                                </div>
-                            </form>
-                            <p
-                                v-if="leave.settings.entries.length === 0"
-                                class="mt-3 text-sm text-muted-foreground"
-                            >
-                                No opening balances or adjustments for
-                                {{ leave.year }}.
-                            </p>
-                            <ul
-                                v-else
-                                class="mt-3 flex flex-col divide-y"
+                                        <div
+                                            class="flex w-full flex-col gap-1 lg:w-fit lg:items-end"
+                                        >
+                                            <Button
+                                                type="submit"
+                                                class="min-h-11 w-full sm:w-fit lg:min-h-9"
+                                                :disabled="entryForm.processing"
+                                                :aria-disabled="
+                                                    entryMissing !== '' ||
+                                                    undefined
+                                                "
+                                                :class="
+                                                    entryMissing !== ''
+                                                        ? 'cursor-not-allowed opacity-50'
+                                                        : ''
+                                                "
+                                                :aria-describedby="
+                                                    entryMissing
+                                                        ? 'entry-missing'
+                                                        : undefined
+                                                "
+                                                data-test="send-entry"
+                                                >Send for a check</Button
+                                            >
+                                            <!-- Always in the page, so a screen reader hears each change (Suresh). -->
+                                            <p
+                                                id="entry-missing"
+                                                aria-live="polite"
+                                                class="text-sm text-muted-foreground empty:hidden"
+                                                data-test="entry-missing"
+                                            >
+                                                {{ entryMissing }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </form>
+                            </V2FormCard>
+                            <V2Table
+                                :label="`Opening balances and adjustments ${leave.year}`"
+                                :columns="6"
+                                cards="lg"
+                                min-width="820px"
+                                :empty="leave.settings.entries.length === 0"
+                                :empty-message="`No opening balances or adjustments for ${leave.year}.`"
                                 data-test="entries"
                             >
-                                <li
-                                    v-for="e in leave.settings.entries"
-                                    :key="e.publicId"
-                                    class="flex flex-wrap items-center justify-between gap-2 py-2 text-sm"
-                                >
-                                    <div class="min-w-0">
-                                        <p>
+                                <template #head>
+                                    <tr>
+                                        <th scope="col">Person</th>
+                                        <th scope="col">Leave type</th>
+                                        <th scope="col" class="text-right">
+                                            Days
+                                        </th>
+                                        <th scope="col">Entry</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">
+                                            <span class="sr-only">Actions</span>
+                                        </th>
+                                    </tr>
+                                </template>
+                                <template #body>
+                                    <tr
+                                        v-for="e in leave.settings.entries"
+                                        :key="e.publicId"
+                                        data-test="entry-row"
+                                    >
+                                        <td data-label="Person">
                                             <span class="font-medium">{{
                                                 e.person
                                             }}</span>
-                                            · {{ e.type }} {{ e.year }} ·
-                                            <span class="tabular-nums">{{
-                                                e.days
-                                            }}</span>
-                                            ·
+                                            <span
+                                                class="block text-sm text-muted-foreground"
+                                                >Entered by
+                                                {{ e.enteredBy }}</span
+                                            >
+                                        </td>
+                                        <td data-label="Leave type">
+                                            {{ e.type }} {{ e.year }}
+                                        </td>
+                                        <td
+                                            data-label="Days"
+                                            class="text-right"
+                                        >
+                                            {{ e.days }}
+                                        </td>
+                                        <td data-label="Entry" data-wrap>
                                             {{
                                                 e.kind === 'opening'
                                                     ? 'Opening balance'
                                                     : e.reason
-                                            }}
-                                        </p>
-                                        <p
-                                            class="text-xs text-muted-foreground"
-                                        >
-                                            Entered by {{ e.enteredBy
-                                            }}<template v-if="e.note">
-                                                · {{ e.note }}</template
+                                            }}<span
+                                                v-if="e.note"
+                                                class="block text-sm text-muted-foreground"
+                                                >{{ e.note }}</span
                                             >
-                                        </p>
-                                    </div>
-                                    <div
-                                        class="flex flex-wrap items-center gap-2"
-                                    >
-                                        <StatusBadge
-                                            :status="`leave_check_${e.status}`"
-                                            :label="entryLabel[e.status]"
-                                            :tone="entryTone[e.status]"
-                                        />
-                                        <template v-if="e.canDecide">
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                class="min-h-11 sm:min-h-8"
-                                                @click="
-                                                    decideEntry(e, 'confirm')
+                                        </td>
+                                        <td data-label="Status">
+                                            <V2Chip
+                                                :tone="entryTone[e.status]"
+                                                :label="entryLabel[e.status]"
+                                            />
+                                        </td>
+                                        <td data-actions class="text-right">
+                                            <div
+                                                v-if="e.canDecide"
+                                                class="flex flex-wrap justify-end gap-2"
+                                            >
+                                                <Button
+                                                    variant="outline"
+                                                    class="min-h-11 lg:min-h-9"
+                                                    @click="
+                                                        decideEntry(
+                                                            e,
+                                                            'confirm',
+                                                        )
+                                                    "
+                                                    >Confirm<span
+                                                        class="sr-only"
+                                                    >
+                                                        {{ e.person }},
+                                                        {{ e.type }}</span
+                                                    ></Button
+                                                >
+                                                <Button
+                                                    variant="outline"
+                                                    class="min-h-11 lg:min-h-9"
+                                                    @click="
+                                                        decideEntry(e, 'reject')
+                                                    "
+                                                    >Reject<span
+                                                        class="sr-only"
+                                                    >
+                                                        {{ e.person }},
+                                                        {{ e.type }}</span
+                                                    ></Button
+                                                >
+                                            </div>
+                                            <span
+                                                v-else-if="
+                                                    e.status === 'pending'
                                                 "
-                                                >Confirm</Button
+                                                class="text-sm text-muted-foreground"
+                                                >Another manager checks
+                                                this.</span
                                             >
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                class="min-h-11 sm:min-h-8"
-                                                @click="
-                                                    decideEntry(e, 'reject')
-                                                "
-                                                >Reject</Button
-                                            >
-                                        </template>
-                                        <span
-                                            v-else-if="e.status === 'pending'"
-                                            class="text-xs text-muted-foreground"
-                                            >Another manager checks this.</span
-                                        >
-                                    </div>
-                                </li>
-                            </ul>
+                                        </td>
+                                    </tr>
+                                </template>
+                            </V2Table>
                         </div>
                     </section>
                 </div>
@@ -2025,209 +2473,220 @@ const inputClass =
             </div>
         </V2Dialog>
 
-        <!-- Leave type sheet -->
-        <Sheet v-model:open="typeOpen">
-            <SheetContent
-                side="right"
-                class="w-full overflow-y-auto sm:max-w-md"
+        <!-- Leave type (PR 2, Daniel): a V2 dialog; "Save leave type" is its one filled action. -->
+        <V2Dialog
+            :open="typeOpen"
+            :title="
+                typeForm.leave_type_id ? 'Edit leave type' : 'Add leave type'
+            "
+            description="A type in use keeps its balance and half-day settings."
+            :confirm-label="typeForm.processing ? 'Saving…' : 'Save leave type'"
+            size="tall"
+            :busy="typeForm.processing"
+            :dirty="typeDirty"
+            data-test="type-dialog"
+            @update:open="typeOpen = $event"
+            @confirm="saveType"
+        >
+            <form
+                class="flex flex-col gap-4"
+                @submit.prevent="typeForm.processing || saveType()"
             >
-                <SheetHeader>
-                    <SheetTitle>{{
-                        typeForm.leave_type_id
-                            ? 'Edit leave type'
-                            : 'Add leave type'
-                    }}</SheetTitle>
-                    <SheetDescription
-                        >A type in use keeps its balance and half-day
-                        settings.</SheetDescription
-                    >
-                </SheetHeader>
-                <form class="grid gap-4 px-4 pb-4" @submit.prevent="saveType">
-                    <div class="grid gap-2">
-                        <Label for="type-code">Code *</Label>
+                <button
+                    type="submit"
+                    class="sr-only"
+                    tabindex="-1"
+                    aria-hidden="true"
+                >
+                    Save leave type
+                </button>
+                <V2Field
+                    label="Code"
+                    required
+                    hint="For example AL. It cannot change later."
+                    :error="typeForm.errors.code"
+                >
+                    <template #default="{ id, describedBy }">
                         <Input
-                            id="type-code"
+                            :id="id"
                             v-model="typeForm.code"
                             maxlength="20"
-                            class="h-11 uppercase sm:h-9"
+                            class="h-11 uppercase lg:h-9"
                             :disabled="!!typeForm.leave_type_id"
-                            aria-describedby="type-code-help"
+                            :aria-describedby="describedBy"
                         />
-                        <p
-                            id="type-code-help"
-                            class="text-xs text-muted-foreground"
-                        >
-                            For example AL. It cannot change later.
-                        </p>
-                        <InputError :message="typeForm.errors.code" />
-                    </div>
-                    <div class="grid gap-2">
-                        <Label for="type-name">Name *</Label>
+                    </template>
+                </V2Field>
+                <V2Field label="Name" required :error="typeForm.errors.name">
+                    <template #default="{ id, describedBy }">
                         <Input
-                            id="type-name"
+                            :id="id"
+                            :aria-describedby="describedBy"
                             v-model="typeForm.name"
                             maxlength="60"
-                            class="h-11 sm:h-9"
+                            class="h-11 lg:h-9"
                         />
-                        <InputError :message="typeForm.errors.name" />
+                    </template>
+                </V2Field>
+                <fieldset class="grid gap-1">
+                    <legend class="mb-1 text-sm font-medium">Rules</legend>
+                    <div
+                        v-for="f in flags"
+                        :key="f.key"
+                        class="flex min-h-11 items-center gap-2 lg:min-h-9"
+                    >
+                        <Checkbox
+                            :id="`type-${f.key}`"
+                            :model-value="flagValue(f.key)"
+                            :disabled="
+                                f.key === 'allow_negative' &&
+                                !typeForm.uses_balance
+                            "
+                            @update:model-value="
+                                (v) => setFlag(f.key, v === true)
+                            "
+                        />
+                        <Label :for="`type-${f.key}`">{{ f.label }}</Label>
                     </div>
-                    <fieldset class="grid gap-2">
-                        <legend class="mb-1 text-sm font-medium">Rules</legend>
-                        <div
-                            v-for="f in flags"
-                            :key="f.key"
-                            class="flex min-h-11 items-center gap-2 sm:min-h-9"
+                    <InputError :message="typeForm.errors.uses_balance" />
+                </fieldset>
+                <fieldset class="grid gap-2" data-test="type-evidence">
+                    <legend class="mb-1 text-sm font-medium">
+                        Evidence files
+                    </legend>
+                    <div class="flex min-h-11 items-center gap-2 lg:min-h-9">
+                        <Checkbox
+                            id="type-accepts-files"
+                            :model-value="typeForm.accepts_evidence_files"
+                            @update:model-value="
+                                (v) =>
+                                    (typeForm.accepts_evidence_files =
+                                        v === true)
+                            "
+                        />
+                        <Label for="type-accepts-files"
+                            >Accept evidence files</Label
                         >
-                            <Checkbox
-                                :id="`type-${f.key}`"
-                                :model-value="flagValue(f.key)"
-                                :disabled="
-                                    f.key === 'allow_negative' &&
-                                    !typeForm.uses_balance
-                                "
-                                @update:model-value="
-                                    (v) => setFlag(f.key, v === true)
-                                "
-                            />
-                            <Label :for="`type-${f.key}`">{{ f.label }}</Label>
-                        </div>
-                        <InputError :message="typeForm.errors.uses_balance" />
-                    </fieldset>
-                    <fieldset class="grid gap-2" data-test="type-evidence">
-                        <legend class="mb-1 text-sm font-medium">
-                            Evidence files
-                        </legend>
-                        <div
-                            class="flex min-h-11 items-center gap-2 sm:min-h-9"
-                        >
-                            <Checkbox
-                                id="type-accepts-files"
-                                :model-value="typeForm.accepts_evidence_files"
-                                @update:model-value="
-                                    (v) =>
-                                        (typeForm.accepts_evidence_files =
-                                            v === true)
-                                "
-                            />
-                            <Label for="type-accepts-files"
-                                >Accept evidence files</Label
-                            >
-                        </div>
-                        <div
-                            v-if="typeForm.accepts_evidence_files"
-                            class="grid gap-2"
-                        >
-                            <Label for="type-retention"
-                                >Keep files for (days after the leave ends)
-                                *</Label
-                            >
+                    </div>
+                    <V2Field
+                        v-if="typeForm.accepts_evidence_files"
+                        label="Keep files for (days after the leave ends)"
+                        required
+                        hint="Files are deleted after this. Requests and their history stay. At most 2,555 days (7 years). When you lower the days, files already older than that are deleted the next night."
+                        :error="typeForm.errors.evidence_retention_days"
+                    >
+                        <template #default="{ id, describedBy }">
                             <Input
-                                id="type-retention"
+                                :id="id"
                                 v-model="typeForm.evidence_retention_days"
                                 inputmode="numeric"
-                                class="h-11 sm:h-9"
-                                aria-describedby="type-retention-help"
+                                class="h-11 tabular-nums lg:h-9"
+                                :aria-describedby="describedBy"
                             />
-                            <p
-                                id="type-retention-help"
-                                class="text-xs text-muted-foreground"
-                            >
-                                Files are deleted after this. Requests and their
-                                history stay. At most 2,555 days (7 years). When
-                                you lower the days, files already older than
-                                that are deleted the next night.
-                            </p>
-                            <p
-                                v-if="savedRetentionDays > MAX_EVIDENCE_DAYS"
-                                class="text-xs text-muted-foreground"
-                                data-test="type-retention-over-cap"
-                            >
-                                This type was saved with
-                                {{ savedRetentionDays.toLocaleString('en-MY') }}
-                                days. Leave records are deleted 7 years after
-                                their leave year, and the files go with them, so
-                                the 7 years win. Enter 2,555 or fewer to save a
-                                change.
-                            </p>
-                            <InputError
-                                :message="
-                                    typeForm.errors.evidence_retention_days
-                                "
-                            />
-                        </div>
-                    </fieldset>
-                    <template v-if="typeForm.uses_balance">
-                        <div class="grid gap-2">
-                            <Label for="type-carry"
-                                >Carry forward up to (days)</Label
-                            >
+                        </template>
+                    </V2Field>
+                    <p
+                        v-if="
+                            typeForm.accepts_evidence_files &&
+                            savedRetentionDays > MAX_EVIDENCE_DAYS
+                        "
+                        class="text-sm text-muted-foreground"
+                        data-test="type-retention-over-cap"
+                    >
+                        This type was saved with
+                        {{ savedRetentionDays.toLocaleString('en-MY') }} days.
+                        Leave records are deleted 7 years after their leave
+                        year, and the files go with them, so the 7 years win.
+                        Enter 2,555 or fewer to save a change.
+                    </p>
+                </fieldset>
+                <template v-if="typeForm.uses_balance">
+                    <V2Field
+                        label="Carry forward up to (days)"
+                        hint="Leave empty for no carry-forward."
+                        :error="typeForm.errors.carry_max_days"
+                    >
+                        <template #default="{ id, describedBy }">
                             <Input
-                                id="type-carry"
+                                :id="id"
                                 v-model="typeForm.carry_max_days"
                                 inputmode="decimal"
-                                class="h-11 sm:h-9"
-                                aria-describedby="type-carry-help"
+                                class="h-11 tabular-nums lg:h-9"
+                                :aria-describedby="describedBy"
                             />
-                            <p
-                                id="type-carry-help"
-                                class="text-xs text-muted-foreground"
-                            >
-                                Leave empty for no carry-forward.
-                            </p>
-                            <InputError
-                                :message="typeForm.errors.carry_max_days"
-                            />
-                        </div>
-                        <div v-if="typeForm.carry_max_days" class="grid gap-2">
-                            <Label for="type-expiry"
-                                >Carried days expire on (MM-DD)</Label
-                            >
+                        </template>
+                    </V2Field>
+                    <V2Field
+                        v-if="typeForm.carry_max_days"
+                        label="Carried days expire on (MM-DD)"
+                        :error="typeForm.errors.carry_expires_on"
+                    >
+                        <template #default="{ id, describedBy }">
                             <Input
-                                id="type-expiry"
+                                :id="id"
+                                :aria-describedby="describedBy"
                                 v-model="typeForm.carry_expires_on"
                                 placeholder="03-31"
                                 maxlength="5"
-                                class="h-11 sm:h-9"
+                                class="h-11 lg:h-9"
                             />
-                            <InputError
-                                :message="typeForm.errors.carry_expires_on"
-                            />
-                        </div>
-                    </template>
-                    <div
-                        class="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end"
-                    >
-                        <Button
-                            type="button"
-                            variant="outline"
-                            class="min-h-11 sm:min-h-9"
-                            @click="typeOpen = false"
-                            >Cancel</Button
-                        >
-                        <Button
-                            type="submit"
-                            class="min-h-11 sm:min-h-9"
-                            :disabled="typeForm.processing"
-                            >Save leave type</Button
-                        >
-                    </div>
-                </form>
-            </SheetContent>
-        </Sheet>
+                        </template>
+                    </V2Field>
+                </template>
+            </form>
+        </V2Dialog>
 
-        <OperationalConfirmDialog
-            v-model:open="yearAction.open"
+        <!-- Archive or restore a leave type (Daniel): confirmed first; Archive is red. The request is the same archiveType. -->
+        <V2Dialog
+            :open="archiving.open"
+            :title="
+                archiving.type?.isActive
+                    ? `Archive ${archiving.type?.name}?`
+                    : `Restore ${archiving.type?.name}?`
+            "
+            :description="
+                archiving.type?.isActive
+                    ? 'Nobody can apply for it after this. Requests and balances already made stay.'
+                    : 'Staff can apply for it again.'
+            "
+            :confirm-label="
+                archiving.type?.isActive ? 'Archive type' : 'Restore type'
+            "
+            :tone="archiving.type?.isActive ? 'danger' : 'default'"
+            data-test="archive-dialog"
+            @update:open="archiving.open = $event"
+            @confirm="confirmArchive"
+        />
+
+        <!-- Year actions and KPOne defaults (PR 2): a V2 dialog with the same wording and details. -->
+        <V2Dialog
+            :open="yearAction.open"
             :title="yearText.title"
             :description="yearText.description"
-            :confirm-label="yearText.confirm"
-            processing-label="Working…"
-            :processing="yearAction.processing"
-            :error="yearAction.error"
-            @confirm="confirmYear"
+            :confirm-label="
+                defaultsNothing
+                    ? 'Close'
+                    : yearAction.processing
+                      ? 'Working…'
+                      : yearText.confirm
+            "
+            :busy="yearAction.processing"
+            :size="
+                defaultsNothing
+                    ? 'default'
+                    : yearAction.kind === 'defaults'
+                      ? 'tall'
+                      : 'default'
+            "
+            :single-action="defaultsNothing"
+            single-action-style="outline"
+            :tone="yearAction.kind === 'expire' ? 'danger' : 'default'"
+            data-test="year-dialog"
+            @update:open="yearAction.open = $event"
+            @confirm="
+                defaultsNothing ? (yearAction.open = false) : confirmYear()
+            "
         >
-            <template #icon>
-                <CalendarCheck class="size-5" />
-            </template>
             <div
                 v-if="
                     yearAction.kind === 'defaults' &&
@@ -2323,6 +2782,13 @@ const inputClass =
                     {{ leave.settings.defaults.label }}
                 </p>
             </div>
-        </OperationalConfirmDialog>
+            <p
+                v-if="yearAction.error"
+                role="alert"
+                class="text-sm text-destructive"
+            >
+                {{ yearAction.error }}
+            </p>
+        </V2Dialog>
     </PageFrame>
 </template>
