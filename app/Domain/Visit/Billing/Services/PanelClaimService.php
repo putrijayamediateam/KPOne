@@ -13,6 +13,7 @@ use App\Domain\Visit\Billing\Models\PanelClaimDocument;
 use App\Domain\Visit\Billing\Models\PanelClaimEvent;
 use App\Domain\Visit\Billing\Models\PanelClaimLine;
 use App\Domain\Visit\Billing\Models\PanelClaimPayment;
+use App\Domain\Visit\Billing\Models\PanelClaimSnapshot;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Carbon\CarbonImmutable;
@@ -60,7 +61,8 @@ final class PanelClaimService
             ->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
         $this->requireClaimable($allocation, $invoice);
 
-        if (PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->exists()) {
+        // PCA-2: one original claim per Panel share; supplementary claims are created only by a confirmed adjustment.
+        if (PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->where('claim_kind', 'original')->exists()) {
             throw ValidationException::withMessages(['claim' => 'A claim pack already exists for this approved Panel allocation.']);
         }
 
@@ -90,11 +92,13 @@ final class PanelClaimService
             'branch_name_snapshot' => $branch->name,
             'visit_date' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
             'invoice_total_sen' => app(FinancialLedger::class)->chargedBeforeCredits($invoice),
-            'claim_amount_sen' => $allocation->amount_sen,
+            'claim_amount_sen' => PanelShare::effective($allocation),
             'status' => 'prepared',
             'lock_version' => 1,
             'created_by_user_id' => $actor->id,
         ], $attributes))->save();
+
+        PanelShare::recordVersion($claim, $actor, null);
 
         foreach ($lines as $index => $line) {
             $copy = new PanelClaimLine;
@@ -305,7 +309,9 @@ final class PanelClaimService
             if (! in_array($claim->status, ['prepared', 'submitted', 'queried', 'rejected'], true) || $claim->payments()->exists()) {
                 throw ValidationException::withMessages(['claim' => 'Only an unpaid prepared, submitted, queried or rejected claim can be adjusted.']);
             }
-            if ($amount > $claim->invoice_total_sen && ! filter_var($a['confirm_over_invoice'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
+            // PCA-2: compare with the invoice payable of the latest claim version, after confirmed Panel adjustments.
+            $invoiceTotal = (int) (PanelClaimSnapshot::query()->where('panel_claim_id', $claim->id)->orderByDesc('version')->value('invoice_total_sen') ?? $claim->invoice_total_sen);
+            if ($amount > $invoiceTotal && ! filter_var($a['confirm_over_invoice'] ?? false, FILTER_VALIDATE_BOOLEAN)) {
                 throw ValidationException::withMessages(['confirm_over_invoice' => 'Confirm the separate above-invoice adjustment before saving this claim amount.']);
             }
             if ($amount === $claim->claim_amount_sen) {
@@ -336,7 +342,8 @@ final class PanelClaimService
         ])->validate();
 
         return DB::transaction(function () use ($actor, $routeClaim, $a): PanelClaim {
-            [$actor, $branch, $claim] = $this->lockClaim($actor, $routeClaim, $a);
+            // PCA-2: the invoice and allocation are locked before the claim, the order a Panel claim adjustment uses.
+            [$actor, $branch, $claim] = $this->lockClaim($actor, $routeClaim, $a, sourcesFirst: true);
             $this->requireVersion($claim, $a['lock_version']);
             if (! in_array($claim->status, ['prepared', 'queried', 'rejected'], true) || $claim->payments()->exists()) {
                 throw ValidationException::withMessages(['claim' => 'This claim is not ready for submission.']);
@@ -616,10 +623,15 @@ final class PanelClaimService
      * @param  array<string, mixed>  $a
      * @return array{User, Branch, PanelClaim}
      */
-    private function lockClaim(User $actor, PanelClaim $routeClaim, array $a): array
+    private function lockClaim(User $actor, PanelClaim $routeClaim, array $a, bool $sourcesFirst = false): array
     {
         $branch = $this->authority->branch($actor, $a['expected_branch_id'] ?? null);
         $actor = $this->authority->lock($actor, $branch, 'panel.claims.manage.branch');
+        if ($sourcesFirst) {
+            $peek = PanelClaim::query()->whereKey($routeClaim->id)->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)->firstOrFail();
+            Invoice::query()->whereKey($peek->invoice_id)->lockForUpdate()->firstOrFail();
+            CoverageAllocation::query()->whereKey($peek->coverage_allocation_id)->lockForUpdate()->firstOrFail();
+        }
         $claim = PanelClaim::query()->whereKey($routeClaim->id)->where('organisation_id', $actor->organisation_id)
             ->where('branch_id', $branch->id)->lockForUpdate()->firstOrFail();
 
@@ -630,7 +642,7 @@ final class PanelClaimService
     {
         if ($allocation->status !== 'approved' || (int) $allocation->current_invoice_guard !== $invoice->id
             || $invoice->status !== 'finalized' || $invoice->correction_hold || $invoice->source_stale
-            || $allocation->amount_sen < 1 || $allocation->amount_sen > app(FinancialLedger::class)->chargedBeforeCredits($invoice)) {
+            || PanelShare::effective($allocation) < 1 || PanelShare::effective($allocation) > app(FinancialLedger::class)->chargedBeforeCredits($invoice)) {
             throw ValidationException::withMessages(['claim' => 'Only a current approved Panel allocation on an eligible finalized Invoice can be claimed.']);
         }
     }
