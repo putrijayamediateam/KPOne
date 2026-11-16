@@ -285,6 +285,16 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     their own check. Each check also shows "N earlier attempts" (refused tries since the previous check, read from
     those audit rows; nothing when there were none). Option (b), never saying "differs" before recording, is an open
     owner question.
+44. STK-40b (owner, 16 Nov 2026: "go with option b for blind count"): option (b) chosen. Record check always records
+    what was counted, so KPOne never says "differs" before the count is saved. A check that differs is recorded with
+    no reason, and the person who recorded it adds the reason afterwards, once, in an append-only step
+    (`inventory_controlled_register_check_reasons`; PostgreSQL refuses anyone else, a second reason, a check that
+    matches, and any change). Until then the medicine shows "Difference: reason needed" in words, on the list, the
+    register and the print. The owner decided: no second person on the reason; a reason still needed never blocks the
+    next check; `check_refused` is no longer written, older rows stay readable so checks recorded before STK-40b keep
+    "N earlier attempts", and the live "since the last check" line is retired. The checker rules (second person, not
+    the previous checker) and the locks are unchanged; a new audit event, `inventory.controlled_register.check_explained`,
+    holds ids and the reason code only. The owner approved the changed assertions, listed before and after in the PR.
 
 ## 7. Open items and known limits
 
@@ -302,12 +312,10 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   and a re-save before completion loses the earlier reason; no report lists FEFO exceptions; no short-dated
   warning at Dispensary. Each waits for the pharmacist's answers and the owner.
 - **STK-40 blind count limits:** other stock pages (Inventory home, stock movement report, reorder list) still show
-  levels; a determined checker could look there. A checker could still learn the balance by sending guesses until
-  no reason is asked for, but each refused try now leaves an audit row (`inventory.controlled_register.check_refused`,
-  ids and "differs" only), and each check shows "N earlier attempts" for the refused tries before it.
-- **Open owner question (STK-40 (b), on the owner's morning list, 2026-11-15):** should KPOne never say "differs" before
-  a check is recorded (record whatever was counted, with the reason added after)? That changes the checker rule, so it
-  waits for the owner.
+  levels; a determined checker could look there. Guessing is closed by STK-40b: every count is recorded, so nothing is
+  learnt before it is saved.
+- **STK-40b limits:** only the person who recorded a differing check may add its reason, so if they leave, the check
+  stays "Difference: reason needed" (no fallback person in v1; an owner question for later).
 - **Pilot staffing:** the controlled-register checker cannot be anyone who recorded a movement on that register
   since the last check, so a controlled-delivery day needs a third person (raised with the owner, 2026-11-12).
 - STK-31 limits: the cross-branch guard is insert-only; stock request creation takes an optional retry key since
