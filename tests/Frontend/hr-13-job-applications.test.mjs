@@ -34,13 +34,13 @@ test('the public form sends the signed token, the hidden field and a PDF, and ke
     assert.match(template('apply'), /accept="application\/pdf,\.pdf"/);
     // The shared picker, labelled in both languages (Daniel, HR-13).
     assert.match(template('apply'), /<FileChooseButton/);
-    assert.match(template('apply'), /label="Choose PDF \/ Pilih PDF"/);
+    assert.match(template('apply'), /label="Choose PDF"/);
     // The honeypot is hidden from sight and from screen readers, and skipped by the keyboard.
     assert.match(template('apply'), /class="sr-only" aria-hidden="true"/);
     assert.match(template('apply'), /tabindex="-1"/);
     assert.match(
         template('apply'),
-        /Notice version \/ Versi notis\s+\{\{ privacyNoticeVersion \}\}/,
+        /Notice version\s+\{\{ privacyNoticeVersion \}\}/,
     );
     assert.match(template('apply'), /never\s+used\s+for\s+marketing/);
     assert.doesNotMatch(source.apply, /localStorage|sessionStorage|indexedDB/);
@@ -53,19 +53,25 @@ test('the public form sends the signed token, the hidden field and a PDF, and ke
     );
 });
 
-test('applicants see English and Bahasa Melayu side by side (owner, 2026-11-07)', () => {
-    for (const ms of [
-        'Mohon jawatan',
-        'Nama penuh',
-        'Nombor telefon',
-        'Notis privasi',
-        'Hantar permohonan',
+test('applicants see the careers pages in English only (owner, 2026-11-16, replacing English and Bahasa Melayu side by side)', () => {
+    for (const en of [
+        'Apply for a job',
+        'Full name',
+        'Phone number',
+        'Privacy notice',
+        'Send application',
     ]) {
-        assert.match(source.apply, new RegExp(ms));
+        assert.match(source.apply, new RegExp(en));
     }
 
-    assert.match(template('apply'), /lang="ms"/);
-    assert.match(template('thanks'), /Terima kasih kerana memohon/);
+    for (const name of ['apply', 'thanks']) {
+        assert.doesNotMatch(template(name), /lang="ms"/);
+    }
+
+    assert.doesNotMatch(
+        read('resources/js/pages/Careers/Status.vue'),
+        /lang="ms"/,
+    );
 });
 
 test('the layout serves the careers pages without the staff shell', () => {

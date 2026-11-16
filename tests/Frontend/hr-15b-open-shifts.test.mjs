@@ -5,7 +5,9 @@ import test from 'node:test';
 // HR-15b open shifts (HR-PLAN 21.4; B.E.R.N.I.S.S for the owner, 2026-11-10).
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const page = read('resources/js/pages/HR/OpenShifts.vue');
+const page =
+    read('resources/js/pages/HR/OpenShifts.vue') +
+    read('resources/js/composables/hr/useOpenShiftsPage.ts');
 const roster = read('resources/js/pages/HR/Roster.vue');
 
 test('a locum asks for an open shift and sees their own asks; never who else asked', () => {

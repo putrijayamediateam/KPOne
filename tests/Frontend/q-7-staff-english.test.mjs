@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 // Q-7 (owner decision 2026-11-10): staff screens and the messages staff see are English. The public QR form and
-// status pages, the careers form, the MC, referral and attendance wording, the website drafts, the drug label,
+// status pages, the MC, referral and attendance wording, the website drafts, the drug label,
 // the TV's optional Malay spoken digits and docs/guides/ms are deliberately NOT in this list.
 
 const read = (path) =>
