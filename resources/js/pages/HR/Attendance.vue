@@ -70,6 +70,12 @@ const props = defineProps<{
             state: 'out' | 'in' | 'done';
             clockedInLabel: string | null;
             doneLabel: string | null;
+            undo: {
+                sessionId: string;
+                lockVersion: number;
+                pressedAt: string;
+                until: string;
+            } | null;
             staleLabel: string | null;
             todayShift: string | null;
             todayHasBreak: boolean;
@@ -160,6 +166,9 @@ const {
     withdrawing,
     cancelCorrection,
     decision,
+    undo,
+    openUndo,
+    confirmUndo,
     openDecision,
     confirmDecision,
     ask,
@@ -258,6 +267,25 @@ const {
                     >
                         {{ attendance.my.doneLabel }}
                     </p>
+                    <!-- Undo clock-out (owner, 16 Nov 2026): for 15 minutes after the person's own clock-out. -->
+                    <div
+                        v-if="attendance.my.undo"
+                        class="flex flex-col gap-1"
+                        data-test="undo-clock-out"
+                    >
+                        <Button
+                            variant="outline"
+                            class="min-h-11 self-start"
+                            data-test="undo-clock-out-button"
+                            @click="openUndo"
+                        >
+                            Undo clock-out
+                        </Button>
+                        <p class="text-xs text-muted-foreground">
+                            Clocked out by mistake? You can undo this until
+                            {{ attendance.my.undo.until }}.
+                        </p>
+                    </div>
                     <Button
                         v-if="attendance.my.state === 'out'"
                         class="min-h-14 w-full text-base"
@@ -803,6 +831,13 @@ const {
                                         >
                                             {{ r.location.out }}
                                         </p>
+                                        <p
+                                            v-if="r.undoneLabel"
+                                            class="text-xs text-muted-foreground"
+                                            data-test="review-undone"
+                                        >
+                                            {{ r.undoneLabel }}
+                                        </p>
                                     </td>
                                     <td class="tabular-nums">
                                         {{ r.worked ?? '–' }}
@@ -928,6 +963,13 @@ const {
                                 class="text-xs text-muted-foreground"
                             >
                                 Clock out: {{ r.location.out }}
+                            </p>
+                            <p
+                                v-if="r.undoneLabel"
+                                class="text-xs text-muted-foreground"
+                                data-test="review-undone"
+                            >
+                                {{ r.undoneLabel }}
                             </p>
                             <div
                                 v-if="r.flags.length > 0 || r.correctionWaiting"
@@ -1208,6 +1250,21 @@ const {
         </section>
 
         <!-- Clock out confirm (Daniel: only Clock out asks) -->
+        <OperationalConfirmDialog
+            v-model:open="undo.open"
+            :title="`Undo your clock-out at ${attendance.my?.undo?.pressedAt ?? ''}?`"
+            description="You stay clocked in from your clock-in. Clock out again when you leave; that takes a new photo."
+            confirm-label="Undo clock-out"
+            processing-label="Undoing…"
+            :processing="undo.processing"
+            :error="undo.error"
+            @confirm="confirmUndo"
+        >
+            <template #icon>
+                <Clock class="size-5" />
+            </template>
+        </OperationalConfirmDialog>
+
         <OperationalConfirmDialog
             v-model:open="clock.confirmOut"
             title="Clock out now?"
