@@ -61,10 +61,26 @@ export const csrfToken = (): string =>
             ?.split('=')[1] ?? '',
     );
 
+/**
+ * The server's refusals for a capture pass that ran out or cannot be used (ClockPhotoService::TOO_LONG and OPEN_AGAIN).
+ * The photo is then thrown away and the sheet goes back to the camera (owner, 16 Nov 2026).
+ */
+export const PASS_REFUSALS = [
+    'The camera was open too long. Take the photo again.',
+    'Open the camera again and take a new photo.',
+];
+
+export const TOOK_TOO_LONG =
+    'That took too long, so the photo was not used. Take it again.';
+
 /** Thrown when the person has not yet seen the current "About clock-in photos" notice. */
 export class NoticeNeeded extends Error {}
 
-/** The capture token is taken when the camera opens; it is good for one press of this kind for five minutes. */
+/**
+ * A capture pass, good for one press of this kind for five minutes. The sheet asks for one when the camera opens (which
+ * also shows the notice first if needed) and a fresh one at the shutter, so the five minutes start when the photo is
+ * taken (owner, 16 Nov 2026).
+ */
 export const takeToken = async (kind: ClockKind): Promise<string> => {
     const response = await fetch('/hr/attendance/capture', {
         method: 'POST',
