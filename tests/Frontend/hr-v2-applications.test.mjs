@@ -84,9 +84,14 @@ test("Daniel: the stage's own action is the one filled button; Reject and the cl
     const used = template.match(/:class="[^"]*primaryButton[^"]*"/g) ?? [];
     assert.ok(used.length >= 4);
     assert.match(
-        flat,
-        /:class="primaryButton" :disabled="screening\.processing" data-test="screening-pass"/,
+        tight,
+        /:class="primaryButton" :disabled="screening\.processing \|\| ratingMissing !== ''"/,
     );
+    // Daniel: Pass is off, with the reason in words, until a rating is recorded (the server requires 1 to 5).
+    assert.match(script, /'Record how they came across to continue\.'/);
+    assert.match(flat, /data-test="screening-rating"/);
+    // "1 new application · Show" is an outline button, not a bare link.
+    assert.match(flat, /:class="button" data-test="needs-you-new-show"/);
     assert.match(
         flat,
         /:class="dangerButton" :disabled="screening\.processing" data-test="screening-reject"/,

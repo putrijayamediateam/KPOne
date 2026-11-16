@@ -141,6 +141,9 @@ const rejectMissing = computed(() =>
 const cancelMissing = computed(() =>
     interviewAction.reason === '' ? 'Pick a reason to continue.' : '',
 );
+const ratingMissing = computed(() =>
+    screening.rating === '' ? 'Record how they came across to continue.' : '',
+);
 const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
     value: String(n),
     label: String(n),
@@ -384,7 +387,7 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                                 <span aria-hidden="true">·</span>
                                 <button
                                     type="button"
-                                    class="inline-flex min-h-11 items-center text-primary underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9"
+                                    :class="button"
                                     data-test="needs-you-new-show"
                                     @click="filter({ status: 'new' })"
                                 >
@@ -1474,6 +1477,7 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                         :model-value="screening.rating || null"
                         :options="ratingOptions"
                         label="How did they come across? (1 Weak, 5 Strong)"
+                        required
                         :error="errors.rating"
                         data-test="screening-rating"
                         @update:model-value="screening.rating = $event ?? ''"
@@ -1514,11 +1518,26 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                     >
                         {{ errors.outcome }}
                     </p>
+                    <p
+                        v-if="ratingMissing"
+                        id="v2-screening-pass-hint"
+                        class="text-sm text-muted-foreground"
+                        data-test="screening-pass-hint"
+                    >
+                        {{ ratingMissing }}
+                    </p>
                     <div class="flex flex-wrap gap-2">
                         <button
                             type="submit"
                             :class="primaryButton"
-                            :disabled="screening.processing"
+                            :disabled="
+                                screening.processing || ratingMissing !== ''
+                            "
+                            :aria-describedby="
+                                ratingMissing
+                                    ? 'v2-screening-pass-hint'
+                                    : undefined
+                            "
                             data-test="screening-pass"
                         >
                             {{
