@@ -332,7 +332,7 @@ const outlineButton =
                         offReason ? 'label-off-reason' : undefined
                     "
                     data-testid="label-print"
-                    @click="printLabels"
+                    @click="busy || offReason ? null : printLabels()"
                 >
                     <LoaderCircle
                         v-if="busy"

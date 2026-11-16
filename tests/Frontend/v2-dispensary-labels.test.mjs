@@ -128,3 +128,11 @@ test('44 px below 1024 only', () => {
     assert.match(v2, /const outlineButton =\s*'inline-flex h-11 /);
     assert.equal((v2.match(/lg:h-9/g) ?? []).length, 2);
 });
+
+test('Hakim: a click on the off button sends nothing, including when there are no labels', () => {
+    assert.match(v2, /@click="busy \|\| offReason \? null : printLabels\(\)"/);
+    assert.match(
+        v2,
+        /if \(!props\.labels\.items\.length\) \{\s*return 'There are no labels to print in this selection\.';/,
+    );
+});
