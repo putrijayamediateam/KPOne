@@ -33,6 +33,7 @@ return [
         'Patient/Show',
         'HR/Roster',
         'HR/Attendance',
+        'HR/Leave',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
