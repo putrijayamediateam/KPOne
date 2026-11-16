@@ -11,9 +11,9 @@ import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import PanelAdjustmentPanel from '@/components/billing/PanelAdjustmentPanel.vue';
 import ReceiptCorrections from '@/components/billing/ReceiptCorrections.vue';
-import ReceiptRefunds from '@/components/billing/ReceiptRefunds.vue';
 import BillingCompletionDialogV2 from '@/components/billing/v2/BillingCompletionDialogV2.vue';
 import InvoiceAdjustmentDialogV2 from '@/components/billing/v2/InvoiceAdjustmentDialogV2.vue';
+import ReceiptRefundsV2 from '@/components/billing/v2/ReceiptRefundsV2.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
@@ -52,7 +52,7 @@ import { myr, outstandingSen } from '@/types/billing';
  * the patient's name and visit number head the page, the right column starts at 1280 px with Due now first below it,
  * one cobalt action per state (the bottom bar carries it below 1280 px), StatusBadge words through the V2 chip look.
  * Every dialog is a V2Dialog: the three entry dialogs here, and the adjustment and completion dialogs (BV2-2,
- * components/billing/v2). The refunds, corrections, Bill to and notes blocks stay Classic under the page wrapper.
+ * components/billing/v2). Refunds use ReceiptRefundsV2 (DD-83); the corrections, Bill to and notes blocks stay Classic under the page wrapper.
  */
 const props = withDefaults(
     defineProps<{ billing: BillingPage; manage?: boolean }>(),
@@ -760,7 +760,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         </div>
                     </section>
 
-                    <ReceiptRefunds
+                    <ReceiptRefundsV2
                         v-if="billing.refunds"
                         :refunds="billing.refunds"
                         :base="base"
