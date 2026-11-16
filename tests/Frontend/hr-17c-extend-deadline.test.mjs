@@ -3,10 +3,21 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 // Owner, 2026-11-11 (#484 follow-up b): HR gives a waiting application more working days.
-const page = readFileSync(
-    new URL('../../resources/js/pages/HR/Applications.vue', import.meta.url),
-    'utf8',
-);
+const page =
+    readFileSync(
+        new URL(
+            '../../resources/js/pages/HR/Applications.vue',
+            import.meta.url,
+        ),
+        'utf8',
+    ) +
+    readFileSync(
+        new URL(
+            '../../resources/js/composables/hr/useApplicationsPage.ts',
+            import.meta.url,
+        ),
+        'utf8',
+    );
 
 test('the application panel offers more working days beside the closing date', () => {
     assert.match(page, /extendDays: number;/);

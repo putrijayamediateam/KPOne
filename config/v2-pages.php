@@ -40,6 +40,7 @@ return [
         'HR/Messages',
         'HR/Credentials',
         'HR/OpenShifts',
+        'HR/Applications',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
