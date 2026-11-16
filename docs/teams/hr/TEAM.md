@@ -57,10 +57,11 @@ its own, and props, routes and permissions are the same. Each page is registered
 | `HR/Leave` | `useLeavePage.ts` (Settings follows in a second PR) | `pages/HR/V2/Leave.vue` | HR team (PR #841) |
 | `HR/Sops` | `useSopsPage.ts` | `pages/HR/V2/Sops.vue` | Nurul's team (PR #872) |
 | `HR/Memos` | `useMemosPage.ts` | `pages/HR/V2/Memos.vue` | Nurul's team (PR #874) |
+| `HR/Messages` | `useMessagesPage.ts` | `pages/HR/V2/Messages.vue` | Nurul's team (PR #880) |
 
-- Nurul's team builds HR V2 pages under the HR rules; Suresh reviews each one for the HR team. Next is `HR/Messages`.
+- Nurul's team builds HR V2 pages under the HR rules; Suresh reviews each one for the HR team.
 - A frontend test that reads a Classic page's script may also read its composable; that is a setup change with the
-  expectations unchanged (as in `hr-5c-sops.test.mjs` and `hr-8-memos.test.mjs`).
+  expectations unchanged (as in `hr-5c-sops.test.mjs`, `hr-8-memos.test.mjs` and `hr-14-messages.test.mjs`).
 - When the Classic SOPs restyle (`lastOpened`, which fills "I have read and understood" for the SOP just opened)
   reaches main, the V2 SOPs page takes the same binding from `useSopsPage.ts`, so the two match (Suresh, PR #872).
 
