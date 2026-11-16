@@ -24,10 +24,16 @@ synthetic until go-live. This sheet is not legal advice.
   (see question 1).
 - **The check:** a CA Supervisor, Finance Officer or Director counts what is physically on hand and records it
   against the register. KPOne requires a **second person**: the checker cannot be anyone who recorded a movement
-  since the last check, and cannot be whoever did the last check. A check that does not match needs a reason
-  (a governed stock count will follow; stock is held somewhere else; difference to investigate; other, with a
-  note). A check never changes stock; stock is corrected only through the governed stock count, which has its
-  own independent approval.
+  since the last check, and cannot be whoever did the last check. The count is always recorded. A check that does
+  not match then needs a reason from the same person (a governed stock count will follow; stock is held somewhere
+  else; difference to investigate; other, with a note), added once and never changed; until then it reads
+  "Difference: reason needed". A check never changes stock; stock is corrected only through the governed stock
+  count, which has its own independent approval.
+- **Blind count (owner's decisions, 15 and 16 Nov 2026):** while someone may check, the register's balance, in and
+  out quantities, earlier checks' quantities and the print are held back. They appear once the count is recorded,
+  with the difference. KPOne never says "differs" before the count is saved (option (b), chosen by the owner on 16 Nov
+  2026). Other stock pages still show levels; a determined checker could look there. Checks recorded before 16 Nov
+  may show "N earlier attempts" from the earlier rule.
 - **Kept:** checks cannot be changed or deleted, and the database refuses it too.
 - **Printed register:** lists the checks signed in its dates under the movements. Opening the print page
   records nothing; pressing Print records who printed which register and dates.

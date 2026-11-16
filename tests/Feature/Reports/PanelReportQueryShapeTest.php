@@ -14,7 +14,7 @@ use Tests\Feature\Billing\ApprovedPanelAllocations;
 use Tests\Feature\Billing\BillingTestCase;
 
 /**
- * PNL-18 (Panel pilot work): the Panel summary and the Follow-up list must not issue queries per claim or per
+ * PNL-23 (Panel pilot work): the Panel summary and the Follow-up list must not issue queries per claim or per
  * allocation. Growing the data from 4 to 12 approved allocations must not add a single query to either, and the
  * rows must still add up. This proves the shape of the work (a bounded number of set-based queries), not a time or
  * a volume: the 2,001-allocation measurement is in docs/reports/PILOT-SCALE-LIMITS.md.

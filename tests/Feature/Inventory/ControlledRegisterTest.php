@@ -69,7 +69,11 @@ final class ControlledRegisterTest extends VisitTestCase
 
         $rows = $this->actingAs($viewer)->get(route('inventory.controlled-register'))->assertOk()->viewData('page')['props']['register']['rows'];
         $this->assertSame([$f['sku']->public_id], array_column($rows, 'skuPublicId'));
-        $this->assertSame(['10', 'never', null], [$rows[0]['balance'], $rows[0]['status'], $rows[0]['lastCheckedOn']]);
+        // STK-40: the finance officer may check this register now, so its balance is held back (a blind count).
+        $this->assertSame([null, true, 'never', null], [$rows[0]['balance'], $rows[0]['blind'], $rows[0]['status'], $rows[0]['lastCheckedOn']]);
+        // The supervisor who recorded the opening cannot check it, so sees the balance.
+        $recorderRow = $this->actingAs($f['proposer'])->get(route('inventory.controlled-register'))->viewData('page')['props']['register']['rows'][0];
+        $this->assertSame(['10', false], [$recorderRow['balance'], $recorderRow['blind']]);
         $this->assertNotContains($plain['sku']->public_id, array_column($rows, 'skuPublicId'));
 
         // A CA has no register permission; other roles without it are refused too.
@@ -100,7 +104,8 @@ final class ControlledRegisterTest extends VisitTestCase
         $this->receive($f, $f['proposer'], '5.000');
         app(InventoryMovementService::class)->transfer($f['proposer'], ['expected_branch_id' => $this->branch->id, 'sku_public_id' => $f['sku']->public_id,
             'batch_public_id' => $f['batch']->public_id, 'source_location_public_id' => $f['location']->public_id, 'destination_location_public_id' => $second->public_id, 'quantity' => '3.000']);
-        $viewer = $this->actorAt('finance_officer');
+        // STK-40: the supervisor who recorded these movements cannot check this register, so sees every figure.
+        $viewer = $f['proposer'];
 
         $register = $this->registerPage($viewer, $f['sku']->public_id);
         $this->assertSame(['0', '15', '15', 3], [$register['opening'], $register['closing'], $register['balanceNow'], $register['lines']['total']]);
@@ -144,14 +149,19 @@ final class ControlledRegisterTest extends VisitTestCase
         // The same person cannot do the next check, even with no new movement.
         $this->actingAs($first)->post($url, $this->input($seen, '10'))->assertSessionHasErrors(['counted' => 'You did the previous check, so another person must check this register.']);
 
-        // A count that differs needs a reason, and "other" needs a note; the check never moves stock.
+        // STK-40b: a count that differs is recorded as it is, with no reason; the check never moves stock.
         $second = $this->actorAt('director');
-        $this->actingAs($second)->post($url, $this->input($seen, '9'))->assertSessionHasErrors(['reason' => 'The count differs from the register. Choose a reason.']);
-        $this->actingAs($second)->post($url, $this->input($seen, '9', ['reason' => 'other']))->assertSessionHasErrors(['note' => 'Add a note to explain the difference.']);
         $movements = DB::table('stock_movements')->count();
-        $this->actingAs($second)->post($url, $this->input($seen, '9', ['reason' => 'count_to_follow']))->assertSessionHasNoErrors();
+        $this->actingAs($second)->post($url, $this->input($seen, '9'))->assertSessionHasNoErrors();
         $this->assertSame($movements, DB::table('stock_movements')->count());
-        $this->assertSame(['differs', 'count_to_follow', '10.000', '9.000'], array_values((array) DB::table('inventory_controlled_register_checks')->where('sequence', 2)->first(['outcome', 'reason', 'ledger_quantity', 'counted_quantity'])));
+        $this->assertSame(['differs', null, '10.000', '9.000'], array_values((array) DB::table('inventory_controlled_register_checks')->where('sequence', 2)->first(['outcome', 'reason', 'ledger_quantity', 'counted_quantity'])));
+        // The checker then adds the reason, once; "other" needs a note.
+        $differing = (string) DB::table('inventory_controlled_register_checks')->where('sequence', 2)->value('public_id');
+        $reasonUrl = route('inventory.controlled-register.reason', ['sku' => $f['sku']->public_id, 'check' => $differing]);
+        $reason = fn (array $extra): array => ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(), ...$extra];
+        $this->actingAs($second)->post($reasonUrl, $reason(['reason' => 'other']))->assertSessionHasErrors(['note' => 'Add a note to explain the difference.']);
+        $this->actingAs($second)->post($reasonUrl, $reason(['reason' => 'count_to_follow']))->assertSessionHasNoErrors();
+        $this->assertSame('count_to_follow', DB::table('inventory_controlled_register_check_reasons')->sole()->reason);
 
         // A movement arriving after the page was opened makes the check stale.
         $this->receive($f, $f['proposer'], '1.000');
@@ -204,7 +214,8 @@ final class ControlledRegisterTest extends VisitTestCase
         $refused([...$row, 'public_id' => (string) Str::uuid(), 'idempotency_key' => (string) Str::uuid(), 'sequence' => 2, 'after_movement_id' => $newest, 'checked_by_user_id' => $checker->id],
             'The previous checker cannot check this register again');
         foreach (['update' => fn () => DB::table('inventory_controlled_register_checks')->update(['note' => 'x']), 'delete' => fn () => DB::table('inventory_controlled_register_checks')->delete(),
-            'truncate' => fn () => DB::statement('TRUNCATE inventory_controlled_register_checks')] as $what => $change) {
+            // STK-40b: the reasons table points at the checks, so a plain TRUNCATE now stops at the foreign key; CASCADE reaches the guard.
+            'truncate' => fn () => DB::statement('TRUNCATE inventory_controlled_register_checks CASCADE')] as $what => $change) {
             try {
                 DB::transaction($change);
                 $this->fail("Accepted {$what}");
@@ -212,12 +223,19 @@ final class ControlledRegisterTest extends VisitTestCase
                 $this->assertStringContainsString('Controlled register checks are kept as signed', $e->getMessage());
             }
         }
+        try {
+            DB::transaction(fn () => DB::statement('TRUNCATE inventory_controlled_register_checks'));
+            $this->fail('Accepted plain truncate');
+        } catch (QueryException $e) {
+            $this->assertSame('0A000', $e->getCode());
+        }
     }
 
     public function test_opening_the_print_records_nothing_and_pressing_print_is_audited(): void
     {
         $f = $this->controlled('10.000');
-        $viewer = $this->actorAt('director');
+        // STK-40: the print waits for a checker's count; the supervisor who recorded the opening cannot check, so may print.
+        $viewer = $f['proposer'];
         $props = $this->actingAs($viewer)->get(route('inventory.controlled-register.print', ['sku' => $f['sku']->public_id]))->assertOk()->viewData('page');
         $this->assertSame('Inventory/ControlledRegisterPrint', $props['component']);
         $this->assertSame([1, '10', []], [$props['props']['register']['lines']['total'], $props['props']['register']['closing'], $props['props']['register']['checksInRange']]);
@@ -296,7 +314,8 @@ final class ControlledRegisterTest extends VisitTestCase
         for ($i = 0; $i < 51; $i++) {
             $this->receive($f, $f['proposer'], '1.000');
         }
-        $viewer = $this->actorAt('finance_officer');
+        // STK-40: the supervisor who recorded these movements cannot check this register, so sees every balance.
+        $viewer = $f['proposer'];
         $first = $this->registerPage($viewer, $f['sku']->public_id);
         // 25 lines a page (Daniel), the running balance carrying on from the page before.
         $this->assertSame([52, 3, 25, '25'], [$first['lines']['total'], $first['lines']['lastPage'], count($first['lines']['rows']), $first['lines']['rows'][24]['balance']]);

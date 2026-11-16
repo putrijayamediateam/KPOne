@@ -21,7 +21,7 @@ test('HR-9b: the cost card shows only when the server sends a figure, never per 
     assert.match(page, /from approved pay runs only/);
     assert.match(
         page,
-        /An estimate until the clinic's accountant has checked the pay rules/,
+        /An estimate until the pay rules are checked against current\s+law/,
     );
     // The card is read from the one dashboard-level figure; a branch card never carries a cost.
     assert.doesNotMatch(page, /branch\.staffCost|branch\.cost/);

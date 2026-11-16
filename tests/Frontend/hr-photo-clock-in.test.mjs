@@ -11,7 +11,9 @@ const dialog = read(
 );
 const thumb = read('resources/js/components/hr/attendance/ClockPhotoThumb.vue');
 const composable = read('resources/js/composables/useClockPhoto.ts');
-const attendance = read('resources/js/pages/HR/Attendance.vue');
+const attendance =
+    read('resources/js/pages/HR/Attendance.vue') +
+    read('resources/js/composables/hr/useAttendancePage.ts');
 
 for (const [name, source] of [
     ['ClockPhotoDialog.vue', dialog],
