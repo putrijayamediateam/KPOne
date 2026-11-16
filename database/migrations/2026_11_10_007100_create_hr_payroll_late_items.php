@@ -55,6 +55,10 @@ BEGIN
      AND date_trunc('month', o.local_date) = r.month) THEN
   RAISE EXCEPTION 'A late item is approved overtime of that person in the run month' USING ERRCODE = '23514';
  END IF;
+ IF EXISTS (SELECT 1 FROM hr_payroll_lines l JOIN hr_payroll_runs x ON x.id = l.run_id
+   WHERE x.status = 'locked' AND l.source_kind = 'overtime' AND l.source_id = NEW.overtime_request_id) THEN
+  RAISE EXCEPTION 'This overtime is already paid by a locked run' USING ERRCODE = '23514';
+ END IF;
  RETURN NEW;
 END $$;
 CREATE TRIGGER hr_payroll_late_items_guard BEFORE INSERT OR UPDATE OR DELETE ON hr_payroll_late_items FOR EACH ROW EXECUTE FUNCTION guard_hr_payroll_late_item();

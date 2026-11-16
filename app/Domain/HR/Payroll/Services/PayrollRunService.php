@@ -250,6 +250,8 @@ final class PayrollRunService
                 throw ValidationException::withMessages(['payroll' => 'Overtime approved after the lock goes on an adjustment run.']);
             }
             $regular = DB::table('hr_payroll_runs')->where('id', $run->adjusts_run_id)->lockForUpdate()->first();
+            // Suresh m1: lock the overtime row too (after the runs; decide and reverse lock it and only read runs).
+            DB::table('hr_overtime_requests')->where('organisation_id', $actor->organisation_id)->where('public_id', $overtimeId)->lockForUpdate()->first(['id']);
             $item = $regular instanceof \stdClass ? collect($this->late->forRegularRun($actor->organisation_id, $regular))->firstWhere('id', $overtimeId) : null;
             if (! is_array($item)) {
                 throw ValidationException::withMessages(['payroll' => 'This overtime is not waiting to be added. Reload the page.']);

@@ -370,6 +370,14 @@ class PayrollRunsTest extends VisitTestCase
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'hr.payroll.run_late_removed')->count());
         $this->assertSame(2, DB::table('audit_logs')->where('event', 'hr.payroll.run_late_added')->count());
 
+        // PostgreSQL refuses a late item for overtime a locked run already paid, even on a new draft adjustment.
+        $paid = (int) DB::table('hr_overtime_requests')->where('user_id', $aina->user_id)->where('local_date', '2026-11-12')->value('id');
+        $draft = DB::table('hr_payroll_runs')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id, 'pay_group_id' => $regular->pay_group_id,
+            'month' => $regular->month, 'kind' => 'adjustment', 'adjusts_run_id' => $regular->id, 'status' => 'draft', 'group_name' => $regular->group_name,
+            'prepared_by_user_id' => $this->hr->id, 'prepared_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        $this->assertRefused('23514', fn () => DB::table('hr_payroll_late_items')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id,
+            'run_id' => $draft, 'worker_id' => $aina->id, 'overtime_request_id' => $paid, 'added_by_user_id' => $this->hr->id, 'created_at' => now()]));
+
         // PostgreSQL refuses a late item on a locked run and refuses to change or remove one there.
         $adjustmentId = (int) DB::table('hr_payroll_runs')->where('public_id', $adjustment)->value('id');
         $this->assertRefused('23514', fn () => DB::table('hr_payroll_late_items')->insert(['public_id' => (string) Str::uuid(), 'organisation_id' => $aina->organisation_id,
