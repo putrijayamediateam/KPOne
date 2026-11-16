@@ -151,3 +151,7 @@ Lajur “Current price” menunjukkan harga yang berkuat kuasa sekarang; harga b
 ## Sejarah perubahan pesakit
 
 Pada halaman pesakit, bahagian “Change history” menunjukkan siapa menukar bahagian rekod dan bila. Nilai lama dan baharu tidak dipaparkan. Pilih “Show older changes” untuk melihat perubahan lebih awal.
+
+## Halaman inventori yang lebih baharu
+
+Halaman berikut kini wujud di bawah “Inventory” (nama halaman seperti pada tajuknya): “Purchase requests”, “Supplier invoices”, “Reorder suggestions”, “Stock other branches need”, “Supplier price list”, “Controlled register”, “Recalls”, “Stock health”, “Stock value and cost” dan “Import opening stock”. Langkah demi langkah untuk setiap satu belum diikuti pada skrin sebenar untuk panduan ini, jadi tiada langkah ditulis di sini: [PERLU DISAHKAN]. Jangan bergantung pada panduan ini untuk halaman tersebut; ikut skrin dan minta pengendali klinik jika ragu. Beberapa halaman ini memerlukan kebenaran yang tidak dipegang semua akaun; jika halaman tiada pada akaun anda, ia tidak dibenarkan untuk anda.
