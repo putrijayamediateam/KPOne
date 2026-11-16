@@ -1,8 +1,6 @@
 <script setup lang="ts">
 // HR-5a add or renew (HR-PLAN 12.2): the dates, the issuing body, the reference and an evidence file, which goes to the
 // HR-4b vault as a Certificate. A health item asks only Done or Not done and the date. Someone else checks it.
-import { router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
@@ -17,89 +15,15 @@ import {
     SheetTitle,
 } from '@/components/ui/sheet';
 import { ErrorState } from '@/components/ui/state';
-import type { CredentialTypeHead } from './types';
 
-const props = defineProps<{
-    open: boolean;
-    type: CredentialTypeHead | null;
-    /** Where the record is sent: your own, or a person's from the register. */
-    url: string;
-    /** "Renew" when a version is already in force. */
-    renewing: boolean;
-    /** The person's name when a manager enters it for them. */
-    person?: string | null;
-}>();
+import { useCredentialRecordSheet } from '@/composables/hr/useCredentialRecordSheet';
+import type { RecordSheetProps } from '@/composables/hr/useCredentialRecordSheet';
+
+const props = defineProps<RecordSheetProps>();
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
 
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const form = reactive({
-    issuedOn: '',
-    expiresOn: '',
-    issuingBody: '',
-    reference: '',
-    health: '',
-    file: null as File | null,
-    key: '',
-    processing: false,
-});
-watch(
-    () => props.open,
-    (open) => {
-        if (open) {
-            Object.assign(form, {
-                issuedOn: '',
-                expiresOn: '',
-                issuingBody: '',
-                reference: '',
-                health: '',
-                file: null,
-                key: crypto.randomUUID(),
-            });
-        }
-    },
-);
-const healthOptions = [
-    { value: 'done', label: 'Done' },
-    { value: 'not_done', label: 'Not done' },
-];
-const title = computed(() =>
-    props.type
-        ? `${props.renewing ? 'Renew' : 'Add'} ${props.type.name}`
-        : 'Add a credential',
-);
-const onFile = (event: Event) => {
-    form.file = (event.target as HTMLInputElement).files?.[0] ?? null;
-};
-const send = () => {
-    if (!props.type) {
-        return;
-    }
-
-    form.processing = true;
-    const health = props.type.healthItem;
-    router.post(
-        props.url,
-        {
-            type_id: props.type.typeId,
-            issued_on: health && form.health !== 'done' ? '' : form.issuedOn,
-            expires_on: props.type.expires ? form.expiresOn : '',
-            issuing_body: health ? '' : form.issuingBody,
-            reference: health ? '' : form.reference,
-            health: health ? form.health : '',
-            ...(form.file && !health ? { file: form.file } : {}),
-            idempotency_key: form.key,
-        },
-        {
-            forceFormData: true,
-            preserveScroll: true,
-            onSuccess: () => emit('update:open', false),
-            onFinish: () => (form.processing = false),
-        },
-    );
-};
+const { errors, form, healthOptions, title, onFile, send } =
+    useCredentialRecordSheet(props, () => emit('update:open', false));
 </script>
 
 <template>
