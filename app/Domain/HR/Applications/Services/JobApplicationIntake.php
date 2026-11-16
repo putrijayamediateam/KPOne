@@ -31,10 +31,10 @@ final class JobApplicationIntake
 
     public const HONEYPOT = 'website';
 
-    // Applicants see English and Bahasa Melayu side by side (owner, 2026-11-07).
-    public const ALREADY_SENT = 'This form was already sent. Reload the page to apply again. / Borang ini sudah dihantar. Muat semula halaman untuk memohon lagi.';
+    // Applicants see English only (owner, 2026-11-16).
+    public const ALREADY_SENT = 'This form was already sent. Reload the page to apply again.';
 
-    public const NOT_PDF = 'Your CV must be a PDF file. / CV anda mestilah fail PDF.';
+    public const NOT_PDF = 'Your CV must be a PDF file.';
 
     public function __construct(private AuditRecorder $audit, private HiringMessenger $messenger) {}
 
@@ -93,7 +93,7 @@ final class JobApplicationIntake
 
     public static function privacyVersion(): string
     {
-        return (string) config('hr-applications.privacy_notice_version', 'draft-hr17-applications-v1');
+        return (string) config('hr-applications.privacy_notice_version', 'draft-hr17-applications-en-v2');
     }
 
     /**
@@ -137,10 +137,10 @@ final class JobApplicationIntake
             DB::transaction(function () use ($fields, $prepared, $nonce, $type, &$path, $token, $tokenHash): void {
                 $position = DB::table('hr_job_positions')->where('public_id', $fields['position'])->sharedLock()->first();
                 if ($position === null || ! $position->is_open || (int) $position->organisation_id !== self::organisationId()) {
-                    throw ValidationException::withMessages(['position' => 'This position is no longer open. Choose another. / Jawatan ini sudah ditutup. Pilih jawatan lain.']);
+                    throw ValidationException::withMessages(['position' => 'This position is no longer open. Choose another.']);
                 }
                 if ((string) $position->position_type !== $type) {
-                    throw ValidationException::withMessages(['position' => 'This position changed. Reload the page and check your answers. / Jawatan ini telah berubah. Muat semula halaman dan semak jawapan anda.']);
+                    throw ValidationException::withMessages(['position' => 'This position changed. Reload the page and check your answers.']);
                 }
                 if (DB::table('hr_job_applications')->where('form_nonce', $nonce)->exists()) {
                     throw ValidationException::withMessages(['form' => self::ALREADY_SENT]);
@@ -149,7 +149,7 @@ final class JobApplicationIntake
                 $path = "hr-applications/{$position->organisation_id}/{$publicId}.bin";
                 if (! Storage::disk(self::DISK)->put($path, Crypt::encryptString($prepared['content']))) {
                     $path = null;
-                    throw ValidationException::withMessages(['cv' => 'Your CV could not be saved. Try again. / CV anda tidak dapat disimpan. Cuba lagi.']);
+                    throw ValidationException::withMessages(['cv' => 'Your CV could not be saved. Try again.']);
                 }
                 $now = now()->utc();
                 try {
@@ -159,7 +159,7 @@ final class JobApplicationIntake
                         'message_encrypted' => $fields['message'] === null ? null : Crypt::encryptString($fields['message']),
                         'details_encrypted' => Crypt::encryptString(json_encode($fields['details'], JSON_THROW_ON_ERROR)),
                         'talent_pool_consent' => $fields['talent_pool_consent'],
-                        'talent_pool_text_version' => $fields['talent_pool_consent'] ? (string) config('hr-applications.pool_text_version', 'draft-hr17e-pool-v1') : null,
+                        'talent_pool_text_version' => $fields['talent_pool_consent'] ? (string) config('hr-applications.pool_text_version', 'draft-hr17e-pool-en-v2') : null,
                         'cv_path' => $path, 'cv_bytes' => $prepared['bytes'], 'cv_sha256' => $prepared['sha256'],
                         'privacy_notice_version' => self::privacyVersion(), 'form_nonce' => $nonce, 'submitted_at' => $now,
                         'status_token_hash' => $tokenHash, 'stage_entered_at' => $now,
@@ -195,7 +195,7 @@ final class JobApplicationIntake
     private function nonce(mixed $token, ?bool &$robot): string
     {
         $robot = false;
-        $stale = ValidationException::withMessages(['form' => 'This form has expired. Reload the page and try again. / Borang ini sudah tamat tempoh. Muat semula halaman dan cuba lagi.']);
+        $stale = ValidationException::withMessages(['form' => 'This form has expired. Reload the page and try again.']);
         if (! is_string($token) || $token === '' || strlen($token) > 1024) {
             throw $stale;
         }
@@ -226,26 +226,26 @@ final class JobApplicationIntake
         $errors = [];
         $position = is_string($input['position'] ?? null) ? $input['position'] : '';
         if (! Str::isUuid($position)) {
-            $errors['position'] = 'Choose the position you are applying for. / Pilih jawatan yang anda mohon.';
+            $errors['position'] = 'Choose the position you are applying for.';
         }
         $name = $text('name');
         if (mb_strlen($name) < 2 || mb_strlen($name) > 100) {
-            $errors['name'] = 'Enter your name (2 to 100 characters). / Masukkan nama anda (2 hingga 100 aksara).';
+            $errors['name'] = 'Enter your name (2 to 100 characters).';
         }
         $phone = $text('phone');
         if (preg_match('/^\+?[0-9][0-9 \-]{6,18}[0-9]$/', $phone) !== 1) {
-            $errors['phone'] = 'Enter a phone number we can call, for example 012-345 6789. / Masukkan nombor telefon yang boleh dihubungi, contohnya 012-345 6789.';
+            $errors['phone'] = 'Enter a phone number we can call, for example 012-345 6789.';
         }
         $email = $text('email');
         if (mb_strlen($email) > 120 || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
-            $errors['email'] = 'Enter an email address, for example name@example.com. / Masukkan alamat e-mel, contohnya nama@example.com.';
+            $errors['email'] = 'Enter an email address, for example name@example.com.';
         }
         $raw = is_string($input['message'] ?? null) ? trim($input['message']) : '';
         if (mb_strlen($raw) > 1000) {
-            $errors['message'] = 'Use at most 1,000 characters. / Gunakan tidak lebih 1,000 aksara.';
+            $errors['message'] = 'Use at most 1,000 characters.';
         }
         if (! filter_var($input['privacy_accepted'] ?? false, FILTER_VALIDATE_BOOL)) {
-            $errors['privacy_accepted'] = 'Read the privacy notice and tick the box to apply. / Baca notis privasi dan tandakan kotak untuk memohon.';
+            $errors['privacy_accepted'] = 'Read the privacy notice and tick the box to apply.';
         }
         $details = self::details($input, $type, $errors);
         if ($errors !== []) {
@@ -283,32 +283,32 @@ final class JobApplicationIntake
         $branch = $text('preferred_branch');
         $codes = array_column(self::branches(self::organisationId()), 'value');
         if ($branch !== 'any' && ! in_array($branch, $codes, true)) {
-            $errors['preferred_branch'] = 'Choose a branch, or "Any branch". / Pilih cawangan, atau "Mana-mana cawangan".';
+            $errors['preferred_branch'] = 'Choose a branch, or "Any branch".';
         }
         $details['preferred_branch'] = $branch;
         $start = $date('start_date');
         if ($start === null || $start->lt($today) || $start->gt($today->addYear())) {
-            $errors['start_date'] = 'Enter the earliest date you can start, within the next year. / Masukkan tarikh terawal anda boleh mula, dalam tempoh setahun.';
+            $errors['start_date'] = 'Enter the earliest date you can start, within the next year.';
         }
         $details['start_date'] = $start?->toDateString();
         $education = $text('education');
         if (! isset(self::EDUCATION[$education])) {
-            $errors['education'] = 'Choose your highest education. / Pilih pendidikan tertinggi anda.';
+            $errors['education'] = 'Choose your highest education.';
         }
         $details['education'] = $education;
         $years = filter_var($input['years_experience'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => 0, 'max_range' => 50]]);
         if ($years === false) {
-            $errors['years_experience'] = 'Enter your years of relevant work, from 0 to 50. / Masukkan tahun pengalaman kerja berkaitan, dari 0 hingga 50.';
+            $errors['years_experience'] = 'Enter your years of relevant work, from 0 to 50.';
         }
         $details['years_experience'] = $years === false ? null : $years;
         $languages = is_array($input['languages'] ?? null) ? array_values(array_unique(array_filter($input['languages'], 'is_string'))) : [];
         if ($languages === [] || array_diff($languages, array_keys(self::LANGUAGES)) !== []) {
-            $errors['languages'] = 'Choose the languages you speak. / Pilih bahasa yang anda tuturkan.';
+            $errors['languages'] = 'Choose the languages you speak.';
         }
         $details['languages'] = $languages;
 
         if ($type === 'intern') {
-            foreach (['institution' => 'Enter your college or university. / Masukkan kolej atau universiti anda.', 'programme' => 'Enter your course or programme. / Masukkan kursus atau program anda.'] as $key => $message) {
+            foreach (['institution' => 'Enter your college or university.', 'programme' => 'Enter your course or programme.'] as $key => $message) {
                 $value = $text($key);
                 if (mb_strlen($value) < 2 || mb_strlen($value) > 120) {
                     $errors[$key] = $message;
@@ -318,7 +318,7 @@ final class JobApplicationIntake
             $from = $date('intern_from');
             $to = $date('intern_to');
             if ($from === null || $to === null || $to->lt($from) || $from->lt($today) || $to->gt($today->addYears(2))) {
-                $errors['intern_from'] = 'Enter when your internship starts and ends. / Masukkan tarikh latihan industri anda bermula dan tamat.';
+                $errors['intern_from'] = 'Enter when your internship starts and ends.';
             }
             $details['intern_from'] = $from?->toDateString();
             $details['intern_to'] = $to?->toDateString();
@@ -326,24 +326,24 @@ final class JobApplicationIntake
         if ($type === 'locum') {
             $value = $text('availability');
             if (mb_strlen($value) < 5 || mb_strlen($value) > 300) {
-                $errors['availability'] = 'Tell us the days and times you are usually free (5 to 300 characters). / Nyatakan hari dan masa anda biasanya lapang (5 hingga 300 aksara).';
+                $errors['availability'] = 'Tell us the days and times you are usually free (5 to 300 characters).';
             }
             $details['availability'] = $value;
         }
         if ($type === 'resident_doctor') {
             $mmc = $text('mmc_number');
             if (preg_match('/^[0-9]{3,7}$/', $mmc) !== 1) {
-                $errors['mmc_number'] = 'Enter your MMC registration number (digits only). / Masukkan nombor pendaftaran MMC anda (nombor sahaja).';
+                $errors['mmc_number'] = 'Enter your MMC registration number (digits only).';
             }
             $details['mmc_number'] = $mmc;
             $year = filter_var($input['apc_year'] ?? null, FILTER_VALIDATE_INT, ['options' => ['min_range' => $today->year - 1, 'max_range' => $today->year + 1]]);
             if ($year === false) {
-                $errors['apc_year'] = 'Enter the year of your current APC. / Masukkan tahun APC semasa anda.';
+                $errors['apc_year'] = 'Enter the year of your current APC.';
             }
             $details['apc_year'] = $year === false ? null : $year;
             $expiry = $date('apc_expiry');
             if ($expiry === null || $expiry->gt($today->addYears(2))) {
-                $errors['apc_expiry'] = 'Enter the date your APC expires. / Masukkan tarikh APC anda tamat.';
+                $errors['apc_expiry'] = 'Enter the date your APC expires.';
             }
             $details['apc_expiry'] = $expiry?->toDateString();
         }
@@ -354,19 +354,19 @@ final class JobApplicationIntake
     /** @var array<string, string> */
     public const EDUCATION = [
         'spm' => 'SPM',
-        'stpm_diploma' => 'STPM, diploma or certificate / STPM, diploma atau sijil',
-        'degree' => 'Degree / Ijazah',
-        'postgraduate' => 'Master\'s or higher / Sarjana atau lebih tinggi',
-        'other' => 'Other / Lain-lain',
+        'stpm_diploma' => 'STPM, diploma or certificate',
+        'degree' => 'Degree',
+        'postgraduate' => 'Master\'s or higher',
+        'other' => 'Other',
     ];
 
     /** @var array<string, string> */
     public const LANGUAGES = [
         'malay' => 'Bahasa Melayu',
         'english' => 'English',
-        'chinese' => 'Chinese / Cina',
+        'chinese' => 'Chinese',
         'tamil' => 'Tamil',
-        'other' => 'Other / Lain-lain',
+        'other' => 'Other',
     ];
 
     /** The position's type for choosing which questions to check; a missing or unknown position counts as 'ca'. */
@@ -399,7 +399,7 @@ final class JobApplicationIntake
     public static function prepareCv(mixed $file): array
     {
         if (! $file instanceof UploadedFile || ! $file->isValid()) {
-            throw ValidationException::withMessages(['cv' => 'Attach your CV as a PDF. / Lampirkan CV anda dalam bentuk PDF.']);
+            throw ValidationException::withMessages(['cv' => 'Attach your CV as a PDF.']);
         }
         if ((string) (new \finfo(FILEINFO_MIME_TYPE))->file((string) $file->getRealPath()) !== 'application/pdf') {
             throw ValidationException::withMessages(['cv' => self::NOT_PDF]);
@@ -408,8 +408,8 @@ final class JobApplicationIntake
             $prepared = LeaveEvidenceFiles::prepare($file, 'cv', self::CV_MAX_BYTES);
         } catch (ValidationException $e) {
             throw ValidationException::withMessages(['cv' => str_contains((string) ($e->errors()['cv'][0] ?? ''), 'MB')
-                ? 'Your CV is over 5 MB. / CV anda melebihi 5 MB.'
-                : "This PDF can't be opened. Save it again and try once more. / PDF ini tidak dapat dibuka. Simpan semula dan cuba lagi."]);
+                ? 'Your CV is over 5 MB.'
+                : "This PDF can't be opened. Save it again and try once more."]);
         }
         if ($prepared['kind'] !== 'pdf') {
             throw ValidationException::withMessages(['cv' => self::NOT_PDF]);

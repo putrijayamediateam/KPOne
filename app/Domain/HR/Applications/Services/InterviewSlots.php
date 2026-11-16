@@ -127,7 +127,7 @@ final class InterviewSlots
     {
         $starts = array_values(array_unique(array_filter(is_array($input['starts'] ?? null) ? $input['starts'] : [], 'is_string')));
         if (count($starts) !== self::PICKS) {
-            throw ValidationException::withMessages(['starts' => 'Choose exactly three times. / Pilih tepat tiga masa.']);
+            throw ValidationException::withMessages(['starts' => 'Choose exactly three times.']);
         }
         DB::transaction(function () use ($token, $starts, $links): void {
             $row = $links->resolve($token, true);
@@ -135,16 +135,16 @@ final class InterviewSlots
                 throw ValidationException::withMessages(['link' => CandidateLink::INVALID]);
             }
             if ($row->status !== 'scheduling') {
-                throw ValidationException::withMessages(['starts' => 'Times can be chosen only while the clinic is arranging your interview. / Masa boleh dipilih hanya semasa klinik mengatur temu duga anda.']);
+                throw ValidationException::withMessages(['starts' => 'Times can be chosen only while the clinic is arranging your interview.']);
             }
             if (DB::table('hr_job_interview_picks')->where('application_id', $row->id)->where('round', $row->interview_round)->exists()) {
-                throw ValidationException::withMessages(['starts' => 'Your times are already with the clinic. / Masa anda sudah dihantar kepada klinik.']);
+                throw ValidationException::withMessages(['starts' => 'Your times are already with the clinic.']);
             }
             $branch = $this->branchFor($row);
             $offered = collect($this->available($row))->flatMap(fn (array $d): array => array_column($d['slots'], 'start'))->flip()->all();
             foreach ($starts as $start) {
                 if (! isset($offered[$start])) {
-                    throw ValidationException::withMessages(['starts' => 'One of those times is no longer free. Choose again. / Salah satu masa itu tidak lagi kosong. Pilih semula.']);
+                    throw ValidationException::withMessages(['starts' => 'One of those times is no longer free. Choose again.']);
                 }
             }
             sort($starts);
