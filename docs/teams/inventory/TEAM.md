@@ -309,6 +309,12 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
 
 ## 7. Open items and known limits
 
+- **Recall lifting with one Director (owner, 16 Nov 2026: "note it, decide before go-live"):** only a Director
+  holds `inventory.recalls.lift.organisation`, and the Director who started a recall can never lift it (STK-25:
+  service and PostgreSQL). With one Director, a recall started in the pilot cannot be lifted. Options to decide
+  before go-live: (a) a second Director account; or (b) let a Finance Officer lift a recall a Director started,
+  which grants a new permission and needs the owner's approval. Found while checking Kavitha's guide (#906); the
+  guide says it plainly.
 - **Planned, not built:** STK-10 valuation (accountant policy first). STK-10B (cost evidence) is merged; its
   limits: opening balances still take a whole-sen cost per stock unit with no cost source; the legacy goods
   receipt line keeps only `unit_cost_sen`; Ask KPOne does not show `cost_total_sen` or `cost_source` until the

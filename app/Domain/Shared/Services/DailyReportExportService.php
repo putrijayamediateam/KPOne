@@ -47,7 +47,7 @@ final class DailyReportExportService
                     $rows[] = [$date->toDateString(), ReportCsv::money($values[$date->toDateString()] ?? 0), (string) ($patients[$date->toDateString()] ?? 0)];
                 }
                 $headings = ['Local date', 'Net invoice sales (MYR)', 'Distinct patients'];
-                $basis = 'Invoice finalisation date in each branch timezone; current adjusted payable. Later adjustments restate that original date. Not receipt-date money.';
+                $basis = 'Invoice finalisation date in each branch timezone; current adjusted payable. Later invoice adjustments restate that original date. Refund credits and Panel claim adjustments count on the day they were approved or confirmed. Not receipt-date money.';
             } else {
                 foreach ($data['report']['dailyReceipts'] as $row) {
                     $rows[] = [$row['date'], $row['methodCode'], $row['method'], ReportCsv::money($row['receiptsSen']), ReportCsv::money($row['reversedSen']), ReportCsv::money($row['netSen'])];

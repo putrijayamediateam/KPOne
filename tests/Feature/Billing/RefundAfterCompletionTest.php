@@ -222,7 +222,8 @@ class RefundAfterCompletionTest extends BillingTestCase
         $sale = $report($saleDay);
         $this->assertSame([4000, 0, 4000], [$sale['totalSen'], $sale['reconciliation']['refundCreditsSen'], $sale['reconciliation']['netSen']]);
         $approval = $report($approvalDay);
-        $this->assertSame(['grossSen' => 0, 'discountsSen' => 0, 'surchargesSen' => 0, 'refundCreditsSen' => 1500, 'netSen' => -1500], $approval['reconciliation']);
+        // PCA-3: the Panel claim adjustments row (owner-approved test change).
+        $this->assertSame(['grossSen' => 0, 'discountsSen' => 0, 'surchargesSen' => 0, 'refundCreditsSen' => 1500, 'panelAdjustmentsSen' => 0, 'netSen' => -1500], $approval['reconciliation']);
         $this->assertSame(-1500, $approval['totalSen']);
         $both = app(ClinicInsightsReportService::class)->report($director, 'sales', 'all', $saleDay->toDateString(), $approvalDay->toDateString(), null)['report']['summary'];
         $this->assertSame([2500, 4000, 1500], [$both['totalSen'], $both['newSen'] + $both['returningSen'], $both['reconciliation']['refundCreditsSen']]);
