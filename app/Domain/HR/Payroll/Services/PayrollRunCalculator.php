@@ -32,6 +32,9 @@ final class PayrollRunCalculator
         'net_negative' => 'Net pay below zero',
         'unreadable_amount' => 'A saved amount could not be read. Check the pay profile',
         'late_no_profile' => 'Overtime approved after the lock needs a confirmed pay profile to work it out',
+        'late_leave_no_profile' => 'Unpaid leave approved after the lock needs a confirmed monthly pay profile to work it out',
+        'late_hours_not_hourly' => 'Hours corrected after the lock need a confirmed hourly pay profile to work them out',
+        'late_hours_unknown' => 'The hours the locked run paid for are not recorded: add this correction as a manual line',
     ];
 
     public const WARNINGS = [
@@ -59,16 +62,20 @@ final class PayrollRunCalculator
 
     private string $kind = 'regular';
 
-    public function __construct(private AttendanceTotals $attendance) {}
+    /** @var array<int, int> worked minutes per hourly worker id, kept on the run person (G2b); not part of the fingerprint */
+    private array $worked = [];
+
+    public function __construct(private AttendanceTotals $attendance, private LateAfterLock $lateAfterLock) {}
 
     /**
      * @param  array<int, int>  $mtd  sen per worker id
-     * @return array{people: array<int, array{workerId:int, profileId:?int, lines:list<array<string, mixed>>, errors:list<string>, warnings:list<string>, totals:array<string,int>}>, versions: array<string, mixed>, fingerprint: string}
+     * @return array{people: array<int, array{workerId:int, profileId:?int, lines:list<array<string, mixed>>, errors:list<string>, warnings:list<string>, totals:array<string,int>}>, versions: array<string, mixed>, fingerprint: string, worked: array<int, int>}
      */
     public function calculate(int $org, \stdClass $run, array $mtd): array
     {
         $this->kind = (string) $run->kind;
         $this->unreadable = false;
+        $this->worked = [];
         $start = CarbonImmutable::parse((string) $run->month)->startOfMonth();
         $end = $start->endOfMonth()->startOfDay();
         $from = $start->toDateString();
@@ -86,10 +93,17 @@ final class PayrollRunCalculator
             $manualByWorker = DB::table('hr_payroll_manual_lines')->where('run_id', $run->id)->orderBy('id')->get()->groupBy('worker_id');
             // G2a: overtime approved after the regular run was locked, added here by HR; worked out like any overtime line.
             $lateByWorker = DB::table('hr_payroll_late_items as i')->join('hr_overtime_requests as o', 'o.id', '=', 'i.overtime_request_id')
-                ->where('i.run_id', $run->id)->where('o.status', 'approved')->orderBy('o.local_date')->orderBy('o.id')
+                ->where('i.run_id', $run->id)->where('i.kind', 'overtime')->where('o.status', 'approved')->orderBy('o.local_date')->orderBy('o.id')
                 ->get(['i.worker_id', 'o.id', 'o.local_date', 'o.minutes_approved', 'o.multiplier', 'o.day_type'])->groupBy('worker_id');
+            // G2b: unpaid leave cancelled or approved after the lock, and hourly people whose worked hours changed.
+            $leaveByWorker = DB::table('hr_payroll_late_items as i')->join('hr_leave_requests as q', 'q.id', '=', 'i.leave_request_id')
+                ->where('i.run_id', $run->id)->whereIn('i.kind', ['leave_cancelled', 'leave_approved'])
+                ->whereRaw("q.status = CASE i.kind WHEN 'leave_cancelled' THEN 'cancelled' ELSE 'approved' END")
+                ->orderBy('q.start_date')->orderBy('q.id')->get(['i.worker_id', 'i.kind', 'q.id', 'q.start_date', 'q.end_date', 'q.halves'])->groupBy('worker_id');
+            $hoursFor = DB::table('hr_payroll_late_items')->where('run_id', $run->id)->where('kind', 'hours')->pluck('worker_id')->map(fn ($v): int => (int) $v)->all();
+            $regular = $run->adjusts_run_id === null ? null : DB::table('hr_payroll_runs')->where('id', $run->adjusts_run_id)->first();
             $workerIds = array_values(array_unique([...$manualByWorker->keys()->map(fn ($v): int => (int) $v)->all(),
-                ...$lateByWorker->keys()->map(fn ($v): int => (int) $v)->all()]));
+                ...$lateByWorker->keys()->map(fn ($v): int => (int) $v)->all(), ...$leaveByWorker->keys()->map(fn ($v): int => (int) $v)->all(), ...$hoursFor]));
             sort($workerIds);
             // S3 (owner, 16 Nov 2026): statutory parts on the difference, from the same checked tables as the regular run.
             $profiles = DB::table('hr_pay_profiles')->where('organisation_id', $org)->whereIn('worker_id', $workerIds)->where('status', 'confirmed')
@@ -118,6 +132,18 @@ final class PayrollRunCalculator
                         foreach ($late as $o) {
                             $lines[] = $this->overtimeLine($o, $hourly, (int) $this->decrypt((string) $profile->rate_encrypted), $rates, $type, true);
                         }
+                    }
+                }
+                foreach ($leaveByWorker->get($workerId, collect()) as $l) {
+                    $line = $this->lateLeaveLine($org, $l, $profile, $rates, $lineTypes, $types, $errors, $versions);
+                    if ($line !== null) {
+                        $lines[] = $line;
+                    }
+                }
+                if (in_array((int) $workerId, $hoursFor, true)) {
+                    $line = $this->lateHoursLine($org, (int) $workerId, $regular, $profile, $errors);
+                    if ($line !== null) {
+                        $lines[] = $line;
                     }
                 }
                 if (! $profile instanceof \stdClass) {
@@ -200,6 +226,7 @@ final class PayrollRunCalculator
                     'profile', (int) $profile->id);
             } else {
                 $worked = $this->attendance->worked($org, [(int) $worker->user_id], $start, $end)[(int) $worker->user_id]['minutes'] ?? 0;
+                $this->worked[(int) $workerId] = (int) $worked;
                 $lines[] = $this->line('hourly', 'earnings', PayrollMath::fraction([$rate, $worked], 60), 'Worked hours · '.self::duration($worked).' × '.PayrollMoney::rm($rate).' an hour',
                     'profile', (int) $profile->id);
             }
@@ -429,7 +456,7 @@ final class PayrollRunCalculator
     /**
      * @param  array<int, array{workerId:int, profileId:?int, lines:list<array<string, mixed>>, errors:list<string>, warnings:list<string>, totals:array<string,int>}>  $people
      * @param  array<string, mixed>  $versions
-     * @return array{people: array<int, array{workerId:int, profileId:?int, lines:list<array<string, mixed>>, errors:list<string>, warnings:list<string>, totals:array<string,int>}>, versions: array<string, mixed>, fingerprint: string}
+     * @return array{people: array<int, array{workerId:int, profileId:?int, lines:list<array<string, mixed>>, errors:list<string>, warnings:list<string>, totals:array<string,int>}>, versions: array<string, mixed>, fingerprint: string, worked: array<int, int>}
      */
     private function result(array $people, array $versions): array
     {
@@ -440,7 +467,9 @@ final class PayrollRunCalculator
         }
         ksort($people);
 
-        return ['people' => $people, 'versions' => $versions, 'fingerprint' => hash('sha256', json_encode([$people, $versions], JSON_THROW_ON_ERROR))];
+        // Worked minutes stay outside the fingerprint: they come from the same sessions as the hourly lines it covers.
+        return ['people' => $people, 'versions' => $versions, 'fingerprint' => hash('sha256', json_encode([$people, $versions], JSON_THROW_ON_ERROR)),
+            'worked' => $this->worked];
     }
 
     /**
@@ -458,6 +487,86 @@ final class PayrollRunCalculator
 
         return $this->line('manual', $section, (int) $this->decrypt((string) $m->amount_encrypted), (string) ($type->name ?? 'Manual line').' · '
             .(PayrollRunService::MANUAL_REASONS[$m->reason_code] ?? (string) $m->reason_code), 'manual', (int) $m->id, (int) $m->item_type_id, (int) $m->item_type_version);
+    }
+
+    /**
+     * G2b: unpaid leave changed after the lock. Cancelled leave gives back exactly what the locked runs took off pay,
+     * with the same pay item type; leave approved after the lock is worked out like the regular run's deduction.
+     *
+     * @param  Collection<string, \stdClass>  $types
+     * @param  list<string>  $errors
+     * @param  array<string, mixed>  $versions
+     * @return array<string, mixed>|null
+     */
+    private function lateLeaveLine(int $org, \stdClass $l, ?\stdClass $profile, ?\stdClass $rates, ?\stdClass $lineTypes, Collection $types, array &$errors, array &$versions): ?array
+    {
+        $from = CarbonImmutable::parse((string) $l->start_date)->format('j M');
+        if ($l->kind === 'leave_cancelled') {
+            $taken = DB::table('hr_payroll_lines as x')->join('hr_payroll_runs as r', 'r.id', '=', 'x.run_id')->where('r.organisation_id', $org)
+                ->where('r.status', 'locked')->where('x.source_kind', 'leave')->where('x.source_id', $l->id)->orderBy('x.id')
+                ->get(['x.section', 'x.amount_encrypted', 'x.item_type_id', 'x.item_type_version']);
+            $amount = 0;
+            foreach ($taken as $t) {
+                $value = (int) $this->decrypt((string) $t->amount_encrypted, true);
+                $amount += $t->section === 'deduction' ? $value : -$value;
+            }
+            $first = $taken->firstWhere('section', 'deduction');
+            if ($amount <= 0 || ! $first instanceof \stdClass) {
+                return null;
+            }
+            if ($first->item_type_id !== null) {
+                $versions['itemTypes'][] = $first->item_type_id.':'.$first->item_type_version;
+            }
+
+            return $this->line('unpaid_leave', 'earnings', $amount, 'Unpaid leave cancelled after the lock · '.self::halves((int) $l->halves).' from '.$from,
+                'leave', (int) $l->id, $first->item_type_id === null ? null : (int) $first->item_type_id, $first->item_type_version === null ? null : (int) $first->item_type_version);
+        }
+        if (! $profile instanceof \stdClass || $profile->pay_type !== 'monthly') {
+            $errors[] = 'late_leave_no_profile';
+
+            return null;
+        }
+        $type = $this->lineType($lineTypes, 'unpaid_leave_type_id', $types, $errors, 'no_type_unpaid_leave', $versions);
+        if ($rates === null) {
+            $errors[] = 'no_rates';
+        }
+        $rate = (int) $this->decrypt((string) $profile->rate_encrypted);
+        $amount = $rates === null ? 0 : PayrollMath::fraction([$rate, 100, (int) $l->halves], (int) $rates->daily_divisor_hundredths * 2);
+
+        return $this->line('unpaid_leave', 'deduction', $amount, 'Unpaid leave · '.self::halves((int) $l->halves).' from '.$from.' · approved after the lock',
+            'leave', (int) $l->id, $type['id'], $type['version']);
+    }
+
+    /**
+     * G2b: an hourly person's worked hours changed after the lock. One line for the difference between the month's
+     * worked hours now and what the locked runs paid for, at the current hourly rate; the new total is kept.
+     *
+     * @param  list<string>  $errors
+     * @return array<string, mixed>|null
+     */
+    private function lateHoursLine(int $org, int $workerId, ?\stdClass $regular, ?\stdClass $profile, array &$errors): ?array
+    {
+        if (! $profile instanceof \stdClass || $profile->pay_type !== 'hourly') {
+            $errors[] = 'late_hours_not_hourly';
+
+            return null;
+        }
+        $worker = Worker::query()->find($workerId);
+        $hours = $regular instanceof \stdClass && $worker instanceof Worker ? $this->lateAfterLock->hoursFor($org, $regular, $worker) : null;
+        if ($hours === null) {
+            $errors[] = 'late_hours_unknown';
+
+            return null;
+        }
+        $this->worked[$workerId] = $hours['now'];
+        $rate = (int) $this->decrypt((string) $profile->rate_encrypted);
+        $amount = PayrollMath::fraction([$rate, $hours['now']], 60) - PayrollMath::fraction([$rate, $hours['was']], 60);
+        if ($amount === 0) {
+            return null;
+        }
+
+        return $this->line('hourly', $amount > 0 ? 'earnings' : 'deduction', abs($amount), 'Worked hours corrected after the lock · '
+            .self::duration($hours['was']).' → '.self::duration($hours['now']).' × '.PayrollMoney::rm($rate).' an hour', 'profile', (int) $profile->id);
     }
 
     /**
@@ -789,7 +898,7 @@ final class PayrollRunCalculator
         return $hundredths % 100 === 0 ? (string) intdiv($hundredths, 100) : rtrim(intdiv($hundredths, 100).'.'.str_pad((string) ($hundredths % 100), 2, '0', STR_PAD_LEFT), '0');
     }
 
-    private static function halves(int $halves): string
+    public static function halves(int $halves): string
     {
         $days = intdiv($halves, 2);
         $half = $halves % 2 === 1;

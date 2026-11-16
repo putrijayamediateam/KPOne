@@ -8,6 +8,7 @@ use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Photos\ClockPhotoLabels;
 use App\Domain\HR\Attendance\Photos\ClockPhotoStorageReport;
+use App\Domain\HR\Payroll\Services\LateAfterLock;
 use App\Domain\HR\Roster\Models\RosterShift;
 use App\Domain\HR\Roster\Services\RosterRules;
 use App\Domain\Identity\Models\StaffBranchAssignment;
@@ -281,11 +282,20 @@ final class AttendancePageService
         $branches = Branch::query()->whereIn('id', $corrections->pluck('branch_id')->unique())->get()->keyBy('id');
         $names = User::query()->whereIn('id', $corrections->pluck('user_id')->merge($corrections->pluck('proposed_by_user_id'))->unique())->pluck('name', 'id');
         $statuses = ['pending' => 'Correction waiting', 'approved' => 'Approved', 'rejected' => 'Rejected', 'cancelled' => 'Withdrawn'];
+        $dayOf = function (AttendanceCorrection $c) use ($sessions, $branches): mixed {
+            $session = $c->clock_session_id === null ? null : $sessions[$c->clock_session_id] ?? null;
 
-        return $corrections->map(function (AttendanceCorrection $c) use ($sessions, $branches, $names, $statuses, $actor): array {
+            return $session !== null ? $session->local_date : $c->proposed_in_at?->setTimezone($branches[$c->branch_id]->timezone ?? 'UTC')->startOfDay();
+        };
+        // G2b: an hourly person's correction in a month whose payroll is already locked is paid only on an adjustment run.
+        $lockedMonths = app(LateAfterLock::class)->lockedMonths($actor->organisation_id, $corrections
+            ->filter(fn (AttendanceCorrection $c): bool => $c->status === 'pending' && $actor->can(ClockPermissions::REVIEW) && $dayOf($c) !== null)
+            ->mapWithKeys(fn (AttendanceCorrection $c): array => [(int) $c->id => ['userId' => (int) $c->user_id, 'date' => CarbonImmutable::parse($dayOf($c))->toDateString()]])->all(), 'hourly');
+
+        return $corrections->map(function (AttendanceCorrection $c) use ($sessions, $branches, $names, $statuses, $actor, $dayOf, $lockedMonths): array {
             $zone = $branches[$c->branch_id]->timezone ?? 'UTC';
             $session = $c->clock_session_id === null ? null : $sessions[$c->clock_session_id] ?? null;
-            $day = $session !== null ? $session->local_date : $c->proposed_in_at?->setTimezone($zone)->startOfDay();
+            $day = $dayOf($c);
             $new = match ($c->kind) {
                 'change_in' => AttendanceSupport::time($c->proposed_in_at, $zone),
                 'set_out' => AttendanceSupport::time($c->proposed_out_at, $zone),
@@ -316,6 +326,7 @@ final class AttendancePageService
                 'lockVersion' => $c->lock_version,
                 // When the correction was sent (ISO, UTC), so the HR space can show how long the oldest has waited.
                 'sentAt' => CarbonImmutable::parse($c->created_at)->utc()->toIso8601String(),
+                'lockedMonth' => $lockedMonths[(int) $c->id] ?? null,
             ];
         })->values()->all();
     }

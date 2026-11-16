@@ -118,10 +118,12 @@ final class PayrollRunPageService
     }
 
     /**
-     * G2a: overtime approved after the regular run was locked. A locked regular run lists it; a draft adjustment of that
-     * run offers each item with "Add to this adjustment" (or, once added, "Take off").
+     * G2a and G2b: what changed after the regular run was locked (overtime, unpaid leave cancelled or approved, hourly
+     * people's worked hours). A locked regular run lists it; a draft adjustment of that run offers each item with "Add
+     * to this adjustment" (or, once added, "Take off"). No money is shown: amounts appear only as run lines.
      *
-     * @return list<array{id: string, name: string, date: string, duration: string, approvedAt: string, state: string, itemId: ?string}>
+     * @return list<array{kind: string, id: string, name: string, date: string, duration: string, days: string, was: string, now: string,
+     *     approvedAt: string, state: string, itemId: ?string}>
      */
     private function late(int $org, \stdClass $run): array
     {
@@ -129,12 +131,19 @@ final class PayrollRunPageService
         if (! $regular instanceof \stdClass || ($run->kind === 'adjustment' && $run->status !== 'draft')) {
             return [];
         }
-        $here = $run->kind === 'adjustment' ? DB::table('hr_payroll_late_items')->where('run_id', $run->id)->pluck('public_id', 'overtime_request_id') : collect();
+        $here = $run->kind === 'adjustment'
+            ? DB::table('hr_payroll_late_items')->where('run_id', $run->id)->get(['public_id', 'kind', 'overtime_request_id', 'leave_request_id', 'worker_id'])
+                ->mapWithKeys(fn (\stdClass $i): array => [LateAfterLock::key((string) $i->kind, (int) ($i->overtime_request_id ?? $i->leave_request_id ?? $i->worker_id)) => (string) $i->public_id])
+            : collect();
 
-        return array_map(fn (array $i): array => ['id' => $i['id'], 'name' => $i['name'], 'date' => $i['date'],
-            'duration' => PayrollRunCalculator::duration($i['minutes']), 'approvedAt' => $i['approvedAt'],
+        return array_map(fn (array $i): array => ['kind' => $i['kind'], 'id' => $i['id'], 'name' => $i['name'], 'date' => $i['date'],
+            'duration' => $i['kind'] === 'overtime' ? PayrollRunCalculator::duration($i['minutes']) : '',
+            'days' => str_starts_with($i['kind'], 'leave_') ? PayrollRunCalculator::halves($i['halves']) : '',
+            'was' => $i['kind'] === 'hours' ? PayrollRunCalculator::duration($i['wasMinutes']) : '',
+            'now' => $i['kind'] === 'hours' ? PayrollRunCalculator::duration($i['nowMinutes']) : '',
+            'approvedAt' => $i['at'],
             'state' => $i['inRunId'] === null ? 'waiting' : ($run->kind === 'adjustment' && $i['inRunId'] === (int) $run->id ? 'here' : 'elsewhere'),
-            'itemId' => $here->has($i['overtimeId']) ? (string) $here->get($i['overtimeId']) : null], $this->lateAfterLock->forRegularRun($org, $regular));
+            'itemId' => $here->get(LateAfterLock::key($i['kind'], $i['sourceId']))], $this->lateAfterLock->forRegularRun($org, $regular));
     }
 
     /**
