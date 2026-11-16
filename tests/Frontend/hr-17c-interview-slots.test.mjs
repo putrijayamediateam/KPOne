@@ -13,6 +13,8 @@ const files = {
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
+// The page's script now lives in the composable (setup only): read both.
+source.hr += read('resources/js/composables/hr/useApplicationsPage.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('both pages compile', () => {
@@ -26,7 +28,7 @@ test('both pages compile', () => {
     }
 });
 
-test('the candidate ticks exactly three times, in both languages, with 44 px targets', () => {
+test('the candidate ticks exactly three times, in English, with 44 px targets', () => {
     const t = template('status');
 
     for (const id of [
@@ -42,7 +44,7 @@ test('the candidate ticks exactly three times, in both languages, with 44 px tar
 
     assert.match(t, /chosen\.length !== 3/);
     assert.match(t, /Choose your interview times/);
-    assert.match(t, /Pilih masa temu duga anda/);
+    assert.match(t, /Choose your interview times/);
     assert.match(t, /min-h-11 cursor-pointer/);
     assert.match(source.status, /'\/careers\/status\/picks'/);
     assert.doesNotMatch(source.status, /localStorage|sessionStorage/);
@@ -79,8 +81,8 @@ test('Candidate sees collapsible days, their choices with Remove, the time zone 
         assert.ok(t.includes(`data-test="${id}"`), id);
     }
 
-    assert.match(t, /Your choices \/ Pilihan anda/);
-    assert.match(t, /Choose 3 times \/ Pilih 3 masa/);
+    assert.match(t, /Your choices/);
+    assert.match(t, /Choose 3 times/);
     assert.match(source.status, /ChevronRight/);
 });
 

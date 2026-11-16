@@ -181,7 +181,7 @@ class PostgresInterviewContentionTest extends TestCase
         $id = DB::table('hr_job_applications')->insertGetId(['public_id' => $publicId, 'organisation_id' => $f['organisation']->id, 'position_id' => $f['position'],
             'status' => 'new', 'name_encrypted' => Crypt::encryptString('Synthetic Applicant'), 'phone_encrypted' => Crypt::encryptString('012-345 6789'),
             'email_encrypted' => Crypt::encryptString('applicant@example.test'), 'cv_path' => 'hr-applications/synthetic.bin', 'cv_bytes' => 10,
-            'cv_sha256' => str_repeat('a', 64), 'privacy_notice_version' => 'draft-hr17-applications-v1', 'form_nonce' => bin2hex(random_bytes(16)),
+            'cv_sha256' => str_repeat('a', 64), 'privacy_notice_version' => 'draft-hr17-applications-en-v2', 'form_nonce' => bin2hex(random_bytes(16)),
             'submitted_at' => $now, 'stage_entered_at' => $now, 'lock_version' => 1, 'created_at' => $now, 'updated_at' => $now]);
         DB::table('hr_job_applications')->where('id', $id)->update(['status' => 'phone_screening', 'stage_entered_at' => $now]);
         DB::table('hr_job_screenings')->insert(['organisation_id' => $f['organisation']->id, 'application_id' => $id, 'ticked' => '[]', 'rating' => 4,

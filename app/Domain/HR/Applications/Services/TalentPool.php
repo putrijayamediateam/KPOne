@@ -141,7 +141,7 @@ final class TalentPool
             $application = $own->invited_from_application_id === null ? $own
                 : DB::table('hr_job_applications')->where('id', $own->invited_from_application_id)->lockForUpdate()->first();
             if ($application === null || ! $application->talent_pool_consent || $application->pool_withdrawn_at !== null) {
-                throw ValidationException::withMessages(['pool' => 'You are not in the talent pool. / Anda tiada dalam kumpulan bakat.']);
+                throw ValidationException::withMessages(['pool' => 'You are not in the talent pool.']);
             }
             DB::table('hr_job_applications')->where('id', $application->id)->update(['pool_withdrawn_at' => now()->utc(),
                 'lock_version' => (int) $application->lock_version + 1, 'updated_at' => now()->utc()]);
