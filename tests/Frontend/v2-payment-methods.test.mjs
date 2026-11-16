@@ -115,3 +115,27 @@ test('V2 warns in words before the last active method of a kind is deactivated, 
         /lock_version.*deactivate|deactivate.*lock_version/,
     );
 });
+
+// Bug fix: reka-ui 2.10.3's Checkbox uses `modelValue`, not `checked`, so `v-model:checked` never updated the form and a ticked
+// "Requires a transaction reference" always saved false. Classic and V2 now bind `modelValue` and write a real boolean back.
+test('the requires-reference checkbox binds modelValue on both layouts (ticking sends true, unticking sends false)', () => {
+    for (const [name, source] of [
+        ['classic', classic],
+        ['v2', v2],
+    ]) {
+        assert.ok(
+            !source.includes('v-model:checked'),
+            `${name} no v-model:checked`,
+        );
+
+        for (const form of ['createForm', 'editForm']) {
+            assert.match(
+                source,
+                new RegExp(
+                    `:model-value="${form}\\.requires_reference"\\s+@update:model-value="\\s*${form}\\.requires_reference = \\$event === true\\s*"`,
+                ),
+                `${name} ${form} binds modelValue and writes a boolean`,
+            );
+        }
+    }
+});

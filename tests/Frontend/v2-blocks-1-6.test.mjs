@@ -35,7 +35,7 @@ test('V2Tabs: tablist with roving tabindex, arrow keys, trailing slot and the se
     assert.match(s, /:tabindex="tab\.value === modelValue \? 0 : -1"/);
     assert.match(s, /ArrowRight/);
     assert.match(s, /Home/);
-    assert.match(s, /scrollIntoView/);
+    assert.match(s, /el\.scrollTo\(/);
     assert.match(s, /name="trailing"|\$slots\.trailing/);
     assert.match(s, /rounded-full/);
     assert.match(s, /h-11[^"]*lg:h-9/);

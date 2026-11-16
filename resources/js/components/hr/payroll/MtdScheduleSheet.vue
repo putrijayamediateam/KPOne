@@ -131,10 +131,10 @@ const rowError = (i: number, field: string) =>
             <SheetHeader>
                 <SheetTitle>Enter an MTD schedule</SheetTitle>
                 <SheetDescription>
-                    Copy the year's schedule and reliefs as the clinic's
-                    accountant gives them. Someone else checks it before KPOne
-                    works out MTD with it, and a checked schedule never changes;
-                    a correction is a new schedule.
+                    Copy the year's schedule and reliefs from LHDN's published
+                    schedule. Someone else checks it before KPOne works out MTD
+                    with it, and a checked schedule never changes; a correction
+                    is a new schedule.
                 </SheetDescription>
             </SheetHeader>
             <form class="flex flex-col gap-4 px-4 pb-6" @submit.prevent="send">

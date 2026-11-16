@@ -128,11 +128,14 @@ const requestThese = () => {
     }));
     sendErrors.value = {};
     localErrors.value = {};
+    // STK-39: a new key for each request sheet; a retry from the same sheet reuses it.
+    sendKey.value = crypto.randomUUID();
     sendOpen.value = true;
 };
 
 // Checked here first so the person sees why at once; the server checks the same and decides.
 const localErrors = ref<Record<string, string>>({});
+const sendKey = ref(crypto.randomUUID());
 const checkLines = (): boolean => {
     localErrors.value = {};
     draft.lines.forEach((line, index) => {
@@ -171,6 +174,7 @@ const sendRequest = () => {
                 quantity: line.quantity.trim(),
             })),
             from: 'branch-replenishment',
+            retry_key: sendKey.value,
         },
         {
             onStart: () => (busy.value = true),

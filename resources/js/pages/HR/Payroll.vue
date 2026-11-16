@@ -933,7 +933,7 @@ const saveRates = () => {
                     </h2>
                     <p class="max-w-prose text-sm text-muted-foreground">
                         The year's chargeable income bands and reliefs, entered
-                        by the clinic as its accountant gives them. Once
+                        by the clinic from LHDN's published schedule. Once
                         checked, KPOne works out MTD on monthly runs for staff
                         whose pay profile has MTD details. KPOne ships no tax
                         number.
@@ -1328,7 +1328,7 @@ const saveRates = () => {
                     <p class="text-sm text-muted-foreground">
                         How a day's and an hour's rate come from a monthly
                         salary, for overtime and unpaid leave. KPOne ships no
-                        divisor; the accountant enters them.
+                        divisor; the clinic enters them.
                     </p>
                 </div>
                 <div class="flex flex-wrap gap-4">
@@ -1434,7 +1434,7 @@ const saveRates = () => {
                         : decision.target.kind === 'table'
                           ? `${decision.target.label}. Compare every band with the official table. A checked table never changes.`
                           : decision.target.kind === 'mtd'
-                            ? `${decision.target.label}. Compare every band and relief with the accountant's figures. KPOne works out MTD with it for that year, and it never changes.`
+                            ? `${decision.target.label}. Compare every band and relief with LHDN's published schedule. KPOne works out MTD with it for that year, and it never changes.`
                             : `${decision.target.label}. It counts from that date and never changes; a later change is a new profile.`
                     : ''
             "

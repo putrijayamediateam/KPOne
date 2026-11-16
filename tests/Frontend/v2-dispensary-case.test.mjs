@@ -426,3 +426,16 @@ test('both scan boxes use the ScanInput options: one short help line, no dead ca
         2,
     );
 });
+
+test('DSP-22: "No known allergies" shows when it was recorded, only for that state, as a <time> (Daniel)', () => {
+    assert.match(v2, /reviewedAt\?: string \| null;/);
+    assert.match(
+        template(v2),
+        /v-if="\s*allergyState === 'none' &&\s*dispensary\.allergySafety\.reviewedAt\s*"/,
+    );
+    assert.match(
+        template(v2),
+        /:datetime="dispensary\.allergySafety\.reviewedAt"/,
+    );
+    assert.match(template(v2), /data-testid="dispensary-allergies-recorded"/);
+});

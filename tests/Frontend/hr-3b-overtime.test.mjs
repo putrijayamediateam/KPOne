@@ -18,6 +18,11 @@ const files = {
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
+// The page's state and actions live in its composable (HR V2 Attendance), so the page source is both files.
+source.page += read('resources/js/composables/hr/useAttendancePage.ts');
+// The Overtime tab's state and actions live in a composable too (HR V2 Attendance PR 2).
+source.tab += read('resources/js/composables/hr/useOvertimeTab.ts');
+source.settings += read('resources/js/composables/hr/useOvertimeSettings.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('every new component and the page compile', () => {
@@ -120,6 +125,13 @@ test('the summary is on screen only, with a table from 1024 px and cards below',
     assert.match(summary, /class="flex flex-col gap-2 lg:hidden"/);
     assert.match(summary, /Includes time at another branch/);
     assert.doesNotMatch(source.summary, /csv|download|export/i);
+});
+
+test('the Summary composable offers no CSV, download or file either (HR V2 Attendance PR 2)', () => {
+    const composable = read(
+        'resources/js/composables/hr/useSummaryTab.ts',
+    ).replace(/export function/g, '');
+    assert.doesNotMatch(composable, /csv|download|blob/i);
 });
 
 test('overtime settings tick no role by default and say no money is worked out', () => {

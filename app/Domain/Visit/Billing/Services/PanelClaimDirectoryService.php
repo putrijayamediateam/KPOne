@@ -523,6 +523,11 @@ final class PanelClaimDirectoryService
                 ->where('organisation_id', $actor->organisation_id)->first(['full_name']);
             abort_unless($patient !== null, 422);
 
+            // Read-only: the Panel's own claim due rule, in words, and the date it falls due for this visit (Create claim page).
+            $dueRow = DB::table('panels')->where('id', $allocation->panel_id)->where('organisation_id', $actor->organisation_id)
+                ->first(['claim_due_days', 'claim_due_rule', 'claim_due_time', 'claim_due_offset']);
+            $visitLocal = $visit->registered_at->setTimezone($branch->timezone);
+
             return [
                 'existingClaimUrl' => $existing === null ? null : route('panel-claims.show', $existing),
                 'branch' => ['id' => $branch->id, 'today' => now()->setTimezone($branch->timezone)->toDateString()],
@@ -533,6 +538,8 @@ final class PanelClaimDirectoryService
                     'invoiceNumber' => $invoice->invoice_number, 'invoiceTotalSen' => $payableSen, 'invoiceBreakdown' => InvoiceAdjustmentService::summary($invoice),
                     'visitDate' => $visit->registered_at->setTimezone($branch->timezone)->toDateString(),
                     'visitDateTime' => $visit->registered_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+                    'dueRule' => $dueRow === null ? null : PanelClaimDueRule::describe($dueRow),
+                    'dueBy' => $dueRow === null ? null : PanelClaimDueRule::dueAt($dueRow, CarbonImmutable::instance($visitLocal))->format('j M Y'),
                     'lines' => InvoiceLine::query()->where('invoice_id', $invoice->id)->orderBy('id')->get()
                         ->map(static fn (InvoiceLine $line): array => [
                             'id' => $line->id, 'name' => $line->display_name, 'quantity' => (string) $line->quantity,
