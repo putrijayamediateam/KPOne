@@ -74,6 +74,7 @@ const {
     removalReasons,
     action,
     actionText,
+    actionPayrollLine,
     actionDisabled,
     openAction,
     confirmAction,
@@ -2425,6 +2426,13 @@ const inputClass =
         >
             <div class="flex flex-col gap-4" data-test="action-dialog">
                 <p class="text-sm font-medium">{{ actionTarget }}</p>
+                <p
+                    v-if="actionPayrollLine"
+                    class="text-sm"
+                    data-test="leave-locked-month"
+                >
+                    {{ actionPayrollLine }}
+                </p>
                 <p
                     v-if="
                         action.kind === 'approve' &&

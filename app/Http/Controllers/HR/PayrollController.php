@@ -114,17 +114,28 @@ class PayrollController extends Controller
         });
     }
 
-    public function addLate(Request $request, PayrollRunService $runs, string $run, string $overtime): RedirectResponse
+    public function addLate(Request $request, PayrollRunService $runs, string $run, string $source): RedirectResponse
     {
-        return $this->runOn($request, $run, 'Overtime added to this adjustment.', fn () => $runs->addLate($request->user(), $run, $overtime,
-            $request->only(['expected_lock_version', 'idempotency_key'])));
+        return $this->runOn($request, $run, self::lateLabel($request).' added to this adjustment.', fn () => $runs->addLate($request->user(), $run, $source,
+            $request->only(['kind', 'expected_lock_version', 'idempotency_key'])));
     }
 
     public function removeLate(Request $request, PayrollRunService $runs, string $run, string $lateItem): RedirectResponse
     {
         // {lateItem}, not {item}: {item} is bound globally to a Dispensary item.
-        return $this->runOn($request, $run, 'Overtime taken off this adjustment.', fn () => $runs->removeLate($request->user(), $run, $lateItem,
+        return $this->runOn($request, $run, self::lateLabel($request).' taken off this adjustment.', fn () => $runs->removeLate($request->user(), $run, $lateItem,
             $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    /** The notice's subject for a late item (G2b); the kind only words the notice, the service decides what is added. */
+    private static function lateLabel(Request $request): string
+    {
+        return match ($request->input('kind')) {
+            'leave_cancelled' => 'Cancelled leave',
+            'leave_approved' => 'Leave approved after the lock',
+            'hours' => 'Hours correction',
+            default => 'Overtime',
+        };
     }
 
     public function removeManual(Request $request, PayrollRunService $runs, string $run, string $line): RedirectResponse

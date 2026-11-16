@@ -61,11 +61,15 @@ export type PendingRow = RequestRow & {
     reason: string | null;
     leftAfter: string | null;
     warnings: string[];
+    // G2b: unpaid leave whose month's payroll is already locked, for the monthly-paid.
+    lockedMonth?: string | null;
     evidence: Evidence;
 };
 export type ApprovedRow = RequestRow & {
     person: string;
     role: string;
+    // G2b: the locked payroll month that took this leave off pay, if any.
+    takenInMonth?: string | null;
     evidence: Evidence;
 };
 export type LeaveTypeOption = {
@@ -698,6 +702,30 @@ export function useLeavePage(props: LeavePageProps) {
 
         return copies[action.kind];
     });
+    // G2b: when the month's payroll is already locked, the dialog says the change goes on an adjustment run.
+    const actionPayrollLine = computed(() => {
+        const row = action.row;
+
+        if (
+            action.kind === 'approve' &&
+            row &&
+            'lockedMonth' in row &&
+            row.lockedMonth
+        ) {
+            return `${row.lockedMonth}'s payroll is already locked: after approving, add this on an adjustment run.`;
+        }
+
+        if (
+            action.kind === 'manager-cancel' &&
+            row &&
+            'takenInMonth' in row &&
+            row.takenInMonth
+        ) {
+            return `${row.takenInMonth}'s payroll is already locked and took this leave off pay: after cancelling, add it back on an adjustment run.`;
+        }
+
+        return '';
+    });
     const actionDisabled = computed(
         () =>
             (action.kind === 'approve' &&
@@ -1148,6 +1176,7 @@ export function useLeavePage(props: LeavePageProps) {
         removalReasons,
         action,
         actionText,
+        actionPayrollLine,
         actionDisabled,
         openAction,
         confirmAction,

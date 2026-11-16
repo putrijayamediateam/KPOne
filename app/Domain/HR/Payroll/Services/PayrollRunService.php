@@ -245,32 +245,51 @@ final class PayrollRunService
      *
      * @param  array<string, mixed>  $input
      */
-    public function addLate(User $actor, string $runId, string $overtimeId, array $input): void
+    public function addLate(User $actor, string $runId, string $sourceId, array $input): void
     {
-        $this->onDraft($actor, $runId, $input, 'payroll_run_late_add', [$overtimeId], function (User $actor, \stdClass $run) use ($overtimeId): void {
+        $kind = $input['kind'] ?? 'overtime';
+        if (! is_string($kind) || ! in_array($kind, LateAfterLock::KINDS, true)) {
+            throw ValidationException::withMessages(['payroll' => 'Reload the page.']);
+        }
+        $this->onDraft($actor, $runId, $input, 'payroll_run_late_add', [$kind, $sourceId], function (User $actor, \stdClass $run) use ($kind, $sourceId): void {
             if ($run->kind !== 'adjustment') {
-                throw ValidationException::withMessages(['payroll' => 'Overtime approved after the lock goes on an adjustment run.']);
+                throw ValidationException::withMessages(['payroll' => $kind === 'overtime' ? 'Overtime approved after the lock goes on an adjustment run.' : 'A change made after the lock goes on an adjustment run.']);
             }
             $regular = DB::table('hr_payroll_runs')->where('id', $run->adjusts_run_id)->lockForUpdate()->first();
-            // Suresh m1: lock the overtime row too (after the runs; decide and reverse lock it and only read runs).
-            DB::table('hr_overtime_requests')->where('organisation_id', $actor->organisation_id)->where('public_id', $overtimeId)->lockForUpdate()->first(['id']);
-            $item = $regular instanceof \stdClass ? collect($this->late->forRegularRun($actor->organisation_id, $regular))->firstWhere('id', $overtimeId) : null;
+            // Suresh m1: lock the source row too (after the runs; decide, cancel and reverse lock it and only read runs).
+            match ($kind) {
+                'overtime' => DB::table('hr_overtime_requests')->where('organisation_id', $actor->organisation_id)->where('public_id', $sourceId)->lockForUpdate()->first(['id']),
+                'leave_cancelled', 'leave_approved' => DB::table('hr_leave_requests')->where('organisation_id', $actor->organisation_id)->where('public_id', $sourceId)->lockForUpdate()->first(['id']),
+                default => null,
+            };
+            $item = $regular instanceof \stdClass
+                ? collect($this->late->forRegularRun($actor->organisation_id, $regular))->first(fn (array $i): bool => $i['kind'] === $kind && $i['id'] === $sourceId)
+                : null;
             if (! is_array($item)) {
-                throw ValidationException::withMessages(['payroll' => 'This overtime is not waiting to be added. Reload the page.']);
+                throw ValidationException::withMessages(['payroll' => ($kind === 'overtime' ? 'This overtime' : 'This').' is not waiting to be added. Reload the page.']);
             }
             if ($item['inRunId'] !== null) {
-                throw ValidationException::withMessages(['payroll' => 'This overtime is already on an adjustment run.']);
+                throw ValidationException::withMessages(['payroll' => $kind === 'overtime' ? 'This overtime is already on an adjustment run.' : 'This is already on an adjustment run.']);
             }
             $person = Worker::query()->find($item['workerId']);
             if ($person instanceof Worker && PayrollSetupService::isManager($person)) {
                 throw ValidationException::withMessages(['payroll' => 'Pay kept outside KPOne in this version.']);
             }
             $id = DB::table('hr_payroll_late_items')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id,
-                'run_id' => $run->id, 'worker_id' => $item['workerId'], 'overtime_request_id' => $item['overtimeId'], 'added_by_user_id' => $actor->id,
-                'created_at' => now()->utc()]);
+                'run_id' => $run->id, 'worker_id' => $item['workerId'], 'kind' => $kind,
+                'overtime_request_id' => $kind === 'overtime' ? $item['sourceId'] : null,
+                'leave_request_id' => in_array($kind, ['leave_cancelled', 'leave_approved'], true) ? $item['sourceId'] : null,
+                'added_by_user_id' => $actor->id, 'created_at' => now()->utc()]);
             $this->store($actor, $run, $this->mtd($run));
-            $this->support->audit->record('hr.payroll.run_late_added', null, ['run_id' => (int) $run->id, 'late_item_id' => $id,
-                'overtime_request_id' => $item['overtimeId']], $actor, null, $actor->organisation_id);
+            $metadata = ['run_id' => (int) $run->id, 'late_item_id' => $id, 'kind' => $kind];
+            if ($kind === 'overtime') {
+                $metadata['overtime_request_id'] = $item['sourceId'];
+            } elseif ($kind !== 'hours') {
+                $metadata['leave_request_id'] = $item['sourceId'];
+            } else {
+                $metadata['worker_id'] = $item['workerId'];
+            }
+            $this->support->audit->record('hr.payroll.run_late_added', null, $metadata, $actor, null, $actor->organisation_id);
         });
     }
 
@@ -536,7 +555,8 @@ final class PayrollRunService
             $personId = DB::table('hr_payroll_run_people')->insertGetId(['organisation_id' => $actor->organisation_id, 'run_id' => $run->id, 'worker_id' => $workerId,
                 'profile_id' => $person['profileId'], 'mtd_encrypted' => array_key_exists($workerId, $mtd) ? Crypt::encryptString((string) $mtd[$workerId]) : null,
                 'totals_encrypted' => Crypt::encryptString(json_encode($person['totals'], JSON_THROW_ON_ERROR)),
-                'errors' => json_encode($person['errors'], JSON_THROW_ON_ERROR), 'warnings' => json_encode($person['warnings'], JSON_THROW_ON_ERROR)]);
+                'errors' => json_encode($person['errors'], JSON_THROW_ON_ERROR), 'warnings' => json_encode($person['warnings'], JSON_THROW_ON_ERROR),
+                'worked_minutes' => $calc['worked'][(int) $workerId] ?? null]);
             foreach ($person['lines'] as $i => $line) {
                 DB::table('hr_payroll_lines')->insert(['organisation_id' => $actor->organisation_id, 'run_id' => $run->id, 'run_person_id' => $personId, 'position' => $i + 1,
                     'kind' => $line['kind'], 'section' => $line['section'], 'item_type_id' => $line['itemTypeId'], 'item_type_version' => $line['itemTypeVersion'],
