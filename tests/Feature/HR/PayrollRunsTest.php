@@ -164,6 +164,34 @@ class PayrollRunsTest extends VisitTestCase
         $this->assertStringNotContainsString('Basic salary', (string) DB::table('hr_payroll_lines')->value('explanation_encrypted'));
     }
 
+    public function test_g1_a_run_whose_sources_changed_after_it_was_sent_is_not_approved_or_locked(): void
+    {
+        [$aina] = $this->clinic();
+        $this->lineTypes($this->hr);
+        $this->prepare($this->hr)->assertRedirect();
+        $id = (string) DB::table('hr_payroll_runs')->value('public_id');
+        $this->step($this->hr, $id, 'mtd', ['worker_id' => $aina->public_id, 'mtd' => '12.00'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+
+        // Overtime approved after the run was sent: approving is refused, and the run stays Sent.
+        $this->approvedOvertime($aina->user, $this->closedSession($aina->user, '2026-11-20', '18:00', '19:00'), 60);
+        $this->step($this->director, $id, 'approve')->assertSessionHasErrors(['payroll' => PayrollRunService::CHANGED_SINCE_SENT]);
+        $this->assertSame('sent', DB::table('hr_payroll_runs')->value('status'));
+
+        // Sending it back still works; prepared again, it is sent and approved.
+        $this->step($this->director, $id, 'return', ['reason' => 'missing_record'])->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'again')->assertSessionHasNoErrors();
+        $this->step($this->hr, $id, 'send')->assertSessionHasNoErrors();
+        $this->step($this->director, $id, 'approve')->assertSessionHasNoErrors();
+
+        // Another change after approval: locking is refused, nothing is paid and no payslip is issued.
+        $this->approvedOvertime($aina->user, $this->closedSession($aina->user, '2026-11-21', '18:00', '18:30'), 30);
+        $this->step($this->director, $id, 'lock')->assertSessionHasErrors(['payroll' => PayrollRunService::CHANGED_SINCE_SENT]);
+        $this->assertSame('approved', DB::table('hr_payroll_runs')->value('status'));
+        $this->assertSame(0, DB::table('hr_payslips')->count());
+        $this->assertSame(0, DB::table('audit_logs')->where('event', 'hr.payroll.run_locked')->count());
+    }
+
     public function test_a_stale_draft_is_not_sent_and_a_claim_paid_meanwhile_stops_the_lock(): void
     {
         [$aina] = $this->clinic();
