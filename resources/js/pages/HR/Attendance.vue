@@ -76,6 +76,7 @@ const props = defineProps<{
             } | null;
             staleLabel: string | null;
             todayShift: string | null;
+            todayHasBreak: boolean;
             week: Row[];
             weekLabel: string;
             attention: Row[];
@@ -357,6 +358,15 @@ const {
                     >
                         KPOne records the time and a photo of you at each press.
                         HR can see it. Kept for 7 years (to confirm).
+                    </p>
+                    <!-- HR month dry run S1 (owner, 16 Nov 2026): the break comes off the worked time, so nobody clocks out for it. -->
+                    <p
+                        v-if="attendance.my.todayHasBreak"
+                        class="text-xs text-muted-foreground"
+                        data-test="break-line"
+                    >
+                        Stay clocked in for your break; KPOne takes the rostered
+                        break off.
                     </p>
                     <button
                         type="button"

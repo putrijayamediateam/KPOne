@@ -462,6 +462,13 @@ const numberClass =
                                     each press. HR can see it. Kept for 7 years
                                     (to confirm).
                                 </p>
+                                <p
+                                    v-if="attendance.my.todayHasBreak"
+                                    data-test="break-line"
+                                >
+                                    Stay clocked in for your break; KPOne takes
+                                    the rostered break off.
+                                </p>
                                 <button
                                     type="button"
                                     :class="textLink"
