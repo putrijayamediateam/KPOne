@@ -512,7 +512,7 @@ const statusTone = computed(() =>
                         <tr
                             v-for="item in run.late"
                             :key="item.id"
-                            class="border-t align-top"
+                            class="border-t align-middle"
                             data-test="run-late-item"
                         >
                             <td class="py-2 pr-3 font-medium break-words">
@@ -578,8 +578,12 @@ const statusTone = computed(() =>
                                     </template>
                                     <span
                                         v-else-if="item.state === 'elsewhere'"
-                                        class="text-muted-foreground"
-                                        >On an adjustment run</span
+                                        class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                                        data-test="run-late-elsewhere"
+                                        ><span
+                                            class="size-2 rounded-full bg-muted-foreground"
+                                            aria-hidden="true"
+                                        />On an adjustment run</span
                                     >
                                 </div>
                             </td>
@@ -645,8 +649,12 @@ const statusTone = computed(() =>
                     </div>
                     <span
                         v-else-if="item.state === 'elsewhere'"
-                        class="text-sm text-muted-foreground"
-                        >On an adjustment run</span
+                        class="inline-flex w-fit items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                        data-test="run-late-elsewhere"
+                        ><span
+                            class="size-2 rounded-full bg-muted-foreground"
+                            aria-hidden="true"
+                        />On an adjustment run</span
                     >
                 </li>
             </ul>
