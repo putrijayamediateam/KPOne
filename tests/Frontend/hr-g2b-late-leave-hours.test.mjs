@@ -87,6 +87,8 @@ test('the run card shows each kind with its own word and the change in words, ne
         source,
         /post\(`late\/\$\{item\.itemId\}\/remove`, \{ kind: item\.kind \}\)/,
     );
+    // Daniel: no blank "Decided on" cell.
+    assert.match(source, /item\.approvedAt \? on\(item\.approvedAt\) : '—'/);
     // Suresh m1: runs that did not record paid hours say corrections cannot be checked.
     assert.match(
         source,
