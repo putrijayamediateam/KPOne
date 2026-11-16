@@ -578,7 +578,9 @@ const statusTone = computed(() =>
                                 {{ item.change }}
                             </td>
                             <td class="py-2 pr-3 whitespace-nowrap">
-                                {{ item.approvedAt ? on(item.approvedAt) : '—' }}
+                                {{
+                                    item.approvedAt ? on(item.approvedAt) : '—'
+                                }}
                             </td>
                             <td class="py-2">
                                 <div
