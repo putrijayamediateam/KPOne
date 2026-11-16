@@ -66,18 +66,21 @@ test('rows keep a fixed order (waiting first, then Classic order); new rows go t
     assert.match(v2, /\.filter\(\(id\) => !known\.has\(id\)\)/);
 });
 
-test('collapsed never hides a review-needed or just-acted row; Show all is a real toggle (Mira)', () => {
+test("collapsed: the first 5 plus acted-on rows, and the toggle names hidden review rows (owner's middle way)", () => {
     assert.match(v2, /const visibleLimit = 5;/);
     assert.match(
         v2,
-        /index < visibleLimit \|\|\s*item\.status === 'awaiting_acknowledgement' \|\|\s*pinned\.value\.has\(item\.exceptionPublicId\)/,
+        /index < visibleLimit \|\| pinned\.value\.has\(item\.exceptionPublicId\)/,
     );
+    assert.match(v2, /' · 1 more needs review'/);
+    assert.match(v2, /` · \$\{hiddenReview\.value\} more need review`/);
+    assert.match(v2, /`Show all \$\{ordered\.value\.length\}\$\{more\}`/);
     assert.match(v2, /showAll\.value = true;/);
+    assert.match(template(v2), /v-if="hiddenRows\.length > 0"/);
     assert.match(template(v2), /:aria-expanded="showAll"/);
     assert.match(template(v2), /aria-controls="dispensary-attention-rows"/);
     assert.match(template(v2), /id="dispensary-attention-rows"/);
     assert.match(template(v2), /'lg:h-11!'/);
-    assert.match(template(v2), /`Show all \$\{ordered\.length\}`/);
 });
 
 test('the acknowledge request is a verbatim copy of Classic (Mira)', () => {

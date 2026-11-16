@@ -51,28 +51,34 @@ const ordered = computed(() => {
 });
 // Rows the doctor acted on stay in view when the list is collapsed.
 const pinned = ref(new Set<string>());
-// Mira: collapsed, never hide a row that still needs review.
-const shown = computed(() =>
-    showAll.value
-        ? ordered.value
-        : ordered.value.filter(
-              (item, index) =>
-                  index < visibleLimit ||
-                  item.status === 'awaiting_acknowledgement' ||
-                  pinned.value.has(item.exceptionPublicId),
-          ),
+// Owner's middle way (Daniel and Mira): collapsed shows the first 5 (waiting first) plus any row the doctor acted on;
+// the toggle names how many hidden rows still need review, so none is hidden silently.
+const collapsed = computed(() =>
+    ordered.value.filter(
+        (item, index) =>
+            index < visibleLimit || pinned.value.has(item.exceptionPublicId),
+    ),
 );
-const hiddenCount = computed(() => ordered.value.length - shown.value.length);
-const canCollapse = computed(
+const shown = computed(() => (showAll.value ? ordered.value : collapsed.value));
+const hiddenRows = computed(() =>
+    ordered.value.filter((item) => !collapsed.value.includes(item)),
+);
+const hiddenReview = computed(
     () =>
-        showAll.value &&
-        ordered.value.filter(
-            (item, index) =>
-                index < visibleLimit ||
-                item.status === 'awaiting_acknowledgement' ||
-                pinned.value.has(item.exceptionPublicId),
-        ).length < ordered.value.length,
+        hiddenRows.value.filter(
+            (item) => item.status === 'awaiting_acknowledgement',
+        ).length,
 );
+const showAllLabel = computed(() => {
+    const more =
+        hiddenReview.value === 1
+            ? ' · 1 more needs review'
+            : hiddenReview.value > 1
+              ? ` · ${hiddenReview.value} more need review`
+              : '';
+
+    return `Show all ${ordered.value.length}${more}`;
+});
 
 const medicine = (item: DoctorDispensaryAttention) =>
     item.strength ? `${item.medicineName} ${item.strength}` : item.medicineName;
@@ -251,7 +257,7 @@ const outlineButton =
             </li>
         </ul>
         <div
-            v-if="hiddenCount > 0 || canCollapse"
+            v-if="hiddenRows.length > 0"
             class="border-t px-4 py-2 dark:border-foreground/15"
         >
             <button
@@ -262,7 +268,7 @@ const outlineButton =
                 data-testid="v2-dispensary-attention-show-all"
                 @click="showAll = !showAll"
             >
-                {{ showAll ? 'Show fewer' : `Show all ${ordered.length}` }}
+                {{ showAll ? 'Show fewer' : showAllLabel }}
             </button>
         </div>
         <p class="sr-only" role="status" aria-live="polite">{{ status }}</p>
