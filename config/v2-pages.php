@@ -42,6 +42,7 @@ return [
         'HR/OpenShifts',
         'HR/Claims',
         'HR/Applications',
+        'HR/Letters',
         'HR/Records',
         'HR/StaffFile',
         'ClinicManagement/Index',
