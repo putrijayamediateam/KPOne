@@ -2,69 +2,26 @@
 // HR-4b onboarding and offboarding (HR-PLAN 11.3 rule 11). A period offers the onboarding list from its start and the
 // offboarding list once it has an end date. A tick records who and when, and is final. An item about the account shows
 // "Ask the account administrator": ticking it records only that HR asked; HR never changes an account.
-import { router, usePage } from '@inertiajs/vue3';
-import { computed, ref } from 'vue';
+import { dateLabel } from '@/components/hr/records/types';
 import { Button } from '@/components/ui/button';
 import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { EmptyState, ErrorState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
-import type { ChecklistEntry, ChecklistPeriod } from './types';
-import { dateLabel } from './types';
+import { useChecklistTab } from '@/composables/hr/useChecklistTab';
+import type { ChecklistTabProps } from '@/composables/hr/useChecklistTab';
 
-const props = defineProps<{
-    periods: ChecklistPeriod[];
-    workerId: string;
-    canManage: boolean;
-}>();
+const props = defineProps<ChecklistTabProps>();
 
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-// A tick is final, so it is confirmed with the item and the period named (Suresh, HR-4b S3).
-const pending = ref<{ period: ChecklistPeriod; item: ChecklistEntry } | null>(
-    null,
-);
-const processing = ref(false);
-const key = ref('');
-const ask = (period: ChecklistPeriod, item: ChecklistEntry) => {
-    pending.value = { period, item };
-    key.value = crypto.randomUUID();
-};
-const confirmTick = () => {
-    const p = pending.value;
-
-    if (!p) {
-        return;
-    }
-
-    processing.value = true;
-    router.post(
-        `/hr/records/${props.workerId}/periods/${p.period.periodId}/checklist/${p.item.id}`,
-        { idempotency_key: key.value },
-        {
-            preserveScroll: true,
-            onSuccess: () => (pending.value = null),
-            onFinish: () => (processing.value = false),
-        },
-    );
-};
-const confirmText = computed(() => {
-    const p = pending.value;
-
-    if (!p) {
-        return '';
-    }
-
-    const period = `${p.period.typeLabel} from ${dateLabel(p.period.startsOn)}`;
-
-    return p.item.aboutAccount
-        ? `"${p.item.label}" for ${period}. This records that you asked the account administrator. It cannot be undone.`
-        : `"${p.item.label}" for ${period}. This records that it is done. It cannot be undone.`;
-});
-const done = (items: ChecklistEntry[]) => items.filter((i) => i.ticked).length;
-const tickedLabel = (t: { by: string; at: string }) =>
-    `${t.by}, ${new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(t.at))}`;
+const {
+    errors,
+    pending,
+    processing,
+    ask,
+    confirmTick,
+    confirmText,
+    done,
+    tickedLabel,
+} = useChecklistTab(props);
 </script>
 
 <template>
