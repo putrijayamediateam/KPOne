@@ -54,7 +54,13 @@ const submit = () => {
             form.reset();
             emit('saved');
         },
-        onError: async () => {
+        // The inputs are disabled until the request finishes, so focus Allergen once it has (owner, 2026-11-16: the focus
+        // used to run in onError, while the field was still disabled, and was lost).
+        onFinish: async () => {
+            if (!form.hasErrors) {
+                return;
+            }
+
             await nextTick();
             allergenInput.value?.focus();
         },

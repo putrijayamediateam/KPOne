@@ -2843,6 +2843,11 @@ Migrations from `2026_11_10_002900` (after HR-7c's `002800`).
 - Correctness depends entirely on the schedule and reliefs the clinic enters, and on the accountant confirming the method against LHDN's current specification.
 - TP1, TP3, zakat and additional remuneration are not counted in HR-7d, so those people need a typed MTD.
 - Year to date counts only KPOne's own locked runs. Pay from before KPOne payroll began is not counted.
+  - Since the HR month dry run (finding S2, owner decision 16 Nov 2026), the run warns when the person was employed in an
+    earlier month of the year that has no locked KPOne run and the worked-out MTD is the one used: "Employed earlier this
+    year in months with no locked KPOne run: that pay is not counted, so the worked-out MTD may be too low". A clinic that
+    starts KPOne payroll mid-year sees it on every run until January. KPOne has no way yet to enter earlier pay of the
+    year; whether HR enters it is a later decision. A locked adjustment run counts as paying its month.
 - Variable overtime is projected over the remaining months like basic pay (an accountant question).
 - Child relief has one rate for every child; LHDN's differs by the child's age, education and disability (Suresh, M4).
 - In a joiner's or leaver's month the part-month pay is projected over the remaining months, so that month's MTD is low; later months catch up through X.

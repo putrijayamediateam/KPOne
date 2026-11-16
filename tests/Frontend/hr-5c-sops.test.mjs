@@ -92,7 +92,9 @@ test('My HR details links to the SOPs still to read, and every write sends an id
     assert.match(records, /v-if="sopsToRead"/);
     assert.match(records, /<Link href="\/hr\/sops">Open SOPs<\/Link>/);
     assert.match(source.records, /sopsToRead\?: number;/);
-    const script = parse(source.page).descriptor.scriptSetup.content;
+    const script =
+        parse(source.page).descriptor.scriptSetup.content +
+        read('resources/js/composables/hr/useSopsPage.ts');
     assert.equal((script.match(/idempotency_key:/g) ?? []).length, 3);
     assert.match(script, /expected_lock_version: sop\.lockVersion/);
     assert.match(script, /forceFormData: true/);

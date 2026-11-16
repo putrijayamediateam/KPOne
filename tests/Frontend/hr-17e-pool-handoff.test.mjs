@@ -28,17 +28,17 @@ test('all four pages compile', () => {
     }
 });
 
-test('the talent-pool tick is optional, separate and never preset, in both languages', () => {
+test('the talent-pool tick is optional, separate and never preset, in English', () => {
     assert.match(source.apply, /talent_pool: false,/);
     const t = template('apply');
     assert.match(t, /data-test="apply-talent-pool"/);
     assert.match(t, /Optional:/);
-    assert.match(t, /Pilihan: simpan butiran saya/);
+    assert.match(t, /keep my details for future openings/);
     assert.match(t, /Whatever the result of/);
     assert.match(t, /use the answers and CV\s+I sent/);
 });
 
-test('the candidate can leave the pool, asked first, in both languages', () => {
+test('the candidate can leave the pool, asked first, in English', () => {
     const t = template('status');
 
     for (const id of [
@@ -52,7 +52,7 @@ test('the candidate can leave the pool, asked first, in both languages', () => {
     }
 
     assert.match(source.status, /'\/careers\/status\/leave-pool'/);
-    assert.match(t, /Keluarkan saya/);
+    assert.match(t, /Remove me/);
 });
 
 test('HR has a Talent pool tab, a pool period setting, invitations and the staff-account request', () => {
