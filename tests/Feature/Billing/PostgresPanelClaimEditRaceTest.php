@@ -17,7 +17,7 @@ use Symfony\Component\Process\Process;
 use Tests\Support\ContentionTimeouts;
 
 /**
- * PNL-17 (Panel pilot work): editing a Panel claim against a Panel decision or a payment, under real PostgreSQL
+ * PNL-22 (Panel pilot work): editing a Panel claim against a Panel decision or a payment, under real PostgreSQL
  * contention. Two sessions act on the same claim at the same moment; the service serialises them with a row lock on
  * the claim and a lock_version check. Each race holds that claim row in this test's session until both workers are
  * proven to be waiting behind it, then releases it, so they run one after the other (in list order when asked).

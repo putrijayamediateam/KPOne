@@ -22,6 +22,8 @@ type Check = {
     publicId: string;
     outcome: 'matches' | 'differs';
     reason: string | null;
+    /** STK-40b: it differs and its reason has not been added yet. */
+    reasonNeeded: boolean;
     ledger: string;
     counted: string;
     checkedBy: string;
@@ -258,7 +260,9 @@ const print = async () => {
                                 {{
                                     check.outcome === 'matches'
                                         ? 'Matches'
-                                        : `Differs: ${reasons[check.reason ?? ''] ?? check.reason}`
+                                        : check.reasonNeeded
+                                          ? 'Difference: reason needed'
+                                          : `Differs: ${reasons[check.reason ?? ''] ?? check.reason}`
                                 }}
                             </td>
                         </tr>
