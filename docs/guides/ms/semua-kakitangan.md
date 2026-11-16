@@ -13,7 +13,14 @@ Panduan ini untuk semua kakitangan yang menggunakan akaun sendiri (bukan akaun T
 5. Apabila selesai bekerja, pilih “Clock out”. Skrin bertanya “Clock out now?” dan menyatakan masa clock out ialah masa pelayan apabila anda mengesahkan. Pilih “Clock out” untuk mengesahkan. Hanya clock out yang meminta pengesahan.
 6. Selepas itu skrin menunjukkan “Done for today” dengan masa anda.
 
-Tekanan kedua dalam masa 60 saat selepas yang pertama ditolak. Jika anda terlupa clock out, KPOne tidak menutupnya sendiri; mohon pembetulan (HR atau orang lain meluluskannya, bukan anda sendiri). Cara membuat pembetulan langkah demi langkah dan pilihan membatalkan clock out yang tersilap: [PERLU DISAHKAN].
+Tekanan kedua dalam masa 60 saat selepas yang pertama ditolak. Jika anda terlupa clock out, KPOne tidak menutupnya sendiri; mohon pembetulan (HR atau orang lain meluluskannya, bukan anda sendiri). Cara membuat pembetulan langkah demi langkah: [PERLU DISAHKAN].
+
+## Batalkan clock out yang tersilap (“Undo clock-out”)
+
+1. Jika anda clock out dengan tersilap, buka “My attendance” dalam masa 15 minit selepas clock out anda sendiri. Butang “Undo clock-out” dipaparkan dengan nota “Clocked out by mistake? You can undo this until …” yang menyatakan masa terakhir.
+2. Pilih “Undo clock-out”. Skrin bertanya “Undo your clock-out at …?” dan menyatakan anda kekal clock in dari masa clock in anda; clock out semula apabila anda pulang, dan itu mengambil foto baharu.
+3. Pilih “Undo clock-out” untuk mengesahkan. Selepas 15 minit, butang itu tiada; mohon pembetulan.
+4. Pada tab “Review”, HR melihat “Clock-out undone at …” untuk sesi itu.
 
 Jika cawangan anda menggunakan semakan lokasi, skrin menyatakan hanya “inside”, “outside” atau “not available” disimpan, tidak pernah lokasi sebenar anda. Menolak kebenaran lokasi tidak menghalang anda clock in atau clock out.
 
