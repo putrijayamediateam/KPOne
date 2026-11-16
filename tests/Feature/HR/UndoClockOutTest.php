@@ -48,7 +48,9 @@ class UndoClockOutTest extends VisitTestCase
         $this->assertTrue(CarbonImmutable::parse((string) DB::table('hr_clock_events')->where('kind', 'out_undone')->value('occurred_at'))->equalTo($firstOut));
         $this->assertSame(['in' => 1, 'out' => 1], ClockPhoto::query()->pluck('attempt', 'kind')->map(fn ($v) => (int) $v)->all());
         $this->assertSame(1, DB::table('audit_logs')->where('event', 'hr.attendance.clock_out_undone')->count());
-        $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.state', 'in')->where('attendance.my.undo', null));
+        // The week line counts the reopened session up to now (08:55 to 17:16 is 8 h 21 min), never the earlier close.
+        $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.state', 'in')->where('attendance.my.undo', null)
+            ->where('attendance.my.overtime.weekHours.minutes', 501)->where('attendance.my.overtime.weekHours.label', '8 h 21 min so far'));
 
         // The next clock-out is a new attempt with its own photo; the earlier one stays on record.
         $this->travel(30)->minutes();
