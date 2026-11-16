@@ -4,6 +4,8 @@ import { computed, ref, watch } from 'vue';
 import PanelAdjustmentPanel from '@/components/billing/PanelAdjustmentPanel.vue';
 import PanelClaimVersions from '@/components/billing/PanelClaimVersions.vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
+import IssuedPacksList from '@/components/panel/IssuedPacksList.vue';
+import type { IssuedPackRow } from '@/components/panel/IssuedPacksList.vue';
 import WhatsAppLink from '@/components/patient/WhatsAppLink.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
@@ -42,6 +44,8 @@ const claimPage = usePanelClaimShow(props);
 const adjustmentPage = usePage<{
     panelAdjustment?: PanelAdjustment | null;
     claim: { adjustmentClaim?: PanelAdjustmentClaim };
+    // PNL-25: frozen claim packs that include this claim; null without the claims permission here.
+    issuedPacks?: IssuedPackRow[] | null;
 }>();
 const panelAdjustment = computed(
     () => adjustmentPage.props.panelAdjustment ?? null,
@@ -49,6 +53,7 @@ const panelAdjustment = computed(
 const adjustmentClaim = computed(
     () => adjustmentPage.props.claim.adjustmentClaim ?? null,
 );
+const issuedPacks = computed(() => adjustmentPage.props.issuedPacks ?? []);
 const {
     aboveInvoice,
     acceptedAmount,
@@ -497,6 +502,12 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                     v-if="adjustmentClaim"
                     :claim="adjustmentClaim"
                     :public-id="claim.publicId"
+                    class="rounded-[14px] border bg-card p-4"
+                />
+                <IssuedPacksList
+                    v-if="issuedPacks.length > 0"
+                    :packs="issuedPacks"
+                    :from-claim="claim.publicId"
                     class="rounded-[14px] border bg-card p-4"
                 />
                 <PanelAdjustmentPanel
