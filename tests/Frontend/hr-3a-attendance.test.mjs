@@ -6,7 +6,9 @@ import { compileTemplate, parse } from '@vue/compiler-sfc';
 // HR-3a attendance (owner 2026-11-06; Daniel's early look folded in, HR-PLAN 9.6).
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const source = read('resources/js/pages/HR/Attendance.vue');
+const source =
+    read('resources/js/pages/HR/Attendance.vue') +
+    read('resources/js/composables/hr/useAttendancePage.ts');
 const template = parse(source).descriptor.template.content;
 const roster = read('resources/js/pages/HR/Roster.vue');
 

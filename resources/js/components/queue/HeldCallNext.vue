@@ -14,6 +14,8 @@ const props = defineProps<{
     visitNumber: string;
     /** Another consultation action is running. */
     busy: boolean;
+    /** Optional (V2 consultation page): asked before the Call next dialog opens; see CallNextControl. */
+    beforeStart?: (proceed: () => void) => void;
 }>();
 const emit = defineEmits<{
     processing: [busy: boolean];
@@ -130,6 +132,7 @@ onBeforeUnmount(() => {
         :busy="busy"
         :refresh="load"
         :from-visit="visitNumber"
+        :before-start="beforeStart"
         @processing="emit('processing', $event)"
     />
 </template>

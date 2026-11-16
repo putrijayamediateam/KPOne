@@ -149,6 +149,9 @@ usability aid only and must follow the permission the backend already enforces.
   it once, some NVDA and Firefox versions twice (Billing team's file, left unchanged). The Panel claim create
   summary (`pages/PanelClaims/Create.vue`, Panel team's file) now announces only the errors no field announces.
 - `/patients/create` is about 433 px wide at 390 px when errors show: Patients & Registration team's item, not ours.
+- **DD-84 follow-up (owner: "classic later"):** the refused-request notice (403 and 419) is V2 only. Classic still shows
+  Inertia's raw error page in a modal. Giving Classic the same handler is a separate, later piece, not yet started
+  (see `lib/v2-refused-request.ts`; Classic is proven untouched by a real-app check).
 
 ## 8. Rules (every task)
 

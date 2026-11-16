@@ -6,7 +6,9 @@ import { compileTemplate, parse } from '@vue/compiler-sfc';
 // HR-2b leave evidence files (owner 2026-11-06; Daniel's early look folded in).
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const source = read('resources/js/pages/HR/Leave.vue');
+const source =
+    read('resources/js/pages/HR/Leave.vue') +
+    read('resources/js/composables/hr/useLeavePage.ts');
 const template = parse(source).descriptor.template.content;
 
 test('the page still compiles with the evidence panel', () => {

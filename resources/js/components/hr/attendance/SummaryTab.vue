@@ -1,7 +1,5 @@
 <script setup lang="ts">
 // HR-3b Summary tab (Director, HR Manager): one branch, one week or month, one row per person. On screen only.
-import { router } from '@inertiajs/vue3';
-import { computed } from 'vue';
 import { Button } from '@/components/ui/button';
 import { DateField } from '@/components/ui/date-field';
 import { Label } from '@/components/ui/label';
@@ -9,38 +7,12 @@ import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
 import { OperationalTable } from '@/components/ui/table';
 import { OperationalTabs } from '@/components/ui/tabs';
+import { useSummaryTab } from '@/composables/hr/useSummaryTab';
 import type { SummaryTabData } from './types';
 
 const props = defineProps<{ data: SummaryTabData }>();
 
-const visit = (params: Record<string, string | number | undefined>) =>
-    router.get(
-        '/hr/attendance',
-        {
-            tab: 'summary',
-            branch: props.data.branch?.id,
-            period: props.data.period,
-            date: props.data.date,
-            ...params,
-        },
-        { preserveScroll: true },
-    );
-const branchOptions = computed(() =>
-    props.data.branches.map((b) => ({ value: b.id, label: b.name })),
-);
-const figureKeys = [
-    'rostered',
-    'worked',
-    'late',
-    'leftEarly',
-    'noClockIn',
-    'noClockOut',
-    'overtime',
-] as const;
-const periods = [
-    { value: 'week', label: 'Week' },
-    { value: 'month', label: 'Month' },
-];
+const { visit, branchOptions, figureKeys, periods } = useSummaryTab(props);
 </script>
 
 <template>

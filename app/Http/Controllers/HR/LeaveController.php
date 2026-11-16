@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\HR\Leave\Services\LeaveDefaultsService;
 use App\Domain\HR\Leave\Services\LeaveEntryService;
 use App\Domain\HR\Leave\Services\LeaveEvidenceFiles;
 use App\Domain\HR\Leave\Services\LeaveEvidenceService;
@@ -136,6 +137,19 @@ class LeaveController extends Controller
             $count = $settings->grant($request->user(), $request->only(['year', 'idempotency_key']));
         });
         Inertia::flash('toast', ['type' => 'success', 'message' => $count === 0 ? 'Entitlement already given. Nothing changed.' : "Entitlement given ({$count} ".($count === 1 ? 'line' : 'lines').').']);
+
+        return $response;
+    }
+
+    public function defaults(Request $request, LeaveDefaultsService $defaults): RedirectResponse
+    {
+        $result = ['types' => 0, 'rows' => 0];
+        $response = $this->run($request, 'settings', null, function () use ($request, $defaults, &$result): void {
+            $result = $defaults->apply($request->user(), $request->only(['year', 'idempotency_key']));
+        });
+        Inertia::flash('toast', ['type' => 'success', 'message' => $result['types'] + $result['rows'] === 0
+            ? 'KPOne defaults are already in place. Nothing changed.'
+            : 'KPOne defaults added: '.$result['types'].' '.($result['types'] === 1 ? 'type' : 'types').', '.$result['rows'].' entitlement '.($result['rows'] === 1 ? 'row' : 'rows').'. Nothing is given until you press "Give this year\'s entitlement".']);
 
         return $response;
     }

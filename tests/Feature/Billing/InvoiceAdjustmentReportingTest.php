@@ -16,6 +16,7 @@ use App\Domain\Visit\Billing\Services\InvoiceAdjustmentService;
 use App\Domain\Visit\Billing\Services\PanelClaimDirectoryService;
 use App\Domain\Visit\Billing\Services\PanelClaimEligibility;
 use App\Domain\Visit\Billing\Services\PanelClaimService;
+use App\Domain\Visit\Billing\Services\PanelInvoicePrinting;
 use App\Domain\Visit\Billing\Services\PaymentService;
 use App\Domain\Visit\Billing\Services\ResponsibilityService;
 use App\Domain\Visit\Models\Panel;
@@ -205,7 +206,10 @@ class InvoiceAdjustmentReportingTest extends BillingTestCase
         $this->get(route('panel-claims.show', $claim))->assertOk()->assertDontSee('SYNTHETIC-PRIVATE-ADJUSTMENT');
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
-        $this->issuedInvoicePage($visit, $invoice)->assertOk()->assertInertia(fn (Assert $page) => $page->where('billing.invoice.adjustment.subtotalSen', 10000)->where('billing.invoice.adjustment.adjustmentSen', -2000)->where('billing.invoice.state.total', 8000))->assertDontSee('SYNTHETIC-PRIVATE-ADJUSTMENT');
+        // PCA-1 (owner decision 2026-11-13): a Panel invoice is never printed; the CA reads the same figures on the Billing page.
+        $this->get(route('billing.show', $visit))->assertOk()->assertInertia(fn (Assert $page) => $page->where('billing.invoice.adjustment.subtotalSen', 10000)->where('billing.invoice.adjustment.adjustmentSen', -2000)->where('billing.invoice.state.total', 8000))->assertDontSee('SYNTHETIC-PRIVATE-ADJUSTMENT');
+        $this->post(route('billing.issue', [$visit, $invoice]), ['expected_branch_id' => $visit->branch_id, 'idempotency_key' => (string) Str::uuid(), 'return_to' => 'billing'])
+            ->assertSessionHasErrors(['document' => PanelInvoicePrinting::MESSAGE]);
         foreach (['administrator', 'technical_admin'] as $role) {
             $actor = $this->actor($role);
             $this->selectBranch($actor);
