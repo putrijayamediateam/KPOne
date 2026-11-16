@@ -82,7 +82,11 @@ test('Panel invoices filter row shrinks to a phone width', () => {
         assert.match(classes, /\bmin-w-0\b/);
     }
 
-    const selects = [...invoices.matchAll(/<select[^>]*class="([^"]*)"/g)];
+    // DD-98 (owner approved 2026-11-16): the two filters use the shared
+    // dropdown, still full width and able to shrink on a phone.
+    const selects = [
+        ...invoices.matchAll(/<OperationalSelect[^>]*trigger-class="([^"]*)"/g),
+    ];
     assert.equal(selects.length, 2);
 
     for (const [, classes] of selects) {
