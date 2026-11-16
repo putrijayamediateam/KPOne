@@ -6,7 +6,7 @@
 <template>
     <p class="text-xs text-muted-foreground" data-test="accountant-note">
         Statutory figures come from the tables the clinic entered and checked in
-        KPOne. Check them against current law (official KWSP/PERKESO/HRD
-        Corp/LHDN schedules) before real use. Synthetic data only.
+        KPOne. Check them against current law (official KWSP/EPF, PERKESO/SOCSO,
+        HRD Corp and LHDN schedules) before real use. Synthetic data only.
     </p>
 </template>

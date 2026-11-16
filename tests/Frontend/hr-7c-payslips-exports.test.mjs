@@ -50,7 +50,7 @@ test('the payslip shows net pay in bold, the bank masked, employer parts as info
     assert.match(template('payslip'), /Employer contributions \(information\)/);
     assert.match(
         template('payslip'),
-        /Generated\s+by\s+KPOne\.\s+Statutory\s+figures\s+come\s+from\s+the\s+tables\s+the\s+clinic\s+entered\s+and\s+checked\s+in\s+KPOne\.\s+Check\s+them\s+against\s+current\s+law\s+\(official\s+KWSP\/PERKESO\/HRD\s+Corp\/LHDN\s+schedules\)\s+before\s+real\s+use\.\s+Synthetic\s+data\s+only\./,
+        /Generated\s+by\s+KPOne\.\s+Statutory\s+figures\s+come\s+from\s+the\s+tables\s+the\s+clinic\s+entered\s+and\s+checked\s+in\s+KPOne\.\s+Check\s+them\s+against\s+current\s+law\s+\(official\s+KWSP\/EPF,\s+PERKESO\/SOCSO,\s+HRD\s+Corp\s+and\s+LHDN\s+schedules\)\s+before\s+real\s+use\.\s+Synthetic\s+data\s+only\./,
     );
     assert.match(source.payslip, /import \{ myr \} from '@\/types\/billing';/);
     assert.doesNotMatch(source.payslip, /toFixed\(|\/ 100\b|parseFloat\(/);

@@ -486,7 +486,12 @@ class PayrollRunsTest extends VisitTestCase
         // apart, because rows are grouped by the worker, not the name (Suresh, S2).
         DB::table('users')->where('id', $cara->user_id)->update(['name' => $aina->user->name]);
         $csv = $this->unzip((string) $this->postJson(route('hr.payroll.runs.export', [$id, 'accountant']), self::FILE_PASSWORD)->assertOk()->getContent(), 'payroll-accountant-2026-11.csv');
-        $this->assertStringContainsString("Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/PERKESO/HRD Corp/LHDN schedules) before real use. Synthetic data only.", $csv);
+        $this->assertStringContainsString('Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/EPF, PERKESO/SOCSO, HRD Corp and LHDN schedules) before real use. Synthetic data only.', $csv);
+        // Daniel (M4): the title row first, then the Note as one quoted cell that never splits on its commas.
+        $lines = explode("\r\n", ltrim($csv, "\xEF\xBB\xBF"));
+        $this->assertSame('Payroll run', str_getcsv($lines[0], ',', '"', '')[0]);
+        $this->assertStringContainsString('"Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/EPF, PERKESO/SOCSO, HRD Corp and LHDN schedules) before real use. Synthetic data only."', $lines[1]);
+        $this->assertSame(['Note', 'Statutory figures come from the tables the clinic entered and checked in KPOne. Check them against current law (official KWSP/EPF, PERKESO/SOCSO, HRD Corp and LHDN schedules) before real use. Synthetic data only.'], str_getcsv($lines[1], ',', '"', ''));
         $rows = $this->csvRows($csv);
         $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '2600.00'], $rows);
         $this->assertContains([$aina->name(), 'Earnings', 'Basic salary', '1500.00'], $rows);
