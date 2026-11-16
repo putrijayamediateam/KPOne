@@ -13,7 +13,6 @@ type Application = {
     position: string;
     stage: string;
     stageLabel: string;
-    stageLabelMs: string;
     open: boolean;
     canDelete: boolean;
     submittedOn: string;
@@ -31,7 +30,6 @@ type Application = {
         zone?: string;
         // Owner, 2026-11-11: the last day to choose before the application closes.
         chooseBy?: string | null;
-        chooseByMs?: string | null;
         confirmed?: string;
     } | null;
     // HR-17d: the clinic's documents for a confirmed interview.
@@ -211,7 +209,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
 </script>
 
 <template>
-    <Head title="Your application / Permohonan anda"
+    <Head title="Your application"
         ><meta name="referrer" content="no-referrer"
     /></Head>
     <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
@@ -227,18 +225,11 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                 </p>
 
                 <template v-if="application">
-                    <h1 class="text-xl font-semibold">
-                        Your application
-                        <span
-                            lang="ms"
-                            class="block text-base font-normal text-zinc-600 dark:text-zinc-400"
-                            >Permohonan anda</span
-                        >
-                    </h1>
+                    <h1 class="text-xl font-semibold">Your application</h1>
                     <dl class="grid gap-3 text-sm sm:grid-cols-2">
                         <div class="min-w-0">
                             <dt class="text-zinc-600 dark:text-zinc-400">
-                                Position / Jawatan
+                                Position
                             </dt>
                             <dd class="font-medium break-words">
                                 {{ application.position }}
@@ -246,13 +237,13 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         </div>
                         <div>
                             <dt class="text-zinc-600 dark:text-zinc-400">
-                                Sent on / Dihantar pada
+                                Sent on
                             </dt>
                             <dd class="font-medium">{{ submitted }}</dd>
                         </div>
                         <div>
                             <dt class="text-zinc-600 dark:text-zinc-400">
-                                Reference / Rujukan
+                                Reference
                             </dt>
                             <dd class="font-mono font-medium">
                                 {{ application.reference }}
@@ -269,16 +260,10 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         data-test="status-stage"
                     >
                         <p class="text-sm text-zinc-600 dark:text-zinc-400">
-                            Where it is now / Status semasa
+                            Where it is now
                         </p>
                         <p class="text-lg font-semibold">
                             {{ application.stageLabel }}
-                        </p>
-                        <p
-                            lang="ms"
-                            class="text-sm text-zinc-700 dark:text-zinc-300"
-                        >
-                            {{ application.stageLabelMs }}
                         </p>
                     </div>
 
@@ -293,11 +278,6 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             class="text-base font-semibold"
                         >
                             Your interview
-                            <span
-                                lang="ms"
-                                class="block text-sm font-normal text-zinc-600 dark:text-zinc-400"
-                                >Temu duga anda</span
-                            >
                         </h2>
                         <p class="mt-2 text-lg font-semibold">
                             {{ application.interview.confirmed }}
@@ -312,11 +292,6 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         >
                             <h3 class="text-sm font-semibold">
                                 Please read before your interview
-                                <span
-                                    lang="ms"
-                                    class="block font-normal text-zinc-600 dark:text-zinc-400"
-                                    >Sila baca sebelum temu duga anda</span
-                                >
                             </h3>
                             <ul class="space-y-2">
                                 <li
@@ -351,25 +326,13 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                     >
                         <h2 id="slots-heading" class="text-base font-semibold">
                             Choose your interview times
-                            <span
-                                lang="ms"
-                                class="block text-sm font-normal text-zinc-600 dark:text-zinc-400"
-                                >Pilih masa temu duga anda</span
-                            >
                         </h2>
                         <template v-if="application.interview.picked?.length">
                             <p class="text-sm">
                                 Your three times are with the clinic. They will
                                 confirm one, or ask you for new times.
                             </p>
-                            <p
-                                lang="ms"
-                                class="text-sm text-zinc-600 dark:text-zinc-400"
-                            >
-                                Tiga masa anda telah dihantar kepada klinik.
-                                Klinik akan mengesahkan satu, atau meminta masa
-                                baharu.
-                            </p>
+
                             <ul
                                 class="list-disc space-y-1 pl-5 text-sm font-medium"
                                 data-test="status-picked"
@@ -391,13 +354,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 {{ application.interview.branch }}. The clinic
                                 confirms one.
                             </p>
-                            <p
-                                lang="ms"
-                                class="text-sm text-zinc-600 dark:text-zinc-400"
-                            >
-                                Tandakan tiga masa satu jam yang sesuai. Klinik
-                                akan mengesahkan satu.
-                            </p>
+
                             <p
                                 v-if="application.interview.chooseBy"
                                 class="text-sm"
@@ -406,13 +363,6 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 Choose by the end of
                                 {{ application.interview.chooseBy }}. After
                                 that, the application closes.
-                                <span
-                                    lang="ms"
-                                    class="block text-zinc-600 dark:text-zinc-400"
-                                    >Pilih hingga akhir
-                                    {{ application.interview.chooseByMs }}.
-                                    Selepas itu, permohonan ini ditutup.</span
-                                >
                             </p>
                             <p
                                 v-if="errors.starts"
@@ -427,8 +377,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 class="text-sm font-medium"
                                 data-test="status-slots-zone"
                             >
-                                {{ application.interview.zone }} time / Waktu
-                                {{ application.interview.zone }}
+                                {{ application.interview.zone }} time
                             </p>
                             <!-- One disclosure per day, the first open (Daniel, HR-17c). -->
                             <details
@@ -482,7 +431,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 data-test="status-slots-choices"
                             >
                                 <h3 class="text-sm font-semibold">
-                                    Your choices / Pilihan anda
+                                    Your choices
                                 </h3>
                                 <ul class="space-y-2">
                                     <li
@@ -497,7 +446,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                             :aria-label="`Remove ${slotLabels[start] ?? start}`"
                                             @click="toggle(start)"
                                         >
-                                            Remove / Buang
+                                            Remove
                                         </button>
                                     </li>
                                 </ul>
@@ -522,15 +471,14 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 >
                                     {{
                                         chosen.length === 3
-                                            ? 'Send my three times / Hantar tiga masa saya'
-                                            : 'Choose 3 times / Pilih 3 masa'
+                                            ? 'Send my three times'
+                                            : 'Choose 3 times'
                                     }}
                                 </button>
                             </div>
                         </template>
                         <p v-else class="text-sm" data-test="status-slots-none">
-                            The clinic will contact you to arrange a time. /
-                            Klinik akan menghubungi anda untuk menetapkan masa.
+                            The clinic will contact you to arrange a time.
                         </p>
                     </section>
 
@@ -543,17 +491,12 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             class="text-base font-semibold"
                         >
                             Messages from the clinic
-                            <span
-                                lang="ms"
-                                class="block text-sm font-normal text-zinc-600 dark:text-zinc-400"
-                                >Mesej daripada klinik</span
-                            >
                         </h2>
                         <p
                             v-if="!application.messages.length"
                             class="text-sm text-zinc-600 dark:text-zinc-400"
                         >
-                            No messages yet. / Tiada mesej lagi.
+                            No messages yet.
                         </p>
                         <ol
                             v-else
@@ -592,11 +535,6 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                     >
                         <h2 id="pool-heading" class="text-base font-semibold">
                             Talent pool
-                            <span
-                                lang="ms"
-                                class="block text-sm font-normal text-zinc-600 dark:text-zinc-400"
-                                >Kumpulan bakat</span
-                            >
                         </h2>
                         <p
                             v-if="application.pool.left"
@@ -605,25 +543,11 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         >
                             You are not in the talent pool. The clinic will not
                             contact you about other openings.
-                            <span
-                                lang="ms"
-                                class="block text-zinc-600 dark:text-zinc-400"
-                                >Anda tiada dalam kumpulan bakat. Klinik tidak
-                                akan menghubungi anda tentang jawatan
-                                lain.</span
-                            >
                         </p>
                         <template v-else>
                             <p class="text-sm">
                                 You asked the clinic to keep your details for
                                 future openings of the same kind.
-                                <span
-                                    lang="ms"
-                                    class="block text-zinc-600 dark:text-zinc-400"
-                                    >Anda meminta klinik menyimpan butiran anda
-                                    untuk jawatan akan datang yang sama
-                                    jenis.</span
-                                >
                             </p>
                             <p
                                 v-if="errors.pool"
@@ -639,7 +563,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 data-test="status-pool-leave"
                                 @click="leavingPool = true"
                             >
-                                Remove me from the talent pool / Keluarkan saya
+                                Remove me from the talent pool
                             </button>
                             <div
                                 v-else
@@ -655,13 +579,6 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 >
                                     Leave the talent pool? You cannot join it
                                     again from this application.
-                                    <span
-                                        lang="ms"
-                                        class="block font-normal text-zinc-700 dark:text-zinc-300"
-                                        >Keluar daripada kumpulan bakat? Anda
-                                        tidak boleh menyertainya semula melalui
-                                        permohonan ini.</span
-                                    >
                                 </p>
                                 <div class="flex flex-wrap gap-3">
                                     <button
@@ -671,14 +588,14 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                         data-test="status-pool-leave-yes"
                                         @click="leavePool"
                                     >
-                                        Remove me / Keluarkan saya
+                                        Remove me
                                     </button>
                                     <button
                                         type="button"
                                         class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
                                         @click="leavingPool = false"
                                     >
-                                        Stay in it / Kekal
+                                        Stay in it
                                     </button>
                                 </div>
                             </div>
@@ -692,10 +609,6 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         <p class="text-sm text-zinc-600 dark:text-zinc-400">
                             Tell us you are no longer applying. We keep your
                             application for now.
-                            <span lang="ms" class="block"
-                                >Beritahu kami anda tidak lagi memohon. Kami
-                                menyimpan permohonan anda buat masa ini.</span
-                            >
                         </p>
                         <p
                             v-if="errors.withdraw"
@@ -712,7 +625,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             data-test="status-withdraw"
                             @click="askWithdraw"
                         >
-                            Withdraw my application / Tarik balik permohonan
+                            Withdraw my application
                         </button>
                         <div
                             v-else
@@ -731,13 +644,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 Withdraw your application? This cannot be
                                 undone.
                             </p>
-                            <p
-                                lang="ms"
-                                class="text-sm text-zinc-700 dark:text-zinc-300"
-                            >
-                                Tarik balik permohonan anda? Ini tidak boleh
-                                dibatalkan.
-                            </p>
+
                             <div class="flex flex-wrap gap-3">
                                 <button
                                     type="button"
@@ -746,14 +653,14 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                     data-test="status-withdraw-yes"
                                     @click="withdraw"
                                 >
-                                    Withdraw / Tarik balik
+                                    Withdraw
                                 </button>
                                 <button
                                     type="button"
                                     class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
                                     @click="keepIt"
                                 >
-                                    Keep it / Kekalkan
+                                    Keep it
                                 </button>
                             </div>
                         </div>
@@ -766,10 +673,6 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         <p class="text-sm text-zinc-600 dark:text-zinc-400">
                             Remove your application and the details you sent us,
                             including your CV, now.
-                            <span lang="ms" class="block"
-                                >Padam permohonan anda dan butiran yang anda
-                                hantar, termasuk CV anda, sekarang.</span
-                            >
                         </p>
                         <p
                             v-if="errors.erase"
@@ -786,7 +689,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             data-test="status-delete-ask"
                             @click="askDelete"
                         >
-                            Delete my application / Padam permohonan saya
+                            Delete my application
                         </button>
                         <div
                             v-else
@@ -810,18 +713,7 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                 }}Your details and CV are removed, this link
                                 stops working, and this cannot be undone.
                             </p>
-                            <p
-                                lang="ms"
-                                class="text-sm text-zinc-700 dark:text-zinc-300"
-                            >
-                                Padam permohonan anda?
-                                {{
-                                    application.open
-                                        ? 'Ia ditarik balik dahulu. '
-                                        : ''
-                                }}Butiran dan CV anda dibuang, pautan ini tidak
-                                lagi berfungsi, dan ini tidak boleh dibatalkan.
-                            </p>
+
                             <div class="flex flex-wrap gap-3">
                                 <button
                                     type="button"
@@ -830,14 +722,14 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                                     data-test="status-delete-yes"
                                     @click="erase"
                                 >
-                                    Delete / Padam
+                                    Delete
                                 </button>
                                 <button
                                     type="button"
                                     class="inline-flex min-h-11 items-center rounded-lg border border-zinc-300 px-4 text-sm font-medium dark:border-zinc-700"
                                     @click="keepDetails"
                                 >
-                                    Keep it / Kekalkan
+                                    Keep it
                                 </button>
                             </div>
                         </div>
@@ -845,20 +737,13 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                 </template>
 
                 <template v-else>
-                    <h1 class="text-xl font-semibold">
-                        Your application
-                        <span
-                            lang="ms"
-                            class="block text-base font-normal text-zinc-600 dark:text-zinc-400"
-                            >Permohonan anda</span
-                        >
-                    </h1>
+                    <h1 class="text-xl font-semibold">Your application</h1>
                     <p
                         v-if="exchanging"
                         role="status"
                         class="text-sm text-zinc-600 dark:text-zinc-400"
                     >
-                        Opening your application… / Membuka permohonan anda…
+                        Opening your application…
                     </p>
                     <p
                         v-else-if="erased"
@@ -867,9 +752,6 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         data-test="status-erased"
                     >
                         Your application and its details have been deleted.
-                        <span lang="ms" class="block font-normal"
-                            >Permohonan anda dan butirannya telah dipadam.</span
-                        >
                     </p>
                     <template v-else>
                         <p
@@ -884,18 +766,12 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                             Open the private link from your thank-you page or
                             from the clinic's email to see your application.
                         </p>
-                        <p
-                            lang="ms"
-                            class="text-sm text-zinc-600 dark:text-zinc-400"
-                        >
-                            Buka pautan peribadi daripada halaman terima kasih
-                            atau e-mel klinik untuk melihat permohonan anda.
-                        </p>
+
                         <a
                             href="/careers/apply"
                             class="inline-flex min-h-11 items-center text-sm font-medium text-pink-700 underline underline-offset-4 dark:text-pink-400"
                             data-test="status-apply"
-                            >Apply for a job / Mohon jawatan</a
+                            >Apply for a job</a
                         >
                     </template>
                 </template>

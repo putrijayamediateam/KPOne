@@ -34,22 +34,7 @@ final class CandidateLink
         'withdrawn' => 'Withdrawn',
     ];
 
-    /** @var array<string, string> */
-    public const CANDIDATE_STAGES_MS = [
-        'new' => 'Permohonan anda telah diterima',
-        'shortlisted' => 'Permohonan anda sedang disemak',
-        'phone_screening' => 'Kami akan menghubungi anda',
-        'scheduling' => 'Dijemput ke temu duga',
-        'interview' => 'Temu duga',
-        'offered' => 'Ditutup',
-        'passed' => 'Lulus temu duga',
-        'failed' => 'Tidak diteruskan',
-        'not_taken_forward' => 'Tidak diteruskan',
-        'auto_rejected' => 'Tidak diteruskan',
-        'withdrawn' => 'Ditarik balik',
-    ];
-
-    public const INVALID = 'This link is not valid any more. / Pautan ini tidak sah lagi.';
+    public const INVALID = 'This link is not valid any more.';
 
     public function __construct(private HiringMessenger $messenger, private AuditRecorder $audit) {}
 
@@ -101,7 +86,6 @@ final class CandidateLink
             'position' => HiringMessenger::positionTitle((int) $application->position_id),
             'stage' => (string) $application->status,
             'stageLabel' => self::CANDIDATE_STAGES[$application->status] ?? 'Closed',
-            'stageLabelMs' => self::CANDIDATE_STAGES_MS[$application->status] ?? 'Ditutup',
             'open' => in_array($application->status, JobApplicationService::OPEN, true),
             // Owner decision 2026-11-11: the candidate may delete their application, except at Offered (HR closes that).
             'canDelete' => $application->status !== 'offered',
@@ -133,9 +117,7 @@ final class CandidateLink
             return ['branch' => $branch['name'] ?? null, 'picked' => $pick === null ? [] : array_map($label, (array) json_decode((string) $pick->starts, true)),
                 'days' => $pick === null ? $slots->available($application) : [], 'picks' => InterviewSlots::PICKS,
                 // Owner, 2026-11-11: the last day to choose before the application closes (null once picked, or with no working days).
-                // Daniel: the same date on both lines, with the weekday in each line's own language ("Isnin 16 Nov 2026").
                 'chooseBy' => ($by = app(HiringDeadlines::class)->pickBy($application)) === null ? null : HiringDeadlines::chooseByLabels($by)['deadline'],
-                'chooseByMs' => $by === null ? null : HiringDeadlines::chooseByLabels($by)['tarikh'],
                 // "Kuala Lumpur time" (Daniel, HR-17c): the times are the branch's.
                 'zone' => str_replace('_', ' ', (string) last(explode('/', $zone)))];
         }
@@ -159,7 +141,7 @@ final class CandidateLink
                 throw ValidationException::withMessages(['link' => self::INVALID]);
             }
             if (! in_array($row->status, JobApplicationService::OPEN, true)) {
-                throw ValidationException::withMessages(['withdraw' => 'This application is already closed. / Permohonan ini sudah ditutup.']);
+                throw ValidationException::withMessages(['withdraw' => 'This application is already closed.']);
             }
             $this->withdrawLocked($row, true);
         }, 3);
@@ -185,7 +167,7 @@ final class CandidateLink
                 ->where(fn ($q) => $q->where('id', $root)->orWhere('invited_from_application_id', $root))
                 ->orderBy('id')->lockForUpdate()->get();
             if ($pair->contains('status', 'offered')) {
-                throw ValidationException::withMessages(['erase' => 'You have an offer from us. Please contact HR to close or delete your application. / Anda mempunyai tawaran daripada kami. Sila hubungi HR untuk menutup atau memadam permohonan anda.']);
+                throw ValidationException::withMessages(['erase' => 'You have an offer from us. Please contact HR to close or delete your application.']);
             }
             $paths = [];
             foreach ($pair as $application) {

@@ -28,7 +28,7 @@ const copy = async () => {
 </script>
 
 <template>
-    <Head title="Application sent / Permohonan dihantar"
+    <Head title="Application sent"
         ><meta name="referrer" content="no-referrer"
     /></Head>
     <main class="mx-auto min-h-svh max-w-xl px-4 py-5 sm:px-6 sm:py-8">
@@ -42,50 +42,24 @@ const copy = async () => {
                 >
                     {{ clinicName }}
                 </p>
-                <h1 class="text-xl font-semibold">
-                    Thank you for applying
-                    <span
-                        lang="ms"
-                        class="block text-base font-normal text-zinc-600 dark:text-zinc-400"
-                        >Terima kasih kerana memohon</span
-                    >
-                </h1>
+                <h1 class="text-xl font-semibold">Thank you for applying</h1>
                 <p class="text-sm">
                     We have your application. If you are shortlisted, the
                     clinic's HR team will contact you by phone or email.
                 </p>
-                <p lang="ms" class="text-sm text-zinc-600 dark:text-zinc-400">
-                    Permohonan anda telah diterima. Jika anda disenarai pendek,
-                    pasukan HR klinik akan menghubungi anda melalui telefon atau
-                    e-mel.
-                </p>
+
                 <div
                     v-if="statusLink"
                     class="space-y-3 rounded-2xl border border-pink-200 bg-pink-50 p-4 dark:border-pink-900/60 dark:bg-pink-950/30"
                     data-test="apply-status-link"
                 >
-                    <h2 class="text-sm font-semibold">
-                        Your private link
-                        <span
-                            lang="ms"
-                            class="block font-normal text-zinc-600 dark:text-zinc-400"
-                            >Pautan peribadi anda</span
-                        >
-                    </h2>
+                    <h2 class="text-sm font-semibold">Your private link</h2>
                     <p class="text-sm">
                         Save this link to follow your application. It is shown
                         only now. Anyone with the link can see your application,
                         so keep it private.
                     </p>
-                    <p
-                        lang="ms"
-                        class="text-sm text-zinc-600 dark:text-zinc-400"
-                    >
-                        Simpan pautan ini untuk mengikuti permohonan anda. Ia
-                        ditunjukkan sekarang sahaja. Sesiapa yang mempunyai
-                        pautan ini boleh melihat permohonan anda, jadi
-                        rahsiakannya.
-                    </p>
+
                     <label for="status-link" class="sr-only"
                         >Your private link</label
                     >
@@ -104,18 +78,18 @@ const copy = async () => {
                             data-test="apply-status-copy"
                             @click="copy"
                         >
-                            Copy link / Salin pautan
+                            Copy link
                         </button>
                         <a
                             :href="statusLink"
                             class="inline-flex min-h-11 items-center text-sm font-medium text-pink-700 underline underline-offset-4 dark:text-pink-400"
-                            >Open it now / Buka sekarang</a
+                            >Open it now</a
                         >
                         <span
                             v-if="copied"
                             role="status"
                             class="text-sm text-zinc-600 dark:text-zinc-400"
-                            >Copied. / Disalin.</span
+                            >Copied.</span
                         >
                         <span
                             v-if="copyFailed"
@@ -123,15 +97,14 @@ const copy = async () => {
                             class="text-sm text-zinc-600 dark:text-zinc-400"
                             data-test="apply-status-copy-failed"
                             >Your browser did not copy it. Select the link above
-                            and copy it. / Pelayar anda tidak menyalinnya. Pilih
-                            pautan di atas dan salin.</span
+                            and copy it.</span
                         >
                     </div>
                 </div>
                 <a
                     href="/careers/apply"
                     class="inline-flex min-h-11 items-center text-sm font-medium text-pink-700 underline underline-offset-4 dark:text-pink-400"
-                    >Apply for another position / Mohon jawatan lain</a
+                    >Apply for another position</a
                 >
             </div>
         </section>
