@@ -43,6 +43,37 @@ memos, the HR dashboard, appraisal, letters and discipline records, and the clin
 | Controllers | `app/Http/Controllers/HR/*` |
 | Tests | `tests/Feature/HR/*`, `tests/Frontend/hr-*.test.mjs` |
 
+### V2 pages (the Version 2 look)
+
+Each HR page that has a Version 2 look keeps one shared composable in `resources/js/composables/hr/`, which holds the
+page's state and every request. The Classic page and the V2 page both use it, so they send exactly the same requests,
+fields, idempotency keys and lock versions. The Classic `<template>` stays unchanged, the V2 page sends no request of
+its own, and props, routes and permissions are the same. Each page is registered in `config/v2-pages.php`.
+
+| Page | Composable | V2 page | By |
+|---|---|---|---|
+| `HR/Roster` | `useRosterPage.ts` | `pages/HR/V2/Roster.vue` | HR team |
+| `HR/Attendance` | `useAttendancePage.ts`, with `useOvertimeTab.ts`, `useSummaryTab.ts`, `useOvertimeSettings.ts` and `useLocationCheckSettings.ts` | `pages/HR/V2/Attendance.vue` | HR team |
+| `HR/Leave` | `useLeavePage.ts` | `pages/HR/V2/Leave.vue` | HR team (PR #841; Settings in four sub-tabs in PR #925) |
+| `HR/Sops` | `useSopsPage.ts` | `pages/HR/V2/Sops.vue` | Nurul's team (PR #872) |
+| `HR/Memos` | `useMemosPage.ts` | `pages/HR/V2/Memos.vue` | Nurul's team (PR #874) |
+| `HR/Messages` | `useMessagesPage.ts` | `pages/HR/V2/Messages.vue` | Nurul's team (PR #880) |
+| `HR/OpenShifts` | `useOpenShiftsPage.ts` | `pages/HR/V2/OpenShifts.vue` | Nurul's team (PR #889) |
+| `HR/Applications` | `useApplicationsPage.ts` | `pages/HR/V2/Applications.vue` | Nurul's team (PR #895) |
+| `HR/Credentials` | `useCredentialsPage.ts`, with `useCredentialRecordSheet.ts` for the record sheet | `pages/HR/V2/Credentials.vue` | Nurul's team (PR #902) |
+| `HR/Claims` | `useClaimsPage.ts`, with `useClaimSheet.ts` for the claim sheet | `pages/HR/V2/Claims.vue` | Nurul's team (PR #904) |
+| `HR/Records` | `useRecordsPage.ts`, with `useCorrectionSheet.ts`, `useOutsideExport.ts` and `useChecklistTab.ts` (the checklist one not used by V2 yet) | `pages/HR/V2/Records.vue` | Nurul's team (PR #910) |
+| `HR/StaffFile` | `useStaffFilePage.ts`; the audited Show is one shared function, `lib/hr-show-value.ts`, used by Classic's `MaskedValue` and V2 alike | `pages/HR/V2/StaffFile.vue` | Nurul's team (PR #915) |
+| `HR/Dashboard` | `useDashboardPage.ts` (the month request); read only | `pages/HR/V2/Dashboard.vue` | Nurul's team (PR #922) |
+
+- Nurul's team builds HR V2 pages under the HR rules; Suresh reviews each one for the HR team.
+- A frontend test that reads a Classic page's script may also read its composable; that is a setup change with the
+  expectations unchanged (as in `hr-5c-sops.test.mjs`, `hr-8-memos.test.mjs`, `hr-14-messages.test.mjs`, `hr-15b-open-shifts.test.mjs`, `hr-15b-needs-posting.test.mjs` seven Applications tests `hr-5a-credentials.test.mjs` `hr-6-claims.test.mjs`, six Records-related tests, and `hr-4a-records`, `hr-4b-documents` and `hr-15a-locum-sign-in` for the Staff file, and `hr-9-dashboard` for the Dashboard).
+- V2 Open shifts: the Post sheet's Start and End times move to `V2TimeField` next time the page is touched
+  (Daniel, design debt DD-79).
+- When the Classic SOPs restyle (`lastOpened`, which fills "I have read and understood" for the SOP just opened)
+  reaches main, the V2 SOPs page takes the same binding from `useSopsPage.ts`, so the two match (Suresh, PR #872).
+
 ## 4. Permissions
 
 New permissions use the `hr.` prefix and explicit `.own` or `.organisation` scope, are added by additive migrations
