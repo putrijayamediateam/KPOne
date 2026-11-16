@@ -84,6 +84,8 @@ export type Correction = {
     canDecide: boolean;
     canCancel: boolean;
     lockVersion: number;
+    // G2b: an hourly person's correction in a month whose payroll is already locked.
+    lockedMonth?: string | null;
 };
 
 export type AttendanceProps = {

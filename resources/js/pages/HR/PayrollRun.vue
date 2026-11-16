@@ -53,8 +53,13 @@ type RunPerson = {
     manual: { id: string }[];
 };
 type Step = 'approve' | 'return' | 'lock';
-// G2a: overtime approved after the regular run was locked (never paid automatically).
+// G2a and G2b: overtime, unpaid leave and worked hours changed after the regular run was locked (never paid or
+// taken automatically). No money: `change` says which way and by how much, in days or hours.
+type LateKind = 'overtime' | 'leave_cancelled' | 'leave_approved' | 'hours';
 type LateItem = {
+    kind: LateKind;
+    kindLabel: string;
+    change: string;
     id: string;
     name: string;
     date: string;
@@ -209,9 +214,19 @@ const removeManual = (index: number) => {
 // ---- steps ----
 const asking = ref<'send' | Step | null>(null);
 const returnReason = ref('');
-const addLate = (item: LateItem) => post(`late/${item.id}`, {});
+const addLate = (item: LateItem) =>
+    item.kind === 'overtime'
+        ? post(`late/${item.id}`, {})
+        : post(`late/${item.id}`, { kind: item.kind });
 const removeLate = (item: LateItem) =>
-    item.itemId && post(`late/${item.itemId}/remove`, {});
+    item.itemId &&
+    (item.kind === 'overtime'
+        ? post(`late/${item.itemId}/remove`, {})
+        : post(`late/${item.itemId}/remove`, { kind: item.kind }));
+// G2b: the card keeps its overtime words while it holds only overtime.
+const lateOnlyOvertime = computed(() =>
+    props.run.late.every((item) => item.kind === 'overtime'),
+);
 // A locked regular run with late overtime and no open adjustment run: start one from here (Daniel, point 4).
 const startAdjustment = () => {
     const target = props.run.lateAdjustment;
@@ -432,17 +447,27 @@ const statusTone = computed(() =>
                     <span
                         class="size-2 rounded-full bg-muted-foreground"
                         aria-hidden="true"
-                    />Late overtime
+                    /><template v-if="lateOnlyOvertime">Late overtime</template
+                    ><template v-else>Late changes</template>
                 </span>
                 <h2 id="run-late-heading" class="font-semibold">
-                    Approved after this run was locked
+                    <template v-if="lateOnlyOvertime"
+                        >Approved after this run was locked</template
+                    ><template v-else
+                        >Changed after this run was locked</template
+                    >
                 </h2>
                 <p class="text-sm text-muted-foreground">
-                    {{
+                    <template v-if="lateOnlyOvertime">{{
                         run.kind === 'regular'
                             ? 'This overtime is in this month but was approved after the lock, so this run does not pay it. Pay is worked out on an adjustment run.'
                             : 'Overtime approved after the locked run. Nothing is added unless you add it here.'
-                    }}
+                    }}</template
+                    ><template v-else>{{
+                        run.kind === 'regular'
+                            ? 'These changes are in this month but came after the lock, so this run does not include them. They are worked out on an adjustment run.'
+                            : 'Changes made after the locked run. Nothing is added or taken unless you add it here.'
+                    }}</template>
                 </p>
             </div>
 
@@ -495,13 +520,16 @@ const statusTone = computed(() =>
                                 Person
                             </th>
                             <th scope="col" class="py-2 pr-3 font-medium">
-                                Overtime on
+                                What changed
                             </th>
                             <th scope="col" class="py-2 pr-3 font-medium">
-                                Time
+                                For
                             </th>
                             <th scope="col" class="py-2 pr-3 font-medium">
-                                Approved on
+                                Change
+                            </th>
+                            <th scope="col" class="py-2 pr-3 font-medium">
+                                Decided on
                             </th>
                             <th scope="col" class="py-2 font-medium">
                                 <span class="sr-only">Status or action</span>
@@ -511,18 +539,28 @@ const statusTone = computed(() =>
                     <tbody>
                         <tr
                             v-for="item in run.late"
-                            :key="item.id"
+                            :key="`${item.kind}:${item.id}`"
                             class="border-t align-middle"
                             data-test="run-late-item"
                         >
                             <td class="py-2 pr-3 font-medium break-words">
                                 {{ item.name }}
                             </td>
+                            <td class="py-2 pr-3">
+                                <span
+                                    class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium whitespace-nowrap"
+                                    data-test="run-late-kind"
+                                    ><span
+                                        class="size-2 rounded-full bg-muted-foreground"
+                                        aria-hidden="true"
+                                    />{{ item.kindLabel }}</span
+                                >
+                            </td>
                             <td class="py-2 pr-3 whitespace-nowrap">
                                 {{ item.date }}
                             </td>
-                            <td class="py-2 pr-3 whitespace-nowrap">
-                                {{ item.duration }}
+                            <td class="py-2 pr-3" data-test="run-late-change">
+                                {{ item.change }}
                             </td>
                             <td class="py-2 pr-3 whitespace-nowrap">
                                 {{ item.approvedAt ? on(item.approvedAt) : '' }}
@@ -549,6 +587,7 @@ const statusTone = computed(() =>
                                                 class="sr-only"
                                             >
                                                 : {{ item.name }},
+                                                {{ item.kindLabel }},
                                                 {{ item.date }}</span
                                             >
                                         </Button>
@@ -572,6 +611,7 @@ const statusTone = computed(() =>
                                         >
                                             Take off<span class="sr-only">
                                                 : {{ item.name }},
+                                                {{ item.kindLabel }},
                                                 {{ item.date }}</span
                                             >
                                         </Button>
@@ -596,18 +636,28 @@ const statusTone = computed(() =>
             <ul class="grid gap-2 lg:hidden">
                 <li
                     v-for="item in run.late"
-                    :key="item.id"
+                    :key="`${item.kind}:${item.id}`"
                     class="grid gap-2 rounded-lg border p-3"
                     data-test="run-late-card"
                 >
-                    <span class="font-medium break-words">{{ item.name }}</span>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="font-medium break-words">{{
+                            item.name
+                        }}</span>
+                        <span
+                            class="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-xs font-medium"
+                            ><span
+                                class="size-2 rounded-full bg-muted-foreground"
+                                aria-hidden="true"
+                            />{{ item.kindLabel }}</span
+                        >
+                    </div>
+                    <span class="text-sm">{{ item.change }}</span>
                     <span class="text-sm text-muted-foreground"
-                        >Overtime on {{ item.date }} · {{ item.duration }}</span
-                    >
-                    <span
-                        v-if="item.approvedAt"
-                        class="text-sm text-muted-foreground"
-                        >Approved on {{ on(item.approvedAt) }}</span
+                        >For {{ item.date
+                        }}<template v-if="item.approvedAt">
+                            · decided on {{ on(item.approvedAt) }}</template
+                        ></span
                     >
                     <Button
                         v-if="
@@ -621,7 +671,8 @@ const statusTone = computed(() =>
                         @click="addLate(item)"
                     >
                         Add to this adjustment<span class="sr-only">
-                            : {{ item.name }}, {{ item.date }}</span
+                            : {{ item.name }}, {{ item.kindLabel }},
+                            {{ item.date }}</span
                         >
                     </Button>
                     <div
@@ -643,7 +694,8 @@ const statusTone = computed(() =>
                             @click="removeLate(item)"
                         >
                             Take off<span class="sr-only">
-                                : {{ item.name }}, {{ item.date }}</span
+                                : {{ item.name }}, {{ item.kindLabel }},
+                                {{ item.date }}</span
                             >
                         </Button>
                     </div>
