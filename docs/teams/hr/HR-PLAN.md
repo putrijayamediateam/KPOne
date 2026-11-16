@@ -2573,6 +2573,17 @@ The existing `hr.payroll.prepare.organisation` and `hr.payroll.approve.organisat
   overtime, unpaid leave and staff claim refunds, so each line knows which schemes it counts for.
 - **Adjustment runs hold manual difference lines only** in v1, with a reason per line. A negative net on an
   adjustment is a warning, never an error, since a recovery is negative by nature (Suresh, S2).
+- **Statutory parts on an adjustment (HR month dry run S3; owner, 16 Nov 2026):** an adjustment run also works out
+  EPF, SOCSO, EIS and HRD on the difference, from the same checked tables as the regular run. For each scheme the
+  person's profile has, the wage is the month's locked runs plus the difference; the line is the table's figure on that
+  wage less what the locked runs already paid ("EPF employee · on the RM 1,000.00 difference (wage now RM 6,000.00)").
+  A correction that lowers a scheme wage gives negative lines and the warning "This correction lowers a scheme wage".
+  When the correction changes the MTD wage of a person with MTD, HR types the MTD (RM 0.00 allowed): until then the
+  person shows "Type the MTD for this correction" and the run is not sent. KPOne does not work out MTD on one-off pay.
+  Suresh's review: contributions count every locked run of the person's month, whichever pay group ran it; a scheme
+  switched on (or a category changed) since the month's run warns that its lines cover the whole month's wage; a person
+  with no confirmed pay profile warns that the correction carries no contributions or MTD. Known limit: a table with
+  no band from RM 0.00 refuses a correction that takes the whole wage back.
 - **Sending back:** a sent or approved run goes back to Draft with a reason; from approved, only its approver sends
   it back (Suresh, B1). The claim checks run before approval as well as at lock, so a run never reaches a lock
   nobody may take.
@@ -2730,7 +2741,7 @@ review. The accountant line stays on every payroll page.
     - **S2:** a run (regular or adjustment) of an earlier month this year that is not locked yet stops the worked figure until it is locked and the run is prepared again, or the MTD is typed.
     - **M1:** a typed MTD always gets past the schedule and band errors, with a warning instead.
 - **Not in HR-7d (later, each with the accountant):**
-  - additional remuneration (bonus, arrears and commission). A manual line that counts for MTD on a monthly run stops the worked figure, and the preparer types that person's MTD. Adjustment runs carry no MTD line in v1, which predates HR-7d (Suresh, M2), so the MTD on a bonus paid through an adjustment run is recorded outside KPOne for now;
+  - additional remuneration (bonus, arrears and commission). A manual line that counts for MTD on a monthly run stops the worked figure, and the preparer types that person's MTD. On an adjustment run that changes the MTD wage, HR types the MTD (RM 0.00 allowed) and KPOne records it on the run (S3, 16 Nov 2026; before S3 adjustment runs carried no MTD line);
   - TP1 (other reliefs and rebates the employee claims);
   - TP3 (pay, EPF, MTD and zakat from a previous employer this year);
   - zakat;
@@ -2853,7 +2864,7 @@ Migrations from `2026_11_10_002900` (after HR-7c's `002800`).
 - In a joiner's or leaver's month the part-month pay is projected over the remaining months, so that month's MTD is low; later months catch up through X.
 - Each band's "From" is M; with bands running on by one sen, M is 1 sen from LHDN's figure for later bands (negligible).
 - A worker in two regular runs for one month (a pay group change, from HR-7b) would be counted twice in the year to date.
-- Adjustment runs carry no MTD line in v1.
+- On an adjustment run, the MTD is typed by HR when the correction changes the MTD wage (S3); KPOne never works it out there.
 - The person's MTD details are never flashed into the session (`dontFlash`).
 - Deploy note: drafts prepared before the deploy ask to be prepared again once, because the run fingerprint gains the MTD schedule.
 - An earlier month this year whose run was never prepared is not detected: the year to date silently lacks it.

@@ -331,6 +331,15 @@ const {
                 >
                     Fewer minutes than asked: choose why.
                 </p>
+                <p
+                    v-if="dialog.mode === 'reverse' && dialog.target?.paidIn"
+                    class="text-sm"
+                    data-test="overtime-paid-in"
+                >
+                    Paid in the locked {{ dialog.target.paidIn }}. Reversing it
+                    does not change that run or its payslip: add a recovery on
+                    an adjustment run.
+                </p>
                 <V2OptionGroup
                     v-if="needsReason"
                     v-model="dialog.reason"
