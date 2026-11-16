@@ -58,5 +58,5 @@ test('the rating is a radio group with an accessible name; the chosen one is fil
     assert.match(tpl, /type="radio"/);
     assert.match(tpl, /has-\[:checked\]:bg-primary/);
     assert.match(tpl, /min-h-11 min-w-11/);
-    assert.match(tpl, /<Check v-if="form\.ratings\[i\]!\.rating === n"/);
+    assert.match(tpl, /<Check v-if=" ?form\.ratings\[i\]!\.rating === n ?"/);
 });
