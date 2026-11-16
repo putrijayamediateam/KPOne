@@ -577,6 +577,9 @@ check items, keep them"). The rest stand unless the owner changes them.
   says "Kept for 7 years (to confirm)." (Daniel and B.E.R.N.I.S.S, 2026-11-12). Remove both "to confirm" phrases from the
   staff text, and from the `hr-photo-clock-in` and `hr-3a-attendance` frontend pins, once the owner has the PDPA answer
   on retention; raise the notice version with the wording.
+- Payroll note go-live item (M4, Daniel, 2026-11-16): the payroll pages, the payslip footer and the accountant CSV end
+  with "Synthetic data only." Remove it together with the PDPA review, in `AccountantNote.vue`, `Payslip.vue` and
+  `PayrollExportService`, and in the `hr-7a-payroll`, `hr-7c-payslips-exports` and `PayrollRunsTest` pins.
 
 ## 8. Rules (every task)
 

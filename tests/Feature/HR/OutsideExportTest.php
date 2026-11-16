@@ -75,7 +75,7 @@ class OutsideExportTest extends VisitTestCase
 
         // Leave touching November, approved only, with all of its days; never the reason.
         $leave = $this->rows($this->download('leave', '2026-11')->assertOk()->streamedContent());
-        $this->assertSame('Days', $leave[1][0]);
+        $this->assertSame('Days', $leave[2][0]);
         $this->assertSame(['KPOne ID', 'Name', 'Leave', 'From', 'To', 'Days in request', 'Paid'], $leave[4]);
         $this->assertSame([[(string) $worker->public_id, $this->ca->name, 'On leave', '2026-10-30', '2026-11-02 (am)', '2.5', 'Yes']], array_slice($leave, 5));
         // "On leave only" (owner, 2026-11-10): the leave type's name never reaches the file.
@@ -86,6 +86,11 @@ class OutsideExportTest extends VisitTestCase
 
         // Overtime approved in November only, minutes and day type, never pay.
         $overtime = $this->rows($this->download('overtime', '2026-11')->assertOk()->streamedContent());
+        // Daniel (M4): in every HR export the title row comes first and the Note second, as one cell.
+        foreach (['staff' => $rows, 'leave' => $leave, 'overtime' => $overtime] as $kind => $file) {
+            $this->assertSame('KPOne HR export', $file[0][0], $kind);
+            $this->assertSame(['Note', 'Synthetic data only until the PDPA review. No identity numbers, bank details or documents.'], $file[1], $kind);
+        }
         $this->assertSame(['KPOne ID', 'Name', 'Date', 'Day type', 'Approved minutes'], $overtime[3]);
         $this->assertSame([[(string) $worker->public_id, $this->ca->name, '2026-11-12', 'Rest day', '95']], array_slice($overtime, 4));
         $all = $staff->streamedContent();
