@@ -7,7 +7,7 @@
  */
 import { router } from '@inertiajs/vue3';
 import { AlertTriangle, LoaderCircle } from '@lucide/vue';
-import { computed, nextTick, ref } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import { quantityWords } from '@/pages/Dispensary/V2/Partials/quantity-words';
 import type { DoctorDispensaryAttention } from '@/types';
@@ -21,13 +21,57 @@ const status = ref('');
 const showAll = ref(false);
 const visibleLimit = 5;
 
-// V2 (Daniel): Classic's order, with the rows that still need the doctor first.
-const ordered = computed(() => [
-    ...props.items.filter((i) => i.status === 'awaiting_acknowledgement'),
-    ...props.items.filter((i) => i.status !== 'awaiting_acknowledgement'),
-]);
+// V2 (Daniel, Hakim): Classic's order with the rows that still need the doctor first, fixed for the life of the
+// panel, so a row the doctor acts on stays where it is; rows that arrive later go to the end.
+const waitingFirst = (items: DoctorDispensaryAttention[]) => [
+    ...items.filter((i) => i.status === 'awaiting_acknowledgement'),
+    ...items.filter((i) => i.status !== 'awaiting_acknowledgement'),
+];
+const order = ref<string[]>(
+    waitingFirst(props.items).map((i) => i.exceptionPublicId),
+);
+watch(
+    () => props.items.map((i) => i.exceptionPublicId),
+    () => {
+        const known = new Set(order.value);
+        order.value = [
+            ...order.value,
+            ...waitingFirst(props.items)
+                .map((i) => i.exceptionPublicId)
+                .filter((id) => !known.has(id)),
+        ];
+    },
+);
+const ordered = computed(() => {
+    const byId = new Map(props.items.map((i) => [i.exceptionPublicId, i]));
+
+    return order.value
+        .map((id) => byId.get(id))
+        .filter((i): i is DoctorDispensaryAttention => i !== undefined);
+});
+// Rows the doctor acted on stay in view when the list is collapsed.
+const pinned = ref(new Set<string>());
+// Mira: collapsed, never hide a row that still needs review.
 const shown = computed(() =>
-    showAll.value ? ordered.value : ordered.value.slice(0, visibleLimit),
+    showAll.value
+        ? ordered.value
+        : ordered.value.filter(
+              (item, index) =>
+                  index < visibleLimit ||
+                  item.status === 'awaiting_acknowledgement' ||
+                  pinned.value.has(item.exceptionPublicId),
+          ),
+);
+const hiddenCount = computed(() => ordered.value.length - shown.value.length);
+const canCollapse = computed(
+    () =>
+        showAll.value &&
+        ordered.value.filter(
+            (item, index) =>
+                index < visibleLimit ||
+                item.status === 'awaiting_acknowledgement' ||
+                pinned.value.has(item.exceptionPublicId),
+        ).length < ordered.value.length,
 );
 
 const medicine = (item: DoctorDispensaryAttention) =>
@@ -36,8 +80,17 @@ const rowId = (item: DoctorDispensaryAttention) =>
     `dispensary-attention-${item.exceptionPublicId}`;
 const errorId = (item: DoctorDispensaryAttention) => `${rowId(item)}-error`;
 
-const focusRow = (item: DoctorDispensaryAttention, button: boolean) =>
-    nextTick(() =>
+const focusRow = (item: DoctorDispensaryAttention, button: boolean) => {
+    pinned.value = new Set([...pinned.value, item.exceptionPublicId]);
+
+    // Safety net: if the row is not shown, open the full list before moving focus.
+    if (
+        !shown.value.some((i) => i.exceptionPublicId === item.exceptionPublicId)
+    ) {
+        showAll.value = true;
+    }
+
+    return nextTick(() =>
         setTimeout(() => {
             const row = document.getElementById(rowId(item));
             const target = button
@@ -46,6 +99,7 @@ const focusRow = (item: DoctorDispensaryAttention, button: boolean) =>
             (target ?? row)?.focus({ preventScroll: true });
         }, 0),
     );
+};
 
 const acknowledge = (item: DoctorDispensaryAttention) => {
     processing.value = item.exceptionPublicId;
@@ -100,7 +154,10 @@ const outlineButton =
                 Dispensary attention required
             </h2>
         </header>
-        <ul class="divide-y dark:divide-foreground/15">
+        <ul
+            id="dispensary-attention-rows"
+            class="divide-y dark:divide-foreground/15"
+        >
             <li
                 v-for="item in shown"
                 :id="rowId(item)"
@@ -188,16 +245,18 @@ const outlineButton =
             </li>
         </ul>
         <div
-            v-if="ordered.length > visibleLimit && !showAll"
+            v-if="hiddenCount > 0 || canCollapse"
             class="border-t px-4 py-2 dark:border-foreground/15"
         >
             <button
                 type="button"
-                :class="outlineButton"
+                :class="[outlineButton, 'lg:h-11!']"
+                :aria-expanded="showAll"
+                aria-controls="dispensary-attention-rows"
                 data-testid="v2-dispensary-attention-show-all"
-                @click="showAll = true"
+                @click="showAll = !showAll"
             >
-                Show all {{ ordered.length }}
+                {{ showAll ? 'Show fewer' : `Show all ${ordered.length}` }}
             </button>
         </div>
         <p class="sr-only" role="status" aria-live="polite">{{ status }}</p>

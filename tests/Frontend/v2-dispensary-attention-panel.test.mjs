@@ -54,13 +54,52 @@ test('nothing renders when there is nothing to show (no empty wrapper)', () => {
     assert.match(template(v2), /<section\s+v-if="items\.length"/);
 });
 
-test('review-needed rows first, then the rest in Classic order; above 5 rows, "Show all N"', () => {
+test('rows keep a fixed order (waiting first, then Classic order); new rows go to the end (Hakim)', () => {
     assert.match(
         v2,
-        /\.\.\.props\.items\.filter\(\(i\) => i\.status === 'awaiting_acknowledgement'\),\s*\.\.\.props\.items\.filter\(\(i\) => i\.status !== 'awaiting_acknowledgement'\),/,
+        /\.\.\.items\.filter\(\(i\) => i\.status === 'awaiting_acknowledgement'\),\s*\.\.\.items\.filter\(\(i\) => i\.status !== 'awaiting_acknowledgement'\),/,
     );
+    assert.match(
+        v2,
+        /const order = ref<string\[\]>\(\s*waitingFirst\(props\.items\)/,
+    );
+    assert.match(v2, /\.filter\(\(id\) => !known\.has\(id\)\)/);
+});
+
+test('collapsed never hides a review-needed or just-acted row; Show all is a real toggle (Mira)', () => {
     assert.match(v2, /const visibleLimit = 5;/);
-    assert.match(template(v2), /Show all \{\{ ordered\.length \}\}/);
+    assert.match(
+        v2,
+        /index < visibleLimit \|\|\s*item\.status === 'awaiting_acknowledgement' \|\|\s*pinned\.value\.has\(item\.exceptionPublicId\)/,
+    );
+    assert.match(v2, /showAll\.value = true;/);
+    assert.match(template(v2), /:aria-expanded="showAll"/);
+    assert.match(template(v2), /aria-controls="dispensary-attention-rows"/);
+    assert.match(template(v2), /id="dispensary-attention-rows"/);
+    assert.match(template(v2), /'lg:h-11!'/);
+    assert.match(template(v2), /`Show all \$\{ordered\.length\}`/);
+});
+
+test('the acknowledge request is a verbatim copy of Classic (Mira)', () => {
+    const call = (source) => {
+        const start = source.indexOf('router.post(');
+
+        return source.slice(
+            start,
+            source.indexOf('preserveScroll: true,', start),
+        );
+    };
+
+    assert.ok(call(classic).length > 0);
+    assert.equal(call(v2), call(classic));
+
+    for (const fragment of [
+        'processing.value = item.exceptionPublicId;',
+        ':disabled="processing === item.exceptionPublicId"',
+    ]) {
+        assert.ok(classic.includes(fragment), `Classic ${fragment}`);
+        assert.ok(v2.includes(fragment), `V2 ${fragment}`);
+    }
 });
 
 test('the three states differ in words, quantities read as unit words', () => {
