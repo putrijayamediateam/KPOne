@@ -106,6 +106,19 @@ const changed = computed(
             form.mmc_number !== subject.value.mmcNumber ||
             form.verified !== subject.value.verified),
 );
+// V2 only: the sheet opens with the cursor at the end of the name and nothing selected, so one keystroke does not replace it.
+let collapseOnFocus = false;
+watch(open, (value) => (collapseOnFocus = value));
+const placeCursorAtEnd = (event: FocusEvent) => {
+    const input = event.target as HTMLInputElement;
+
+    if (!collapseOnFocus) {
+        return;
+    }
+
+    collapseOnFocus = false;
+    input.setSelectionRange(input.value.length, input.value.length);
+};
 const saveReason = computed(() => {
     if (!form.professional_name.trim()) {
         return 'Enter the registered professional name to continue.';
@@ -113,6 +126,10 @@ const saveReason = computed(() => {
 
     if (!/^[0-9]{1,30}$/.test(form.mmc_number)) {
         return 'Enter the MMC registration number (digits only) to continue.';
+    }
+
+    if (!changed.value) {
+        return 'Change a field to continue.';
     }
 
     return undefined;
@@ -200,10 +217,23 @@ const items = (clinician: Clinician) => [
                                 "
                                 type="button"
                                 :class="[outlineButton, 'max-sm:w-full']"
+                                :aria-label="`Review credentials for ${clinician.accountName}`"
                                 @click="edit(clinician)"
                             >
                                 Review credentials
                             </button>
+                            <p
+                                v-else-if="
+                                    canManage &&
+                                    clinician.active &&
+                                    clinician.userId ===
+                                        page.props.auth.user?.id
+                                "
+                                class="text-sm text-muted-foreground"
+                                data-testid="own-row-note"
+                            >
+                                You cannot verify your own credentials.
+                            </p>
                         </div>
                         <V2KeyValueList :items="items(clinician)" />
                     </section>
@@ -256,7 +286,7 @@ const items = (clinician: Clinician) => [
 
     <V2Dialog
         :open="open"
-        title="Review clinician credentials"
+        :title="`Review credentials for ${subject?.accountName ?? ''}`"
         :description="`Confirm the registered professional identity for ${subject?.accountName ?? ''}. This does not grant clinical permissions or authorise MC issuance.`"
         confirm-label="Save credentials"
         :busy="form.processing"
@@ -266,6 +296,15 @@ const items = (clinician: Clinician) => [
         @update:open="(value) => (open = value)"
         @confirm="save"
     >
+        <template #footer-note>
+            <p data-testid="verify-note" class="text-sm text-muted-foreground">
+                {{
+                    form.verified
+                        ? 'Marks these credentials as manually verified. This does not grant clinical permissions or authorise MC issuance.'
+                        : 'Marks these credentials as not verified. This does not grant clinical permissions or authorise MC issuance.'
+                }}
+            </p>
+        </template>
         <form class="grid gap-4" @submit.prevent="!saveReason && save()">
             <V2Field
                 v-slot="{ id, describedBy }"
@@ -277,6 +316,7 @@ const items = (clinician: Clinician) => [
                     :id="id"
                     v-model="form.professional_name"
                     maxlength="200"
+                    @focus="placeCursorAtEnd"
                     required
                     :aria-describedby="describedBy"
                     :aria-invalid="!!form.errors.professional_name"

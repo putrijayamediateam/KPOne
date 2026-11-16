@@ -37,6 +37,7 @@ test('V2 keeps the Classic form, retry identity, branch watcher and save logic e
     assert.ok(tight(page).includes('onBeforeUnmount(clear);'));
 });
 
+// The sheet title is now "Review credentials for <name>" in V2 (Lead UI/UX Designer's review); Classic keeps its own title.
 test('V2 keeps the Classic props, the self-edit and inactive rules and every wording string', () => {
     const p = flat(page);
 
@@ -62,7 +63,6 @@ test('V2 keeps the Classic props, the self-edit and inactive rules and every wor
         'No eligible clinicians in this organisation.',
         'Previous',
         'Next',
-        'Review clinician credentials',
         'This does not grant clinical permissions or authorise MC issuance.',
         'I have checked the professional name and MMC registration number. Uncheck to mark these credentials unverified.',
         'Reload latest credentials',
@@ -118,4 +118,75 @@ test("V2 actions are 44 px targets and the page has one filled button (the sheet
 
     assert.ok(t.includes('h-11'));
     assert.ok(!/:class="primaryButton"/.test(page));
+});
+
+test('V2 review change 1: the sheet opens with the cursor at the end of the name and nothing selected', () => {
+    const t = tight(page);
+
+    assert.ok(t.includes('letcollapseOnFocus=false;'));
+    assert.ok(t.includes('watch(open,(value)=>(collapseOnFocus=value));'));
+    assert.ok(
+        t.includes(
+            'input.setSelectionRange(input.value.length,input.value.length);',
+        ),
+    );
+    assert.ok(t.includes('collapseOnFocus=false;input.setSelectionRange'));
+    assert.ok(flat(page).includes('@focus="placeCursorAtEnd"'));
+    assert.ok(!/\.select\(\)/.test(page));
+});
+
+test('V2 review change 2: Save says "Change a field to continue." until something changes, and a note beside it says what verifying does', () => {
+    const p = flat(page);
+
+    assert.ok(
+        p.includes(
+            "if (!changed.value) { return 'Change a field to continue.'; }",
+        ),
+    );
+    // The invalid-field reasons come first, then the unchanged reason.
+    assert.ok(
+        p.indexOf('Enter the MMC registration number') <
+            p.indexOf('Change a field to continue.'),
+    );
+    assert.ok(p.includes('<template #footer-note>'));
+    assert.ok(
+        p.includes(
+            'Marks these credentials as manually verified. This does not grant clinical permissions or authorise MC issuance.',
+        ),
+    );
+    assert.ok(
+        p.includes(
+            'Marks these credentials as not verified. This does not grant clinical permissions or authorise MC issuance.',
+        ),
+    );
+    assert.ok(p.includes('form.verified ?'));
+});
+
+test('V2 review change 3: the sheet and every list button name the person', () => {
+    const p = flat(page);
+
+    assert.ok(
+        p.includes(
+            ':title="`Review credentials for ${subject?.accountName ?? \'\'}`"',
+        ),
+    );
+    assert.ok(
+        p.includes(
+            ':aria-label="`Review credentials for ${clinician.accountName}`"',
+        ),
+    );
+    // The visible words stay "Review credentials", so the accessible name starts with them.
+    assert.ok(p.includes('> Review credentials </button>'));
+    assert.ok(!p.includes('title="Review clinician credentials"'));
+});
+
+test("V2 review change 4: a manager's own row says in words why it cannot be verified", () => {
+    const p = flat(page);
+
+    assert.ok(p.includes('data-testid="own-row-note"'));
+    assert.ok(p.includes('You cannot verify your own credentials.'));
+    assert.ok(p.includes('clinician.userId === page.props.auth.user?.id'));
+    // Classic keeps its own sheet title and has no such note.
+    assert.ok(classic.includes('Review clinician credentials'));
+    assert.ok(!classic.includes('You cannot verify your own credentials.'));
 });
