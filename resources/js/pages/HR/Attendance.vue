@@ -330,6 +330,14 @@ const {
                         KPOne records the time and a photo of you at each press.
                         HR can see it. Kept for 7 years (to confirm).
                     </p>
+                    <!-- HR month dry run S1 (owner, 16 Nov 2026): the break comes off the worked time, so nobody clocks out for it. -->
+                    <p
+                        class="text-xs text-muted-foreground"
+                        data-test="break-line"
+                    >
+                        Stay clocked in for your break; KPOne takes the rostered
+                        break off.
+                    </p>
                     <button
                         type="button"
                         class="self-start text-xs font-medium text-brand-strong underline underline-offset-2 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"

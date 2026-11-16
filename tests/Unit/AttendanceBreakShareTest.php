@@ -61,6 +61,19 @@ final class AttendanceBreakShareTest extends TestCase
         }
     }
 
+    public function test_two_sessions_in_one_shift_each_keep_their_own_share_and_never_take_the_break_twice(): void
+    {
+        // Suresh M1, the owner's (a): out for lunch from 12:00 to 13:00 on a 09:00 to 17:00 shift with a 60 min break.
+        // 180 of 480 min covered gives 22.5, rounded to 23; 240 of 480 gives 30. Together 53 min, never more than 60.
+        $shift = $this->shift('09:00', '17:00', 60);
+        $morning = $this->clockSession('09:00', '12:00');
+        $afternoon = $this->clockSession('13:00', '17:00');
+        $this->assertSame(23, AttendanceDays::breakShare($morning, $shift));
+        $this->assertSame(30, AttendanceDays::breakShare($afternoon, $shift));
+        $this->assertSame(157 + 210, AttendanceDays::worked($morning, $shift) + AttendanceDays::worked($afternoon, $shift));
+        $this->assertLessThanOrEqual(60, AttendanceDays::breakShare($morning, $shift) + AttendanceDays::breakShare($afternoon, $shift));
+    }
+
     public function test_no_shift_no_break_and_an_open_session_has_no_worked_time(): void
     {
         $this->assertSame(240, AttendanceDays::worked($this->clockSession('10:00', '14:00'), null));
