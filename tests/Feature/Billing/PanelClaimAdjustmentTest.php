@@ -246,7 +246,14 @@ class PanelClaimAdjustmentTest extends BillingTestCase
         $this->selectBranch($officer);
         $this->get(route('panel-claims.show', $supplementary))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('claim.adjustmentClaim.kind', 'supplementary')->where('claim.adjustmentClaim.parent.claimNo', (string) $claim->id)
-            ->where('claim.claimAmountSen', 5000));
+            ->where('claim.claimAmountSen', 5000)->where('claim.adjustmentClaim.amountSen', 5000)->where('claim.adjustmentClaim.cancelled', false)
+            // Daniel: a supplementary claim's page shows only that claim. The invoice-level panel (share, waiting
+            // request, Confirm and the change buttons) stays on the Billing page and the original claim page.
+            ->where('panelAdjustment', null));
+        $this->request($officer, $invoice, $allocation, 'deduct', 1000);
+        $this->selectBranch($officer);
+        $this->get(route('panel-claims.show', $supplementary))->assertInertia(fn (Assert $page) => $page->where('panelAdjustment', null));
+        $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page->where('panelAdjustment.waiting.amountSen', 1000));
         $this->get(route('panel-claims.show', $claim))->assertInertia(fn (Assert $page) => $page
             ->where('claim.adjustmentClaim.supplementary.0.claimNo', (string) $supplementary->id));
         // The Panel share stays out of the claim list once its original claim exists.

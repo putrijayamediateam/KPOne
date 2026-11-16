@@ -306,6 +306,8 @@ export type PanelAdjustment = {
 export type PanelAdjustmentClaim = {
     kind: 'original' | 'supplementary';
     number: string;
+    amountSen: number;
+    cancelled: boolean;
     decided: boolean;
     cancelledNote: string | null;
     reason: string | null;

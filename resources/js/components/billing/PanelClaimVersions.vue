@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
+import { Button } from '@/components/ui/button';
 import type { PanelAdjustmentClaim } from '@/types/billing';
 import { myr } from '@/types/billing';
 
 /**
  * PCA-2 (Daniel's board v10, section 2): a supplementary claim names its original, and the claim pack's recorded
- * versions are listed newest first, each viewable. Versions are never rewritten.
+ * versions are listed newest first, each viewable. Versions are never rewritten. A supplementary claim's page shows only
+ * that claim (Daniel): its amount, whether it was cancelled, and a link to the original claim, where the invoice-level
+ * Panel share and any waiting request live.
  */
 const props = defineProps<{ claim: PanelAdjustmentClaim; publicId: string }>();
 const viewUrl = (version: number) =>
@@ -17,7 +20,12 @@ const viewUrl = (version: number) =>
 </script>
 
 <template>
-    <section class="grid gap-2 text-sm" data-testid="panel-claim-versions">
+    <!-- Nothing to show (one version, no original to link to): no empty card. -->
+    <section
+        v-if="claim.parent || claim.versions.length > 1"
+        class="grid gap-2 text-sm"
+        data-testid="panel-claim-versions"
+    >
         <p
             v-if="claim.parent"
             class="font-medium"
@@ -29,8 +37,36 @@ const viewUrl = (version: number) =>
             }}</Link
             ><template v-if="claim.reason"> · {{ claim.reason }}</template>
         </p>
+        <template v-if="claim.parent">
+            <p
+                class="tabular-nums"
+                data-testid="panel-claim-supplementary-amount"
+            >
+                Amount claimed
+                <span class="font-medium whitespace-nowrap">{{
+                    myr(claim.amountSen)
+                }}</span
+                ><template v-if="claim.cancelled">
+                    · Cancelled · counted in no total</template
+                >
+            </p>
+            <div>
+                <Button
+                    variant="outline"
+                    class="h-9 max-sm:h-auto max-sm:min-h-11"
+                    data-touch-target
+                    as-child
+                    ><Link data-touch-target :href="claim.parent.url"
+                        >Open the original claim {{ claim.parent.number }}</Link
+                    ></Button
+                >
+            </div>
+        </template>
         <div v-if="claim.versions.length > 1" class="grid gap-2">
-            <h3 class="font-medium" data-testid="panel-claim-version-count">
+            <h3
+                class="text-base font-semibold"
+                data-testid="panel-claim-version-count"
+            >
                 Claim pack Version {{ claim.versions[0].version }} of
                 {{ claim.versions.length }}
             </h3>
@@ -52,11 +88,17 @@ const viewUrl = (version: number) =>
                         }}</span>
                         · {{ version.recordedAt }}</span
                     >
-                    <Link
+                    <Button
                         v-if="index > 0"
-                        :href="viewUrl(version.version)"
-                        class="inline-flex min-h-11 items-center underline"
-                        >View version {{ version.version }}</Link
+                        variant="outline"
+                        class="h-9 max-sm:h-auto max-sm:min-h-11"
+                        data-touch-target
+                        as-child
+                        ><Link
+                            data-touch-target
+                            :href="viewUrl(version.version)"
+                            >View version {{ version.version }}</Link
+                        ></Button
                     >
                 </li>
             </ul>

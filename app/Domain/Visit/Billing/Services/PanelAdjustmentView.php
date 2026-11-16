@@ -113,6 +113,8 @@ final class PanelAdjustmentView
         return [
             'kind' => $claim->claim_kind,
             'number' => self::number($claim->id),
+            'amountSen' => $claim->claim_amount_sen,
+            'cancelled' => $claim->status === 'cancelled',
             'decided' => in_array($claim->status, PanelClaim::DECIDED, true),
             'reason' => $own === null ? null : (PanelClaimAdjustment::REASONS[$own->reason_code] ?? null),
             // Daniel's wording for a cancelled supplementary claim, shown muted under its status.

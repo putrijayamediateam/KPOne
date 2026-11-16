@@ -707,7 +707,10 @@ final class PanelClaimDirectoryService
                     'adjustmentClaim' => PanelAdjustmentView::forClaim($claim, $branch),
                 ],
                 // PCA-2: the Panel share (original + adjustments) beside what is claimed, and the adjustment actions.
-                'panelAdjustment' => PanelAdjustmentView::forInvoice($actor, Invoice::query()->findOrFail($claim->invoice_id), $branch, 'claim'),
+                // PCA-2 (Daniel): invoice-level figures and requests belong to the Billing page and the original claim. A
+                // supplementary claim's page shows only that claim (adjustmentClaim), never the invoice's waiting request.
+                'panelAdjustment' => $claim->claim_kind === 'supplementary' ? null
+                    : PanelAdjustmentView::forInvoice($actor, Invoice::query()->findOrFail($claim->invoice_id), $branch, 'claim'),
             ];
         });
     }

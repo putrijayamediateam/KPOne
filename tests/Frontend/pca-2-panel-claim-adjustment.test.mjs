@@ -142,3 +142,32 @@ test('PCA-2: the claim page shows the Panel adjustment as its own line and a sup
         );
     }
 });
+
+test('PCA-2 (Daniel): a supplementary claim page shows only that claim, one card with plain rows, outline version buttons', () => {
+    const text = flat(versions);
+    assert.ok(text.includes('· Cancelled · counted in no total'));
+    assert.ok(text.includes('Open the original claim'));
+    assert.match(versions, /variant="outline"[\s\S]*View version/);
+    assert.match(versions, /class="text-base font-semibold"/);
+    // The supplementary list has dividers, not a bordered box per row, and the waiting request sits outside the card.
+    assert.match(panel, /class="divide-y border-y"/);
+    assert.doesNotMatch(panel, /rounded-md border p-2/);
+    assert.ok(
+        panel.indexOf('data-testid="panel-adjustment-waiting"') >
+            panel.indexOf('</section>'),
+    );
+    // V2 pages use the V2 money input; Classic keeps its own input with an "RM" prefix.
+    assert.match(panel, /<V2MoneyInput\s+v-if="v2"/);
+    assert.match(v2Claim, /<PanelAdjustmentPanel[\s\S]*?\bv2\b/);
+    assert.match(v2Billing, /<PanelAdjustmentPanel\s+v2/);
+    assert.doesNotMatch(classicClaim, /<PanelAdjustmentPanel[^>]*\bv2\b/);
+    // Add and Deduct show which one is chosen.
+    assert.match(panel, /direction === choice\.value/);
+});
+
+test('PCA-2: the versions block draws nothing when it has nothing to show', () => {
+    assert.match(
+        versions,
+        /v-if="claim\.parent \|\| claim\.versions\.length > 1"/,
+    );
+});

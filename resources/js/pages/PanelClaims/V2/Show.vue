@@ -501,6 +501,7 @@ const claimEvents = computed(() => [...claim.value.events].reverse());
                 />
                 <PanelAdjustmentPanel
                     v-if="panelAdjustment"
+                    v2
                     :adjustment="panelAdjustment"
                     :claim="adjustmentClaim"
                     :can-claim-only="claim.canEditAmount"
