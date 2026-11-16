@@ -36,6 +36,7 @@ return [
         'HR/Leave',
         'HR/Sops',
         'HR/Memos',
+        'HR/Messages',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
