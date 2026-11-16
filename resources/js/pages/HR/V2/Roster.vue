@@ -24,6 +24,7 @@ import V2RowMenu from '@/components/v2/V2RowMenu.vue';
 import type { RowMenuGroup } from '@/components/v2/V2RowMenu.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
+import V2TimeField from '@/components/v2/V2TimeField.vue';
 import V2WeekGrid from '@/components/v2/V2WeekGrid.vue';
 import type {
     WeekGridRow,
@@ -144,6 +145,14 @@ const moreGroups = computed<RowMenuGroup[]>(() => {
         : [];
 });
 
+// A time box with text that is not a time leaves its value empty (V2TimeField), so Save waits for both times (DD-79).
+const shiftTimeMissing = computed(() =>
+    shiftForm.start_time === ''
+        ? 'Enter a start time to continue.'
+        : shiftForm.end_time === ''
+          ? 'Enter an end time to continue.'
+          : '',
+);
 const checks = computed(() => planner.value?.warnings ?? []);
 // Counted the way the panel shows them: one per day below minimum, one per other check, one per rule warning.
 const checkCount = computed(() => {
@@ -307,8 +316,6 @@ const textLink =
     'inline-flex min-h-11 items-center text-sm font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
 const numberClass =
     'h-11 w-20 rounded-[10px] border border-input bg-card px-2 text-center text-base tabular-nums outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9';
-const inputClass =
-    'h-11 w-full rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9';
 </script>
 
 <template>
@@ -895,8 +902,10 @@ const inputClass =
             :description="`${planner?.branch.name ?? ''} · ${roster.week.label}`"
             :confirm-label="shiftForm.processing ? 'Saving…' : 'Save shift'"
             :busy="shiftForm.processing"
+            :confirm-disabled="shiftTimeMissing !== ''"
+            :confirm-disabled-reason="shiftTimeMissing"
             @update:open="sheetOpen = $event"
-            @confirm="saveShift"
+            @confirm="shiftTimeMissing === '' && saveShift()"
         >
             <div class="grid gap-4">
                 <V2Field
@@ -931,37 +940,19 @@ const inputClass =
                     />
                 </V2Field>
                 <div class="grid gap-4 sm:grid-cols-2">
-                    <V2Field
-                        v-slot="{ id, describedBy, invalid }"
+                    <V2TimeField
+                        v-model="shiftForm.start_time"
                         label="Start time"
                         required
                         :error="shiftForm.errors.start_time"
-                    >
-                        <input
-                            :id="id"
-                            v-model="shiftForm.start_time"
-                            type="time"
-                            :aria-describedby="describedBy"
-                            :aria-invalid="invalid"
-                            :class="inputClass"
-                        />
-                    </V2Field>
-                    <V2Field
-                        v-slot="{ id, describedBy, invalid }"
+                    />
+                    <V2TimeField
+                        v-model="shiftForm.end_time"
                         label="End time"
                         required
                         hint="If the end is earlier than the start, the shift ends the next day."
                         :error="shiftForm.errors.end_time"
-                    >
-                        <input
-                            :id="id"
-                            v-model="shiftForm.end_time"
-                            type="time"
-                            :aria-describedby="describedBy"
-                            :aria-invalid="invalid"
-                            :class="inputClass"
-                        />
-                    </V2Field>
+                    />
                 </div>
                 <V2Field
                     v-slot="{ id, describedBy, invalid }"

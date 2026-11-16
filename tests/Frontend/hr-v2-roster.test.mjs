@@ -300,3 +300,24 @@ test('the header carries the filled action from 640 px, so the sticky bar hides 
     assert.match(template, /<V2StickyBar v-if="primary" hide-from="sm">/);
     assert.match(template, /:class="\[primaryButton, 'max-sm:hidden'\]"/);
 });
+
+test('DD-79: the shift times use the V2 time field, and Save waits for both times', () => {
+    assert.doesNotMatch(template, /type="time"/);
+    assert.match(
+        template,
+        /<V2TimeField\s+v-model="shiftForm\.start_time"\s+label="Start time"\s+required/,
+    );
+    assert.match(
+        template,
+        /<V2TimeField\s+v-model="shiftForm\.end_time"\s+label="End time"\s+required/,
+    );
+    assert.match(script, /'Enter a start time to continue\.'/);
+    assert.match(script, /'Enter an end time to continue\.'/);
+    assert.match(template, /:confirm-disabled="shiftTimeMissing !== ''"/);
+    assert.match(
+        template,
+        /@confirm="shiftTimeMissing === '' && saveShift\(\)"/,
+    );
+    // The request is unchanged: the composable still sends the 24-hour "HH:MM" values.
+    assert.match(composable, /start_time: '08:00'/);
+});
