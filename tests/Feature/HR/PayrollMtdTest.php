@@ -186,6 +186,7 @@ class PayrollMtdTest extends VisitTestCase
             ->assertSessionHasNoErrors();
         $this->assertSame([['employee', 11000], ['employer', 13000]], $this->statutory($fix));
         $this->assertSame('EPF employee · on the RM 1,000.00 difference (wage now RM 6,000.00)', $this->statutoryText($fix)[0]);
+        $this->assertNotContains("A scheme was not charged on this month's locked run: its lines cover the whole month's wage, not only the difference", $this->person($fix)['warnings']);
         // KPOne does not work out MTD on one-off pay: an error until HR types it, and RM 0.00 is allowed.
         $this->assertSame(['Type the MTD for this correction (RM 0.00 if none): KPOne does not work out MTD on one-off pay'], $this->person($fix)['errors']);
         $this->assertTrue($this->person($fix)['needsMtd']);
@@ -206,6 +207,29 @@ class PayrollMtdTest extends VisitTestCase
         $this->assertContains('This correction lowers a scheme wage: the contribution lines take money back', $this->person($back)['warnings']);
         $this->assertSame([], $this->person($back)['errors']);
         $this->assertNull($this->mtdLine($worker, $back));
+        $this->assertNotContains('No confirmed pay profile: this correction carries no contributions or MTD', $this->person($back)['warnings']);
+        $this->lock($back);
+
+        // Suresh M1: EIS switched on after January's runs. A RM 100.00 arrears line counted for EIS then charges EIS on the
+        // whole wage (0.2% of RM 5,100.00 = 10.20 each, since nothing was charged in January), and the person is told.
+        $k = fn (): string => (string) Str::uuid();
+        $eis = $setup->enterTable($this->hr, ['scheme' => 'eis', 'category' => 'All staff', 'effective_from' => '2026-01-01', 'rounding' => 'nearest_sen',
+            'source_note' => 'Synthetic test figures, not an official table', 'rows' => [['from' => '0', 'to' => '', 'employee_kind' => 'rate', 'employee' => '0.2',
+                'employer_kind' => 'rate', 'employer' => '0.2']], 'idempotency_key' => $k()]);
+        $setup->decideTable($this->director, $eis, 'check', ['expected_lock_version' => 1, 'idempotency_key' => $k()]);
+        $profile = $setup->enterProfile($this->hr, [...$this->pay(), 'eis' => true, 'mtd_category' => '1', 'mtd_children' => '0', 'worker_id' => $worker->public_id,
+            'idempotency_key' => $k()]);
+        $setup->decideProfile($this->director, $profile, 'confirm', ['expected_lock_version' => 1, 'idempotency_key' => $k()]);
+        $arrears = $setup->saveItemType($this->hr, ['name' => 'Arrears', 'kind' => 'earnings', 'counts_eis' => true, 'is_active' => true, 'idempotency_key' => $k()]);
+        $late = $this->prepareRun('2026-01', 'adjustment');
+        $this->step($this->hr, $late, 'manual', ['worker_id' => $worker->public_id, 'item_type_id' => $arrears, 'amount' => '100.00', 'reason_code' => 'correction'])
+            ->assertSessionHasNoErrors();
+        $this->assertContains("A scheme was not charged on this month's locked run: its lines cover the whole month's wage, not only the difference", $this->person($late)['warnings']);
+        $run = DB::table('hr_payroll_runs')->where('public_id', $late)->value('id');
+        $person = DB::table('hr_payroll_run_people')->where('run_id', $run)->value('id');
+        $this->assertSame([1020, 1020], DB::table('hr_payroll_lines')->where('run_person_id', $person)->where('scheme', 'eis')->orderBy('id')->get()
+            ->map(fn (\stdClass $l): int => (int) Crypt::decryptString((string) $l->amount_encrypted))->all());
+        $this->assertSame([], $this->person($late)['errors']);
     }
 
     public function test_category_2_children_and_the_joiner_warning(): void

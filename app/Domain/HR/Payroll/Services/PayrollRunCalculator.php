@@ -43,6 +43,8 @@ final class PayrollRunCalculator
         'profile_waiting' => 'A pay profile change is waiting for confirmation',
         'net_negative_adjustment' => 'This correction takes money back: net below zero',
         'adjustment_lowers_wage' => 'This correction lowers a scheme wage: the contribution lines take money back',
+        'adjustment_scheme_new' => 'A scheme was not charged on this month\'s locked run: its lines cover the whole month\'s wage, not only the difference',
+        'adjustment_no_profile' => 'No confirmed pay profile: this correction carries no contributions or MTD',
         'mtd_typed' => 'MTD typed for this run instead of the worked-out figure',
         'mtd_tp3' => 'Joined this year: pay from a previous employer (TP3) is not counted in MTD',
         'mtd_not_worked' => 'MTD could not be worked out for this run; the typed figure is used',
@@ -95,7 +97,9 @@ final class PayrollRunCalculator
                     $lines[] = $this->manual($m, $types, $versions);
                 }
                 $profile = $profiles->get($workerId);
-                if ($profile instanceof \stdClass) {
+                if (! $profile instanceof \stdClass) {
+                    $warnings[] = 'adjustment_no_profile';
+                } else {
                     $versions['profiles'][] = (int) $profile->id;
                     $statutory = [];
                     foreach (['epf', 'socso', 'eis', 'hrd'] as $scheme) {
@@ -107,6 +111,10 @@ final class PayrollRunCalculator
                             $warnings[] = 'adjustment_lowers_wage';
                         }
                         $was = $before[(int) $workerId]['wage'][$scheme] ?? 0;
+                        // Suresh M1: switched on (or a category changed) since the locked run, so nothing was charged on a wage.
+                        if ($was > 0 && ($before[(int) $workerId]['paid'][$scheme] ?? []) === []) {
+                            $warnings[] = 'adjustment_scheme_new';
+                        }
                         $now = max(0, $was + $difference);
                         $found = $this->contribution($scheme, $profile, $tables, $now, $errors, $versions);
                         foreach ($found['parts'] ?? [] as $part => $c) {
@@ -597,13 +605,14 @@ final class PayrollRunCalculator
         if ($workerIds === []) {
             return [];
         }
-        $runs = DB::table('hr_payroll_runs')->where('organisation_id', $org)->where('pay_group_id', $run->pay_group_id)->where('month', $run->month)
+        // Contributions belong to the person and the month, whichever pay group ran them (Suresh m2).
+        $runs = DB::table('hr_payroll_runs')->where('organisation_id', $org)->where('month', $run->month)
             ->where('status', 'locked')->where('id', '<>', $run->id)->pluck('id')->all();
         $people = DB::table('hr_payroll_run_people')->whereIn('run_id', $runs)->whereIn('worker_id', $workerIds)->pluck('worker_id', 'id');
         $out = [];
         foreach (DB::table('hr_payroll_lines')->whereIn('run_person_id', $people->keys()->all())->orderBy('id')->get()->groupBy('run_person_id') as $personId => $rows) {
             $workerId = (int) $people[$personId];
-            $lines = $rows->map(fn (\stdClass $l): array => ['kind' => (string) $l->kind, 'section' => (string) $l->section, 'amount' => (int) $this->decrypt((string) $l->amount_encrypted),
+            $lines = $rows->map(fn (\stdClass $l): array => ['kind' => (string) $l->kind, 'section' => (string) $l->section, 'amount' => (int) $this->decrypt((string) $l->amount_encrypted, true),
                 'itemTypeId' => $l->item_type_id === null ? null : (int) $l->item_type_id, 'itemTypeVersion' => $l->item_type_version === null ? null : (int) $l->item_type_version,
                 'scheme' => $l->scheme])->values()->all();
             $lines = array_values($lines);
@@ -660,7 +669,8 @@ final class PayrollRunCalculator
         return count($covered);
     }
 
-    private function decrypt(string $value): string
+    /** A saved amount; $signed allows a negative one, as on an adjustment run's take-back lines (S3). */
+    private function decrypt(string $value, bool $signed = false): string
     {
         try {
             $plain = Crypt::decryptString($value);
@@ -669,7 +679,7 @@ final class PayrollRunCalculator
 
             return '0';
         }
-        if (preg_match('/\A[0-9]{1,9}\z/', $plain) !== 1) {
+        if (preg_match($signed ? '/\A-?[0-9]{1,9}\z/' : '/\A[0-9]{1,9}\z/', $plain) !== 1) {
             $this->unreadable = true;
 
             return '0';

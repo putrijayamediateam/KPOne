@@ -2580,6 +2580,10 @@ The existing `hr.payroll.prepare.organisation` and `hr.payroll.approve.organisat
   A correction that lowers a scheme wage gives negative lines and the warning "This correction lowers a scheme wage".
   When the correction changes the MTD wage of a person with MTD, HR types the MTD (RM 0.00 allowed): until then the
   person shows "Type the MTD for this correction" and the run is not sent. KPOne does not work out MTD on one-off pay.
+  Suresh's review: contributions count every locked run of the person's month, whichever pay group ran it; a scheme
+  switched on (or a category changed) since the month's run warns that its lines cover the whole month's wage; a person
+  with no confirmed pay profile warns that the correction carries no contributions or MTD. Known limit: a table with
+  no band from RM 0.00 refuses a correction that takes the whole wage back.
 - **Sending back:** a sent or approved run goes back to Draft with a reason; from approved, only its approver sends
   it back (Suresh, B1). The claim checks run before approval as well as at lock, so a run never reaches a lock
   nobody may take.
