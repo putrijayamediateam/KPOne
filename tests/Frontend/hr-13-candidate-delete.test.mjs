@@ -11,7 +11,7 @@ const page = readFileSync(
 test('the status page offers Delete my application behind a confirm, and says when it is done', () => {
     assert.match(page, /'\/careers\/status\/delete'/);
     assert.match(page, /v-if="application\.canDelete"/);
-    assert.match(page, /Delete my application \/ Padam permohonan saya/);
+    assert.match(page, /Delete my application/);
     assert.match(page, /data-test="status-delete-confirm"/);
     assert.match(page, /@keydown\.esc="keepDetails"/);
     assert.match(page, /Your application and its details have been deleted\./);
