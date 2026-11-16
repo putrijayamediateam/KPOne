@@ -71,6 +71,7 @@ test('Daniel: the refusal lines are alerts in plain text, never a box that looks
             ),
         );
     }
+
     assert.doesNotMatch(dialog, /rounded-lg bg-white\/10/);
 });
 
