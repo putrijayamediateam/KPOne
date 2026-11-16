@@ -85,3 +85,12 @@ test('a greyed-out Complete says what is still needed (Daniel review)', () => {
         form.includes('<span class="text-muted-foreground">(required)</span>'),
     );
 });
+
+test('after a refused add, focus returns to Allergen once the request finishes (owner, 2026-11-16)', () => {
+    // In onError the fields are still disabled while the request is busy, so a focus there is lost.
+    assert.ok(!/onError:/.test(form));
+    assert.match(
+        form,
+        /onFinish: async \(\) => \{\s*if \(!form\.hasErrors\) \{\s*return;\s*\}\s*await nextTick\(\);\s*allergenInput\.value\?\.focus\(\);/,
+    );
+});
