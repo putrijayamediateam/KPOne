@@ -195,6 +195,7 @@ const {
                             :disabled="
                                 form.processing ||
                                 !form.worker ||
+                                !form.incidentOn ||
                                 form.allegation.trim().length < 10
                             "
                             data-test="case-save"
@@ -218,6 +219,12 @@ const {
                     >
                         Open case: choose a staff file and write the allegation
                         first.
+                    </p>
+                    <p
+                        v-else-if="!form.incidentOn"
+                        class="text-sm text-muted-foreground"
+                    >
+                        Open case: choose the date it happened first.
                     </p>
                 </form>
             </SheetContent>
