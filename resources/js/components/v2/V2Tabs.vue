@@ -21,12 +21,15 @@ const emit = defineEmits<{ 'update:modelValue': [value: string] }>();
 
 const list = ref<HTMLElement | null>(null);
 const more = ref(false);
+const before = ref(false);
 let observer: ResizeObserver | null = null;
 
-// A right-edge fade while more tabs are hidden on the right, so a cut-off tab is never a surprise.
+// An edge fade on each side while more tabs are hidden there, so a cut-off tab is never a surprise (the left one shows
+// when the strip opens scrolled to the selected tab, so the first tab is not left looking like a stray cut-off word).
 const measure = () => {
     const el = list.value;
 
+    before.value = !!el && el.scrollLeft > 1;
     more.value = !!el && el.scrollWidth - el.clientWidth - el.scrollLeft > 1;
 };
 
@@ -105,9 +108,13 @@ const move = (event: KeyboardEvent, index: number) => {
             :aria-label="ariaLabel"
             class="flex min-w-0 [scrollbar-width:none] gap-1 overflow-x-auto rounded-full bg-muted p-1 [&::-webkit-scrollbar]:hidden"
             :class="
-                more
-                    ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
-                    : ''
+                more && before
+                    ? '[mask-image:linear-gradient(to_right,transparent,#000_2.5rem,#000_calc(100%-2.5rem),transparent)]'
+                    : more
+                      ? '[mask-image:linear-gradient(to_right,#000_calc(100%-2.5rem),transparent)]'
+                      : before
+                        ? '[mask-image:linear-gradient(to_right,transparent,#000_2.5rem)]'
+                        : ''
             "
             @scroll.passive="measure"
         >
