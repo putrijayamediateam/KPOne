@@ -94,10 +94,17 @@ test('page 8b: the register script from the Classic page is copied verbatim', ()
         'form',
         'errors',
         'busy',
-        'differs',
         'submit',
         'fieldKeys',
         'formError',
+        // STK-40b: the reason step is copied verbatim too.
+        'reasonForm',
+        'reasonErrors',
+        'reasonBusy',
+        'submitReason',
+        'reasonFormError',
+        'ownReasonNeeded',
+        'waitingReason',
     ]) {
         assert.equal(block(show.source, name), block(showClassic, name), name);
     }
@@ -117,7 +124,7 @@ test('page 8b: the check posts exactly what Classic posts, with its idempotency 
     );
 });
 
-test('page 8b: the checker sees what Classic shows and nothing more (balance before counting, a differs note while typing)', () => {
+test('page 8b: the checker sees what Classic shows and nothing more (balance before counting, then the reason step after a count that differs, STK-40b)', () => {
     assert.match(
         show.flat,
         /Count what is physically on hand at this branch and compare it with the register:/,
@@ -128,10 +135,10 @@ test('page 8b: the checker sees what Classic shows and nothing more (balance bef
         /Count what is physically on hand at this branch\. The register's balance appears after you record your count\./,
     );
     assert.match(show.flat, /words\(register\.balanceNow\)/);
-    assert.match(show.flat, /data-testid="cd-differs-note"/);
+    assert.match(show.flat, /data-testid="cd-own-reason-needed"/);
     assert.match(
         show.flat,
-        /This differs from the register\. Recording it does not change stock; correct stock with a governed stock count\./,
+        /Your count differs from the register\. Add the reason\. Recording it did not change stock; correct stock with a governed stock count\./,
     );
     assert.match(show.flat, /Do not enter patient or prescriber details\./);
     assert.match(
@@ -160,10 +167,11 @@ test('page 8b: Record check says why it is off, keeps its name and carries the p
 });
 
 test('page 8b: the reason starts empty, Other brings its note into view, and leaving with a typed count asks first', () => {
-    assert.match(show.flat, /:model-value="form\.reason \|\| null"/);
+    // STK-40b: the reason is in its own sheet, after the count.
+    assert.match(show.flat, /:model-value="reasonForm\.reason \|\| null"/);
     assert.match(
         show.script,
-        /form\.reason === 'other'[\s\S]*?scrollIntoView[\s\S]*?focus\(\)/,
+        /reasonForm\.reason === 'other'[\s\S]*?scrollIntoView[\s\S]*?focus\(\)/,
     );
     assert.match(show.flat, /<V2LeaveGuard :dirty="dirty" \/>/);
 });
