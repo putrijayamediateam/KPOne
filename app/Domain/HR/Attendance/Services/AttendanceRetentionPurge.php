@@ -23,6 +23,9 @@ final class AttendanceRetentionPurge
 {
     public const RETENTION_YEARS = 7;
 
+    /** The 7 years is the owner's decision, 16 Nov 2026 ("keep 7 years, keep the daily delete on"). */
+    public const RETENTION_BASIS = 'owner decision 16 Nov 2026';
+
     private const CUTOFF = "now() - interval '7 years' - interval '1 day'";
 
     public function __construct(private AuditRecorder $audit) {}
