@@ -86,3 +86,14 @@ test('the Classic templates did not change', () => {
         /<ReceiptList :receipts="row\.receipts" thumbnails \/>/,
     );
 });
+
+test('Record payment: "How it was paid" starts empty and the action waits for a method (display only; same request)', () => {
+    assert.match(script, /'Pick how it was paid to continue\.'/);
+    assert.match(script, /const methodPicked = ref\(false\)/);
+    assert.match(
+        flat.replace(/="\s+/g, '="').replace(/\s+"/g, '"'),
+        /:model-value="methodPicked \? payment\.method : ''"/,
+    );
+    // The request is the shared one: the method sent is payment.method, picked by the person.
+    assert.match(page, /method: payment\.method,/);
+});

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { computed, reactive, toRef } from 'vue';
+import { computed, reactive, ref, toRef, watch } from 'vue';
 import ReceiptList from '@/components/hr/claims/ReceiptList.vue';
 import { paidLine, statusTone } from '@/components/hr/claims/types';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
@@ -129,7 +129,19 @@ const decisionMissing = computed(() =>
         ? 'Pick a reason to continue.'
         : '',
 );
+// Recording a payment states a fact, so "How it was paid" starts empty on screen (Daniel): the page keeps its own
+// "picked" flag, and the request is the same as Classic's once a method is picked (the shared state still holds a
+// default that is only sent after the person picks one).
+const methodPicked = ref(false);
+watch(
+    () => payment.row,
+    () => (methodPicked.value = false),
+);
 const payMissing = computed(() => {
+    if (!methodPicked.value) {
+        return 'Pick how it was paid to continue.';
+    }
+
     if (payment.paidOn === '') {
         return 'Choose the date paid to continue.';
     }
@@ -1148,7 +1160,14 @@ const receiptsNote = computed(
                     >How it was paid</label
                 >
                 <OperationalSelect
-                    v-model="payment.method"
+                    :model-value="methodPicked ? payment.method : ''"
+                    placeholder="Choose how it was paid"
+                    @update:model-value="
+                        (v: string | number) => {
+                            payment.method = String(v);
+                            methodPicked = true;
+                        }
+                    "
                     labelledby="v2-claim-pay-method-label"
                     label="How it was paid"
                     trigger-class="max-lg:h-11"
@@ -1173,7 +1192,7 @@ const receiptsNote = computed(
             <V2Field
                 v-slot="{ id, describedBy }"
                 label="Reference"
-                :required="payment.method !== 'cash'"
+                :required="methodPicked && payment.method !== 'cash'"
                 hint="Kept encrypted and shown as its last four."
                 :error="errors.reference"
             >
