@@ -39,6 +39,7 @@ return [
         'HR/Memos',
         'HR/Messages',
         'HR/OpenShifts',
+        'HR/Claims',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
