@@ -12,6 +12,8 @@ const composable = read('resources/js/composables/hr/useMessagesPage.ts');
 const template = parse(source).descriptor.template.content;
 const script = parse(source).descriptor.scriptSetup.content;
 const flat = template.replace(/\s+/g, ' ');
+// Prettier pads long attribute values with spaces inside the quotes; this form removes that padding.
+const tight = flat.replace(/=" /g, '="').replace(/ "/g, '"');
 const classicFlat = parse(classic).descriptor.template.content.replace(
     /\s+/g,
     ' ',
@@ -73,12 +75,48 @@ test('a channel that is not connected has no button, only a Not connected chip',
     assert.match(flat, /label="Not connected"/);
 });
 
-test('Daniel: nothing is filled; turn on or off and Save are outline, Save waits for a change', () => {
-    assert.doesNotMatch(template, /primaryButton|bg-primary/);
-    assert.doesNotMatch(script, /primaryButton|bg-primary/);
+test('Suresh m1: Save is filled while a card has unsaved changes, as in Classic, and waits for a change; turn on or off stays outline', () => {
+    assert.match(tight, /:class="dirty\(s\) \? primaryButton : button"/);
+    assert.equal((template.match(/primaryButton/g) ?? []).length, 1);
+    assert.match(
+        script,
+        /const primaryButton =\s*'inline-flex min-h-11[^']*bg-primary/,
+    );
     assert.match(
         flat,
         /!s\.connected \|\| !dirty\(s\) \|\| forms\[s\.channel\]\.processing/,
+    );
+    // The choose buttons use the plain outline class.
+    assert.match(flat, /:class="button"[^>]*:disabled="choosing\.processing"/);
+});
+
+test('Daniel b: "Changes not saved yet." sits beside an edited channel\'s Save, and the leave guard covers the Settings tab', () => {
+    assert.match(
+        flat,
+        /v-if="dirty\(s\)"[^>]*role="status"[^>]*>\s*Changes not saved yet\./,
+    );
+    assert.match(template, /<V2LeaveGuard ref="guard" :dirty="anyDirty" \/>/);
+    assert.match(script, /props\.messages\.tab === 'settings'/);
+    assert.match(
+        script,
+        /\(props\.messages\.settings \?\? \[\]\)\.some\(\(s\) => dirty\(s\)\)/,
+    );
+    // A tab switch is a same-path visit, so the page asks first (the router rule would not catch it).
+    assert.match(script, /guard\.value\.ask\(\(\) => selectTab\(value\)\)/);
+    assert.match(flat, /@update:model-value="pickTab"/);
+});
+
+test("Daniel a: the chip says what the person chose, and HR's state is a second chip beside the sentence", () => {
+    assert.match(flat, /'You turned it on'/);
+    assert.match(flat, /'Not turned on'/);
+    assert.match(
+        tight,
+        /v-if="c\.connected && c\.optedIn && !c\.switchedOn"[^>]*tone="warning"[^>]*label="Waiting for HR"/,
+    );
+    // Classic's sentence about HR's state is kept.
+    assert.match(
+        flat,
+        /HR has not switched this channel on yet, so nothing is sent for now\./,
     );
 });
 

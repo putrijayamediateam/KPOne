@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
+import { computed, ref } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2LeaveGuard from '@/components/v2/V2LeaveGuard.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { useMessagesPage } from '@/composables/hr/useMessagesPage';
@@ -38,8 +40,19 @@ const {
 
 const button =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:border-dashed disabled:bg-transparent disabled:text-muted-foreground disabled:hover:bg-transparent lg:min-h-9';
+const primaryButton =
+    'inline-flex min-h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-9';
 const inputClass =
     'h-11 w-full rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring disabled:opacity-60 md:text-[15px] lg:h-9';
+// Unsaved changes on the Settings tab: leaving the page, or switching tab, first asks "Discard your changes?".
+const guard = ref<InstanceType<typeof V2LeaveGuard> | null>(null);
+const anyDirty = computed(
+    () =>
+        props.messages.tab === 'settings' &&
+        (props.messages.settings ?? []).some((s) => dirty(s)),
+);
+const pickTab = (value: string | number) =>
+    guard.value ? guard.value.ask(() => selectTab(value)) : selectTab(value);
 // V2Chip knows five tones; the server's "sending" tone (accent) reads as info.
 const chipTone = (status: string) => {
     const t = tone(status);
@@ -51,6 +64,7 @@ const chipTone = (status: string) => {
 <template>
     <Head title="Messages" />
     <PageFrame>
+        <V2LeaveGuard ref="guard" :dirty="anyDirty" />
         <V2WorkLayout
             title="Messages"
             description="Choose how KPOne tells you about your own leave, roster, payslip and claims. Messages never carry an amount, a reason or anything about patients."
@@ -63,7 +77,7 @@ const chipTone = (status: string) => {
                         :model-value="messages.tab"
                         :tabs="tabs"
                         ariaLabel="Message sections"
-                        @update:model-value="selectTab"
+                        @update:model-value="pickTab"
                     />
 
                     <p
@@ -124,7 +138,21 @@ const chipTone = (status: string) => {
                                 <V2Chip
                                     v-else
                                     :tone="c.optedIn ? 'success' : 'neutral'"
-                                    :label="c.optedIn ? 'On' : 'Off'"
+                                    :label="
+                                        c.optedIn
+                                            ? 'You turned it on'
+                                            : 'Not turned on'
+                                    "
+                                />
+                                <V2Chip
+                                    v-if="
+                                        c.connected &&
+                                        c.optedIn &&
+                                        !c.switchedOn
+                                    "
+                                    tone="warning"
+                                    label="Waiting for HR"
+                                    data-test="waiting-for-hr"
                                 />
                                 <!-- A channel that is not connected has no button: there is nothing to choose. -->
                                 <button
@@ -337,18 +365,32 @@ const chipTone = (status: string) => {
                                         {{ errorFor(s.channel, 'monthly_cap') }}
                                     </p>
                                 </div>
-                                <button
-                                    type="submit"
-                                    :class="button"
-                                    :disabled="
-                                        !s.connected ||
-                                        !dirty(s) ||
-                                        forms[s.channel].processing
-                                    "
-                                    :data-test="`save-${s.channel}`"
+                                <div
+                                    class="flex flex-col gap-1 sm:col-span-2 lg:col-span-1"
                                 >
-                                    Save
-                                </button>
+                                    <button
+                                        type="submit"
+                                        :class="
+                                            dirty(s) ? primaryButton : button
+                                        "
+                                        :disabled="
+                                            !s.connected ||
+                                            !dirty(s) ||
+                                            forms[s.channel].processing
+                                        "
+                                        :data-test="`save-${s.channel}`"
+                                    >
+                                        Save
+                                    </button>
+                                    <p
+                                        v-if="dirty(s)"
+                                        class="text-sm text-muted-foreground"
+                                        role="status"
+                                        :data-test="`unsaved-${s.channel}`"
+                                    >
+                                        Changes not saved yet.
+                                    </p>
+                                </div>
                             </form>
                         </article>
                     </section>
