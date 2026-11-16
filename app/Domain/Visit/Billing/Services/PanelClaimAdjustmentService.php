@@ -221,7 +221,7 @@ final class PanelClaimAdjustmentService
         if ($invoice->status === 'voided') {
             throw ValidationException::withMessages(['adjustment' => 'This invoice was voided. Request the adjustment again on the new invoice.']);
         }
-        if ($allocation->status !== 'approved' || (int) $allocation->current_invoice_guard !== $invoice->id || $allocation->panel_id === null
+        if ($allocation->status !== 'approved' || (int) $allocation->current_invoice_guard !== $invoice->id || ! $allocation->panel_id
             || $invoice->status !== 'finalized' || $invoice->correction_hold || $invoice->source_stale) {
             throw ValidationException::withMessages(['adjustment' => self::NOT_ADJUSTABLE]);
         }
@@ -311,7 +311,7 @@ final class PanelClaimAdjustmentService
         }
         if ($plan['kind'] === 'sync') {
             $previous = $original->claim_amount_sen;
-            $original->forceFill(['claim_amount_sen' => $plan['originalAmount'], 'lock_version' => $original->lock_version + 1])->save();
+            $original->forceFill(['claim_amount_sen' => $plan['originalAmount'] ?? $original->claim_amount_sen, 'lock_version' => $original->lock_version + 1])->save();
             $this->event($original, $actor, $branch, 'panel_adjusted', $previous, $original->claim_amount_sen,
                 $original->status === 'submitted' ? 'Amount changed after submission: tell the Panel' : null);
             PanelShare::recordVersion($original, $actor, $adjustment);

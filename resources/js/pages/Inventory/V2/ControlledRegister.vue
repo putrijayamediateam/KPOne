@@ -22,6 +22,8 @@ type Row = {
     status: 'checked' | 'moved_since' | 'never' | 'no_longer_controlled';
     lastCheckedOn: string | null;
     lastOutcome: 'matches' | 'differs' | null;
+    /** STK-40b: the last check differs and its reason has not been added yet. */
+    reasonNeeded: boolean;
 };
 
 defineProps<{
@@ -140,11 +142,20 @@ const unbroken = (code: string) => code.replaceAll('-', '‑');
                                 }}</template>
                             </td>
                             <td data-label="Check">
-                                <V2Chip
-                                    class="whitespace-nowrap"
-                                    :tone="statusTone(row)"
-                                    :label="statusLabel(row)"
-                                />
+                                <div class="flex flex-wrap gap-1">
+                                    <V2Chip
+                                        class="whitespace-nowrap"
+                                        :tone="statusTone(row)"
+                                        :label="statusLabel(row)"
+                                    />
+                                    <V2Chip
+                                        v-if="row.reasonNeeded"
+                                        class="whitespace-nowrap"
+                                        tone="warning"
+                                        label="Difference: reason needed"
+                                        data-testid="cd-row-reason-needed"
+                                    />
+                                </div>
                             </td>
                             <td data-actions>
                                 <Link

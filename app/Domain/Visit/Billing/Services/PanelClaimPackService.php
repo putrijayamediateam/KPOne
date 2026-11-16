@@ -99,8 +99,8 @@ final class PanelClaimPackService
                 $shown = $requestedVersion === null ? $latest : $versions->firstWhere('version', $requestedVersion);
                 abort_if($requestedVersion !== null && $shown === null, 404);
                 $earlier = $shown !== null && $latest !== null && $shown->version !== $latest->version;
-                $invoiceTotal = $shown?->invoice_total_sen ?? (int) $claim->invoice_total_sen;
-                $panelAdjustment = $shown?->panel_adjustment_sen ?? 0;
+                $invoiceTotal = $shown->invoice_total_sen ?? (int) $claim->invoice_total_sen;
+                $panelAdjustment = $shown->panel_adjustment_sen ?? 0;
                 $claimAmount = $earlier ? $shown->claim_amount_sen : (int) $claim->claim_amount_sen;
                 $parent = $claim->parent_claim_id === null ? null : PanelClaim::query()->find($claim->parent_claim_id);
                 if ($parent !== null) {

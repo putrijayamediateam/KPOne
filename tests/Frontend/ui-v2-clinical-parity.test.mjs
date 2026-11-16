@@ -66,15 +66,23 @@ test('the page uses V2 blocks and the V2 unsaved-work dialog, not the Classic di
     assert.match(page, /<V2Chip/);
 });
 
-test('the four Classic Partials are reused unchanged', () => {
+test('three Classic Partials are reused unchanged; Dispensary attention uses its V2 partial', () => {
     for (const name of [
         'TreatmentPlanPanel',
         'AllergyProblemPanel',
         'ClinicalHistoryPanel',
-        'DispensaryAttentionPanel',
     ]) {
         assert.match(page, new RegExp(`@/pages/Clinical/Partials/${name}.vue`));
     }
+
+    assert.match(
+        page,
+        /@\/pages\/Dispensary\/V2\/Partials\/DispensaryAttentionPanel\.vue/,
+    );
+    assert.doesNotMatch(
+        page,
+        /@\/pages\/Clinical\/Partials\/DispensaryAttentionPanel\.vue/,
+    );
 });
 
 test('the V2 unsaved-work dialog has the Classic props and events; Save and hold is the filled choice', () => {

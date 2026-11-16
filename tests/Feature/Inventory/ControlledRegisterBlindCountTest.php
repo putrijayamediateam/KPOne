@@ -3,6 +3,7 @@
 namespace Tests\Feature\Inventory;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Audit\AuditRecorder;
 use App\Domain\Clinical\Models\MedicineCatalogueItem;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
@@ -86,13 +87,8 @@ final class ControlledRegisterBlindCountTest extends VisitTestCase
             ['expected_branch_id' => $this->branch->id, 'from' => $register['filters']['from'], 'to' => $register['filters']['to']])->assertForbidden();
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'inventory.controlled_register.printed')->count());
 
-        // A count that differs is refused by the existing rule until a reason is chosen; only "differs" is said, never the balance.
+        // STK-40b: a count that differs is recorded at once, with no reason, so nothing says "differs" before it is saved.
         $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '8'))
-            ->assertSessionHasErrors(['reason' => 'The count differs from the register. Choose a reason.']);
-        $this->assertSame(0, DB::table('inventory_controlled_register_checks')->count());
-        $this->assertNoBalance($this->page($checker, $sku));
-
-        $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '8', ['reason' => 'investigate']))
             ->assertSessionHasNoErrors()->assertSessionHas('success', 'Check recorded.');
 
         // Their check is in: now blocked as the previous checker, so every figure comes back with the expected balance and the difference.
@@ -100,6 +96,8 @@ final class ControlledRegisterBlindCountTest extends VisitTestCase
         $this->assertFalse($after['blind']);
         $this->assertSame(['10', '10'], [$after['closing'], $after['balanceNow']]);
         $this->assertSame(['10', '8', '-2'], [$after['checks'][0]['ledger'], $after['checks'][0]['counted'], $after['checks'][0]['difference']]);
+        // Its reason is still needed, and only this checker may add it.
+        $this->assertSame([null, true, true], [$after['checks'][0]['reason'], $after['checks'][0]['reasonNeeded'], $after['checks'][0]['canAddReason']]);
         $this->assertSame('10', $after['lines']['rows'][0]['balance']);
         $this->assertSame(['10', false], [$this->row($checker)['balance'], $this->row($checker)['blind']]);
         $this->actingAs($checker)->get(route('inventory.controlled-register.print', ['sku' => $sku]))->assertOk();
@@ -143,7 +141,7 @@ final class ControlledRegisterBlindCountTest extends VisitTestCase
         $this->assertSame(['controlled_register_check_id', 'inventory_sku_id', 'outcome', 'reason'], collect(json_decode((string) $audit->metadata, true))->keys()->sort()->values()->all());
     }
 
-    public function test_a_refused_differing_try_leaves_one_audit_row_with_no_quantity_and_other_checks_write_none(): void
+    public function test_a_differing_count_is_recorded_at_once_and_no_refused_try_is_written_any_more(): void
     {
         $f = $this->controlled();
         $checker = $this->actorAt('finance_officer');
@@ -151,25 +149,19 @@ final class ControlledRegisterBlindCountTest extends VisitTestCase
         $register = $this->page($checker, $sku);
         $refused = fn () => DB::table('audit_logs')->where('event', 'inventory.controlled_register.check_refused');
 
-        // No reason: refused (422), and the try survives the rollback as one row with ids and the code only.
-        $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '7'))->assertSessionHasErrors('reason');
-        $this->assertSame(1, $refused()->count());
-        $row = $refused()->sole();
-        $metadata = json_decode((string) $row->metadata, true);
-        $this->assertSame(['inventory_sku_id' => $f['sku']->id, 'outcome' => 'differs'], $metadata);
-        $this->assertSame([(int) $checker->id, (int) $this->branch->id], [(int) $row->actor_user_id, (int) $row->branch_id]);
-        $this->assertDoesNotMatchRegularExpression('/"7|counted|ledger|quantity/', (string) $row->metadata);
-        $this->assertSame(0, DB::table('inventory_controlled_register_checks')->count());
+        // STK-40b: no reason is asked for at the count, so there is no refusal and no refused-try row.
+        $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '7'))->assertSessionHasNoErrors();
+        $this->assertSame(0, $refused()->count());
+        $check = DB::table('inventory_controlled_register_checks')->sole();
+        $this->assertSame(['differs', null, null], [$check->outcome, $check->reason, $check->note]);
+        // The checked audit keeps its ids and codes; the reason is null until it is added.
+        $metadata = json_decode((string) DB::table('audit_logs')->where('event', 'inventory.controlled_register.checked')->sole()->metadata, true);
+        $this->assertSame(['differs', null], [$metadata['outcome'], $metadata['reason']]);
 
-        // "Other" with no note says it differs too, so it is recorded the same way.
-        $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '7', ['reason' => 'other']))->assertSessionHasErrors('note');
-        $this->assertSame(2, $refused()->count());
-
-        // A reasoned check and a matching check write their usual row and no refused row.
-        $this->actingAs($checker)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '7', ['reason' => 'investigate']))->assertSessionHasNoErrors();
+        // A matching check by someone else writes its usual row and still no refused row.
         $director = $this->actorAt('director');
         $this->actingAs($director)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($this->page($director, $sku), '10'))->assertSessionHasNoErrors();
-        $this->assertSame(2, $refused()->count());
+        $this->assertSame(0, $refused()->count());
         $this->assertSame(2, DB::table('audit_logs')->where('event', 'inventory.controlled_register.checked')->count());
     }
 
@@ -191,7 +183,7 @@ final class ControlledRegisterBlindCountTest extends VisitTestCase
         }
     }
 
-    public function test_each_check_says_how_many_refused_tries_came_before_it(): void
+    public function test_refused_tries_from_before_stk_40b_still_show_on_the_check_they_preceded(): void
     {
         $f = $this->controlled();
         $sku = $f['sku']->public_id;
@@ -199,22 +191,20 @@ final class ControlledRegisterBlindCountTest extends VisitTestCase
         // No refused try before it: 0, which the page shows as nothing.
         $this->actingAs($first)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($this->page($first, $sku), '10'))->assertSessionHasNoErrors();
 
-        // Two refused tries, then a check: that check carries 2; the earlier one keeps 0.
+        // Two refused tries written before STK-40b (ids and the code only), then a check: that check carries 2; the earlier one keeps 0.
         $second = $this->actorAt('director');
         $register = $this->page($second, $sku);
-        foreach (['8', '9'] as $guess) {
+        foreach ([1, 2] as $_) {
             $this->travel(1)->seconds();
-            $this->actingAs($second)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, $guess))->assertSessionHasErrors('reason');
+            app(AuditRecorder::class)->record('inventory.controlled_register.check_refused', $f['sku'], ['inventory_sku_id' => $f['sku']->id, 'outcome' => 'differs'], $second, $this->branch);
         }
-        // Before the next check, the two tries show as "since the last check".
-        $this->assertSame(2, $this->page($second, $sku)['attemptsSinceCheck']);
         $this->travel(1)->seconds();
         $this->actingAs($second)->post(route('inventory.controlled-register.check', ['sku' => $sku]), $this->input($register, '10'))->assertSessionHasNoErrors();
-        $this->assertSame(0, $this->page($second, $sku)['attemptsSinceCheck']);
 
-        $checks = $this->page($second, $sku)['checks'];
-        $this->assertSame([2, 0], [$checks[0]['attempts'], $checks[1]['attempts']]);
-        // The count is not a quantity: the refused rows still hold ids and the code only.
+        $page = $this->page($second, $sku);
+        $this->assertSame([2, 0], [$page['checks'][0]['attempts'], $page['checks'][1]['attempts']]);
+        // The live "since the last check" line is retired.
+        $this->assertArrayNotHasKey('attemptsSinceCheck', $page);
         $this->assertSame(2, DB::table('audit_logs')->where('event', 'inventory.controlled_register.check_refused')->count());
     }
 }

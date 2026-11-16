@@ -24,7 +24,7 @@ final class PanelAdjustmentView
     public static function forInvoice(User $actor, Invoice $invoice, Branch $branch, string $from): ?array
     {
         $allocation = CoverageAllocation::query()->where('invoice_id', $invoice->id)->where('current_invoice_guard', $invoice->id)->where('status', 'approved')->first();
-        if ($allocation === null || $allocation->panel_id === null) {
+        if ($allocation === null || ! $allocation->panel_id) {
             return null;
         }
         $claims = PanelClaim::query()->where('coverage_allocation_id', $allocation->id)->orderBy('id')->get(['id', 'public_id', 'claim_kind', 'claim_amount_sen', 'accepted_amount_sen', 'status', 'panel_claim_adjustment_id']);

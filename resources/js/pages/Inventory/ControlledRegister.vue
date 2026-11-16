@@ -16,6 +16,8 @@ type Row = {
     status: 'checked' | 'moved_since' | 'never' | 'no_longer_controlled';
     lastCheckedOn: string | null;
     lastOutcome: 'matches' | 'differs' | null;
+    /** STK-40b: the last check differs and its reason has not been added yet. */
+    reasonNeeded: boolean;
 };
 
 defineProps<{
@@ -102,6 +104,13 @@ const statusTone = (row: Row) =>
                         :label="statusLabel(row)"
                         :tone="statusTone(row)"
                     />
+                    <StatusBadge
+                        v-if="row.reasonNeeded"
+                        status="reason-needed"
+                        label="Difference: reason needed"
+                        tone="warning"
+                        data-testid="cd-row-reason-needed"
+                    />
                     <ActionLink
                         :href="`/inventory/controlled-register/${row.skuPublicId}`"
                         variant="outline"
@@ -151,11 +160,19 @@ const statusTone = (row: Row) =>
                                 }}
                             </td>
                             <td class="p-3">
-                                <StatusBadge
-                                    :status="row.status"
-                                    :label="statusLabel(row)"
-                                    :tone="statusTone(row)"
-                                />
+                                <div class="flex flex-wrap gap-1">
+                                    <StatusBadge
+                                        :status="row.status"
+                                        :label="statusLabel(row)"
+                                        :tone="statusTone(row)"
+                                    />
+                                    <StatusBadge
+                                        v-if="row.reasonNeeded"
+                                        status="reason-needed"
+                                        label="Difference: reason needed"
+                                        tone="warning"
+                                    />
+                                </div>
                             </td>
                             <td class="p-3 text-right">
                                 <ActionLink
