@@ -180,3 +180,17 @@ test('Suresh M1: each day-count check has a number, so an older answer never sho
     // A changed field makes the running check stale.
     assert.match(composable, /clearTimeout\(previewTimer\);\s*previewSeq\+\+;/);
 });
+
+test('Daniel: Remove on the evidence sheet is named, 44 px, and confirms first with the red button; previews fit in 240 px', () => {
+    assert.match(
+        template,
+        /class="min-w-11 justify-center px-2"\s+:aria-label="`Remove \$\{f\.label\}`"/,
+    );
+    assert.match(script, /const textLink =\s*'inline-flex min-h-11/);
+    assert.match(
+        template,
+        /:title="`Remove \$\{removal\.file\?\.label \?\? 'this file'\}\?`"/,
+    );
+    assert.match(template, /description="This deletes the file\./);
+    assert.match(template, /max-h-60 max-w-full object-contain/);
+});

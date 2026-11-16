@@ -438,9 +438,10 @@ const inputClass =
                                                     @click="openEvidence(r)"
                                                 >
                                                     {{
-                                                        r.evidence.canAdd
-                                                            ? 'Add file'
-                                                            : 'View'
+                                                        r.evidence.files
+                                                            .length > 0
+                                                            ? 'View'
+                                                            : 'Add file'
                                                     }}<span class="sr-only">
                                                         for {{ r.type }},
                                                         {{ r.dates }}</span
@@ -1857,6 +1858,7 @@ const inputClass =
                                 v-if="f.canRemove"
                                 type="button"
                                 :class="textLink"
+                                class="min-w-11 justify-center px-2"
                                 :aria-label="`Remove ${f.label}`"
                                 @click="openRemoval(f)"
                             >
@@ -1876,7 +1878,7 @@ const inputClass =
                             <img
                                 :src="f.url"
                                 :alt="photoAlt(f, evidenceRow.evidence.files)"
-                                class="mx-auto block h-auto max-w-full"
+                                class="mx-auto block h-auto max-h-60 max-w-full object-contain"
                                 loading="lazy"
                             />
                         </div>
@@ -1928,8 +1930,8 @@ const inputClass =
 
         <V2Dialog
             :open="removal.open"
-            title="Remove this file?"
-            description="The file is deleted. A record that it was added and removed stays."
+            :title="`Remove ${removal.file?.label ?? 'this file'}?`"
+            description="This deletes the file. A record that it was added and removed stays."
             :confirm-label="removal.processing ? 'Removing…' : 'Remove file'"
             tone="danger"
             :busy="removal.processing"
