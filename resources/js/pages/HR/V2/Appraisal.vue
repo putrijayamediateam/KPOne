@@ -1,12 +1,12 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { Check } from '@lucide/vue';
 import { computed } from 'vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Field from '@/components/v2/V2Field.vue';
-import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { useAppraisalPage } from '@/composables/hr/useAppraisalPage';
 import type { AppraisalPageProps } from '@/composables/hr/useAppraisalPage';
@@ -58,19 +58,6 @@ const statusTone = computed(() =>
           ? 'info'
           : 'neutral',
 );
-const scale = ['1', '2', '3', '4', '5'].map((n) => ({ value: n, label: n }));
-const ratingModel = (i: number) => {
-    const r = form.ratings[i]?.rating;
-
-    return r === null || r === undefined ? null : String(r);
-};
-const setRating = (i: number, v: string) => {
-    const row = form.ratings[i];
-
-    if (row) {
-        row.rating = Number(v);
-    }
-};
 const sendReason = computed(() =>
     unrated.value > 0
         ? `Rate every criterion first (${unrated.value} left).`
@@ -251,15 +238,51 @@ const signDescription = computed(
                                 {{ c.description }}
                             </p>
                             <template v-if="appraisal.can.edit">
-                                <V2OptionGroup
-                                    :model-value="ratingModel(i)"
-                                    :options="scale"
-                                    :label="`Rating for ${c.title}, 1 to 5`"
-                                    :error="errors[`ratings.${i}.rating`]"
-                                    @update:model-value="
-                                        (v: string) => setRating(i, v)
-                                    "
-                                />
+                                <div class="flex flex-col gap-1.5">
+                                    <p
+                                        :id="`v2-rating-label-${i}`"
+                                        class="text-sm font-medium"
+                                    >
+                                        Rating for {{ c.title }}, 1 to 5
+                                    </p>
+                                    <div
+                                        class="flex flex-wrap gap-2"
+                                        role="radiogroup"
+                                        :aria-labelledby="`v2-rating-label-${i}`"
+                                    >
+                                        <label
+                                            v-for="n in 5"
+                                            :key="n"
+                                            class="flex min-h-11 min-w-11 cursor-pointer items-center justify-center gap-1 rounded-[10px] border border-border bg-card px-3 text-sm font-medium tabular-nums hover:bg-muted has-[:checked]:border-primary has-[:checked]:bg-primary has-[:checked]:text-primary-foreground has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background lg:min-h-9"
+                                        >
+                                            <input
+                                                v-model="
+                                                    form.ratings[i]!.rating
+                                                "
+                                                type="radio"
+                                                :name="`v2-rating-${i}`"
+                                                :value="n"
+                                                class="sr-only"
+                                            />
+                                            <Check
+                                                v-if="
+                                                    form.ratings[i]!.rating ===
+                                                    n
+                                                "
+                                                class="size-4"
+                                                aria-hidden="true"
+                                            />
+                                            {{ n }}
+                                        </label>
+                                    </div>
+                                    <p
+                                        v-if="errors[`ratings.${i}.rating`]"
+                                        role="alert"
+                                        class="text-sm text-destructive"
+                                    >
+                                        {{ errors[`ratings.${i}.rating`] }}
+                                    </p>
+                                </div>
                                 <V2Field
                                     v-slot="{ id, describedBy }"
                                     label="Comment (optional)"

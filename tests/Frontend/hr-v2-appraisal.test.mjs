@@ -51,3 +51,12 @@ test('no total score or ranking is shown; each criterion stands on its own', () 
     assert.match(tpl, /KPOne adds no total\./);
     assert.doesNotMatch(tpl, /total score:|rank(ing)?:|average/i);
 });
+
+test('the rating is a radio group with an accessible name; the chosen one is filled with a check, 44 px below 1024', () => {
+    assert.match(tpl, /role="radiogroup"/);
+    assert.match(tpl, /:aria-labelledby="`v2-rating-label-\$\{i\}`"/);
+    assert.match(tpl, /type="radio"/);
+    assert.match(tpl, /has-\[:checked\]:bg-primary/);
+    assert.match(tpl, /min-h-11 min-w-11/);
+    assert.match(tpl, /<Check v-if="form\.ratings\[i\]!\.rating === n"/);
+});
