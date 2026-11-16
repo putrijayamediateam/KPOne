@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
 import { Check } from '@lucide/vue';
-import { computed, ref } from 'vue';
+import { computed, nextTick, reactive, ref, watch } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
@@ -27,7 +27,6 @@ import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { useLeavePage } from '@/composables/hr/useLeavePage';
 import type {
     Balance,
-    Entry,
     LeavePageProps,
     RequestRow,
     TypeRow,
@@ -111,6 +110,7 @@ const {
     entryForm,
     saveEntry,
     decideEntry,
+    entryTone,
     entryLabel,
     peopleOptions,
     balanceTypeOptions,
@@ -157,6 +157,51 @@ const chooseSettingsTab = (value: string) => {
         // Storage blocked: the choice lasts for this visit only.
     }
 };
+const archiving = reactive<{ open: boolean; type: TypeRow | null }>({
+    open: false,
+    type: null,
+});
+const askArchive = (t: TypeRow) => {
+    archiving.type = t;
+    archiving.open = true;
+};
+const confirmArchive = () => {
+    if (archiving.type) {
+        archiveType(archiving.type);
+    }
+
+    archiving.open = false;
+};
+// The type dialog asks before discarding only when something changed since it opened (Suresh): openType fills the
+// form field by field, so Inertia's isDirty would count an untouched Edit as changed.
+const typeFields = () =>
+    JSON.stringify({
+        code: typeForm.code,
+        name: typeForm.name,
+        is_paid: typeForm.is_paid,
+        uses_balance: typeForm.uses_balance,
+        allow_half_days: typeForm.allow_half_days,
+        evidence_needed: typeForm.evidence_needed,
+        allow_negative: typeForm.allow_negative,
+        accepts_evidence_files: typeForm.accepts_evidence_files,
+        evidence_retention_days: typeForm.evidence_retention_days,
+        carry_max_days: typeForm.carry_max_days,
+        carry_expires_on: typeForm.carry_expires_on,
+    });
+const typeSnapshot = ref('');
+watch(typeOpen, (open) => {
+    if (open) {
+        void nextTick(() => (typeSnapshot.value = typeFields()));
+    } else {
+        typeSnapshot.value = '';
+    }
+});
+const typeDirty = computed(
+    () =>
+        typeOpen.value &&
+        typeSnapshot.value !== '' &&
+        typeFields() !== typeSnapshot.value,
+);
 const settingsBranch = computed(() => branchName.value || 'this branch');
 const typeMenu = (t: TypeRow): RowMenuGroup[] => [
     {
@@ -172,12 +217,6 @@ const typeMenu = (t: TypeRow): RowMenuGroup[] => [
         ],
     },
 ];
-const entryChipTone: Record<Entry['status'], 'warning' | 'success' | 'danger'> =
-    {
-        pending: 'warning',
-        confirmed: 'success',
-        rejected: 'danger',
-    };
 
 // Daniel (a): the big figure is what is left, the line under it the rest. "Booked" is the server's own figure: waiting
 // requests plus approved leave that has not started, so it is not called "pending". A type with no yearly balance
@@ -923,29 +962,16 @@ const inputClass =
                             data-test="settings-filters"
                         >
                             <V2Field label="Year" class="w-full sm:w-40">
-                                <template #default="{ id }">
+                                <template #default="{ id, describedBy }">
                                     <OperationalSelect
                                         :id="id"
+                                        :describedby="describedBy"
                                         :model-value="leave.year"
                                         :options="yearOptions"
                                         label="Year"
                                         @update:model-value="
                                             (v: string | number) =>
                                                 visit({ year: v })
-                                        "
-                                    />
-                                </template>
-                            </V2Field>
-                            <V2Field label="Branch" class="w-full sm:w-56">
-                                <template #default="{ id }">
-                                    <OperationalSelect
-                                        :id="id"
-                                        :model-value="leave.branchId ?? ''"
-                                        :options="branchOptions"
-                                        label="Branch"
-                                        @update:model-value="
-                                            (v: string | number) =>
-                                                visit({ branch: v })
                                         "
                                     />
                                 </template>
@@ -974,9 +1000,9 @@ const inputClass =
                                 class="flex flex-wrap items-center justify-between gap-2"
                             >
                                 <div class="min-w-0">
-                                    <h3 class="text-base font-semibold">
+                                    <h2 class="text-base font-semibold">
                                         Leave types
-                                    </h3>
+                                    </h2>
                                     <p class="text-sm text-muted-foreground">
                                         Add the types the clinic uses, or start
                                         from the KPOne defaults.
@@ -1098,7 +1124,7 @@ const inputClass =
                                                     (id: string) =>
                                                         id === 'edit'
                                                             ? openType(t)
-                                                            : archiveType(t)
+                                                            : askArchive(t)
                                                 "
                                             />
                                         </td>
@@ -1263,9 +1289,7 @@ const inputClass =
                                         :key="key"
                                         :message="message"
                                     />
-                                    <div
-                                        class="flex justify-end"
-                                    >
+                                    <div class="flex justify-end">
                                         <Button
                                             class="min-h-11 w-full sm:w-fit lg:min-h-9"
                                             :disabled="entitlementSaving"
@@ -1348,9 +1372,12 @@ const inputClass =
                                     @submit.prevent="savePerson"
                                 >
                                     <V2Field label="Person">
-                                        <template #default="{ id }">
+                                        <template
+                                            #default="{ id, describedBy }"
+                                        >
                                             <OperationalSelect
                                                 :id="id"
+                                                :describedby="describedBy"
                                                 v-model="personForm.user_id"
                                                 :options="peopleOptions"
                                                 label="Person"
@@ -1359,9 +1386,12 @@ const inputClass =
                                         </template>
                                     </V2Field>
                                     <V2Field label="Leave type">
-                                        <template #default="{ id }">
+                                        <template
+                                            #default="{ id, describedBy }"
+                                        >
                                             <OperationalSelect
                                                 :id="id"
+                                                :describedby="describedBy"
                                                 v-model="
                                                     personForm.leave_type_id
                                                 "
@@ -1372,9 +1402,12 @@ const inputClass =
                                         </template>
                                     </V2Field>
                                     <V2Field label="Days">
-                                        <template #default="{ id }">
+                                        <template
+                                            #default="{ id, describedBy }"
+                                        >
                                             <Input
                                                 :id="id"
+                                                :aria-describedby="describedBy"
                                                 v-model="personForm.days"
                                                 inputmode="decimal"
                                                 class="h-11 tabular-nums lg:h-9"
@@ -1400,6 +1433,22 @@ const inputClass =
                             aria-labelledby="leave-settings-tab-calendar"
                             class="flex flex-col gap-4"
                         >
+                            <!-- Branch filters only the calendar (Daniel), so it lives here, not above the sub-tabs. -->
+                            <V2Field label="Branch" class="w-full sm:w-56">
+                                <template #default="{ id, describedBy }">
+                                    <OperationalSelect
+                                        :id="id"
+                                        :describedby="describedBy"
+                                        :model-value="leave.branchId ?? ''"
+                                        :options="branchOptions"
+                                        label="Branch"
+                                        @update:model-value="
+                                            (v: string | number) =>
+                                                visit({ branch: v })
+                                        "
+                                    />
+                                </template>
+                            </V2Field>
                             <V2FormCard
                                 :title="`Working days · ${settingsBranch}`"
                                 description="Leave counts only these weekdays. Requests already sent keep their day count."
@@ -1470,9 +1519,12 @@ const inputClass =
                                         label="Date"
                                         :error="holidayForm.errors.holiday_date"
                                     >
-                                        <template #default="{ id }">
+                                        <template
+                                            #default="{ id, describedBy }"
+                                        >
                                             <DateField
                                                 :id="id"
+                                                :aria-describedby="describedBy"
                                                 v-model="
                                                     holidayForm.holiday_date
                                                 "
@@ -1483,9 +1535,12 @@ const inputClass =
                                         label="Name"
                                         :error="holidayForm.errors.name"
                                     >
-                                        <template #default="{ id }">
+                                        <template
+                                            #default="{ id, describedBy }"
+                                        >
                                             <Input
                                                 :id="id"
+                                                :aria-describedby="describedBy"
                                                 v-model="holidayForm.name"
                                                 maxlength="80"
                                                 class="h-11 lg:h-9"
@@ -1583,9 +1638,12 @@ const inputClass =
                                     @submit.prevent="saveEntry"
                                 >
                                     <V2Field label="Entry">
-                                        <template #default="{ id }">
+                                        <template
+                                            #default="{ id, describedBy }"
+                                        >
                                             <OperationalSelect
                                                 :id="id"
+                                                :describedby="describedBy"
                                                 v-model="entryForm.kind"
                                                 :options="[
                                                     {
@@ -1606,9 +1664,16 @@ const inputClass =
                                         required
                                         :error="entryForm.errors.user_id"
                                     >
-                                        <template #default="{ id, invalid }">
+                                        <template
+                                            #default="{
+                                                id,
+                                                invalid,
+                                                describedBy,
+                                            }"
+                                        >
                                             <OperationalSelect
                                                 :id="id"
+                                                :describedby="describedBy"
                                                 v-model="entryForm.user_id"
                                                 :options="peopleOptions"
                                                 label="Person"
@@ -1622,9 +1687,16 @@ const inputClass =
                                         required
                                         :error="entryForm.errors.leave_type_id"
                                     >
-                                        <template #default="{ id, invalid }">
+                                        <template
+                                            #default="{
+                                                id,
+                                                invalid,
+                                                describedBy,
+                                            }"
+                                        >
                                             <OperationalSelect
                                                 :id="id"
+                                                :describedby="describedBy"
                                                 v-model="
                                                     entryForm.leave_type_id
                                                 "
@@ -1668,10 +1740,17 @@ const inputClass =
                                             "
                                         >
                                             <template
-                                                #default="{ id, invalid }"
+                                                #default="{
+                                                    id,
+                                                    invalid,
+                                                    describedBy,
+                                                }"
                                             >
                                                 <OperationalSelect
                                                     :id="id"
+                                                    :aria-describedby="
+                                                        describedBy
+                                                    "
                                                     v-model="
                                                         entryForm.reason_code
                                                     "
@@ -1689,9 +1768,14 @@ const inputClass =
                                             label="Note"
                                             :error="entryForm.errors.note"
                                         >
-                                            <template #default="{ id }">
+                                            <template
+                                                #default="{ id, describedBy }"
+                                            >
                                                 <Textarea
                                                     :id="id"
+                                                    :aria-describedby="
+                                                        describedBy
+                                                    "
                                                     v-model="entryForm.note"
                                                     maxlength="200"
                                                     rows="2"
@@ -1772,7 +1856,7 @@ const inputClass =
                                         </td>
                                         <td data-label="Status">
                                             <V2Chip
-                                                :tone="entryChipTone[e.status]"
+                                                :tone="entryTone[e.status]"
                                                 :label="entryLabel[e.status]"
                                             />
                                         </td>
@@ -2247,12 +2331,23 @@ const inputClass =
             :confirm-label="typeForm.processing ? 'Saving…' : 'Save leave type'"
             size="tall"
             :busy="typeForm.processing"
-            :dirty="typeForm.isDirty"
+            :dirty="typeDirty"
             data-test="type-dialog"
             @update:open="typeOpen = $event"
             @confirm="saveType"
         >
-            <form class="flex flex-col gap-4" @submit.prevent="saveType">
+            <form
+                class="flex flex-col gap-4"
+                @submit.prevent="typeForm.processing || saveType()"
+            >
+                <button
+                    type="submit"
+                    class="sr-only"
+                    tabindex="-1"
+                    aria-hidden="true"
+                >
+                    Save leave type
+                </button>
                 <V2Field
                     label="Code"
                     required
@@ -2271,9 +2366,10 @@ const inputClass =
                     </template>
                 </V2Field>
                 <V2Field label="Name" required :error="typeForm.errors.name">
-                    <template #default="{ id }">
+                    <template #default="{ id, describedBy }">
                         <Input
                             :id="id"
+                            :aria-describedby="describedBy"
                             v-model="typeForm.name"
                             maxlength="60"
                             class="h-11 lg:h-9"
@@ -2373,9 +2469,10 @@ const inputClass =
                         label="Carried days expire on (MM-DD)"
                         :error="typeForm.errors.carry_expires_on"
                     >
-                        <template #default="{ id }">
+                        <template #default="{ id, describedBy }">
                             <Input
                                 :id="id"
+                                :aria-describedby="describedBy"
                                 v-model="typeForm.carry_expires_on"
                                 placeholder="03-31"
                                 maxlength="5"
@@ -2387,6 +2484,28 @@ const inputClass =
             </form>
         </V2Dialog>
 
+        <!-- Archive or restore a leave type (Daniel): confirmed first; Archive is red. The request is the same archiveType. -->
+        <V2Dialog
+            :open="archiving.open"
+            :title="
+                archiving.type?.isActive
+                    ? `Archive ${archiving.type?.name}?`
+                    : `Restore ${archiving.type?.name}?`
+            "
+            :description="
+                archiving.type?.isActive
+                    ? 'Nobody can apply for it after this. Requests and balances already made stay.'
+                    : 'Staff can apply for it again.'
+            "
+            :confirm-label="
+                archiving.type?.isActive ? 'Archive type' : 'Restore type'
+            "
+            :tone="archiving.type?.isActive ? 'danger' : 'default'"
+            data-test="archive-dialog"
+            @update:open="archiving.open = $event"
+            @confirm="confirmArchive"
+        />
+
         <!-- Year actions and KPOne defaults (PR 2): a V2 dialog with the same wording and details. -->
         <V2Dialog
             :open="yearAction.open"
@@ -2397,6 +2516,7 @@ const inputClass =
             "
             :busy="yearAction.processing"
             :size="yearAction.kind === 'defaults' ? 'tall' : 'default'"
+            :tone="yearAction.kind === 'expire' ? 'danger' : 'default'"
             data-test="year-dialog"
             @update:open="yearAction.open = $event"
             @confirm="confirmYear"

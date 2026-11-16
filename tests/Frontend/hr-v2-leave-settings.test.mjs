@@ -94,6 +94,19 @@ test('each sub-tab keeps its content and its data-test hooks', () => {
         /role="checkbox"\s*:aria-checked="\s*workingDays\.includes\(d\.value\)\s*"/,
     );
 
+    // Branch filters only the calendar, so it sits inside the Calendar sub-tab (Daniel); Year stays above the sub-tabs.
+    const filters = settings.slice(
+        settings.indexOf('data-test="settings-filters"'),
+        settings.indexOf('<V2Tabs'),
+    );
+    assert.match(filters, /label="Year"/);
+    assert.doesNotMatch(filters, /label="Branch"/);
+    const calendar = settings.slice(
+        settings.indexOf('v-if="settingsTab === \'calendar\'"'),
+        settings.indexOf('v-if="settingsTab === \'balances\'"'),
+    );
+    assert.match(calendar, /label="Branch"[\s\S]*?visit\(\{ branch: v \}\)/);
+
     // Checking someone else's entry stays a row action, never by the entrant (the server's canDecide).
     assert.match(settings, /v-if="e\.canDecide"/);
 });
@@ -109,9 +122,40 @@ test('the type sheet and the year confirm are V2 dialogs with the same requests'
         /<V2Dialog\s+:open="yearAction\.open"[\s\S]*?:title="yearText\.title"[\s\S]*?@confirm="confirmYear"/,
     );
     assert.match(html, /data-test="defaults-details"/);
+    // Expire and Archive confirm first, in red (Daniel); Archive still calls the same archiveType.
+    assert.match(
+        html,
+        /:tone="yearAction\.kind === 'expire' \? 'danger' : 'default'"/,
+    );
+    assert.match(html, /: askArchive\(t\)/);
+    assert.match(
+        html,
+        /data-test="archive-dialog"[\s\S]*?@confirm="confirmArchive"/,
+    );
+    assert.match(
+        script,
+        /const confirmArchive = \(\) => \{\s*if \(archiving\.type\) \{\s*archiveType\(archiving\.type\);/,
+    );
     assert.match(html, /v-if="yearAction\.error"\s*role="alert"/);
     assert.match(html, /data-test="type-evidence"/);
     assert.match(html, /data-test="type-retention-over-cap"/);
+
+    // Suresh: "Discard changes?" only when something changed since the dialog opened (a snapshot, not isDirty), and
+    // Enter in a field saves once, never while a save is running.
+    assert.match(html, /:dirty="typeDirty"/);
+    assert.doesNotMatch(html, /typeForm\.isDirty/);
+    assert.match(
+        script,
+        /watch\(typeOpen, \(open\) => \{\s*if \(open\) \{\s*void nextTick\(\(\) => \(typeSnapshot\.value = typeFields\(\)\)\);/,
+    );
+    assert.match(
+        html,
+        /@submit\.prevent="typeForm\.processing \|\| saveType\(\)"/,
+    );
+    assert.match(
+        html,
+        /<button\s+type="submit"\s+class="sr-only"\s+tabindex="-1"\s+aria-hidden="true"/,
+    );
 
     // Still no request of its own: everything goes through the composable.
     assert.doesNotMatch(
