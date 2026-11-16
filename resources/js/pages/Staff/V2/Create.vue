@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import { Head, Link, useForm } from '@inertiajs/vue3';
+import { ref } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
+import V2DateField from '@/components/v2/V2DateField.vue';
 import V2Field from '@/components/v2/V2Field.vue';
 import V2FormCard from '@/components/v2/V2FormCard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2StickyBar from '@/components/v2/V2StickyBar.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { formatRoleLabel } from '@/lib/displayLabels';
-import { echoDate } from '@/lib/v2-date-echo';
 import type { StaffOptions } from '@/types';
 
 defineOptions({
@@ -125,10 +126,28 @@ const errorFor = (key: string): string | undefined => {
 const clear = (...keys: string[]) => form.clearErrors(...(keys as never[]));
 
 // The typed password is never kept after a refusal: the two boxes are emptied and the person types it again.
-const submit = () =>
+// A date box holding text it could not read blocks Save, so an unreadable end date is never saved as "no end date".
+const badDates = ref<Record<string, boolean>>({});
+const setBadDate = (index: number, which: 'from' | 'until', bad: boolean) => {
+    badDates.value[`${index}.${which}`] = bad;
+};
+
+// Rows are keyed by position, so removing one destroys the last row's boxes: forget what they reported.
+const removeAssignment = (index: number) => {
+    form.assignments.splice(index, 1);
+    delete badDates.value[`${form.assignments.length}.from`];
+    delete badDates.value[`${form.assignments.length}.until`];
+};
+
+const submit = () => {
+    if (Object.values(badDates.value).some(Boolean)) {
+        return;
+    }
+
     form.post('/staff', {
         onError: () => form.reset('password', 'password_confirmation'),
     });
+};
 
 const signInOptions = [
     { value: 'google_only', label: 'Google sign-in only' },
@@ -338,7 +357,7 @@ const border = (error?: string) =>
                                     type="button"
                                     :class="outline"
                                     :aria-label="`Remove assignment ${index + 1}`"
-                                    @click="form.assignments.splice(index, 1)"
+                                    @click="removeAssignment(index)"
                                 >
                                     Remove
                                 </button>
@@ -402,70 +421,47 @@ const border = (error?: string) =>
                                 />
                                 Primary branch
                             </label>
-                            <V2Field
-                                v-slot="{ id, describedBy }"
+                            <V2DateField
+                                v-model="assignment.valid_from"
                                 label="Valid from"
-                                :hint="echoDate(assignment.valid_from, 'From')"
+                                weekday
                                 :error="
                                     errorFor(`assignments.${index}.valid_from`)
                                 "
-                            >
-                                <input
-                                    :id="id"
-                                    v-model="assignment.valid_from"
-                                    @input="
-                                        clear(
-                                            `assignments.${index}.valid_from`,
-                                            'assignment',
-                                        )
-                                    "
-                                    type="date"
-                                    :aria-describedby="describedBy"
-                                    :class="[
-                                        control,
-                                        border(
-                                            errorFor(
-                                                `assignments.${index}.valid_from`,
-                                            ),
-                                        ),
-                                    ]"
-                                />
-                            </V2Field>
-                            <V2Field
-                                v-slot="{ id, describedBy }"
+                                @update:model-value="
+                                    clear(
+                                        `assignments.${index}.valid_from`,
+                                        'assignment',
+                                    )
+                                "
+                                @update:invalid="
+                                    setBadDate(index, 'from', $event)
+                                "
+                            />
+                            <V2DateField
+                                v-model="assignment.valid_until"
                                 label="Valid through (inclusive)"
+                                weekday
                                 :hint="
-                                    echoDate(
-                                        assignment.valid_until,
-                                        'Through',
-                                        ', inclusive',
-                                    ) ?? 'No end date'
+                                    badDates[`${index}.until`]
+                                        ? undefined
+                                        : assignment.valid_until
+                                          ? 'The last day counts (inclusive).'
+                                          : 'No end date.'
                                 "
                                 :error="
                                     errorFor(`assignments.${index}.valid_until`)
                                 "
-                            >
-                                <input
-                                    :id="id"
-                                    v-model="assignment.valid_until"
-                                    @input="
-                                        clear(
-                                            `assignments.${index}.valid_until`,
-                                            'assignment',
-                                        )
-                                    "
-                                    type="date"
-                                    :aria-describedby="describedBy"
-                                    :class="[
-                                        control,
-                                        border(
-                                            errorFor(
-                                                `assignments.${index}.valid_until`,
-                                            ),
-                                        ),
-                                    ]"
-                                />
-                            </V2Field>
+                                @update:model-value="
+                                    clear(
+                                        `assignments.${index}.valid_until`,
+                                        'assignment',
+                                    )
+                                "
+                                @update:invalid="
+                                    setBadDate(index, 'until', $event)
+                                "
+                            />
                         </div>
                         <!-- The server answers a rule refusal under `assignment` (for example an expiring primary); Classic shows no line for it. -->
                         <p
