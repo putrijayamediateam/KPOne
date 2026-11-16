@@ -89,6 +89,15 @@ test('fields: required allergen with its hint, optional selects with Classic opt
     assert.match(template(v2), /label="Allergen"\s+required/);
     assert.match(template(v2), /label="Category \(optional\)"/);
     assert.match(template(v2), /label="Severity \(optional\)"/);
+    // Hakim: the selects' names match their visible labels, for voice control.
+    assert.equal(
+        (template(v2).match(/label="Category \(optional\)"/g) ?? []).length,
+        2,
+    );
+    assert.equal(
+        (template(v2).match(/label="Severity \(optional\)"/g) ?? []).length,
+        2,
+    );
     assert.match(template(v2), /label="Reaction \(optional\)"/);
     assert.match(v2, /const reactionMax = 1000;/);
     assert.match(

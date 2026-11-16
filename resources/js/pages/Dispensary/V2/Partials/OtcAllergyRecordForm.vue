@@ -121,6 +121,7 @@ const outlineButton =
         aria-labelledby="otc-allergy-heading"
         @submit.prevent="submit"
     >
+        <!-- Hakim: this is the V2 case page's only leave guard; a page-level guard added later must merge with it. -->
         <V2LeaveGuard ref="guard" :dirty="typed" @discard="form.reset()" />
         <h3 id="otc-allergy-heading" class="text-[15px] font-semibold">
             Allergy details
@@ -154,7 +155,7 @@ const outlineButton =
                     v-model="form.category"
                     trigger-class="h-11 lg:h-9"
                     :disabled="form.processing"
-                    label="Allergy category"
+                    label="Category (optional)"
                     :options="allergyCategoryOptions"
                     data-field="otc-allergy-category"
                 />
@@ -165,7 +166,7 @@ const outlineButton =
                     v-model="form.severity"
                     trigger-class="h-11 lg:h-9"
                     :disabled="form.processing"
-                    label="Allergy severity"
+                    label="Severity (optional)"
                     :options="allergySeverityOptions"
                     data-field="otc-allergy-severity"
                 />
