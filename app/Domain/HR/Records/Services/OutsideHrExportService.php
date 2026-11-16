@@ -57,8 +57,9 @@ final class OutsideHrExportService
             $title = $kind === 'staff' ? 'As of '.$today->format('j M Y') : $period->format('F Y');
             $csv = ReportCsv::encode($headings, $rows, [
                 ['KPOne HR export', self::KINDS[$kind].' · '.$title],
-                ...($kind === 'leave' ? [['Days', 'Each row is one approved request touching the month, with all of its days; a request crossing months is in each month\'s file.']] : []),
+                // Daniel (M4): the Note is the second row in every HR export.
                 ['Note', 'Synthetic data only until the PDPA review. No identity numbers, bank details or documents.'],
+                ...($kind === 'leave' ? [['Days', 'Each row is one approved request touching the month, with all of its days; a request crossing months is in each month\'s file.']] : []),
             ]);
             // Audited before the bytes leave, with no names or values (HR-PLAN 15.1).
             $this->support->audit->record('hr.outside_export.downloaded', null, ['kind' => $kind, 'month' => $month?->format('Y-m'), 'rows' => count($rows)],
