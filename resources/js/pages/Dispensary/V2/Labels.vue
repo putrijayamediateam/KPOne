@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, usePage } from '@inertiajs/vue3';
-import { ArrowLeft, LoaderCircle } from '@lucide/vue';
-import { computed, nextTick, ref, watch } from 'vue';
+import { ArrowLeft, LoaderCircle, X } from '@lucide/vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 import BareLayout from '@/pages/Dispensary/V2/Partials/BareLayout.vue';
 
 /**
@@ -136,6 +136,21 @@ const caseUrl = computed(() => {
 
     return match ? match[0] : '/registration';
 });
+// V2 (Daniel): a tab the case page opened by script (a new tab with one history entry) says "Close tab" instead, so
+// the CA returns to the case they came from rather than loading a second copy. If the browser will not close it, go to
+// the case page after all.
+const openedInNewTab = ref(false);
+onMounted(() => {
+    openedInNewTab.value = window.history.length === 1;
+});
+const closeTab = () => {
+    window.close();
+    setTimeout(() => {
+        if (!window.closed) {
+            window.location.assign(caseUrl.value);
+        }
+    }, 300);
+};
 // V2 (Daniel): the button is truly off (focusable, aria-disabled) with its reason in words.
 const offReason = computed(() => {
     if (changed.value) {
@@ -191,7 +206,17 @@ const outlineButton =
             aria-labelledby="label-preview-heading"
             data-testid="label-screen-card"
         >
+            <button
+                v-if="openedInNewTab"
+                type="button"
+                :class="[outlineButton, 'justify-self-start']"
+                data-testid="label-close-tab"
+                @click="closeTab"
+            >
+                <X class="size-4" aria-hidden="true" />Close tab
+            </button>
             <a
+                v-else
                 :href="caseUrl"
                 :class="[outlineButton, 'justify-self-start']"
                 data-testid="label-back"
@@ -205,6 +230,13 @@ const outlineButton =
                 <h1 id="label-preview-heading" class="v2-page-title">
                     Medicine label preview
                 </h1>
+                <p
+                    v-if="!changed && !retired"
+                    class="mt-1 text-[13px] text-muted-foreground"
+                    data-testid="label-generated"
+                >
+                    Generated {{ labels.date }}
+                </p>
                 <p class="mt-1 text-muted-foreground">
                     Label size {{ labels.pageSize.width }} ×
                     {{ labels.pageSize.height }} mm (provisional). Confirm
@@ -223,8 +255,9 @@ const outlineButton =
                 <li>Printing does not confirm dispensing or change stock.</li>
                 <li>Discard superseded paper labels after an edit.</li>
                 <li v-if="!changed && !retired">
-                    Generated {{ labels.date }}. Live record; a reprint may
-                    differ from an earlier label.
+                    Live record; a reprint may differ from an earlier label.
+                </li>
+                <li v-if="!changed && !retired">
                     {{ labels.excludedCount }} pending, removed or zero-quantity
                     lines excluded.
                 </li>
@@ -322,10 +355,10 @@ const outlineButton =
                     'Reload this visit to review the current authorised record.'
                 }}
             </p>
-            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <div class="flex flex-col gap-2 sm:items-start">
                 <button
                     type="button"
-                    :class="filledButton"
+                    :class="[filledButton, 'whitespace-nowrap']"
                     :aria-disabled="busy || offReason ? 'true' : undefined"
                     :aria-busy="busy"
                     :aria-describedby="

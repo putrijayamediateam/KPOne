@@ -136,3 +136,28 @@ test('Hakim: a click on the off button sends nothing, including when there are n
         /if \(!props\.labels\.items\.length\) \{\s*return 'There are no labels to print in this selection\.';/,
     );
 });
+
+test('Daniel (#875): a tab opened by the case page says "Close tab", falling back to the case page', () => {
+    assert.match(v2, /openedInNewTab\.value = window\.history\.length === 1;/);
+    assert.match(
+        v2,
+        /v-if="openedInNewTab"[\s\S]*?Close tab[\s\S]*?v-else\s+:href="caseUrl"/,
+    );
+    assert.match(
+        v2,
+        /window\.close\(\);\s*setTimeout\(\(\) => \{\s*if \(!window\.closed\) \{\s*window\.location\.assign\(caseUrl\.value\);/,
+    );
+});
+
+test('Daniel (#875): the off reason sits below a full-width-text Print button, and the guidance is split', () => {
+    assert.match(v2, /<div class="flex flex-col gap-2 sm:items-start">/);
+    assert.match(v2, /:class="\[filledButton, 'whitespace-nowrap'\]"/);
+    assert.match(
+        v2,
+        /data-testid="label-generated"\s*>\s*Generated \{\{ labels\.date \}\}\s*<\/p>/,
+    );
+    assert.match(
+        v2,
+        /<li v-if="!changed && !retired">\s*Live record; a reprint may differ from an earlier label\.\s*<\/li>/,
+    );
+});
