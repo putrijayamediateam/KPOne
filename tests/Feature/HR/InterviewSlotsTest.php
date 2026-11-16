@@ -260,29 +260,29 @@ class InterviewSlotsTest extends VisitTestCase
     {
         // Owner, 2026-11-11 (#484 follow-up; Daniel): the pick-times emails carry the same sentence and date as the page.
         foreach (['screening_passed' => [], 'pick_again' => [], 'interview_cancelled' => ['date' => 'Tue 17 Nov 2026', 'time' => '9:00 AM']] as $template => $extra) {
-            $body = HiringTemplates::render($template, ['position' => 'Synthetic Assistant', 'deadline' => 'Mon 16 Nov 2026', 'tarikh' => 'Isnin 16 Nov 2026', ...$extra])['body'];
+            $body = HiringTemplates::render($template, ['position' => 'Synthetic Assistant', 'deadline' => 'Mon 16 Nov 2026', ...$extra])['body'];
             $this->assertStringContainsString('Choose by the end of Mon 16 Nov 2026. After that, the application closes.', $body, $template);
-            $this->assertStringContainsString('Pilih hingga akhir Isnin 16 Nov 2026. Selepas itu, permohonan ini ditutup.', $body, $template);
+            $this->assertStringNotContainsString('Pilih hingga', $body, $template);
             // With no deadline (no working days set), the sentences are left out rather than promising a date.
             $plain = HiringTemplates::render($template, ['position' => 'Synthetic Assistant', ...$extra])['body'];
             $this->assertStringNotContainsString('Choose by', $plain, $template);
-            $this->assertStringNotContainsString('Pilih hingga', $plain, $template);
+            $this->assertStringNotContainsString('After that, the application closes', $plain, $template);
         }
 
         // Invited on Tuesday 10 Nov: Wed 11, Thu 12, (Fri 13 holiday), Mon 16 is the last day to choose.
         [$id, $token] = $this->scheduled('Synthetic Assistant');
         $page = fn () => $this->withCookie('kpone_career_status', $token)->get(route('hr-applications.status'));
-        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Mon 16 Nov 2026')->where('application.interview.chooseByMs', 'Isnin 16 Nov 2026'));
+        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Mon 16 Nov 2026')->missing('application.interview.chooseByMs'));
         $sent = fn (string $template): string => collect(HiringMessenger::listFor($this->row($id), true))->firstWhere('template', $template)['body'] ?? '';
         $this->assertStringContainsString('Choose by the end of Mon 16 Nov 2026.', $sent('screening_passed'));
-        $this->assertStringContainsString('Pilih hingga akhir Isnin 16 Nov 2026.', $sent('screening_passed'));
+        $this->assertStringNotContainsString('Pilih hingga', $sent('screening_passed'));
         $this->pick($token, array_slice($this->starts($id), 0, 3))->assertSessionHasNoErrors();
         $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', null)); // picked: HR's turn
         // HR asks for new times on Wed 11: Thu 12, Mon 16, Tue 17.
         $this->travelTo(CarbonImmutable::parse('2026-11-11 10:00', $this->branch->timezone));
         $this->askAgain($id)->assertSessionHasNoErrors();
         auth()->logout();
-        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Tue 17 Nov 2026')->where('application.interview.chooseByMs', 'Selasa 17 Nov 2026'));
+        $page()->assertInertia(fn (Assert $p) => $p->where('application.interview.chooseBy', 'Tue 17 Nov 2026')->missing('application.interview.chooseByMs'));
         $this->assertStringContainsString('Choose by the end of Tue 17 Nov 2026.', $sent('pick_again'));
         $this->assertStringContainsString('Choose by the end of Mon 16 Nov 2026.', $sent('screening_passed')); // a sent email keeps its date
         // The day after, the line goes; picking stays open until the daily check closes the application.
