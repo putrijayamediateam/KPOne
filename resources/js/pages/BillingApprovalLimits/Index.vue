@@ -198,6 +198,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                         />
                                         <Button
                                             size="sm"
+                                            variant="outline"
                                             @click="saveLimit(row, 'panel')"
                                         >
                                             Save
@@ -272,6 +273,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                         />
                                         <Button
                                             size="sm"
+                                            variant="outline"
                                             @click="saveLimit(row, 'deferment')"
                                         >
                                             Save
