@@ -107,6 +107,7 @@ const changed = computed(
             form.verified !== subject.value.verified),
 );
 // V2 only: the sheet opens with the cursor at the end of the name and nothing selected, so one keystroke does not replace it.
+// The dialog's focus trap selects the text just after it focuses the box, so the cursor is placed once that has happened.
 let collapseOnFocus = false;
 watch(open, (value) => (collapseOnFocus = value));
 const placeCursorAtEnd = (event: FocusEvent) => {
@@ -117,7 +118,10 @@ const placeCursorAtEnd = (event: FocusEvent) => {
     }
 
     collapseOnFocus = false;
-    input.setSelectionRange(input.value.length, input.value.length);
+    window.setTimeout(
+        () => input.setSelectionRange(input.value.length, input.value.length),
+        0,
+    );
 };
 const saveReason = computed(() => {
     if (!form.professional_name.trim()) {

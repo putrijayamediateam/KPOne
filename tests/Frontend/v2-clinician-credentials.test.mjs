@@ -125,12 +125,13 @@ test('V2 review change 1: the sheet opens with the cursor at the end of the name
 
     assert.ok(t.includes('letcollapseOnFocus=false;'));
     assert.ok(t.includes('watch(open,(value)=>(collapseOnFocus=value));'));
+    // The dialog's focus trap selects the text just after focusing, so the cursor is placed after that (setTimeout 0).
     assert.ok(
         t.includes(
-            'input.setSelectionRange(input.value.length,input.value.length);',
+            'window.setTimeout(()=>input.setSelectionRange(input.value.length,input.value.length),0,)',
         ),
     );
-    assert.ok(t.includes('collapseOnFocus=false;input.setSelectionRange'));
+    assert.ok(t.includes('collapseOnFocus=false;window.setTimeout'));
     assert.ok(flat(page).includes('@focus="placeCursorAtEnd"'));
     assert.ok(!/\.select\(\)/.test(page));
 });
