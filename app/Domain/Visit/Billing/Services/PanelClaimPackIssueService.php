@@ -3,9 +3,11 @@
 namespace App\Domain\Visit\Billing\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Access\StaffAccessService;
 use App\Domain\Access\TransactionalActorAuthority;
 use App\Domain\Audit\AuditRecorder;
 use App\Domain\Organisation\Models\Branch;
+use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimPackDocument;
 use App\Domain\Visit\Billing\Models\PanelClaimPackPrint;
 use App\Models\User;
@@ -145,6 +147,39 @@ final class PanelClaimPackIssueService
                 'notes' => $notes,
             ]];
         }, 3);
+    }
+
+    /**
+     * Frozen packs that include this claim, newest first, for the "Issued packs" list on the claim page. Rows only for
+     * a holder of the claims permission at the active branch; each row says how many claims the pack holds, who issued
+     * it and when, how many times it was printed, and carries the address of its latest print.
+     *
+     * @return list<array<string, mixed>>|null
+     */
+    public function forClaim(User $actor, PanelClaim $claim): ?array
+    {
+        $branch = $this->branches->activeBranch($actor);
+        if ($branch === null || $branch->organisation_id !== $actor->organisation_id || $claim->branch_id !== $branch->id || ! $actor->can(self::PERMISSION)) {
+            return null;
+        }
+        $documents = PanelClaimPackDocument::query()->withCount('prints')->where('organisation_id', $actor->organisation_id)->where('branch_id', $branch->id)
+            ->whereRaw('claim_ids @> ?::jsonb', [json_encode([(int) $claim->id], JSON_THROW_ON_ERROR)])->orderByDesc('issued_at')->orderByDesc('id')->limit(25)->get();
+        $people = app(StaffAccessService::class)->visibleUsers($actor)->whereIn('id', $documents->pluck('issued_by_user_id')->unique())->pluck('name', 'id');
+        $latestPrints = PanelClaimPackPrint::query()->whereIn('panel_claim_pack_document_id', $documents->pluck('id'))->orderBy('id')->get()
+            ->groupBy('panel_claim_pack_document_id')->map->last();
+        $firstLabels = PanelClaimPackPrint::query()->whereIn('panel_claim_pack_document_id', $documents->pluck('id'))->where('label', '!=', 'copy')->pluck('label', 'panel_claim_pack_document_id');
+
+        return $documents->map(static fn (PanelClaimPackDocument $d): array => [
+            'publicId' => $d->public_id,
+            'version' => $d->version,
+            'firstLabel' => (string) ($firstLabels[$d->id] ?? 'original'),
+            'claimCount' => count($d->claim_ids),
+            'issuedBy' => (string) ($people[$d->issued_by_user_id] ?? 'Staff member'),
+            'issuedAt' => $d->issued_at->setTimezone($branch->timezone)->format('j M Y, g:i A'),
+            'prints' => $d->prints_count,
+            'viewUrl' => route('panel-claims.pack.copy', ['print' => $latestPrints[$d->id]->public_id, 'from' => $claim->public_id], absolute: false),
+            'reprintUrl' => route('panel-claims.pack.reprint', ['document' => $d->public_id], absolute: false),
+        ])->values()->all();
     }
 
     /** @param array<string, mixed> $content */

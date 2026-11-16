@@ -15,6 +15,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
+use Inertia\Testing\AssertableInertia as Assert;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -126,6 +127,59 @@ class PanelClaimPackIssueTest extends BillingTestCase
                 $this->assertSame(['pack' => ['This copy shows patient identity numbers, which your role cannot see.']], $e->errors());
             }
         }
+        $this->assertSame(1, PanelClaimPackPrint::query()->count());
+    }
+
+    public function test_print_pack_records_the_print_and_opens_the_frozen_copy_and_the_claim_page_lists_it(): void
+    {
+        $claims = $this->claims(1);
+        $claim = $claims[0];
+        $this->selectBranch($this->officer(), $this->branch);
+
+        $response = $this->post(route('panel-claims.pack.issue'), ['claims' => [$claim->public_id], 'idempotency_key' => (string) Str::uuid(), 'from' => $claim->public_id]);
+        $print = PanelClaimPackPrint::query()->sole();
+        $response->assertRedirect(route('panel-claims.pack.copy', ['print' => $print->public_id, 'from' => $claim->public_id]));
+        $this->get(route('panel-claims.pack.copy', ['print' => $print->public_id, 'from' => $claim->public_id]))->assertOk()
+            ->assertInertia(fn (Assert $page) => $page->component('PanelClaims/Pack')
+                ->where('issued.label', 'original')->where('issued.version', 1)->where('issued.printedByYou', true)
+                ->where('backUrl', route('panel-claims.show', $claim))->where('backLabel', 'Back to claim')
+                ->where('pack.claimCount', 1)->missing('pack.printedAt'));
+
+        $this->get(route('panel-claims.show', $claim))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->has('issuedPacks', 1)->where('issuedPacks.0.version', 1)->where('issuedPacks.0.firstLabel', 'original')
+            ->where('issuedPacks.0.claimCount', 1)->where('issuedPacks.0.prints', 1)
+            ->where('issuedPacks.0.viewUrl', route('panel-claims.pack.copy', ['print' => $print->public_id, 'from' => $claim->public_id], absolute: false)));
+
+        $document = PanelClaimPackDocument::query()->sole();
+        $this->post(route('panel-claims.pack.reprint', $document->public_id), ['idempotency_key' => (string) Str::uuid(), 'from' => $claim->public_id])->assertRedirect();
+        $this->assertSame(['original', 'copy'], PanelClaimPackPrint::query()->orderBy('id')->pluck('label')->all());
+    }
+
+    public function test_a_refused_print_returns_to_the_claim_page_and_records_nothing(): void
+    {
+        $claims = $this->claims(1);
+        $this->selectBranch($this->officer(), $this->branch);
+
+        $this->post(route('panel-claims.pack.issue'), ['claims' => [], 'idempotency_key' => (string) Str::uuid(), 'from' => $claims[0]->public_id])
+            ->assertRedirect(route('panel-claims.show', $claims[0]))->assertSessionHasErrors('claims');
+        $this->post(route('panel-claims.pack.issue'), ['claims' => [$claims[0]->public_id]])
+            ->assertRedirect(route('panel-claims.index'))->assertSessionHasErrors('idempotency_key');
+        $this->assertSame(0, PanelClaimPackDocument::query()->count());
+        $this->assertSame(0, PanelClaimPackPrint::query()->count());
+    }
+
+    public function test_someone_without_the_claims_permission_cannot_print_reprint_or_open_a_frozen_pack(): void
+    {
+        $claims = $this->claims(1);
+        $print = $this->issue($claims);
+        $document = PanelClaimPackDocument::query()->sole();
+        $ca = $this->actor('ca');
+        $this->actingAs($ca);
+        $this->selectBranch($ca, $this->branch);
+
+        $this->post(route('panel-claims.pack.issue'), ['claims' => [$claims[0]->public_id], 'idempotency_key' => (string) Str::uuid()])->assertForbidden();
+        $this->post(route('panel-claims.pack.reprint', $document->public_id), ['idempotency_key' => (string) Str::uuid()])->assertForbidden();
+        $this->get(route('panel-claims.pack.copy', $print->public_id))->assertForbidden();
         $this->assertSame(1, PanelClaimPackPrint::query()->count());
     }
 

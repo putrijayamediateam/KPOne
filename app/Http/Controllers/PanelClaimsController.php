@@ -7,6 +7,7 @@ use App\Domain\Visit\Billing\Models\PanelClaim;
 use App\Domain\Visit\Billing\Models\PanelClaimDocument;
 use App\Domain\Visit\Billing\Services\PanelClaimDirectoryService;
 use App\Domain\Visit\Billing\Services\PanelClaimFollowUpService;
+use App\Domain\Visit\Billing\Services\PanelClaimPackIssueService;
 use App\Domain\Visit\Billing\Services\PanelClaimPackService;
 use App\Domain\Visit\Billing\Services\PanelClaimService;
 use App\Models\User;
@@ -181,12 +182,13 @@ class PanelClaimsController extends Controller
             'Cache-Control' => 'private, no-store', 'X-Content-Type-Options' => 'nosniff']);
     }
 
-    public function show(Request $request, PanelClaim $claim, PanelClaimDirectoryService $directory): Response
+    public function show(Request $request, PanelClaim $claim, PanelClaimDirectoryService $directory, PanelClaimPackIssueService $issued): Response
     {
         $actor = $request->user();
         abort_unless($actor instanceof User, 403);
 
-        return Inertia::render('PanelClaims/Show', $directory->show($actor, $claim));
+        // PNL-25: the frozen packs that include this claim (null for someone without the claims permission here).
+        return Inertia::render('PanelClaims/Show', $directory->show($actor, $claim) + ['issuedPacks' => $issued->forClaim($actor, $claim)]);
     }
 
     public function adjustAmount(Request $request, PanelClaim $claim, PanelClaimService $claims): RedirectResponse
