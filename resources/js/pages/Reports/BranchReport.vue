@@ -366,6 +366,12 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
                 selected period. Approved count variances, expiry and other
                 stock write-offs and reversals are also included in Adjusted.
             </p>
+            <p
+                v-if="endpoint === '/reports/panel-summary'"
+                class="text-sm text-muted-foreground"
+            >
+                Cancelled supplementary claims are not counted.
+            </p>
             <nav
                 class="flex flex-wrap items-center justify-between gap-3"
                 aria-label="Report pages"

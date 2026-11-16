@@ -395,6 +395,13 @@ class PanelStatementService
             // claims that still wait for payment.
             $byInvoice = $invoices[$i] === '' ? collect() : $claims->filter(fn (PanelClaim $c): bool => strtolower($c->invoice_number) === $invoices[$i]);
             $byClaim = $claimNumbers[$i] === '' ? collect() : $claims->filter(fn (PanelClaim $c): bool => (string) $c->id === $claimNumbers[$i]);
+            // PCA-2: an invoice with an original and a supplementary claim is told apart by the claim number, then by amount.
+            if ($byInvoice->count() > 1) {
+                $byNumber = $byInvoice->filter(fn (PanelClaim $c): bool => $byClaim->contains('id', $c->id));
+                $statementSen = $this->amount($cell($row, $columns['amount']));
+                $byAmount = $statementSen === null ? collect() : $byInvoice->filter(fn (PanelClaim $c): bool => $outstanding($c) === $statementSen);
+                $byInvoice = $byNumber->count() === 1 ? $byNumber : ($byAmount->count() === 1 ? $byAmount : $byInvoice);
+            }
             $found = match (true) {
                 $byInvoice->isNotEmpty() => $byInvoice->count() === 1 && $byClaim->isNotEmpty() && $byClaim->first()->id !== $byInvoice->first()->id
                     ? $byInvoice->concat($byClaim) : $byInvoice,
