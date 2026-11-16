@@ -30,7 +30,8 @@ final class PayrollRunService
 
     public const CHANGED_SINCE_SENT = 'Something in this run changed after it was sent. Send it back to draft and prepare it again.';
 
-    public function __construct(private RecordSupport $support, private PayrollRunCalculator $calculator, private PayslipService $payslips) {}
+    public function __construct(private RecordSupport $support, private PayrollRunCalculator $calculator, private PayslipService $payslips,
+        private LateAfterLock $late) {}
 
     /** @param array<string, mixed> $input */
     public function saveLineTypes(User $actor, array $input): void
@@ -234,6 +235,54 @@ final class PayrollRunService
             DB::table('hr_payroll_manual_lines')->where('id', $line->id)->delete();
             $this->store($actor, $run, $this->mtd($run));
             $this->support->audit->record('hr.payroll.run_manual_removed', null, ['run_id' => (int) $run->id, 'manual_line_id' => (int) $line->id],
+                $actor, null, $actor->organisation_id);
+        });
+    }
+
+    /**
+     * G2a (owner, 16 Nov 2026): HR adds one overtime request that was approved after the regular run was locked to a
+     * draft adjustment of that run. Nothing is added without this press; the line is worked out at run time.
+     *
+     * @param  array<string, mixed>  $input
+     */
+    public function addLate(User $actor, string $runId, string $overtimeId, array $input): void
+    {
+        $this->onDraft($actor, $runId, $input, 'payroll_run_late_add', [$overtimeId], function (User $actor, \stdClass $run) use ($overtimeId): void {
+            if ($run->kind !== 'adjustment') {
+                throw ValidationException::withMessages(['payroll' => 'Overtime approved after the lock goes on an adjustment run.']);
+            }
+            $regular = DB::table('hr_payroll_runs')->where('id', $run->adjusts_run_id)->lockForUpdate()->first();
+            // Suresh m1: lock the overtime row too (after the runs; decide and reverse lock it and only read runs).
+            DB::table('hr_overtime_requests')->where('organisation_id', $actor->organisation_id)->where('public_id', $overtimeId)->lockForUpdate()->first(['id']);
+            $item = $regular instanceof \stdClass ? collect($this->late->forRegularRun($actor->organisation_id, $regular))->firstWhere('id', $overtimeId) : null;
+            if (! is_array($item)) {
+                throw ValidationException::withMessages(['payroll' => 'This overtime is not waiting to be added. Reload the page.']);
+            }
+            if ($item['inRunId'] !== null) {
+                throw ValidationException::withMessages(['payroll' => 'This overtime is already on an adjustment run.']);
+            }
+            $person = Worker::query()->find($item['workerId']);
+            if ($person instanceof Worker && PayrollSetupService::isManager($person)) {
+                throw ValidationException::withMessages(['payroll' => 'Pay kept outside KPOne in this version.']);
+            }
+            $id = DB::table('hr_payroll_late_items')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $actor->organisation_id,
+                'run_id' => $run->id, 'worker_id' => $item['workerId'], 'overtime_request_id' => $item['overtimeId'], 'added_by_user_id' => $actor->id,
+                'created_at' => now()->utc()]);
+            $this->store($actor, $run, $this->mtd($run));
+            $this->support->audit->record('hr.payroll.run_late_added', null, ['run_id' => (int) $run->id, 'late_item_id' => $id,
+                'overtime_request_id' => $item['overtimeId']], $actor, null, $actor->organisation_id);
+        });
+    }
+
+    /** @param array<string, mixed> $input */
+    public function removeLate(User $actor, string $runId, string $itemId, array $input): void
+    {
+        $this->onDraft($actor, $runId, $input, 'payroll_run_late_remove', [$itemId], function (User $actor, \stdClass $run) use ($itemId): void {
+            $item = Str::isUuid($itemId) ? DB::table('hr_payroll_late_items')->where('run_id', $run->id)->where('public_id', $itemId)->first(['id']) : null;
+            abort_if(! $item instanceof \stdClass, 404);
+            DB::table('hr_payroll_late_items')->where('id', $item->id)->delete();
+            $this->store($actor, $run, $this->mtd($run));
+            $this->support->audit->record('hr.payroll.run_late_removed', null, ['run_id' => (int) $run->id, 'late_item_id' => (int) $item->id],
                 $actor, null, $actor->organisation_id);
         });
     }

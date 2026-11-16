@@ -114,6 +114,19 @@ class PayrollController extends Controller
         });
     }
 
+    public function addLate(Request $request, PayrollRunService $runs, string $run, string $overtime): RedirectResponse
+    {
+        return $this->runOn($request, $run, 'Overtime added to this adjustment.', fn () => $runs->addLate($request->user(), $run, $overtime,
+            $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function removeLate(Request $request, PayrollRunService $runs, string $run, string $lateItem): RedirectResponse
+    {
+        // {lateItem}, not {item}: {item} is bound globally to a Dispensary item.
+        return $this->runOn($request, $run, 'Overtime taken off this adjustment.', fn () => $runs->removeLate($request->user(), $run, $lateItem,
+            $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
     public function removeManual(Request $request, PayrollRunService $runs, string $run, string $line): RedirectResponse
     {
         return $this->runOn($request, $run, 'Line removed.', fn () => $runs->removeManual($request->user(), $run, $line,
