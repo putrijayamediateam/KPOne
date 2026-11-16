@@ -551,7 +551,7 @@ const occupancyMax = computed(() =>
                 <p class="text-muted-foreground">
                     {{
                         section === 'sales'
-                            ? 'Invoice finalisation date, current adjusted payable; matches the daily trend. Empty dates are zero.'
+                            ? 'Invoice finalisation date, current adjusted payable; refund credits and Panel claim adjustments on the day they were approved or confirmed. Matches the daily trend. Empty dates are zero.'
                             : 'Receipt date, not invoice date. Original receipts less reversed receipts = currently posted receipts. Later reversals restate the original receipt date; not refund-date cash flow. Panel claim remittances excluded.'
                     }}
                 </p>
