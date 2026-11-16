@@ -4,7 +4,6 @@ namespace Tests\Feature;
 
 use App\Domain\DepartmentSpace\UiVersionResolver;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Inertia\Testing\AssertableInertia as Assert;
@@ -16,34 +15,20 @@ use Tests\Feature\Visit\VisitTestCase;
  */
 class V2PublicPagesSwitchTest extends VisitTestCase
 {
-    private string $probeFile;
-
     protected function setUp(): void
     {
         parent::setUp();
 
-        $this->probeFile = resource_path('js/pages/PublicProbe/V2/Page.vue');
+        // No file is ever written under resources/js/pages (a parallel V2PageDispatchTest scans that folder): the
+        // "has a V2 file" case uses the real PublicCheckIn/V2/Status page, the "no V2 file" case a listed page that has none.
         config([
-            'v2-pages.public_pages' => ['PublicProbe/Page', 'PublicProbe/Missing'],
+            'v2-pages.public_pages' => ['PublicCheckIn/Status', 'PublicProbe/Missing'],
             'v2-pages.pages' => [],
         ]);
         Route::middleware(['web'])->group(function (): void {
-            Route::get('/_v2-public/page', fn () => Inertia::render('PublicProbe/Page', ['x' => 1]));
+            Route::get('/_v2-public/page', fn () => Inertia::render('PublicCheckIn/Status', ['x' => 1]));
             Route::get('/_v2-public/missing', fn () => Inertia::render('PublicProbe/Missing', ['x' => 1]));
         });
-    }
-
-    protected function tearDown(): void
-    {
-        File::deleteDirectory(resource_path('js/pages/PublicProbe'));
-
-        parent::tearDown();
-    }
-
-    private function createV2File(): void
-    {
-        File::ensureDirectoryExists(dirname($this->probeFile));
-        File::put($this->probeFile, "<template><div /></template>\n");
     }
 
     private function switchOn($user): void
@@ -61,39 +46,35 @@ class V2PublicPagesSwitchTest extends VisitTestCase
 
     public function test_with_the_switch_off_a_patient_gets_classic_even_when_the_v2_file_exists(): void
     {
-        $this->createV2File();
         config(['v2-pages.public' => false]);
 
-        $this->get('/_v2-public/page')->assertInertia(fn (Assert $p) => $p->component('PublicProbe/Page', false)->where('x', 1));
+        $this->get('/_v2-public/page')->assertInertia(fn (Assert $p) => $p->component('PublicCheckIn/Status', false)->where('x', 1));
     }
 
     public function test_with_the_switch_off_a_signed_in_v2_person_also_gets_classic(): void
     {
-        $this->createV2File();
         $user = $this->actor('ca');
         $this->selectBranch($user);
         $this->switchOn($user);
         config(['v2-pages.public' => false]);
 
-        $this->get('/_v2-public/page')->assertInertia(fn (Assert $p) => $p->component('PublicProbe/Page', false));
+        $this->get('/_v2-public/page')->assertInertia(fn (Assert $p) => $p->component('PublicCheckIn/Status', false));
     }
 
     public function test_only_a_literal_true_turns_it_on(): void
     {
-        $this->createV2File();
 
         foreach (['true', 1, 'yes', null] as $value) {
             config(['v2-pages.public' => $value]);
-            $this->get('/_v2-public/page')->assertInertia(fn (Assert $p) => $p->component('PublicProbe/Page', false));
+            $this->get('/_v2-public/page')->assertInertia(fn (Assert $p) => $p->component('PublicCheckIn/Status', false));
         }
     }
 
     public function test_with_the_switch_on_a_patient_gets_the_v2_page_with_the_same_props(): void
     {
-        $this->createV2File();
         config(['v2-pages.public' => true]);
 
-        $this->get('/_v2-public/page')->assertInertia(fn (Assert $p) => $p->component('PublicProbe/V2/Page', false)->where('x', 1));
+        $this->get('/_v2-public/page')->assertInertia(fn (Assert $p) => $p->component('PublicCheckIn/V2/Status', false)->where('x', 1));
     }
 
     public function test_with_the_switch_on_a_page_without_a_v2_file_stays_classic(): void
