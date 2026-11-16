@@ -25,6 +25,7 @@ return [
         'Dispensary/Show',
         'Dispensary/Completed',
         'Dispensary/ReturnsToCheck',
+        'Dispensary/Labels',
         'Medicine/Index',
         'PaymentMethods/Index',
         'Pricing/Index',
