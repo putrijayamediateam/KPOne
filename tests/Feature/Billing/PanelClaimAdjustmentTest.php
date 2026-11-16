@@ -351,6 +351,13 @@ class PanelClaimAdjustmentTest extends BillingTestCase
             ->where('claim.canSubmit', false)->where('claim.canEditAmount', false)
             ->where('claim.amountDueSen', 0)
             ->where('claim.adjustmentClaim.cancelledNote', 'Cancelled because the Panel adjustment that created it was reversed. Kept on record; counted in no total.'));
+        // The claim pack prints the cancelled claim as Cancelled with its own amount and no invoice figures, and leaves
+        // it out of the cover total.
+        $this->get(route('panel-claims.pack', ['claims' => [$claim->public_id, $supplementary->public_id]]))->assertOk()->assertInertia(fn (Assert $page) => $page
+            ->where('pack.totalClaimSen', 3000)->where('pack.claimCount', 2)
+            ->where('pack.claims.1.status', 'Cancelled')->where('pack.claims.1.claimAmountSen', 2000)
+            ->where('pack.claims.1.supplementary.parentNumber', PanelAdjustmentView::number($claim->id))->has('pack.claims.1.lines', 0)
+            ->where('pack.claims.1.panelAdjustmentSen', 0));
     }
 
     public function test_a_rejected_supplementary_claim_commits_nothing_so_a_minus_can_cover_it(): void
