@@ -13,6 +13,9 @@ const files = {
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
+// The request logic moved into composables shared with Version 2; the source is the file plus its composable.
+source.records += read('resources/js/composables/hr/useRecordsPage.ts');
+source.card += read('resources/js/composables/hr/useOutsideExport.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('the export card and the records page compile', () => {
