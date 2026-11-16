@@ -29,7 +29,7 @@ class PatientBillingReportService
 
     private const INVOICE_COLUMNS = ['invoices.id', 'invoices.organisation_id', 'invoices.branch_id', 'invoices.total_sen', 'invoices.subtotal_sen', 'invoices.invoice_number', 'invoices.finalized_at'];
 
-    public const BASIS = 'Branch-local invoice finalisation date; finalised non-void invoices only. Net invoice uses current adjustments. Settlement includes all currently linked receipts regardless of receipt date, less reversals. Panel means approved responsibility, not remittances, and includes confirmed Panel claim adjustments; Panel adjustment shows that part on its own (PCA-3). Due now excludes approved pay-later outstanding. Current patient names and current records at generation; not an issued snapshot. Method columns are net allocated receipts for this invoice cohort, not receipt-date collections.';
+    public const BASIS = 'Branch-local invoice finalisation date; finalised non-void invoices only. Net invoice uses current adjustments. Settlement includes all currently linked receipts regardless of receipt date, less reversals. Panel means approved responsibility, not remittances, and includes confirmed Panel claim adjustments; Panel adjustment shows that part on its own. Due now excludes approved pay-later outstanding. Current patient names and current records at generation; not an issued snapshot. Method columns are net allocated receipts for this invoice cohort, not receipt-date collections.';
 
     public function __construct(private BranchAccessService $branches, private TransactionalActorAuthority $authority, private FinancialLedger $ledger, private AuditRecorder $audit) {}
 
@@ -173,13 +173,13 @@ class PatientBillingReportService
     private function csv(Branch $branch, array $filters, array $result): array
     {
         $metadata = [['Report', 'Billing Detail'], ['Branch', $branch->name], ['Branch timezone', $branch->timezone], ['Period from', $filters['from']], ['Period to', $filters['to']], ['Local time from', $filters['time_from']], ['Local time to', $filters['time_to']], ['Doctor IDs', implode('; ', $filters['doctors']) ?: 'all'], ['Payment method IDs', implode('; ', $filters['methods']) ?: 'all'], ['Visit types', implode('; ', $filters['visit_types']) ?: 'all'], ['Generated at UTC', $result['generatedAt']], ['Currency', 'MYR'], ['Basis', self::BASIS], ['Rows', (string) $result['count']]];
-        foreach (['netSen' => 'net invoice', 'receivedSen' => 'net patient receipts', 'panelSen' => 'approved Panel responsibility', 'panelAdjustmentSen' => 'Panel adjustment', 'deferredSen' => 'approved pay-later outstanding', 'dueSen' => 'due now'] as $key => $label) {
+        foreach (['netSen' => 'net invoice', 'receivedSen' => 'net patient receipts', 'panelSen' => 'approved Panel responsibility', 'panelAdjustmentSen' => 'Panel adjustment, included in approved Panel responsibility', 'deferredSen' => 'approved pay-later outstanding', 'dueSen' => 'due now'] as $key => $label) {
             $metadata[] = ['Total '.$label.' (MYR)', ReportCsv::money($result['totals'][$key])];
         }
         foreach ($result['methods'] as $method) {
             $metadata[] = ['Total net receipts '.$method['code'].' · '.$method['name'].' (MYR)', ReportCsv::money($method['amountSen'])];
         }
-        $headings = ['Row', 'Local invoice finalisation date/time', 'KPOne patient number', 'Patient name (current)', 'Visit number', 'Invoice number', 'Net invoice (MYR)', 'Net patient receipts (MYR)', 'Approved Panel responsibility (MYR)', 'Panel adjustment (MYR)', 'Approved pay-later outstanding (MYR)', 'Due now (MYR)'];
+        $headings = ['Row', 'Local invoice finalisation date/time', 'KPOne patient number', 'Patient name (current)', 'Visit number', 'Invoice number', 'Net invoice (MYR)', 'Net patient receipts (MYR)', 'Approved Panel responsibility (MYR)', 'Panel adjustment, included in Approved Panel responsibility (MYR)', 'Approved pay-later outstanding (MYR)', 'Due now (MYR)'];
         foreach ($result['methods'] as $method) {
             $headings[] = 'Net receipt '.$method['code'].' · '.$method['name'].' (MYR)';
         }

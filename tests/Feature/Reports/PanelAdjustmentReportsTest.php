@@ -99,8 +99,8 @@ class PanelAdjustmentReportsTest extends BillingTestCase
             ->assertJsonPath('result.rows.0.panelSen', 6000)->assertJsonPath('result.rows.0.panelAdjustmentSen', 3000)
             ->assertJsonPath('result.totals.panelAdjustmentSen', 3000)->assertJsonPath('result.rows.0.dueSen', 0);
         $csv = $this->postJson(route('patient-billing-report.download'), $filters)->assertOk()->streamedContent();
-        $this->assertStringContainsString('"Panel adjustment (MYR)"', $csv);
-        $this->assertStringContainsString('"Total Panel adjustment (MYR)",30.00', $csv);
+        $this->assertStringContainsString('"Panel adjustment, included in Approved Panel responsibility (MYR)"', $csv);
+        $this->assertStringContainsString('"Total Panel adjustment, included in approved Panel responsibility (MYR)",30.00', $csv);
 
         // Panel invoices: the invoice total and Panel amount are the current figures; the adjustment has its own column.
         $this->selectBranch($officer);
@@ -108,7 +108,7 @@ class PanelAdjustmentReportsTest extends BillingTestCase
         $this->get(route('panel-invoices.index', $params))->assertOk()->assertInertia(fn (Assert $page) => $page
             ->where('rows.0.invoiceTotalSen', 7000)->where('rows.0.panelAmountSen', 6000)->where('rows.0.panelAdjustmentSen', 3000));
         $csv = $this->get(route('panel-invoices.download', $params))->assertOk()->streamedContent();
-        $this->assertStringContainsString('"Panel amount (RM)","Panel adjustment (RM)","Claim number"', $csv);
+        $this->assertStringContainsString('"Panel amount (RM)","Panel adjustment, included in Panel amount (RM)","Claim number"', $csv);
         $this->assertStringContainsString(',70.00,60.00,30.00,', $csv);
 
         // A minus adjustment prints as a plain number, not a neutralised text cell.

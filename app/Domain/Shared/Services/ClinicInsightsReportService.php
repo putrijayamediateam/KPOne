@@ -801,9 +801,9 @@ class ClinicInsightsReportService
      * PCA-3: confirmed Panel claim adjustments are added to each Panel's billed and approved figures on the day they
      * were confirmed. A Panel with only an adjustment in the period still gets its row.
      *
-     * @param  list<array{name: string, billedSen: int, approvedSen: int, rejectedSen: int}>  $rows
+     * @param  array<int, array{name: string, billedSen: int, approvedSen: int, rejectedSen: int}>  $rows
      * @param  array<string, int|string>  $adjustments  signed sum by Panel name
-     * @return list<array{name: string, billedSen: int, approvedSen: int, rejectedSen: int}>
+     * @return array<int, array{name: string, billedSen: int, approvedSen: int, rejectedSen: int}>
      */
     private static function withPanelAdjustments(array $rows, array $adjustments): array
     {

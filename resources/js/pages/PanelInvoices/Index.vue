@@ -235,7 +235,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
                                 Panel amount
                             </th>
                             <th class="p-3 text-right font-medium">
-                                Panel adjustment
+                                Panel adjustment (included in Panel amount)
                             </th>
                             <th class="p-3 font-medium">Claim</th>
                         </tr>
@@ -270,7 +270,7 @@ const canDownload = computed(() => props.ready && props.total > 0);
                             <td class="p-3 text-right tabular-nums">
                                 {{
                                     row.panelAdjustmentSen === 0
-                                        ? '—'
+                                        ? myr(0)
                                         : `${row.panelAdjustmentSen > 0 ? '+' : '−'}${myr(Math.abs(row.panelAdjustmentSen))}`
                                 }}
                             </td>

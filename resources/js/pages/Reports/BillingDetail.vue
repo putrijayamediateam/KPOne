@@ -94,12 +94,20 @@ const columns = [
     { key: 'netSen', label: 'Net invoice' },
     { key: 'receivedSen', label: 'Net patient receipts' },
     { key: 'panelSen', label: 'Approved Panel' },
-    { key: 'panelAdjustmentSen', label: 'Panel adjustment' },
+    {
+        key: 'panelAdjustmentSen',
+        label: 'Panel adjustment (included in Approved Panel)',
+    },
     { key: 'deferredSen', label: 'Pay-later outstanding' },
     { key: 'dueSen', label: 'Due now' },
 ] as const;
 const money = (sen: number) =>
     `${sen < 0 ? '-' : ''}${Math.floor(Math.abs(sen) / 100)}.${String(Math.abs(sen) % 100).padStart(2, '0')}`;
+// PCA-3 (Daniel): the Panel adjustment reads as one signed form everywhere: + or a real minus, zero plain.
+const shown = (key: string, sen: number) =>
+    key !== 'panelAdjustmentSen' || sen === 0
+        ? money(sen)
+        : `${sen > 0 ? '+' : '−'}${money(Math.abs(sen))}`;
 const headers = () => ({
     Accept: 'application/json',
     'Content-Type': 'application/json',
@@ -385,7 +393,7 @@ function applyTime() {
                         {{ column.label }} (MYR)
                     </dt>
                     <dd class="mt-1 font-semibold tabular-nums">
-                        {{ money(data.totals[column.key]) }}
+                        {{ shown(column.key, data.totals[column.key]) }}
                     </dd>
                 </div>
             </dl>
@@ -473,7 +481,7 @@ function applyTime() {
                                 :key="column.key"
                                 class="p-3 text-right tabular-nums"
                             >
-                                {{ money(row[column.key]) }}
+                                {{ shown(column.key, row[column.key]) }}
                             </td>
                         </tr>
                         <tr v-if="!data.rows.length">

@@ -92,7 +92,7 @@ final class PanelInvoiceReportService
                 'treatment_filter' => $filters['echo']['treatment'] !== '' && $actor->can('panel.claims.clinical_filters.branch'),
             ], $actor, $branch);
 
-            $table = [['Invoice number', 'Visit number', 'Visit date', 'Visit time', 'Patient name', 'Member reference', 'Panel', 'Doctor', 'Visit type', 'Invoice total (RM)', 'Panel amount (RM)', 'Panel adjustment (RM)', 'Claim number', 'Claim status']];
+            $table = [['Invoice number', 'Visit number', 'Visit date', 'Visit time', 'Patient name', 'Member reference', 'Panel', 'Doctor', 'Visit type', 'Invoice total (RM)', 'Panel amount (RM)', 'Panel adjustment, included in Panel amount (RM)', 'Claim number', 'Claim status']];
             foreach ($rows as $row) {
                 $table[] = [
                     $row['invoiceNumber'], $row['visitNumber'], $row['visitDate'], $row['visitTime'], $row['patientName'],

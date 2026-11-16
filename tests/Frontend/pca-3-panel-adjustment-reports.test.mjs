@@ -26,12 +26,22 @@ test('PCA-3: Insights shows Panel claim adjustments as their own signed row, dat
     );
 });
 
-test('PCA-3: Billing Detail and Panel invoices show the Panel adjustment as its own column', () => {
-    assert.match(
-        read('resources/js/pages/Reports/BillingDetail.vue'),
-        /\{ key: 'panelAdjustmentSen', label: 'Panel adjustment' \}/,
+test('PCA-3: Billing Detail and Panel invoices say the Panel adjustment is already inside the Panel figure', () => {
+    const detail = flat(read('resources/js/pages/Reports/BillingDetail.vue'));
+    assert.ok(
+        detail.includes(
+            "label: 'Panel adjustment (included in Approved Panel)'",
+        ),
     );
+    assert.ok(detail.includes("sen > 0 ? '+' : '−'"));
     const invoices = flat(read('resources/js/pages/PanelInvoices/Index.vue'));
-    assert.ok(invoices.includes('Panel adjustment'));
-    assert.ok(invoices.includes('row.panelAdjustmentSen'));
+    assert.ok(invoices.includes('Panel adjustment (included in Panel amount)'));
+    assert.ok(invoices.includes("row.panelAdjustmentSen > 0 ? '+' : '−'"));
+});
+
+test('PCA-3: the Daily summary signs the adjustment column and explains its date under the tile', () => {
+    const page = flat(read('resources/js/pages/Reports/BranchReport.vue'));
+    assert.ok(page.includes('Counted on the day it was confirmed.'));
+    assert.ok(page.includes('j === adjustmentColumn ? signed(cell) : cell'));
+    assert.ok(page.includes('`−${value.slice(1)}`'));
 });
