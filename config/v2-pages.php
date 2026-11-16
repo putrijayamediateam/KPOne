@@ -86,6 +86,7 @@ return [
         'MedicalCertificateTemplates/Index',
         'AuditLogs/Index',
         'Branches/Index',
+        'AccessControl/Index',
     ],
 
     /*
