@@ -355,6 +355,11 @@ class PanelStatementService
     private function amount(string $text): ?int
     {
         $clean = preg_replace('/^(?:rm|myr)\s*/i', '', str_replace(' ', '', trim($text))) ?? '';
+        // "1.234,50" (dots group thousands in whole groups of three, then a comma and exactly two digits) is the European
+        // form of 1,234.50. Only that full shape is read this way, so "1.000" or "1.5" never turn into other amounts.
+        if (preg_match('/\A([0-9]{1,3}(?:\.[0-9]{3})+),([0-9]{2})\z/', $clean, $eu) === 1) {
+            $clean = str_replace('.', '', $eu[1]).'.'.$eu[2];
+        }
         // "10,00" (a comma before exactly two final digits and no dot) is ringgit and sen; other commas group thousands.
         $clean = preg_match('/\A[0-9]{1,9},[0-9]{2}\z/', $clean) === 1 ? str_replace(',', '.', $clean) : str_replace(',', '', $clean);
         if (preg_match('/\A([0-9]{1,9})(?:\.([0-9]{1,2}))?\z/', $clean, $m) !== 1) {

@@ -76,3 +76,4 @@ A money box states the amount with an RM prefix and shows two decimals after blu
 ## Rails and buttons
 
 Inside a rail, never switch layout by viewport width: use a container query or stack the rows (name line, then chips). A name gets the full width of its line and wraps by word. A button's words say what it does ("Show in list"), not a bare "View". A page's one filled action appears exactly once at every width: in the header or in the sticky bar, never both. If the header carries the action from 640 px, the page passes hideFrom so the bar disappears at the same width.
+- Info-only dialogs use an outline Close; dialogs that record something use the filled action.
