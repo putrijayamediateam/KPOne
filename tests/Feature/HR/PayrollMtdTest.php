@@ -164,6 +164,74 @@ class PayrollMtdTest extends VisitTestCase
         $this->assertSame(43000, $this->mtdLine($worker, $feb)[2]);
     }
 
+    public function test_s3_a_correction_pays_statutory_parts_on_the_difference_and_its_mtd_is_typed(): void
+    {
+        $worker = $this->clinic(['mtd_category' => '1', 'mtd_children' => '0']);
+        $this->travelTo(CarbonImmutable::parse('2026-02-03 09:00', $this->branch->timezone));
+        $schedule = $this->enterSchedule($this->hr);
+        $this->selectBranch($this->director);
+        $this->post(route('hr.payroll.mtd-schedules.decide', [$schedule, 'check']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $jan = $this->prepareRun('2026-01');
+        // January: EPF 11% and 13% of RM 5,000.00.
+        $this->assertSame([['employee', 55000], ['employer', 65000]], $this->statutory($jan));
+        $this->lock($jan);
+
+        // A RM 1,000.00 bonus counted for EPF and MTD: the wage becomes RM 6,000.00, so the parts are 660.00 and 780.00
+        // and the correction pays only what January did not.
+        $setup = app(PayrollSetupService::class);
+        $bonus = $setup->saveItemType($this->hr, ['name' => 'Bonus', 'kind' => 'earnings', 'counts_epf' => true, 'counts_mtd' => true, 'is_active' => true,
+            'idempotency_key' => (string) Str::uuid()]);
+        $fix = $this->prepareRun('2026-01', 'adjustment');
+        $this->step($this->hr, $fix, 'manual', ['worker_id' => $worker->public_id, 'item_type_id' => $bonus, 'amount' => '1,000.00', 'reason_code' => 'bonus'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame([['employee', 11000], ['employer', 13000]], $this->statutory($fix));
+        $this->assertSame('EPF employee · on the RM 1,000.00 difference (wage now RM 6,000.00)', $this->statutoryText($fix)[0]);
+        $this->assertNotContains("A scheme was not charged on this month's locked run: its lines cover the whole month's wage, not only the difference", $this->person($fix)['warnings']);
+        // KPOne does not work out MTD on one-off pay: an error until HR types it, and RM 0.00 is allowed.
+        $this->assertSame(['Type the MTD for this correction (RM 0.00 if none): KPOne does not work out MTD on one-off pay'], $this->person($fix)['errors']);
+        $this->assertTrue($this->person($fix)['needsMtd']);
+        $this->assertNull($this->mtdLine($worker, $fix));
+        $this->step($this->hr, $fix, 'mtd', ['worker_id' => $worker->public_id, 'mtd' => '0.00'])->assertSessionHasNoErrors();
+        $this->assertSame([], $this->person($fix)['errors']);
+        $this->assertSame(['mtd', 'mtd', 0, 'MTD (PCB) · entered for this correction'], $this->mtdLine($worker, $fix));
+        $this->lock($fix);
+
+        // A second correction takes RM 500.00 back for EPF only: the wage was RM 6,000.00 over January's two locked runs,
+        // so the parts become 605.00 and 715.00 and the lines take back 55.00 and 65.00, with a warning. MTD is not touched.
+        $recovery = $setup->saveItemType($this->hr, ['name' => 'Recovery', 'kind' => 'deduction', 'counts_epf' => true, 'is_active' => true,
+            'idempotency_key' => (string) Str::uuid()]);
+        $back = $this->prepareRun('2026-01', 'adjustment');
+        $this->step($this->hr, $back, 'manual', ['worker_id' => $worker->public_id, 'item_type_id' => $recovery, 'amount' => '500.00', 'reason_code' => 'recovery'])
+            ->assertSessionHasNoErrors();
+        $this->assertSame([['employee', -5500], ['employer', -6500]], $this->statutory($back));
+        $this->assertContains('This correction lowers a scheme wage: the contribution lines take money back', $this->person($back)['warnings']);
+        $this->assertSame([], $this->person($back)['errors']);
+        $this->assertNull($this->mtdLine($worker, $back));
+        $this->assertNotContains('No confirmed pay profile: this correction carries no contributions or MTD', $this->person($back)['warnings']);
+        $this->lock($back);
+
+        // Suresh M1: EIS switched on after January's runs. A RM 100.00 arrears line counted for EIS then charges EIS on the
+        // whole wage (0.2% of RM 5,100.00 = 10.20 each, since nothing was charged in January), and the person is told.
+        $k = fn (): string => (string) Str::uuid();
+        $eis = $setup->enterTable($this->hr, ['scheme' => 'eis', 'category' => 'All staff', 'effective_from' => '2026-01-01', 'rounding' => 'nearest_sen',
+            'source_note' => 'Synthetic test figures, not an official table', 'rows' => [['from' => '0', 'to' => '', 'employee_kind' => 'rate', 'employee' => '0.2',
+                'employer_kind' => 'rate', 'employer' => '0.2']], 'idempotency_key' => $k()]);
+        $setup->decideTable($this->director, $eis, 'check', ['expected_lock_version' => 1, 'idempotency_key' => $k()]);
+        $profile = $setup->enterProfile($this->hr, [...$this->pay(), 'eis' => true, 'mtd_category' => '1', 'mtd_children' => '0', 'worker_id' => $worker->public_id,
+            'idempotency_key' => $k()]);
+        $setup->decideProfile($this->director, $profile, 'confirm', ['expected_lock_version' => 1, 'idempotency_key' => $k()]);
+        $arrears = $setup->saveItemType($this->hr, ['name' => 'Arrears', 'kind' => 'earnings', 'counts_eis' => true, 'is_active' => true, 'idempotency_key' => $k()]);
+        $late = $this->prepareRun('2026-01', 'adjustment');
+        $this->step($this->hr, $late, 'manual', ['worker_id' => $worker->public_id, 'item_type_id' => $arrears, 'amount' => '100.00', 'reason_code' => 'correction'])
+            ->assertSessionHasNoErrors();
+        $this->assertContains("A scheme was not charged on this month's locked run: its lines cover the whole month's wage, not only the difference", $this->person($late)['warnings']);
+        $run = DB::table('hr_payroll_runs')->where('public_id', $late)->value('id');
+        $person = DB::table('hr_payroll_run_people')->where('run_id', $run)->value('id');
+        $this->assertSame([1020, 1020], DB::table('hr_payroll_lines')->where('run_person_id', $person)->where('scheme', 'eis')->orderBy('id')->get()
+            ->map(fn (\stdClass $l): int => (int) Crypt::decryptString((string) $l->amount_encrypted))->all());
+        $this->assertSame([], $this->person($late)['errors']);
+    }
+
     public function test_category_2_children_and_the_joiner_warning(): void
     {
         $worker = $this->clinic(['mtd_category' => '2', 'mtd_children' => '2'], '2026-01-05');
@@ -178,6 +246,55 @@ class PayrollMtdTest extends VisitTestCase
         // ((31,258.05 − 20,000.00) × 3% − 650.00) ÷ 12 = 0.0846 → under RM 10.00, so nothing.
         $this->assertSame(['mtd', 'mtd', 0, 'MTD (PCB) · worked out: RM 31,258.05 chargeable for the year, category 2, 11 months left'], $this->mtdLine($worker, $jan));
         $this->assertContains('Joined this year: pay from a previous employer (TP3) is not counted in MTD', $this->person($jan)['warnings']);
+    }
+
+    /** HR month dry run, S2: earlier months of the year with no locked KPOne run are missing from MTD, and the run says so. */
+    public function test_a_run_warns_when_earlier_months_this_year_were_not_paid_through_kpone(): void
+    {
+        $warning = 'Employed earlier this year in months with no locked KPOne run: that pay is not counted, so the worked-out MTD may be too low';
+        $worker = $this->clinic(['mtd_category' => '1', 'mtd_children' => '0'], '2025-06-01');
+        $this->travelTo(CarbonImmutable::parse('2026-02-03 09:00', $this->branch->timezone));
+        $schedule = $this->enterSchedule($this->hr);
+        $this->selectBranch($this->director);
+        $this->post(route('hr.payroll.mtd-schedules.decide', [$schedule, 'check']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+
+        // January is the first month: nothing earlier can be missing.
+        $jan = $this->prepareRun('2026-01');
+        $this->assertNotNull($this->mtdLine($worker, $jan));
+        $this->assertNotContains($warning, $this->person($jan)['warnings']);
+
+        $this->lock($jan);
+
+        // March with January locked but no February run: February's pay is missing, so the worked-out MTD may be too low.
+        $this->travelTo(CarbonImmutable::parse('2026-04-03 09:00', $this->branch->timezone));
+        $mar = $this->prepareRun('2026-03');
+        $this->assertSame('mtd', $this->mtdLine($worker, $mar)[0]);
+        $this->assertContains($warning, $this->person($mar)['warnings']);
+        $this->assertSame([], $this->person($mar)['errors']);
+
+        // A typed MTD replaces the worked-out figure, so the warning goes; clearing it brings the warning back.
+        $this->step($this->hr, $mar, 'mtd', ['worker_id' => $worker->public_id, 'mtd' => '250.00'])->assertSessionHasNoErrors();
+        $this->assertNotContains($warning, $this->person($mar)['warnings']);
+        $this->step($this->hr, $mar, 'mtd', ['worker_id' => $worker->public_id, 'mtd' => ''])->assertSessionHasNoErrors();
+        $this->assertContains($warning, $this->person($mar)['warnings']);
+
+        // February has January locked before it, so nothing is missing.
+        $feb = $this->prepareRun('2026-02');
+        $this->assertNotContains($warning, $this->person($feb)['warnings']);
+    }
+
+    public function test_a_joiner_has_no_earlier_months_to_miss(): void
+    {
+        $warning = 'Employed earlier this year in months with no locked KPOne run: that pay is not counted, so the worked-out MTD may be too low';
+        $worker = $this->clinic(['mtd_category' => '1', 'mtd_children' => '0'], '2026-03-01');
+        $this->travelTo(CarbonImmutable::parse('2026-04-03 09:00', $this->branch->timezone));
+        $schedule = $this->enterSchedule($this->hr);
+        $this->selectBranch($this->director);
+        $this->post(route('hr.payroll.mtd-schedules.decide', [$schedule, 'check']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $mar = $this->prepareRun('2026-03');
+        $this->assertNotNull($this->mtdLine($worker, $mar));
+        $this->assertNotContains($warning, $this->person($mar)['warnings']);
+        $this->assertContains('Joined this year: pay from a previous employer (TP3) is not counted in MTD', $this->person($mar)['warnings']);
     }
 
     public function test_a_profile_without_mtd_details_keeps_mtd_typed_each_run_and_details_never_change(): void
@@ -336,10 +453,10 @@ SQL);
         return $worker;
     }
 
-    private function prepareRun(string $month): string
+    private function prepareRun(string $month, string $kind = 'regular'): string
     {
         $this->selectBranch($this->hr);
-        $this->post(route('hr.payroll.runs.prepare'), ['pay_group_id' => $this->group, 'month' => $month, 'kind' => 'regular', 'idempotency_key' => (string) Str::uuid()])
+        $this->post(route('hr.payroll.runs.prepare'), ['pay_group_id' => $this->group, 'month' => $month, 'kind' => $kind, 'idempotency_key' => (string) Str::uuid()])
             ->assertSessionHasNoErrors();
 
         return (string) DB::table('hr_payroll_runs')->orderByDesc('id')->value('public_id');
@@ -385,6 +502,27 @@ SQL);
 
         return $line === null ? null : [(string) $line->kind, (string) $line->section, (int) Crypt::decryptString((string) $line->amount_encrypted),
             Crypt::decryptString((string) $line->explanation_encrypted)];
+    }
+
+    /** @return list<array{0:string, 1:int}> the EPF employee and employer lines of the run's one person */
+    private function statutory(string $runId): array
+    {
+        return array_map(fn (\stdClass $l): array => [(string) $l->kind, (int) Crypt::decryptString((string) $l->amount_encrypted)], $this->statutoryRows($runId));
+    }
+
+    /** @return list<string> */
+    private function statutoryText(string $runId): array
+    {
+        return array_map(fn (\stdClass $l): string => Crypt::decryptString((string) $l->explanation_encrypted), $this->statutoryRows($runId));
+    }
+
+    /** @return list<\stdClass> */
+    private function statutoryRows(string $runId): array
+    {
+        $run = DB::table('hr_payroll_runs')->where('public_id', $runId)->value('id');
+        $person = DB::table('hr_payroll_run_people')->where('run_id', $run)->value('id');
+
+        return array_values(DB::table('hr_payroll_lines')->where('run_person_id', $person)->where('scheme', 'epf')->whereIn('kind', ['employee', 'employer'])->orderBy('id')->get()->all());
     }
 
     private function assertRefused(string $state, callable $write): void

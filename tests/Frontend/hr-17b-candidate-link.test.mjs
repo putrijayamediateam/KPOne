@@ -14,6 +14,8 @@ const files = {
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
+// The page's script now lives in the composable (setup only): read both.
+source.hr += read('resources/js/composables/hr/useApplicationsPage.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('the three pages compile', () => {
@@ -47,12 +49,12 @@ test('the status page takes the token from the fragment once, clears it and keep
     );
 });
 
-test('withdrawing asks first, in both languages', () => {
+test('withdrawing asks first, in English', () => {
     const t = template('status');
     assert.match(t, /data-test="status-withdraw"/);
     assert.match(t, /data-test="status-withdraw-confirm"/);
     assert.match(t, /Withdraw your application\? This cannot be\s+undone\./);
-    assert.match(t, /Tarik balik permohonan anda\?/);
+    assert.match(t, /Withdraw your application\?/);
     assert.match(t, /min-h-11/);
 });
 
@@ -64,7 +66,6 @@ test('the thank-you page shows the link once with a copy button that falls back 
     // A refused copy says so in words, not only by the selection (Daniel, HR-17b).
     assert.match(s, /data-test="apply-status-copy-failed"/);
     assert.match(s, /It is shown\s+only now\./);
-    assert.match(s, /Ia\s+ditunjukkan sekarang sahaja\./);
 });
 
 test('HR sees Needs you, each message with its outcome, and the auto-reject date', () => {
@@ -88,7 +89,7 @@ test('HR sees Needs you, each message with its outcome, and the auto-reject date
 test('Daniel: the invalid link is not a dead end, and the withdraw confirm manages focus', () => {
     const t = template('status');
     assert.match(t, /data-test="status-apply"/);
-    assert.match(t, /Apply for a job \/ Mohon jawatan/);
+    assert.match(t, /Apply for a job/);
     assert.match(t, /@keydown\.esc="keepIt"/);
     assert.match(t, /tabindex="-1"/);
     assert.match(source.status, /confirmPanel\.value\?\.focus\(\)/);

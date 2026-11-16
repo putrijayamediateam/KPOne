@@ -4,6 +4,7 @@ namespace App\Http\Controllers\HR;
 
 use App\Domain\DepartmentSpace\MeSpace;
 use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Models\OvertimeRequest;
 use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
 use App\Domain\HR\Attendance\Photos\ClockPhotoService;
 use App\Domain\HR\Attendance\Services\AttendancePageService;
@@ -197,8 +198,10 @@ class AttendanceController extends Controller
 
     public function reverseOvertime(Request $request, OvertimeService $overtime, string $overtimeRequest): RedirectResponse
     {
-        return $this->run($request, 'overtime', 'Overtime reversed.', fn () => $overtime->reverse($request->user(), $overtimeRequest,
-            $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
+        // M1: overtime a locked payroll run already paid stays paid there, so the notice says where to recover it.
+        return $this->run($request, 'overtime', fn (OvertimeRequest $reversed): string => ($paid = $overtime->paidIn($reversed)) === null ? 'Overtime reversed.'
+            : "Overtime reversed. It was paid in the locked {$paid}: add a recovery on an adjustment run.",
+            fn () => $overtime->reverse($request->user(), $overtimeRequest, $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
     }
 
     public function saveOvertimeSettings(Request $request, OvertimeSettingsService $settings): RedirectResponse
@@ -208,13 +211,17 @@ class AttendanceController extends Controller
                 'roles' => $request->input('roles', []), 'effective_from' => $request->input('overtime_effective_from')]));
     }
 
-    private function run(Request $request, string $tab, ?string $message, callable $action): RedirectResponse
+    /** @param  string|(\Closure(mixed): string)|null  $message  a closure is given the action's result */
+    private function run(Request $request, string $tab, string|\Closure|null $message, callable $action): RedirectResponse
     {
         $back = $this->back($request, $tab);
         try {
-            $action();
+            $result = $action();
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
+        }
+        if ($message instanceof \Closure) {
+            $message = $message($result);
         }
         if ($message !== null) {
             Inertia::flash('toast', ['type' => 'success', 'message' => $message]);

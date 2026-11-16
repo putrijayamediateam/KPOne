@@ -38,6 +38,7 @@ final class OvertimeService
         private OvertimeSettingsService $settings,
         private AttendanceDays $days,
         private OvertimeDayTypes $dayTypes,
+        private OvertimePaidIn $paidIn,
     ) {}
 
     /**
@@ -256,14 +257,22 @@ final class OvertimeService
             if ($request->status !== 'approved') {
                 throw ValidationException::withMessages(['overtime' => 'Only approved overtime can be reversed. Reload the page.']);
             }
+            // M1: still allowed, but the audit names the locked run that paid it, and the page says so.
+            $paid = $this->paidIn->runs($actor->organisation_id, [(int) $request->id])[(int) $request->id] ?? null;
             $request->forceFill(['status' => 'reversed', 'reversed_by_user_id' => $actor->id, 'reversed_at' => now()->utc(), 'reverse_reason' => $reason,
                 'lock_version' => $request->lock_version + 1])->save();
             $this->support->remember($actor, $key, 'overtime_reverse', $hash, $request->public_id);
             $this->support->audit->record('hr.overtime.reversed', $request, ['subject_user_id' => $request->user_id, 'minutes_approved' => $request->minutes_approved,
-                'reason_code' => $reason], $actor, Branch::query()->find($request->branch_id));
+                'reason_code' => $reason, 'paid_in_run' => $paid['runId'] ?? null], $actor, Branch::query()->find($request->branch_id));
 
             return $request;
         });
+    }
+
+    /** M1: the locked payroll run that paid this request, as a label such as "October 2026 payroll run", or null. */
+    public function paidIn(OvertimeRequest $request): ?string
+    {
+        return $this->paidIn->runs((int) $request->organisation_id, [(int) $request->id])[(int) $request->id]['label'] ?? null;
     }
 
     private function minutes(mixed $value, int $max, string $field): int
