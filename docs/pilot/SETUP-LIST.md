@@ -34,3 +34,8 @@ nothing here authorises anything.
 ## HR
 
 - **KPOne HR pilot setup: see [docs/pilot/hr/SETUP.md](hr/SETUP.md).** Location check OFF at the pilot branch (photo only) and clock-in photos kept 7 years as a DRAFT, both until the privacy review (owner decisions, 2026-11-15); leave and overtime from "Use KPOne defaults" (labelled, not professional advice); statutory tables from the official schedules with a second-person check.
+
+## Billing
+
+- Director sets the Panel approval limit to RM 300.00 and the adjustment threshold to RM 20.00 in Billing Approval
+  Limits for the pilot branch (owner decision, 15 Nov).

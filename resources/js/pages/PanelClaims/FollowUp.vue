@@ -8,6 +8,7 @@ import { myr } from '@/types/billing';
 type FollowUpClaim = {
     publicId: string;
     claimNo: string;
+    supplementaryTo?: string | null;
     patientName: string;
     invoiceNumber: string;
     panelName: string;
@@ -108,7 +109,11 @@ const go = (panel: string, page = 1) =>
                         :href="claim.showUrl"
                         class="font-medium underline-offset-2 hover:underline"
                     >
-                        Claim {{ claim.claimNo }}
+                        Claim {{ claim.claimNo
+                        }}<template v-if="claim.supplementaryTo">
+                            · Supplementary to
+                            {{ claim.supplementaryTo }}</template
+                        >
                     </Link>
                     <span class="font-mono text-xs text-muted-foreground">
                         · {{ claim.invoiceNumber }}</span
