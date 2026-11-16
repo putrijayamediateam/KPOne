@@ -36,3 +36,24 @@ export const requestShowValue = async (
 
     return { ok: response.ok, data };
 };
+
+/**
+ * Version 2's `reveal` for `V2MaskedValue`: the same audited request, resolved to the value, or rejected (so nothing is
+ * shown) when the server refuses, for example when the audit row cannot be written.
+ */
+export const revealValue = async (
+    url: string,
+    field: string,
+    extra: Record<string, string> = {},
+): Promise<string> => {
+    const { ok, data } = await requestShowValue(url, field, extra);
+
+    if (!ok || typeof data.value !== 'string') {
+        throw new Error(
+            Object.values(data.errors ?? {})[0] ??
+                'This could not be shown. Try again.',
+        );
+    }
+
+    return data.value;
+};
