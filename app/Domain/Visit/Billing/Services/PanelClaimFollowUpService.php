@@ -28,6 +28,10 @@ final class PanelClaimFollowUpService
         'submitted' => 'Submitted to Panel',
         'queried' => 'Panel query',
         'amount_adjusted' => 'Claim amount changed',
+        // PCA-2: Panel claim adjustments.
+        'panel_adjusted' => 'Panel amount changed',
+        'supplementary_created' => 'Supplementary claim created',
+        'cancelled' => 'Cancelled',
         'decision_accepted' => 'Panel accepted claim',
         'decision_partially_accepted' => 'Panel partially accepted claim',
         'decision_rejected' => 'Panel rejected claim',
@@ -44,6 +48,7 @@ final class PanelClaimFollowUpService
         'accepted' => 'Accepted, unpaid',
         'partially_accepted' => 'Partially accepted, unpaid',
         'partially_paid' => 'Partially paid',
+        'cancelled' => 'Cancelled', // PCA-2: never open, so never listed; kept so the word is never lost.
     ];
 
     public function __construct(
@@ -102,7 +107,7 @@ final class PanelClaimFollowUpService
             }
 
             $rows = (clone $base)
-                ->select(['c.id', 'c.public_id', 'c.status', 'c.patient_name_snapshot', 'c.invoice_number', 'c.claim_amount_sen',
+                ->select(['c.id', 'c.public_id', 'c.status', 'c.patient_name_snapshot', 'c.invoice_number', 'c.claim_amount_sen', 'c.parent_claim_id',
                     'c.accepted_amount_sen', 'pn.name as panel_name', 'pn.claim_follow_up_days', 'l.acted_at', 'l.kind', 'l.user_id'])
                 ->selectRaw("{$received} as received_sen")
                 ->orderBy('l.acted_at')->orderBy('c.id')
@@ -126,6 +131,8 @@ final class PanelClaimFollowUpService
                         return [
                             'publicId' => (string) $row->public_id,
                             'claimNo' => (string) $row->id,
+                            // PCA-2 (Daniel's board): "PCL-00000131 · Supplementary to PCL-00000123".
+                            'supplementaryTo' => $row->parent_claim_id === null ? null : PanelAdjustmentView::number((int) $row->parent_claim_id),
                             'patientName' => (string) $row->patient_name_snapshot,
                             'invoiceNumber' => (string) $row->invoice_number,
                             'panelName' => (string) $row->panel_name,

@@ -169,6 +169,7 @@ export type BillingPage = {
     };
     panel: Responsibility | null;
     panelShortfall: PanelShortfall | null;
+    panelAdjustment?: PanelAdjustment | null;
     deferment: Responsibility | null;
     payments: Receipt[];
     /** BIL-6: reversed receipts of this visit and their refunds, for refund recorders and approvers. */
@@ -243,4 +244,95 @@ export type IssuedCopy = {
     /** PCA-1: false for a Panel patient's invoice copy (view only). */
     reprintable?: boolean;
     viewUrl?: string | null;
+};
+
+/** PCA-2: the Panel share as original + confirmed Panel claim adjustments, with the waiting request and history. */
+export type PanelAdjustmentClaimRow = {
+    number: string;
+    url: string | null;
+    statusKey: string;
+    amountSen: number;
+    acceptedSen: number | null;
+    decided: boolean;
+    reason: string | null;
+};
+
+export type PanelAdjustment = {
+    invoiceNumber: string | null;
+    invoicePayableSen: number;
+    reasonsApplied: string[];
+    claim:
+        null | (PanelAdjustmentClaimRow & { changedAfterSubmission: boolean });
+    supplementaryClaims: PanelAdjustmentClaimRow[];
+    originalShareSen: number;
+    adjustmentSen: number;
+    shareSen: number;
+    claimedSen: number;
+    claimUrl: string | null;
+    invoiceLockVersion: number;
+    canRequest: boolean;
+    requestUrl: string;
+    from: 'billing' | 'claim';
+    reasons: { value: string; label: string }[];
+    waiting: null | {
+        publicId: string;
+        direction: 'add' | 'deduct';
+        amountSen: number;
+        reason: string;
+        note: string | null;
+        requestedBy: string;
+        requestedAt: string | null;
+        newShareSen: number;
+        requestedByYou: boolean;
+        lockVersion: number;
+        canConfirm: boolean;
+        canWithdraw: boolean;
+        confirmUrl: string;
+        withdrawUrl: string;
+    };
+    confirmed: {
+        direction: 'add' | 'deduct';
+        amountSen: number;
+        reason: string;
+        confirmedAt: string | null;
+        requestedBy: string;
+        confirmedBy: string;
+        confirmedByRole: string | null;
+        samePerson: boolean;
+    }[];
+};
+
+/** PCA-2: a claim's kind, its links and its recorded pack versions. */
+export type PanelAdjustmentClaim = {
+    kind: 'original' | 'supplementary';
+    number: string;
+    amountSen: number;
+    cancelled: boolean;
+    decided: boolean;
+    cancelledNote: string | null;
+    reason: string | null;
+    parent: null | {
+        claimNo: string;
+        number: string;
+        url: string;
+        amountSen: number;
+        acceptedSen: number | null;
+        statusKey: string;
+    };
+    supplementary: {
+        claimNo: string;
+        number: string;
+        url: string;
+        amountSen: number;
+        statusKey: string;
+        reason: string | null;
+    }[];
+    versions: {
+        version: number;
+        invoiceTotalSen: number;
+        panelAdjustmentSen: number;
+        panelShareSen: number;
+        claimAmountSen: number;
+        recordedAt: string;
+    }[];
 };
