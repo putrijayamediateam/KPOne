@@ -69,7 +69,7 @@ const visit = (page: number, overdueOnly = props.collections.overdueOnly) =>
 
 <template>
     <Head title="Bills to collect" />
-    <main class="mx-auto w-full max-w-[1600px] space-y-4 px-4 py-6">
+    <main class="mx-auto w-full max-w-7xl space-y-4 px-4 py-6 md:px-6">
         <PageHeader
             title="Bills to collect"
             :description="`${collections.branch} · Money patients still owe: approved pay later and money due on completed visits, oldest first`"

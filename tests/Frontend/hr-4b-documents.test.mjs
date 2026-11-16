@@ -19,6 +19,7 @@ const source = Object.fromEntries(
 // The request logic moved into composables shared with Version 2; the source is the file plus its composable.
 source.records += read('resources/js/composables/hr/useRecordsPage.ts');
 source.checklist += read('resources/js/composables/hr/useChecklistTab.ts');
+source.file += read('resources/js/composables/hr/useStaffFilePage.ts');
 const template = (key) => parse(source[key]).descriptor.template.content;
 
 test('the new components and the changed pages compile', () => {

@@ -44,6 +44,7 @@ return [
         'HR/Applications',
         'HR/Dashboard',
         'HR/Records',
+        'HR/StaffFile',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
