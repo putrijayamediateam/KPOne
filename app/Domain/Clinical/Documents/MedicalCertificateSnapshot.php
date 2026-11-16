@@ -32,7 +32,9 @@ final class MedicalCertificateSnapshot
         $template = DB::table('mc_template_revisions')->where('language', $input['language'])->orderByDesc('revision')->firstOrFail();
         $head = $this->letterheads->assemble($branch, function (string $publicId) use ($branch): string {
             $asset = BusinessDetailAsset::query()->where('organisation_id', $branch->organisation_id)->where('public_id', $publicId)->whereNull('retired_at')->lockForUpdate()->sole();
-            $bytes = Storage::disk('local')->get($asset->path);
+            $disk = Storage::disk('local');
+            // The disk throws on a missing file, so check first: a missing logo is the same refusal as a changed one.
+            $bytes = $disk->exists($asset->path) ? $disk->get($asset->path) : null;
             if ($bytes === null || ! hash_equals($asset->sha256, hash('sha256', $bytes))) {
                 throw ValidationException::withMessages(['certificate' => 'The letterhead logo is unavailable. Restore it before issuing.']);
             }

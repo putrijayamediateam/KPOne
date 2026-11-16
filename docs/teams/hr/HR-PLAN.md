@@ -2098,7 +2098,7 @@ follow the RPT-01 safety rules.
 ### 14.6 Screens (Hui Min; Daniel's early look folded in)
 
 - One page, `/hr/payroll`, with tabs Runs, Pay profiles, Tables and Settings for preparers, and Exports for exporters. Payslips sit on My HR details for everyone.
-- **The accountant line** under the header on every payroll page: the shared muted component from HR-4, with these words.
+- **The check line** under the header on every payroll page: the shared muted component from HR-4. Its words (2026-11-15, owner's draft defaults, no accountant): "Set by KPOne defaults at the owner's instruction; check against current law (official KWSP/PERKESO/HRD Corp/LHDN schedules) before real use. Synthetic data only."
 - **Runs:**
   - one card per run, with its status chip: Draft neutral; Waiting for approval neutral; Approved success; Locked success with the date; Returned neutral with the reason.
   - The run page is a table from 1024 px (person, earnings, deductions, refunds, employee contributions, net, warnings), with a total row, and cards below.
@@ -3297,3 +3297,49 @@ ring opens the same camera flow).
 - **Known limit:** the server cannot prove a photo is live. The token proves only that the camera was opened in the last
   five minutes; a hand-built request could send a saved or changed picture. The safeguard is the reviewer seeing the
   photo. Nothing here claims more than that.
+
+## 24. HR-PHOTO-STORAGE: clock-in photo storage report and retention dry run (design note, 2026-11-15; build approved by B.E.R.N.I.S.S for the owner, the three questions in 24.3 wait for the owner)
+
+### 24.1 Where things stand today (already on `main`)
+
+- Every button clock-in and clock-out keeps one photo, re-encoded (no EXIF or GPS) and stored encrypted on the private disk. Each photo is at most 1280 px with a 240 px thumbnail; each copy is at most 2 MB (HR-PHOTO, section 23).
+- **The delete already exists and runs every day.** `hr-attendance:purge` deletes a clock session once it is more than **7 years and 1 day** old, together with its photos, events, corrections and overtime requests. The encrypted photo files are deleted after the commit. `hr-clock-photos:purge` (daily, 01:30) removes any photo file that no record points at.
+  - A session waits while a newer correction, overtime ask or photo hangs on it.
+  - PostgreSQL refuses any photo delete the purge did not mark, or one that is not yet past the 7 years.
+- **The 7 years is still a DRAFT** (owner, 2026-11-11 and 2026-11-12: "to confirm", originally "the accountant confirms before real use"). There is no accountant: the wording elsewhere is "check against current law".
+- Nothing can be deleted yet. The first photos are from November 2026, so the earliest possible delete is in **November 2033**, and only for sessions with nothing newer hanging on them.
+
+So HR-PHOTO-STORAGE does **not** add a delete. It adds a way to see what is stored and what the purge would do.
+
+### 24.2 Build now (no data is deleted, no figure changes)
+
+1. **Storage report**, on the Version 2 attendance Settings tab only (B.E.R.N.I.S.S, 2026-11-15: Classic stays as it is; "the card in Classic too?" is on the owner's list). Director and HR Manager, through the existing `hr.attendance.review.organisation` permission, no new one. A read-only card, "Clock-in photo storage" (Daniel: a neutral warning chip "Retention: 7 years · draft, to confirm", quantities with their units that never split, "Totals only. No names."), showing:
+   - the number of photos and their stored size (photo + thumbnail, from the recorded byte counts, with a line saying the encrypted files on disk are about a third larger);
+   - the oldest photo's date, and photos added this month and on average per month over the last three full months;
+   - a "Rough forecast, from the last three full months": the size after 1 year, and at the 7-year mark when deletes start. Until there are three full months, the card says "A forecast appears after three full months.";
+   - the rule in words: "Photos are kept 7 years (draft, to confirm), then deleted with their attendance record. The earliest delete is <date>."
+   - Counts only. No names, no photos and no per-person figures.
+2. **Retention dry run**, as `php artisan hr-attendance:purge --dry-run`. It uses the same selection as the real purge (same cutoff, same "something newer is still hanging on it" rules) and prints:
+   - how many sessions, photos, corrections, location consents and photo-notice records would be deleted today, and their total photo size;
+   - the next date on which anything becomes due, and how much falls due in each of the next 12 months.
+
+   It **writes nothing**: no delete and no audit row. Each check runs in a transaction that is always rolled back, and it never sets the purge flag that PostgreSQL requires for a delete. The Settings card shows the same "next due" date from the same code.
+3. **Tests:**
+   - The dry run counts exactly what the real purge deletes on the same synthetic data (time-travelled to 2034), then deletes nothing: row counts and files are the same before and after.
+   - The storage card's figures are checked on fixed fixtures.
+   - Only Director and HR Manager see the card, and nothing in it identifies a person.
+
+### 24.3 Needs the owner's own OK (not built, nothing changed here)
+
+- **Whether the storage card should also appear on the Classic Settings tab.**
+
+- **Confirming or changing the 7 years.** Until then it stays a draft, and every place that shows it says so.
+- **Whether the daily delete should stay switched on.** It is already scheduled. If the owner wants deletes paused until the figure is confirmed, that is a one-line change to switch the schedule off; the dry run keeps working. With synthetic data nothing is deleted before 2033 either way.
+- **Any separate, shorter time for photos than for the attendance record** (for example, deleting the photo after N years but keeping the times). That would be a new delete and is not part of this slice.
+
+### 24.4 Not in this slice
+
+- No change to how photos are taken or stored.
+- No export of photos and no per-person storage figures.
+- No notification.
+- Synthetic data only until the PDPA review.

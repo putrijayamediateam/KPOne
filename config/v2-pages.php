@@ -19,9 +19,12 @@ return [
         'Registration/Show',
         'Registration/Edit',
         'PanelClaims/Index',
+        'PanelClaims/Create',
         'PanelClaims/Show',
         'ClinicalService/Index',
         'Dispensary/Show',
+        'Dispensary/Completed',
+        'Dispensary/ReturnsToCheck',
         'Medicine/Index',
         'PaymentMethods/Index',
         'Pricing/Index',
@@ -29,6 +32,8 @@ return [
         'Agents/Index',
         'Patient/Show',
         'HR/Roster',
+        'HR/Attendance',
+        'HR/Leave',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
@@ -55,6 +60,48 @@ return [
         'Inventory/TreatmentUsage',
         'Agents/Office',
         'Inventory/GovernedStock',
+        'Clinical/Show',
+        'Inventory/BatchHolds',
+        'Inventory/Recalls',
+        'Inventory/ControlledRegister',
+        'Inventory/ControlledRegisterShow',
+        'Inventory/StockValue',
+        'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
+        'Attendance/Index',
+        'Inventory/Readiness',
+        'Inventory/OpeningImport',
+        'Inventory/StockHealth',
+        'Inventory/ReorderSuggestions',
+        'Inventory/StockReview',
+        'Inventory/BranchReplenishment',
+        'Inventory/SupplierTerms',
+        'Inventory/Skus',
+        'Inventory/PurchaseRequests',
+        'MedicalCertificates/Index',
+        'Visits/History',
+        'Referrals/Index',
+        'PublicCheckInLinks/Index',
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Public (patient-facing) Version 2 pages
+    |--------------------------------------------------------------------------
+    |
+    | Version 2 for the staff pages follows each signed-in person's own "Try the new layout" switch. A patient has no
+    | account, so the public QR pages cannot work that way: they have one switch for everybody, and it is OFF. While it is
+    | `false`, every request to a page listed in `public_pages` gets the Classic page, signed in or not. The owner turns it
+    | on (changes this value to `true` and deploys) only after saying "turn on new QR pages". Even then, a page is swapped
+    | only when its V2 file exists at `resources/js/pages/<Dir>/V2/<Name>.vue`.
+    |
+    */
+
+    'public' => false,
+
+    // A page is listed here only once its V2 file exists (V2PageDispatchTest checks both ways).
+    'public_pages' => [
+        'PublicCheckIn/Status',
+        'PublicCheckIn/Show',
     ],
 ];

@@ -158,6 +158,8 @@ type Page = {
         }>;
         status: string;
         profileVersion: number | null;
+        // DSP-22: when the allergy status was last set or reviewed (branch-local ISO time), or null.
+        reviewedAt?: string | null;
         isCurrent: boolean;
     };
     items: Item[];
@@ -1662,6 +1664,26 @@ const filledButton =
                                 class="size-4 shrink-0 text-warning-strong"
                                 aria-hidden="true"
                             />{{ allergyHeading }}
+                        </p>
+                        <!-- DSP-22 (Daniel): a "none" answer shows when it was recorded, so a fresh answer and an old one
+                             look different at the counter. -->
+                        <p
+                            v-if="
+                                allergyState === 'none' &&
+                                dispensary.allergySafety.reviewedAt
+                            "
+                            class="mt-0.5 text-sm text-muted-foreground"
+                            data-testid="dispensary-allergies-recorded"
+                        >
+                            Recorded
+                            <time
+                                :datetime="dispensary.allergySafety.reviewedAt"
+                                >{{
+                                    formatDate(
+                                        dispensary.allergySafety.reviewedAt,
+                                    )
+                                }}</time
+                            >
                         </p>
                         <ul
                             v-if="dispensary.allergySafety.allergies.length"

@@ -2,17 +2,24 @@
 
 namespace App\Console\Commands;
 
+use App\Domain\Agents\DailySummary\DailyRun;
 use App\Domain\Agents\Inventory\InventoryAnalyst;
 use App\Domain\Agents\Services\AgentRunRecorder;
 use App\Domain\Organisation\Models\Branch;
 use Carbon\CarbonImmutable;
 use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 use Throwable;
 
 /**
  * AG-6: runs the inventory analyst (Hana) for one branch as a scheduled ("system") run with no person. Called by
  * AG-8's daily run; it is not scheduled on its own. One run per branch, local date and slot: running it again for
  * the same slot does nothing once it has completed; a failed attempt can be retried.
+ *
+ * It takes the daily run's PostgreSQL advisory lock for Hana (organisation, branch and local date, the same key as
+ * `DailyRun::lockKey`), so it never overlaps a daily run or another manual run on the same branch and date. When the
+ * lock is held it stops with a message and changes nothing; run it again later. The lock is a session lock: use a
+ * direct or session-pooled database connection and no outer transaction (a transaction-pooled connection drops it).
  */
 final class AgentsInventoryReview extends Command
 {
@@ -45,6 +52,22 @@ final class AgentsInventoryReview extends Command
         }
 
         $date = CarbonImmutable::now($branch->timezone)->toDateString();
+        $lock = DailyRun::lockKey((int) $branch->organisation_id, $branch, $date, 'hana');
+        if (! (bool) DB::selectOne('select pg_try_advisory_lock(hashtextextended(?, 0)) as locked', [$lock])->locked) {
+            $this->warn("Another run is working on Hana for {$branch->code} on {$date}. Nothing was changed; try again in a few minutes.");
+
+            return self::FAILURE;
+        }
+        try {
+            return $this->review($recorder, $analyst, $branch, $date, $slot, $checks);
+        } finally {
+            DB::select('select pg_advisory_unlock(hashtextextended(?, 0))', [$lock]);
+        }
+    }
+
+    /** @param list<string> $checks */
+    private function review(AgentRunRecorder $recorder, InventoryAnalyst $analyst, Branch $branch, string $date, string $slot, array $checks): int
+    {
         // One run per branch, date and slot. A failed attempt may be retried (up to three attempts): proposals keep
         // their own keys, so a retry never repeats a suggestion the failed attempt already made.
         $run = null;

@@ -122,7 +122,11 @@ class V2PageDispatchTest extends VisitTestCase
     public function test_every_registered_page_has_its_v2_file_and_every_v2_file_is_registered(): void
     {
         // The real registry in config/v2-pages.php, not the one this test class overrides in setUp.
-        $registered = collect((require base_path('config/v2-pages.php'))['pages'])->sort()->values()->all();
+        $config = require base_path('config/v2-pages.php');
+        // Staff pages follow each person's own switch (`pages`); public (patient-facing) pages have one switch for everybody
+        // (`public_pages`). A page is in exactly one of the two lists.
+        $this->assertSame([], array_values(array_intersect($config['pages'], $config['public_pages'])));
+        $registered = collect([...$config['pages'], ...$config['public_pages']])->sort()->values()->all();
 
         $files = collect(File::allFiles(resource_path('js/pages')))
             ->map(fn ($file) => str_replace('\\', '/', $file->getRelativePathname()))

@@ -16,7 +16,7 @@ use Illuminate\Validation\ValidationException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
 /*
- * PNL-5 contention worker: one Panel claim payment, one split Panel payment or one payment reversal in its own
+ * PNL-5 contention worker: one Panel claim payment, amount adjustment or decision, one split Panel payment or one payment reversal in its own
  * PostgreSQL session. Prints READY <pid>, waits for GO, runs the service call and prints SUCCESS <id>,
  * STALE <field>: <message> (validation refusal) or DENIED.
  */
@@ -44,6 +44,10 @@ try {
     $result = match ($mode) {
         'claim-payment' => app(PanelClaimService::class)
             ->recordPayment($actor, PanelClaim::query()->where('public_id', $a['claim'])->firstOrFail(), $a)->public_id,
+        'claim-adjust' => (string) app(PanelClaimService::class)
+            ->adjustAmount($actor, PanelClaim::query()->where('public_id', $a['claim'])->firstOrFail(), $a)->lock_version,
+        'claim-decision' => (string) app(PanelClaimService::class)
+            ->recordDecision($actor, PanelClaim::query()->where('public_id', $a['claim'])->firstOrFail(), $a)->lock_version,
         'split-payment' => app(PanelRemittanceService::class)->record($actor, $a)->public_id,
         'reverse' => 'reversed:'.app(PanelPaymentCorrectionService::class)->reverse($actor, $a)->count(),
         default => throw new RuntimeException('Unknown test worker mode'),
