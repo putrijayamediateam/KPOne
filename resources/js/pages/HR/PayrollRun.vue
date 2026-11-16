@@ -86,6 +86,8 @@ const props = defineProps<{
         total: Totals;
         errorCount: number;
         late: LateItem[];
+        // Suresh m1: hourly people whose paid hours this locked run did not record (prepared before G2b).
+        lateHoursUnknown: number;
         lateAdjustment: {
             id: string | null;
             draft: boolean;
@@ -432,6 +434,19 @@ const statusTone = computed(() =>
             class="text-sm text-muted-foreground"
         >
             Warnings don't stop you sending.
+        </p>
+
+        <p
+            v-if="run.lateHoursUnknown > 0"
+            class="text-sm text-muted-foreground"
+            data-test="run-late-hours-unknown"
+        >
+            Hours changed after this lock can't be checked for
+            {{
+                run.lateHoursUnknown === 1
+                    ? '1 person paid by the hour'
+                    : `${run.lateHoursUnknown} people paid by the hour`
+            }}: add any correction as a manual line on an adjustment run.
         </p>
 
         <section

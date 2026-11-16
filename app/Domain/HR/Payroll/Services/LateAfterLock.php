@@ -90,7 +90,7 @@ final class LateAfterLock
         if ($was === null || $worker->user_id === null) {
             return null;
         }
-        $now = $this->attendance->worked($organisationId, [(int) $worker->user_id], $start, $start->endOfMonth())[(int) $worker->user_id]['minutes'] ?? 0;
+        $now = $this->attendance->worked($organisationId, [(int) $worker->user_id], $start, $start->endOfMonth()->startOfDay())[(int) $worker->user_id]['minutes'] ?? 0;
 
         return ['was' => $was, 'now' => (int) $now];
     }
@@ -126,6 +126,21 @@ final class LateAfterLock
         }
 
         return $out;
+    }
+
+    /**
+     * Suresh m1: hourly people of a locked regular run whose paid minutes no locked run of the month recorded (runs
+     * prepared before G2b). Hours changed after the lock cannot be detected for them.
+     */
+    public function hoursUnknown(\stdClass $run): int
+    {
+        if ($run->kind !== 'regular' || $run->status !== 'locked') {
+            return 0;
+        }
+        $hourly = DB::table('hr_payroll_run_people as p')->join('hr_pay_profiles as f', 'f.id', '=', 'p.profile_id')
+            ->where('p.run_id', $run->id)->where('f.pay_type', 'hourly')->pluck('p.worker_id')->map(fn ($v): int => (int) $v)->all();
+
+        return count(array_diff($hourly, array_keys($this->paidMinutes($run, array_values($hourly)))));
     }
 
     /**
@@ -225,7 +240,7 @@ final class LateAfterLock
             return [];
         }
         $userIds = array_values($known->keys()->map(fn ($v): int => (int) $v)->all());
-        $now = $this->attendance->worked($organisationId, $userIds, $start, $start->endOfMonth());
+        $now = $this->attendance->worked($organisationId, $userIds, $start, $start->endOfMonth()->startOfDay());
         $corrected = DB::table('hr_attendance_corrections as c')
             ->join('hr_clock_sessions as s', 's.id', '=', DB::raw('COALESCE(c.clock_session_id, c.created_session_id)'))
             ->where('c.organisation_id', $organisationId)->where('c.status', 'approved')->whereIn('c.user_id', $userIds)

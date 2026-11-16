@@ -87,6 +87,11 @@ test('the run card shows each kind with its own word and the change in words, ne
         source,
         /post\(`late\/\$\{item\.itemId\}\/remove`, \{ kind: item\.kind \}\)/,
     );
+    // Suresh m1: runs that did not record paid hours say corrections cannot be checked.
+    assert.match(
+        source,
+        /v-if="run\.lateHoursUnknown > 0"[\s\S]*?data-test="run-late-hours-unknown"[\s\S]*?Hours changed after this lock can't be checked for/,
+    );
     // The add and take-off buttons say which item, kind included, to screen readers.
     assert.match(
         source,

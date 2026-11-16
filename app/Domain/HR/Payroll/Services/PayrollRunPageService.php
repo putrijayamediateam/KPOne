@@ -109,6 +109,7 @@ final class PayrollRunPageService
             'lockedAt' => $run->locked_at === null ? null : CarbonImmutable::parse((string) $run->locked_at)->toIso8601String(),
             'people' => $rows->all(), 'total' => $total, 'errorCount' => $errorCount, 'late' => $late = $this->late($org, $run),
             'lateAdjustment' => $this->lateAdjustment($run, $late),
+            'lateHoursUnknown' => $this->lateAfterLock->hoursUnknown($run),
             'canEdit' => $draft, 'sendRefusal' => $sendRefusal, 'steps' => $steps,
             'draftRefusal' => $draft ? $this->runs->lastApproverRefusal($actor, $run) : null,
             'options' => ['itemTypes' => $types->map(fn (\stdClass $t): array => ['value' => (string) $t->public_id, 'label' => $t->name.' ('.(PayrollSetupService::KINDS[$t->kind] ?? $t->kind).')'])->all(),

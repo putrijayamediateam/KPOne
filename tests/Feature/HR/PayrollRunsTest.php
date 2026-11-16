@@ -441,7 +441,7 @@ class PayrollRunsTest extends VisitTestCase
         $this->assertSame(765, (int) DB::table('hr_payroll_run_people')->where('worker_id', $ben->id)->value('worked_minutes'));
         $this->assertNull(DB::table('hr_payroll_run_people')->where('worker_id', $aina->id)->value('worked_minutes'));
         $this->selectBranch($this->hr);
-        $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('run.late', []));
+        $this->get(route('hr.payroll.runs.show', $id))->assertOk()->assertInertia(fn (Assert $page) => $page->where('run.late', [])->where('run.lateHoursUnknown', 0));
 
         // HR cancels Aina's unpaid leave the locked run took off pay: the row and the notice say it goes back on an adjustment.
         $leave = DB::table('hr_leave_requests')->where('user_id', $aina->user_id)->first();
