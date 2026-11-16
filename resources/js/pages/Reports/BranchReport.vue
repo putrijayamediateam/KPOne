@@ -31,6 +31,8 @@ type Result = {
 type Payload = {
     title: string;
     basis: string;
+    basisSummary?: string;
+    basisLines?: { label: string | null; text: string }[];
     endpoint: string;
     branch: { id: number; name: string; timezone: string };
     canExport: boolean;
@@ -253,9 +255,29 @@ function applySelection(key: 'methods' | 'visit_types', value: string[]) {
             <summary
                 class="cursor-pointer font-medium marker:text-muted-foreground"
             >
-                How this report counts (read before comparing totals)
+                How this report counts<template v-if="basisSummary"
+                    >:
+                    <span class="font-normal">{{
+                        basisSummary
+                    }}</span></template
+                ><template v-else> (read before comparing totals)</template>
             </summary>
-            <p class="mt-2 max-w-prose text-muted-foreground">{{ basis }}</p>
+            <div
+                v-if="basisLines?.length"
+                class="mt-2 max-w-prose space-y-2 text-muted-foreground"
+            >
+                <p v-for="(line, i) in basisLines" :key="i">
+                    <template v-if="line.label"
+                        ><strong class="font-semibold text-foreground"
+                            >{{ line.label }}:</strong
+                        >
+                    </template>
+                    {{ line.text }}
+                </p>
+            </div>
+            <p v-else class="mt-2 max-w-prose text-muted-foreground">
+                {{ basis }}
+            </p>
         </details>
         <section
             aria-label="Report filters"
