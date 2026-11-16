@@ -700,6 +700,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         </div>
                         <div v-if="billing.panelAdjustment" class="m-3">
                             <PanelAdjustmentPanel
+                                v2
                                 :adjustment="billing.panelAdjustment"
                             />
                         </div>
