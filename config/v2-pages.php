@@ -68,6 +68,7 @@ return [
         'Inventory/StockValue',
         'Inventory/SupplierInvoices',
         'Inventory/SupplierReturns',
+        'Attendance/Index',
         'Inventory/Readiness',
         'Inventory/OpeningImport',
         'Inventory/StockHealth',
