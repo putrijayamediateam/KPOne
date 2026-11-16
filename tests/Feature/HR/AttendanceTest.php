@@ -185,7 +185,7 @@ class AttendanceTest extends VisitTestCase
         $this->settings($hr, ['effective_from' => self::WEEK])->assertSessionHasNoErrors();
         $rows = collect($this->get(route('hr.attendance.index', ['tab' => 'review', 'date' => self::WEEK]))->viewData('page')['props']['attendance']['review']['rows'])->keyBy('userId');
         $this->assertSame(['Late 12 min', 'Left early 20 min'], collect($rows[$ca->id]['flags'])->pluck('label')->all());
-        $this->assertSame('5 h 28 min', $rows[$ca->id]['worked']);
+        $this->assertSame('5 h 1 min', $rows[$ca->id]['worked']);
         $this->assertSame(['No clock-in'], collect($rows[$absent->id]['flags'])->pluck('label')->all());
         $this->assertSame(['Not on the roster'], collect($rows[$extra->id]['flags'])->pluck('label')->all());
         $this->get(route('hr.attendance.index', ['tab' => 'review', 'date' => self::WEEK]))->assertInertia(fn (Assert $page) => $page
