@@ -17,6 +17,10 @@ import { usePageCrumbs } from '@/composables/usePageCrumbs';
  * today, exactly as Classic shows them. The staff cost is one clinic-wide estimate from approved pay runs, never split
  * by person or branch.
  */
+const titleCase = (name: string) =>
+    name
+        .toLowerCase()
+        .replace(/(^|[\s-])([a-z])/g, (_, a, b) => a + b.toUpperCase());
 const props = defineProps<DashboardPageProps>();
 usePageCrumbs(() => [
     { title: 'KPOne HR', href: '/hr' },
@@ -196,7 +200,7 @@ const minimumsHref = (id: number) => `/hr/roster?tab=minimums&branch=${id}`;
                             :id="`v2-branch-${branch.id}`"
                             class="text-lg font-semibold"
                         >
-                            {{ branch.name }}
+                            {{ titleCase(branch.name) }}
                         </h2>
 
                         <div
@@ -255,7 +259,7 @@ const minimumsHref = (id: number) => `/hr/roster?tab=minimums&branch=${id}`;
                                 </template>
                                 <V2Chip
                                     v-if="branch.today.rostered?.noDoctor"
-                                    tone="danger"
+                                    tone="warning"
                                     label="No Resident Doctor rostered now"
                                 />
                             </div>
@@ -416,9 +420,7 @@ const minimumsHref = (id: number) => `/hr/roster?tab=minimums&branch=${id}`;
                             <h3 class="text-sm font-semibold">
                                 {{ monthLabel }}
                             </h3>
-                            <div
-                                class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4"
-                            >
+                            <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
                                 <template v-if="branch.month.attendance">
                                     <V2Stat
                                         label="Days clocked"
@@ -512,7 +514,8 @@ const minimumsHref = (id: number) => `/hr/roster?tab=minimums&branch=${id}`;
                             <div
                                 v-if="
                                     dashboard.can.roster &&
-                                    branch.month.shortfallDays === null
+                                    branch.month.shortfallDays === null &&
+                                    branch.today?.staffing?.state !== 'not_set'
                                 "
                             >
                                 <Link
