@@ -295,6 +295,11 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     "N earlier attempts", and the live "since the last check" line is retired. The checker rules (second person, not
     the previous checker) and the locks are unchanged; a new audit event, `inventory.controlled_register.check_explained`,
     holds ids and the reason code only. The owner approved the changed assertions, listed before and after in the PR.
+    Daniel's look (OK with two changes): while "Add the reason" shows, Record check is an outline button, so only one
+    filled button is on screen; and a later checker sees "Check N differs from the register and still waits for its
+    reason from the person who recorded it. You can still record your check." The owner then decided (16 Nov, his
+    own choice): **only the recorder adds the reason, for now**; a missing reason keeps showing "Difference: reason
+    needed" to everyone, and later checks still go ahead.
 
 ## 7. Open items and known limits
 
@@ -315,7 +320,8 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
   levels; a determined checker could look there. Guessing is closed by STK-40b: every count is recorded, so nothing is
   learnt before it is saved.
 - **STK-40b limits:** only the person who recorded a differing check may add its reason, so if they leave, the check
-  stays "Difference: reason needed" (no fallback person in v1; an owner question for later).
+  stays "Difference: reason needed" (no fallback person; the owner decided on 16 Nov that only the recorder adds the
+  reason for now).
 - **Pilot staffing:** the controlled-register checker cannot be anyone who recorded a movement on that register
   since the last check, so a controlled-delivery day needs a third person (raised with the owner, 2026-11-12).
 - STK-31 limits: the cross-branch guard is insert-only; stock request creation takes an optional retry key since

@@ -81,3 +81,24 @@ test('STK-40b: only the checker gets the reason step; it is added once, and Othe
         /@confirm="ownReasonNeeded && submitReason\(ownReasonNeeded\)"/,
     );
 });
+
+test('STK-40b (Daniel, owner 16 Nov): no second filled button beside "Add the reason", and the next checker is told an earlier difference still waits for its recorder', () => {
+    for (const [name, source] of Object.entries(show)) {
+        const f = flat(source);
+        assert.match(
+            f,
+            /Check \{\{ waitingReason\.sequence \}\} differs from the register and still waits for its reason from the person who recorded it\. You can still record your check\./,
+            name,
+        );
+        assert.match(f, /data-testid="cd-earlier-reason-waiting"/, name);
+    }
+
+    assert.match(
+        flat(show.classic),
+        /:variant="ownReasonNeeded \? 'outline' : 'default'"/,
+    );
+    assert.match(
+        flat(show.v2),
+        /ownReasonNeeded \? 'border border-input bg-card text-foreground hover:bg-muted' : 'bg-primary text-primary-foreground hover:bg-primary\/90'/,
+    );
+});

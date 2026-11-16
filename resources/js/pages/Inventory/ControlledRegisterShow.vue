@@ -243,6 +243,13 @@ const reasonFormError = computed(
 const ownReasonNeeded = computed(
     () => props.register.checks.find((check) => check.canAddReason) ?? null,
 );
+/** STK-40b (owner, 16 Nov 2026): an earlier differing check whose reason only its recorder can add; later checks still go ahead. */
+const waitingReason = computed(
+    () =>
+        props.register.checks.find(
+            (check) => check.reasonNeeded && !check.canAddReason,
+        ) ?? null,
+);
 </script>
 
 <template>
@@ -522,6 +529,15 @@ const ownReasonNeeded = computed(
                 @submit.prevent="submit"
             >
                 <p
+                    v-if="waitingReason"
+                    class="rounded-md border border-warning bg-warning/10 p-3 text-sm text-warning-strong"
+                    data-testid="cd-earlier-reason-waiting"
+                >
+                    Check {{ waitingReason.sequence }} differs from the register
+                    and still waits for its reason from the person who recorded
+                    it. You can still record your check.
+                </p>
+                <p
                     v-if="formError"
                     role="alert"
                     class="text-sm text-destructive"
@@ -549,6 +565,7 @@ const ownReasonNeeded = computed(
                 </p>
                 <Button
                     type="submit"
+                    :variant="ownReasonNeeded ? 'outline' : 'default'"
                     class="min-h-11 w-full lg:min-h-9 lg:w-auto"
                     :disabled="busy"
                     >Record check</Button

@@ -242,6 +242,13 @@ const reasonFormError = computed(
 const ownReasonNeeded = computed(
     () => props.register.checks.find((check) => check.canAddReason) ?? null,
 );
+/** STK-40b (owner, 16 Nov 2026): an earlier differing check whose reason only its recorder can add; later checks still go ahead. */
+const waitingReason = computed(
+    () =>
+        props.register.checks.find(
+            (check) => check.reasonNeeded && !check.canAddReason,
+        ) ?? null,
+);
 
 // ---- V2 only below this line ----
 // STK-40: the count less the register in words: "no difference", "difference +6 units", "difference \u22121.5 units" (Daniel).
@@ -672,6 +679,22 @@ watch(
                         @submit.prevent="submit"
                     >
                         <p
+                            v-if="waitingReason"
+                            class="flex items-start gap-2 rounded-[14px] border border-warning bg-warning/10 p-3 text-sm text-warning-strong"
+                            data-testid="cd-earlier-reason-waiting"
+                        >
+                            <TriangleAlert
+                                class="mt-0.5 size-4 shrink-0"
+                                aria-hidden="true"
+                            />
+                            <span
+                                >Check {{ waitingReason.sequence }} differs from
+                                the register and still waits for its reason from
+                                the person who recorded it. You can still record
+                                your check.</span
+                            >
+                        </p>
+                        <p
                             v-if="formError"
                             role="alert"
                             class="text-sm text-destructive"
@@ -716,7 +739,12 @@ watch(
                             </p>
                             <button
                                 type="submit"
-                                class="inline-flex h-11 w-full items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:w-fit lg:h-9"
+                                class="inline-flex h-11 w-full items-center justify-center rounded-[10px] px-4 text-sm font-medium focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 sm:w-fit lg:h-9"
+                                :class="
+                                    ownReasonNeeded
+                                        ? 'border border-input bg-card text-foreground hover:bg-muted'
+                                        : 'bg-primary text-primary-foreground hover:bg-primary/90'
+                                "
                                 :disabled="busy || blocked !== null"
                             >
                                 {{ busy ? 'Recording…' : 'Record check' }}

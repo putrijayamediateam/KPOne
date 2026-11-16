@@ -104,6 +104,7 @@ test('page 8b: the register script from the Classic page is copied verbatim', ()
         'submitReason',
         'reasonFormError',
         'ownReasonNeeded',
+        'waitingReason',
     ]) {
         assert.equal(block(show.source, name), block(showClassic, name), name);
     }
