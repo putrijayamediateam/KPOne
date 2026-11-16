@@ -291,13 +291,25 @@ const criteriaMissing = computed(() =>
                             class="flex flex-col gap-2"
                             data-test="cycle-people"
                         >
-                            <h3
-                                id="v2-cycle-people-title"
-                                class="text-sm font-semibold"
+                            <div
+                                class="flex flex-wrap items-center justify-between gap-2 border-t pt-4"
                             >
-                                {{ appraisals.cycle.name }} ·
-                                {{ appraisals.cycle.period }}
-                            </h3>
+                                <h3
+                                    id="v2-cycle-people-title"
+                                    class="text-sm font-semibold"
+                                >
+                                    {{ appraisals.cycle.name }} ·
+                                    {{ appraisals.cycle.period }}
+                                </h3>
+                                <button
+                                    type="button"
+                                    :class="button"
+                                    data-test="back-to-cycles"
+                                    @click="selectTab('cycles')"
+                                >
+                                    Back to cycles
+                                </button>
+                            </div>
                             <ul class="flex flex-col gap-3">
                                 <li
                                     v-for="p in appraisals.cycle.people"

@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\HR\Attendance\ClockPermissions;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Models\OvertimeRequest;
+use App\Domain\HR\Payroll\Services\LateAfterLock;
 use App\Domain\HR\Roster\RosterPermissions;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Organisation\Models\Branch;
@@ -30,6 +31,7 @@ final class OvertimePageService
         private AttendanceTotals $totals,
         private AttendanceDays $days,
         private OvertimePaidIn $paidIn,
+        private LateAfterLock $lateAfterLock,
     ) {}
 
     /** @return array<string, array<int, array{value: string, label: string}>> */
@@ -320,6 +322,9 @@ final class OvertimePageService
         // M1: which locked payroll run already paid an approved or reversed request.
         $paid = $this->paidIn->runs($actor->organisation_id, array_values($requests->whereIn('status', ['approved', 'reversed'])->pluck('id')
             ->map(fn ($id): int => (int) $id)->all()));
+        // G2a: a pending request whose month's payroll run is already locked for the person will not be paid by it.
+        $lockedMonths = $this->lateAfterLock->lockedMonths($actor->organisation_id, $requests->where('status', 'pending')
+            ->mapWithKeys(fn (OvertimeRequest $r): array => [(int) $r->id => ['userId' => (int) $r->user_id, 'date' => $r->local_date->toDateString()]])->all());
         $weeks = [];
         if ($withWeek) {
             foreach ($requests->groupBy(fn (OvertimeRequest $r): string => $r->local_date->startOfWeek(CarbonImmutable::MONDAY)->toDateString()) as $start => $group) {
@@ -327,7 +332,7 @@ final class OvertimePageService
             }
         }
 
-        return $requests->map(function (OvertimeRequest $r) use ($names, $sessions, $corrected, $weeks, $actor, $withWeek, $paid): array {
+        return $requests->map(function (OvertimeRequest $r) use ($names, $sessions, $corrected, $weeks, $actor, $withWeek, $paid, $lockedMonths): array {
             $branch = $this->branch($r->branch_id);
             $session = $sessions[$r->clock_session_id] ?? null;
             $zone = $session !== null ? (string) $session->timezone : 'UTC';
@@ -375,6 +380,7 @@ final class OvertimePageService
                 'week' => $week,
                 'canDecide' => $r->status === 'pending' && $actor->can(ClockPermissions::OVERTIME_APPROVE) && $r->user_id !== $actor->id && $r->requested_by_user_id !== $actor->id,
                 'paidIn' => $paid[$r->id]['label'] ?? null,
+                'lockedMonth' => $lockedMonths[(int) $r->id] ?? null,
                 'canReverse' => $r->status === 'approved' && $actor->can(ClockPermissions::OVERTIME_APPROVE) && $r->user_id !== $actor->id,
                 'canWithdraw' => $r->status === 'pending' && $r->requested_by_user_id === $actor->id,
                 'lockVersion' => $r->lock_version,
