@@ -87,13 +87,12 @@ test('the Classic templates did not change', () => {
     );
 });
 
-test('Record payment: "How it was paid" starts empty and the action waits for a method (display only; same request)', () => {
-    assert.match(script, /'Pick how it was paid to continue\.'/);
-    assert.match(script, /const methodPicked = ref\(false\)/);
-    assert.match(
-        flat.replace(/="\s+/g, '="').replace(/\s+"/g, '"'),
-        /:model-value="methodPicked \? payment\.method : ''"/,
-    );
-    // The request is the shared one: the method sent is payment.method, picked by the person.
+test('Record payment: starts empty and the action waits for the method and the reference, from the shared state', () => {
+    assert.match(page, /'Pick how it was paid to continue\.'/);
+    assert.match(page, /'Enter the reference to continue\.'/);
+    assert.match(page, /payment\.method === ''/);
+    assert.doesNotMatch(script, /methodPicked/);
+    assert.doesNotMatch(page, /method: 'bank_transfer'/);
+    assert.match(flat, /:confirm-disabled="payMissing !== ''"/);
     assert.match(page, /method: payment\.method,/);
 });

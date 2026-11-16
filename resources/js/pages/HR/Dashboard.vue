@@ -1,8 +1,7 @@
 <script setup lang="ts">
 // HR-9 /hr/dashboard: read-only aggregates for the Director and HR Manager (docs/teams/hr/HR-9-DESIGN.md).
 // Today per branch, then the month. No salary, no leave type or reason, no score of a person.
-import { Head, router } from '@inertiajs/vue3';
-import { computed } from 'vue';
+import { Head } from '@inertiajs/vue3';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Label } from '@/components/ui/label';
@@ -11,92 +10,12 @@ import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
 
-type Person = {
-    name: string;
-    role?: string;
-    until?: string;
-    since?: string;
-    half?: boolean;
-};
-type Today = {
-    date: string;
-    rostered: {
-        count: number;
-        doctors: number;
-        people: Person[];
-        noDoctor: boolean;
-    } | null;
-    clockedIn: { count: number; people: Person[] } | null;
-    onLeave: { count: number; people: Person[] } | null;
-    staffing: {
-        state: 'enough' | 'short' | 'not_set' | 'no_roster' | 'closed';
-        messages: string[];
-    } | null;
-};
-type MonthFigures = {
-    attendance: {
-        daysClocked: number;
-        late: number;
-        leftEarly: number;
-        noClockIn: number;
-        noClockOut: number;
-    } | null;
-    overtime: { approvedMinutes: number } | null;
-    leave: { days: number; people: number } | null;
-    shortfallDays: number | null;
-};
-type StaffCost = {
-    runs: number;
-    waiting: number;
-    people: number;
-    unreadable: number;
-    earningsText: string;
-    employerText: string;
-    totalText: string;
-};
-type BranchCard = {
-    id: number;
-    name: string;
-    today: Today | null;
-    month: MonthFigures;
-};
+import { useDashboardPage } from '@/composables/hr/useDashboardPage';
+import type { DashboardPageProps } from '@/composables/hr/useDashboardPage';
 
-const props = defineProps<{
-    dashboard: {
-        can: { roster: boolean; attendance: boolean; leave: boolean };
-        now: string;
-        month: string;
-        months: { value: string; label: string }[];
-        attendanceSettingsSaved: boolean;
-        staffCost: StaffCost | null;
-        branches: BranchCard[];
-    };
-}>();
+const props = defineProps<DashboardPageProps>();
 
-const monthLabel = computed(
-    () =>
-        props.dashboard.months.find((m) => m.value === props.dashboard.month)
-            ?.label ?? props.dashboard.month,
-);
-
-function chooseMonth(value: string | number) {
-    router.get(
-        '/hr/dashboard',
-        { month: String(value) },
-        { preserveScroll: true, preserveState: true },
-    );
-}
-
-function hours(minutes: number): string {
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
-
-    return m === 0 ? `${h} h` : `${h} h ${m} min`;
-}
-
-function days(value: number): string {
-    return `${value} ${value === 1 ? 'day' : 'days'}`;
-}
+const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
 </script>
 
 <template>
