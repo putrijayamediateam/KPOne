@@ -29,49 +29,49 @@ final class HiringTemplates
         'screening_passed' => [
             'label' => 'Invited to an interview',
             'subject' => 'Interview for {position}',
-            'body' => "Thank you for speaking with us. We would like to invite you to an interview for {position}. Please choose three times that suit you on your private page. Choose by the end of {deadline}. After that, the application closes.",
+            'body' => 'Thank you for speaking with us. We would like to invite you to an interview for {position}. Please choose three times that suit you on your private page. Choose by the end of {deadline}. After that, the application closes.',
         ],
         'not_taken_forward' => [
             'label' => 'Not taken forward',
             'subject' => 'Your application for {position}',
-            'body' => "Thank you for your interest in {position}. We will not take your application forward this time. We wish you well.",
+            'body' => 'Thank you for your interest in {position}. We will not take your application forward this time. We wish you well.',
         ],
         'auto_rejected' => [
             'label' => 'Closed without a decision',
             // What the candidate's own list says: the email never tells them nobody decided (Suresh, HR-17b).
             'candidate_label' => 'Not taken forward',
             'subject' => 'Your application for {position}',
-            'body' => "Thank you for applying for {position}. We are not able to take your application forward this time. You are welcome to apply again.",
+            'body' => 'Thank you for applying for {position}. We are not able to take your application forward this time. You are welcome to apply again.',
         ],
         'withdrawn' => [
             'label' => 'Withdrawn',
             'subject' => 'Your application was withdrawn',
-            'body' => "Your application for {position} has been withdrawn, as you asked. Thank you for your interest.",
+            'body' => 'Your application for {position} has been withdrawn, as you asked. Thank you for your interest.',
         ],
         'passed' => [
             'label' => 'Passed the interview',
             'subject' => 'Your interview for {position}',
-            'body' => "Thank you for attending the interview for {position}. We are pleased to tell you that you passed. The clinic will contact you about the next steps.",
+            'body' => 'Thank you for attending the interview for {position}. We are pleased to tell you that you passed. The clinic will contact you about the next steps.',
         ],
         'failed' => [
             'label' => 'Did not pass the interview',
             'subject' => 'Your interview for {position}',
-            'body' => "Thank you for attending the interview for {position}. We will not take your application further this time. We wish you well.",
+            'body' => 'Thank you for attending the interview for {position}. We will not take your application further this time. We wish you well.',
         ],
         'interview_confirmed' => [
             'label' => 'Interview time confirmed',
             'subject' => 'Your interview on {date}',
-            'body' => "Your interview for {position} is on {date} at {time}, at {clinic} {branch}. If you cannot come, you can withdraw on your private page.",
+            'body' => 'Your interview for {position} is on {date} at {time}, at {clinic} {branch}. If you cannot come, you can withdraw on your private page.',
         ],
         'pick_again' => [
             'label' => 'Asked for new times',
             'subject' => 'Please choose new interview times',
-            'body' => "The times you chose for {position} do not suit the clinic. Please choose three new times on your private page. Choose by the end of {deadline}. After that, the application closes.",
+            'body' => 'The times you chose for {position} do not suit the clinic. Please choose three new times on your private page. Choose by the end of {deadline}. After that, the application closes.',
         ],
         'interview_cancelled' => [
             'label' => 'Interview cancelled',
             'subject' => 'Your interview on {date} was cancelled',
-            'body' => "Your interview for {position} on {date} at {time} has been cancelled. Please choose three new times on your private page. Choose by the end of {deadline}. After that, the application closes.",
+            'body' => 'Your interview for {position} on {date} at {time} has been cancelled. Please choose three new times on your private page. Choose by the end of {deadline}. After that, the application closes.',
         ],
         'pool_invited' => [
             'label' => 'Invited from the talent pool',
