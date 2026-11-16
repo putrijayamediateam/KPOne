@@ -22,6 +22,7 @@ test('DD-14: every branch report explains itself in short labelled lines with a 
         assert.match(source, /public function basisSummary\(\): string/, name);
         assert.doesNotMatch(source, /public function basis\(\): string/, name);
     }
+
     const boundary = read('app/Domain/Shared/Services/BranchReportService.php');
     assert.match(boundary, /abstract public function basisLines\(\): array;/);
     assert.match(boundary, /'basisSummary' => \$this->basisSummary\(\)/);
