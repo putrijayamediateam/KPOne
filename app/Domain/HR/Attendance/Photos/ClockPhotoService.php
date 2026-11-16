@@ -128,7 +128,7 @@ final class ClockPhotoService
         }
         $photo = new ClockPhoto;
         $photo->forceFill(['public_id' => $publicId, 'organisation_id' => $actor->organisation_id, 'user_id' => $actor->id,
-            'clock_session_id' => $session->id, 'kind' => $kind, 'capture_token_id' => (int) $row->id, 'stored_path' => "{$base}.bin",
+            'clock_session_id' => $session->id, 'kind' => $kind, 'attempt' => ClockSession::attemptFor((int) $session->id, $kind), 'capture_token_id' => (int) $row->id, 'stored_path' => "{$base}.bin",
             'bytes' => $prepared['bytes'], 'thumb_path' => "{$base}-thumb.bin", 'thumb_bytes' => $prepared['thumb_bytes'],
             'width' => $prepared['width'], 'height' => $prepared['height'], 'sha256' => $prepared['sha256'], 'created_at' => $now])->save();
 
