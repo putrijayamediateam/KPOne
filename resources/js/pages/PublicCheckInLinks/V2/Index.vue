@@ -19,7 +19,7 @@ import V2FormCard from '@/components/v2/V2FormCard.vue';
 import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { usePageCrumbs } from '@/composables/usePageCrumbs';
-import { formatDateTime } from '@/lib/presentation';
+import { formatDate, formatDateTime } from '@/lib/presentation';
 
 type LinkRow = {
     publicId: string;
@@ -249,12 +249,18 @@ const printQr = (link: LinkRow) => {
                         <div class="min-w-0 space-y-3">
                             <V2Field
                                 v-slot="{ id }"
-                                label="New public check-in URL"
+                                label="Public check-in URL"
                             >
                                 <input
                                     :id="id"
                                     readonly
                                     :value="issuedLink.url"
+                                    title="Tap to select the whole link"
+                                    @focus="
+                                        (
+                                            $event.target as HTMLInputElement
+                                        ).select()
+                                    "
                                     :class="box"
                                 />
                             </V2Field>
@@ -453,7 +459,7 @@ const printQr = (link: LinkRow) => {
                         </p>
                         <div
                             v-if="link.status === 'active'"
-                            class="flex flex-wrap gap-2 max-sm:flex-col"
+                            class="flex flex-wrap gap-2 max-sm:flex-col max-sm:gap-4"
                         >
                             <button
                                 type="button"
@@ -512,8 +518,16 @@ const printQr = (link: LinkRow) => {
         @confirm="confirmAction"
     >
         <div v-if="pending" class="grid gap-3">
-            <p class="rounded-[10px] bg-muted/40 p-3 text-sm font-medium">
-                {{ pending.link.branch.name }} · {{ pending.link.label }}
+            <div class="grid gap-1 rounded-[10px] bg-muted/40 p-3 text-sm">
+                <p class="font-medium">
+                    {{ pending.link.branch.name }} · {{ pending.link.label }}
+                </p>
+                <p class="text-xs text-muted-foreground">
+                    Created {{ formatDate(pending.link.createdAt) }}
+                </p>
+            </div>
+            <p v-if="pending.type === 'rotate'" class="text-sm">
+                Printed copies of the old QR stop working. Print the new one.
             </p>
             <p v-if="actionError" role="alert" class="text-sm text-destructive">
                 {{ actionError }}

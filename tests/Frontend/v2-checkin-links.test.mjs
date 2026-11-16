@@ -108,3 +108,28 @@ test('V2 actions are 44 px targets that stack on phones; the QR image stays whit
     assert.ok(/bg-white/.test(page));
     assert.equal((page.match(/:class="primaryButton"/g) ?? []).length, 1);
 });
+
+test('V2 review changes: URL box is named and selects the whole link, rotate sheet warns about printed copies, sheets show the creation date, phone gap before Revoke', () => {
+    const f = flat(page);
+
+    assert.ok(f.includes('label="Public check-in URL"'));
+    assert.ok(f.includes('readonly'));
+    assert.ok(
+        tight(page).includes('($event.targetasHTMLInputElement).select()'),
+    );
+    assert.ok(
+        f.includes(
+            'Printed copies of the old QR stop working. Print the new one.',
+        ),
+    );
+    assert.ok(f.includes('v-if="pending.type === \'rotate\'"'));
+    assert.ok(f.includes('Created {{ formatDate(pending.link.createdAt) }}'));
+    // 16 px between Rotate and Revoke below 640 px, so a stray tap cannot reach the destructive one.
+    assert.ok(
+        f.includes(
+            'v-if="link.status === \'active\'" class="flex flex-wrap gap-2 max-sm:flex-col max-sm:gap-4"',
+        ),
+    );
+    // Classic keeps its own wording (these lines are V2 only).
+    assert.ok(!classic.includes('Printed copies of the old QR'));
+});
