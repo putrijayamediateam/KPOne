@@ -468,6 +468,12 @@ check items, keep them"). The rest stand unless the owner changes them.
     (the 7-year face-photo retention is flagged as a PDPA risk). AGENTS.md's "optional selfie" wording is changed by
     B.E.R.N.I.S.S. HR-16a's location check stays separate and off (PDPA 16). Screens wait for Daniel's sketch, which the
     owner sees first.
+97. HR-PHOTO-STORAGE retention (owner, 16 Nov 2026, relayed by B.E.R.N.I.S.S): "keep 7 years, keep the daily delete
+    on". The 7 years for attendance records and clock-in photos is the owner's decision, no longer a draft, and the daily
+    `hr-attendance:purge` stays scheduled. The storage card chip and the dry run say "owner decision 16 Nov 2026"; no
+    figure or schedule changed. The owner also asked for the read-only storage card in Classic ("photo card in classic
+    too"), in Classic's own style, Director and HR Manager only. A shorter photo-only time is still unanswered: not built.
+    The staff wording "(to confirm)" stays until the owner says the PDPA review covers it (see the open item below).
 
 ## 7. Open items and known limits
 
