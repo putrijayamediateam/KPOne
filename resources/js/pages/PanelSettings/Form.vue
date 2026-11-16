@@ -422,7 +422,9 @@ const submit = () => {
                         class="grid gap-3 text-sm sm:grid-cols-3"
                     >
                         <div class="grid content-start gap-1 text-xs">
-                            <span id="panel-due-frequency" class="font-medium"
+                            <span
+                                id="panel-due-frequency"
+                                class="text-sm font-medium"
                                 >Frequency</span
                             >
                             <OperationalSelect
@@ -440,7 +442,7 @@ const submit = () => {
                             :error="form.errors.claim_due_time"
                         />
                         <div class="grid content-start gap-1 text-xs">
-                            <span id="panel-due-day" class="font-medium"
+                            <span id="panel-due-day" class="text-sm font-medium"
                                 >Day</span
                             >
                             <OperationalSelect
