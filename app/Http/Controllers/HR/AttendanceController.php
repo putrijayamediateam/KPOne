@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\HR;
 
 use App\Domain\DepartmentSpace\MeSpace;
+use App\Domain\HR\Attendance\Models\AttendanceCorrection;
 use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Models\OvertimeRequest;
 use App\Domain\HR\Attendance\Photos\ClockPhotoFiles;
@@ -16,6 +17,7 @@ use App\Domain\HR\Attendance\Services\LocationCheckService;
 use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Domain\HR\Attendance\Services\OvertimeSettingsService;
 use App\Domain\HR\Credentials\Services\CredentialsPageService;
+use App\Domain\HR\Payroll\Services\LateNotices;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -131,7 +133,10 @@ class AttendanceController extends Controller
 
     public function decide(Request $request, CorrectionService $corrections, string $correction, string $decision): RedirectResponse
     {
-        return $this->run($request, 'review', $decision === 'approve' ? 'Correction approved.' : 'Correction rejected.',
+        // G2b: an hourly person's hours corrected after the month's payroll was locked are paid only on an adjustment run.
+        return $this->run($request, 'review', $decision === 'approve'
+            ? fn (mixed $done): string => 'Correction approved.'.(($line = $done instanceof AttendanceCorrection ? app(LateNotices::class)->correctionApproved($done) : null) === null ? '' : ' '.$line)
+            : 'Correction rejected.',
             fn () => $corrections->decide($request->user(), $correction, $decision, $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
     }
 

@@ -1499,6 +1499,14 @@ const numberClass =
             @update:open="decision.open = $event"
             @confirm="confirmDecision"
         >
+            <p
+                v-if="decision.approve && decision.target?.lockedMonth"
+                class="text-sm"
+                data-test="correction-locked-month"
+            >
+                {{ decision.target.lockedMonth }}'s payroll is already locked:
+                after approving, add the hours on an adjustment run.
+            </p>
             <V2Field
                 v-if="!decision.approve"
                 v-slot="{ id }"

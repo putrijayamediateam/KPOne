@@ -1374,6 +1374,14 @@ const {
                 <CalendarCheck v-if="decision.approve" class="size-5" />
                 <CalendarX v-else class="size-5" />
             </template>
+            <p
+                v-if="decision.approve && decision.target?.lockedMonth"
+                class="text-sm"
+                data-test="correction-locked-month"
+            >
+                {{ decision.target.lockedMonth }}'s payroll is already locked:
+                after approving, add the hours on an adjustment run.
+            </p>
             <div v-if="!decision.approve" class="grid gap-2">
                 <Label for="decision-reason">Reason *</Label>
                 <OperationalSelect

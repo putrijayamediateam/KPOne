@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\HR;
 
+use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Services\LeaveDefaultsService;
 use App\Domain\HR\Leave\Services\LeaveEntryService;
 use App\Domain\HR\Leave\Services\LeaveEvidenceFiles;
@@ -9,6 +10,7 @@ use App\Domain\HR\Leave\Services\LeaveEvidenceService;
 use App\Domain\HR\Leave\Services\LeavePageService;
 use App\Domain\HR\Leave\Services\LeaveRequestService;
 use App\Domain\HR\Leave\Services\LeaveSettingsService;
+use App\Domain\HR\Payroll\Services\LateNotices;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -104,7 +106,8 @@ class LeaveController extends Controller
 
     public function approve(Request $request, LeaveRequestService $leave, string $leaveRequest): RedirectResponse
     {
-        return $this->run($request, 'approvals', 'Leave approved.', fn () => $leave->approve($request->user(), $leaveRequest, $request->only(['expected_lock_version', 'evidence_seen', 'idempotency_key'])));
+        // G2b: unpaid leave approved after its month's payroll was locked is taken only on an adjustment run.
+        return $this->run($request, 'approvals', fn (mixed $done): string => 'Leave approved.'.self::late($done, 'leaveApproved'), fn () => $leave->approve($request->user(), $leaveRequest, $request->only(['expected_lock_version', 'evidence_seen', 'idempotency_key'])));
     }
 
     public function reject(Request $request, LeaveRequestService $leave, string $leaveRequest): RedirectResponse
@@ -116,7 +119,7 @@ class LeaveController extends Controller
     {
         $tab = $request->input('tab') === 'approvals' ? 'approvals' : 'my';
 
-        return $this->run($request, $tab, 'Leave request cancelled.', fn () => $leave->cancel($request->user(), $leaveRequest, $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
+        return $this->run($request, $tab, fn (mixed $done): string => 'Leave request cancelled.'.self::late($done, 'leaveCancelled'), fn () => $leave->cancel($request->user(), $leaveRequest, $request->only(['expected_lock_version', 'reason', 'idempotency_key'])));
     }
 
     public function saveType(Request $request, LeaveSettingsService $settings): RedirectResponse
@@ -196,13 +199,24 @@ class LeaveController extends Controller
         return $this->run($request, 'settings', $message, fn () => $entries->decide($request->user(), $kind, $entry, $confirmed ? 'confirmed' : 'rejected', $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
-    private function run(Request $request, string $tab, ?string $message, callable $action): RedirectResponse
+    /** G2b: the locked-payroll sentence for a leave decision, with a leading space, or nothing. */
+    private static function late(mixed $request, string $which): string
+    {
+        $line = $request instanceof LeaveRequest ? app(LateNotices::class)->{$which}($request) : null;
+
+        return $line === null ? '' : ' '.$line;
+    }
+
+    private function run(Request $request, string $tab, string|\Closure|null $message, callable $action): RedirectResponse
     {
         $back = $this->back($request, $tab);
         try {
-            $action();
+            $result = $action();
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
+        }
+        if ($message instanceof \Closure) {
+            $message = $message($result);
         }
         if ($message !== null) {
             Inertia::flash('toast', ['type' => 'success', 'message' => $message]);

@@ -109,6 +109,7 @@ final class PayrollRunPageService
             'lockedAt' => $run->locked_at === null ? null : CarbonImmutable::parse((string) $run->locked_at)->toIso8601String(),
             'people' => $rows->all(), 'total' => $total, 'errorCount' => $errorCount, 'late' => $late = $this->late($org, $run),
             'lateAdjustment' => $this->lateAdjustment($run, $late),
+            'lateHoursUnknown' => $this->lateAfterLock->hoursUnknown($run),
             'canEdit' => $draft, 'sendRefusal' => $sendRefusal, 'steps' => $steps,
             'draftRefusal' => $draft ? $this->runs->lastApproverRefusal($actor, $run) : null,
             'options' => ['itemTypes' => $types->map(fn (\stdClass $t): array => ['value' => (string) $t->public_id, 'label' => $t->name.' ('.(PayrollSetupService::KINDS[$t->kind] ?? $t->kind).')'])->all(),
@@ -118,10 +119,12 @@ final class PayrollRunPageService
     }
 
     /**
-     * G2a: overtime approved after the regular run was locked. A locked regular run lists it; a draft adjustment of that
-     * run offers each item with "Add to this adjustment" (or, once added, "Take off").
+     * G2a and G2b: what changed after the regular run was locked (overtime, unpaid leave cancelled or approved, hourly
+     * people's worked hours). A locked regular run lists it; a draft adjustment of that run offers each item with "Add
+     * to this adjustment" (or, once added, "Take off"). No money is shown: amounts appear only as run lines.
      *
-     * @return list<array{id: string, name: string, date: string, duration: string, approvedAt: string, state: string, itemId: ?string}>
+     * @return list<array{kind: string, kindLabel: string, change: string, id: string, name: string, date: string, duration: string,
+     *     days: string, was: string, now: string, approvedAt: string, state: string, itemId: ?string}>
      */
     private function late(int $org, \stdClass $run): array
     {
@@ -129,12 +132,40 @@ final class PayrollRunPageService
         if (! $regular instanceof \stdClass || ($run->kind === 'adjustment' && $run->status !== 'draft')) {
             return [];
         }
-        $here = $run->kind === 'adjustment' ? DB::table('hr_payroll_late_items')->where('run_id', $run->id)->pluck('public_id', 'overtime_request_id') : collect();
+        $here = $run->kind === 'adjustment'
+            ? DB::table('hr_payroll_late_items')->where('run_id', $run->id)->get(['public_id', 'kind', 'overtime_request_id', 'leave_request_id', 'worker_id'])
+                ->mapWithKeys(fn (\stdClass $i): array => [LateAfterLock::key((string) $i->kind, (int) ($i->overtime_request_id ?? $i->leave_request_id ?? $i->worker_id)) => (string) $i->public_id])
+            : collect();
 
-        return array_map(fn (array $i): array => ['id' => $i['id'], 'name' => $i['name'], 'date' => $i['date'],
-            'duration' => PayrollRunCalculator::duration($i['minutes']), 'approvedAt' => $i['approvedAt'],
+        return array_map(fn (array $i): array => ['kind' => $i['kind'], 'kindLabel' => self::LATE_KINDS[$i['kind']], 'change' => self::lateChange($i),
+            'id' => $i['id'], 'name' => $i['name'], 'date' => $i['date'],
+            'duration' => $i['kind'] === 'overtime' ? PayrollRunCalculator::duration($i['minutes']) : '',
+            'days' => str_starts_with($i['kind'], 'leave_') ? PayrollRunCalculator::halves($i['halves']) : '',
+            'was' => $i['kind'] === 'hours' ? PayrollRunCalculator::duration($i['wasMinutes']) : '',
+            'now' => $i['kind'] === 'hours' ? PayrollRunCalculator::duration($i['nowMinutes']) : '',
+            'approvedAt' => $i['at'],
             'state' => $i['inRunId'] === null ? 'waiting' : ($run->kind === 'adjustment' && $i['inRunId'] === (int) $run->id ? 'here' : 'elsewhere'),
-            'itemId' => $here->has($i['overtimeId']) ? (string) $here->get($i['overtimeId']) : null], $this->lateAfterLock->forRegularRun($org, $regular));
+            'itemId' => $here->get(LateAfterLock::key($i['kind'], $i['sourceId']))], $this->lateAfterLock->forRegularRun($org, $regular));
+    }
+
+    /** Daniel (G2b): each kind of late item has its own word on a neutral chip. */
+    private const LATE_KINDS = ['overtime' => 'Overtime', 'leave_cancelled' => 'Leave cancelled', 'leave_approved' => 'Leave approved after the lock',
+        'hours' => 'Hours corrected'];
+
+    /**
+     * What the item does to pay, in words and without money (Daniel, G2b): which way and by how much of what.
+     *
+     * @param  array{kind: string, minutes: int, halves: int, wasMinutes: int, nowMinutes: int}  $i
+     */
+    private static function lateChange(array $i): string
+    {
+        return match ($i['kind']) {
+            'overtime' => 'Adds '.PayrollRunCalculator::duration($i['minutes']).' of overtime',
+            'leave_cancelled' => 'Gives back '.PayrollRunCalculator::halves($i['halves']).' of unpaid leave',
+            'leave_approved' => 'Takes off '.PayrollRunCalculator::halves($i['halves']).' of unpaid leave',
+            default => 'Worked hours '.PayrollRunCalculator::duration($i['wasMinutes']).' → '.PayrollRunCalculator::duration($i['nowMinutes']).': '
+                .($i['nowMinutes'] >= $i['wasMinutes'] ? 'adds ' : 'takes off ').PayrollRunCalculator::duration(abs($i['nowMinutes'] - $i['wasMinutes'])),
+        };
     }
 
     /**
