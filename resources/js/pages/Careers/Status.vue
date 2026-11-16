@@ -13,7 +13,6 @@ type Application = {
     position: string;
     stage: string;
     stageLabel: string;
-    stageLabelMs: string;
     open: boolean;
     canDelete: boolean;
     submittedOn: string;
@@ -31,7 +30,6 @@ type Application = {
         zone?: string;
         // Owner, 2026-11-11: the last day to choose before the application closes.
         chooseBy?: string | null;
-        chooseByMs?: string | null;
         confirmed?: string;
     } | null;
     // HR-17d: the clinic's documents for a confirmed interview.
