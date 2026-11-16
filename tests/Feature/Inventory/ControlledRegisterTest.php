@@ -214,13 +214,20 @@ final class ControlledRegisterTest extends VisitTestCase
         $refused([...$row, 'public_id' => (string) Str::uuid(), 'idempotency_key' => (string) Str::uuid(), 'sequence' => 2, 'after_movement_id' => $newest, 'checked_by_user_id' => $checker->id],
             'The previous checker cannot check this register again');
         foreach (['update' => fn () => DB::table('inventory_controlled_register_checks')->update(['note' => 'x']), 'delete' => fn () => DB::table('inventory_controlled_register_checks')->delete(),
-            'truncate' => fn () => DB::statement('TRUNCATE inventory_controlled_register_checks')] as $what => $change) {
+            // STK-40b: the reasons table points at the checks, so a plain TRUNCATE now stops at the foreign key; CASCADE reaches the guard.
+            'truncate' => fn () => DB::statement('TRUNCATE inventory_controlled_register_checks CASCADE')] as $what => $change) {
             try {
                 DB::transaction($change);
                 $this->fail("Accepted {$what}");
             } catch (QueryException $e) {
                 $this->assertStringContainsString('Controlled register checks are kept as signed', $e->getMessage());
             }
+        }
+        try {
+            DB::transaction(fn () => DB::statement('TRUNCATE inventory_controlled_register_checks'));
+            $this->fail('Accepted plain truncate');
+        } catch (QueryException $e) {
+            $this->assertSame('0A000', $e->getCode());
         }
     }
 
