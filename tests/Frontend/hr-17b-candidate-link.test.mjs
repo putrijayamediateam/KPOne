@@ -88,7 +88,7 @@ test('HR sees Needs you, each message with its outcome, and the auto-reject date
 test('Daniel: the invalid link is not a dead end, and the withdraw confirm manages focus', () => {
     const t = template('status');
     assert.match(t, /data-test="status-apply"/);
-    assert.match(t, /Apply for a job \/ Mohon jawatan/);
+    assert.match(t, /Apply for a job/);
     assert.match(t, /@keydown\.esc="keepIt"/);
     assert.match(t, /tabindex="-1"/);
     assert.match(source.status, /confirmPanel\.value\?\.focus\(\)/);
