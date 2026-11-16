@@ -54,6 +54,9 @@ const {
 
 const button =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-9';
+// Plain links in the page are 44 px tall below 1024 (a tap target), as the buttons are.
+const linkClass =
+    'inline-flex items-center underline underline-offset-4 max-lg:min-h-11';
 const cardClass = 'flex flex-col gap-3 rounded-[14px] border bg-card p-4';
 const description = computed(
     () =>
@@ -145,7 +148,7 @@ const openClose = () => {
                             Letter
                             <Link
                                 :href="`/hr/letters/${props.case.outcome.letter.id}`"
-                                class="underline underline-offset-4"
+                                :class="linkClass"
                                 >{{ props.case.outcome.letter.reference }}</Link
                             >
                         </p>
@@ -199,7 +202,7 @@ const openClose = () => {
                                 >
                                     <Link
                                         :href="`/hr/letters/${e.letter.id}`"
-                                        class="underline underline-offset-4"
+                                        :class="linkClass"
                                         >{{ e.letter.reference }}</Link
                                     ><template v-if="e.letter.void">
                                         (void)</template
@@ -526,7 +529,6 @@ const openClose = () => {
             confirm-label="Record outcome and close"
             cancel-label="Keep open"
             tone="danger"
-            size="tall"
             :busy="outcome.processing"
             :confirm-disabled="closeReason !== ''"
             :confirm-disabled-reason="closeReason"
@@ -591,9 +593,7 @@ const openClose = () => {
                 </div>
                 <p v-else class="text-sm">
                     Issue the warning letter in
-                    <Link
-                        href="/hr/letters?tab=issued"
-                        class="underline underline-offset-4"
+                    <Link href="/hr/letters?tab=issued" :class="linkClass"
                         >HR letters</Link
                     >
                     first.

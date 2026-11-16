@@ -75,3 +75,10 @@ test('the date received is a date only, limited to today by the field (no time, 
     );
     assert.doesNotMatch(tpl + code, /V2TimeField|T00:00|type="time"/);
 });
+
+test('plain links are 44 px tall below 1024, and the outcome dialog is sized to its content', () => {
+    assert.match(code, /max-lg:min-h-11/);
+    assert.equal((tpl.match(/:class="linkClass"/g) ?? []).length, 3);
+    assert.doesNotMatch(tpl, /class="underline underline-offset-4"/);
+    assert.doesNotMatch(tpl, /size="tall"/);
+});
