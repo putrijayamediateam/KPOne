@@ -208,7 +208,6 @@ const buttonOff =
                     >
                         <p
                             class="order-first col-span-2 text-center text-[13px] text-muted-foreground tabular-nums sm:order-none sm:col-span-1 sm:mr-2 sm:text-left"
-                            aria-current="page"
                         >
                             Page {{ page }}
                         </p>
@@ -218,18 +217,28 @@ const buttonOff =
                             :class="button"
                             >Previous</Link
                         >
-                        <span v-else aria-disabled="true" :class="buttonOff"
-                            >Previous</span
+                        <button
+                            v-else
+                            type="button"
+                            disabled
+                            :class="buttonOff"
                         >
+                            Previous
+                        </button>
                         <Link
                             v-if="logs.next_page_url"
                             :href="logs.next_page_url"
                             :class="button"
                             >Next</Link
                         >
-                        <span v-else aria-disabled="true" :class="buttonOff"
-                            >Next</span
+                        <button
+                            v-else
+                            type="button"
+                            disabled
+                            :class="buttonOff"
                         >
+                            Next
+                        </button>
                     </nav>
                 </section>
             </template>

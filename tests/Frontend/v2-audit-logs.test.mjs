@@ -199,7 +199,8 @@ test('Previous and Next are the server links, with the page read from the previo
             render: () => h(v2, { logs: { ...logs, prev_page_url: null } }),
         }),
     );
-    assert.ok(first.includes('aria-disabled="true"'));
+    assert.ok(first.includes('<button') && first.includes('disabled'));
+    assert.ok(!first.includes('aria-current'));
     assert.ok(flat(first).includes('Page 1'));
     assert.ok(flat(first).includes('Previous') && flat(first).includes('Next'));
 });
