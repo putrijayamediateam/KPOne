@@ -122,3 +122,18 @@ test('Classic Record payment: no method is pre-picked, and Record payment stays 
     );
     assert.match(composables.page, /method: payment\.method,/);
 });
+
+test('OperationalConfirmDialog: a disabled Confirm sends focus to the first field; an enabled Confirm is focused as before', () => {
+    const dialog = read(
+        'resources/js/components/ui/OperationalConfirmDialog.vue',
+    );
+    assert.match(dialog, /if \(props\.confirmDisabled\) \{/);
+    assert.match(dialog, /content\?\.querySelector<HTMLElement>\(firstField\)/);
+    assert.match(dialog, /\[role="combobox"\]:not\(\[disabled\]\)/);
+    // The enabled path is unchanged: prevent Reka's default and focus Confirm.
+    assert.match(
+        dialog,
+        /event\.preventDefault\(\);[\s\S]*?\(confirmButtonRef\.value\?\.\$el as HTMLElement \| undefined\)\?\.focus\(\);/,
+    );
+    assert.match(dialog, /:disabled="processing \|\| confirmDisabled"/);
+});

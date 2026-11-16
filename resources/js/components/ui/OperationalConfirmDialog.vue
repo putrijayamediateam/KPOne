@@ -82,8 +82,22 @@ const secondaryAction = () => {
 const confirmButtonRef = useTemplateRef<InstanceType<typeof Button>>(
     'confirmButton',
 );
+const firstField =
+    'input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [role="combobox"]:not([disabled])';
 const onOpenAutoFocus = (event: Event) => {
     event.preventDefault();
+
+    // A disabled Confirm cannot take focus (Suresh, #916): focus the first field of the form instead, so keyboard
+    // focus is not lost. Every dialog whose Confirm is enabled behaves exactly as before.
+    if (props.confirmDisabled) {
+        const content = event.target as HTMLElement | null;
+        const field = content?.querySelector<HTMLElement>(firstField);
+
+        (field ?? content)?.focus();
+
+        return;
+    }
+
     (confirmButtonRef.value?.$el as HTMLElement | undefined)?.focus();
 };
 </script>
