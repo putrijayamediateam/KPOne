@@ -48,6 +48,7 @@ final class PayrollRunCalculator
         'mtd_typed' => 'MTD typed for this run instead of the worked-out figure',
         'mtd_tp3' => 'Joined this year: pay from a previous employer (TP3) is not counted in MTD',
         'mtd_not_worked' => 'MTD could not be worked out for this run; the typed figure is used',
+        'mtd_earlier_months' => 'Employed earlier this year in months with no locked KPOne run: that pay is not counted, so the worked-out MTD may be too low',
     ];
 
     public const SCHEME_LABELS = ['epf' => 'EPF', 'socso' => 'SOCSO', 'eis' => 'EIS', 'hrd' => 'HRD levy'];
@@ -154,6 +155,7 @@ final class PayrollRunCalculator
         $yearToDate = $this->mtdYearToDate($org, $run, $types, array_values($profiles->keys()->map(fn ($v): int => (int) $v)->all()));
         $openEarlier = $this->openEarlierThisYear($org, $run);
         $periods = DB::table('hr_employment_periods')->whereIn('worker_id', $profiles->keys()->all())->get()->groupBy('worker_id');
+        $paidMonths = $this->lockedMonthsThisYear($org, $run, array_values($profiles->keys()->map(fn ($v): int => (int) $v)->all()));
 
         foreach ($profiles as $workerId => $profile) {
             $worker = $workers->get($workerId);
@@ -287,6 +289,10 @@ final class PayrollRunCalculator
                             ['y' => $ytd['y'], 'k' => $ytd['k'], 'x' => $ytd['x'], 'y1' => self::schemeWage($lines, $types, 'mtd'), 'k1' => $epf], (int) $start->format('n'));
                         if ($worked === null) {
                             $stop = 'no_mtd_band';
+                        } elseif (! $typed && $this->earlierMonthsMissing($periods->get($workerId, collect()), $paidMonths[(int) $workerId] ?? [], $start)) {
+                            // HR month dry run, S2: the method only sees pay from locked KPOne runs, so say so when earlier months are missing
+                            // and the worked-out figure is the one used (a typed MTD replaces it; Suresh m2).
+                            $warnings[] = 'mtd_earlier_months';
                         }
                     }
                     if ($this->joinedThisYear($periods->get($workerId, collect()), $year)) {
@@ -628,6 +634,53 @@ final class PayrollRunCalculator
         }
 
         return $out;
+    }
+
+    /**
+     * S2: for each person, the months (1 to 12) of this year before the run's month that have a locked KPOne run with
+     * that person in it, regular or adjustment.
+     *
+     * @param  list<int>  $workerIds
+     * @return array<int, list<int>>
+     */
+    private function lockedMonthsThisYear(int $org, \stdClass $run, array $workerIds): array
+    {
+        $start = CarbonImmutable::parse((string) $run->month)->startOfMonth();
+        if ($workerIds === [] || (int) $start->format('n') === 1) {
+            return [];
+        }
+        $rows = DB::table('hr_payroll_run_people')->join('hr_payroll_runs', 'hr_payroll_runs.id', '=', 'hr_payroll_run_people.run_id')
+            ->where('hr_payroll_runs.organisation_id', $org)->where('hr_payroll_runs.status', 'locked')->where('hr_payroll_runs.id', '<>', $run->id)
+            ->where('hr_payroll_runs.month', '>=', $start->startOfYear()->toDateString())->where('hr_payroll_runs.month', '<', $start->toDateString())
+            ->whereIn('hr_payroll_run_people.worker_id', $workerIds)->get(['hr_payroll_run_people.worker_id', 'hr_payroll_runs.month']);
+        $out = [];
+        foreach ($rows as $row) {
+            $out[(int) $row->worker_id][] = (int) CarbonImmutable::parse((string) $row->month)->format('n');
+        }
+
+        return array_map(fn (array $months): array => array_values(array_unique($months)), $out);
+    }
+
+    /**
+     * S2: true when an employment period covers some month of this year before the run's month that has no locked KPOne
+     * run for the person, so pay from that month is missing from the year to date.
+     *
+     * @param  Collection<int, \stdClass>  $periods
+     * @param  list<int>  $paidMonths
+     */
+    private function earlierMonthsMissing(Collection $periods, array $paidMonths, CarbonImmutable $start): bool
+    {
+        for ($m = 1; $m < (int) $start->format('n'); $m++) {
+            $first = $start->setDate((int) $start->format('Y'), $m, 1);
+            $from = $first->toDateString();
+            $to = $first->endOfMonth()->toDateString();
+            $employed = $periods->contains(fn (\stdClass $p): bool => (string) $p->starts_on <= $to && ($p->ends_on === null || (string) $p->ends_on >= $from));
+            if ($employed && ! in_array($m, $paidMonths, true)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

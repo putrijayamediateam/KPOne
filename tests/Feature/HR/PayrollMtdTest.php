@@ -248,6 +248,55 @@ class PayrollMtdTest extends VisitTestCase
         $this->assertContains('Joined this year: pay from a previous employer (TP3) is not counted in MTD', $this->person($jan)['warnings']);
     }
 
+    /** HR month dry run, S2: earlier months of the year with no locked KPOne run are missing from MTD, and the run says so. */
+    public function test_a_run_warns_when_earlier_months_this_year_were_not_paid_through_kpone(): void
+    {
+        $warning = 'Employed earlier this year in months with no locked KPOne run: that pay is not counted, so the worked-out MTD may be too low';
+        $worker = $this->clinic(['mtd_category' => '1', 'mtd_children' => '0'], '2025-06-01');
+        $this->travelTo(CarbonImmutable::parse('2026-02-03 09:00', $this->branch->timezone));
+        $schedule = $this->enterSchedule($this->hr);
+        $this->selectBranch($this->director);
+        $this->post(route('hr.payroll.mtd-schedules.decide', [$schedule, 'check']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+
+        // January is the first month: nothing earlier can be missing.
+        $jan = $this->prepareRun('2026-01');
+        $this->assertNotNull($this->mtdLine($worker, $jan));
+        $this->assertNotContains($warning, $this->person($jan)['warnings']);
+
+        $this->lock($jan);
+
+        // March with January locked but no February run: February's pay is missing, so the worked-out MTD may be too low.
+        $this->travelTo(CarbonImmutable::parse('2026-04-03 09:00', $this->branch->timezone));
+        $mar = $this->prepareRun('2026-03');
+        $this->assertSame('mtd', $this->mtdLine($worker, $mar)[0]);
+        $this->assertContains($warning, $this->person($mar)['warnings']);
+        $this->assertSame([], $this->person($mar)['errors']);
+
+        // A typed MTD replaces the worked-out figure, so the warning goes; clearing it brings the warning back.
+        $this->step($this->hr, $mar, 'mtd', ['worker_id' => $worker->public_id, 'mtd' => '250.00'])->assertSessionHasNoErrors();
+        $this->assertNotContains($warning, $this->person($mar)['warnings']);
+        $this->step($this->hr, $mar, 'mtd', ['worker_id' => $worker->public_id, 'mtd' => ''])->assertSessionHasNoErrors();
+        $this->assertContains($warning, $this->person($mar)['warnings']);
+
+        // February has January locked before it, so nothing is missing.
+        $feb = $this->prepareRun('2026-02');
+        $this->assertNotContains($warning, $this->person($feb)['warnings']);
+    }
+
+    public function test_a_joiner_has_no_earlier_months_to_miss(): void
+    {
+        $warning = 'Employed earlier this year in months with no locked KPOne run: that pay is not counted, so the worked-out MTD may be too low';
+        $worker = $this->clinic(['mtd_category' => '1', 'mtd_children' => '0'], '2026-03-01');
+        $this->travelTo(CarbonImmutable::parse('2026-04-03 09:00', $this->branch->timezone));
+        $schedule = $this->enterSchedule($this->hr);
+        $this->selectBranch($this->director);
+        $this->post(route('hr.payroll.mtd-schedules.decide', [$schedule, 'check']), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $mar = $this->prepareRun('2026-03');
+        $this->assertNotNull($this->mtdLine($worker, $mar));
+        $this->assertNotContains($warning, $this->person($mar)['warnings']);
+        $this->assertContains('Joined this year: pay from a previous employer (TP3) is not counted in MTD', $this->person($mar)['warnings']);
+    }
+
     public function test_a_profile_without_mtd_details_keeps_mtd_typed_each_run_and_details_never_change(): void
     {
         $worker = $this->clinic([]);
