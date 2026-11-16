@@ -426,6 +426,7 @@ const lossHelp: Record<string, string> = {
                             v-model="from"
                             label="From"
                             subject="From"
+                            required
                             :max="report.filters.today"
                             @update:invalid="(value) => (fromInvalid = value)"
                         />
@@ -435,6 +436,7 @@ const lossHelp: Record<string, string> = {
                             v-model="to"
                             label="To"
                             subject="To"
+                            required
                             :max="report.filters.today"
                             :error="rangeError"
                             @update:invalid="(value) => (toInvalid = value)"
