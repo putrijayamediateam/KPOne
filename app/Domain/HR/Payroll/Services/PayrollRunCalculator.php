@@ -31,6 +31,7 @@ final class PayrollRunCalculator
         'no_type_claim' => 'No pay item type chosen for staff claim refunds',
         'net_negative' => 'Net pay below zero',
         'unreadable_amount' => 'A saved amount could not be read. Check the pay profile',
+        'late_no_profile' => 'Overtime approved after the lock needs a confirmed pay profile to work it out',
     ];
 
     public const WARNINGS = [
@@ -83,21 +84,42 @@ final class PayrollRunCalculator
 
         if ($run->kind === 'adjustment') {
             $manualByWorker = DB::table('hr_payroll_manual_lines')->where('run_id', $run->id)->orderBy('id')->get()->groupBy('worker_id');
-            $workerIds = array_values($manualByWorker->keys()->map(fn ($v): int => (int) $v)->all());
+            // G2a: overtime approved after the regular run was locked, added here by HR; worked out like any overtime line.
+            $lateByWorker = DB::table('hr_payroll_late_items as i')->join('hr_overtime_requests as o', 'o.id', '=', 'i.overtime_request_id')
+                ->where('i.run_id', $run->id)->where('o.status', 'approved')->orderBy('o.local_date')->orderBy('o.id')
+                ->get(['i.worker_id', 'o.id', 'o.local_date', 'o.minutes_approved', 'o.multiplier', 'o.day_type'])->groupBy('worker_id');
+            $workerIds = array_values(array_unique([...$manualByWorker->keys()->map(fn ($v): int => (int) $v)->all(),
+                ...$lateByWorker->keys()->map(fn ($v): int => (int) $v)->all()]));
+            sort($workerIds);
             // S3 (owner, 16 Nov 2026): statutory parts on the difference, from the same checked tables as the regular run.
             $profiles = DB::table('hr_pay_profiles')->where('organisation_id', $org)->whereIn('worker_id', $workerIds)->where('status', 'confirmed')
                 ->where('effective_from', '<=', $to)->orderByDesc('effective_from')->orderByDesc('id')->get()->groupBy('worker_id')
                 ->map(fn (Collection $c): \stdClass => $c->first());
             $tables = $this->tables($org, $to);
             $before = $this->lockedMonthStatutory($org, $run, $types, $workerIds);
-            foreach ($manualByWorker as $workerId => $manual) {
+            foreach ($workerIds as $workerId) {
                 $lines = [];
                 $errors = [];
                 $warnings = [];
-                foreach ($manual as $m) {
+                foreach ($manualByWorker->get($workerId, collect()) as $m) {
                     $lines[] = $this->manual($m, $types, $versions);
                 }
                 $profile = $profiles->get($workerId);
+                $late = $lateByWorker->get($workerId, collect());
+                if ($late->isNotEmpty()) {
+                    if (! $profile instanceof \stdClass) {
+                        $errors[] = 'late_no_profile';
+                    } else {
+                        $type = $this->lineType($lineTypes, 'overtime_type_id', $types, $errors, 'no_type_overtime', $versions);
+                        $hourly = $profile->pay_type === 'hourly';
+                        if (! $hourly && $rates === null) {
+                            $errors[] = 'no_rates';
+                        }
+                        foreach ($late as $o) {
+                            $lines[] = $this->overtimeLine($o, $hourly, (int) $this->decrypt((string) $profile->rate_encrypted), $rates, $type, true);
+                        }
+                    }
+                }
                 if (! $profile instanceof \stdClass) {
                     $warnings[] = 'adjustment_no_profile';
                 } else {
@@ -199,14 +221,7 @@ final class PayrollRunCalculator
                     $errors[] = 'no_rates';
                 }
                 foreach ($overtime as $o) {
-                    $minutes = (int) $o->minutes_approved;
-                    $multiplier = PayrollMath::hundredths((string) $o->multiplier);
-                    $amount = $hourly ? PayrollMath::fraction([$rate, $minutes, $multiplier], 6000)
-                        : ($rates === null ? 0 : PayrollMath::fraction([$rate, 10000, $minutes, $multiplier],
-                            (int) $rates->daily_divisor_hundredths * (int) $rates->hourly_divisor_hundredths * 60 * 100));
-                    $lines[] = $this->line('overtime', 'earnings', $amount, 'Overtime · '.self::duration($minutes).' × '.self::multiplier($multiplier).' ('
-                        .str_replace('_', ' ', (string) $o->day_type).', '.CarbonImmutable::parse((string) $o->local_date)->format('j M').')', 'overtime', (int) $o->id,
-                        $type['id'], $type['version']);
+                    $lines[] = $this->overtimeLine($o, $hourly, $rate, $rates, $type);
                 }
             }
 
@@ -443,6 +458,26 @@ final class PayrollRunCalculator
 
         return $this->line('manual', $section, (int) $this->decrypt((string) $m->amount_encrypted), (string) ($type->name ?? 'Manual line').' · '
             .(PayrollRunService::MANUAL_REASONS[$m->reason_code] ?? (string) $m->reason_code), 'manual', (int) $m->id, (int) $m->item_type_id, (int) $m->item_type_version);
+    }
+
+    /**
+     * One approved overtime request at the multiplier stored on its approval; the same rule for the regular run and for
+     * overtime added to an adjustment after the lock (G2a).
+     *
+     * @param  array{id: ?int, version: ?int}  $type
+     * @return array<string, mixed>
+     */
+    private function overtimeLine(\stdClass $o, bool $hourly, int $rate, ?\stdClass $rates, array $type, bool $late = false): array
+    {
+        $minutes = (int) $o->minutes_approved;
+        $multiplier = PayrollMath::hundredths((string) $o->multiplier);
+        $amount = $hourly ? PayrollMath::fraction([$rate, $minutes, $multiplier], 6000)
+            : ($rates === null ? 0 : PayrollMath::fraction([$rate, 10000, $minutes, $multiplier],
+                (int) $rates->daily_divisor_hundredths * (int) $rates->hourly_divisor_hundredths * 60 * 100));
+
+        return $this->line('overtime', 'earnings', $amount, 'Overtime · '.self::duration($minutes).' × '.self::multiplier($multiplier).' ('
+            .str_replace('_', ' ', (string) $o->day_type).', '.CarbonImmutable::parse((string) $o->local_date)->format('j M').')'.($late ? ' · approved after the lock' : ''),
+            'overtime', (int) $o->id, $type['id'], $type['version']);
     }
 
     /** @return array<string, mixed> */
