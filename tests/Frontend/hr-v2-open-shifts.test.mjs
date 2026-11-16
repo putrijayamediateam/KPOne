@@ -12,6 +12,8 @@ const composable = read('resources/js/composables/hr/useOpenShiftsPage.ts');
 const template = parse(source).descriptor.template.content;
 const script = parse(source).descriptor.scriptSetup.content;
 const flat = template.replace(/\s+/g, ' ');
+// Prettier pads long attribute values with spaces inside the quotes; this form removes that padding.
+const tight = flat.replace(/=" /g, '="').replace(/ "/g, '"');
 
 test('the V2 page compiles, is registered, and shares the composable with Classic', () => {
     assert.deepEqual(
@@ -53,7 +55,7 @@ test('the Classic template did not change: Classic still renders its own markup'
     assert.doesNotMatch(classic, /V2WorkLayout|V2Dialog/);
 });
 
-test('Daniel: one filled action: Post an open shift (managers); Ask, Confirm, Decline and Withdraw are outline or red, never filled', () => {
+test('Daniel: one filled action: Post an open shift (managers); Ask, Confirm and the row Decline are plain outline, Withdraw shift is red, never filled', () => {
     assert.equal((template.match(/:class="primaryButton"/g) ?? []).length, 1);
     assert.match(
         template,
@@ -62,12 +64,12 @@ test('Daniel: one filled action: Post an open shift (managers); Ask, Confirm, De
     // Ask for this shift, Confirm and Decline have no filled class.
     assert.match(flat, /data-test="open-shift-ask"/);
     assert.match(
-        flat,
+        tight,
         /:class="button"[^>]*:disabled="a\.own \|\| s\.started"[^>]*data-test="open-shift-confirm"/,
     );
     assert.match(
-        flat,
-        /:class="dangerButton"[^>]*:disabled="a\.own"[^>]*data-test="open-shift-decline"/,
+        tight,
+        /:class="button"[^>]*:disabled="a\.own"[^>]*data-test="open-shift-decline"/,
     );
     assert.match(
         script,
@@ -101,7 +103,7 @@ test('a locum sees only their own asks, never who else asked, and an own ask or 
         flat,
         /This shift has started, so it can no longer be confirmed\./,
     );
-    assert.match(flat, /:disabled="a\.own \|\| s\.started"/);
+    assert.match(tight, /:disabled="a\.own \|\| s\.started"/);
 });
 
 test('Daniel: the manager sentence is on the manager tabs only; a locum reads the locum sentence', () => {
@@ -131,4 +133,35 @@ test('the post dialog starts from the composable, and the faded button names wha
     assert.match(composable, /'Choose who is needed\.'/);
     assert.match(composable, /'Choose the date\.'/);
     assert.match(composable, /role_needed: '',/);
+});
+
+test('Daniel: Decline on each ask row is plain outline; red is for Withdraw shift and the filled Decline in the dialog', () => {
+    const row = flat.slice(
+        flat.indexOf('data-test="open-shift-ask-row"'),
+        flat.indexOf('</ul> </li> </ul> </template>'),
+    );
+    assert.doesNotMatch(row, /dangerButton/);
+    assert.equal((flat.match(/:class="dangerButton"/g) ?? []).length, 2);
+    assert.match(
+        flat,
+        /:class="dangerButton"[^>]*:aria-label="`Withdraw the shift on/,
+    );
+    assert.equal((flat.match(/tone="danger"/g) ?? []).length, 2);
+});
+
+test('Daniel: a started shift says Started in a neutral chip, not Open', () => {
+    assert.match(script, /s\.started\s*\?\s*'Started'\s*:\s*'Open'/);
+    assert.match(flat, /s\.started && s\.status === 'open' \? 'neutral'/);
+});
+
+test('Daniel: Confirm and Decline stay right-aligned with the reason sentence below them, in every row', () => {
+    assert.match(flat, /class="flex flex-col gap-2 sm:items-end"/);
+    const col = flat.slice(
+        flat.indexOf('class="flex flex-col gap-2 sm:items-end"'),
+    );
+    assert.ok(
+        col.indexOf('data-test="open-shift-decline"') <
+            col.indexOf('This is your own ask. Someone else decides it.'),
+    );
+    assert.match(flat, /class="text-xs text-muted-foreground sm:text-right"/);
 });

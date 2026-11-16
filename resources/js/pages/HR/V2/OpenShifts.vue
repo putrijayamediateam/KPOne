@@ -65,9 +65,15 @@ const description = computed(() =>
 const chip = (tone: string) =>
     (tone === 'accent' ? 'info' : tone) as
         'neutral' | 'info' | 'success' | 'warning' | 'danger';
-const shiftLabel = (s: { status: string; needsPosting?: boolean }) =>
+const shiftLabel = (s: {
+    status: string;
+    needsPosting?: boolean;
+    started?: boolean;
+}) =>
     s.status === 'open'
-        ? 'Open'
+        ? s.started
+            ? 'Started'
+            : 'Open'
         : s.needsPosting
           ? 'Needs posting again'
           : s.status === 'filled'
@@ -274,11 +280,14 @@ const declineMissing = computed(() =>
                                                 :tone="
                                                     s.needsPosting
                                                         ? 'warning'
-                                                        : chip(
-                                                              shiftTone(
-                                                                  s.status,
-                                                              ),
-                                                          )
+                                                        : s.started &&
+                                                            s.status === 'open'
+                                                          ? 'neutral'
+                                                          : chip(
+                                                                shiftTone(
+                                                                    s.status,
+                                                                ),
+                                                            )
                                                 "
                                                 :label="shiftLabel(s)"
                                             />
@@ -355,49 +364,53 @@ const declineMissing = computed(() =>
                                                 a.status === 'asked' &&
                                                 s.status === 'open'
                                             "
-                                            class="flex flex-wrap gap-2"
+                                            class="flex flex-col gap-2 sm:items-end"
                                         >
-                                            <button
-                                                type="button"
-                                                :class="button"
-                                                :disabled="a.own || s.started"
-                                                :aria-label="`Confirm ${a.locum}`"
-                                                data-test="open-shift-confirm"
-                                                @click="
-                                                    confirming.ask = a;
-                                                    confirming.shift = s;
+                                            <div class="flex flex-wrap gap-2">
+                                                <button
+                                                    type="button"
+                                                    :class="button"
+                                                    :disabled="
+                                                        a.own || s.started
+                                                    "
+                                                    :aria-label="`Confirm ${a.locum}`"
+                                                    data-test="open-shift-confirm"
+                                                    @click="
+                                                        confirming.ask = a;
+                                                        confirming.shift = s;
+                                                    "
+                                                >
+                                                    Confirm
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    :class="button"
+                                                    :disabled="a.own"
+                                                    :aria-label="`Decline ${a.locum}`"
+                                                    data-test="open-shift-decline"
+                                                    @click="
+                                                        declining.ask = a;
+                                                        declining.reason = '';
+                                                    "
+                                                >
+                                                    Decline
+                                                </button>
+                                            </div>
+                                            <p
+                                                v-if="
+                                                    a.status === 'asked' &&
+                                                    s.status === 'open' &&
+                                                    (a.own || s.started)
                                                 "
+                                                class="text-xs text-muted-foreground sm:text-right"
                                             >
-                                                Confirm
-                                            </button>
-                                            <button
-                                                type="button"
-                                                :class="dangerButton"
-                                                :disabled="a.own"
-                                                :aria-label="`Decline ${a.locum}`"
-                                                data-test="open-shift-decline"
-                                                @click="
-                                                    declining.ask = a;
-                                                    declining.reason = '';
-                                                "
-                                            >
-                                                Decline
-                                            </button>
+                                                {{
+                                                    a.own
+                                                        ? 'This is your own ask. Someone else decides it.'
+                                                        : 'This shift has started, so it can no longer be confirmed.'
+                                                }}
+                                            </p>
                                         </div>
-                                        <p
-                                            v-if="
-                                                a.status === 'asked' &&
-                                                s.status === 'open' &&
-                                                (a.own || s.started)
-                                            "
-                                            class="text-xs text-muted-foreground"
-                                        >
-                                            {{
-                                                a.own
-                                                    ? 'This is your own ask. Someone else decides it.'
-                                                    : 'This shift has started, so it can no longer be confirmed.'
-                                            }}
-                                        </p>
                                     </li>
                                 </ul>
                             </li>
