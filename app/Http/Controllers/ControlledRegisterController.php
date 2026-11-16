@@ -43,7 +43,7 @@ final class ControlledRegisterController extends Controller
     {
         $back = route('inventory.controlled-register.show', ['sku' => $sku]);
         try {
-            $service->check($request->user(), $sku, $request->only(['expected_branch_id', 'idempotency_key', 'seen_movement_id', 'seen_check_sequence', 'counted', 'reason', 'note']));
+            $service->check($request->user(), $sku, $request->only(['expected_branch_id', 'idempotency_key', 'seen_movement_id', 'seen_check_sequence', 'counted']));
         } catch (ValidationException $e) {
             throw $e->redirectTo($back);
         } catch (AuthorizationException $e) {
@@ -52,6 +52,21 @@ final class ControlledRegisterController extends Controller
         }
 
         return redirect($back)->with('success', 'Check recorded.');
+    }
+
+    /** STK-40b: the reason for a check that differs, added afterwards by the person who recorded it. */
+    public function addReason(Request $request, string $sku, string $check, ControlledRegisterService $service): RedirectResponse
+    {
+        $back = route('inventory.controlled-register.show', ['sku' => $sku]);
+        try {
+            $service->addReason($request->user(), $check, $request->only(['expected_branch_id', 'idempotency_key', 'reason', 'note']));
+        } catch (ValidationException $e) {
+            throw $e->redirectTo($back);
+        } catch (AuthorizationException $e) {
+            throw ValidationException::withMessages(['reason' => $e->getMessage()])->redirectTo($back);
+        }
+
+        return redirect($back)->with('success', 'Reason added.');
     }
 
     private function branch(Request $request, BranchAccessService $branches): Branch

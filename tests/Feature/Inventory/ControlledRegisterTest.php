@@ -149,14 +149,19 @@ final class ControlledRegisterTest extends VisitTestCase
         // The same person cannot do the next check, even with no new movement.
         $this->actingAs($first)->post($url, $this->input($seen, '10'))->assertSessionHasErrors(['counted' => 'You did the previous check, so another person must check this register.']);
 
-        // A count that differs needs a reason, and "other" needs a note; the check never moves stock.
+        // STK-40b: a count that differs is recorded as it is, with no reason; the check never moves stock.
         $second = $this->actorAt('director');
-        $this->actingAs($second)->post($url, $this->input($seen, '9'))->assertSessionHasErrors(['reason' => 'The count differs from the register. Choose a reason.']);
-        $this->actingAs($second)->post($url, $this->input($seen, '9', ['reason' => 'other']))->assertSessionHasErrors(['note' => 'Add a note to explain the difference.']);
         $movements = DB::table('stock_movements')->count();
-        $this->actingAs($second)->post($url, $this->input($seen, '9', ['reason' => 'count_to_follow']))->assertSessionHasNoErrors();
+        $this->actingAs($second)->post($url, $this->input($seen, '9'))->assertSessionHasNoErrors();
         $this->assertSame($movements, DB::table('stock_movements')->count());
-        $this->assertSame(['differs', 'count_to_follow', '10.000', '9.000'], array_values((array) DB::table('inventory_controlled_register_checks')->where('sequence', 2)->first(['outcome', 'reason', 'ledger_quantity', 'counted_quantity'])));
+        $this->assertSame(['differs', null, '10.000', '9.000'], array_values((array) DB::table('inventory_controlled_register_checks')->where('sequence', 2)->first(['outcome', 'reason', 'ledger_quantity', 'counted_quantity'])));
+        // The checker then adds the reason, once; "other" needs a note.
+        $differing = (string) DB::table('inventory_controlled_register_checks')->where('sequence', 2)->value('public_id');
+        $reasonUrl = route('inventory.controlled-register.reason', ['sku' => $f['sku']->public_id, 'check' => $differing]);
+        $reason = fn (array $extra): array => ['expected_branch_id' => $this->branch->id, 'idempotency_key' => (string) Str::uuid(), ...$extra];
+        $this->actingAs($second)->post($reasonUrl, $reason(['reason' => 'other']))->assertSessionHasErrors(['note' => 'Add a note to explain the difference.']);
+        $this->actingAs($second)->post($reasonUrl, $reason(['reason' => 'count_to_follow']))->assertSessionHasNoErrors();
+        $this->assertSame('count_to_follow', DB::table('inventory_controlled_register_check_reasons')->sole()->reason);
 
         // A movement arriving after the page was opened makes the check stale.
         $this->receive($f, $f['proposer'], '1.000');
