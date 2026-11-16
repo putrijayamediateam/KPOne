@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head } from '@inertiajs/vue3';
-import { KeyRound } from '@lucide/vue';
+import { ChevronRight, KeyRound } from '@lucide/vue';
 import { computed, ref } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Field from '@/components/v2/V2Field.vue';
@@ -101,6 +101,10 @@ const shown = computed(() =>
                             <summary
                                 class="flex min-h-11 cursor-pointer list-none flex-wrap items-center gap-x-3 gap-y-1 rounded-[10px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
                             >
+                                <ChevronRight
+                                    class="size-4 shrink-0 text-muted-foreground transition-transform group-open:rotate-90"
+                                    aria-hidden="true"
+                                />
                                 <KeyRound
                                     class="size-4 shrink-0 text-primary"
                                     aria-hidden="true"
