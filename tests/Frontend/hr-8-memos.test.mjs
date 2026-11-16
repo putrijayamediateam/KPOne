@@ -14,7 +14,9 @@ const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [k, read(p)]),
 );
 const template = (key) => parse(source[key]).descriptor.template.content;
-const script = parse(source.page).descriptor.scriptSetup.content;
+const script =
+    parse(source.page).descriptor.scriptSetup.content +
+    read('resources/js/composables/hr/useMemosPage.ts');
 
 test('the new page and the changed page compile', () => {
     for (const [key, path] of Object.entries(files)) {

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head, router } from '@inertiajs/vue3';
+import { Head, Link, router } from '@inertiajs/vue3';
 import { TriangleAlert } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
@@ -376,6 +376,13 @@ const lossHelp: Record<string, string> = {
 <template>
     <Head title="Stock value and cost" />
     <PageFrame>
+        <Link
+            href="/inventory"
+            class="inline-flex h-11 w-fit items-center rounded-[10px] text-sm font-medium text-primary hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none sm:hidden"
+            data-action="back"
+        >
+            ← Inventory
+        </Link>
         <V2WorkLayout
             title="Stock value and cost"
             :description="`${report.scopeLabel} · ${periodWords} · Generated ${report.generatedAt} (${report.timezone})`"
