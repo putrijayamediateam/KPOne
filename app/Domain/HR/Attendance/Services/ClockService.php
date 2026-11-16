@@ -127,6 +127,20 @@ final class ClockService
     {
         $key = $this->support->key($input['idempotency_key'] ?? null);
 
+        try {
+            return $this->undoInTransaction($actor, $key, $input);
+        } catch (QueryException $e) {
+            // PostgreSQL judges the 15 minutes by its own clock; a press in the last seconds can fall just outside (Suresh m2).
+            if (($e->errorInfo[0] ?? null) === 'P0001' && str_contains($e->getMessage(), 'never reopens')) {
+                throw ValidationException::withMessages(['clock' => 'The time to undo has passed. Ask for a correction instead.']);
+            }
+            throw $e;
+        }
+    }
+
+    /** @param  array<string, mixed>  $input */
+    private function undoInTransaction(User $actor, string $key, array $input): ClockSession
+    {
         return DB::transaction(function () use ($actor, $key, $input): ClockSession {
             $actor = $this->support->lock($actor, ClockPermissions::CLOCK_OWN);
             $hash = $this->support->hash([$actor->id, 'undo_out', $input['session_id'] ?? null]);
@@ -155,7 +169,7 @@ final class ClockService
                 || DB::table('hr_overtime_requests')->where('clock_session_id', $session->id)->exists()) {
                 throw ValidationException::withMessages(['clock' => 'A correction or overtime request already uses this day. Ask HR instead.']);
             }
-            if ($this->inSentPayroll($actor, $session)) {
+            if (self::inSentPayroll($actor, $session)) {
                 throw ValidationException::withMessages(['clock' => 'Payroll for this month is already with the approver. Ask HR for a correction.']);
             }
             DB::table('hr_clock_events')->insert(['organisation_id' => $session->organisation_id, 'clock_session_id' => $session->id, 'kind' => 'out_undone',
@@ -173,7 +187,7 @@ final class ClockService
     }
 
     /** Whether a payroll run for the session's month that includes this person has left Draft. */
-    private function inSentPayroll(User $actor, ClockSession $session): bool
+    public static function inSentPayroll(User $actor, ClockSession $session): bool
     {
         return DB::table('hr_payroll_runs as r')->join('hr_payroll_run_people as p', 'p.run_id', '=', 'r.id')->join('hr_workers as w', 'w.id', '=', 'p.worker_id')
             ->where('r.organisation_id', $actor->organisation_id)->whereIn('r.status', ['sent', 'approved', 'locked'])

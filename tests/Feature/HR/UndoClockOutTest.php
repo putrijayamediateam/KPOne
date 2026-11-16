@@ -89,6 +89,25 @@ class UndoClockOutTest extends VisitTestCase
         $this->undo($session)->assertSessionHasErrors(['clock' => 'A correction or overtime request already uses this day. Ask HR instead.']);
     }
 
+    public function test_a_payroll_run_already_sent_for_the_month_stops_the_offer_and_the_undo(): void
+    {
+        $ca = $this->clockedOut();
+        $session = ClockSession::query()->sole();
+        $org = $ca->organisation_id;
+        $worker = DB::table('hr_workers')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $org, 'user_id' => $ca->id, 'kind' => 'staff',
+            'created_by_user_id' => $ca->id, 'created_at' => now(), 'updated_at' => now()]);
+        $group = DB::table('hr_pay_groups')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $org, 'name' => 'Synthetic pay', 'is_active' => true,
+            'created_by_user_id' => $ca->id, 'created_at' => now(), 'updated_at' => now()]);
+        $run = DB::table('hr_payroll_runs')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $org, 'pay_group_id' => $group, 'month' => '2027-03-01',
+            'kind' => 'regular', 'status' => 'draft', 'group_name' => 'Synthetic pay', 'prepared_by_user_id' => $ca->id, 'prepared_at' => now(), 'created_at' => now(), 'updated_at' => now()]);
+        DB::table('hr_payroll_run_people')->insert(['organisation_id' => $org, 'run_id' => $run, 'worker_id' => $worker, 'errors' => '[]', 'warnings' => '[]']);
+        // A draft that includes the person still allows the undo; once it is sent, it does not.
+        $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.undo.sessionId', $session->public_id));
+        DB::table('hr_payroll_runs')->where('id', $run)->update(['status' => 'sent', 'sent_by_user_id' => $ca->id, 'sent_at' => now(), 'versions' => '{}']);
+        $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $page) => $page->where('attendance.my.undo', null));
+        $this->undo($session)->assertSessionHasErrors(['clock' => 'Payroll for this month is already with the approver. Ask HR for a correction.']);
+    }
+
     public function test_after_a_new_clock_in_the_earlier_clock_out_is_not_undone(): void
     {
         $this->clockedOut();

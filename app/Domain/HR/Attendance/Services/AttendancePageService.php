@@ -143,7 +143,8 @@ final class AttendancePageService
         $press = DB::table('hr_clock_events')->where('clock_session_id', $latest->id)->where('kind', 'out')->orderByDesc('id')->first();
         if ($press === null || $press->method !== 'button' || (int) $press->recorded_by_user_id !== $actor->id
             || DB::table('hr_attendance_corrections')->where('clock_session_id', $latest->id)->exists()
-            || DB::table('hr_overtime_requests')->where('clock_session_id', $latest->id)->exists()) {
+            || DB::table('hr_overtime_requests')->where('clock_session_id', $latest->id)->exists()
+            || ClockService::inSentPayroll($actor, $latest)) { // never offer what the server refuses (Suresh m1)
             return null;
         }
 
