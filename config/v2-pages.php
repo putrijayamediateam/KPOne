@@ -49,6 +49,7 @@ return [
         'HR/Discipline',
         'HR/DisciplineCase',
         'HR/Incidents',
+        'HR/Incident',
         'HR/Appraisals',
         'HR/Appraisal',
         'ClinicManagement/Index',
