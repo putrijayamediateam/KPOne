@@ -443,9 +443,11 @@ const border = (error?: string) =>
                                 label="Valid through (inclusive)"
                                 weekday
                                 :hint="
-                                    assignment.valid_until
-                                        ? 'The last day counts (inclusive).'
-                                        : 'No end date.'
+                                    badDates[`${index}.until`]
+                                        ? undefined
+                                        : assignment.valid_until
+                                          ? 'The last day counts (inclusive).'
+                                          : 'No end date.'
                                 "
                                 :error="
                                     errorFor(`assignments.${index}.valid_until`)

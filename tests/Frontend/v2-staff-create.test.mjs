@@ -40,7 +40,10 @@ test('Staff/Create sends the same fields as Classic and shows the rule refusal u
     }
 
     assert.match(page, /errorFor\('assignment'\)/);
-    assert.match(page, /echoDate\(assignment\.valid_from, 'From'\)/);
+    // DD-79: the two assignment dates are the V2 date field, never the browser's own date box.
+    assert.match(page, /<V2DateField[\s\S]*v-model="assignment\.valid_from"/);
+    assert.match(page, /<V2DateField[\s\S]*v-model="assignment\.valid_until"/);
+    assert.doesNotMatch(page, /type="date"/);
 });
 
 test('Staff/Create round 2: plain required lines, errors clear on edit, plain sign-in words, sticky action bar', () => {
