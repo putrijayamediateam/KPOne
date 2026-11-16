@@ -49,9 +49,9 @@ import DispensaryAttentionPanel from '@/pages/Dispensary/V2/Partials/DispensaryA
 
 /**
  * Version 2 consultation page, the shell only (shown only in V2; Classic is `pages/Clinical/Show.vue`, untouched).
- * The page chrome and the clinical record column are drawn on Version 2 blocks. The four Classic Partials
- * (Treatment plan, Allergy and problems, Patient history, Dispensary attention) are reused unchanged inside a wrapper
- * that keeps their Classic density; they are restyled in a later step. Same props, routes, permissions, lock versions,
+ * The page chrome and the clinical record column are drawn on Version 2 blocks. The three Classic Partials
+ * (Treatment plan, Allergy and problems, Patient history) are reused unchanged inside a wrapper that keeps their
+ * Classic density; they are restyled in a later step. Dispensary attention already has its own Version 2 partial. Same props, routes, permissions, lock versions,
  * idempotency keys and payloads: the logic is a copy in `composables/clinical/useConsultationV2.ts`, kept equal by
  * `ui-v2-clinical-parity.test.mjs`. Focus mode (no top bar) comes from the layout option below, as in Classic.
  */
@@ -1218,7 +1218,7 @@ const saveStatus = () =>
 </template>
 
 <style scoped>
-/* The Classic Partials keep the Classic density of the consultation page until their own restyle step. */
+/* The three remaining Classic Partials keep the Classic density of the consultation page until their own restyle step. */
 .consultation-dense {
     font-size: 12.5px;
     line-height: 1.5;
