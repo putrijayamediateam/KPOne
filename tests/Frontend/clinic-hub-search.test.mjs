@@ -102,7 +102,19 @@ test('the search only filters the cards the server sent: it adds no link and sen
     );
     // a visible label, the polite result sentence and an empty state
     assert.match(page, /<label for="hub-find"[\s\S]*?Find a page/);
-    assert.match(page, /role="status"/);
+    // one polite status container that is always in the page (read once); the input does not also point at it
+    assert.match(page, /<div role="status"/);
+    assert.doesNotMatch(page, /aria-describedby/);
+    assert.match(page, /page matches|pages match/);
     assert.match(page, /No page matches/);
-    assert.match(page, /found`/);
+    // the empty message replaces the card grid, so no empty bordered grid is left under it
+    assert.match(
+        page,
+        /data-testid="clinic-management-cards"\s+v-show="!noMatch"/,
+    );
+    // our own clear button: 44 px below 1024, neutral icon colour, a name, and the native one is hidden
+    assert.match(page, /aria-label="Clear search"/);
+    assert.match(page, /size-11[^"]*lg:size-9/);
+    assert.match(page, /text-muted-foreground[^"]*hover:text-foreground/);
+    assert.match(page, /\[&::-webkit-search-cancel-button\]:hidden/);
 });

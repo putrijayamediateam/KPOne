@@ -11,6 +11,7 @@ import {
     Globe,
     Ticket,
     Users,
+    X,
 } from '@lucide/vue';
 import type { Component } from 'vue';
 import { computed, ref } from 'vue';
@@ -66,14 +67,21 @@ const matchCount = computed(() =>
 );
 const hasMatch = (group: (typeof props.groups)[number]) =>
     group.links.some((link) => matches(group, link));
-// Spoken politely after each change to the search.
-const announcement = computed(() =>
-    words.value.length === 0
-        ? ''
-        : matchCount.value === 0
-          ? 'No pages found'
-          : `${matchCount.value} ${matchCount.value === 1 ? 'page' : 'pages'} found`,
+// One polite status line for the search: "3 pages match", or the empty message. The container is always in the page and
+// only its text changes, so a screen reader says it once; the input does not point at it, so it is not read twice.
+const noMatch = computed(
+    () => words.value.length > 0 && matchCount.value === 0,
 );
+const resultLine = computed(() =>
+    words.value.length === 0 || noMatch.value
+        ? ''
+        : `${matchCount.value} ${matchCount.value === 1 ? 'page matches' : 'pages match'}`,
+);
+const input = ref<{ $el: HTMLInputElement } | null>(null);
+const clear = () => {
+    query.value = '';
+    input.value?.$el.focus();
+};
 </script>
 
 <template>
@@ -82,32 +90,46 @@ const announcement = computed(() =>
         class="mx-auto w-full max-w-[1440px] flex-1 p-4 py-6 md:p-6 lg:px-8 lg:py-8"
     >
         <PageHeader title="Clinic management" class="mb-5" />
-        <div class="mb-5 max-w-md">
+        <div class="mb-3 max-w-md">
             <label for="hub-find" class="mb-1.5 block text-sm font-medium"
                 >Find a page</label
             >
-            <Input
-                id="hub-find"
-                v-model="query"
-                type="search"
-                autocomplete="off"
-                aria-describedby="hub-find-result"
-                data-testid="hub-find"
-            />
-            <p id="hub-find-result" class="sr-only" role="status">
-                {{ announcement }}
+            <div class="relative">
+                <Input
+                    id="hub-find"
+                    ref="input"
+                    v-model="query"
+                    type="search"
+                    autocomplete="off"
+                    class="pr-11 [&::-webkit-search-cancel-button]:hidden [&::-webkit-search-cancel-button]:appearance-none"
+                    data-testid="hub-find"
+                />
+                <button
+                    v-if="query"
+                    type="button"
+                    aria-label="Clear search"
+                    class="absolute top-1/2 right-0 inline-flex size-11 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring lg:size-9"
+                    data-testid="hub-clear"
+                    @click="clear"
+                >
+                    <X class="size-4" aria-hidden="true" />
+                </button>
+            </div>
+        </div>
+        <div role="status" class="mb-5 min-h-5 text-sm text-muted-foreground">
+            <template v-if="resultLine">{{ resultLine }}</template>
+            <p
+                v-if="noMatch"
+                class="rounded-lg border bg-card p-6 text-center"
+                data-testid="hub-empty"
+            >
+                No page matches “{{ query.trim() }}”.
             </p>
         </div>
-        <p
-            v-if="words.length > 0 && matchCount === 0"
-            class="mb-5 rounded-lg border bg-card p-6 text-center text-sm text-muted-foreground"
-            data-testid="hub-empty"
-        >
-            No page matches “{{ query.trim() }}”.
-        </p>
         <div
             class="grid gap-px overflow-hidden rounded-lg border bg-card md:grid-cols-2 xl:grid-cols-3"
             data-testid="clinic-management-cards"
+            v-show="!noMatch"
         >
             <section
                 v-for="(group, index) in groups"
