@@ -4,7 +4,9 @@ import test from 'node:test';
 
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
-const leave = read('resources/js/pages/HR/Leave.vue');
+const leave =
+    read('resources/js/pages/HR/Leave.vue') +
+    read('resources/js/composables/hr/useLeavePage.ts');
 const overtime = read(
     'resources/js/components/hr/attendance/OvertimeSettingsForm.vue',
 );
