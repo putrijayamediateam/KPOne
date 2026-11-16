@@ -79,7 +79,7 @@ test('the Classic templates did not change', () => {
     assert.doesNotMatch(classicSheet, /V2Dialog/);
 });
 
-test("Expired keeps Classic's mark: an alert icon and bold text, in all three places, and is never red", () => {
+test("Expired keeps Classic's mark inside the chip: an alert icon before the words and bold text, in all three places, and is never red", () => {
     const flatT = template
         .replace(/\s+/g, ' ')
         .replace(/="\s+/g, '="')
@@ -87,20 +87,20 @@ test("Expired keeps Classic's mark: an alert icon and bold text, in all three pl
         .replace(/\[ /g, '[')
         .replace(/ \]/g, ']')
         .replace(/ \./g, '.');
-    const marks =
-        flatT.match(/<TriangleAlert v-if="[^"]*status\.code === 'expired'"/g) ??
-        [];
-    assert.equal(marks.length, 3);
-    assert.equal(
-        (flatT.match(/text-warning-strong[^"]*" aria-hidden="true"/g) ?? [])
-            .length,
-        3,
-    );
-    const bold =
+    const uses =
         flatT.match(
-            /status\.code === 'expired' \? 'font-semibold' : undefined/g,
+            /<V2StatusChip :expired="[^"]*status\.code === 'expired'"/g,
         ) ?? [];
-    assert.equal(bold.length, 3);
+    assert.equal(uses.length, 3);
+    const chip = read(
+        'resources/js/components/hr/credentials/V2StatusChip.vue',
+    );
+    assert.match(
+        chip,
+        /<TriangleAlert[^>]*text-warning-strong[^>]*aria-hidden="true"/s,
+    );
+    assert.match(chip, /font-semibold/);
+    assert.doesNotMatch(chip, /destructive/);
     assert.doesNotMatch(
         template,
         /expired[^"]*destructive|destructive[^"]*expired/,
