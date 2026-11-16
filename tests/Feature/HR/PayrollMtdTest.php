@@ -204,6 +204,12 @@ class PayrollMtdTest extends VisitTestCase
         $this->assertContains($warning, $this->person($mar)['warnings']);
         $this->assertSame([], $this->person($mar)['errors']);
 
+        // A typed MTD replaces the worked-out figure, so the warning goes; clearing it brings the warning back.
+        $this->step($this->hr, $mar, 'mtd', ['worker_id' => $worker->public_id, 'mtd' => '250.00'])->assertSessionHasNoErrors();
+        $this->assertNotContains($warning, $this->person($mar)['warnings']);
+        $this->step($this->hr, $mar, 'mtd', ['worker_id' => $worker->public_id, 'mtd' => ''])->assertSessionHasNoErrors();
+        $this->assertContains($warning, $this->person($mar)['warnings']);
+
         // February has January locked before it, so nothing is missing.
         $feb = $this->prepareRun('2026-02');
         $this->assertNotContains($warning, $this->person($feb)['warnings']);

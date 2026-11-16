@@ -261,8 +261,9 @@ final class PayrollRunCalculator
                             ['y' => $ytd['y'], 'k' => $ytd['k'], 'x' => $ytd['x'], 'y1' => self::schemeWage($lines, $types, 'mtd'), 'k1' => $epf], (int) $start->format('n'));
                         if ($worked === null) {
                             $stop = 'no_mtd_band';
-                        } elseif ($this->earlierMonthsMissing($periods->get($workerId, collect()), $paidMonths[(int) $workerId] ?? [], $start)) {
-                            // HR month dry run, S2: the method only sees pay from locked KPOne runs, so say so when earlier months are missing.
+                        } elseif (! $typed && $this->earlierMonthsMissing($periods->get($workerId, collect()), $paidMonths[(int) $workerId] ?? [], $start)) {
+                            // HR month dry run, S2: the method only sees pay from locked KPOne runs, so say so when earlier months are missing
+                            // and the worked-out figure is the one used (a typed MTD replaces it; Suresh m2).
                             $warnings[] = 'mtd_earlier_months';
                         }
                     }
