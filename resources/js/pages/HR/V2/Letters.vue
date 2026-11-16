@@ -301,7 +301,7 @@ const issueDialogOpen = computed(() => issue.open);
                                             :label="statusLabel[letter.status]"
                                         />
                                         <V2Chip
-                                            v-else
+                                            v-else-if="!letter.refusal"
                                             :tone="
                                                 letter.givenOn
                                                     ? 'success'
