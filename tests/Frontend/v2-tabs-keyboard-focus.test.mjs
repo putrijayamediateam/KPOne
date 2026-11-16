@@ -17,9 +17,16 @@ test('V2 tabs give the focus back to the chosen tab when a page rebuilds the str
     // Only a key press sets it: the one assignment sits inside the keyboard handler, never in a click handler or on load,
     // so a mouse click or a fresh page load never moves the focus.
     assert.equal((tabs.match(/keyboardChoice = \{/g) ?? []).length, 1);
-    assert.ok(
-        tabs.indexOf('keyboardChoice = {') > tabs.indexOf('const move = ('),
-    );
+    const moveAt = tabs.indexOf('const move = (event: KeyboardEvent');
+
+    assert.ok(moveAt > 0);
+    // Inside the keyboard handler: after its start and before the next top-level statement (the template).
+    const assignAt = tabs.indexOf('keyboardChoice = {');
+
+    assert.ok(assignAt > moveAt);
+    assert.ok(assignAt < tabs.indexOf('</script>', moveAt));
+    // The 4 second limit is pinned.
+    assert.match(tabs, /const KEYBOARD_FOCUS_MS = 4000;/);
     assert.doesNotMatch(tabs, /@click="[^"]*keyboardChoice/);
     // It is used once, only for the same strip and tab, and it expires.
     assert.match(tabs, /chosen\.label === props\.ariaLabel/);
