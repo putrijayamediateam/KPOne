@@ -72,14 +72,26 @@ test('late items show kinds and changes in words, never money', () => {
     assert.doesNotMatch(late, /myr\(|amountSen|rmText/);
 });
 
-test('manual lines wait, in words, for a type, an amount and a reason', () => {
-    assert.match(script, /'Choose a pay item type to add a line\.'/);
-    assert.match(script, /'Enter the amount to add a line\.'/);
-    assert.match(script, /'Choose why to add a line\.'/);
+test('manual lines wait, in words, for every missing item, and Add line looks off meanwhile', () => {
+    // One sentence names each missing item (Daniel): type, amount and why.
+    assert.match(script, /'choose a pay item type'/);
+    assert.match(script, /'enter the amount'/);
+    assert.match(script, /'choose why'/);
+    assert.match(script, /to add a line\.`/);
     assert.match(
         flat,
         /@submit\.prevent="manualMissing === '' && addManual\(\)"/,
     );
+    assert.match(
+        flat,
+        /class="self-start aria-disabled:cursor-not-allowed aria-disabled:opacity-50"/,
+    );
+    assert.match(flat, /:aria-disabled="manualMissing \? 'true' : undefined"/);
+});
+
+test('a late item with no decision date says only what it is for', () => {
+    assert.match(flat, /<template v-if="item\.approvedAt"> · decided on/);
+    assert.doesNotMatch(template, /: '—'/);
 });
 
 test('the Classic template did not change shape', () => {

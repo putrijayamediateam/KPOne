@@ -75,15 +75,26 @@ const returnMissing = computed(() =>
         ? 'Pick a reason to continue.'
         : '',
 );
-const manualMissing = computed(() =>
-    manual.type === ''
-        ? 'Choose a pay item type to add a line.'
-        : manual.amount.trim() === ''
-          ? 'Enter the amount to add a line.'
-          : manual.reason === ''
-            ? 'Choose why to add a line.'
-            : '',
-);
+// Names every missing item in one sentence (Daniel), for example
+// "Choose a pay item type, enter the amount and choose why to add a line."
+const manualMissing = computed(() => {
+    const missing = [
+        manual.type === '' ? 'choose a pay item type' : '',
+        manual.amount.trim() === '' ? 'enter the amount' : '',
+        manual.reason === '' ? 'choose why' : '',
+    ].filter((part) => part !== '');
+
+    if (missing.length === 0) {
+        return '';
+    }
+
+    const list =
+        missing.length === 1
+            ? missing[0]
+            : `${missing.slice(0, -1).join(', ')} and ${missing[missing.length - 1]}`;
+
+    return `${list.charAt(0).toUpperCase()}${list.slice(1)} to add a line.`;
+});
 const anyWarnings = computed(() =>
     props.run.people.some((p) => p.warnings.length),
 );
@@ -359,12 +370,11 @@ const lateLabel = (item: { name: string; kindLabel: string; date: string }) =>
                                         >{{ item.change }}</span
                                     >
                                     <span class="text-sm text-muted-foreground"
-                                        >For {{ item.date }} · decided on
-                                        {{
-                                            item.approvedAt
-                                                ? on(item.approvedAt)
-                                                : '—'
-                                        }}</span
+                                        >For {{ item.date
+                                        }}<template v-if="item.approvedAt">
+                                            · decided on
+                                            {{ on(item.approvedAt) }}</template
+                                        ></span
                                     >
                                 </div>
                                 <div class="flex flex-wrap items-center gap-2">
@@ -817,7 +827,7 @@ const lateLabel = (item: { name: string; kindLabel: string; date: string }) =>
                         <button
                             type="submit"
                             :class="button"
-                            class="self-start"
+                            class="self-start aria-disabled:cursor-not-allowed aria-disabled:opacity-50"
                             :disabled="busy || !!run.draftRefusal"
                             :aria-disabled="manualMissing ? 'true' : undefined"
                             :aria-describedby="
