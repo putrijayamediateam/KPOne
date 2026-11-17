@@ -52,6 +52,7 @@ return [
         'HR/Incident',
         'HR/Appraisals',
         'HR/Appraisal',
+        'HR/Payroll',
         'ClinicManagement/Index',
         'Queue/Index',
         'Patient/Index',
