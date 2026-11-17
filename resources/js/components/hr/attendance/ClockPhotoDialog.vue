@@ -19,10 +19,10 @@ import {
     markNoticeSeen,
     NoticeNeeded,
     PASS_REFUSALS,
+    passRefusalNote,
     resetClockPhoto,
     sendPress,
     takeToken,
-    TOOK_TOO_LONG,
 } from '@/composables/useClockPhoto';
 
 /**
@@ -240,7 +240,7 @@ const usePhoto = async () => {
             state.error = '';
             state.step = 'starting';
             await startCamera();
-            cameraNote.value = TOOK_TOO_LONG;
+            cameraNote.value = passRefusalNote(message);
 
             return;
         }
