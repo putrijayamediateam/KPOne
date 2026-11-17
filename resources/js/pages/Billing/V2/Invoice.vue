@@ -7,6 +7,7 @@ import InvoiceNotes from '@/components/billing/InvoiceNotes.vue';
 import IssuePrintButton from '@/components/billing/IssuePrintButton.vue';
 import OutstandingBills from '@/components/billing/OutstandingBills.vue';
 import InvoicePaymentsCardV2 from '@/components/billing/v2/InvoicePaymentsCardV2.vue';
+import InvoiceSummaryCardV2 from '@/components/billing/v2/InvoiceSummaryCardV2.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
@@ -21,8 +22,9 @@ import type { CompletedInvoicePage } from '@/types/completedInvoice';
  * `invoice.financial` through the same `myr()` as Classic, with the same rows and words. Bill to, notes, the activity
  * drawer, Outstanding bills and the Print buttons are the same shared components with the same props and urls, so a
  * change to them touches one place. As on V2 Billing, the patient's name and visit number head the page and the money
- * summary sits in the right column from 1280 px (above the content below that width); the payments card sits in the
- * right column from 1280 px and under the items below it (one card, shown in one place at a time).
+ * summary and the payments sit in the right column from 1280 px. Below that (Daniel, BV2-3 review) the "Visitation
+ * completed" chip stays under the title, the summary comes next, and the payments sit straight after the items. Each
+ * card is one shared component, shown in one place at a time.
  */
 const props = defineProps<{ invoice: CompletedInvoicePage }>();
 
@@ -93,24 +95,9 @@ const visibleLines = computed(() =>
             (tab.value === 'services' && line.type !== 'medicine'),
     ),
 );
-const totals = computed(() => {
-    const state = props.invoice.financial?.state;
-
-    return state
-        ? ([
-              ['Self-pay received', state.self_pay],
-              ['Panel responsibility', state.panel],
-              ['Pay later still owed', state.deferred],
-          ] as Array<[string, number]>)
-        : [];
-});
-const signedAdjustment = (sen: number) =>
-    `${sen < 0 ? '−' : '+'}${myr(Math.abs(sen))}`;
-
 const card = 'rounded-[14px] border bg-card p-4 sm:p-5';
 const linkButton =
     'inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:h-9';
-const row = 'flex min-h-11 items-center justify-between gap-4 lg:min-h-9';
 </script>
 
 <template>
@@ -123,7 +110,7 @@ const row = 'flex min-h-11 items-center justify-between gap-4 lg:min-h-9';
             :title="invoice.patient.name"
             :description="`${invoice.financial?.invoiceNumber ?? 'No invoice'} · ${invoice.visit.visitNumber} · ${invoice.visit.branch}`"
             rail-from="xl"
-            rail-below="stack-top"
+            rail-below="hide"
             rail-label="Invoice summary"
         >
             <template #actions>
@@ -162,6 +149,10 @@ const row = 'flex min-h-11 items-center justify-between gap-4 lg:min-h-9';
                         ><V2Chip tone="success" label="Visitation completed"
                     /></span>
                     <span class="text-sm text-muted-foreground">Read only</span>
+                </div>
+
+                <div class="xl:hidden" data-testid="invoice-summary-inline">
+                    <InvoiceSummaryCardV2 :invoice="invoice" />
                 </div>
 
                 <div
@@ -321,6 +312,13 @@ const row = 'flex min-h-11 items-center justify-between gap-4 lg:min-h-9';
                     </div>
                 </section>
 
+                <div class="xl:hidden" data-testid="invoice-payments-inline">
+                    <InvoicePaymentsCardV2
+                        v-if="invoice.financial"
+                        :invoice="invoice"
+                    />
+                </div>
+
                 <section
                     v-if="invoice.billTo || invoice.notes"
                     class="divide-y rounded-[14px] border bg-card"
@@ -339,113 +337,14 @@ const row = 'flex min-h-11 items-center justify-between gap-4 lg:min-h-9';
                     </div>
                 </section>
 
-                <InvoicePaymentsCardV2
-                    v-if="invoice.financial"
-                    :invoice="invoice"
-                    class="xl:hidden"
-                />
-
                 <OutstandingBills :groups="invoice.outstanding" />
             </template>
 
             <template #rail>
-                <section :class="card" data-testid="invoice-financial">
-                    <template v-if="invoice.financial">
-                        <h2 class="text-base font-semibold">
-                            Invoice
-                            <span
-                                class="text-sm font-medium whitespace-nowrap"
-                                >{{ invoice.financial.invoiceNumber }}</span
-                            >
-                        </h2>
-                        <dl class="mt-2 text-sm">
-                            <div :class="row">
-                                <dt>Subtotal</dt>
-                                <dd class="tabular-nums">
-                                    {{
-                                        myr(
-                                            invoice.financial.adjustment
-                                                .subtotalSen,
-                                        )
-                                    }}
-                                </dd>
-                            </div>
-                            <div
-                                v-if="
-                                    invoice.financial.adjustment
-                                        .adjustmentSen !== 0
-                                "
-                                :class="row"
-                            >
-                                <dt>
-                                    {{
-                                        invoice.financial.adjustment
-                                            .adjustmentSen < 0
-                                            ? 'Discount'
-                                            : 'Surcharge'
-                                    }}
-                                </dt>
-                                <dd class="tabular-nums">
-                                    {{
-                                        signedAdjustment(
-                                            invoice.financial.adjustment
-                                                .adjustmentSen,
-                                        )
-                                    }}
-                                </dd>
-                            </div>
-                            <div
-                                v-if="invoice.financial.refundCreditSen"
-                                :class="row"
-                            >
-                                <dt data-testid="invoice-refund-credit">
-                                    Refund credit
-                                </dt>
-                                <dd class="tabular-nums">
-                                    −{{
-                                        myr(invoice.financial.refundCreditSen)
-                                    }}
-                                </dd>
-                            </div>
-                            <div :class="[row, 'font-semibold']">
-                                <dt>Total</dt>
-                                <dd class="tabular-nums">
-                                    {{ myr(invoice.financial.state.total) }}
-                                </dd>
-                            </div>
-                        </dl>
-                        <dl class="mt-2 border-t pt-2 text-sm">
-                            <div
-                                v-for="[label, amount] in totals"
-                                :key="label"
-                                :class="row"
-                            >
-                                <dt class="text-muted-foreground">
-                                    {{ label }}
-                                </dt>
-                                <dd class="tabular-nums">{{ myr(amount) }}</dd>
-                            </div>
-                            <div :class="[row, 'text-base font-semibold']">
-                                <dt>Amount due now</dt>
-                                <dd class="tabular-nums">
-                                    {{ myr(invoice.financial.state.due_now) }}
-                                </dd>
-                            </div>
-                        </dl>
-                    </template>
-                    <p v-else class="text-sm text-muted-foreground">
-                        {{
-                            invoice.canSeeFinancial
-                                ? 'No invoice was issued for this visit.'
-                                : 'Billing details are not shown for your role.'
-                        }}
-                    </p>
-                </section>
-
+                <InvoiceSummaryCardV2 :invoice="invoice" />
                 <InvoicePaymentsCardV2
                     v-if="invoice.financial"
                     :invoice="invoice"
-                    class="max-xl:hidden"
                 />
             </template>
         </V2WorkLayout>
@@ -471,6 +370,23 @@ const row = 'flex min-h-11 items-center justify-between gap-4 lg:min-h-9';
             ) {
             min-height: 44px;
         }
+    }
+}
+/* 3. The shared buttons in the header (View activity log, Print invoice) match the page's link buttons: 44 px below
+      1024 px, 36 px from 1024 px, 14 px text (Daniel, BV2-3 review). */
+body[data-invoice-v2] [data-testid='invoice-actions'] button {
+    height: 44px;
+    padding-inline: 16px;
+    border-radius: 10px;
+    font-size: 14px;
+    font-weight: 500;
+    border: 1px solid var(--border);
+    background: var(--card);
+    box-shadow: none;
+}
+@media (min-width: 1024px) {
+    body[data-invoice-v2] [data-testid='invoice-actions'] button {
+        height: 36px;
     }
 }
 body[data-invoice-v2]

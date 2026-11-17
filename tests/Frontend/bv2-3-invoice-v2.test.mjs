@@ -11,7 +11,10 @@ const page = read('resources/js/pages/Billing/V2/Invoice.vue');
 const paymentsCard = read(
     'resources/js/components/billing/v2/InvoicePaymentsCardV2.vue',
 );
-const flat = `${page} ${paymentsCard}`.replace(/\s+/g, ' ');
+const summaryCard = read(
+    'resources/js/components/billing/v2/InvoiceSummaryCardV2.vue',
+);
+const flat = `${page} ${paymentsCard} ${summaryCard}`.replace(/\s+/g, ' ');
 const classic = read('resources/js/pages/Billing/Invoice.vue');
 
 test('BV2-3: the page is registered and takes the same invoice prop as Classic', () => {
@@ -24,7 +27,7 @@ test('BV2-3: the page is registered and takes the same invoice prop as Classic',
 });
 
 test('BV2-3: read only, nothing is sent or calculated on the page', () => {
-    for (const source of [page, paymentsCard]) {
+    for (const source of [page, paymentsCard, summaryCard]) {
         assert.doesNotMatch(source, /router\.|useForm|fetch\(|axios/);
         assert.doesNotMatch(source, /<Button\b/);
     }
@@ -82,20 +85,43 @@ test('BV2-3: shared Billing pieces and recorded prints are reused', () => {
 test('BV2-3: name and visit head the page; summary in the rail from 1280 px, above below it', () => {
     assert.match(flat, /:title="invoice\.patient\.name"/);
     assert.match(flat, /invoice\.visit\.visitNumber/);
-    assert.match(flat, /rail-from="xl" rail-below="stack-top"/);
+    assert.match(flat, /rail-from="xl" rail-below="hide"/);
     assert.match(flat, /<template #rail>/);
 });
 
-test('BV2-3: one payments card, in the rail from 1280 px and under the items below it', () => {
+test('BV2-3: below 1280 px the chip stays under the title, then the summary; payments straight after the items', () => {
     const pageFlat = page.replace(/\s+/g, ' ');
+    const at = (needle) => {
+        const i = pageFlat.indexOf(needle);
+        assert.ok(i >= 0, needle);
+
+        return i;
+    };
+    const chip = at('data-testid="invoice-completed"');
+    const summary = at('data-testid="invoice-summary-inline"');
+    const patient = at('data-testid="invoice-patient"');
+    const items = at('data-testid="invoice-lines"');
+    const payments = at('data-testid="invoice-payments-inline"');
+    const billTo = at('<InvoiceBillTo');
+    const outstanding = at('<OutstandingBills');
+    assert.ok(chip < summary && summary < patient && patient < items);
+    assert.ok(items < payments && payments < billTo && billTo < outstanding);
     assert.match(
         pageFlat,
-        /<InvoicePaymentsCardV2 v-if="invoice\.financial" :invoice="invoice" class="max-xl:hidden" \/>/,
+        /<div class="xl:hidden" data-testid="invoice-summary-inline"> <InvoiceSummaryCardV2 :invoice="invoice" \/>/,
     );
     assert.match(
         pageFlat,
-        /<InvoicePaymentsCardV2 v-if="invoice\.financial" :invoice="invoice" class="xl:hidden" \/>/,
+        /<template #rail> <InvoiceSummaryCardV2 :invoice="invoice" \/> <InvoicePaymentsCardV2 v-if="invoice\.financial" :invoice="invoice" \/>/,
     );
+});
+
+test('BV2-3: header buttons share one size (Daniel)', () => {
+    assert.match(
+        page,
+        /\[data-testid='invoice-actions'\]\s+button \{\s*height: 44px;[^}]*font-size: 14px;/,
+    );
+    assert.match(page, /@media \(min-width: 1024px\)[\s\S]*?height: 36px;/);
 });
 
 test('BV2-3: receipt status is a V2 chip, a reversed receipt stays grey', () => {
