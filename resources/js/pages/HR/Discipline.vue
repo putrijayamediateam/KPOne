@@ -32,6 +32,7 @@ const {
     startCase,
     submit,
     textareaClass,
+    reasonLine,
 } = useDisciplinePage(props);
 </script>
 
@@ -198,6 +199,9 @@ const {
                                 !form.incidentOn ||
                                 form.allegation.trim().length < 10
                             "
+                            :aria-describedby="
+                                reasonLine ? 'case-save-reason' : undefined
+                            "
                             data-test="case-save"
                             >{{
                                 form.processing ? 'Opening…' : 'Open case'
@@ -212,19 +216,11 @@ const {
                         >
                     </div>
                     <p
-                        v-if="
-                            !form.worker || form.allegation.trim().length < 10
-                        "
+                        v-if="reasonLine"
+                        id="case-save-reason"
                         class="text-sm text-muted-foreground"
                     >
-                        Open case: choose a staff file and write the allegation
-                        first.
-                    </p>
-                    <p
-                        v-else-if="!form.incidentOn"
-                        class="text-sm text-muted-foreground"
-                    >
-                        Open case: choose the date it happened first.
+                        {{ reasonLine }}
                     </p>
                 </form>
             </SheetContent>
