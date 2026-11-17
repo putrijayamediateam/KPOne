@@ -116,6 +116,8 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'ai_read',
             'sslmode' => env('DB_SSLMODE', 'require'),
+            // Same pin as pgsql, so Ask KPOne reads times in UTC like the app (Suresh, m1).
+            'timezone' => env('DB_TIMEZONE', 'UTC'),
         ],
 
         'sqlsrv' => [

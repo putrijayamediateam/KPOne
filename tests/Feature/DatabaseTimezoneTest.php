@@ -13,9 +13,11 @@ use Tests\TestCase;
  */
 class DatabaseTimezoneTest extends TestCase
 {
-    public function test_the_pgsql_connection_is_pinned_to_utc(): void
+    public function test_the_pgsql_and_ai_reader_connections_are_pinned_to_utc(): void
     {
         $this->assertSame('UTC', config('database.connections.pgsql.timezone'));
+        // The Ask KPOne read-only connection (AG-7) reads the same tables, so it is pinned the same way.
+        $this->assertSame('UTC', config('database.connections.ai_reader.timezone'));
     }
 
     public function test_a_database_set_to_kuala_lumpur_still_keeps_times_in_utc(): void
