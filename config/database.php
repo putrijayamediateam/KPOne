@@ -97,6 +97,9 @@ return [
             'prefix_indexes' => true,
             'search_path' => 'public',
             'sslmode' => env('DB_SSLMODE', 'require'),
+            // Every connection runs SET TIME ZONE to this. Laravel writes dates without an offset, so on a server
+            // whose own time zone is not UTC every stored time would be shifted (see docs/DEVELOPMENT.md).
+            'timezone' => env('DB_TIMEZONE', 'UTC'),
         ],
 
         // AG-7 Ask KPOne (agents contract section 13): the separate kpone_ai_reader login, which can SELECT only from

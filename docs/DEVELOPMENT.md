@@ -37,6 +37,19 @@ for testing. A local SQLite skip is not PostgreSQL release evidence.
    composer run dev
    ```
 
+### Database time zone (`DB_TIMEZONE`)
+
+KPOne stores every time in UTC and shows it in the branch's time zone. The `pgsql` connection runs
+`SET TIME ZONE 'UTC'` on every connection (`DB_TIMEZONE`, default `UTC` in `config/database.php`). Keep it `UTC`.
+
+Why it is pinned: Laravel writes dates to PostgreSQL without an offset (`2026-11-17 16:15:33`). A
+`timestamptz` column reads such a value in the session's time zone. A PostgreSQL installed on a laptop (Herd,
+DBngin, Postgres.app) usually takes the computer's own time zone, for example `Asia/Kuala_Lumpur`, so without the
+pin every stored time was 8 hours early. Every window that compares a stored time with now went wrong: a
+clock-in photo was refused as "took too long" (owner report, 17 November 2026). Times already written on such a
+server before the pin stay 8 hours early; on a synthetic local database, `php artisan migrate:fresh --seed` starts
+clean. `tests/Feature/DatabaseTimezoneTest.php` checks the pin against a database whose default is Kuala Lumpur.
+
 The repository defaults to PostgreSQL. The default local PHPUnit configuration overrides the connection to an in-memory SQLite database to keep the routine test workflow fast and isolated; SQLite is not a supported deployed database. GitHub Actions deliberately supplies `DB_CONNECTION=pgsql` and an isolated PostgreSQL 18 service database, so the complete suite also covers production-database semantics.
 
 ## First Director bootstrap
