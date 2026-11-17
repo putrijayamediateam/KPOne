@@ -73,6 +73,14 @@ export const PASS_REFUSALS = [
 export const TOOK_TOO_LONG =
     'That took too long, so the photo was not used. Take it again.';
 
+/** The pass was already used or not found (OPEN_AGAIN): no time ran out, so the line does not say it took too long. */
+export const PASS_NOT_USABLE =
+    'That photo could not be used, so it was not kept. Take a new one.';
+
+/** The camera line for each pass refusal: only a pass that ran out says it took too long. */
+export const passRefusalNote = (message: string): string =>
+    message === PASS_REFUSALS[0] ? TOOK_TOO_LONG : PASS_NOT_USABLE;
+
 /** Thrown when the person has not yet seen the current "About clock-in photos" notice. */
 export class NoticeNeeded extends Error {}
 
