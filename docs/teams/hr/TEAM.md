@@ -65,12 +65,25 @@ its own, and props, routes and permissions are the same. Each page is registered
 | `HR/Records` | `useRecordsPage.ts`, with `useCorrectionSheet.ts`, `useOutsideExport.ts` and `useChecklistTab.ts` (the checklist one not used by V2 yet) | `pages/HR/V2/Records.vue` | Nurul's team (PR #910) |
 | `HR/StaffFile` | `useStaffFilePage.ts`; the audited Show is one shared function, `lib/hr-show-value.ts`, used by Classic's `MaskedValue` and V2 alike | `pages/HR/V2/StaffFile.vue` | Nurul's team (PR #915) |
 | `HR/Dashboard` | `useDashboardPage.ts` (the month request); read only | `pages/HR/V2/Dashboard.vue` | Nurul's team (PR #922) |
+| `HR/Letters` | `useLettersPage.ts`; the A4 print page `Letter.vue` stays Classic only | `pages/HR/V2/Letters.vue` | Nurul's team (PR #926) |
+| `HR/Appraisals` | `useAppraisalsPage.ts` | `pages/HR/V2/Appraisals.vue` | Nurul's team (PR #928) |
+| `HR/Appraisal` | `useAppraisalPage.ts` (one appraisal) | `pages/HR/V2/Appraisal.vue` | Nurul's team (PR #932) |
+| `HR/Incidents` | `useIncidentsPage.ts` | `pages/HR/V2/Incidents.vue` | Nurul's team (PR #929) |
+| `HR/Incident` | `useIncidentPage.ts` (one report) | `pages/HR/V2/Incident.vue` | Nurul's team (PR #938) |
+| `HR/Discipline` | `useDisciplinePage.ts` | `pages/HR/V2/Discipline.vue` | Nurul's team (PR #931) |
+| `HR/DisciplineCase` | `useDisciplineCasePage.ts` (one restricted case; no case text in a title or label, files only through the recorded links) | `pages/HR/V2/DisciplineCase.vue` | Nurul's team (PR #942) |
+| `HR/Payroll` | `usePayrollPage.ts`, with `useRunsTab.ts` and `useExportsTab.ts`; the profile, table and MTD schedule forms use `useProfileSheet.ts`, `useTableSheet.ts` and `useMtdScheduleSheet.ts`, shared by the Classic sheets and the V2 dialogs in `components/hr-v2/payroll/` | `pages/HR/V2/Payroll.vue` | HR team (Runs, Exports and Settings in PR #947; Pay profiles and Tables in PR #951) |
+| `HR/PayrollRun` | `usePayrollRunPage.ts` | `pages/HR/V2/PayrollRun.vue` | HR team (PR #952) |
+
+`HR/Payslip` stays Classic by plan.
 
 - Nurul's team builds HR V2 pages under the HR rules; Suresh reviews each one for the HR team.
 - A frontend test that reads a Classic page's script may also read its composable; that is a setup change with the
-  expectations unchanged (as in `hr-5c-sops.test.mjs`, `hr-8-memos.test.mjs`, `hr-14-messages.test.mjs`, `hr-15b-open-shifts.test.mjs`, `hr-15b-needs-posting.test.mjs` seven Applications tests `hr-5a-credentials.test.mjs` `hr-6-claims.test.mjs`, six Records-related tests, and `hr-4a-records`, `hr-4b-documents` and `hr-15a-locum-sign-in` for the Staff file, and `hr-9-dashboard` for the Dashboard).
-- V2 Open shifts: the Post sheet's Start and End times move to `V2TimeField` next time the page is touched
-  (Daniel, design debt DD-79).
+  expectations unchanged (as in `hr-5c-sops.test.mjs`, `hr-8-memos.test.mjs`, `hr-14-messages.test.mjs`, `hr-15b-open-shifts.test.mjs`, `hr-15b-needs-posting.test.mjs` seven Applications tests `hr-5a-credentials.test.mjs` `hr-6-claims.test.mjs`, six Records-related tests, and `hr-4a-records`, `hr-4b-documents` and `hr-15a-locum-sign-in` for the Staff file, `hr-9-dashboard` for the Dashboard, `hr-10a-letters` for Letters, `hr-10b-appraisals` for both Appraisal pages, `hr-10d-incidents` for both Incident pages, `hr-10c-discipline` for both Discipline pages, and, for Payroll, `hr-7a-payroll`, `hr-7b-payroll-runs`, `hr-7c-payslips-exports`, `hr-7c-protected-exports`, `hr-7d-mtd`, `hr-g2a-late-overtime` and `hr-g2b-late-leave-hours`).
+- Design debt DD-79 is closed for HR: the V2 Open shifts Post sheet (PR #935) and the V2 Roster shift times (PR #949)
+  use `V2TimeField`.
+- A V2 page or dialog that blocks an action says in words what is missing, naming every missing item, and the
+  blocked button looks off (`aria-disabled`), so the look and the words agree (Daniel, Payroll V2 PRs #951 and #952).
 - When the Classic SOPs restyle (`lastOpened`, which fills "I have read and understood" for the SOP just opened)
   reaches main, the V2 SOPs page takes the same binding from `useSopsPage.ts`, so the two match (Suresh, PR #872).
 
