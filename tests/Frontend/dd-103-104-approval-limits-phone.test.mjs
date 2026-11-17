@@ -20,7 +20,10 @@ test('DD-103: the table turns into one card per approver below lg', () => {
         /<table class="w-full text-left text-sm max-lg:block lg:min-w-\[920px\]"/,
     );
     assert.match(flat, /<thead class="max-lg:hidden">/);
-    assert.match(flat, /<tbody class="max-lg:grid max-lg:gap-3">/);
+    assert.match(
+        flat,
+        /<tbody class="max-lg:grid max-lg:gap-3 md:max-lg:grid-cols-2" ?>/,
+    );
     assert.match(
         flat,
         /max-lg:block max-lg:rounded-lg max-lg:border max-lg:p-3/,
@@ -40,6 +43,8 @@ test('DD-103: the table turns into one card per approver below lg', () => {
 
     assert.equal([...page.matchAll(/class="max-lg:min-h-11"/g)].length, 4);
     assert.doesNotMatch(page, /min-w-\[920px\]"[^>]*overflow-x-auto/);
+    // Daniel: the input lines up with the card's divider (no right padding below lg).
+    assert.equal([...page.matchAll(/max-lg:pr-0\b/g)].length, 3);
 });
 
 test('DD-104: Save is off with a hint until a limit is typed', () => {

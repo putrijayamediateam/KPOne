@@ -172,7 +172,9 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                             </th>
                         </tr>
                     </thead>
-                    <tbody class="max-lg:grid max-lg:gap-3">
+                    <tbody
+                        class="max-lg:grid max-lg:gap-3 md:max-lg:grid-cols-2"
+                    >
                         <tr
                             v-for="row in approvers"
                             :key="row.id"
@@ -180,7 +182,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                             data-testid="approver-limit-row"
                         >
                             <td
-                                class="py-3 pr-3 max-lg:block max-lg:pt-0 max-lg:pb-2"
+                                class="py-3 pr-3 max-lg:block max-lg:pt-0 max-lg:pr-0 max-lg:pb-2"
                             >
                                 <p class="font-medium">{{ row.name }}</p>
                                 <p class="text-xs text-muted-foreground">
@@ -188,7 +190,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                 </p>
                             </td>
                             <td
-                                class="py-3 pr-3 max-lg:block max-lg:border-t max-lg:py-2"
+                                class="py-3 pr-3 max-lg:block max-lg:border-t max-lg:py-2 max-lg:pr-0"
                             >
                                 <p
                                     class="mb-1 text-xs text-muted-foreground lg:hidden"
@@ -280,7 +282,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                 </p>
                             </td>
                             <td
-                                class="py-3 pr-3 max-lg:block max-lg:border-t max-lg:py-2"
+                                class="py-3 pr-3 max-lg:block max-lg:border-t max-lg:py-2 max-lg:pr-0"
                             >
                                 <p
                                     class="mb-1 text-xs text-muted-foreground lg:hidden"
