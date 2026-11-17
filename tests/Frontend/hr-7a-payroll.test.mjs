@@ -14,12 +14,20 @@ const files = {
     note: 'resources/js/components/hr/payroll/AccountantNote.vue',
 };
 // The page's script lives in its shared composable (V2 Payroll); the template is still read from the page.
+// The sheets' scripts live in shared composables (V2 Payroll); their templates are still read from the .vue files.
+const sheetComposables = {
+    profile: 'resources/js/composables/hr/useProfileSheet.ts',
+    table: 'resources/js/composables/hr/useTableSheet.ts',
+    sheet: 'resources/js/composables/hr/useMtdScheduleSheet.ts',
+};
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [
         k,
         k === 'page'
             ? `${read(p)}\n${read('resources/js/composables/hr/usePayrollPage.ts')}`
-            : read(p),
+            : sheetComposables[k]
+              ? `${read(p)}\n${read(sheetComposables[k])}`
+              : read(p),
     ]),
 );
 const types = read('resources/js/components/hr/payroll/types.ts');

@@ -2,8 +2,6 @@
 // HR-7d yearly MTD schedule (HR-PLAN 18.2): the year, rounding, the smallest MTD deducted, the yearly reliefs and the
 // EPF relief limit, and chargeable-income bands with a rate and the tax on M for categories 1 and 3 and for category 2.
 // Someone else checks it before KPOne uses it. KPOne ships no tax number: every field starts empty.
-import { router, usePage } from '@inertiajs/vue3';
-import { computed, reactive, watch } from 'vue';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,108 +16,13 @@ import {
 } from '@/components/ui/sheet';
 import { ErrorState } from '@/components/ui/state';
 import { Textarea } from '@/components/ui/textarea';
-import type { Option } from './types';
+import { useMtdScheduleSheet } from '@/composables/hr/useMtdScheduleSheet';
+import type { MtdScheduleSheetProps } from '@/composables/hr/useMtdScheduleSheet';
 
-const props = defineProps<{
-    open: boolean;
-    rounding: Option[];
-    reliefs: Option[];
-    maxBands: number;
-    year: number;
-}>();
+const props = defineProps<MtdScheduleSheetProps>();
 const emit = defineEmits<{ 'update:open': [value: boolean] }>();
-
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const failure = computed(() => errors.value.payroll ?? errors.value.records);
-type Band = {
-    from: string;
-    to: string;
-    rate: string;
-    base_cat13: string;
-    base_cat2: string;
-};
-const band = (from = ''): Band => ({
-    from,
-    to: '',
-    rate: '',
-    base_cat13: '',
-    base_cat2: '',
-});
-const emptyReliefs = () =>
-    Object.fromEntries(props.reliefs.map((r) => [r.value, ''])) as Record<
-        string,
-        string
-    >;
-const form = reactive({
-    year: '',
-    rounding: '',
-    minimum: '',
-    reliefs: {} as Record<string, string>,
-    sourceNote: '',
-    rows: [band('0.00')] as Band[],
-    key: '',
-    processing: false,
-});
-watch(
-    () => props.open,
-    (open) => {
-        if (open) {
-            Object.assign(form, {
-                year: String(props.year),
-                rounding: '',
-                minimum: '',
-                reliefs: emptyReliefs(),
-                sourceNote: '',
-                rows: [band('0.00')],
-                key: crypto.randomUUID(),
-            });
-        }
-    },
-);
-/** The next band starts one sen after the last one ends, so bands run on without a gap. */
-const addBand = () => {
-    const last = form.rows[form.rows.length - 1];
-    const match = last?.to.replace(/,/g, '').match(/^(\d+)(?:\.(\d{1,2}))?$/);
-    let next = '';
-
-    if (match) {
-        const sen =
-            Number(match[1]) * 100 +
-            Number((match[2] ?? '').padEnd(2, '0')) +
-            1;
-        next = `${Math.trunc(sen / 100)}.${String(sen % 100).padStart(2, '0')}`;
-    }
-
-    form.rows.push(band(next));
-};
-const removeBand = (index: number) => {
-    form.rows = form.rows.filter((_, i) => i !== index);
-};
-const send = () => {
-    form.processing = true;
-    router.post(
-        '/hr/payroll/mtd-schedules',
-        {
-            year: form.year,
-            rounding: form.rounding,
-            minimum: form.minimum,
-            ...form.reliefs,
-            source_note: form.sourceNote,
-            rows: form.rows,
-            idempotency_key: form.key,
-        },
-        {
-            preserveScroll: true,
-            onSuccess: () => emit('update:open', false),
-            onFinish: () => (form.processing = false),
-        },
-    );
-};
-const rowError = (i: number, field: string) =>
-    errors.value[`rows.${i}.${field}`];
+const { errors, failure, form, addBand, removeBand, send, rowError } =
+    useMtdScheduleSheet(props, () => emit('update:open', false));
 </script>
 
 <template>
