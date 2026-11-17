@@ -39,7 +39,7 @@ test('a pass that ran out throws the photo away and goes back to the camera with
     );
     assert.match(
         usePhoto,
-        /if \(PASS_REFUSALS\.includes\(message\)\) \{\s*[\s\S]*?clearPreview\(\);[\s\S]*?await startCamera\(\);\s*cameraNote\.value = TOOK_TOO_LONG;/,
+        /if \(PASS_REFUSALS\.includes\(message\)\) \{\s*[\s\S]*?clearPreview\(\);[\s\S]*?await startCamera\(\);\s*cameraNote\.value = passRefusalNote\(message\);/,
     );
     assert.match(
         dialog,
@@ -81,4 +81,21 @@ test('the preview title says which press it is', () => {
         dialog,
         /const title = computed\(\(\) => \(state\.kind === 'in' \? 'Clock in' : 'Clock out'\)\);/,
     );
+});
+
+test('only a pass that ran out says it took too long; a used or unknown pass has its own line (owner, 17 Nov 2026)', () => {
+    assert.match(
+        flow,
+        /export const PASS_NOT_USABLE =\s*'That photo could not be used, so it was not kept\. Take a new one\.';/,
+    );
+    assert.match(
+        flow,
+        /export const passRefusalNote = \(message: string\): string =>\s*message === PASS_REFUSALS\[0\] \? TOOK_TOO_LONG : PASS_NOT_USABLE;/,
+    );
+    // PASS_REFUSALS[0] is the server's TOO_LONG wording; the second is OPEN_AGAIN.
+    assert.match(
+        flow,
+        /export const PASS_REFUSALS = \[\s*'The camera was open too long\. Take the photo again\.',/,
+    );
+    assert.doesNotMatch(usePhoto, /cameraNote\.value = TOOK_TOO_LONG/);
 });
