@@ -3,8 +3,8 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { compileTemplate, parse } from '@vue/compiler-sfc';
 
-// HR V2 Payroll, part (a): Runs, Exports and Settings in the V2 look; Pay profiles and Tables keep their Classic markup
-// inside the V2 frame until part (b). The page shares three composables with Classic, so both send the same requests.
+// HR V2 Payroll: part (a) put Runs, Exports and Settings in the V2 look; part (b) Pay profiles and Tables, with V2
+// dialogs. The page and its dialogs share their composables with Classic, so both send the same requests.
 const read = (path) =>
     readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const source = read('resources/js/pages/HR/V2/Payroll.vue');
@@ -14,16 +14,7 @@ const runs = read('resources/js/composables/hr/useRunsTab.ts');
 const exportsTab = read('resources/js/composables/hr/useExportsTab.ts');
 const template = parse(source).descriptor.template.content;
 const script = parse(source).descriptor.scriptSetup.content;
-const classicTemplate = parse(classic).descriptor.template.content;
 const flat = template.replace(/\s+/g, ' ');
-const section = (name) => {
-    const start = classicTemplate.indexOf(`<!-- ${name} -->`);
-    const end = classicTemplate.indexOf('<!--', start + 5);
-
-    return classicTemplate.slice(start, end);
-};
-// Prettier may wrap the copied markup differently at the deeper indent (whitespace, a trailing comma in a call).
-const squash = (text) => text.replace(/\s+/g, '').replace(/,\)/g, ')');
 
 test('the V2 page compiles, is registered, and shares the composables with Classic', () => {
     assert.deepEqual(
@@ -64,21 +55,73 @@ test('the V2 page compiles, is registered, and shares the composables with Class
     }
 });
 
-test('Pay profiles and Tables keep their Classic markup inside the V2 frame until part (b)', () => {
-    for (const name of ['Pay profiles', 'Tables']) {
-        const block = section(name);
-        assert.ok(block.length > 500, name);
-        assert.ok(squash(flat).includes(squash(block)), name);
+test("part (b): Pay profiles and Tables are in the V2 look, with V2 dialogs that share the Classic sheets' composables", () => {
+    // The Classic markup carried in part (a) is gone: the V2 page uses no Classic sheet or confirm dialog.
+    assert.doesNotMatch(
+        template,
+        /<ProfileSheet|<TableSheet|<MtdScheduleSheet|<OperationalConfirmDialog|<StatusBadge|<EmptyState/,
+    );
+    assert.match(
+        template,
+        /<V2ProfileDialog\s+v-model:open="profileSheet\.open"/,
+    );
+    assert.match(template, /<V2TableDialog\s+v-model:open="tableSheet"/);
+    assert.match(template, /<V2MtdScheduleDialog\s+v-model:open="mtdSheet"/);
+
+    for (const [name, comp] of [
+        ['ProfileSheet', 'useProfileSheet'],
+        ['TableSheet', 'useTableSheet'],
+        ['MtdScheduleSheet', 'useMtdScheduleSheet'],
+    ]) {
+        const v2 = read(
+            `resources/js/components/hr-v2/payroll/V2${name === 'ProfileSheet' ? 'Profile' : name === 'TableSheet' ? 'Table' : 'MtdSchedule'}Dialog.vue`,
+        );
+        const v2Script = parse(v2).descriptor.scriptSetup.content;
+        assert.match(
+            v2Script,
+            new RegExp(
+                `${comp}\\(props, \\(\\) => emit\\('update:open', false\\)\\)`,
+            ),
+            name,
+        );
+        assert.match(
+            read(`resources/js/components/hr/payroll/${name}.vue`),
+            new RegExp(
+                `${comp}\\(props, \\(\\) => emit\\('update:open', false\\)\\)`,
+            ),
+            name,
+        );
+        // Each V2 dialog sends nothing of its own and waits, in words, for what is missing.
+        assert.doesNotMatch(
+            v2Script,
+            /router\.|fetch\(|useForm|crypto\.randomUUID/,
+            name,
+        );
+        assert.match(v2, /:confirm-disabled="missing !== ''"/, name);
+        assert.match(v2, /@confirm="missing === '' && send\(\)"/, name);
     }
 
-    // The Classic sheets and confirm dialogs that serve them come along unchanged.
-    assert.match(template, /<ProfileSheet/);
-    assert.match(template, /<TableSheet/);
-    assert.match(template, /<MtdScheduleSheet/);
-    assert.equal(
-        (template.match(/<OperationalConfirmDialog/g) ?? []).length,
-        2,
+    assert.match(
+        read('resources/js/composables/hr/useProfileSheet.ts'),
+        /'\/hr\/payroll\/profiles'/,
     );
+    assert.match(
+        read('resources/js/composables/hr/useMtdScheduleSheet.ts'),
+        /'\/hr\/payroll\/mtd-schedules'/,
+    );
+    // Confirm, check, reject and withdraw use the shared requests; Reject and Withdraw are red, and a reason starts empty.
+    assert.match(flat, /@confirm="decisionMissing === '' && decide\(\)"/);
+    assert.match(
+        flat,
+        /:tone="decision\.action === 'reject' \? 'danger' : 'default'"/,
+    );
+    assert.match(script, /'Pick a reason to continue\.'/);
+    assert.match(
+        flat,
+        /title="Withdraw this\?"[\s\S]*?tone="danger"[\s\S]*?@confirm="withdraw"/,
+    );
+    assert.match(flat, /:class="dangerButton" data-test="profile-reject"/);
+    assert.match(flat, /data-test="managers-outside"/);
 });
 
 test('Runs, Exports and Settings are in the V2 look', () => {
