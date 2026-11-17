@@ -1,60 +1,20 @@
 <script setup lang="ts">
 // HR-7b Runs tab (HR-PLAN 16.9): one card per run with a worded status, and Prepare a run for a pay group and month.
 // Managers' own pay and locums stay outside KPOne in v1.
-import { Link, router, usePage } from '@inertiajs/vue3';
-import { computed, reactive } from 'vue';
+import { Link } from '@inertiajs/vue3';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { OperationalSelect } from '@/components/ui/select';
 import { EmptyState } from '@/components/ui/state';
 import { StatusBadge } from '@/components/ui/status';
+import { useRunsTab } from '@/composables/hr/useRunsTab';
+import type { RunsTabProps } from '@/composables/hr/useRunsTab';
 import { myr } from '@/types/billing';
-import type { Option, RunRow } from './types';
 import { on, runWords } from './types';
 
-const props = defineProps<{
-    runs: RunRow[];
-    months: Option[];
-    groups: Option[];
-    ready: boolean;
-    prepareRefusal: string | null;
-}>();
-
-const page = usePage();
-const errors = computed(
-    () => (page.props.errors ?? {}) as Record<string, string | undefined>,
-);
-const form = reactive({
-    group: props.groups.length === 1 ? props.groups[0].value : '',
-    month: props.months[2]?.value ?? '',
-    kind: 'regular',
-    key: crypto.randomUUID(),
-    processing: false,
-});
-const kinds: Option[] = [
-    { value: 'regular', label: 'Monthly run' },
-    { value: 'adjustment', label: 'Adjustment to a locked run' },
-];
-const prepare = () => {
-    form.processing = true;
-    router.post(
-        '/hr/payroll/runs',
-        {
-            pay_group_id: form.group,
-            month: form.month,
-            kind: form.kind,
-            idempotency_key: form.key,
-        },
-        {
-            preserveScroll: true,
-            onFinish: () => {
-                form.processing = false;
-                form.key = crypto.randomUUID();
-            },
-        },
-    );
-};
+const props = defineProps<RunsTabProps>();
+const { errors, form, kinds, prepare } = useRunsTab(props);
 </script>
 
 <template>
