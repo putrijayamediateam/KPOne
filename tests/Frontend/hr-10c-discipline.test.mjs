@@ -93,6 +93,6 @@ test('disabled actions say why; the file picker is the shared button; closing ha
     );
     assert.match(
         template('list'),
-        /Open case: choose a staff file and write the allegation\s+first\./,
+        /Open case: choose a staff file and a date, and write the\s+allegation first\./,
     );
 });

@@ -32,7 +32,7 @@ test('Classic keeps Open case off until a date is chosen, with the reason in wor
     );
     assert.match(
         classic,
-        /v-else-if="!form\.incidentOn"[^>]*> Open case: choose the date it happened first\./,
+        /id="case-save-reason"[^>]*> Open case: choose a staff file and a date, and write the allegation first\./,
     );
 });
 
@@ -52,4 +52,12 @@ test('the date is still limited to today by the field; the server keeps its own 
         read('resources/js/pages/HR/V2/Discipline.vue'),
         /:max="discipline\.today"/,
     );
+});
+
+test('the one reason line is tied to the disabled button, and only while a requirement is missing', () => {
+    assert.match(
+        classic,
+        /:aria-describedby=" ?!form\.worker \|\| !form\.incidentOn \|\| form\.allegation\.trim\(\)\.length < 10 \? 'case-save-reason' : undefined ?"/,
+    );
+    assert.doesNotMatch(classic, /v-else-if="!form\.incidentOn"/);
 });
