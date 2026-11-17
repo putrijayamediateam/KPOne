@@ -17,7 +17,8 @@ test('approval limit row Saves are outline buttons', () => {
         assert.match(
             page,
             new RegExp(
-                `<Button\\s+size="sm"\\s+variant="outline"\\s+@click="saveLimit\\(row, '${kind}'\\)"`,
+                // DD-103/DD-104 (owner approved 2026-11-17): other settings may sit before the click.
+                `<Button\\s+size="sm"\\s+variant="outline"[^>]*@click="saveLimit\\(row, '${kind}'\\)"`,
             ),
             kind,
         );
