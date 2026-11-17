@@ -67,8 +67,17 @@ const limitEcho = (value: string | number | undefined): string => {
         : '';
 };
 
+// DD-104: Save stays off until a limit is typed (Clear removes a limit).
+const isBlank = (row: ApproverRow, capability: 'panel' | 'deferment') =>
+    String(formValues[keyOf(row.id, capability)] ?? '').trim() === '';
+
 const saveLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
     const key = keyOf(row.id, capability);
+
+    if (isBlank(row, capability)) {
+        return;
+    }
+
     fieldErrors[key] = undefined;
     router.post(
         '/billing-approval-limits',
@@ -147,9 +156,12 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
             >
                 No branch-assigned approvers were found for this branch.
             </div>
-            <div v-else class="mt-3 overflow-x-auto">
-                <table class="w-full min-w-[920px] text-left text-sm">
-                    <thead>
+            <!-- DD-103: below lg each approver is a card with the two limits stacked; from lg up, the table. -->
+            <div v-else class="mt-3 lg:overflow-x-auto">
+                <table
+                    class="w-full text-left text-sm max-lg:block lg:min-w-[920px]"
+                >
+                    <thead class="max-lg:hidden">
                         <tr class="border-b text-xs text-muted-foreground">
                             <th class="py-2 pr-3 font-medium">Approver</th>
                             <th class="py-2 pr-3 font-medium">
@@ -160,21 +172,36 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                             </th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody
+                        class="max-lg:grid max-lg:gap-3 md:max-lg:grid-cols-2"
+                    >
                         <tr
                             v-for="row in approvers"
                             :key="row.id"
-                            class="border-b align-top last:border-0"
+                            class="border-b align-top last:border-0 max-lg:block max-lg:rounded-lg max-lg:border max-lg:p-3 max-lg:last:border"
+                            data-testid="approver-limit-row"
                         >
-                            <td class="py-3 pr-3">
+                            <td
+                                class="py-3 pr-3 max-lg:block max-lg:pt-0 max-lg:pr-0 max-lg:pb-2"
+                            >
                                 <p class="font-medium">{{ row.name }}</p>
                                 <p class="text-xs text-muted-foreground">
                                     {{ row.email }}
                                 </p>
                             </td>
-                            <td class="py-3 pr-3">
+                            <td
+                                class="py-3 pr-3 max-lg:block max-lg:border-t max-lg:py-2 max-lg:pr-0"
+                            >
+                                <p
+                                    class="mb-1 text-xs text-muted-foreground lg:hidden"
+                                    aria-hidden="true"
+                                >
+                                    Panel approval limit (sen)
+                                </p>
                                 <template v-if="row.canPanelApprove">
-                                    <div class="flex items-center gap-2">
+                                    <div
+                                        class="flex flex-wrap items-center gap-2 max-lg:[&>input]:basis-full"
+                                    >
                                         <Input
                                             v-model="
                                                 formValues[
@@ -199,6 +226,8 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                         <Button
                                             size="sm"
                                             variant="outline"
+                                            class="max-lg:min-h-11"
+                                            :disabled="isBlank(row, 'panel')"
                                             @click="saveLimit(row, 'panel')"
                                         >
                                             Save
@@ -206,6 +235,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                         <Button
                                             size="sm"
                                             variant="outline"
+                                            class="max-lg:min-h-11"
                                             :disabled="
                                                 currentLimit(row, 'panel') ===
                                                 null
@@ -234,6 +264,13 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                             )
                                         }}
                                     </p>
+                                    <p
+                                        v-if="isBlank(row, 'panel')"
+                                        class="mt-1 text-xs text-muted-foreground"
+                                        data-testid="limit-blank-hint"
+                                    >
+                                        Enter a limit to continue.
+                                    </p>
                                     <InputError
                                         :message="
                                             fieldErrors[keyOf(row.id, 'panel')]
@@ -244,9 +281,19 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                     No Panel approval permission.
                                 </p>
                             </td>
-                            <td class="py-3 pr-3">
+                            <td
+                                class="py-3 pr-3 max-lg:block max-lg:border-t max-lg:py-2 max-lg:pr-0"
+                            >
+                                <p
+                                    class="mb-1 text-xs text-muted-foreground lg:hidden"
+                                    aria-hidden="true"
+                                >
+                                    Pay later approval limit (sen)
+                                </p>
                                 <template v-if="row.canDefermentApprove">
-                                    <div class="flex items-center gap-2">
+                                    <div
+                                        class="flex flex-wrap items-center gap-2 max-lg:[&>input]:basis-full"
+                                    >
                                         <Input
                                             v-model="
                                                 formValues[
@@ -274,6 +321,10 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                         <Button
                                             size="sm"
                                             variant="outline"
+                                            class="max-lg:min-h-11"
+                                            :disabled="
+                                                isBlank(row, 'deferment')
+                                            "
                                             @click="saveLimit(row, 'deferment')"
                                         >
                                             Save
@@ -281,6 +332,7 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                         <Button
                                             size="sm"
                                             variant="outline"
+                                            class="max-lg:min-h-11"
                                             :disabled="
                                                 currentLimit(
                                                     row,
@@ -312,6 +364,13 @@ const clearLimit = (row: ApproverRow, capability: 'panel' | 'deferment') => {
                                                 ],
                                             )
                                         }}
+                                    </p>
+                                    <p
+                                        v-if="isBlank(row, 'deferment')"
+                                        class="mt-1 text-xs text-muted-foreground"
+                                        data-testid="limit-blank-hint"
+                                    >
+                                        Enter a limit to continue.
                                     </p>
                                     <InputError
                                         :message="

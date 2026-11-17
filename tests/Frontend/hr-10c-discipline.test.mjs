@@ -91,8 +91,9 @@ test('disabled actions say why; the file picker is the shared button; closing ha
         script('case'),
         /Issue the warning letter in HR letters first\./,
     );
+    assert.match(template('list'), /\{\{ reasonLine \}\}/);
     assert.match(
-        template('list'),
-        /Open case: choose a staff file and write the allegation\s+first\./,
+        script('list'),
+        /Open case: choose \$\{choose\[0\]\} and write the allegation first\./,
     );
 });
