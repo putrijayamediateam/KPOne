@@ -11,11 +11,12 @@ const files = {
     tab: 'resources/js/components/hr/payroll/RunsTab.vue',
     page: 'resources/js/pages/HR/Payroll.vue',
 };
-// The Payroll page and the Runs tab keep their scripts in shared composables (V2 Payroll); the templates are
+// The Payroll page, the Runs tab and the run page keep their scripts in shared composables (V2 Payroll); the templates are
 // still read from the .vue files.
 const composables = {
     tab: 'resources/js/composables/hr/useRunsTab.ts',
     page: 'resources/js/composables/hr/usePayrollPage.ts',
+    run: 'resources/js/composables/hr/usePayrollRunPage.ts',
 };
 const source = Object.fromEntries(
     Object.entries(files).map(([k, p]) => [
