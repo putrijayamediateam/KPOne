@@ -2,9 +2,6 @@
 import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import AccountantNote from '@/components/hr/payroll/AccountantNote.vue';
-import MtdScheduleSheet from '@/components/hr/payroll/MtdScheduleSheet.vue';
-import ProfileSheet from '@/components/hr/payroll/ProfileSheet.vue';
-import TableSheet from '@/components/hr/payroll/TableSheet.vue';
 import {
     day,
     on,
@@ -13,15 +10,17 @@ import {
     tableWords,
     tone,
 } from '@/components/hr/payroll/types';
-import type { ExportRun } from '@/components/hr/payroll/types';
+import type {
+    ExportRun,
+    MtdSchedule,
+    StatutoryTable,
+} from '@/components/hr/payroll/types';
+import V2MtdScheduleDialog from '@/components/hr-v2/payroll/V2MtdScheduleDialog.vue';
+import V2ProfileDialog from '@/components/hr-v2/payroll/V2ProfileDialog.vue';
+import V2TableDialog from '@/components/hr-v2/payroll/V2TableDialog.vue';
 import InputError from '@/components/InputError.vue';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import OperationalConfirmDialog from '@/components/ui/OperationalConfirmDialog.vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import { OperationalSelect } from '@/components/ui/select';
-import { EmptyState } from '@/components/ui/state';
-import { StatusBadge } from '@/components/ui/status';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Field from '@/components/v2/V2Field.vue';
@@ -152,6 +151,47 @@ const schemesOf = (t: Record<string, unknown>) =>
         .join(', ') || 'no scheme';
 const runTone = (status: string) =>
     status === 'approved' || status === 'locked' ? 'success' : 'neutral';
+
+// Pay profiles and Tables (part (b)): red outline for Reject and Withdraw; the shared decide and withdraw requests.
+const dangerButton = `${button} text-destructive`;
+const targetOf = (t: StatutoryTable | MtdSchedule) =>
+    'schemeLabel' in t ? tableTarget(t) : mtdTarget(t);
+const decisionTitle = computed(() =>
+    decision.action === 'reject'
+        ? `Reject this ${noun(decision.target)}?`
+        : decision.target?.kind === 'profile'
+          ? 'Confirm this pay profile?'
+          : `Check this ${noun(decision.target)}?`,
+);
+const decisionText = computed(() => {
+    const target = decision.target;
+
+    if (!target) {
+        return '';
+    }
+
+    if (decision.action === 'reject') {
+        return `${target.label}. The rejection is kept with its reason; enter a new one to correct it.`;
+    }
+
+    return target.kind === 'table'
+        ? `${target.label}. Compare every band with the official table. A checked table never changes.`
+        : target.kind === 'mtd'
+          ? `${target.label}. Compare every band and relief with LHDN's published schedule. KPOne works out MTD with it for that year, and it never changes.`
+          : `${target.label}. It counts from that date and never changes; a later change is a new profile.`;
+});
+const decisionLabel = computed(() =>
+    decision.action === 'reject'
+        ? 'Reject'
+        : decision.target?.kind === 'profile'
+          ? 'Confirm'
+          : 'Check',
+);
+const decisionMissing = computed(() =>
+    decision.action === 'reject' && decision.reason === ''
+        ? 'Pick a reason to continue.'
+        : '',
+);
 </script>
 
 <template>
@@ -623,16 +663,16 @@ const runTone = (status: string) =>
                         </article>
                     </section>
 
-                    <!-- Pay profiles -->
+                    <!-- Pay profiles (V2) -->
                     <section
                         v-if="payroll.tab === 'profiles' && payroll.profiles"
-                        aria-labelledby="profiles-title"
-                        class="flex flex-col gap-3"
+                        aria-labelledby="v2-profiles-title"
+                        class="flex flex-col gap-4"
                         data-test="pay-profiles"
                     >
                         <div class="flex flex-col gap-1">
                             <h2
-                                id="profiles-title"
+                                id="v2-profiles-title"
                                 class="text-base font-semibold"
                             >
                                 Pay profiles
@@ -651,21 +691,34 @@ const runTone = (status: string) =>
                                 Manager's own pay is kept outside KPOne.
                             </p>
                         </div>
-                        <EmptyState
+                        <div
                             v-if="!payroll.setUp.groups"
-                            title="No pay group yet."
-                            description="Add a pay group in Settings first; each pay profile belongs to one."
-                        />
-                        <EmptyState
+                            :class="card"
+                            class="p-6 text-center"
+                        >
+                            <p class="font-medium">No pay group yet.</p>
+                            <p class="text-sm text-muted-foreground">
+                                Add a pay group in Settings first; each pay
+                                profile belongs to one.
+                            </p>
+                        </div>
+                        <div
                             v-else-if="!payroll.profiles.people.length"
-                            title="No staff files yet."
-                            description="Pay profiles are entered for staff who have a staff file."
-                        />
+                            :class="card"
+                            class="p-6 text-center"
+                        >
+                            <p class="font-medium">No staff files yet.</p>
+                            <p class="text-sm text-muted-foreground">
+                                Pay profiles are entered for staff who have a
+                                staff file.
+                            </p>
+                        </div>
                         <article
                             v-for="person in payroll.profiles.people"
                             :key="person.id"
-                            class="flex flex-col gap-3 rounded-xl border bg-card p-4"
-                            :aria-labelledby="`person-${person.id}`"
+                            :class="card"
+                            class="flex flex-col gap-3 p-4"
+                            :aria-labelledby="`v2-person-${person.id}`"
                             data-test="pay-person"
                         >
                             <div
@@ -673,7 +726,7 @@ const runTone = (status: string) =>
                             >
                                 <div class="min-w-0">
                                     <h3
-                                        :id="`person-${person.id}`"
+                                        :id="`v2-person-${person.id}`"
                                         class="text-base font-semibold break-words"
                                     >
                                         {{ person.name }}
@@ -685,22 +738,23 @@ const runTone = (status: string) =>
                                         Account inactive
                                     </p>
                                 </div>
-                                <Button
+                                <button
                                     v-if="
                                         payroll.setUp.groups &&
                                         !person.outside &&
                                         !person.enterRefusal
                                     "
-                                    variant="outline"
-                                    class="max-lg:min-h-11"
+                                    type="button"
+                                    :class="button"
                                     data-test="profile-enter"
                                     @click="enterFor(person)"
-                                    >{{
+                                >
+                                    {{
                                         person.current
                                             ? 'Change pay profile'
                                             : 'Enter pay profile'
-                                    }}</Button
-                                >
+                                    }}
+                                </button>
                                 <p
                                     v-else-if="
                                         person.enterRefusal &&
@@ -731,7 +785,7 @@ const runTone = (status: string) =>
                             >
                                 <div
                                     v-if="person.current"
-                                    class="flex flex-col gap-1 rounded-lg border p-3"
+                                    class="flex flex-col gap-1 rounded-[10px] border p-3"
                                     data-test="profile-current"
                                 >
                                     <div
@@ -740,10 +794,9 @@ const runTone = (status: string) =>
                                         <span class="text-sm font-medium"
                                             >In force now</span
                                         >
-                                        <StatusBadge
-                                            status="confirmed"
-                                            :label="profileWords.confirmed"
+                                        <V2Chip
                                             :tone="tone('confirmed')"
+                                            :label="profileWords.confirmed"
                                         />
                                     </div>
                                     <p class="text-sm tabular-nums">
@@ -786,7 +839,7 @@ const runTone = (status: string) =>
 
                                 <div
                                     v-if="person.waiting"
-                                    class="flex flex-col gap-1 rounded-lg border border-dashed p-3"
+                                    class="flex flex-col gap-1 rounded-[10px] border border-dashed p-3"
                                     data-test="profile-waiting"
                                 >
                                     <div
@@ -795,15 +848,21 @@ const runTone = (status: string) =>
                                         <span class="text-sm font-medium"
                                             >New</span
                                         >
-                                        <StatusBadge
-                                            status="waiting"
-                                            :label="profileWords.waiting"
+                                        <V2Chip
                                             :tone="tone('waiting')"
+                                            :label="profileWords.waiting"
                                         />
                                     </div>
                                     <p class="text-sm tabular-nums">
                                         {{ rateLine(person.waiting) }}
-                                        <template v-if="person.current"
+                                        <template
+                                            v-if="
+                                                person.current &&
+                                                (person.current.rateSen !==
+                                                    person.waiting.rateSen ||
+                                                    person.current.payType !==
+                                                        person.waiting.payType)
+                                            "
                                             >(now
                                             {{
                                                 money(person.current.rateSen)
@@ -844,9 +903,9 @@ const runTone = (status: string) =>
                                         <template
                                             v-if="person.waiting.canDecide"
                                         >
-                                            <Button
-                                                variant="outline"
-                                                class="max-lg:min-h-11"
+                                            <button
+                                                type="button"
+                                                :class="button"
                                                 data-test="profile-confirm"
                                                 @click="
                                                     askDecide(
@@ -857,11 +916,12 @@ const runTone = (status: string) =>
                                                         'check',
                                                     )
                                                 "
-                                                >Confirm</Button
                                             >
-                                            <Button
-                                                variant="outline"
-                                                class="max-lg:min-h-11"
+                                                Confirm
+                                            </button>
+                                            <button
+                                                type="button"
+                                                :class="dangerButton"
                                                 data-test="profile-reject"
                                                 @click="
                                                     askDecide(
@@ -872,8 +932,9 @@ const runTone = (status: string) =>
                                                         'reject',
                                                     )
                                                 "
-                                                >Reject</Button
                                             >
+                                                Reject
+                                            </button>
                                         </template>
                                         <p
                                             v-else-if="
@@ -883,10 +944,10 @@ const runTone = (status: string) =>
                                         >
                                             {{ person.waiting.decideRefusal }}
                                         </p>
-                                        <Button
+                                        <button
                                             v-if="person.waiting.canWithdraw"
-                                            variant="outline"
-                                            class="max-lg:min-h-11"
+                                            type="button"
+                                            :class="dangerButton"
                                             data-test="profile-withdraw"
                                             @click="
                                                 askWithdraw(
@@ -896,8 +957,9 @@ const runTone = (status: string) =>
                                                     ),
                                                 )
                                             "
-                                            >Withdraw</Button
                                         >
+                                            Withdraw
+                                        </button>
                                     </div>
                                 </div>
                             </div>
@@ -911,16 +973,16 @@ const runTone = (status: string) =>
                             </p>
                             <details
                                 v-if="person.earlier.length"
-                                class="text-sm"
+                                class="rounded-[10px] border text-sm"
                             >
                                 <summary
-                                    class="flex min-h-11 cursor-pointer items-center text-muted-foreground lg:min-h-0"
+                                    class="flex min-h-11 cursor-pointer items-center px-3 text-muted-foreground lg:min-h-9"
                                 >
                                     Earlier pay profiles ({{
                                         person.earlier.length
                                     }})
                                 </summary>
-                                <ul class="mt-2 flex flex-col gap-1">
+                                <ul class="flex flex-col gap-1 border-t p-3">
                                     <li
                                         v-for="p in person.earlier"
                                         :key="p.id"
@@ -938,416 +1000,369 @@ const runTone = (status: string) =>
                         </article>
                     </section>
 
-                    <!-- Tables -->
-                    <section
-                        v-if="payroll.tab === 'tables' && payroll.tables"
-                        aria-labelledby="tables-title"
-                        class="flex flex-col gap-3"
-                        data-test="statutory-tables"
-                    >
-                        <div
-                            class="flex flex-wrap items-center justify-between gap-2"
-                        >
-                            <div class="flex flex-col gap-1">
-                                <h2
-                                    id="tables-title"
-                                    class="text-base font-semibold"
-                                >
-                                    Statutory tables
-                                </h2>
-                                <p class="text-sm text-muted-foreground">
-                                    EPF, SOCSO, EIS and the HRD levy, entered by
-                                    the clinic from the official tables. KPOne
-                                    ships no statutory number.
-                                </p>
-                            </div>
-                            <Button
-                                variant="outline"
-                                class="max-lg:min-h-11"
-                                data-test="table-enter"
-                                @click="tableSheet = true"
-                                >Enter a table</Button
-                            >
-                        </div>
-                        <EmptyState
-                            v-if="!payroll.tables.tables.length"
-                            title="No tables checked yet."
-                            description="Enter a table from the official figures; someone else checks it before it counts."
-                        />
-                        <article
-                            v-for="t in payroll.tables.tables"
-                            :key="t.id"
-                            class="flex flex-col gap-3 rounded-xl border bg-card p-4"
-                            :aria-labelledby="`table-${t.id}`"
-                            data-test="statutory-table"
+                    <!-- Tables (V2): statutory tables, then the yearly MTD schedules -->
+                    <template v-if="payroll.tab === 'tables' && payroll.tables">
+                        <section
+                            v-for="block in [
+                                { kind: 'table', list: payroll.tables.tables },
+                                {
+                                    kind: 'mtd',
+                                    list: payroll.tables.mtdSchedules,
+                                },
+                            ] as const"
+                            :key="block.kind"
+                            :aria-labelledby="`v2-${block.kind}-title`"
+                            class="flex flex-col gap-4"
+                            :data-test="
+                                block.kind === 'table'
+                                    ? 'statutory-tables'
+                                    : 'mtd-schedules'
+                            "
                         >
                             <div
                                 class="flex flex-wrap items-start justify-between gap-2"
                             >
-                                <div class="min-w-0">
-                                    <h3
-                                        :id="`table-${t.id}`"
-                                        class="text-base font-semibold break-words"
-                                    >
-                                        {{ t.schemeLabel }} · {{ t.category }}
-                                    </h3>
-                                    <p class="text-sm text-muted-foreground">
-                                        From {{ day(t.effectiveFrom) }} ·
-                                        {{ t.roundingLabel }}
-                                    </p>
-                                </div>
-                                <StatusBadge
-                                    :status="t.status"
-                                    :label="
-                                        t.reason
-                                            ? `${tableWords[t.status]}: ${t.reason}`
-                                            : tableWords[t.status]
-                                    "
-                                    :tone="tone(t.status)"
-                                />
-                            </div>
-                            <p class="text-sm break-words">
-                                Source: {{ t.sourceNote }}
-                            </p>
-                            <div class="overflow-x-auto rounded-lg border">
-                                <table class="w-full min-w-[28rem] text-sm">
-                                    <thead class="bg-muted/50 text-left">
-                                        <tr>
-                                            <th
-                                                scope="col"
-                                                class="px-3 py-2 font-medium"
-                                            >
-                                                Wages from
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                class="px-3 py-2 font-medium"
-                                            >
-                                                To
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                class="px-3 py-2 text-right font-medium"
-                                            >
-                                                Employee
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                class="px-3 py-2 text-right font-medium"
-                                            >
-                                                Employer
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr
-                                            v-for="(r, i) in t.rows"
-                                            :key="i"
-                                            class="border-t tabular-nums"
-                                        >
-                                            <td
-                                                class="px-3 py-2 whitespace-nowrap"
-                                            >
-                                                {{ r.from }}
-                                            </td>
-                                            <td
-                                                class="px-3 py-2 whitespace-nowrap"
-                                            >
-                                                {{ r.to ?? 'and above' }}
-                                            </td>
-                                            <td
-                                                class="px-3 py-2 text-right whitespace-nowrap"
-                                            >
-                                                {{ r.employee }}
-                                            </td>
-                                            <td
-                                                class="px-3 py-2 text-right whitespace-nowrap"
-                                            >
-                                                {{ r.employer }}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <p class="text-xs text-muted-foreground">
-                                Entered by {{ t.enteredBy }} on
-                                {{ on(t.enteredAt)
-                                }}<template v-if="t.decidedBy && t.decidedAt">
-                                    ·
-                                    {{
-                                        t.status === 'rejected'
-                                            ? 'Rejected'
-                                            : 'Checked'
-                                    }}
-                                    by {{ t.decidedBy }} on
-                                    {{ on(t.decidedAt) }}</template
-                                >
-                            </p>
-                            <div
-                                v-if="t.status === 'entered'"
-                                class="flex flex-wrap items-center gap-2"
-                            >
-                                <template v-if="t.canDecide">
-                                    <Button
-                                        variant="outline"
-                                        class="max-lg:min-h-11"
-                                        data-test="table-check"
-                                        @click="
-                                            askDecide(tableTarget(t), 'check')
-                                        "
-                                        >Check</Button
-                                    >
-                                    <Button
-                                        variant="outline"
-                                        class="max-lg:min-h-11"
-                                        data-test="table-reject"
-                                        @click="
-                                            askDecide(tableTarget(t), 'reject')
-                                        "
-                                        >Reject</Button
-                                    >
-                                </template>
-                                <p
-                                    v-else-if="t.decideRefusal"
-                                    class="text-sm text-muted-foreground"
-                                >
-                                    {{ t.decideRefusal }}
-                                </p>
-                                <Button
-                                    v-if="t.canWithdraw"
-                                    variant="outline"
-                                    class="max-lg:min-h-11"
-                                    data-test="table-withdraw"
-                                    @click="askWithdraw(tableTarget(t))"
-                                    >Withdraw</Button
-                                >
-                            </div>
-                        </article>
-                    </section>
-
-                    <!-- HR-7d: the yearly MTD schedules (HR-PLAN 18.2), on the Tables tab after the statutory tables. -->
-                    <section
-                        v-if="payroll.tab === 'tables' && payroll.tables"
-                        aria-labelledby="mtd-title"
-                        class="flex flex-col gap-3"
-                        data-test="mtd-schedules"
-                    >
-                        <div
-                            class="flex flex-wrap items-center justify-between gap-2"
-                        >
-                            <div class="flex flex-col gap-1">
-                                <h2
-                                    id="mtd-title"
-                                    class="text-base font-semibold"
-                                >
-                                    MTD (PCB) schedules
-                                </h2>
-                                <p
-                                    class="max-w-prose text-sm text-muted-foreground"
-                                >
-                                    The year's chargeable income bands and
-                                    reliefs, entered by the clinic from LHDN's
-                                    published schedule. Once checked, KPOne
-                                    works out MTD on monthly runs for staff
-                                    whose pay profile has MTD details. KPOne
-                                    ships no tax number.
-                                </p>
-                            </div>
-                            <Button
-                                variant="outline"
-                                class="max-lg:min-h-11"
-                                data-test="mtd-enter"
-                                @click="mtdSheet = true"
-                                >Enter an MTD schedule</Button
-                            >
-                        </div>
-                        <EmptyState
-                            v-if="!payroll.tables.mtdSchedules.length"
-                            title="No MTD schedule yet."
-                            description="Until a schedule is checked for the year, MTD is typed for each person on each run."
-                        />
-                        <article
-                            v-for="m in payroll.tables.mtdSchedules"
-                            :key="m.id"
-                            class="flex flex-col gap-3 rounded-xl border bg-card p-4"
-                            :aria-labelledby="`mtd-${m.id}`"
-                            data-test="mtd-schedule"
-                        >
-                            <div
-                                class="flex flex-wrap items-start justify-between gap-2"
-                            >
-                                <div class="min-w-0">
-                                    <h3
-                                        :id="`mtd-${m.id}`"
+                                <div class="flex min-w-0 flex-col gap-1">
+                                    <h2
+                                        :id="`v2-${block.kind}-title`"
                                         class="text-base font-semibold"
                                     >
-                                        MTD schedule · {{ m.year }}
-                                    </h3>
-                                    <p class="text-sm text-muted-foreground">
-                                        {{ m.rounding }} · nothing deducted
-                                        below
-                                        {{ m.minimum }}
+                                        {{
+                                            block.kind === 'table'
+                                                ? 'Statutory tables'
+                                                : 'MTD (PCB) schedules'
+                                        }}
+                                    </h2>
+                                    <p
+                                        class="max-w-prose text-sm text-muted-foreground"
+                                    >
+                                        {{
+                                            block.kind === 'table'
+                                                ? 'EPF, SOCSO, EIS and the HRD levy, entered by the clinic from the official tables. KPOne ships no statutory number.'
+                                                : "The year's chargeable income bands and reliefs, entered by the clinic from LHDN's published schedule. Once checked, KPOne works out MTD on monthly runs for staff whose pay profile has MTD details. KPOne ships no tax number."
+                                        }}
                                     </p>
                                 </div>
-                                <StatusBadge
-                                    :status="m.status"
-                                    :label="
-                                        m.reason
-                                            ? `${tableWords[m.status]}: ${m.reason}`
-                                            : tableWords[m.status]
+                                <button
+                                    type="button"
+                                    :class="button"
+                                    :data-test="
+                                        block.kind === 'table'
+                                            ? 'table-enter'
+                                            : 'mtd-enter'
                                     "
-                                    :tone="tone(m.status)"
-                                />
+                                    @click="
+                                        block.kind === 'table'
+                                            ? (tableSheet = true)
+                                            : (mtdSheet = true)
+                                    "
+                                >
+                                    {{
+                                        block.kind === 'table'
+                                            ? 'Enter a table'
+                                            : 'Enter an MTD schedule'
+                                    }}
+                                </button>
                             </div>
-                            <p class="text-sm break-words">
-                                Source: {{ m.sourceNote }}
-                            </p>
-                            <dl
-                                class="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2"
+                            <div
+                                v-if="!block.list.length"
+                                :class="card"
+                                class="p-6 text-center"
+                            >
+                                <p class="font-medium">
+                                    {{
+                                        block.kind === 'table'
+                                            ? 'No tables checked yet.'
+                                            : 'No MTD schedule yet.'
+                                    }}
+                                </p>
+                                <p class="text-sm text-muted-foreground">
+                                    {{
+                                        block.kind === 'table'
+                                            ? 'Enter a table from the official figures; someone else checks it before it counts.'
+                                            : 'Until a schedule is checked for the year, MTD is typed for each person on each run.'
+                                    }}
+                                </p>
+                            </div>
+                            <article
+                                v-for="t in block.list"
+                                :key="t.id"
+                                :class="card"
+                                class="flex flex-col gap-3 p-4"
+                                :aria-labelledby="`v2-${block.kind}-${t.id}`"
+                                :data-test="
+                                    block.kind === 'table'
+                                        ? 'statutory-table'
+                                        : 'mtd-schedule'
+                                "
                             >
                                 <div
-                                    v-for="r in m.reliefs"
-                                    :key="r.label"
-                                    class="flex justify-between gap-3 border-b py-1"
+                                    class="flex flex-wrap items-start justify-between gap-2"
                                 >
-                                    <dt class="text-muted-foreground">
-                                        {{ r.label }}
-                                    </dt>
-                                    <dd class="tabular-nums">{{ r.amount }}</dd>
-                                </div>
-                            </dl>
-                            <div class="overflow-x-auto rounded-lg border">
-                                <table class="w-full min-w-[36rem] text-sm">
-                                    <caption class="sr-only">
-                                        Chargeable income bands for
-                                        {{
-                                            m.year
-                                        }}
-                                    </caption>
-                                    <thead class="bg-muted/50 text-left">
-                                        <tr>
-                                            <th
-                                                scope="col"
-                                                class="px-3 py-2 font-medium"
-                                            >
-                                                From (M)
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                class="px-3 py-2 font-medium"
-                                            >
-                                                To
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                class="px-3 py-2 text-right font-medium"
-                                            >
-                                                Rate (R)
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                class="px-3 py-2 text-right font-medium"
-                                            >
-                                                Tax on M, categories 1 and 3
-                                            </th>
-                                            <th
-                                                scope="col"
-                                                class="px-3 py-2 text-right font-medium"
-                                            >
-                                                Tax on M, category 2
-                                            </th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <tr
-                                            v-for="(r, i) in m.rows"
-                                            :key="i"
-                                            class="border-t tabular-nums"
+                                    <div class="min-w-0">
+                                        <h3
+                                            :id="`v2-${block.kind}-${t.id}`"
+                                            class="text-base font-semibold break-words"
                                         >
-                                            <td
-                                                class="px-3 py-2 whitespace-nowrap"
-                                            >
-                                                {{ r.from }}
-                                            </td>
-                                            <td
-                                                class="px-3 py-2 whitespace-nowrap"
-                                            >
-                                                {{ r.to ?? 'and above' }}
-                                            </td>
-                                            <td
-                                                class="px-3 py-2 text-right whitespace-nowrap"
-                                            >
-                                                {{ r.rate }}
-                                            </td>
-                                            <td
-                                                class="px-3 py-2 text-right whitespace-nowrap"
-                                            >
-                                                {{ r.baseCat13 }}
-                                            </td>
-                                            <td
-                                                class="px-3 py-2 text-right whitespace-nowrap"
-                                            >
-                                                {{ r.baseCat2 }}
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <p class="text-xs text-muted-foreground">
-                                Entered by {{ m.enteredBy }} on
-                                {{ on(m.enteredAt)
-                                }}<template v-if="m.decidedBy && m.decidedAt">
-                                    ·
-                                    {{
-                                        m.status === 'rejected'
-                                            ? 'Rejected'
-                                            : 'Checked'
-                                    }}
-                                    by {{ m.decidedBy }} on
-                                    {{ on(m.decidedAt) }}</template
-                                >
-                            </p>
-                            <div
-                                v-if="m.status === 'entered'"
-                                class="flex flex-wrap items-center gap-2"
-                            >
-                                <template v-if="m.canDecide">
-                                    <Button
-                                        variant="outline"
-                                        class="max-lg:min-h-11"
-                                        data-test="mtd-check"
-                                        @click="
-                                            askDecide(mtdTarget(m), 'check')
+                                            {{
+                                                'schemeLabel' in t
+                                                    ? `${t.schemeLabel} · ${t.category}`
+                                                    : `MTD schedule · ${t.year}`
+                                            }}
+                                        </h3>
+                                        <p
+                                            class="text-sm text-muted-foreground"
+                                        >
+                                            {{
+                                                'schemeLabel' in t
+                                                    ? `From ${day(t.effectiveFrom)} · ${t.roundingLabel}`
+                                                    : `${t.rounding} · nothing deducted below ${t.minimum}`
+                                            }}
+                                        </p>
+                                    </div>
+                                    <V2Chip
+                                        :tone="tone(t.status)"
+                                        :label="
+                                            t.reason
+                                                ? `${tableWords[t.status]}: ${t.reason}`
+                                                : tableWords[t.status]
                                         "
-                                        >Check</Button
-                                    >
-                                    <Button
-                                        variant="outline"
-                                        class="max-lg:min-h-11"
-                                        data-test="mtd-reject"
-                                        @click="
-                                            askDecide(mtdTarget(m), 'reject')
-                                        "
-                                        >Reject</Button
-                                    >
-                                </template>
-                                <p
-                                    v-else-if="m.decideRefusal"
-                                    class="text-sm text-muted-foreground"
-                                >
-                                    {{ m.decideRefusal }}
+                                    />
+                                </div>
+                                <p class="text-sm break-words">
+                                    Source: {{ t.sourceNote }}
                                 </p>
-                                <Button
-                                    v-if="m.canWithdraw"
-                                    variant="outline"
-                                    class="max-lg:min-h-11"
-                                    data-test="mtd-withdraw"
-                                    @click="askWithdraw(mtdTarget(m))"
-                                    >Withdraw</Button
+                                <dl
+                                    v-if="'reliefs' in t"
+                                    class="grid gap-x-6 gap-y-1 text-sm sm:grid-cols-2"
                                 >
-                            </div>
-                        </article>
-                    </section>
+                                    <div
+                                        v-for="r in t.reliefs"
+                                        :key="r.label"
+                                        class="flex justify-between gap-3 border-b py-1"
+                                    >
+                                        <dt class="text-muted-foreground">
+                                            {{ r.label }}
+                                        </dt>
+                                        <dd class="tabular-nums">
+                                            {{ r.amount }}
+                                        </dd>
+                                    </div>
+                                </dl>
+                                <div
+                                    class="overflow-x-auto rounded-[10px] border"
+                                >
+                                    <table
+                                        v-if="'schemeLabel' in t"
+                                        class="w-full min-w-[28rem] text-sm"
+                                    >
+                                        <caption class="sr-only">
+                                            Wage bands for
+                                            {{
+                                                t.schemeLabel
+                                            }}
+                                            ·
+                                            {{
+                                                t.category
+                                            }}
+                                        </caption>
+                                        <thead class="bg-muted/50 text-left">
+                                            <tr>
+                                                <th
+                                                    scope="col"
+                                                    class="px-3 py-2 font-medium"
+                                                >
+                                                    Wages from
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    class="px-3 py-2 font-medium"
+                                                >
+                                                    To
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    class="px-3 py-2 text-right font-medium"
+                                                >
+                                                    Employee
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    class="px-3 py-2 text-right font-medium"
+                                                >
+                                                    Employer
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr
+                                                v-for="(r, i) in t.rows"
+                                                :key="i"
+                                                class="border-t tabular-nums"
+                                            >
+                                                <td
+                                                    class="px-3 py-2 whitespace-nowrap"
+                                                >
+                                                    {{ r.from }}
+                                                </td>
+                                                <td
+                                                    class="px-3 py-2 whitespace-nowrap"
+                                                >
+                                                    {{ r.to ?? 'and above' }}
+                                                </td>
+                                                <td
+                                                    class="px-3 py-2 text-right whitespace-nowrap"
+                                                >
+                                                    {{ r.employee }}
+                                                </td>
+                                                <td
+                                                    class="px-3 py-2 text-right whitespace-nowrap"
+                                                >
+                                                    {{ r.employer }}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                    <table
+                                        v-else
+                                        class="w-full min-w-[36rem] text-sm"
+                                    >
+                                        <caption class="sr-only">
+                                            Chargeable income bands for
+                                            {{
+                                                t.year
+                                            }}
+                                        </caption>
+                                        <thead class="bg-muted/50 text-left">
+                                            <tr>
+                                                <th
+                                                    scope="col"
+                                                    class="px-3 py-2 font-medium"
+                                                >
+                                                    From (M)
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    class="px-3 py-2 font-medium"
+                                                >
+                                                    To
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    class="px-3 py-2 text-right font-medium"
+                                                >
+                                                    Rate (R)
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    class="px-3 py-2 text-right font-medium"
+                                                >
+                                                    Tax on M, categories 1 and 3
+                                                </th>
+                                                <th
+                                                    scope="col"
+                                                    class="px-3 py-2 text-right font-medium"
+                                                >
+                                                    Tax on M, category 2
+                                                </th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr
+                                                v-for="(r, i) in t.rows"
+                                                :key="i"
+                                                class="border-t tabular-nums"
+                                            >
+                                                <td
+                                                    class="px-3 py-2 whitespace-nowrap"
+                                                >
+                                                    {{ r.from }}
+                                                </td>
+                                                <td
+                                                    class="px-3 py-2 whitespace-nowrap"
+                                                >
+                                                    {{ r.to ?? 'and above' }}
+                                                </td>
+                                                <td
+                                                    class="px-3 py-2 text-right whitespace-nowrap"
+                                                >
+                                                    {{ r.rate }}
+                                                </td>
+                                                <td
+                                                    class="px-3 py-2 text-right whitespace-nowrap"
+                                                >
+                                                    {{ r.baseCat13 }}
+                                                </td>
+                                                <td
+                                                    class="px-3 py-2 text-right whitespace-nowrap"
+                                                >
+                                                    {{ r.baseCat2 }}
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p class="text-xs text-muted-foreground">
+                                    Entered by {{ t.enteredBy }} on
+                                    {{ on(t.enteredAt)
+                                    }}<template
+                                        v-if="t.decidedBy && t.decidedAt"
+                                    >
+                                        ·
+                                        {{
+                                            t.status === 'rejected'
+                                                ? 'Rejected'
+                                                : 'Checked'
+                                        }}
+                                        by {{ t.decidedBy }} on
+                                        {{ on(t.decidedAt) }}</template
+                                    >
+                                </p>
+                                <div
+                                    v-if="t.status === 'entered'"
+                                    class="flex flex-wrap items-center gap-2"
+                                >
+                                    <template v-if="t.canDecide">
+                                        <button
+                                            type="button"
+                                            :class="button"
+                                            :data-test="`${block.kind}-check`"
+                                            @click="
+                                                askDecide(targetOf(t), 'check')
+                                            "
+                                        >
+                                            Check
+                                        </button>
+                                        <button
+                                            type="button"
+                                            :class="dangerButton"
+                                            :data-test="`${block.kind}-reject`"
+                                            @click="
+                                                askDecide(targetOf(t), 'reject')
+                                            "
+                                        >
+                                            Reject
+                                        </button>
+                                    </template>
+                                    <p
+                                        v-else-if="t.decideRefusal"
+                                        class="text-sm text-muted-foreground"
+                                    >
+                                        {{ t.decideRefusal }}
+                                    </p>
+                                    <button
+                                        v-if="t.canWithdraw"
+                                        type="button"
+                                        :class="dangerButton"
+                                        :data-test="`${block.kind}-withdraw`"
+                                        @click="askWithdraw(targetOf(t))"
+                                    >
+                                        Withdraw
+                                    </button>
+                                </div>
+                            </article>
+                        </section>
+                    </template>
 
                     <!-- Settings (V2) -->
                     <section
@@ -1715,7 +1730,7 @@ const runTone = (status: string) =>
             </template>
         </V2WorkLayout>
 
-        <ProfileSheet
+        <V2ProfileDialog
             v-model:open="profileSheet.open"
             :person="profileSheet.person"
             :groups="payroll.options.groups"
@@ -1725,13 +1740,13 @@ const runTone = (status: string) =>
             :today="payroll.today"
             :mtd-categories="payroll.options.mtdCategories"
         />
-        <TableSheet
+        <V2TableDialog
             v-model:open="tableSheet"
             :schemes="payroll.options.schemes"
             :rounding="payroll.options.rounding"
             :max-rows="payroll.options.maxRows"
         />
-        <MtdScheduleSheet
+        <V2MtdScheduleDialog
             v-model:open="mtdSheet"
             :rounding="payroll.options.mtdRounding"
             :reliefs="payroll.options.mtdReliefs"
@@ -1739,52 +1754,35 @@ const runTone = (status: string) =>
             :year="Number(payroll.today.slice(0, 4))"
         />
 
-        <OperationalConfirmDialog
+        <!-- Check, confirm or reject (V2): the same shared decide request as Classic. -->
+        <V2Dialog
             :open="decision.target !== null"
-            :title="
-                decision.action === 'reject'
-                    ? `Reject this ${noun(decision.target)}?`
-                    : decision.target?.kind === 'profile'
-                      ? 'Confirm this pay profile?'
-                      : `Check this ${noun(decision.target)}?`
-            "
-            :description="
-                decision.target
-                    ? decision.action === 'reject'
-                        ? `${decision.target.label}. The rejection is kept with its reason; enter a new one to correct it.`
-                        : decision.target.kind === 'table'
-                          ? `${decision.target.label}. Compare every band with the official table. A checked table never changes.`
-                          : decision.target.kind === 'mtd'
-                            ? `${decision.target.label}. Compare every band and relief with LHDN's published schedule. KPOne works out MTD with it for that year, and it never changes.`
-                            : `${decision.target.label}. It counts from that date and never changes; a later change is a new profile.`
-                    : ''
-            "
-            :confirm-label="
-                decision.action === 'reject'
-                    ? 'Reject'
-                    : decision.target?.kind === 'profile'
-                      ? 'Confirm'
-                      : 'Check'
-            "
-            processing-label="Saving…"
-            :processing="busy"
-            :error="failure"
+            :title="decisionTitle"
+            :description="decisionText"
+            :confirm-label="busy ? 'Saving…' : decisionLabel"
+            :tone="decision.action === 'reject' ? 'danger' : 'default'"
+            :busy="busy"
+            :confirm-disabled="decisionMissing !== ''"
+            :confirm-disabled-reason="decisionMissing"
             @update:open="(v: boolean) => !v && (decision.target = null)"
-            @confirm="decide"
+            @confirm="decisionMissing === '' && decide()"
         >
+            <p v-if="failure" role="alert" class="text-sm text-destructive">
+                {{ failure }}
+            </p>
             <div v-if="decision.action === 'reject'" class="grid gap-1.5">
-                <Label for="payroll-reject-reason"
-                    ><span id="payroll-reject-reason-label"
-                        >Why it is rejected *</span
-                    ></Label
+                <label id="v2-payroll-reject-label" class="text-sm font-medium"
+                    >Why it is rejected
+                    <span class="text-destructive" aria-hidden="true"
+                        >*</span
+                    ></label
                 >
                 <OperationalSelect
-                    id="payroll-reject-reason"
                     v-model="decision.reason"
-                    labelledby="payroll-reject-reason-label"
+                    labelledby="v2-payroll-reject-label"
                     label="Why it is rejected"
                     placeholder="Choose a reason"
-                    trigger-class="max-lg:h-11"
+                    trigger-class="h-11 w-full lg:h-9"
                     :options="
                         decision.target?.kind === 'profile'
                             ? payroll.options.profileRejectReasons
@@ -1792,11 +1790,18 @@ const runTone = (status: string) =>
                     "
                     :invalid="!!errors.reason"
                 />
-                <InputError :message="errors.reason" />
+                <p
+                    v-if="errors.reason"
+                    role="alert"
+                    class="text-sm text-destructive"
+                >
+                    {{ errors.reason }}
+                </p>
             </div>
-        </OperationalConfirmDialog>
+        </V2Dialog>
 
-        <OperationalConfirmDialog
+        <!-- Withdraw (V2): the same shared withdraw request as Classic. -->
+        <V2Dialog
             :open="withdrawing.target !== null"
             title="Withdraw this?"
             :description="
@@ -1804,13 +1809,16 @@ const runTone = (status: string) =>
                     ? `${withdrawing.target.label}. It is kept as withdrawn and nobody checks it.`
                     : ''
             "
-            confirm-label="Withdraw"
-            processing-label="Withdrawing…"
-            :processing="busy"
-            :error="failure"
+            :confirm-label="busy ? 'Withdrawing…' : 'Withdraw'"
+            tone="danger"
+            :busy="busy"
             @update:open="(v: boolean) => !v && (withdrawing.target = null)"
             @confirm="withdraw"
-        />
+        >
+            <p v-if="failure" role="alert" class="text-sm text-destructive">
+                {{ failure }}
+            </p>
+        </V2Dialog>
 
         <!-- Export password (V2): the same composable as Classic; the password is sent once and never kept. -->
         <V2Dialog
