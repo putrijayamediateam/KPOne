@@ -26,7 +26,8 @@ test('the approve dialog says the month is locked, in Classic and V2', () => {
 });
 
 test('the run page lists late overtime and adds it only on a draft adjustment', () => {
-    const source = read('resources/js/pages/HR/PayrollRun.vue');
+    // The run page's script lives in its shared composable (V2 PayrollRun); both are read.
+    const source = `${read('resources/js/pages/HR/PayrollRun.vue')}\n${read('resources/js/composables/hr/usePayrollRunPage.ts')}`;
 
     assert.match(source, /late: LateItem\[\];/);
     assert.match(
