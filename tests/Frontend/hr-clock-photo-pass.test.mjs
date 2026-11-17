@@ -99,3 +99,18 @@ test('only a pass that ran out says it took too long; a used or unknown pass has
     );
     assert.doesNotMatch(usePhoto, /cameraNote\.value = TOOK_TOO_LONG/);
 });
+
+test("the two pass refusals match the server's own wording (Suresh m1)", () => {
+    const service = read(
+        'app/Domain/HR/Attendance/Photos/ClockPhotoService.php',
+    );
+    const constant = (name) =>
+        service.match(new RegExp(`public const ${name} = '([^']+)';`))?.[1];
+    const refusals = flow.match(
+        /export const PASS_REFUSALS = \[\s*'([^']+)',\s*'([^']+)',\s*\];/,
+    );
+
+    assert.ok(refusals, 'PASS_REFUSALS');
+    assert.equal(refusals[1], constant('TOO_LONG'));
+    assert.equal(refusals[2], constant('OPEN_AGAIN'));
+});
