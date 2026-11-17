@@ -3,13 +3,13 @@ import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
 // PDPA 14 (owner, 2026-11-11, "go with b"): payroll files are AES-256 zips under a password typed at download time.
-const tab = readFileSync(
-    new URL(
-        '../../resources/js/components/hr/payroll/ExportsTab.vue',
-        import.meta.url,
-    ),
-    'utf8',
-);
+// The tab's script lives in its shared composable (V2 Payroll); both are read.
+const tab = [
+    '../../resources/js/components/hr/payroll/ExportsTab.vue',
+    '../../resources/js/composables/hr/useExportsTab.ts',
+]
+    .map((path) => readFileSync(new URL(path, import.meta.url), 'utf8'))
+    .join('\n');
 
 test('a download first asks for a password, sent once in the POST body and never kept', () => {
     assert.match(tab, /@click="ask\(run, 'bank', \$event\.currentTarget\)"/);
