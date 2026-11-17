@@ -24,9 +24,11 @@ const source = Object.fromEntries(
         k,
         k === 'payroll'
             ? `${read(p)}\n${read('resources/js/composables/hr/usePayrollPage.ts')}`
-            : sheetComposables[k]
-              ? `${read(p)}\n${read(sheetComposables[k])}`
-              : read(p),
+            : k === 'run'
+              ? `${read(p)}\n${read('resources/js/composables/hr/usePayrollRunPage.ts')}`
+              : sheetComposables[k]
+                ? `${read(p)}\n${read(sheetComposables[k])}`
+                : read(p),
     ]),
 );
 const template = (key) => parse(read(files[key])).descriptor.template.content;
