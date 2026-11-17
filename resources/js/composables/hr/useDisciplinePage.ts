@@ -54,6 +54,30 @@ export function useDisciplinePage(props: DisciplinePageProps) {
         key: crypto.randomUUID(),
         processing: false,
     });
+    // The one line that says what Open case still needs, built from what is actually missing ('' when nothing is).
+    const reasonLine = computed(() => {
+        const choose = [
+            ...(form.worker ? [] : ['a staff file']),
+            ...(form.incidentOn ? [] : ['a date']),
+        ];
+        const write = form.allegation.trim().length < 10;
+
+        if (!choose.length && !write) {
+            return '';
+        }
+
+        if (!write) {
+            return `Open case: choose ${choose.join(' and ')} first.`;
+        }
+
+        if (!choose.length) {
+            return 'Open case: write the allegation first.';
+        }
+
+        return choose.length === 1
+            ? `Open case: choose ${choose[0]} and write the allegation first.`
+            : `Open case: choose ${choose.join(', ')}, and write the allegation first.`;
+    });
     const startCase = () => {
         form.worker = '';
         // The date of an allegation is a fact the person states, so it starts empty (owner decision, 2026-11-16).
@@ -91,5 +115,6 @@ export function useDisciplinePage(props: DisciplinePageProps) {
         startCase,
         submit,
         textareaClass,
+        reasonLine,
     };
 }
