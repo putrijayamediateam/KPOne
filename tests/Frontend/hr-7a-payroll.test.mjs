@@ -13,11 +13,17 @@ const files = {
     rm: 'resources/js/components/hr/payroll/RmInput.vue',
     note: 'resources/js/components/hr/payroll/AccountantNote.vue',
 };
+// The page's script lives in its shared composable (V2 Payroll); the template is still read from the page.
 const source = Object.fromEntries(
-    Object.entries(files).map(([k, p]) => [k, read(p)]),
+    Object.entries(files).map(([k, p]) => [
+        k,
+        k === 'page'
+            ? `${read(p)}\n${read('resources/js/composables/hr/usePayrollPage.ts')}`
+            : read(p),
+    ]),
 );
 const types = read('resources/js/components/hr/payroll/types.ts');
-const template = (key) => parse(source[key]).descriptor.template.content;
+const template = (key) => parse(read(files[key])).descriptor.template.content;
 
 test('the new page and components compile', () => {
     for (const [key, path] of Object.entries(files)) {
