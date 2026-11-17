@@ -121,7 +121,11 @@ const mtdOptions = computed(() => [
                             ? 'Hourly rate'
                             : 'Basic monthly salary'
                     "
-                    hint="For example 2,500.00"
+                    :hint="
+                        form.payType === 'hourly'
+                            ? 'For example 15.00'
+                            : 'For example 2,500.00'
+                    "
                     :error="errors.rate"
                     required
                 />

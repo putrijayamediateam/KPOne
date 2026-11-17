@@ -24,31 +24,8 @@ const schemes = [
     { key: 'mtd', label: 'MTD (PCB)' },
     { key: 'hrd', label: 'HRD levy' },
 ] as const;
+// Fixed labels only; the form itself stays per sheet (Suresh M1: pay values must not outlive the sheet).
 export type SchemeKey = (typeof schemes)[number]['key'];
-
-const form = reactive({
-    payGroup: '',
-    payType: 'monthly',
-    rate: '',
-    effectiveFrom: '',
-    schemes: {
-        epf: false,
-        socso: false,
-        eis: false,
-        mtd: false,
-        hrd: false,
-    } as Record<SchemeKey, boolean>,
-    epfCategory: '',
-    socsoCategory: '',
-    // HR-7d (HR-PLAN 18.3): optional MTD details; with a category KPOne works MTD out on monthly runs.
-    mtdCategory: 'none',
-    mtdChildren: '0',
-    mtdDisabledSelf: false,
-    mtdDisabledSpouse: false,
-    items: [] as { type: string; amount: string }[],
-    key: '',
-    processing: false,
-});
 
 export function useProfileSheet(props: ProfileSheetProps, close: () => void) {
     const page = usePage();
@@ -58,6 +35,29 @@ export function useProfileSheet(props: ProfileSheetProps, close: () => void) {
     const failure = computed(
         () => errors.value.payroll ?? errors.value.records,
     );
+    const form = reactive({
+        payGroup: '',
+        payType: 'monthly',
+        rate: '',
+        effectiveFrom: '',
+        schemes: {
+            epf: false,
+            socso: false,
+            eis: false,
+            mtd: false,
+            hrd: false,
+        } as Record<SchemeKey, boolean>,
+        epfCategory: '',
+        socsoCategory: '',
+        // HR-7d (HR-PLAN 18.3): optional MTD details; with a category KPOne works MTD out on monthly runs.
+        mtdCategory: 'none',
+        mtdChildren: '0',
+        mtdDisabledSelf: false,
+        mtdDisabledSpouse: false,
+        items: [] as { type: string; amount: string }[],
+        key: '',
+        processing: false,
+    });
     watch(
         () => props.open,
         (open) => {

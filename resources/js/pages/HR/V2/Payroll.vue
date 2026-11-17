@@ -855,7 +855,14 @@ const decisionMissing = computed(() =>
                                     </div>
                                     <p class="text-sm tabular-nums">
                                         {{ rateLine(person.waiting) }}
-                                        <template v-if="person.current"
+                                        <template
+                                            v-if="
+                                                person.current &&
+                                                (person.current.rateSen !==
+                                                    person.waiting.rateSen ||
+                                                    person.current.payType !==
+                                                        person.waiting.payType)
+                                            "
                                             >(now
                                             {{
                                                 money(person.current.rateSen)

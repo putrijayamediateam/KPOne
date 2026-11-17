@@ -124,6 +124,36 @@ test("part (b): Pay profiles and Tables are in the V2 look, with V2 dialogs that
     assert.match(flat, /data-test="managers-outside"/);
 });
 
+test('part (b) fixes: the profile form stays per sheet; the rate example and the "(now …)" note follow the figures', () => {
+    // Suresh M1: the form (pay values) is created inside the composable, never shared at module level.
+    const profile = read('resources/js/composables/hr/useProfileSheet.ts');
+    const fn = profile.indexOf('export function useProfileSheet');
+    assert.ok(fn > 0);
+    assert.ok(profile.indexOf('const form = reactive(') > fn);
+
+    for (const path of [
+        'resources/js/composables/hr/useTableSheet.ts',
+        'resources/js/composables/hr/useMtdScheduleSheet.ts',
+    ]) {
+        const text = read(path);
+        assert.ok(
+            text.indexOf('const form = reactive(') >
+                text.indexOf('export function'),
+            path,
+        );
+    }
+
+    // Daniel: an hourly example for an hourly rate, and "(now …)" only when the waiting figure differs.
+    assert.match(
+        read('resources/js/components/hr-v2/payroll/V2ProfileDialog.vue'),
+        /form\.payType === 'hourly'\s+\? 'For example 15\.00'\s+: 'For example 2,500\.00'/,
+    );
+    assert.match(
+        flat,
+        /person\.current\.rateSen !== person\.waiting\.rateSen \|\| person\.current\.payType !== person\.waiting\.payType/,
+    );
+});
+
 test('Runs, Exports and Settings are in the V2 look', () => {
     assert.match(template, /<V2WorkLayout title="Payroll"/);
     assert.match(template, /<V2Tabs/);
