@@ -22,16 +22,6 @@ test('DS-12: Me is no longer a nav item and the You heading is gone', () => {
     assert.match(page, /Me lives in the account menu/);
 });
 
-test('DS-12: the clock shortcut is an outline button from 1024 px and the first phone menu row', () => {
-    assert.match(
-        css,
-        /@media \(min-width: 1024px\)[\s\S]*\.space-clock[\s\S]*display: inline-flex/,
-    );
-    assert.match(css, /\.space-clock \{\s*display: none;/);
-    assert.match(menu, /lg:hidden/);
-    assert.match(menu, /data-test="clock-shortcut-row"/);
-});
-
 test('DS-12: the name shows beside the avatar only from 1024 px', () => {
     assert.match(
         css,
@@ -45,23 +35,6 @@ test('DS-12: the shortcut reads the attendance state and opens the camera dialog
     assert.doesNotMatch(
         clock,
         /router\.post|clock-in|clock-out|crypto\.randomUUID/,
-    );
-});
-
-test('DS-12: the phone clock row hides only where the top-bar button shows, so the two are never visible together', () => {
-    assert.match(
-        menu,
-        /inSpaceShell = computed\(\(\) => page\.url\.startsWith\('\/spaces'\)\)/,
-    );
-    assert.match(
-        menu,
-        /:class="\{ 'lg:hidden': inSpaceShell \|\| topBarClock \}"/,
-    );
-    // UX-24: topBarClock comes from the V2 shell and is true only where its top-bar button is drawn.
-    assert.match(menu, /const topBarClock = inject\(\s*TOP_BAR_CLOCK,/);
-    assert.doesNotMatch(
-        menu,
-        /class="cursor-pointer max-lg:min-h-11 lg:hidden"/,
     );
 });
 

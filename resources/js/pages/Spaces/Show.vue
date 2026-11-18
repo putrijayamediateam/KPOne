@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { ChevronRight } from '@lucide/vue';
-import { computed, onMounted, ref } from 'vue';
+import { computed, ref } from 'vue';
 import MeHome from '@/components/spaces/MeHome.vue';
 import SpaceAskPanel from '@/components/spaces/SpaceAskPanel.vue';
 import SpaceAsOf from '@/components/spaces/SpaceAsOf.vue';
@@ -13,7 +13,6 @@ import {
 import UserInfo from '@/components/UserInfo.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import V2Chip from '@/components/v2/V2Chip.vue';
-import { useClockShortcut } from '@/composables/useClockShortcut';
 import { useScrollStrip } from '@/composables/useScrollStrip';
 import SpacePassThroughLayout from '@/layouts/SpacePassThroughLayout.vue';
 import { V2_FRAMED_SPACES } from '@/lib/v2-spaces';
@@ -441,18 +440,6 @@ const { measure, fadeStyle } = useScrollStrip(side, '[aria-current="page"]');
 const menuOpen = ref(false);
 
 // DS-12: Me lives in the account menu, so it is not a nav item. A person whose only space is Me gets no space items.
-const accountMenu = computed(() => page.props.workspace?.accountMenu);
-const {
-    load: loadClock,
-    press: pressClock,
-    label: clockLabel,
-    visible: clockVisible,
-} = useClockShortcut();
-onMounted(() => {
-    if (accountMenu.value?.clock) {
-        void loadClock();
-    }
-});
 
 // UX-24 part 1 (Daniel, 2026-11-13): Me home and Management sit in the V2 shell (its sidebar, search, branch switcher,
 // Back to Classic and account menu replace this page's own), content in the page frame with a V2 header. The other
@@ -540,17 +527,6 @@ const v2Shell = computed(() =>
                         </option>
                     </select>
                 </label>
-                <button
-                    v-if="
-                        accountMenu?.clock && clockVisible && space.key !== 'me'
-                    "
-                    type="button"
-                    class="space-clock"
-                    data-test="clock-shortcut"
-                    @click="pressClock()"
-                >
-                    {{ clockLabel }}
-                </button>
                 <DropdownMenu @update:open="menuOpen = $event">
                     <DropdownMenuTrigger :as-child="true">
                         <button
@@ -576,12 +552,7 @@ const v2Shell = computed(() =>
             >
                 <h1 class="v2-page-title">{{ space.title }}</h1>
                 <div
-                    v-if="
-                        primaryAction ||
-                        (accountMenu?.clock &&
-                            clockVisible &&
-                            space.key !== 'me')
-                    "
+                    v-if="primaryAction"
                     class="flex flex-wrap items-center gap-2 max-[359px]:flex-col max-[359px]:items-stretch max-sm:w-full [&>*]:max-sm:grow"
                 >
                     <Link
@@ -590,20 +561,6 @@ const v2Shell = computed(() =>
                         class="inline-flex h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none lg:h-9"
                         >{{ primaryAction.title }}</Link
                     >
-                    <!-- Phones and tablets: the clock shortcut sits here, not in the top bar (Daniel). -->
-                    <button
-                        v-if="
-                            accountMenu?.clock &&
-                            clockVisible &&
-                            space.key !== 'me'
-                        "
-                        type="button"
-                        class="inline-flex h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:hidden"
-                        data-test="v2-space-clock"
-                        @click="pressClock()"
-                    >
-                        {{ clockLabel }}
-                    </button>
                 </div>
             </header>
             <div v-else class="space-head">
