@@ -6,6 +6,7 @@ use App\Domain\Agents\Proposals\AiProposal;
 use App\Domain\Agents\Proposals\PreparedRecord;
 use App\Domain\Agents\Proposals\PreparesWork;
 use App\Domain\Agents\Proposals\ProposalPreparers;
+use App\Domain\Agents\Proposals\WarnsBeforePreparing;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\InventorySku;
 use App\Domain\Organisation\Models\Branch;
@@ -22,7 +23,7 @@ use Illuminate\Validation\ValidationException;
  * and the audit are exactly those of the Inventory page. Only ids, codes and quantities from the validated payload are used; no
  * agent text reaches a record. A refusal throws, which rolls the whole approval back and leaves the suggestion pending.
  */
-final class InventoryProposalPreparer implements PreparesWork
+final class InventoryProposalPreparer implements PreparesWork, WarnsBeforePreparing
 {
     public const TRANSFER = 'inventory.transfer_suggestion';
 
@@ -60,6 +61,12 @@ final class InventoryProposalPreparer implements PreparesWork
             self::RESTOCK => $this->restock($approver, $proposal, $values),
             default => throw ValidationException::withMessages(['mode' => 'This suggestion does not prepare work.']),
         };
+    }
+
+    /** STK-41b: the inbox shows this before "Approve and create …"; it never blocks (refusals still come from `prepare`). */
+    public function warning(User $approver, AiProposal $proposal): ?string
+    {
+        return $proposal->organisation_id === $approver->organisation_id ? $this->openOrderWarning($proposal) : null;
     }
 
     /**
