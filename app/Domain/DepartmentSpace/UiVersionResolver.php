@@ -23,6 +23,19 @@ final class UiVersionResolver
         return $this->states[$user->id] ??= $this->preferences->state($user);
     }
 
+    /** @var array<int, bool> */
+    private array $looks = [];
+
+    /** The "New look (preview)" pilot: only for a person already in Version 2 who switched it on. Never for the TV. */
+    public function newLook(?User $user, ?Request $request = null): bool
+    {
+        if ($user === null || ! $this->isV2($user, $request) || ! $this->state($user)['enabled']) {
+            return false;
+        }
+
+        return $this->looks[$user->id] ??= $this->preferences->newLook($user);
+    }
+
     public function isV2(?User $user, ?Request $request = null): bool
     {
         if ($user === null) {

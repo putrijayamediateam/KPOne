@@ -32,6 +32,7 @@ declare module '@inertiajs/core' {
                     enabled: boolean;
                     lockVersion: number;
                 };
+                newLook?: boolean;
                 shell?: V2Shell | null;
                 navigation: {
                     clinicManagement: boolean;

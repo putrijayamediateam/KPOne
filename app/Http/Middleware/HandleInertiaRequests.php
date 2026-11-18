@@ -96,6 +96,8 @@ class HandleInertiaRequests extends Middleware
                 'defaultUrl' => route('workspace', absolute: false),
                 'canEnterClinic' => $canEnterClinic,
                 'spaces' => $spaces,
+                // "New look (preview)": true only for a person in Version 2 who switched it on. Kept out of `spaces` so that shape is unchanged.
+                'newLook' => app(UiVersionResolver::class)->newLook($user, $request),
                 // UX-17 and UX-24: the Version 2 sidebar, sent with every page that renders in V2 (the switch on, or a
                 // /spaces page) and never with a Classic one. A closure, so JSON polls never build it.
                 'shell' => app(UiVersionResolver::class)->isV2($user, $request) ? fn () => app(V2ShellNavigation::class)->for($user, $request->path()) : null,

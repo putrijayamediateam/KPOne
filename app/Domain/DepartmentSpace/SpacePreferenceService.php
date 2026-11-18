@@ -37,10 +37,23 @@ final class SpacePreferenceService
         return ['offered' => true, 'enabled' => (bool) ($row->enabled ?? false), 'lockVersion' => (int) ($row->lock_version ?? 0)];
     }
 
-    /** Switching back is always possible: turning off never needs the role check to pass again beyond being the owner. */
-    public function set(User $actor, bool $enabled, int $expectedVersion): void
+    /** "New look (preview)": a second per-person switch, default off. It never grants anything; Version 2 must also be on. */
+    public function newLook(User $user): bool
     {
-        DB::transaction(function () use ($actor, $enabled, $expectedVersion): void {
+        if (! $this->offered($user)) {
+            return false;
+        }
+
+        return (bool) (DB::table('user_space_preferences')->where('user_id', $user->id)->value('new_look') ?? false);
+    }
+
+    /**
+     * Switching back is always possible: turning off never needs the role check to pass again beyond being the owner.
+     * `$newLook` null keeps the saved "New look (preview)" choice as it is.
+     */
+    public function set(User $actor, bool $enabled, int $expectedVersion, ?bool $newLook = null): void
+    {
+        DB::transaction(function () use ($actor, $enabled, $expectedVersion, $newLook): void {
             $user = User::query()->whereKey($actor->id)->lockForUpdate()->firstOrFail();
             $row = DB::table('user_space_preferences')->where('user_id', $user->id)->lockForUpdate()->first();
             if ($enabled && ! $this->offered($user)) {
@@ -51,16 +64,16 @@ final class SpacePreferenceService
             }
             if ($row === null) {
                 try {
-                    DB::table('user_space_preferences')->insert(['user_id' => $user->id, 'enabled' => $enabled, 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
+                    DB::table('user_space_preferences')->insert(['user_id' => $user->id, 'enabled' => $enabled, 'new_look' => $newLook ?? false, 'lock_version' => 1, 'created_at' => now(), 'updated_at' => now()]);
                 } catch (QueryException) {
                     throw ValidationException::withMessages(['enabled' => 'This setting changed in another window. Reload and try again.']);
                 }
                 $version = 1;
             } else {
                 $version = $row->lock_version + 1;
-                DB::table('user_space_preferences')->where('user_id', $user->id)->update(['enabled' => $enabled, 'lock_version' => $version, 'updated_at' => now()]);
+                DB::table('user_space_preferences')->where('user_id', $user->id)->update(['enabled' => $enabled, 'lock_version' => $version, 'updated_at' => now()] + ($newLook === null ? [] : ['new_look' => $newLook]));
             }
-            $this->audit->record('space_preference.changed', $user, ['enabled' => $enabled, 'record_version' => $version], $user, null, $user->organisation_id);
+            $this->audit->record('space_preference.changed', $user, ['enabled' => $enabled, 'new_look' => $newLook, 'record_version' => $version], $user, null, $user->organisation_id);
         }, 3);
     }
 }

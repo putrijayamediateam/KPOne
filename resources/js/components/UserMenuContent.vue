@@ -5,6 +5,7 @@ import {
     Clock,
     LayoutGrid,
     LayoutTemplate,
+    Sparkles,
     LogOut,
     Settings,
     ShieldCheck,
@@ -63,6 +64,14 @@ onMounted(() => {
         void loadClock();
     }
 });
+// "New look (preview)": only while the new layout is on. The same endpoint, with the pilot flag; no other setting changes.
+const newLook = computed(() => page.props.workspace?.newLook === true);
+const switchLook = (enabled: boolean) =>
+    router.put('/spaces/preference', {
+        enabled: true,
+        new_look: enabled,
+        lock_version: page.props.workspace?.spaces?.lockVersion ?? 0,
+    });
 const switchSpaces = (enabled: boolean) =>
     router.put('/spaces/preference', {
         enabled,
@@ -135,6 +144,16 @@ const switchSpaces = (enabled: boolean) =>
             <LayoutTemplate v-if="inNewLayout" class="mr-2 h-4 w-4" />
             <LayoutGrid v-else class="mr-2 h-4 w-4" />{{
                 inNewLayout ? 'Back to Classic layout' : 'Try the new layout'
+            }}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+            v-if="page.props.workspace?.spaces?.enabled"
+            class="cursor-pointer max-lg:min-h-11"
+            data-test="new-look-row"
+            @select="switchLook(!newLook)"
+        >
+            <Sparkles class="mr-2 h-4 w-4" />{{
+                newLook ? 'Back to the current look' : 'New look (preview)'
             }}
         </DropdownMenuItem>
     </DropdownMenuGroup>
