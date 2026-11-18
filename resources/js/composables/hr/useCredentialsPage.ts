@@ -6,6 +6,7 @@ import type {
     CredentialTypeHead,
     Option,
     RecordView,
+    WorkPermitDue,
 } from '@/components/hr/credentials/types';
 import { dateLabel } from '@/components/hr/records/types';
 
@@ -91,6 +92,7 @@ export type CredentialsPageProps = {
                 waiting: number;
             };
             waiting: Waiting[];
+            permits: WorkPermitDue[];
             branches: { id: number; name: string }[];
         } | null;
         settings: { types: TypeSetting[] } | null;
@@ -343,6 +345,7 @@ export function useCredentialsPage(props: CredentialsPageProps) {
         name: '',
         expires: 'yes',
         health: 'no',
+        permit: '',
         warn: '',
         roles: [] as string[],
         processing: false,
@@ -356,7 +359,31 @@ export function useCredentialsPage(props: CredentialsPageProps) {
         { value: 'yes', label: 'Yes' },
         { value: 'no', label: 'No' },
     ];
+    // HR-21: marking a type as a work permit is permanent, so it is asked once more before saving.
+    const permitConfirm = ref(false);
+    const isPermit = () =>
+        newType.health !== 'yes' &&
+        newType.expires === 'yes' &&
+        newType.permit === 'yes';
+    // Daniel (HR-21): the permanent Work permit answer starts unpicked, so it is always a choice.
+    const permitMissing = computed(() =>
+        newType.health !== 'yes' &&
+        newType.expires === 'yes' &&
+        newType.permit === ''
+            ? 'Pick Yes or No for Work permit to continue.'
+            : '',
+    );
     const addType = () => {
+        if (permitMissing.value !== '') {
+            return;
+        }
+
+        if (isPermit() && !permitConfirm.value) {
+            permitConfirm.value = true;
+
+            return;
+        }
+
         newType.processing = true;
         router.post(
             '/hr/credentials/types',
@@ -368,6 +395,7 @@ export function useCredentialsPage(props: CredentialsPageProps) {
                         ? false
                         : newType.expires === 'yes',
                 health_item: newType.health === 'yes',
+                work_permit: isPermit(),
                 warn_from_days: newType.warn,
                 roles: newType.roles,
                 idempotency_key: crypto.randomUUID(),
@@ -381,11 +409,15 @@ export function useCredentialsPage(props: CredentialsPageProps) {
                         roles: [],
                         expires: 'yes',
                         health: 'no',
+                        permit: '',
                         warn: String(
                             props.credentials.options.suggestedWarnDays,
                         ),
                     }),
-                onFinish: () => (newType.processing = false),
+                onFinish: () => {
+                    newType.processing = false;
+                    permitConfirm.value = false;
+                },
             },
         );
     };
@@ -486,6 +518,8 @@ export function useCredentialsPage(props: CredentialsPageProps) {
         newType,
         yesNo,
         addType,
+        permitConfirm,
+        permitMissing,
         edit,
         startEdit,
         saveEdit,

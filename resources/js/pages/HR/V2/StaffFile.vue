@@ -2,6 +2,7 @@
 import { Head } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
+import WorkPermitWarnings from '@/components/hr/credentials/WorkPermitWarnings.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import { dateLabel, statusTone } from '@/components/hr/records/types';
 import V2ChecklistTab from '@/components/hr/records/V2ChecklistTab.vue';
@@ -255,6 +256,11 @@ const canEnterBank = computed(
             <template #main>
                 <div class="flex min-w-0 flex-col gap-4">
                     <SyntheticNote />
+                    <WorkPermitWarnings
+                        :items="file.workPermits.map((line) => ({ line }))"
+                        heading-id="v2-file-permits-title"
+                        v2
+                    />
                     <div class="flex flex-wrap items-center gap-2">
                         <V2Chip
                             :tone="statusTone(w.status)"

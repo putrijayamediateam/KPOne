@@ -11,6 +11,22 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* New look (preview): Geist, self-hosted (SIL OFL 1.1, @fontsource-variable/geist), latin subset only, served from our own
+   origin by Vite. Nothing is requested from a third party, and the file is fetched only when a page under
+   <html data-look="new"> uses it. */
+@font-face {
+    font-family: 'Geist Variable';
+    font-style: normal;
+    font-display: swap;
+    font-weight: 100 900;
+    src: url('@fontsource-variable/geist/files/geist-latin-wght-normal.woff2')
+        format('woff2-variations');
+    unicode-range:
+        U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC,
+        U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193,
+        U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* Version 2 look: `v2:` classes apply only when <html data-ui="v2"> (the "Try the new layout" switch). */
 @custom-variant v2 (&:where([data-ui='v2'] *));
 
@@ -293,6 +309,104 @@
     --sidebar-border: #323747;
     --sidebar-ring: #6ba6ff;
     --sidebar: #161922;
+}
+
+/* New look (preview), step B: the tokens of docs/design/NEWLOOK-PILOT.md section 2, only under
+   <html data-ui="v2" data-look="new">. The extra attribute makes each block win over the Version 2 blocks above, so with
+   the switch off nothing here applies and Classic and Version 2 are unchanged. Cobalt stays the link and focus colour
+   (`--link`, `--ring`); the one main button per view is black (`--primary`). */
+:root[data-ui='v2'][data-look='new']:not(.dark) {
+    --background: #f4f4f6;
+    --foreground: #111114;
+    --card: #ffffff;
+    --card-foreground: #111114;
+    --popover-foreground: #111114;
+    --primary: #111114;
+    --primary-foreground: #ffffff;
+    --link: #0a56d1;
+    --secondary-foreground: #111114;
+    --muted: #f1f1f4;
+    --muted-foreground: #6b6b73;
+    --accent: #f1f1f4;
+    --accent-foreground: #111114;
+    --brand: #c2185b;
+    --brand-strong: #a8134c;
+    --warning: #8a4b00;
+    --ring: #0a56d1;
+    --sidebar-background: #f4f4f6;
+    --sidebar: #f4f4f6;
+    --sidebar-primary: #111114;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #ffffff;
+    --sidebar-accent-foreground: #111114;
+    --sidebar-ring: #0a56d1;
+}
+
+.dark[data-ui='v2'][data-look='new'] {
+    --background: #0f0f12;
+    --foreground: #f4f4f6;
+    --card: #1a1a1f;
+    --card-foreground: #f4f4f6;
+    --popover: #1a1a1f;
+    --popover-foreground: #f4f4f6;
+    --primary: #f4f4f6;
+    --primary-foreground: #111114;
+    --link: #6ba6ff;
+    --secondary: #222228;
+    --secondary-foreground: #f4f4f6;
+    --muted: #222228;
+    --muted-foreground: #a8a8b3;
+    --accent: #222228;
+    --accent-foreground: #f4f4f6;
+    --brand: #ff6b9d;
+    --brand-foreground: #2a0a1a;
+    --brand-strong: #ff8fb4;
+    --warning: #ffb454;
+    --ring: #6ba6ff;
+    --sidebar-background: #0f0f12;
+    --sidebar: #0f0f12;
+    --sidebar-foreground: #e6e6ea;
+    --sidebar-primary: #f4f4f6;
+    --sidebar-primary-foreground: #111114;
+    --sidebar-accent: #1a1a1f;
+    --sidebar-accent-foreground: #f4f4f6;
+    --sidebar-ring: #6ba6ff;
+}
+
+/* Geist first, then the existing stack as fallback. `@theme inline` bakes the stack into `font-sans`, so the family is set
+   directly on the page, on `body` and on `.font-sans`, with unlayered rules that win over the layered utilities. */
+html[data-look='new'],
+html[data-look='new'] body,
+html[data-look='new'] .font-sans {
+    font-family:
+        'Geist Variable',
+        'Aptos',
+        'Segoe UI Variable Text',
+        'Segoe UI',
+        -apple-system,
+        BlinkMacSystemFont,
+        'Helvetica Neue',
+        Arial,
+        sans-serif,
+        'Apple Color Emoji',
+        'Segoe UI Emoji',
+        'Segoe UI Symbol',
+        'Noto Color Emoji';
+}
+
+/* Cobalt stays the link, active-text and focus colour although `--primary` is now black (fills only). A utility such as
+   `text-primary`, `hover:text-primary`, `data-[state=active]:text-primary` or `focus-visible:ring-primary` reads
+   `var(--primary)` on its own element, so on those elements `--primary` is pointed at `--link`. Fills (`bg-primary`) and
+   borders keep black. Elements that also carry a `*-primary-foreground` class are left alone. */
+html[data-look='new']
+    :is(
+        [class~='text-primary'],
+        [class*=':text-primary'],
+        [class*='text-primary/'],
+        [class*='ring-primary'],
+        [class*='outline-primary']
+    ):not([class*='primary-foreground']) {
+    --primary: var(--link);
 }
 
 @layer base {
