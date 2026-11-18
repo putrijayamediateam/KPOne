@@ -5,12 +5,13 @@ namespace Tests\Support;
 use App\Domain\Agents\Proposals\AiProposal;
 use App\Domain\Agents\Proposals\PreparedRecord;
 use App\Domain\Agents\Proposals\PreparesWork;
+use App\Domain\Agents\Proposals\WarnsBeforePreparing;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 /** A stand-in for a domain team's preparer: records every call, can refuse, makes no real record. */
-final class FakeProposalPreparer implements PreparesWork
+final class FakeProposalPreparer implements PreparesWork, WarnsBeforePreparing
 {
     /** @var list<array{actor: int, proposal: int, values: array<string, mixed>, transactionLevel: int}> */
     public array $calls = [];
@@ -18,6 +19,8 @@ final class FakeProposalPreparer implements PreparesWork
     public ?string $cannotReason = null;
 
     public ?string $refuseWith = null;
+
+    public ?string $warningText = null;
 
     /** @param list<string> $types */
     public function __construct(private array $types = ['inventory.restock_suggestion', 'inventory.transfer_suggestion']) {}
@@ -30,6 +33,11 @@ final class FakeProposalPreparer implements PreparesWork
     public function cannotPrepareReason(User $approver, AiProposal $proposal): ?string
     {
         return $this->cannotReason;
+    }
+
+    public function warning(User $approver, AiProposal $proposal): ?string
+    {
+        return $this->warningText;
     }
 
     public function prepare(User $approver, AiProposal $proposal, array $values): PreparedRecord

@@ -108,6 +108,34 @@ final class ProposalService
     }
 
     /**
+     * What the inbox offers an approver besides a decision-only approval (CONTRACT section 15), or null when approval is decision
+     * only for this proposal: the switch is off, it is not pending, its type never prepares work, or no preparer is registered.
+     * Read only; `approve()` repeats every check under the lock.
+     *
+     * @return array{canPrepare: bool, cannotPrepareReason: string|null, actionLabel: string, recordLabel: string, warning: string|null}|null
+     */
+    public function prepareOffer(User $actor, AiProposal $proposal): ?array
+    {
+        if ($proposal->status !== 'pending' || ! (bool) config('agents.prepare_enabled') || ProposalTypes::editRules($proposal->type) === null) {
+            return null;
+        }
+        $preparer = app(ProposalPreparers::class)->for($proposal->type);
+        if ($preparer === null) {
+            return null;
+        }
+        $reason = $preparer->cannotPrepareReason($actor, $proposal);
+        $transfer = $proposal->type === 'inventory.transfer_suggestion';
+
+        return [
+            'canPrepare' => $reason === null,
+            'cannotPrepareReason' => $reason,
+            'actionLabel' => $transfer ? 'Approve and create the stock request' : 'Approve and create the purchase request',
+            'recordLabel' => $transfer ? 'stock request' : 'purchase request',
+            'warning' => $reason === null && $preparer instanceof WarnsBeforePreparing ? $preparer->warning($actor, $proposal) : null,
+        ];
+    }
+
+    /**
      * Why this person cannot decide a pending proposal, in plain words for the inbox, or null when they can (or when it
      * is no longer pending, which the page already says). Read only: it decides nothing and the decision paths keep
      * their own checks. The wording never names another person.

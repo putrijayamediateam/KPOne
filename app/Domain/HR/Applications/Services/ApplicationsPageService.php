@@ -221,6 +221,8 @@ final class ApplicationsPageService
                 'poolUntil' => ($until = TalentPool::until($a)) === null ? null : CarbonImmutable::parse($until)->format('j M Y'),
                 'poolConsent' => (bool) $a->talent_pool_consent && $a->pool_withdrawn_at === null,
                 'accountRequest' => StaffAccountRequests::latestFor((int) $a->id, $zone),
+                // HR-15d: the locum file made from a passed Locum candidate, with its sign-in state.
+                'locumHire' => LocumHires::forApplication((int) $a->id),
                 'lockVersion' => (int) $a->lock_version,
             ])->values()->all(),
         ];

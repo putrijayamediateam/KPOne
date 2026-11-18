@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { ArrowRight } from '@lucide/vue';
 import { computed, reactive, ref, watch } from 'vue';
 import ClockPhotoNotice from '@/components/hr/attendance/ClockPhotoNotice.vue';
 import ClockPhotoThumb from '@/components/hr/attendance/ClockPhotoThumb.vue';
@@ -61,10 +62,7 @@ const {
     serverTime,
     serverDate,
     announcement,
-    clock,
-    press,
-    locate,
-    withoutLocation,
+    clockOnMe,
     correction,
     correctionErrors,
     kindOptions,
@@ -136,7 +134,6 @@ const decisionLine = computed(() =>
         : '',
 );
 
-const pressWord = computed(() => (clock.consentFor === 'out' ? 'out' : 'in'));
 const flagsOf = (r: Row) => r.flags.length > 0 || r.correctionWaiting;
 
 // Settings (Daniel): the attendance rules card's Save is filled only while the card has changes, and unsaved changes
@@ -230,8 +227,8 @@ const ghostButton =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] px-3 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 lg:min-h-9';
 const primaryButton =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] bg-primary px-4 text-sm font-medium whitespace-nowrap text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50 lg:min-h-9';
-const clockButton =
-    'inline-flex min-h-14 w-full items-center justify-center gap-2 rounded-[12px] bg-primary px-4 text-base font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background focus-visible:outline-none disabled:opacity-50';
+// One Clock in: the page's outline button style as a link, full width on phones (Daniel).
+const clockLink = `${button} w-full gap-2 sm:w-auto sm:self-start`;
 const textLink =
     'inline-flex min-h-11 items-center self-start text-sm font-medium text-primary underline-offset-2 hover:underline focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none lg:min-h-9';
 const inputClass =
@@ -378,40 +375,40 @@ const numberClass =
                                     until {{ attendance.my.undo.until }}.
                                 </p>
                             </div>
-                            <button
-                                v-if="attendance.my.state === 'out'"
-                                type="button"
-                                :class="clockButton"
-                                :disabled="
-                                    !attendance.my.canPress || clock.processing
+                            <!-- One Clock in (owner, 18 Nov 2026): every press is on Me, with the photo and any location
+                                 check. An outline link, 44 px, shown only when a press is possible (Daniel). -->
+                            <Link
+                                v-if="
+                                    attendance.my.state === 'out' &&
+                                    attendance.my.canPress
                                 "
-                                data-test="clock-in"
-                                @click="press('in')"
-                            >
-                                {{
-                                    clock.locating
-                                        ? 'Checking location…'
-                                        : clock.processing
-                                          ? 'Clocking in…'
-                                          : 'Clock in'
-                                }}
-                            </button>
-                            <button
+                                :href="clockOnMe"
+                                :class="clockLink"
+                                data-test="clock-in-on-me"
+                                >Clock in on Me
+                                <ArrowRight class="size-4" aria-hidden="true"
+                            /></Link>
+                            <Link
+                                v-else-if="
+                                    attendance.my.state === 'in' &&
+                                    attendance.my.branch
+                                "
+                                :href="clockOnMe"
+                                :class="clockLink"
+                                data-test="clock-out-on-me"
+                                >Clock out on Me
+                                <ArrowRight class="size-4" aria-hidden="true"
+                            /></Link>
+                            <!-- No active branch: Me shows no clock, so point to a correction (Suresh, m1). -->
+                            <p
                                 v-else-if="attendance.my.state === 'in'"
-                                type="button"
-                                :class="clockButton"
-                                :disabled="clock.processing"
-                                data-test="clock-out"
-                                @click="clock.confirmOut = true"
+                                class="text-sm text-muted-foreground"
+                                data-test="clock-out-no-branch"
                             >
-                                {{
-                                    clock.locating
-                                        ? 'Checking location…'
-                                        : clock.processing
-                                          ? 'Clocking out…'
-                                          : 'Clock out'
-                                }}
-                            </button>
+                                You are clocked in, but you have no branch to
+                                work at now, so Me cannot clock you out. Ask HR
+                                to add your clock-out time as a correction.
+                            </p>
                             <p
                                 v-if="errors.clock"
                                 role="alert"
@@ -1426,62 +1423,6 @@ const numberClass =
             >
                 {{ undo.error }}
             </p>
-        </V2Dialog>
-
-        <V2Dialog
-            :open="clock.confirmOut"
-            title="Clock out now?"
-            description="Your clock-out time is the server time when you confirm."
-            confirm-label="Clock out"
-            :busy="clock.processing"
-            @update:open="clock.confirmOut = $event"
-            @confirm="press('out')"
-        />
-
-        <!-- HR-16a: consent once per version, before the first press at this branch. Two equal choices, neither
-             preselected; closing records nothing and gives no consent. -->
-        <V2Dialog
-            :open="clock.consentFor !== null"
-            title="Location check at this branch"
-            :description="`Read this once. You can clock ${pressWord} without it.`"
-            :confirm-label="`Clock ${pressWord} without location`"
-            single-action
-            single-action-style="outline"
-            @update:open="(open: boolean) => !open && (clock.consentFor = null)"
-            @confirm="withoutLocation(clock.consentFor ?? 'in')"
-        >
-            <div
-                class="flex flex-col gap-4 text-sm"
-                data-test="location-consent"
-            >
-                <p
-                    class="text-[13px] text-muted-foreground"
-                    data-test="location-consent-draft"
-                >
-                    Draft wording until the clinic's PDPA review. Synthetic data
-                    only.
-                </p>
-                <section class="flex flex-col gap-1">
-                    <h3 class="font-medium">English</h3>
-                    <p class="whitespace-pre-line">
-                        {{ attendance.my?.location?.consentEn }}
-                    </p>
-                </section>
-                <section class="flex flex-col gap-1" lang="ms">
-                    <h3 class="font-medium">Bahasa Melayu</h3>
-                    <p class="whitespace-pre-line">
-                        {{ attendance.my?.location?.consentBm }}
-                    </p>
-                </section>
-                <button
-                    type="button"
-                    :class="button"
-                    data-test="location-agree"
-                    @click="locate(clock.consentFor ?? 'in', true)"
-                >
-                    I understand, check my location
-                </button>
-            </div>
         </V2Dialog>
 
         <!-- Decision: Approve or Reject; a rejection needs a reason -->
