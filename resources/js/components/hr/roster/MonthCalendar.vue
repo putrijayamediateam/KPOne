@@ -220,13 +220,14 @@ const open = ref<MonthDay | null>(null);
                             >
                             <!-- 640 to 1023 px: a count and a dot; details in the sheet. -->
                             <span
-                                class="flex items-center gap-1 text-xs lg:hidden"
+                                class="flex items-start gap-1 text-xs leading-tight lg:hidden"
                             >
                                 <span
-                                    class="size-1.5 shrink-0 rounded-full bg-foreground"
+                                    class="mt-1 size-1.5 shrink-0 rounded-full bg-foreground"
                                     aria-hidden="true"
                                 />
-                                <span class="truncate">{{
+                                <!-- Wraps rather than cut "not approved" (Daniel). -->
+                                <span class="min-w-0 break-words">{{
                                     shortCount(day)
                                 }}</span>
                             </span>
@@ -234,16 +235,17 @@ const open = ref<MonthDay | null>(null);
                             <span
                                 v-for="(line, i) in lines(day)"
                                 :key="line.key"
-                                class="hidden truncate text-xs"
+                                class="hidden text-xs"
                                 :class="[
                                     i < 2
                                         ? 'lg:block'
                                         : i === 2
                                           ? 'xl:block'
                                           : '',
+                                    // A shift line is cut at the end, never the time; an ask wraps so its word and time stay whole.
                                     line.ask
-                                        ? 'rounded border border-dashed px-1'
-                                        : '',
+                                        ? 'rounded border border-dashed px-1 leading-tight break-words'
+                                        : 'truncate',
                                 ]"
                                 >{{ line.text }}</span
                             >
