@@ -21,3 +21,9 @@ test('DD-32: Create patient says what it does in plain words, Classic and V2', (
         assert.ok(!source.includes('canonical identity'), file);
     }
 });
+
+test('DD-32: the Classic title matches V2 and drops the internal words', () => {
+    const source = flat(read('resources/js/pages/Patient/Create.vue'));
+    assert.ok(source.includes('Create patient'));
+    assert.ok(!source.includes('Create Patient Master record'));
+});

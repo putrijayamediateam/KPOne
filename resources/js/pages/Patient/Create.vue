@@ -134,7 +134,7 @@ const submit = () => {
             </div>
             <div>
                 <h1 class="text-2xl font-semibold tracking-tight">
-                    Create Patient Master record
+                    Create patient
                 </h1>
                 <p class="text-sm text-muted-foreground">
                     Add a patient to the clinic's patient list. This does not
