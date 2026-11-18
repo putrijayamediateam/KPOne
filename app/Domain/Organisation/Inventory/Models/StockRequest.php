@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use LogicException;
 
+/** @property int|null $ai_proposal_id STK-41: the agent suggestion this request was prepared from (trail only, never changed) */
 #[Guarded(['*'])]
 class StockRequest extends Model
 {
@@ -25,7 +26,7 @@ class StockRequest extends Model
     protected static function booted(): void
     {
         static::updating(function (self $request): void {
-            if ($request->isDirty(['organisation_id', 'requesting_branch_id', 'source_location_id', 'destination_location_id', 'public_id', 'request_number', 'requested_by_user_id', 'requested_at'])) {
+            if ($request->isDirty(['organisation_id', 'requesting_branch_id', 'source_location_id', 'destination_location_id', 'public_id', 'request_number', 'requested_by_user_id', 'requested_at', 'ai_proposal_id'])) {
                 throw new LogicException('Stock Request identity is immutable.');
             }
         });
