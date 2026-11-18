@@ -1729,7 +1729,11 @@ const {
                     autocomplete="off"
                     maxlength="500"
                     placeholder="https://"
-                    aria-describedby="interview-video-link-help"
+                    :aria-describedby="
+                        errors.video_link
+                            ? 'interview-video-link-help interview-video-link-error'
+                            : 'interview-video-link-help'
+                    "
                     :aria-invalid="errors.video_link ? true : undefined"
                     data-test="interview-video-link"
                 />
@@ -1740,7 +1744,10 @@ const {
                     The candidate sees it on their private page and in the
                     email. KPOne does not make the meeting.
                 </p>
-                <InputError :message="errors.video_link" />
+                <InputError
+                    id="interview-video-link-error"
+                    :message="errors.video_link"
+                />
             </div>
         </OperationalConfirmDialog>
 

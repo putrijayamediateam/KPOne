@@ -1932,7 +1932,7 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                     autocomplete="off"
                     maxlength="500"
                     placeholder="https://"
-                    :class="inputClass"
+                    :class="`${inputClass} aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive`"
                     data-test="interview-video-link"
                 />
             </V2Field>

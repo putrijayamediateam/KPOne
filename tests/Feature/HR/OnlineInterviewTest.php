@@ -101,8 +101,13 @@ class OnlineInterviewTest extends VisitTestCase
         $this->pick($token, array_slice($slots, 0, 3))->assertSessionHasNoErrors();
         $this->confirm($id, $slots[0], ['mode' => 'phone'])->assertSessionHasErrors('mode');
         foreach (['', '   ', 'http://meet.example.test/x', 'meet.example.test/x', 'https://meet.example.test/a b', 'javascript:alert(1)',
-            'https://meet.example.test/<x>', 'https://meet.example.test@other.example.test/abc', 'https://user:pass@meet.example.test/abc', 'https://'.str_repeat('a', 500).'.test'] as $bad) {
+            'https://meet.example.test/<x>', 'https://'.str_repeat('a', 500).'.test'] as $bad) {
             $this->confirm($id, $slots[0], ['mode' => 'online', 'video_link' => $bad])->assertSessionHasErrors('video_link');
+        }
+        // A name before an "@" gets its own line (Daniel).
+        foreach (['https://meet.example.test@other.example.test/abc', 'https://user:pass@meet.example.test/abc'] as $lookalike) {
+            $this->confirm($id, $slots[0], ['mode' => 'online', 'video_link' => $lookalike])
+                ->assertSessionHasErrors(['video_link' => InterviewSlots::LOOKALIKE]);
         }
         $this->assertSame(0, DB::table('hr_job_interviews')->count());
         $this->assertSame('scheduling', $this->row($id)->status);

@@ -43,6 +43,8 @@ final class InterviewSlots
 
     public const VIDEO_LINK_MAX = 500;
 
+    public const LOOKALIKE = 'This link has an @ in the address, so it may go somewhere else. Use the meeting link exactly as your video app gives it.';
+
     private const HORIZON_DAYS = 60;
 
     public function __construct(private RecordSupport $support, private HiringMessenger $messenger) {}
@@ -332,10 +334,12 @@ final class InterviewSlots
             throw ValidationException::withMessages(['video_link' => 'Type the video link for the online interview.']);
         }
         if (mb_strlen($link) > self::VIDEO_LINK_MAX || preg_match('/\Ahttps:\/\/[^\s<>{}"]+\z/u', $link) !== 1
-            || filter_var($link, FILTER_VALIDATE_URL) === false || parse_url($link, PHP_URL_HOST) === null
-            // A name before an "@" could make another site look like the meeting's (Suresh, m1).
-            || parse_url($link, PHP_URL_USER) !== null || parse_url($link, PHP_URL_PASS) !== null) {
+            || filter_var($link, FILTER_VALIDATE_URL) === false || parse_url($link, PHP_URL_HOST) === null) {
             throw ValidationException::withMessages(['video_link' => 'Type the full link, starting with https://, with no spaces.']);
+        }
+        // A name before an "@" could make another site look like the meeting's (Suresh, m1); its own line (Daniel).
+        if (parse_url($link, PHP_URL_USER) !== null || parse_url($link, PHP_URL_PASS) !== null) {
+            throw ValidationException::withMessages(['video_link' => self::LOOKALIKE]);
         }
 
         return [$mode, $link];

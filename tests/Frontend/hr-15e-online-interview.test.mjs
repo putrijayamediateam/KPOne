@@ -66,3 +66,13 @@ test('the candidate page shows the link instead of the branch for Online', () =>
         /<p v-else class="text-sm">\s+\{\{ clinicName \}\} \{\{ application\.interview\.branch \}\}/,
     );
 });
+
+test('the link field shows its error on the field itself (Daniel)', () => {
+    assert.match(
+        pages.classic,
+        /'interview-video-link-help interview-video-link-error'/,
+    );
+    assert.match(pages.classic, /id="interview-video-link-error"/);
+    assert.match(pages.v2, /aria-invalid:border-destructive/);
+    assert.match(pages.v2, /:aria-invalid="invalid \|\| undefined"/);
+});
