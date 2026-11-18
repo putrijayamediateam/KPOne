@@ -64,6 +64,8 @@ const {
     accountPost,
     locumConfirm,
     locumAnnounce,
+    locumError,
+    askLocumFile,
     makeLocumFile,
     positionForm,
     branchOptions,
@@ -97,14 +99,6 @@ const {
     removeDocumentProcessing,
     removeDocument,
 } = useApplicationsPage(props);
-
-// HR-15d: a refusal (stale page, permission or the application itself) shows in the confirm dialog.
-const locumError = computed(
-    () =>
-        errors.value.application ??
-        errors.value.records ??
-        errors.value.applications,
-);
 
 const button =
     'inline-flex min-h-11 items-center justify-center rounded-[10px] border border-border bg-card px-4 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50 lg:min-h-9';
@@ -1702,7 +1696,7 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                                 :class="button"
                                 :disabled="accountAction.processing"
                                 data-test="application-locum-make"
-                                @click="locumConfirm = true"
+                                @click="askLocumFile"
                             >
                                 Make the locum file and ask for a sign-in
                             </button>

@@ -88,6 +88,8 @@ const {
     accountPost,
     locumConfirm,
     locumAnnounce,
+    locumError,
+    askLocumFile,
     makeLocumFile,
     DOCS_MAX,
     documentForm,
@@ -1471,7 +1473,7 @@ const {
                                     class="max-lg:min-h-11"
                                     :disabled="accountAction.processing"
                                     data-test="application-locum-make"
-                                    @click="locumConfirm = true"
+                                    @click="askLocumFile"
                                     >Make the locum file and ask for a
                                     sign-in</Button
                                 >
@@ -1722,7 +1724,7 @@ const {
             description="KPOne makes the locum file from the application's name and phone, and asks the account administrator for a sign-in with the email they applied with."
             confirm-label="Make file and ask"
             :processing="accountAction.processing"
-            :error="errors.application ?? errors.records ?? errors.applications"
+            :error="locumError"
             data-test="application-locum-confirm"
             @update:open="(open) => !open && (locumConfirm = false)"
             @confirm="makeLocumFile"

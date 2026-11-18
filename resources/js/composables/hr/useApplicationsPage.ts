@@ -1,5 +1,6 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import type FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 
 /**
@@ -361,6 +362,7 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
     const openApplication = (application: Application) => {
         viewing.value = application;
         locumAnnounce.value = '';
+        locumError.value = '';
         Object.assign(moving, {
             to: '',
             key: '',
@@ -738,6 +740,12 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
     // so the status line and "Open the locum file" are in view. No toast: the status region announces it.
     const locumConfirm = ref(false);
     const locumAnnounce = ref('');
+    // Suresh m3: the dialog shows only a refusal of this request, never an older page-wide error.
+    const locumError = ref('');
+    const askLocumFile = () => {
+        locumError.value = '';
+        locumConfirm.value = true;
+    };
     const makeLocumFile = () => {
         const application = viewing.value;
 
@@ -745,6 +753,7 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
             return;
         }
 
+        locumError.value = '';
         accountAction.processing = true;
         router.post(
             `/hr/applications/${application.id}/locum-file`,
@@ -762,9 +771,32 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
                         (row) => row.id === application.id,
                     );
                     viewing.value = fresh ?? null;
-                    locumAnnounce.value = fresh?.locumHire
-                        ? `Locum file made. ${fresh.locumHire.signIn}.`
-                        : '';
+
+                    if (fresh?.locumHire) {
+                        locumAnnounce.value = `Locum file made. ${fresh.locumHire.signIn}.`;
+                    } else {
+                        // Suresh m1: the row left this page, so the sheet closes; say so once.
+                        locumAnnounce.value = '';
+                        toast.success(
+                            'Locum file made and a sign-in asked for. Find the candidate under Passed to see it.',
+                        );
+                    }
+                },
+                onError: (failed) => {
+                    locumError.value =
+                        failed.application ??
+                        failed.records ??
+                        failed.applications ??
+                        Object.values(failed)[0] ??
+                        '';
+                    // Suresh m2: the redirect refreshed the rows; take the new lock version or the file someone else made.
+                    const fresh = list.value?.rows.find(
+                        (row) => row.id === application.id,
+                    );
+
+                    if (fresh) {
+                        viewing.value = fresh;
+                    }
                 },
                 onFinish: () => (accountAction.processing = false),
             },
@@ -912,6 +944,8 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
         accountPost,
         locumConfirm,
         locumAnnounce,
+        locumError,
+        askLocumFile,
         makeLocumFile,
         DOCS_MAX,
         documentForm,

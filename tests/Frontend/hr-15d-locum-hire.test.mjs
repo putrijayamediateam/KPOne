@@ -26,7 +26,7 @@ for (const [name, page] of Object.entries(pages)) {
         // Daniel: the button asks first; the confirm sends the request.
         assert.match(
             page,
-            /data-test="application-locum-make"\s+@click="locumConfirm = true"/,
+            /data-test="application-locum-make"\s+@click="askLocumFile"/,
         );
         assert.match(page, /data-test="application-locum-confirm"/);
         assert.match(
@@ -79,4 +79,20 @@ test('the confirm posts once, keeps the sheet open on the file and announces it 
     );
     assert.match(composable, /viewing\.value = fresh \?\? null;/);
     assert.match(composable, /locumAnnounce\.value = fresh\?\.locumHire/);
+});
+
+test('Suresh m1 to m3: a lost row still says so, a refusal refreshes the row, and the dialog shows only its own error', () => {
+    assert.match(composable, /Find the candidate under Passed to see it\./);
+    assert.match(
+        composable,
+        /onError: \(failed\) => \{[\s\S]*?viewing\.value = fresh;/,
+    );
+    assert.match(
+        composable,
+        /const askLocumFile = \(\) => \{\s+locumError\.value = '';/,
+    );
+
+    for (const page of Object.values(pages)) {
+        assert.doesNotMatch(page, /errors\.application \?\? errors\.records/);
+    }
 });
