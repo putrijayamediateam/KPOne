@@ -373,14 +373,25 @@
     --sidebar-ring: #6ba6ff;
 }
 
-/* Geist first, then the existing stack as fallback. The unlayered rule beats the layered `html { --font-sans }` above. */
-html[data-look='new'] {
-    --font-sans:
-        'Geist Variable', 'Aptos', 'Segoe UI Variable Text', 'Segoe UI',
-        -apple-system, BlinkMacSystemFont, 'Helvetica Neue', Arial, sans-serif,
-        'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol',
+/* Geist first, then the existing stack as fallback. `@theme inline` bakes the stack into `font-sans`, so the family is set
+   directly on the page, on `body` and on `.font-sans`, with unlayered rules that win over the layered utilities. */
+html[data-look='new'],
+html[data-look='new'] body,
+html[data-look='new'] .font-sans {
+    font-family:
+        'Geist Variable',
+        'Aptos',
+        'Segoe UI Variable Text',
+        'Segoe UI',
+        -apple-system,
+        BlinkMacSystemFont,
+        'Helvetica Neue',
+        Arial,
+        sans-serif,
+        'Apple Color Emoji',
+        'Segoe UI Emoji',
+        'Segoe UI Symbol',
         'Noto Color Emoji';
-    font-variant-numeric: normal;
 }
 
 /* Cobalt stays the link colour although `--primary` is now black: text-coloured with the primary token reads as a link. */

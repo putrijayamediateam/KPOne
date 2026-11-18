@@ -53,7 +53,7 @@ test('New look (preview) step B: tokens and Geist apply only under data-look="ne
     );
     assert.match(
         css,
-        /html\[data-look='new'\] \{\s*--font-sans:\s*'Geist Variable'/,
+        /html\[data-look='new'\] \.font-sans \{\s*font-family:\s*'Geist Variable'/,
     );
     assert.match(css, /geist-latin-wght-normal\.woff2/);
     assert.doesNotMatch(
