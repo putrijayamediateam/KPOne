@@ -6,8 +6,8 @@ use App\Domain\Patient\Services\PatientGuardianService;
 use App\Domain\Patient\Services\PublicIntakeReviewService;
 use App\Domain\Patient\Services\RegistrationSettingsService;
 use App\Domain\Visit\Models\Visit;
+use App\Domain\Visit\Services\RegisterAndQueueService;
 use App\Domain\Visit\Services\VisitDirectoryService;
-use App\Domain\Visit\Services\VisitRegistrationService;
 use App\Http\Requests\SearchVisitsRequest;
 use App\Http\Requests\StoreVisitRequest;
 use Illuminate\Http\JsonResponse;
@@ -51,11 +51,15 @@ class RegistrationController extends Controller
         ]);
     }
 
-    public function store(StoreVisitRequest $request, VisitRegistrationService $registration): RedirectResponse
+    /** Register the Visit and put it on the waiting list in one step, then back to the Registration board. */
+    public function store(StoreVisitRequest $request, RegisterAndQueueService $registration): RedirectResponse
     {
-        $visit = $registration->register($request->user(), $request->validated());
-        Inertia::flash('toast', ['type' => 'success', 'message' => __('Visit registered.')]);
+        $result = $registration->register($request->user(), $request->validated());
+        $visit = $result['visit'];
+        Inertia::flash('toast', ['type' => 'success', 'message' => $result['queueLabel']
+            ? __('Visit :visit registered · :number is waiting', ['visit' => $visit->visit_number, 'number' => $result['queueLabel']])
+            : __('Visit registered.')]);
 
-        return to_route('visits.show', $visit);
+        return $result['queueLabel'] ? to_route('registration.index') : to_route('visits.show', $visit);
     }
 }
