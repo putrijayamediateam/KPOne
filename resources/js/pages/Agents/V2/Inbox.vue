@@ -1,11 +1,11 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { Check } from 'lucide-vue-next';
 import { computed, nextTick, ref } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
 import V2Field from '@/components/v2/V2Field.vue';
-import V2OptionGroup from '@/components/v2/V2OptionGroup.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
 import V2Picker from '@/components/v2/V2Picker.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
@@ -131,19 +131,45 @@ const preparing = computed(
 );
 const modeOptions = computed(() => [
     {
-        value: 'prepare',
+        value: 'prepare' as const,
         label: offer.value?.actionLabel ?? '',
-        disabled: !offer.value?.canPrepare,
+        available: !!offer.value?.canPrepare,
     },
-    { value: 'decision_only', label: 'Approve (decision only)' },
+    {
+        value: 'decision_only' as const,
+        label: 'Approve (decision only)',
+        available: true,
+    },
 ]);
+// "40 tablet" on the Quantity line gives "tablets" for the quantity box.
+const unitPlural = computed(() => {
+    const line = deciding.value
+        ? lineValue(deciding.value.proposal, 'Quantity')
+        : null;
+    const match = line === null ? null : /^[\d.]+\s+(.+)$/.exec(line);
+
+    return match ? ` ${pluralise(`2 ${match[1]}`).replace(/^2 /, '')}` : '';
+});
 const asOptions = (rows: Location[] | undefined) =>
     (rows ?? []).map((row) => ({ id: row.id, label: row.name }));
 const locationName = (rows: Location[] | undefined, id: string | null) =>
     rows?.find((row) => row.id === id)?.name;
+// True when the switch is on for this page: a row offers the choice or already holds work it created.
 const anyPrepare = computed(() =>
-    props.proposals.some((row) => row.prepare !== null),
+    props.proposals.some(
+        (row) => row.prepare !== null || row.prepared !== null,
+    ),
 );
+const anyWithoutRecord = computed(() =>
+    props.proposals.some((row) => row.prepared === null),
+);
+const chooseMode = (value: 'prepare' | 'decision_only') => {
+    if (value === 'prepare' && !offer.value?.canPrepare) {
+        return;
+    }
+
+    mode.value = value;
+};
 const dialogOpen = computed({
     get: () => deciding.value !== null,
     set: (value: boolean) => {
@@ -338,10 +364,15 @@ const outline =
                     unless you choose that.
                 </p>
                 <p
-                    v-if="tab === 'approved'"
+                    v-if="tab === 'approved' && anyWithoutRecord"
                     class="text-[13px] leading-[18px] text-muted-foreground"
+                    data-test="approved-act-note"
                 >
-                    Act on an approved suggestion from the Inventory screens.
+                    {{
+                        anyPrepare
+                            ? 'A suggestion approved as a decision only has no request. Act on it from the Inventory screens.'
+                            : 'Act on an approved suggestion from the Inventory screens.'
+                    }}
                 </p>
 
                 <V2Tabs
@@ -530,18 +561,71 @@ const outline =
             class="flex min-w-0 flex-col gap-3"
             data-test="prepare-choice"
         >
-            <V2OptionGroup
-                v-model="mode"
-                label="How do you want to approve it?"
-                :options="modeOptions"
-            />
-            <p
-                v-if="!offer.canPrepare && offer.cannotPrepareReason"
-                class="text-[13px] leading-[18px] text-muted-foreground"
-                data-test="cannot-prepare"
+            <div
+                role="group"
+                aria-label="How do you want to approve it?"
+                class="flex min-w-0 flex-col gap-2"
+                data-test="mode-options"
             >
-                {{ offer.cannotPrepareReason }}
-            </p>
+                <p class="text-sm font-medium text-foreground">
+                    How do you want to approve it?
+                </p>
+                <template v-for="option in modeOptions" :key="option.value">
+                    <button
+                        type="button"
+                        :aria-pressed="option.value === mode"
+                        :aria-disabled="!option.available || undefined"
+                        :aria-describedby="
+                            !option.available
+                                ? 'cannot-prepare-reason'
+                                : undefined
+                        "
+                        :data-test="`mode-${option.value}`"
+                        class="flex min-h-11 w-full min-w-0 items-center gap-3 rounded-[10px] border px-3 py-2 text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        :class="
+                            !option.available
+                                ? 'cursor-not-allowed border-dashed border-border bg-muted/40 text-muted-foreground'
+                                : option.value === mode
+                                  ? 'border-primary bg-primary/10 text-foreground'
+                                  : 'border-border bg-card text-foreground hover:bg-muted'
+                        "
+                        @click="chooseMode(option.value)"
+                    >
+                        <span
+                            class="flex size-5 shrink-0 items-center justify-center rounded-full border"
+                            :class="
+                                option.value === mode && option.available
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : 'border-border'
+                            "
+                            aria-hidden="true"
+                        >
+                            <Check
+                                v-if="option.value === mode && option.available"
+                                class="size-3.5"
+                            />
+                        </span>
+                        <span class="min-w-0 flex-1">{{ option.label }}</span>
+                        <span
+                            v-if="!option.available"
+                            class="shrink-0 text-xs font-normal"
+                            >Not available</span
+                        >
+                    </button>
+                    <p
+                        v-if="
+                            option.value === 'prepare' &&
+                            !offer.canPrepare &&
+                            offer.cannotPrepareReason
+                        "
+                        id="cannot-prepare-reason"
+                        class="text-[13px] leading-[18px] text-muted-foreground"
+                        data-test="cannot-prepare"
+                    >
+                        {{ offer.cannotPrepareReason }}
+                    </p>
+                </template>
+            </div>
             <template v-if="preparing">
                 <p
                     v-if="offer.warning"
@@ -554,7 +638,7 @@ const outline =
                     <V2Field
                         v-slot="{ id, describedBy, invalid }"
                         label="Quantity to send"
-                        :hint="`Up to ${plainQuantity(offer.edits.maxQuantity)}. You can only lower it.`"
+                        :hint="`Up to ${plainQuantity(offer.edits.maxQuantity)}${unitPlural}. You can only lower it.`"
                         :error="quantityError || undefined"
                         required
                     >

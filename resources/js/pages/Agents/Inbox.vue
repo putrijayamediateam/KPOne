@@ -103,7 +103,7 @@ const preparing = computed(
     () => offer.value !== null && mode.value === 'prepare',
 );
 const anyPrepare = computed(() =>
-    props.proposals.some((row) => row.prepare != null),
+    props.proposals.some((row) => row.prepare != null || row.prepared != null),
 );
 const close = (value: boolean) => {
     if (!value) {
