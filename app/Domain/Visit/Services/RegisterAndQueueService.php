@@ -3,6 +3,7 @@
 namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
+use App\Domain\Clinical\Services\ConsultationLocks;
 use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\QueueNumberFormat;
@@ -41,11 +42,17 @@ class RegisterAndQueueService
      */
     public function register(User $actor, array $attributes): array
     {
+        // Laravel retries a deadlock only for the OUTERMOST transaction, so the attempts (3, as in the registration and
+        // queue steps) are declared here, not on the nested ones. Lock order is the same as Call In, Call next and a
+        // Visit edit (ConsultationLocks): the actor and the chosen doctor first, in ascending id, then the patient,
+        // the Visit and the queue entry inside the steps below.
         return DB::transaction(function () use ($actor, $attributes): array {
+            $doctorId = isset($attributes['assigned_doctor_user_id']) ? (int) $attributes['assigned_doctor_user_id'] : null;
+            ConsultationLocks::users($actor->organisation_id, [$actor->id, $doctorId]);
             $visit = $this->registration->register($actor, $attributes);
 
             return ['visit' => $visit, 'queueLabel' => $this->send($actor, $visit)];
-        });
+        }, 3);
     }
 
     private function send(User $actor, Visit $visit): ?string

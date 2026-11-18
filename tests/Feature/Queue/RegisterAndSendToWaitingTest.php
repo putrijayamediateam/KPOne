@@ -110,6 +110,49 @@ class RegisterAndSendToWaitingTest extends QueueTestCase
         $this->assertSame(0, DB::table('audit_logs')->where('event', 'visit.created')->count());
     }
 
+    public function test_replaying_one_idempotency_key_gives_one_visit_one_entry_and_one_number_for_consultation_and_otc(): void
+    {
+        $ca = $this->actor('ca');
+        $doctor = $this->doctor();
+        $this->selectBranch($ca);
+        foreach ([$this->consultationPayload($ca, $doctor), $this->visitAttributes($this->patient($ca), ['visit_type' => 'otc'])] as $payload) {
+            $this->post(route('registration.store'), $payload)->assertRedirect(route('registration.index'));
+            $this->post(route('registration.store'), $payload)->assertRedirect(route('registration.index'));
+        }
+
+        $this->assertSame(2, Visit::query()->count(), 'one Visit per key');
+        $this->assertSame(1, QueueEntry::query()->count());
+        $this->assertSame(1, DB::table('otc_queue_entries')->count());
+        $this->assertSame(1, DB::table('queue_entries')->max('queue_number'), 'one consultation number consumed');
+        $this->assertSame(1, DB::table('otc_queue_entries')->max('queue_number'), 'one OTC number consumed');
+        $this->assertSame(1, DB::table('audit_logs')->where('event', 'queue.entered')->count());
+    }
+
+    public function test_a_refused_first_attempt_leaves_nothing_half_saved_and_the_retry_with_the_same_key_succeeds(): void
+    {
+        $ca = $this->actor('ca');
+        $doctor = $this->doctor();
+        $this->selectBranch($ca);
+        $payload = $this->consultationPayload($ca, $doctor);
+        $this->app->bind(QueueEntryService::class, fn () => new class extends QueueEntryService
+        {
+            public function __construct() {}
+
+            public function enter(User $actor, Visit $visit, array $attributes): QueueEntry
+            {
+                throw ValidationException::withMessages(['assigned_doctor_user_id' => 'Synthetic refusal.']);
+            }
+        });
+        $this->from(route('registration.create'))->post(route('registration.store'), $payload)->assertSessionHasErrors('assigned_doctor_user_id');
+        $this->assertSame(0, Visit::query()->count());
+
+        unset($this->app[QueueEntryService::class]);
+        $this->post(route('registration.store'), $payload)->assertRedirect(route('registration.index'))->assertSessionHasNoErrors();
+
+        $this->assertSame(1, Visit::query()->count());
+        $this->assertSame(1, QueueEntry::query()->count());
+    }
+
     public function test_an_account_that_may_register_but_not_queue_registers_only_as_before(): void
     {
         $ca = $this->actor('ca');
