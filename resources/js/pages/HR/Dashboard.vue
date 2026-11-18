@@ -64,7 +64,7 @@ const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
             >
             <Link
                 href="/hr/credentials?tab=register"
-                class="min-h-11 content-center underline-offset-4 hover:underline lg:min-h-0"
+                class="min-h-11 content-center underline underline-offset-4 lg:min-h-0"
                 >Open the credentials register</Link
             >
         </p>

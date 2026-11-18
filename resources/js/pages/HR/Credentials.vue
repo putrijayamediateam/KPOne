@@ -61,6 +61,7 @@ const {
     newType,
     yesNo,
     addType,
+    permitConfirm,
     edit,
     startEdit,
     saveEdit,
@@ -953,6 +954,18 @@ const {
                 />
             </div>
         </OperationalConfirmDialog>
+
+        <OperationalConfirmDialog
+            :open="permitConfirm"
+            title="Save this type as a work permit?"
+            :description="`${newType.name.trim()}. Its expiry will show as a warning on the staff file, the register and the HR dashboard. Whether it is a work permit cannot change later.`"
+            confirm-label="Save as a work permit"
+            processing-label="Saving…"
+            :processing="newType.processing"
+            :error="errors.work_permit"
+            @update:open="(v: boolean) => !v && (permitConfirm = false)"
+            @confirm="addType"
+        />
 
         <OperationalConfirmDialog
             :open="archiving !== null"

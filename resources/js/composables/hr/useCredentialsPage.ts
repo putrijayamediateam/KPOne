@@ -359,7 +359,19 @@ export function useCredentialsPage(props: CredentialsPageProps) {
         { value: 'yes', label: 'Yes' },
         { value: 'no', label: 'No' },
     ];
+    // HR-21: marking a type as a work permit is permanent, so it is asked once more before saving.
+    const permitConfirm = ref(false);
+    const isPermit = () =>
+        newType.health !== 'yes' &&
+        newType.expires === 'yes' &&
+        newType.permit === 'yes';
     const addType = () => {
+        if (isPermit() && !permitConfirm.value) {
+            permitConfirm.value = true;
+
+            return;
+        }
+
         newType.processing = true;
         router.post(
             '/hr/credentials/types',
@@ -371,10 +383,7 @@ export function useCredentialsPage(props: CredentialsPageProps) {
                         ? false
                         : newType.expires === 'yes',
                 health_item: newType.health === 'yes',
-                work_permit:
-                    newType.health !== 'yes' &&
-                    newType.expires === 'yes' &&
-                    newType.permit === 'yes',
+                work_permit: isPermit(),
                 warn_from_days: newType.warn,
                 roles: newType.roles,
                 idempotency_key: crypto.randomUUID(),
@@ -393,7 +402,10 @@ export function useCredentialsPage(props: CredentialsPageProps) {
                             props.credentials.options.suggestedWarnDays,
                         ),
                     }),
-                onFinish: () => (newType.processing = false),
+                onFinish: () => {
+                    newType.processing = false;
+                    permitConfirm.value = false;
+                },
             },
         );
     };
@@ -494,6 +506,7 @@ export function useCredentialsPage(props: CredentialsPageProps) {
         newType,
         yesNo,
         addType,
+        permitConfirm,
         edit,
         startEdit,
         saveEdit,

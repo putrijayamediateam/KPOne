@@ -26,13 +26,23 @@ test('the warnings component compiles, uses the warning tone and never red', () 
     assert.doesNotMatch(warnings, /destructive|red-/);
     assert.match(template, /Work permits to renew/);
     assert.match(template, /:href="`\/hr\/records\/\$\{p\.workerId\}`"/);
+    // In-sentence links are always underlined; the icon is decorative and the box is a labelled region.
+    assert.match(template, /font-medium underline underline-offset-4/);
+    assert.match(template, /aria-hidden="true"/);
+    assert.match(template, /:aria-labelledby="headingId"/);
 });
 
 test('a new type sends work_permit only when it expires and is not a health item', () => {
     assert.match(composable, /permit: 'no',/);
     assert.match(
         composable,
-        /work_permit:\s*newType\.health !== 'yes' &&\s*newType\.expires === 'yes' &&\s*newType\.permit === 'yes',/,
+        /newType\.health !== 'yes' &&\s*newType\.expires === 'yes' &&\s*newType\.permit === 'yes'/,
+    );
+    assert.match(composable, /work_permit: isPermit\(\),/);
+    // A work permit type is permanent, so it is asked once more before it is saved.
+    assert.match(
+        composable,
+        /if \(isPermit\(\) && !permitConfirm\.value\) \{\s*permitConfirm\.value = true;/,
     );
     assert.match(composable, /permits: WorkPermitDue\[\];/);
 });
@@ -74,7 +84,10 @@ for (const [name, path] of [
         const page = read(path);
         assert.match(page, /v-if="dashboard\.workPermits"/);
         assert.match(page, /work permits expire soon or have expired\./);
-        assert.match(page, /href="\/hr\/credentials\?tab=register"/);
+        assert.match(
+            page,
+            /href="\/hr\/credentials\?tab=register"\s*class="[^"]*\bunderline underline-offset-4/,
+        );
         assert.doesNotMatch(
             page,
             /data-test="dashboard-work-permits"[^>]*destructive/,

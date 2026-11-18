@@ -49,7 +49,7 @@ defineProps<{
                 <template v-if="p.person && p.workerId">
                     <Link
                         :href="`/hr/records/${p.workerId}`"
-                        class="font-medium underline-offset-4 hover:underline"
+                        class="font-medium underline underline-offset-4"
                         >{{ p.person }}</Link
                     >
                     · {{ p.type }} ·

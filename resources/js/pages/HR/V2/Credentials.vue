@@ -65,6 +65,7 @@ const {
     newType,
     yesNo,
     addType,
+    permitConfirm,
     edit,
     startEdit,
     saveEdit,
@@ -1377,6 +1378,28 @@ const addTypeMissing = computed(() =>
                 class="text-sm text-destructive"
             >
                 {{ errors.credentials }}
+            </p>
+        </V2Dialog>
+
+        <!-- HR-21: a work permit type is permanent -->
+        <V2Dialog
+            :open="permitConfirm"
+            title="Save this type as a work permit?"
+            :description="`${newType.name.trim()}. Its expiry will show as a warning on the staff file, the register and the HR dashboard. Whether it is a work permit cannot change later.`"
+            :confirm-label="
+                newType.processing ? 'Saving…' : 'Save as a work permit'
+            "
+            :busy="newType.processing"
+            data-test="permit-confirm"
+            @update:open="(open: boolean) => (permitConfirm = open)"
+            @confirm="addType"
+        >
+            <p
+                v-if="errors.work_permit"
+                role="alert"
+                class="text-sm text-destructive"
+            >
+                {{ errors.work_permit }}
             </p>
         </V2Dialog>
 
