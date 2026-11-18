@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Agents;
 
+use App\Domain\Agents\DailySummary\DailyRun;
 use App\Domain\Agents\Inventory\InventoryAnalyst;
 use App\Domain\Agents\Models\AiAgent;
 use App\Domain\Agents\Models\AiAgentRun;
@@ -55,7 +56,7 @@ class InventoryAnalystTest extends QueueTestCase
     }
 
     /** Stock of the same SKU and batch at another branch, with its own reorder level. */
-    private function stockAt(Branch $branch, string $quantity, string $level): void
+    private function stockAt(Branch $branch, string $quantity, string $level): InventoryLocation
     {
         $actor = (new GovernedStockFixture($branch))->actor('ca_supervisor');
         $this->selectBranch($actor, $branch);
@@ -63,6 +64,8 @@ class InventoryAnalystTest extends QueueTestCase
         $location->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'branch_id' => $branch->id, 'code' => 'SYN-'.Str::upper(Str::random(8)), 'name' => 'Synthetic other dispensary', 'type' => 'dispensary', 'is_active' => true])->save();
         app(InventoryMovementService::class)->openingBalance($actor, ['expected_branch_id' => $branch->id, 'sku_public_id' => $this->f['sku']->public_id, 'location_public_id' => $location->public_id, 'batch_public_id' => $this->f['batch']->public_id, 'quantity' => $quantity]);
         $this->level($location, $level);
+
+        return $location;
     }
 
     private function systemRun(?Branch $branch = null): AiAgentRun
@@ -119,7 +122,7 @@ class InventoryAnalystTest extends QueueTestCase
 
     public function test_transfer_comes_first_and_restock_covers_the_rest(): void
     {
-        $this->stockAt($this->puchong(), '15.000', '8.000');
+        $sender = $this->stockAt($this->puchong(), '15.000', '8.000');
 
         $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer,restock'])->assertSuccessful();
 
@@ -127,6 +130,7 @@ class InventoryAnalystTest extends QueueTestCase
         $this->assertPayload([
             'sku_public_id' => $this->f['sku']->public_id, 'from_branch_code' => 'PUCHONG', 'to_branch_code' => 'CHERAS', 'quantity' => '7.000',
             'from_current_quantity' => '15.000', 'from_reorder_level' => '8.000', 'to_current_quantity' => '10.000', 'to_reorder_level' => '20.000',
+            'source_location_public_id' => $sender->public_id, 'destination_location_public_id' => $this->f['location']->public_id,
         ], $proposals[InventoryAnalyst::TRANSFER][0]);
         $this->assertSame('3.000', $proposals[InventoryAnalyst::RESTOCK][0]['suggested_quantity']);
         $this->assertArrayNotHasKey(InventoryAnalyst::EXPIRY, $proposals);
@@ -156,8 +160,9 @@ class InventoryAnalystTest extends QueueTestCase
 
         // Once the transfer is rejected, its quantity is free again and a later run suggests a restock.
         $transfer = AiProposal::query()->where('type', InventoryAnalyst::TRANSFER)->sole();
-        $this->selectBranch($this->f['proposer'], $this->branch);
-        app(ProposalService::class)->reject($this->f['proposer'], $transfer, ['lock_version' => $transfer->lock_version, 'reason' => 'Synthetic test rejection.']);
+        $sender = (new GovernedStockFixture($this->puchong()))->actor('ca_supervisor');
+        $this->selectBranch($sender, $this->puchong());
+        app(ProposalService::class)->reject($sender, $transfer, ['lock_version' => $transfer->lock_version, 'reason' => 'Synthetic test rejection.']);
         $run = $this->systemRun();
         app(InventoryAnalyst::class)->review($run, $this->branch, ['restock']);
         $this->assertSame('10.000', $this->proposals()[InventoryAnalyst::RESTOCK][0]['suggested_quantity']);
@@ -289,5 +294,63 @@ class InventoryAnalystTest extends QueueTestCase
         } catch (AuthorizationException) {
             $this->addToAssertionCount(1);
         }
+    }
+
+    /** AG-31: stock of the same SKU at another branch, returning the location so a test can name it. */
+    private function sendingLocation(Branch $branch, string $quantity, string $level): InventoryLocation
+    {
+        return $this->stockAt($branch, $quantity, $level);
+    }
+
+    public function test_a_transfer_suggestion_is_held_by_the_sending_branch_and_names_both_locations(): void
+    {
+        $sender = $this->sendingLocation($this->puchong(), '15.000', '8.000');
+
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer,restock'])->assertSuccessful();
+
+        $transfer = AiProposal::query()->where('type', InventoryAnalyst::TRANSFER)->sole();
+        $this->assertSame([$this->puchong()->id, $this->branch->id], [$transfer->branch_id, $transfer->run->branch_id], 'held by the sender; its run stays at the receiver');
+        $this->assertSame([$sender->public_id, $this->f['location']->public_id], [$transfer->payload['source_location_public_id'], $transfer->payload['destination_location_public_id']]);
+        $this->assertSame($this->branch->id, AiProposal::query()->where('type', InventoryAnalyst::RESTOCK)->sole()->branch_id, 'a restock stays at its own branch');
+
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer,restock'])->expectsOutputToContain('already ran')->assertSuccessful();
+        $this->assertSame(1, AiProposal::query()->where('type', InventoryAnalyst::TRANSFER)->count());
+    }
+
+    public function test_the_daily_counts_follow_the_run_branch_not_the_sending_branch(): void
+    {
+        $this->sendingLocation($this->puchong(), '15.000', '8.000');
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer,restock'])->assertSuccessful();
+
+        $cheras = DailyRun::hanaCounts($this->organisation->id, $this->branch, '2026-11-06')['counts'];
+        $puchong = DailyRun::hanaCounts($this->organisation->id, $this->puchong(), '2026-11-06')['counts'];
+
+        $this->assertSame(['total' => 1, 'pending' => 1], $cheras['transfer'], 'the receiving branch\'s run made it, so its daily counts include it');
+        $this->assertSame(['total' => 0, 'pending' => 0], $puchong['transfer']);
+    }
+
+    public function test_only_people_at_the_sending_branch_can_decide_a_transfer_suggestion(): void
+    {
+        $this->sendingLocation($this->puchong(), '15.000', '8.000');
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer'])->assertSuccessful();
+        $transfer = AiProposal::query()->where('type', InventoryAnalyst::TRANSFER)->sole();
+
+        $receiver = (new GovernedStockFixture($this->branch))->actor('ca_supervisor');
+        $this->selectBranch($receiver, $this->branch);
+        $this->refused(fn () => app(ProposalService::class)->approve($receiver, $transfer, ['lock_version' => 0]), 'a supervisor at the receiving branch only');
+
+        $sender = (new GovernedStockFixture($this->puchong()))->actor('ca_supervisor');
+        $this->selectBranch($sender, $this->puchong());
+        $this->assertSame('approved', app(ProposalService::class)->approve($sender, $transfer, ['lock_version' => 0])->status);
+    }
+
+    public function test_no_transfer_is_suggested_when_a_branch_has_no_usable_location(): void
+    {
+        $this->sendingLocation($this->puchong(), '15.000', '8.000');
+        DB::table('inventory_locations')->where('id', $this->f['location']->id)->update(['is_active' => false]);
+
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer'])->assertSuccessful();
+
+        $this->assertArrayNotHasKey(InventoryAnalyst::TRANSFER, $this->proposals());
     }
 }
