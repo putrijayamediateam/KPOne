@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
-import { CalendarCheck, CalendarX, Clock } from '@lucide/vue';
+import { ArrowRight, CalendarCheck, CalendarX, Clock } from '@lucide/vue';
 import ClockPhotoNotice from '@/components/hr/attendance/ClockPhotoNotice.vue';
 import ClockPhotoThumb from '@/components/hr/attendance/ClockPhotoThumb.vue';
 import LocationCheckSettings from '@/components/hr/attendance/LocationCheckSettings.vue';
@@ -152,10 +152,7 @@ const {
     serverTime,
     serverDate,
     announcement,
-    clock,
-    press,
-    locate,
-    withoutLocation,
+    clockOnMe,
     correction,
     correctionErrors,
     kindOptions,
@@ -286,37 +283,32 @@ const {
                             {{ attendance.my.undo.until }}.
                         </p>
                     </div>
+                    <!-- One Clock in (owner, 18 Nov 2026): every press is on Me, with the photo and any location check. An
+                         outline link with a 44 px target, shown only when a press is possible (Daniel). -->
                     <Button
-                        v-if="attendance.my.state === 'out'"
-                        class="min-h-14 w-full text-base"
-                        :disabled="!attendance.my.canPress || clock.processing"
-                        data-test="clock-in"
-                        @click="press('in')"
+                        v-if="
+                            attendance.my.state === 'out' &&
+                            attendance.my.canPress
+                        "
+                        as-child
+                        variant="outline"
+                        class="min-h-11 w-full sm:w-auto sm:self-start"
                     >
-                        <Clock class="size-5" />
-                        {{
-                            clock.locating
-                                ? 'Checking location…'
-                                : clock.processing
-                                  ? 'Clocking in…'
-                                  : 'Clock in'
-                        }}
+                        <Link :href="clockOnMe" data-test="clock-in-on-me"
+                            >Clock in on Me
+                            <ArrowRight class="size-4" aria-hidden="true"
+                        /></Link>
                     </Button>
                     <Button
                         v-else-if="attendance.my.state === 'in'"
-                        class="min-h-14 w-full text-base"
-                        :disabled="clock.processing"
-                        data-test="clock-out"
-                        @click="clock.confirmOut = true"
+                        as-child
+                        variant="outline"
+                        class="min-h-11 w-full sm:w-auto sm:self-start"
                     >
-                        <Clock class="size-5" />
-                        {{
-                            clock.locating
-                                ? 'Checking location…'
-                                : clock.processing
-                                  ? 'Clocking out…'
-                                  : 'Clock out'
-                        }}
+                        <Link :href="clockOnMe" data-test="clock-out-on-me"
+                            >Clock out on Me
+                            <ArrowRight class="size-4" aria-hidden="true"
+                        /></Link>
                     </Button>
                     <InputError :message="errors.clock" />
                     <p
@@ -1264,90 +1256,6 @@ const {
                 <Clock class="size-5" />
             </template>
         </OperationalConfirmDialog>
-
-        <OperationalConfirmDialog
-            v-model:open="clock.confirmOut"
-            title="Clock out now?"
-            description="Your clock-out time is the server time when you confirm."
-            confirm-label="Clock out"
-            processing-label="Clocking out…"
-            :processing="clock.processing"
-            @confirm="press('out')"
-        >
-            <template #icon>
-                <Clock class="size-5" />
-            </template>
-        </OperationalConfirmDialog>
-
-        <!-- HR-16a: consent once per version, before the first press at this branch -->
-        <Sheet
-            :open="clock.consentFor !== null"
-            @update:open="(open: boolean) => !open && (clock.consentFor = null)"
-        >
-            <SheetContent
-                side="bottom"
-                class="flex max-h-[90dvh] flex-col sm:mx-auto sm:max-w-xl sm:rounded-t-xl"
-                data-test="location-consent"
-            >
-                <SheetHeader>
-                    <SheetTitle>Location check at this branch</SheetTitle>
-                    <SheetDescription>
-                        Read this once. You can clock
-                        {{ clock.consentFor === 'out' ? 'out' : 'in' }} without
-                        it.
-                    </SheetDescription>
-                    <p
-                        class="text-xs text-muted-foreground"
-                        data-test="location-consent-draft"
-                    >
-                        Draft wording until the clinic's PDPA review. Synthetic
-                        data only.
-                    </p>
-                </SheetHeader>
-                <!-- Closing with X records nothing and gives no consent; the sheet opens again at the next press (Daniel). -->
-                <div
-                    class="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-4 pb-4 text-sm"
-                    data-test="location-consent-text"
-                >
-                    <section class="flex flex-col gap-1">
-                        <h3 class="font-medium">English</h3>
-                        <p class="whitespace-pre-line">
-                            {{ attendance.my?.location?.consentEn }}
-                        </p>
-                    </section>
-                    <section class="flex flex-col gap-1" lang="ms">
-                        <h3 class="font-medium">Bahasa Melayu</h3>
-                        <p class="whitespace-pre-line">
-                            {{ attendance.my?.location?.consentBm }}
-                        </p>
-                    </section>
-                </div>
-                <!-- Pinned below the text; two equal choices, neither preselected (Daniel). -->
-                <div
-                    class="grid shrink-0 gap-2 border-t p-4 sm:grid-cols-2"
-                    data-test="location-consent-actions"
-                >
-                    <Button
-                        variant="outline"
-                        class="min-h-11"
-                        data-test="location-without"
-                        @click="withoutLocation(clock.consentFor ?? 'in')"
-                    >
-                        Clock
-                        {{ clock.consentFor === 'out' ? 'out' : 'in' }}
-                        without location
-                    </Button>
-                    <Button
-                        variant="outline"
-                        class="min-h-11"
-                        data-test="location-agree"
-                        @click="locate(clock.consentFor ?? 'in', true)"
-                    >
-                        I understand, check my location
-                    </Button>
-                </div>
-            </SheetContent>
-        </Sheet>
 
         <!-- Decision -->
         <OperationalConfirmDialog

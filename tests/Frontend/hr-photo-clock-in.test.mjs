@@ -74,7 +74,8 @@ test("someone else's photo stays hidden until Show; your own shows; a correction
     assert.match(thumb, /Show photo/);
     assert.match(thumb, /photo\.label/);
     assert.match(attendance, /<ClockPhotoThumb/);
-    assert.match(attendance, /useClockPhoto\(\)/);
+    // One Clock in: the camera opens from Me, never from this page.
+    assert.doesNotMatch(attendance, /useClockPhoto\(\)/);
 });
 
 test('the dialog is mounted once in each layout', () => {
