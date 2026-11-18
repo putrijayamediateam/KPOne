@@ -345,7 +345,7 @@ export function useCredentialsPage(props: CredentialsPageProps) {
         name: '',
         expires: 'yes',
         health: 'no',
-        permit: 'no',
+        permit: '',
         warn: '',
         roles: [] as string[],
         processing: false,
@@ -365,7 +365,19 @@ export function useCredentialsPage(props: CredentialsPageProps) {
         newType.health !== 'yes' &&
         newType.expires === 'yes' &&
         newType.permit === 'yes';
+    // Daniel (HR-21): the permanent Work permit answer starts unpicked, so it is always a choice.
+    const permitMissing = computed(() =>
+        newType.health !== 'yes' &&
+        newType.expires === 'yes' &&
+        newType.permit === ''
+            ? 'Pick Yes or No for Work permit to continue.'
+            : '',
+    );
     const addType = () => {
+        if (permitMissing.value !== '') {
+            return;
+        }
+
         if (isPermit() && !permitConfirm.value) {
             permitConfirm.value = true;
 
@@ -397,7 +409,7 @@ export function useCredentialsPage(props: CredentialsPageProps) {
                         roles: [],
                         expires: 'yes',
                         health: 'no',
-                        permit: 'no',
+                        permit: '',
                         warn: String(
                             props.credentials.options.suggestedWarnDays,
                         ),
@@ -507,6 +519,7 @@ export function useCredentialsPage(props: CredentialsPageProps) {
         yesNo,
         addType,
         permitConfirm,
+        permitMissing,
         edit,
         startEdit,
         saveEdit,

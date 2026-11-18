@@ -66,6 +66,7 @@ const {
     yesNo,
     addType,
     permitConfirm,
+    permitMissing,
     edit,
     startEdit,
     saveEdit,
@@ -144,7 +145,7 @@ const enterMissing = computed(() =>
 const addTypeMissing = computed(() =>
     newType.name.trim() === '' || newType.code.trim() === ''
         ? 'Enter a name and a short code to continue.'
-        : '',
+        : permitMissing.value,
 );
 </script>
 

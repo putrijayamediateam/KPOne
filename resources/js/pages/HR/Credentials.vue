@@ -62,6 +62,7 @@ const {
     yesNo,
     addType,
     permitConfirm,
+    permitMissing,
     edit,
     startEdit,
     saveEdit,
@@ -749,6 +750,7 @@ const {
                         v-model="newType.permit"
                         trigger-class="w-40 max-lg:h-11"
                         label="Work permit"
+                        placeholder="Choose Yes or No"
                         :options="yesNo"
                     />
                     <p class="text-xs text-muted-foreground">
@@ -795,10 +797,20 @@ const {
                 <Button
                     type="submit"
                     class="self-start max-lg:min-h-11"
-                    :disabled="newType.processing"
+                    :disabled="newType.processing || permitMissing !== ''"
+                    :aria-describedby="
+                        permitMissing ? 'type-save-missing' : undefined
+                    "
                     data-test="type-save"
                     >{{ newType.processing ? 'Saving…' : 'Save type' }}</Button
                 >
+                <p
+                    v-if="permitMissing"
+                    id="type-save-missing"
+                    class="text-xs text-muted-foreground"
+                >
+                    {{ permitMissing }}
+                </p>
             </form>
 
             <div class="flex flex-col gap-3">

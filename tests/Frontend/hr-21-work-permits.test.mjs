@@ -33,7 +33,10 @@ test('the warnings component compiles, uses the warning tone and never red', () 
 });
 
 test('a new type sends work_permit only when it expires and is not a health item', () => {
-    assert.match(composable, /permit: 'no',/);
+    // Daniel: the permanent answer starts unpicked, and Save waits for it.
+    assert.match(composable, /permit: '',/);
+    assert.doesNotMatch(composable, /permit: 'no'/);
+    assert.match(composable, /Pick Yes or No for Work permit to continue\./);
     assert.match(
         composable,
         /newType\.health !== 'yes' &&\s*newType\.expires === 'yes' &&\s*newType\.permit === 'yes'/,
