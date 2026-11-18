@@ -41,6 +41,25 @@ final class ProposalTypes
         ];
     }
 
+    /**
+     * The fields an approver may change when approving a suggestion that prepares work, or null when the type never prepares
+     * work (decision only). Every field is optional; a changed quantity may only go down (checked by ProposalService).
+     *
+     * @return array<string, list<string>>|null
+     */
+    public static function editRules(string $type): ?array
+    {
+        return match ($type) {
+            'inventory.restock_suggestion' => [],
+            'inventory.transfer_suggestion' => [
+                'quantity' => ['nullable', 'string', self::QUANTITY[2]],
+                'source_location_public_id' => ['nullable', 'uuid'],
+                'destination_location_public_id' => ['nullable', 'uuid'],
+            ],
+            default => null,
+        };
+    }
+
     /** @return array{label: string, agent: string, permission: string, rules: array<string, list<string>>} */
     public static function get(string $type): array
     {
