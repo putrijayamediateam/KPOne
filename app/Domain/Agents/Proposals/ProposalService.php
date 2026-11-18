@@ -57,7 +57,10 @@ final class ProposalService
         }
     }
 
-    /** @param array<string, mixed> $input `lock_version`, optional `reason` */
+    /**
+     * @param  array<string, mixed>  $input  `lock_version`, optional `reason`; optional `mode` (`decision_only`, the default, or `prepare`)
+     *                                       and, with `prepare`, optional `edits` (docs/agents/CONTRACT.md section 15)
+     */
     public function approve(User $actor, AiProposal $proposal, array $input): AiProposal
     {
         return $this->decide($actor, $proposal, 'approved', $input);
@@ -137,9 +140,11 @@ final class ProposalService
     private function proposeLocked(AiAgentRun $run, string $type, array $definition, Branch $branch, array $values, string $hash, string $idempotencyKey): AiProposal
     {
         $run = AiAgentRun::query()->whereKey($run->id)->lockForUpdate()->firstOrFail();
+        // A transfer suggestion is held by the SENDING branch (CONTRACT section 15) while its run stays at the receiving branch.
+        $holderId = $this->holderBranchId($run->organisation_id, $type, $branch, $values);
         $existing = AiProposal::query()->where('organisation_id', $run->organisation_id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
         if ($existing) {
-            if ($existing->type !== $type || $existing->branch_id !== $branch->id || $existing->ai_agent_id !== $run->ai_agent_id || $existing->payload_hash !== $hash) {
+            if ($existing->type !== $type || $existing->branch_id !== $holderId || $existing->ai_agent_id !== $run->ai_agent_id || $existing->payload_hash !== $hash) {
                 throw ValidationException::withMessages(['idempotency_key' => 'This key was already used for a different proposal.']);
             }
 
@@ -160,7 +165,7 @@ final class ProposalService
 
         $proposal = AiProposal::query()->create([
             'organisation_id' => $run->organisation_id,
-            'branch_id' => $branch->id,
+            'branch_id' => $holderId,
             'ai_agent_run_id' => $run->id,
             'ai_agent_id' => $agent->id,
             'type' => $type,
@@ -179,6 +184,7 @@ final class ProposalService
     /** @param array<string, mixed> $input */
     private function decide(User $actor, AiProposal $proposal, string $status, array $input): AiProposal
     {
+        [$mode, $edits] = $this->modeAndEdits($status, $proposal, $input);
         $input['reason'] = isset($input['reason']) && is_string($input['reason']) ? trim((string) preg_replace('/\s+/u', ' ', $input['reason'])) : ($input['reason'] ?? null);
         if ($input['reason'] === '') {
             $input['reason'] = null;
@@ -192,7 +198,7 @@ final class ProposalService
             throw ValidationException::withMessages(['reason' => 'The reason must not contain identity numbers, email addresses or phone numbers.']);
         }
 
-        return DB::transaction(function () use ($actor, $proposal, $status, $values, $reason): AiProposal {
+        return DB::transaction(function () use ($actor, $proposal, $status, $values, $reason, $mode, $edits): AiProposal {
             $branch = Branch::query()->whereKey($proposal->branch_id)->where('organisation_id', $actor->organisation_id)->first();
             abort_unless($branch !== null, 404);
             $permission = ProposalTypes::get($proposal->type)['permission'];
@@ -211,17 +217,102 @@ final class ProposalService
             if ($requester !== null && (int) $requester === $actor->id) {
                 throw new AuthorizationException('You asked for the run that made this proposal, so someone else must decide it.');
             }
+            // Prepare first, inside this transaction and as the approver: a refusal rolls the whole decision back.
+            $record = $mode === 'prepare' ? $this->prepareWork($actor, $locked, $edits) : null;
             $locked->forceFill([
                 'status' => $status,
                 'decided_by_user_id' => $actor->id,
                 'decided_at' => now(),
                 'decision_reason' => $reason,
                 'lock_version' => $locked->lock_version + 1,
+                ...($record === null ? [] : [
+                    'prepared_record_type' => $record->type,
+                    'prepared_record_public_id' => $record->publicId,
+                    'prepared_record_label' => $record->label,
+                    'prepared_at' => now(),
+                ]),
             ])->save();
-            $this->recordAudit('ai_proposal.'.$status, $locked, $actor, ['has_reason' => $reason !== null]);
+            $this->recordAudit('ai_proposal.'.$status, $locked, $actor, [
+                'has_reason' => $reason !== null,
+                ...($record === null ? [] : ['mode' => 'prepare', 'prepared_record_type' => $record->type, 'prepared_record_label' => $record->label]),
+            ]);
 
             return $locked;
         }, 3);
+    }
+
+    /**
+     * The way of approving and the approver's edits, checked for shape only (the switch, the preparer and the approver's
+     * permission are checked under the lock, after a retry of an already decided proposal has been recognised).
+     *
+     * @param  array<string, mixed>  $input
+     * @return array{0: 'decision_only'|'prepare', 1: array<string, mixed>}
+     */
+    private function modeAndEdits(string $status, AiProposal $proposal, array $input): array
+    {
+        $mode = $input['mode'] ?? 'decision_only';
+        $edits = $input['edits'] ?? [];
+        if (! in_array($mode, ['decision_only', 'prepare'], true) || ! is_array($edits)) {
+            throw ValidationException::withMessages(['mode' => 'Choose a valid way to decide this suggestion.']);
+        }
+        if ($mode === 'decision_only') {
+            if ($edits !== []) {
+                throw ValidationException::withMessages(['edits' => 'Changes apply only when the approval prepares work.']);
+            }
+
+            return ['decision_only', []];
+        }
+        if ($status !== 'approved') {
+            throw ValidationException::withMessages(['mode' => 'Only an approval can prepare work.']);
+        }
+        $rules = ProposalTypes::editRules($proposal->type);
+        if ($rules === null) {
+            throw ValidationException::withMessages(['mode' => 'This suggestion does not prepare work.']);
+        }
+        if (array_diff(array_keys($edits), array_keys($rules)) !== []) {
+            throw ValidationException::withMessages(['edits' => 'These changes are not allowed for this suggestion.']);
+        }
+        $valid = $this->normalise(Validator::make($edits, $rules)->validate(), $rules);
+
+        return ['prepare', array_filter($valid, fn ($value): bool => $value !== null)];
+    }
+
+    /**
+     * Called under the proposal row lock, inside the approval transaction.
+     *
+     * @param  array<string, mixed>  $edits
+     */
+    private function prepareWork(User $actor, AiProposal $locked, array $edits): PreparedRecord
+    {
+        if (! (bool) config('agents.prepare_enabled')) {
+            throw ValidationException::withMessages(['mode' => 'Preparing work from a suggestion is not switched on. Approve it as a decision only.']);
+        }
+        $preparer = app(ProposalPreparers::class)->for($locked->type);
+        if ($preparer === null) {
+            throw ValidationException::withMessages(['mode' => 'This suggestion does not prepare work.']);
+        }
+        $reason = $preparer->cannotPrepareReason($actor, $locked);
+        if ($reason !== null) {
+            throw ValidationException::withMessages(['mode' => $reason]);
+        }
+        $payload = (array) $locked->payload;
+        if (isset($edits['quantity'])) {
+            $wanted = $this->milli((string) $edits['quantity']);
+            $suggested = $this->milli((string) ($payload['quantity'] ?? $payload['suggested_quantity'] ?? '0'));
+            if ($wanted <= 0 || $wanted > $suggested) {
+                throw ValidationException::withMessages(['edits' => 'The quantity can only be lowered, and must be above 0.']);
+            }
+        }
+
+        return $preparer->prepare($actor, $locked, [...$payload, ...$edits]);
+    }
+
+    /** Exact thousandths of a normalised quantity text such as "12.500". */
+    private function milli(string $quantity): int
+    {
+        [$whole, $fraction] = array_pad(explode('.', $quantity, 2), 2, '');
+
+        return ((int) $whole * 1000) + (int) str_pad(substr($fraction, 0, 3), 3, '0');
     }
 
     /**
@@ -250,6 +341,32 @@ final class ProposalService
         return $values;
     }
 
+    /**
+     * The branch that holds (and decides) a proposal: the run's own branch, except for a transfer suggestion, which the
+     * sending branch holds, because only the sending branch can create the stock request (CONTRACT section 15).
+     *
+     * @param  array<string, mixed>  $values
+     */
+    private function holderBranchId(int $organisationId, string $type, Branch $runBranch, array $values): int
+    {
+        if ($type !== 'inventory.transfer_suggestion') {
+            return $runBranch->id;
+        }
+        $sender = DB::table('branches')->where('organisation_id', $organisationId)->where('code', (string) ($values['from_branch_code'] ?? ''))->where('is_active', true)->value('id');
+        if ($sender === null || ($values['to_branch_code'] ?? null) !== $runBranch->code) {
+            throw ValidationException::withMessages(['payload' => 'The proposal refers to stock, a location or a branch that does not match.']);
+        }
+
+        return (int) $sender;
+    }
+
+    /** An active location of this branch that can hold stock for a transfer (never a patient returns location). */
+    private function usableLocation(int $organisationId, int $branchId, string $locationPublicId): bool
+    {
+        return DB::table('inventory_locations')->where('organisation_id', $organisationId)->where('branch_id', $branchId)->where('public_id', $locationPublicId)
+            ->where('is_active', true)->where('type', '<>', 'dispensary_returns')->exists();
+    }
+
     /** @param array<string, mixed> $values */
     private function assertReferences(int $organisationId, Branch $branch, string $type, array $values): void
     {
@@ -262,8 +379,10 @@ final class ProposalService
             $ok = DB::table('inventory_batches')->where('organisation_id', $organisationId)->where('inventory_sku_id', $sku)->where('public_id', $values['batch_public_id'])->exists();
         }
         if ($ok && $type === 'inventory.transfer_suggestion') {
-            $ok = $values['to_branch_code'] === $branch->code
-                && DB::table('branches')->where('organisation_id', $organisationId)->where('code', $values['from_branch_code'])->where('is_active', true)->exists();
+            $sender = DB::table('branches')->where('organisation_id', $organisationId)->where('code', $values['from_branch_code'])->where('is_active', true)->value('id');
+            $ok = $values['to_branch_code'] === $branch->code && $sender !== null
+                && $this->usableLocation($organisationId, (int) $sender, (string) $values['source_location_public_id'])
+                && $this->usableLocation($organisationId, $branch->id, (string) $values['destination_location_public_id']);
         }
         if (! $ok) {
             throw ValidationException::withMessages(['payload' => 'The proposal refers to stock, a location or a branch that does not match.']);

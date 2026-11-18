@@ -27,6 +27,10 @@ use LogicException;
  * @property CarbonInterface|null $decided_at
  * @property string|null $decision_reason
  * @property int $lock_version
+ * @property string|null $prepared_record_type
+ * @property string|null $prepared_record_public_id
+ * @property string|null $prepared_record_label
+ * @property CarbonInterface|null $prepared_at
  * @property string $idempotency_key
  * @property CarbonInterface|null $created_at
  */
@@ -45,7 +49,7 @@ class AiProposal extends Model
 
     protected function casts(): array
     {
-        return ['payload' => 'encrypted:array', 'decided_at' => 'datetime', 'lock_version' => 'integer'];
+        return ['payload' => 'encrypted:array', 'decided_at' => 'datetime', 'prepared_at' => 'datetime', 'lock_version' => 'integer'];
     }
 
     /** @return BelongsTo<AiAgent, $this> */
