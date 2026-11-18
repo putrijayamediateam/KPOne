@@ -347,9 +347,22 @@ const waitLabel = (minutes: number): string | null =>
         waitingTone(minutes)
     ];
 
+// Daniel (UX-24 part 2): Pharmacy's filled header action is its "Open Dispensary list" link (present only when the person
+// may open that list), as Front desk, Billing and HR have theirs. The same link is left out of the Open list below.
+const PHARMACY_PRIMARY = 'Open Dispensary list';
+const pharmacyPrimary = computed(
+    () =>
+        props.pharmacy?.links.find((l) => l.title === PHARMACY_PRIMARY) ?? null,
+);
+
+const pharmacyOpenLinks = computed(() =>
+    (props.pharmacy?.links ?? []).filter((l) => l.title !== PHARMACY_PRIMARY),
+);
+
 const primaryAction = computed(
     () =>
         props.frontDesk?.primaryAction ??
+        pharmacyPrimary.value ??
         props.billing?.primaryAction ??
         props.consultation?.primaryAction ??
         props.panel?.primaryAction ??
@@ -737,13 +750,13 @@ const v2Shell = computed(() =>
                     </ul>
                 </section>
                 <section
-                    v-if="pharmacy.links.length"
+                    v-if="pharmacyOpenLinks.length"
                     class="space-card"
                     aria-labelledby="open-pages"
                 >
                     <h2 id="open-pages">Open</h2>
                     <ul class="space-list">
-                        <li v-for="l in pharmacy.links" :key="l.href">
+                        <li v-for="l in pharmacyOpenLinks" :key="l.href">
                             <Link :href="l.href" class="space-row">
                                 <span>{{ l.title }}</span>
                                 <ChevronRight
@@ -1174,7 +1187,13 @@ const v2Shell = computed(() =>
                     <h2 id="cn-waiting">
                         Waiting for me ({{ consultation.waiting.total }})
                     </h2>
-                    <p v-if="consultation.next" class="space-muted">
+                    <p
+                        v-if="
+                            consultation.next &&
+                            consultation.waiting.rows.length > 0
+                        "
+                        class="space-muted"
+                    >
                         {{ consultation.next.text }}
                     </p>
                     <p

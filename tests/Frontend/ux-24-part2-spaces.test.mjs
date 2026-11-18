@@ -39,9 +39,19 @@ test('UX-24 part 2 (Daniel): the roster week keeps its status beside the date an
     );
 });
 
-test('UX-24 part 2 (Daniel): the Today at a glance labels stay at 12 px or larger on a phone', () => {
+test('UX-24 part 2 (Daniel): the Today at a glance labels are 13 px on a phone (12 px or larger, Daniel)', () => {
     assert.match(
         css,
-        /@media \(max-width: 639px\) \{[\s\S]*\.space-shell \.space-stats \.space-muted \{\s*font-size: 12px;/,
+        /@media \(max-width: 639px\) \{[\s\S]*\.space-shell \.space-stats \.space-muted \{\s*font-size: 13px;/,
     );
+});
+
+test('UX-24 part 2 (Daniel): Consultation shows one line when nobody waits, and Pharmacy has a filled Open Dispensary list action', () => {
+    assert.match(
+        squash(page),
+        /v-if=" consultation\.next && consultation\.waiting\.rows\.length > 0 "/,
+    );
+    assert.match(page, /const PHARMACY_PRIMARY = 'Open Dispensary list';/);
+    assert.match(page, /pharmacyPrimary\.value \?\?/);
+    assert.match(page, /v-for="l in pharmacyOpenLinks"/);
 });
