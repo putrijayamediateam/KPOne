@@ -54,17 +54,17 @@ test('the Classic template did not change: Classic still renders its own markup'
     assert.doesNotMatch(classic, /V2WorkLayout|V2Dialog/);
 });
 
-test('My attendance: one filled Clock in or Clock out, 56 px, with the server time never in a live region', () => {
-    assert.equal((template.match(/:class="clockButton"/g) ?? []).length, 2);
-    assert.match(script, /const clockButton =\s*'inline-flex min-h-14 w-full/);
+test('My attendance: Clock in or out on Me is an outline link, with the server time never in a live region', () => {
     assert.match(
         template,
-        /data-test="clock-in"[\s\S]*?@click="press\('in'\)"/,
+        /:href="clockOnMe"\s+:class="clockLink"\s+data-test="clock-in-on-me"\s*>Clock in on Me/,
     );
     assert.match(
         template,
-        /data-test="clock-out"[\s\S]*?@click="clock\.confirmOut = true"/,
+        /:href="clockOnMe"\s+:class="clockLink"\s+data-test="clock-out-on-me"\s*>Clock out on Me/,
     );
+    assert.match(script, /const clockLink = `\$\{button\} w-full gap-2/);
+    assert.doesNotMatch(template + script, /clockButton|press\(|confirmOut/);
     assert.match(template, /data-test="server-time"/);
     const live = template.match(/aria-live="polite"[\s\S]*?<\/p>/)?.[0] ?? '';
     assert.match(live, /announcement/);
@@ -76,8 +76,6 @@ test('privacy and location wording carry over word for word', () => {
         'KPOne records the time and a photo of you at',
         'This branch checks your location when you',
         'Only inside, outside or not available',
-        "Draft wording until the clinic's PDPA review. Synthetic data",
-        'I understand, check my location',
         'Do not write medical details here.',
         'Someone else decides this',
         'Showing a photo is recorded.',
@@ -96,17 +94,11 @@ test('privacy and location wording carry over word for word', () => {
     );
 });
 
-test('consent: two equal outline choices, neither preselected; closing records nothing', () => {
-    assert.match(template, /single-action\s+single-action-style="outline"/);
-    assert.match(
-        template,
-        /@confirm="withoutLocation\(clock\.consentFor \?\? 'in'\)"/,
+test('no consent dialog or location read on the page: Me does it', () => {
+    assert.doesNotMatch(
+        template + script,
+        /location-consent|withoutLocation|locate\(|consentFor/,
     );
-    assert.match(
-        template,
-        /data-test="location-agree"\s+@click="locate\(clock\.consentFor \?\? 'in', true\)"/,
-    );
-    assert.match(template, /!open && \(clock\.consentFor = null\)/);
 });
 
 test('Review: a table from 1280 px and cards below; photos and location per press; outline Approve and Reject', () => {
@@ -125,7 +117,7 @@ test('Review: a table from 1280 px and cards below; photos and location per pres
     assert.match(template, /:tone="decision\.approve \? 'default' : 'danger'"/);
 });
 
-test('one filled action per tab: Clock in or out on My attendance, Save on Settings, none on Review', () => {
+test('one filled action per tab: none on My attendance (Clock in is on Me), Save on Settings, none on Review', () => {
     const review = template.slice(
         template.indexOf('<!-- Review -->'),
         template.indexOf('<!-- Overtime and Summary'),

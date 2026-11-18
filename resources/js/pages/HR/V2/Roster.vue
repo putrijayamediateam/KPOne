@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { ArrowRight } from '@lucide/vue';
 import {
     computed,
     nextTick,
@@ -348,13 +349,15 @@ const numberClass =
                     v-if="roster.tab === 'my' && roster.my"
                     class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row"
                 >
+                    <!-- One Clock in (owner, 18 Nov 2026): the press is on Me. Outline: the filled action belongs to the planner (Daniel). -->
                     <Link
                         v-if="roster.my.canClock"
-                        href="/hr/attendance"
-                        :class="primaryButton"
+                        href="/spaces/me"
+                        :class="`${button} gap-2`"
                         data-test="roster-clock-link"
-                        >Clock in</Link
-                    >
+                        >Clock in on Me
+                        <ArrowRight class="size-4" aria-hidden="true"
+                    /></Link>
                     <Link
                         v-if="roster.my.canAskOpenShifts"
                         href="/hr/open-shifts"
