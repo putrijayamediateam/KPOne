@@ -1,0 +1,22 @@
+remote: 
+cf24970f2 New look (preview) step D: translucent top bar, Ctrl/Cmd K to the jump dialog, area label, scroll padding
+
+✓ built in 8.37s
+light ca /registration: icons=7 (Today/Front desk/Pharmacy/Billing/Stock/Reports/Settings) bar={"h":64,"bg":"color(srgb 0.956863 0.956863 0.964706 / 0.82)","bf":"saturate(1.6) blur(14px)","sp":"80px","label":"Front desk","hint":"Ctrl K"}
+  Ctrl+K opens dialog: true; Esc closes: true; Meta+K opens: true
+  colours under worst-case content (#000000): {"label":"rgb(17, 17, 20)","btn":"rgb(107, 107, 115)","kbd":"rgb(107, 107, 115)","btnBg":"rgb(244, 244, 246)","quiet":"rgb(107, 107, 115)"}
+light ca-supervisor /inventory: icons=7 (Today/Front desk/Pharmacy/Billing/Stock/Reports/Settings) bar={"h":64,"bg":"color(srgb 0.956863 0.956863 0.964706 / 0.82)","bf":"saturate(1.6) blur(14px)","sp":"80px","label":"Stock","hint":"Ctrl K"}
+light doctor /queue: icons=5 (Today/Front desk/Consultation/Reports/Settings) bar={"h":64,"bg":"color(srgb 0.956863 0.956863 0.964706 / 0.82)","bf":"saturate(1.6) blur(14px)","sp":"80px","label":"Consultation","hint":"Ctrl K"}
+light hr-manager /hr/roster: icons=4 (Today/HR/Reports/Settings) bar={"h":64,"bg":"color(srgb 0.956863 0.956863 0.964706 / 0.82)","bf":"saturate(1.6) blur(14px)","sp":"80px","label":"HR","hint":"Ctrl K"}
+  sticky elements after scrolling 700px: [{"tag":"ASIDE","top":0,"css":"0px"},{"tag":"DIV","top":0,"css":"0px"},{"tag":"HEADER","top":0,"css":"0px"}]
+light director /pricing: icons=10 (Today/Front desk/Consultation/Pharmacy/Billing/Panel/Stock/HR/Reports/Settings) bar={"h":64,"bg":"color(srgb 0.956863 0.956863 0.964706 / 0.82)","bf":"saturate(1.6) blur(14px)","sp":"80px","label":"Stock","hint":"Ctrl K"}
+dark ca /registration: icons=7 (Today/Front desk/Pharmacy/Billing/Stock/Reports/Settings) bar={"h":64,"bg":"color(srgb 0.0588235 0.0588235 0.0705882 / 0.82)","bf":"saturate(1.6) blur(14px)","sp":"80px","label":"Front desk","hint":"Ctrl K"}
+  Ctrl+K opens dialog: true; Esc closes: true; Meta+K opens: true
+  colours under worst-case content (#ffffff): {"label":"rgb(244, 244, 246)","btn":"rgb(168, 168, 179)","kbd":"rgb(168, 168, 179)","btnBg":"rgb(15, 15, 18)","quiet":"rgb(168, 168, 179)"}
+dark ca-supervisor /inventory: icons=7 (Today/Front desk/Pharmacy/Billing/Stock/Reports/Settings) bar={"h":64,"bg":"color(srgb 0.0588235 0.0588235 0.0705882 / 0.82)","bf":"saturate(1.6) blur(14px)","sp":"80px","label":"Stock","hint":"Ctrl K"}
+dark doctor /queue: icons=5 (Today/Front desk/Consultation/Reports/Settings) bar={"h":64,"bg":"color(srgb 0.0588235 0.0588235 0.0705882 / 0.82)","bf":"saturate(1.6) blur(14px)","sp":"80px","label":"Consultation","hint":"Ctrl K"}
+dark hr-manager /hr/roster: icons=4 (Today/HR/Reports/Settings) bar={"h":64,"bg":"color(srgb 0.0588235 0.0588235 0.0705882 / 0.82)","bf":"saturate(1.6) blur(14px)","sp":"80px","label":"HR","hint":"Ctrl K"}
+  sticky elements after scrolling 700px: [{"tag":"ASIDE","top":0,"css":"0px"},{"tag":"DIV","top":0,"css":"0px"},{"tag":"HEADER","top":0,"css":"0px"}]
+dark director /pricing: icons=10 (Today/Front desk/Consultation/Pharmacy/Billing/Panel/Stock/HR/Reports/Settings) bar={"h":64,"bg":"color(srgb 0.0588235 0.0588235 0.0705882 / 0.82)","bf":"saturate(1.6) blur(14px)","sp":"80px","label":"Stock","hint":"Ctrl K"}
+
+[exited with code 0]

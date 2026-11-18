@@ -1,0 +1,7 @@
+Top bar text over worst-case content (a black or white block fixed behind the bar), look ON, 1440 px, bar pixel read at x=1000 (blank bar area). Text = full-strength foreground.
+theme | behind | bar pixel | text ratio | needs
+light | black | (200,200,202) | 11.28 | 4.5
+light | white | (246,246,248) | 17.46 | 4.5
+dark  | black | (12,12,15)    | 17.78 | 4.5
+dark  | white | (58,58,61)    | 10.32 | 4.5
+Before this fix, muted text (107,107,115) on the light/black case would have been about 3.2:1. The search button keeps its own solid fill and muted text (not over content).
