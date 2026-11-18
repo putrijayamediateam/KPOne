@@ -1,0 +1,28 @@
+Rendered tokens, look ON, 1440 px, demo CA, measured in Chromium from computed styles (probe elements in a card and on the page).
+theme | what | ratio | needs
+light | muted text on card | 5.28 | 4.5
+light | muted text on page | 4.81 | 4.5
+light | link on card | 6.43 | 4.5
+light | link on page | 5.86 | 4.5
+light | brand pink text on card | 5.87 | 4.5
+light | brand pink text on page | 5.35 | 4.5
+light | warning text on card | 6.80 | 4.5
+light | success text on card | 6.63 | 4.5
+light | destructive text on card | 6.54 | 4.5
+light | main button text on its fill | 18.85 | 4.5
+light | main button fill on page (edge) | 17.16 | 3
+light | field edge on card | 3.43 | 3
+light | body text on card | 18.85 | 4.5
+dark | muted text on card | 7.36 | 4.5
+dark | muted text on page | 8.13 | 4.5
+dark | link on card | 7.04 | 4.5
+dark | link on page | 7.77 | 4.5
+dark | brand pink text on card | 6.47 | 4.5
+dark | brand pink text on page | 7.15 | 4.5
+dark | warning text on card | 9.83 | 4.5
+dark | success text on card | 10.22 | 4.5
+dark | destructive text on card | 7.59 | 4.5
+dark | main button text on its fill | 17.16 | 4.5
+dark | main button fill on page (edge) | 17.42 | 3
+dark | field edge on card | 3.02 | 3
+dark | body text on card | 15.78 | 4.5
