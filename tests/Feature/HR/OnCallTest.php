@@ -66,6 +66,9 @@ class OnCallTest extends VisitTestCase
         $props = $this->get(route('hr.roster.index', ['tab' => 'planner', 'branch' => $this->branch->id, 'week' => self::WEEK]))->viewData('page')['props']['roster'];
         $this->assertContains(['value' => 'on_call', 'label' => 'On call'], $props['sessions']);
         $this->assertNotContains('on_call', array_column($props['staffingSessions'], 'value')); // the minimums grid
+        // Daniel: the planner footer never folds on call into "on shift".
+        $this->assertSame([0, 0, 0, 0, 0, 0, 0], $props['planner']['totals']);
+        $this->assertSame([1, 1, 1, 1, 1, 1, 1], $props['planner']['onCallTotals']);
         $kinds = collect($props['planner']['compliance']['warnings'])->groupBy('kind');
         foreach (['hours', 'days_in_row', 'rest'] as $kind) {
             $this->assertArrayNotHasKey($kind, $kinds->all(), $kind);

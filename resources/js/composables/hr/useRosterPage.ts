@@ -54,6 +54,7 @@ export type Planner = {
         leaveDays: Record<string, 'full' | 'half'>;
     }[];
     totals: number[];
+    onCallTotals: number[];
     shortDays: { date: string; label: string }[];
     warnings: string[];
     /** HR-5b: compliance warnings and fair rotation; null when no week is shown. */

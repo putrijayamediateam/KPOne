@@ -638,7 +638,22 @@ const isMonth = computed(
                                         class="inline-flex items-center gap-2 whitespace-nowrap"
                                         data-test="day-total"
                                     >
-                                        <span>{{ planner.totals[index] }}</span>
+                                        <span
+                                            >{{ planner.totals[index]
+                                            }}<template
+                                                v-if="
+                                                    planner.onCallTotals[
+                                                        index
+                                                    ] > 0
+                                                "
+                                            >
+                                                ·
+                                                {{
+                                                    planner.onCallTotals[index]
+                                                }}
+                                                on call</template
+                                            ></span
+                                        >
                                         <StatusBadge
                                             v-if="isShort(day.date)"
                                             status="roster_short"

@@ -66,3 +66,15 @@ test('the clock result chip knows on call', () => {
         /onCall: Person\[\];/,
     );
 });
+
+test('the planner footer shows on call beside "on shift", never inside it', () => {
+    const classic = read('resources/js/pages/HR/Roster.vue');
+    assert.match(classic, /planner\.onCallTotals\[index\]/);
+    assert.match(classic, /on call<\/template/);
+    const v2 = read('resources/js/pages/HR/V2/Roster.vue');
+    assert.match(v2, /` · \$\{planner\.value\?\.onCallTotals\[i\]\} on call`/);
+    assert.match(
+        read('app/Domain/HR/Roster/Services/RosterPageService.php'),
+        /'totals' => \$this->dayCounts\(\$branch, \$weekStart, \$shifts->reject\(/,
+    );
+});

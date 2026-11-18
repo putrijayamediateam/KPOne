@@ -315,7 +315,12 @@ const gridTotals = computed<Record<string, WeekGridTotal>>(() =>
         (planner.value?.days ?? []).map((d, i) => [
             d.date,
             {
-                text: `${planner.value?.totals[i] ?? 0} on shift`,
+                // HR-20 (Daniel): on call has its own count, never folded into "on shift".
+                text:
+                    `${planner.value?.totals[i] ?? 0} on shift` +
+                    ((planner.value?.onCallTotals[i] ?? 0) > 0
+                        ? ` · ${planner.value?.onCallTotals[i]} on call`
+                        : ''),
                 warning: isShort(d.date) ? 'Below minimum' : undefined,
             },
         ]),
