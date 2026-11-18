@@ -39,9 +39,9 @@ test('DS-12: the name shows beside the avatar only from 1024 px', () => {
     );
 });
 
-test('DS-12: the shortcut reads the attendance state and opens the Attendance page; it never posts a press', () => {
+test('DS-12: the shortcut reads the attendance state and opens the camera dialog; it never sends to Attendance and never posts a press', () => {
     assert.match(clock, /clock-state/);
-    assert.match(clock, /router\.visit\(ATTENDANCE\)/);
+    assert.doesNotMatch(clock, /router\.visit\(ATTENDANCE\)/);
     assert.doesNotMatch(
         clock,
         /router\.post|clock-in|clock-out|crypto\.randomUUID/,

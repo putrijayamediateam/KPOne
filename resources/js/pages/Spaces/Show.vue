@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import V2Chip from '@/components/v2/V2Chip.vue';
 import { useClockShortcut } from '@/composables/useClockShortcut';
 import { useScrollStrip } from '@/composables/useScrollStrip';
 import SpacePassThroughLayout from '@/layouts/SpacePassThroughLayout.vue';
@@ -230,7 +231,11 @@ type MeHome = {
         state: 'in' | 'out' | 'done';
         canPress: boolean;
         refusal: string | null;
-        needsAttendancePage: boolean;
+        location: {
+            consentNeeded: boolean;
+            consentEn: string | null;
+            consentBm: string | null;
+        } | null;
         serverNow: string;
         timezone: string;
         clockedInAt: string | null;
@@ -325,14 +330,43 @@ const hub = computed(
     () => page.props.workspace?.navigation.clinicManagement === true,
 );
 
+// Daniel (UX-24 part 2): a status is the dot-and-word V2 chip. The cash closing and the roster use the page's own words.
+const cashTone = (status: string) =>
+    status === 'approved'
+        ? 'success'
+        : status === 'waiting' || status === 'not_counted'
+          ? 'warning'
+          : status === 'returned'
+            ? 'danger'
+            : 'neutral';
+const rosterTone = (status: string) =>
+    status === 'Approved'
+        ? 'success'
+        : status === 'Waiting for approval'
+          ? 'warning'
+          : 'neutral';
+
 const waitLabel = (minutes: number): string | null =>
     ({ normal: null, amber: 'Long wait', red: 'Very long wait' })[
         waitingTone(minutes)
     ];
 
+// Daniel (UX-24 part 2): Pharmacy's filled header action is its "Open Dispensary list" link (present only when the person
+// may open that list), as Front desk, Billing and HR have theirs. The same link is left out of the Open list below.
+const PHARMACY_PRIMARY = 'Open Dispensary list';
+const pharmacyPrimary = computed(
+    () =>
+        props.pharmacy?.links.find((l) => l.title === PHARMACY_PRIMARY) ?? null,
+);
+
+const pharmacyOpenLinks = computed(() =>
+    (props.pharmacy?.links ?? []).filter((l) => l.title !== PHARMACY_PRIMARY),
+);
+
 const primaryAction = computed(
     () =>
         props.frontDesk?.primaryAction ??
+        pharmacyPrimary.value ??
         props.billing?.primaryAction ??
         props.consultation?.primaryAction ??
         props.panel?.primaryAction ??
@@ -720,13 +754,13 @@ const v2Shell = computed(() =>
                     </ul>
                 </section>
                 <section
-                    v-if="pharmacy.links.length"
+                    v-if="pharmacyOpenLinks.length"
                     class="space-card"
                     aria-labelledby="open-pages"
                 >
                     <h2 id="open-pages">Open</h2>
                     <ul class="space-list">
-                        <li v-for="l in pharmacy.links" :key="l.href">
+                        <li v-for="l in pharmacyOpenLinks" :key="l.href">
                             <Link :href="l.href" class="space-row">
                                 <span>{{ l.title }}</span>
                                 <ChevronRight
@@ -1026,11 +1060,10 @@ const v2Shell = computed(() =>
                 >
                     <h2 id="bl-cash">Cash closing today</h2>
                     <p class="space-ask-sentence">
-                        <span
-                            class="space-pill"
-                            :class="`is-${billing.cashClosing.status}`"
-                            >{{ billing.cashClosing.statusText }}</span
-                        >
+                        <V2Chip
+                            :tone="cashTone(billing.cashClosing.status)"
+                            :label="billing.cashClosing.statusText"
+                        />
                     </p>
                     <p class="space-muted">
                         Expected cash
@@ -1158,7 +1191,13 @@ const v2Shell = computed(() =>
                     <h2 id="cn-waiting">
                         Waiting for me ({{ consultation.waiting.total }})
                     </h2>
-                    <p v-if="consultation.next" class="space-muted">
+                    <p
+                        v-if="
+                            consultation.next &&
+                            consultation.waiting.rows.length > 0
+                        "
+                        class="space-muted"
+                    >
                         {{ consultation.next.text }}
                     </p>
                     <p
@@ -1780,14 +1819,14 @@ const v2Shell = computed(() =>
                     <Link :href="hr.roster.href" class="space-row">
                         <span class="space-row-body">
                             <span class="space-row-text">
-                                <span class="space-row-main">{{
-                                    hr.roster.label
-                                }}</span>
-                                <span class="space-row-sub">{{
-                                    hr.roster.status
-                                }}</span>
+                                <span class="space-row-main space-roster-head"
+                                    >{{ hr.roster.label }}
+                                    <V2Chip
+                                        :tone="rosterTone(hr.roster.status)"
+                                        :label="hr.roster.status"
+                                /></span>
                                 <span
-                                    class="space-row-meta"
+                                    class="space-row-meta space-roster-short"
                                     :class="
                                         hr.roster.shortDays > 0
                                             ? 'space-wait is-amber'

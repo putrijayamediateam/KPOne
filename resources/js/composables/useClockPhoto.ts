@@ -18,8 +18,20 @@ export type ClockConfirmation = {
     };
 };
 
+/**
+ * HR-16a, one Clock in (owner, 18 Nov 2026): a branch that checks location sends this with the clock state, and the Me
+ * press runs the check inside the camera dialog. Consent text is set only while consent is still needed.
+ */
+export type ClockLocation = {
+    consentNeeded: boolean;
+    consentEn: string | null;
+    consentBm: string | null;
+};
+
 export type ClockPhotoStep =
     | 'idle'
+    | 'consent'
+    | 'locating'
     | 'starting'
     | 'notice'
     | 'camera'
@@ -32,6 +44,7 @@ type State = {
     step: ClockPhotoStep;
     kind: ClockKind;
     extra: Record<string, unknown>;
+    location: ClockLocation | null;
     token: string;
     key: string;
     error: string;
@@ -43,6 +56,7 @@ const state = reactive<State>({
     step: 'idle',
     kind: 'in',
     extra: {},
+    location: null,
     token: '',
     key: '',
     error: '',
@@ -199,14 +213,59 @@ const appendExtra = (
 
 export const clockPhotoState = state;
 
+/**
+ * HR-16a: the location result for a press, read once, at the press, and never before or after. A refusal, a failure or
+ * "without location" still records the press. `consent` is true when the person has just agreed in the dialog.
+ */
+export const readLocation = (
+    consent: boolean,
+): Promise<Record<string, unknown>> => {
+    const extra: Record<string, unknown> = consent
+        ? { location_consent: true }
+        : {};
+
+    if (!('geolocation' in navigator)) {
+        return Promise.resolve({ ...extra, location_unavailable: 'failed' });
+    }
+
+    return new Promise((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+            (position) =>
+                resolve({
+                    ...extra,
+                    clock_position: {
+                        latitude: position.coords.latitude,
+                        longitude: position.coords.longitude,
+                        accuracy: position.coords.accuracy,
+                    },
+                }),
+            (error) =>
+                resolve({
+                    ...extra,
+                    location_unavailable:
+                        error.code === 1 ? 'denied' : 'failed',
+                }),
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 },
+        );
+    });
+};
+
+/** "Clock in without location": the press is recorded with the reason, and no position is read. */
+export const WITHOUT_LOCATION = { location_unavailable: 'declined' } as const;
+
 export function useClockPhoto() {
     /**
      * Opens the camera for a press. `extra` carries what the Attendance page adds (for example the HR-16a location
-     * result); `onDone` runs after Done is pressed on the confirmation.
+     * result); `onDone` runs after Done is pressed on the confirmation. `location` (the Me press) makes the dialog run
+     * the branch's location check first: the consent step when it is still needed, then one location read.
      */
     const open = (
         kind: ClockKind,
-        options: { extra?: Record<string, unknown>; onDone?: () => void } = {},
+        options: {
+            extra?: Record<string, unknown>;
+            location?: ClockLocation | null;
+            onDone?: () => void;
+        } = {},
     ): boolean => {
         if (state.step !== 'idle') {
             return false;
@@ -219,7 +278,12 @@ export function useClockPhoto() {
         state.key = crypto.randomUUID();
         state.error = '';
         state.result = null;
-        state.step = 'starting';
+        state.location = options.location ?? null;
+        state.step = state.location
+            ? state.location.consentNeeded
+                ? 'consent'
+                : 'locating'
+            : 'starting';
 
         return true;
     };
@@ -238,5 +302,6 @@ export const resetClockPhoto = (): void => {
     state.error = '';
     state.result = null;
     state.extra = {};
+    state.location = null;
     state.onDone = null;
 };

@@ -108,13 +108,14 @@ test('the notice version matches the server and comes before the camera', () => 
     assert.match(dialog, /markNoticeSeen\(CLOCK_PHOTO_NOTICE_VERSION\)/);
 });
 
-test('the clock shortcut opens the camera, or the Attendance page where location is checked', () => {
+test('the clock shortcut opens the camera and checks location itself; it never sends to Attendance', () => {
     const shortcut = read('resources/js/composables/useClockShortcut.ts');
     assert.match(shortcut, /useClockPhoto\(\)/);
     assert.match(shortcut, /open\(clock\.state === 'in' \? 'out' : 'in'/);
+    assert.doesNotMatch(shortcut, /router\.visit\(ATTENDANCE\)/);
     assert.match(
         shortcut,
-        /needsAttendancePage[\s\S]*router\.visit\(ATTENDANCE\)/,
+        /open\(clock\.state === 'in' \? 'out' : 'in', \{\s*location: clock\.location,/,
     );
 });
 

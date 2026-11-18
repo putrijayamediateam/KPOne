@@ -80,6 +80,7 @@ class MedicineCatalogueController extends Controller
                     'defaultFrequency' => $medicine->default_frequency,
                     'defaultDuration' => $medicine->default_duration,
                     'defaultIndication' => $medicine->default_indication,
+                    'usualQuantity' => $medicine->usual_quantity,
                     'selfPayAmountRm' => $catalogueTariffs[$medicine->id]['selfPayAmountRm'] ?? null,
                     'panelDefaultAmountRm' => $catalogueTariffs[$medicine->id]['panelDefaultAmountRm'] ?? null,
                     'isActive' => $medicine->is_active,
@@ -261,6 +262,7 @@ class MedicineCatalogueController extends Controller
                 'default_frequency' => $medicine->default_frequency ?? '',
                 'default_duration' => $medicine->default_duration ?? '',
                 'default_indication' => $medicine->default_indication ?? '',
+                'usual_quantity' => $medicine->usual_quantity ?? '',
             ],
             'sku' => $sku === null ? null : [
                 'public_id' => $sku->public_id,
