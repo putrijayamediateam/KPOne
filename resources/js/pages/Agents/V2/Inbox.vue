@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
+import { Check } from '@lucide/vue';
 import { computed, nextTick, ref } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
 import V2Dialog from '@/components/v2/V2Dialog.vue';
+import V2Field from '@/components/v2/V2Field.vue';
 import V2Pager from '@/components/v2/V2Pager.vue';
+import V2Picker from '@/components/v2/V2Picker.vue';
 import V2Tabs from '@/components/v2/V2Tabs.vue';
 import V2WorkLayout from '@/components/v2/V2WorkLayout.vue';
 import { plainValue } from '@/lib/agent-plain';
@@ -31,6 +34,25 @@ type ProposalRow = {
     lines: { label: string; value: string }[];
     canDecide: boolean;
     cannotDecideReason: string | null;
+    // Approval that can also create the stock request or purchase request (null when approval is a decision only).
+    prepare: PrepareOffer | null;
+    prepared: { kind: string; label: string; text: string } | null;
+};
+
+type Location = { id: string; name: string };
+type PrepareOffer = {
+    canPrepare: boolean;
+    cannotPrepareReason: string | null;
+    actionLabel: string;
+    recordLabel: string;
+    warning: string | null;
+    edits: {
+        maxQuantity: string;
+        source: string;
+        destination: string;
+        sourceLocations: Location[];
+        destinationLocations: Location[];
+    } | null;
 };
 
 const props = defineProps<{
@@ -75,10 +97,78 @@ const processing = ref(false);
 const error = ref('');
 const refused = ref(false);
 const message = ref<HTMLElement | null>(null);
+// Approving can also create the stock request or purchase request (only when the server offers it). The choice and the
+// approver's edits live here; the server checks every value again.
+const mode = ref<'prepare' | 'decision_only'>('decision_only');
+const editQuantity = ref('');
+const editSource = ref<string | null>(null);
+const editDestination = ref<string | null>(null);
+const quantityError = ref('');
+const plainQuantity = (value: string) =>
+    value.includes('.') ? value.replace(/0+$/, '').replace(/\.$/, '') : value;
 const open = (proposal: ProposalRow, action: 'approve' | 'reject') => {
     deciding.value = { proposal, action };
     error.value = '';
     refused.value = false;
+    quantityError.value = '';
+    mode.value =
+        action === 'approve' && proposal.prepare?.canPrepare
+            ? 'prepare'
+            : 'decision_only';
+    editQuantity.value = plainQuantity(
+        proposal.prepare?.edits?.maxQuantity ?? '',
+    );
+    editSource.value = proposal.prepare?.edits?.source ?? null;
+    editDestination.value = proposal.prepare?.edits?.destination ?? null;
+};
+const offer = computed(() =>
+    !refused.value && deciding.value?.action === 'approve'
+        ? deciding.value.proposal.prepare
+        : null,
+);
+const preparing = computed(
+    () => offer.value !== null && mode.value === 'prepare',
+);
+const modeOptions = computed(() => [
+    {
+        value: 'prepare' as const,
+        label: offer.value?.actionLabel ?? '',
+        available: !!offer.value?.canPrepare,
+    },
+    {
+        value: 'decision_only' as const,
+        label: 'Approve (decision only)',
+        available: true,
+    },
+]);
+// "40 tablet" on the Quantity line gives "tablets" for the quantity box.
+const unitPlural = computed(() => {
+    const line = deciding.value
+        ? lineValue(deciding.value.proposal, 'Quantity')
+        : null;
+    const match = line === null ? null : /^[\d.]+\s+(.+)$/.exec(line);
+
+    return match ? ` ${pluralise(`2 ${match[1]}`).replace(/^2 /, '')}` : '';
+});
+const asOptions = (rows: Location[] | undefined) =>
+    (rows ?? []).map((row) => ({ id: row.id, label: row.name }));
+const locationName = (rows: Location[] | undefined, id: string | null) =>
+    rows?.find((row) => row.id === id)?.name;
+// True when the switch is on for this page: a row offers the choice or already holds work it created.
+const anyPrepare = computed(() =>
+    props.proposals.some(
+        (row) => row.prepare !== null || row.prepared !== null,
+    ),
+);
+const anyWithoutRecord = computed(() =>
+    props.proposals.some((row) => row.prepared === null),
+);
+const chooseMode = (value: 'prepare' | 'decision_only') => {
+    if (value === 'prepare' && !offer.value?.canPrepare) {
+        return;
+    }
+
+    mode.value = value;
 };
 const dialogOpen = computed({
     get: () => deciding.value !== null,
@@ -121,10 +211,37 @@ const submit = (reason: string | null) => {
         return;
     }
 
+    const extra: Record<string, unknown> = {};
+
+    if (offer.value) {
+        extra.mode = mode.value;
+
+        if (mode.value === 'prepare' && offer.value.edits) {
+            const wanted = Number(editQuantity.value);
+
+            if (
+                !/^\d{1,12}(\.\d{1,3})?$/.test(editQuantity.value.trim()) ||
+                wanted <= 0 ||
+                wanted > Number(offer.value.edits.maxQuantity)
+            ) {
+                quantityError.value = `Enter a quantity above 0, up to ${plainQuantity(offer.value.edits.maxQuantity)}. You can only lower it.`;
+
+                return;
+            }
+
+            quantityError.value = '';
+            extra.edits = {
+                quantity: editQuantity.value.trim(),
+                source_location_public_id: editSource.value,
+                destination_location_public_id: editDestination.value,
+            };
+        }
+    }
+
     processing.value = true;
     router.post(
         `/agents/inbox/${current.proposal.id}/${current.action}?tab=${props.tab}&page=${props.pagination.page}`,
-        { lock_version: current.proposal.lockVersion, reason },
+        { lock_version: current.proposal.lockVersion, reason, ...extra },
         {
             preserveScroll: true,
             onSuccess: () => {
@@ -143,7 +260,11 @@ const submit = (reason: string | null) => {
                 nextTick(() => message.value?.focus());
                 error.value = refused.value
                     ? 'Someone has already decided this, or it changed meanwhile. The list was updated.'
-                    : (errors.reason ?? 'This decision was not saved.');
+                    : (errors.mode ??
+                      errors.quantity ??
+                      errors.edits ??
+                      errors.reason ??
+                      'This decision was not saved.');
             },
             onFinish: () => {
                 processing.value = false;
@@ -225,6 +346,7 @@ const outline =
         >
             <template #main>
                 <p
+                    v-if="!anyPrepare"
                     class="text-[15px] leading-[22px] text-muted-foreground"
                     data-test="inbox-notice"
                 >
@@ -232,10 +354,25 @@ const outline =
                     decision. It changes nothing in stock.
                 </p>
                 <p
-                    v-if="tab === 'approved'"
-                    class="text-[13px] leading-[18px] text-muted-foreground"
+                    v-else
+                    class="text-[15px] leading-[22px] text-muted-foreground"
+                    data-test="inbox-notice"
                 >
-                    Act on an approved suggestion from the Inventory screens.
+                    AI agents suggest; you decide. Approving records your
+                    decision. If you choose, it also creates the stock request
+                    or purchase request for you, as you. Nothing is created
+                    unless you choose that.
+                </p>
+                <p
+                    v-if="tab === 'approved' && anyWithoutRecord"
+                    class="text-[13px] leading-[18px] text-muted-foreground"
+                    data-test="approved-act-note"
+                >
+                    {{
+                        anyPrepare
+                            ? 'A suggestion approved as a decision only has no request. Act on it from the Inventory screens.'
+                            : 'Act on an approved suggestion from the Inventory screens.'
+                    }}
                 </p>
 
                 <V2Tabs
@@ -333,6 +470,13 @@ const outline =
                                 </template>
                             </p>
                             <p
+                                v-if="proposal.prepared"
+                                class="text-[13px] leading-[18px] font-medium text-foreground"
+                                :data-test="`prepared-${proposal.id}`"
+                            >
+                                {{ proposal.prepared.text }}
+                            </p>
+                            <p
                                 v-if="
                                     proposal.status === 'pending' &&
                                     !proposal.canDecide
@@ -388,14 +532,18 @@ const outline =
                 ? undefined
                 : deciding?.action === 'reject'
                   ? 'Say briefly why. Do not enter patient details.'
-                  : 'This records your decision. It does not change stock.'
+                  : preparing
+                    ? `This records your decision and creates the ${offer?.recordLabel} as you. The ${offer?.recordLabel} still needs its own approval.`
+                    : 'This records your decision. It does not change stock.'
         "
         :confirm-label="
             refused
                 ? 'Close'
                 : deciding?.action === 'reject'
                   ? 'Reject'
-                  : 'Approve'
+                  : preparing
+                    ? (offer?.actionLabel ?? 'Approve')
+                    : 'Approve'
         "
         :tone="!refused && deciding?.action === 'reject' ? 'danger' : 'default'"
         :single-action="refused"
@@ -408,6 +556,131 @@ const outline =
         :busy="processing"
         @confirm="submit"
     >
+        <div
+            v-if="offer"
+            class="flex min-w-0 flex-col gap-3"
+            data-test="prepare-choice"
+        >
+            <div
+                role="group"
+                aria-label="How do you want to approve it?"
+                class="flex min-w-0 flex-col gap-2"
+                data-test="mode-options"
+            >
+                <p class="text-sm font-medium text-foreground">
+                    How do you want to approve it?
+                </p>
+                <template v-for="option in modeOptions" :key="option.value">
+                    <button
+                        type="button"
+                        :aria-pressed="option.value === mode"
+                        :aria-disabled="!option.available || undefined"
+                        :aria-describedby="
+                            !option.available
+                                ? 'cannot-prepare-reason'
+                                : undefined
+                        "
+                        :data-test="`mode-${option.value}`"
+                        class="flex min-h-11 w-full min-w-0 items-center gap-3 rounded-[10px] border px-3 py-2 text-left text-sm font-medium outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                        :class="
+                            !option.available
+                                ? 'cursor-not-allowed border-dashed border-border bg-muted/40 text-muted-foreground'
+                                : option.value === mode
+                                  ? 'border-primary bg-primary/10 text-foreground'
+                                  : 'border-border bg-card text-foreground hover:bg-muted'
+                        "
+                        @click="chooseMode(option.value)"
+                    >
+                        <span
+                            class="flex size-5 shrink-0 items-center justify-center rounded-full border"
+                            :class="
+                                option.value === mode && option.available
+                                    ? 'border-primary bg-primary text-primary-foreground'
+                                    : 'border-border'
+                            "
+                            aria-hidden="true"
+                        >
+                            <Check
+                                v-if="option.value === mode && option.available"
+                                class="size-3.5"
+                            />
+                        </span>
+                        <span class="min-w-0 flex-1">{{ option.label }}</span>
+                        <span
+                            v-if="!option.available"
+                            class="shrink-0 text-xs font-normal"
+                            >Not available</span
+                        >
+                    </button>
+                    <p
+                        v-if="
+                            option.value === 'prepare' &&
+                            !offer.canPrepare &&
+                            offer.cannotPrepareReason
+                        "
+                        id="cannot-prepare-reason"
+                        class="text-[13px] leading-[18px] text-muted-foreground"
+                        data-test="cannot-prepare"
+                    >
+                        {{ offer.cannotPrepareReason }}
+                    </p>
+                </template>
+            </div>
+            <template v-if="preparing">
+                <p
+                    v-if="offer.warning"
+                    class="rounded-[10px] border border-warning/40 bg-warning/10 p-3 text-[13px] leading-[18px] text-foreground"
+                    data-test="prepare-warning"
+                >
+                    {{ offer.warning }}
+                </p>
+                <template v-if="offer.edits">
+                    <V2Field
+                        v-slot="{ id, describedBy, invalid }"
+                        label="Quantity to send"
+                        :hint="`Up to ${plainQuantity(offer.edits.maxQuantity)}${unitPlural}. You can only lower it.`"
+                        :error="quantityError || undefined"
+                        required
+                    >
+                        <input
+                            :id="id"
+                            v-model="editQuantity"
+                            type="text"
+                            inputmode="decimal"
+                            autocomplete="off"
+                            :aria-describedby="describedBy"
+                            :aria-invalid="invalid || undefined"
+                            data-test="edit-quantity"
+                            class="h-11 w-full rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9"
+                        />
+                    </V2Field>
+                    <V2Picker
+                        v-model="editSource"
+                        label="Sending location"
+                        :options="asOptions(offer.edits.sourceLocations)"
+                        :selected-label="
+                            locationName(
+                                offer.edits.sourceLocations,
+                                editSource,
+                            )
+                        "
+                        required
+                    />
+                    <V2Picker
+                        v-model="editDestination"
+                        label="Receiving location"
+                        :options="asOptions(offer.edits.destinationLocations)"
+                        :selected-label="
+                            locationName(
+                                offer.edits.destinationLocations,
+                                editDestination,
+                            )
+                        "
+                        required
+                    />
+                </template>
+            </template>
+        </div>
         <p
             v-if="error"
             ref="message"
