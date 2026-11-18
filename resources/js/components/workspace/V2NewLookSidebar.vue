@@ -440,7 +440,7 @@ const fade = computed(() => {
                     </div>
                     <nav
                         aria-label="Area pages"
-                        class="flex min-h-0 flex-col gap-0.5 overflow-y-auto"
+                        class="-mx-1 flex min-h-0 flex-col gap-0.5 overflow-y-auto px-1 py-1"
                     >
                         <Link
                             v-if="shown.href"
