@@ -61,15 +61,16 @@ const groupArea = (title: string): string =>
         ? 'today'
         : /^patients/i.test(title)
           ? 'front_desk'
-          : /^documents/i.test(title)
-            ? 'consultation'
-            : /^panel/i.test(title)
-              ? 'panel'
-              : /^inventory/i.test(title)
-                ? 'stock'
-                : /^reports/i.test(title)
-                  ? 'reports'
-                  : 'settings';
+          : /^panel/i.test(title)
+            ? 'panel'
+            : /^inventory/i.test(title)
+              ? 'stock'
+              : /^reports/i.test(title)
+                ? 'reports'
+                : 'settings';
+// The AI agents registry (enable or disable an agent) is setup, not a daily view: it goes to Settings; the daily pages
+// (Daily summary, Approval inbox, Quick answers, Agent office) stay under Today.
+const isAgentRegistry = (row: Row): boolean => /^all agents$/i.test(row.title);
 
 // Busy areas open with the rail only until the person chooses otherwise (docs 5b, rule 5).
 const BUSY = ['consultation', 'billing', 'hr'];
@@ -92,6 +93,23 @@ const areas = computed<Area[]>(() => {
     }
 
     for (const group of props.shell.more) {
+        if (/^ai agents/i.test(group.title)) {
+            const daily = group.links.filter((r) => !isAgentRegistry(r));
+            const registry = group.links.filter(isAgentRegistry);
+
+            if (daily.length > 0) {
+                built.get('today')!.sections.push({ title: null, rows: daily });
+            }
+
+            if (registry.length > 0) {
+                built
+                    .get('settings')!
+                    .sections.push({ title: group.title, rows: registry });
+            }
+
+            continue;
+        }
+
         built
             .get(groupArea(group.title))!
             .sections.push({ title: group.title, rows: group.links });
