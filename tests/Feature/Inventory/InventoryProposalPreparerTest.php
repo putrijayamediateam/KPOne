@@ -6,6 +6,7 @@ use App\Domain\Access\BranchAccessService;
 use App\Domain\Agents\Models\AiAgentRun;
 use App\Domain\Agents\Proposals\AiProposal;
 use App\Domain\Agents\Proposals\ProposalService;
+use App\Domain\Agents\Proposals\WarnsBeforePreparing;
 use App\Domain\Agents\Services\AgentRunRecorder;
 use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Inventory\Models\StockRequest;
@@ -209,6 +210,10 @@ final class InventoryProposalPreparerTest extends VisitTestCase
         $this->assertSame(['2.000', InventoryProposalPreparer::RESTOCK_NOTE], [(string) $line->requested_quantity, $line->note]);
         $this->assertSame(['inventory.purchase_request', $request->request_number], [$approved->prepared_record_type, $approved->prepared_record_label]);
         $this->assertSame(InventoryProposalPreparer::OPEN_ORDER_WARNING, $preparer->openOrderWarning($this->restock('restock-0002')));
+        // STK-41b: the agent platform's inbox reads the same warning through WarnsBeforePreparing; a transfer has none.
+        $this->assertInstanceOf(WarnsBeforePreparing::class, $preparer);
+        $this->assertSame(InventoryProposalPreparer::OPEN_ORDER_WARNING, $preparer->warning($supervisor, $this->restock('restock-0004')));
+        $this->assertNull($preparer->warning($supervisor, $this->transfer('4.000', 'transfer-warning-0001')));
 
         // Stock back above the level: the live check refuses, nothing is made and the suggestion stays pending.
         DB::table('inventory_reorder_levels')->update(['reorder_level' => '5.000']);
