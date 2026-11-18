@@ -984,7 +984,7 @@ const {
                 </SheetHeader>
                 <div v-if="viewing" class="flex flex-col gap-4 px-4 pb-6">
                     <ErrorState
-                        v-if="errors.to || failure"
+                        v-if="(errors.to || failure) && !locumConfirm"
                         :message="errors.to ?? failure ?? ''"
                     />
                     <div class="flex flex-wrap items-center gap-2">

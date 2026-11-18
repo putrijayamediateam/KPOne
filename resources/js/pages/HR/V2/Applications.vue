@@ -1214,7 +1214,7 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
         >
             <template v-if="viewing">
                 <p
-                    v-if="errors.to || failure"
+                    v-if="(errors.to || failure) && !locumConfirm"
                     role="alert"
                     class="text-sm text-destructive"
                 >
