@@ -142,6 +142,34 @@ below 1024 px, and a name for every icon-only control.
 - Patient identity stays masked as today (the mock-up's "•••• 4417" is the right idea). No new patient field is added
   by the restyle.
 
+## 5b. Space rules (no empty screen)
+
+Requested by the owner on 2026-11-18 ("how to stop empty space"). Applied by B.E.R.N.I.S.S to the HR and Stock
+mock-ups; recorded here as rules for the pilot and for every page restyled later.
+
+1. **Columns fill the screen height.** A long list scrolls inside its own card, not the page. The scrolling card is
+   keyboard reachable (`tabindex="0"`, a name such as "Visits, scrollable"), keeps a visible focus ring, and shows a
+   fade or shadow at the cut edge. Below 1024 px there is **one** scroll, the page's; no scrolling card inside a
+   scrolling page on a phone.
+2. **Lists show as many 44 px rows as fit** (about 12 to 15 at 1080 px tall). Paging only past that. Row count comes
+   from the available height, but the server page size stays as it is today (no payload or limit change in a restyle).
+3. **Side columns have a fixed width** (about 240 to 320 px). The middle work area takes all the rest. **Exception:**
+   long text, forms and settings fields keep a readable line length (about 72 characters) *inside* the work area, so a
+   wide screen never means a 1,200 px-wide input. The tables and boards themselves have no max-width.
+4. **The big gradient banner is for Today only.** Work pages use a **slim stat strip** (about 56 px: three or four
+   figures with words). This keeps the "one gradient per page" rule: on Front desk the gradient stays on the selected
+   patient's panel header, not on a banner.
+5. **Busy pages open with the sidebar on the 72 px rail only:** Consultation, Billing, HR roster. The person can open the
+   panel, and the choice is remembered per person.
+6. **Three columns from 1280 px, two from 1024 px** (the right column drops under the middle one), **one on phones.**
+   Columns never reorder what a keyboard or screen reader reads: the DOM order is main work area, then side columns.
+7. **An empty card shrinks to one line** that says why ("No approvals waiting"). It never keeps its full height, and it
+   never disappears without a word.
+
+**Check:** at 1440 x 900 and 1920 x 1080, no more than about **15% of the screen is blank** below or beside the
+content, counted on the real page with realistic data (and with the empty-state version too). Shots at both sizes are part
+of Design's review, together with 768 and 390.
+
 ## 6. Contrast and dark mode
 
 - Computed ratios (light): muted text `#6b6b73` 5.3:1 white, 4.8:1 on `#f4f4f6`; `#8a8a93` text 3.4:1 and 3.1:1 and
@@ -187,4 +215,5 @@ below 1024 px, and a name for every icon-only control.
 - [ ] Section visibility follows existing permissions (check as CA, CA Supervisor, Director, Finance Officer).
 - [ ] Fonts self-hosted; no third-party request.
 - [ ] Old pages still look right inside the new shell at 1440, 768, 390.
+- [ ] Space rules (section 5b) met: at 1440 x 900 and 1920 x 1080 no more than about 15% blank; lists scroll inside their card; slim stat strip on work pages; empty cards one line.
 - [ ] Back to the current look works from every pilot page.
