@@ -30,6 +30,7 @@ export type MedicineRow = {
     defaultFrequency?: string | null;
     defaultDuration?: string | null;
     defaultIndication?: string | null;
+    usualQuantity?: string | null;
     selfPayAmountRm: string | null;
     panelDefaultAmountRm: string | null;
 };
@@ -74,6 +75,7 @@ export function useMedicineForm(setup: SetupOptions) {
         default_frequency: '',
         default_duration: '',
         default_indication: '',
+        usual_quantity: '',
         route: '',
         manufacturer: '',
         mal_number: '',

@@ -60,6 +60,7 @@ type MedicineRow = {
     defaultFrequency?: string | null;
     defaultDuration?: string | null;
     defaultIndication?: string | null;
+    usualQuantity?: string | null;
     selfPayAmountRm: string | null;
     panelDefaultAmountRm: string | null;
 };
@@ -134,6 +135,7 @@ const form = useForm({
     default_frequency: '',
     default_duration: '',
     default_indication: '',
+    usual_quantity: '',
     route: '',
     manufacturer: '',
     mal_number: '',
@@ -179,6 +181,11 @@ const openCreate = () => {
         : '';
     dialogOpen.value = true;
 };
+
+const usualQuantityHelp = computed(
+    () =>
+        `Prefilled when a doctor orders this medicine, and counted in the order unit${form.order_unit ? ` (${form.order_unit})` : ''}. Up to 3 decimals. Leave empty for no prefill.`,
+);
 const openEdit = async (row: MedicineRow) => {
     editLoading.value = true;
     editLoadError.value = '';
@@ -1059,6 +1066,20 @@ const toggleDescription = computed(() => {
                                 hint="Prints on drug labels: up to 72 characters."
                                 :error="form.errors.default_indication"
                             />
+                            <label class="grid gap-1 text-xs"
+                                >Usual quantity<Input
+                                    v-model="form.usual_quantity"
+                                    type="number"
+                                    step="any"
+                                    inputmode="decimal"
+                                    class="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                                    aria-describedby="usual-quantity-help" /><span
+                                    id="usual-quantity-help"
+                                    class="text-[12px] text-muted-foreground"
+                                    >{{ usualQuantityHelp }}</span
+                                ><InputError
+                                    :message="form.errors.usual_quantity"
+                            /></label>
                         </div>
                     </section>
 
