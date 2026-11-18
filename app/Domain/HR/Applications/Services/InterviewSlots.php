@@ -332,7 +332,9 @@ final class InterviewSlots
             throw ValidationException::withMessages(['video_link' => 'Type the video link for the online interview.']);
         }
         if (mb_strlen($link) > self::VIDEO_LINK_MAX || preg_match('/\Ahttps:\/\/[^\s<>{}"]+\z/u', $link) !== 1
-            || filter_var($link, FILTER_VALIDATE_URL) === false || parse_url($link, PHP_URL_HOST) === null) {
+            || filter_var($link, FILTER_VALIDATE_URL) === false || parse_url($link, PHP_URL_HOST) === null
+            // A name before an "@" could make another site look like the meeting's (Suresh, m1).
+            || parse_url($link, PHP_URL_USER) !== null || parse_url($link, PHP_URL_PASS) !== null) {
             throw ValidationException::withMessages(['video_link' => 'Type the full link, starting with https://, with no spaces.']);
         }
 

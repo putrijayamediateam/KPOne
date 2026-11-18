@@ -10,6 +10,10 @@ use Illuminate\Support\Facades\Schema;
  * link when confirming; it shows on the candidate's private page and in the confirmation email. KPOne makes no video or
  * calendar integration. Like the rest of a confirmed interview, the way it happens is fixed once confirmed; to change
  * it, HR cancels and the candidate picks new times.
+ *
+ * The link is kept as typed, not encrypted: it is the clinic's meeting address, not the candidate's personal data, and
+ * the shape check needs to read it. It may carry a meeting passcode; it is shown only to HR and on the candidate's own
+ * private page, never audited, and deleted with the interview row by the interview-records purge (Suresh, m3).
  */
 return new class extends Migration
 {
@@ -41,6 +45,10 @@ SQL);
 
     public function down(): void
     {
+        // A confirmed online interview would silently lose its link (Suresh, m2).
+        if (DB::table('hr_job_interviews')->where('mode', 'online')->exists()) {
+            throw new RuntimeException('Online interviews are recorded; this migration cannot be rolled back without losing their links.');
+        }
         DB::unprepared(<<<'SQL'
 CREATE OR REPLACE FUNCTION guard_hr_job_interview() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
