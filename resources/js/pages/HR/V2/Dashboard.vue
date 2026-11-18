@@ -340,6 +340,22 @@ const minimumsHref = (id: number) => `/hr/roster?tab=minimums&branch=${id}`;
                                                 {{ p.until }})</span
                                             ></template
                                         >
+                                        <template
+                                            v-if="
+                                                branch.today.rostered
+                                                    .onCallCount >
+                                                branch.today.rostered.onCall
+                                                    .length
+                                            "
+                                            >, and
+                                            {{
+                                                branch.today.rostered
+                                                    .onCallCount -
+                                                branch.today.rostered.onCall
+                                                    .length
+                                            }}
+                                            more</template
+                                        >
                                     </p>
                                 </div>
                                 <div

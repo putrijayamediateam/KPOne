@@ -315,6 +315,18 @@ const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
                                     >({{ p.role }}, until {{ p.until }})</span
                                 ></template
                             >
+                            <template
+                                v-if="
+                                    branch.today.rostered.onCallCount >
+                                    branch.today.rostered.onCall.length
+                                "
+                                >, and
+                                {{
+                                    branch.today.rostered.onCallCount -
+                                    branch.today.rostered.onCall.length
+                                }}
+                                more</template
+                            >
                         </p>
                     </div>
                     <div

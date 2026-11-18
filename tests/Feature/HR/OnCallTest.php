@@ -4,6 +4,7 @@ namespace Tests\Feature\HR;
 
 use App\Domain\Access\PermissionCatalogue;
 use App\Domain\HR\Attendance\Models\ClockSession;
+use App\Domain\HR\Attendance\Services\AttendanceDays;
 use App\Domain\HR\Attendance\Services\ClockResult;
 use App\Domain\HR\Attendance\Services\OvertimeService;
 use App\Domain\HR\LocumPay\Services\LocumPayService;
@@ -20,6 +21,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Testing\TestResponse;
+use Inertia\Testing\AssertableInertia as Assert;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\ClockPhotoFixture;
@@ -118,6 +120,39 @@ class OnCallTest extends VisitTestCase
         $this->assertSame([120, 120, 0], [$allowance['max'], $allowance['worked'], $allowance['rostered']]);
     }
 
+    public function test_a_clinic_session_running_into_on_call_stays_open_and_pairs_with_the_clinic_shift(): void
+    {
+        $doctor = $this->actor('resident_doctor');
+        $version = $this->draft();
+        $this->addShift($version, $doctor, 0, '13:00', '17:00', 'afternoon')->assertSessionHasNoErrors();
+        $this->addShift($version, $doctor, 0, '17:00', '23:30', 'on_call')->assertSessionHasNoErrors();
+        $this->approveWeek($version);
+        $this->at('2027-03-08 07:00');
+        $this->settings();
+        $this->at('2027-03-08 13:00');
+        $this->clock($doctor, 'in')->assertSessionHasNoErrors();
+        $session = ClockSession::query()->where('user_id', $doctor->id)->sole();
+
+        // Suresh, M1: still on at 18:30, past the clinic shift and its 60-minute window, the session is not "forgotten".
+        $this->at('2027-03-08 18:30');
+        $this->assertFalse(app(AttendanceDays::class)->forgottenBeforeNextShift($session, CarbonImmutable::now()));
+        $this->selectBranch($doctor);
+        $this->get(route('hr.attendance.index'))->assertInertia(fn (Assert $p) => $p->where('attendance.my.state', 'in'));
+
+        // Suresh, m1: one long session pairs with the clinic shift, so only the time after 17:00 is beyond the roster.
+        $this->at('2027-03-08 23:00');
+        $this->clock($doctor, 'out')->assertSessionHasNoErrors();
+        $this->selectBranch($this->hr);
+        $rows = collect($this->get(route('hr.attendance.index', ['tab' => 'review', 'date' => self::WEEK]))->viewData('page')['props']['attendance']['review']['rows']);
+        $clinic = $rows->first(fn (array $r): bool => str_starts_with((string) ($r['shift']['label'] ?? ''), 'Afternoon'));
+        $onCall = $rows->first(fn (array $r): bool => str_starts_with((string) ($r['shift']['label'] ?? ''), 'On call'));
+        $this->assertNotNull($clinic['session']);
+        $this->assertSame(240, $clinic['rosteredMinutes']);
+        $this->assertSame(360, $clinic['beyondMinutes']);
+        $this->assertNull($onCall['session']);
+        $this->assertSame([], $onCall['flags']);
+    }
+
     public function test_on_call_gives_no_room_and_shows_on_its_own_line_on_the_dashboard(): void
     {
         $doctor = $this->actor('resident_doctor');
@@ -138,6 +173,7 @@ class OnCallTest extends VisitTestCase
         $this->assertSame(0, $rostered['doctors']);
         $this->assertTrue($rostered['noDoctor']);
         $this->assertSame([$doctor->name], array_column($rostered['onCall'], 'name'));
+        $this->assertSame(1, $rostered['onCallCount']);
         $this->assertSame([$ca->name], array_column($rostered['people'], 'name'));
     }
 

@@ -153,6 +153,7 @@ final class HrDashboardService
                 ])->values()->all(),
                 // Only when someone is on now: a closed or quiet branch is not "without a doctor".
                 'noDoctor' => $onShift->isNotEmpty() && $doctors === 0,
+                'onCallCount' => $onCall->pluck('staff_user_id')->unique()->count(),
                 'onCall' => $onCall->unique('staff_user_id')->take(self::MAX_NAMES)->map(fn (RosterShift $s): array => [
                     'name' => $names[$s->staff_user_id],
                     'role' => $this->roleLabel($roles[$s->staff_user_id] ?? []),

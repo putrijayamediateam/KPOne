@@ -85,7 +85,10 @@ final class AttendanceDays
         if ($settings === null || $open->clock_out_at !== null) {
             return false;
         }
-        $shifts = $this->shifts($open->organisation_id, [$open->user_id], $open->local_date, $open->local_date);
+        // HR-20 (Suresh, M1): on call is never the "next shift" of a split day, nor the shift being worked; a late-running
+        // clinic session that runs into an on-call shift stays open, and a call-in is a session of its own.
+        $shifts = $this->shifts($open->organisation_id, [$open->user_id], $open->local_date, $open->local_date)
+            ->reject(fn (RosterShift $s): bool => RosterRules::isOnCall($s->session_type))->values();
         $own = $shifts->first(fn (RosterShift $s): bool => $s->ends_at->greaterThan($open->clock_in_at)
             && $s->starts_at->lessThanOrEqualTo($open->clock_in_at->addMinutes(self::EARLY_ARRIVAL_MINUTES)));
         if ($own === null || ! $now->greaterThan($own->ends_at->addMinutes($settings->forgottenWindowMinutes))) {
@@ -186,7 +189,10 @@ final class AttendanceDays
                 $from = max($shift->starts_at->getTimestamp(), $session->clock_in_at->getTimestamp());
                 $to = min($shift->ends_at->getTimestamp(), $end->getTimestamp());
                 if ($to > $from) {
-                    $candidates[] = [$to - $from, $shift->id, $session->id];
+                    // HR-20 (Suresh, m1): a clinic shift wins over on call, so one long session that starts on the clinic
+                    // shift and runs into on call pairs with the clinic shift; an on-call overlap scores below any clinic one.
+                    $onCall = RosterRules::isOnCall($shift->session_type);
+                    $candidates[] = [$onCall ? ($to - $from) / 1_000_000 : $to - $from + 1, $shift->id, $session->id];
                 } elseif ($session->clock_out_at === null && $session->clock_in_at->lessThanOrEqualTo($shift->starts_at)
                     && $shift->starts_at->getTimestamp() - $session->clock_in_at->getTimestamp() <= self::EARLY_ARRIVAL_MINUTES * 60) {
                     // Clocked in before the shift starts and still on: the shift it is waiting for (lowest score, so a real overlap wins).
