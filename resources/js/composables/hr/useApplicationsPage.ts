@@ -79,6 +79,8 @@ export type Application = {
         at: string;
         lockVersion: number;
     } | null;
+    // HR-15d: the locum file made from a passed Locum candidate, with its sign-in state.
+    locumHire?: { workerId: string; name: string; signIn: string } | null;
 };
 export type PoolMember = {
     id: string;

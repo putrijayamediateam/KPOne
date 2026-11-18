@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import MaskedValue from '@/components/hr/records/MaskedValue.vue';
@@ -1622,13 +1622,34 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                     </p>
                     <template v-if="viewing.status === 'passed'">
                         <p
-                            v-if="viewing.accountRequest"
+                            v-if="viewing.locumHire"
+                            class="text-sm"
+                            data-test="application-locum-hire"
+                        >
+                            Locum file: {{ viewing.locumHire.name }} ·
+                            {{ viewing.locumHire.signIn }} ·
+                            <Link
+                                :href="`/hr/records/${viewing.locumHire.workerId}`"
+                                class="underline underline-offset-2"
+                                >Open the locum file</Link
+                            >
+                        </p>
+                        <p
+                            v-else-if="viewing.accountRequest"
                             class="text-sm"
                             data-test="application-account-request"
                         >
                             Staff account:
                             {{ viewing.accountRequest.statusLabel }} ·
                             {{ viewing.accountRequest.at }}
+                        </p>
+                        <p
+                            v-else-if="viewing.type === 'locum'"
+                            class="text-sm text-muted-foreground"
+                        >
+                            No offer is made in KPOne. When they accept, make
+                            the locum file. KPOne then asks the account
+                            administrator for their sign-in.
                         </p>
                         <p v-else class="text-sm text-muted-foreground">
                             No offer is made in KPOne. When they accept, ask the
@@ -1637,6 +1658,28 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                         <div class="flex flex-wrap gap-2">
                             <button
                                 v-if="
+                                    viewing.type === 'locum' &&
+                                    !viewing.locumHire &&
+                                    viewing.accountRequest?.status !== 'open' &&
+                                    viewing.accountRequest?.status !== 'done' &&
+                                    !viewing.purged
+                                "
+                                type="button"
+                                :class="button"
+                                :disabled="accountAction.processing"
+                                data-test="application-locum-make"
+                                @click="
+                                    accountPost(
+                                        `/hr/applications/${viewing.id}/locum-file`,
+                                        viewing.lockVersion,
+                                    )
+                                "
+                            >
+                                Make the locum file and ask for a sign-in
+                            </button>
+                            <button
+                                v-if="
+                                    viewing.type !== 'locum' &&
                                     viewing.accountRequest?.status !== 'open' &&
                                     viewing.accountRequest?.status !== 'done' &&
                                     !viewing.purged

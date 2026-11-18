@@ -8,6 +8,7 @@ use App\Domain\HR\Applications\Services\DeadlineExtensions;
 use App\Domain\HR\Applications\Services\InterviewDocuments;
 use App\Domain\HR\Applications\Services\InterviewSlots;
 use App\Domain\HR\Applications\Services\JobApplicationService;
+use App\Domain\HR\Applications\Services\LocumHires;
 use App\Domain\HR\Applications\Services\StaffAccountRequests;
 use App\Domain\HR\Applications\Services\TalentPool;
 use App\Http\Controllers\Controller;
@@ -128,6 +129,12 @@ class ApplicationsController extends Controller
     {
         return $this->run($request, $this->back($request), 'Staff account asked for. The account administrator sees it on the Staff page.',
             fn () => $requests->request($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
+    }
+
+    public function makeLocumFile(Request $request, LocumHires $hires, string $application): RedirectResponse
+    {
+        return $this->run($request, $this->back($request), 'Locum file made and a sign-in asked for. The account administrator sees it on the Staff page.',
+            fn () => $hires->make($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
     public function cancelAccountRequest(Request $request, StaffAccountRequests $requests, string $accountRequest): RedirectResponse
