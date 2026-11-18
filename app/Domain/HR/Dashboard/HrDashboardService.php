@@ -8,6 +8,9 @@ use App\Domain\HR\Attendance\Models\ClockSession;
 use App\Domain\HR\Attendance\Models\OvertimeRequest;
 use App\Domain\HR\Attendance\Services\AttendanceDays;
 use App\Domain\HR\Attendance\Services\AttendanceSettingsService;
+use App\Domain\HR\Credentials\CredentialPermissions;
+use App\Domain\HR\Credentials\Services\CredentialService;
+use App\Domain\HR\Credentials\Services\WorkPermits;
 use App\Domain\HR\Leave\LeavePermissions;
 use App\Domain\HR\Leave\Models\LeaveRequest;
 use App\Domain\HR\Leave\Services\LeaveCalendar;
@@ -87,6 +90,10 @@ final class HrDashboardService
             'months' => $months,
             'attendanceSettingsSaved' => $this->settings->forDate($actor->organisation_id, CarbonImmutable::now('Asia/Kuala_Lumpur')->toDateString()) !== null,
             'staffCost' => $staffCost,
+            // HR-21: how many work permits are expiring or expired, clinic-wide (credential managers only).
+            'workPermits' => $actor->can(CredentialPermissions::MANAGE)
+                ? count(WorkPermits::due((int) $actor->organisation_id, app(CredentialService::class)->today((int) $actor->organisation_id)))
+                : null,
             'branches' => $branches->map(fn (Branch $branch): array => [
                 'id' => $branch->id,
                 'name' => $branch->name,

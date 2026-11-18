@@ -4,6 +4,7 @@
 import { Head } from '@inertiajs/vue3';
 import RecordSheet from '@/components/hr/credentials/RecordSheet.vue';
 import StatusChip from '@/components/hr/credentials/StatusChip.vue';
+import WorkPermitWarnings from '@/components/hr/credentials/WorkPermitWarnings.vue';
 import MaskedValue from '@/components/hr/records/MaskedValue.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import { dateLabel } from '@/components/hr/records/types';
@@ -311,6 +312,10 @@ const {
                 <p class="text-sm font-medium" data-test="register-summary">
                     {{ summaryLine }}
                 </p>
+                <WorkPermitWarnings
+                    :items="register.permits"
+                    heading-id="permits-title"
+                />
                 <form
                     class="flex flex-col gap-3 rounded-xl border bg-card p-4 lg:flex-row lg:flex-wrap lg:items-end"
                     @submit.prevent="applyFilters"
@@ -728,6 +733,30 @@ const {
                     />
                     <InputError :message="errors.expires" />
                 </div>
+                <div
+                    v-if="newType.health !== 'yes' && newType.expires === 'yes'"
+                    class="grid gap-1.5"
+                >
+                    <Label for="type-permit"
+                        ><span id="type-permit-label"
+                            >Work permit *</span
+                        ></Label
+                    >
+                    <OperationalSelect
+                        id="type-permit"
+                        labelledby="type-permit-label"
+                        v-model="newType.permit"
+                        trigger-class="w-40 max-lg:h-11"
+                        label="Work permit"
+                        :options="yesNo"
+                    />
+                    <p class="text-xs text-muted-foreground">
+                        For a foreign worker's permit. Its expiry shows as a
+                        warning on the staff file and here. It cannot change
+                        later.
+                    </p>
+                    <InputError :message="errors.work_permit" />
+                </div>
                 <div v-if="newType.health !== 'yes'" class="grid gap-1.5">
                     <Label for="type-warn"
                         >Warn from (days before expiry) *</Label
@@ -802,9 +831,11 @@ const {
                         {{
                             t.healthItem
                                 ? 'Health item · Done or Not done'
-                                : t.expires
-                                  ? `Expires · warn from ${t.warnFromDays} days`
-                                  : 'Does not expire'
+                                : t.workPermit
+                                  ? `Work permit · warn from ${t.warnFromDays} days`
+                                  : t.expires
+                                    ? `Expires · warn from ${t.warnFromDays} days`
+                                    : 'Does not expire'
                         }}
                     </p>
                     <p class="text-sm text-muted-foreground">

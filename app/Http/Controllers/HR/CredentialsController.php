@@ -50,7 +50,7 @@ class CredentialsController extends Controller
     public function saveType(Request $request, CredentialService $credentials): RedirectResponse
     {
         return $this->run($request, route('hr.credentials.index', ['tab' => 'settings']), 'Credential type saved.', fn () => $credentials->saveType($request->user(),
-            $request->only(['type_id', 'code', 'name', 'expires', 'health_item', 'warn_from_days', 'roles', 'expected_lock_version', 'idempotency_key'])));
+            $request->only(['type_id', 'code', 'name', 'expires', 'health_item', 'work_permit', 'warn_from_days', 'roles', 'expected_lock_version', 'idempotency_key'])));
     }
 
     public function archiveType(Request $request, CredentialService $credentials, string $type): RedirectResponse

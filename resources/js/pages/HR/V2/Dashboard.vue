@@ -71,6 +71,25 @@ const minimumsHref = (id: number) => `/hr/roster?tab=minimums&branch=${id}`;
                         </div>
                     </div>
 
+                    <p
+                        v-if="dashboard.workPermits"
+                        class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-[14px] border border-warning/40 bg-warning/10 px-4 py-3 text-sm"
+                        data-test="dashboard-work-permits"
+                    >
+                        <span class="font-medium"
+                            >{{ dashboard.workPermits }}
+                            {{
+                                dashboard.workPermits === 1
+                                    ? 'work permit expires soon or has expired.'
+                                    : 'work permits expire soon or have expired.'
+                            }}</span
+                        >
+                        <Link
+                            href="/hr/credentials?tab=register"
+                            class="min-h-11 content-center underline-offset-4 hover:underline lg:min-h-0"
+                            >Open the credentials register</Link
+                        >
+                    </p>
                     <section
                         v-if="dashboard.staffCost"
                         :class="cardClass"

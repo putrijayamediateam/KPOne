@@ -6,6 +6,7 @@ import type {
     CredentialTypeHead,
     Option,
     RecordView,
+    WorkPermitDue,
 } from '@/components/hr/credentials/types';
 import { dateLabel } from '@/components/hr/records/types';
 
@@ -91,6 +92,7 @@ export type CredentialsPageProps = {
                 waiting: number;
             };
             waiting: Waiting[];
+            permits: WorkPermitDue[];
             branches: { id: number; name: string }[];
         } | null;
         settings: { types: TypeSetting[] } | null;
@@ -343,6 +345,7 @@ export function useCredentialsPage(props: CredentialsPageProps) {
         name: '',
         expires: 'yes',
         health: 'no',
+        permit: 'no',
         warn: '',
         roles: [] as string[],
         processing: false,
@@ -368,6 +371,10 @@ export function useCredentialsPage(props: CredentialsPageProps) {
                         ? false
                         : newType.expires === 'yes',
                 health_item: newType.health === 'yes',
+                work_permit:
+                    newType.health !== 'yes' &&
+                    newType.expires === 'yes' &&
+                    newType.permit === 'yes',
                 warn_from_days: newType.warn,
                 roles: newType.roles,
                 idempotency_key: crypto.randomUUID(),
@@ -381,6 +388,7 @@ export function useCredentialsPage(props: CredentialsPageProps) {
                         roles: [],
                         expires: 'yes',
                         health: 'no',
+                        permit: 'no',
                         warn: String(
                             props.credentials.options.suggestedWarnDays,
                         ),

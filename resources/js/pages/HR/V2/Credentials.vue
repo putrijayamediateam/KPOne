@@ -6,6 +6,7 @@ import { statusLine, statusTone } from '@/components/hr/credentials/types';
 import type { CredentialStatus } from '@/components/hr/credentials/types';
 import type { RecordView } from '@/components/hr/credentials/types';
 import V2StatusChip from '@/components/hr/credentials/V2StatusChip.vue';
+import WorkPermitWarnings from '@/components/hr/credentials/WorkPermitWarnings.vue';
 import MaskedValue from '@/components/hr/records/MaskedValue.vue';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import { dateLabel } from '@/components/hr/records/types';
@@ -454,6 +455,11 @@ const addTypeMissing = computed(() =>
                             >
                                 {{ summaryLine }}
                             </p>
+                            <WorkPermitWarnings
+                                :items="register.permits"
+                                heading-id="v2-permits-title"
+                                v2
+                            />
                             <form
                                 class="flex flex-col gap-3 rounded-[14px] border bg-card p-4 lg:flex-row lg:flex-wrap lg:items-end"
                                 @submit.prevent="applyFilters"
@@ -979,6 +985,25 @@ const addTypeMissing = computed(() =>
                                 required
                                 :error="errors.expires"
                             />
+                            <template
+                                v-if="
+                                    newType.health !== 'yes' &&
+                                    newType.expires === 'yes'
+                                "
+                            >
+                                <V2OptionGroup
+                                    v-model="newType.permit"
+                                    :options="yesNo"
+                                    label="Work permit"
+                                    required
+                                    :error="errors.work_permit"
+                                />
+                                <p class="text-xs text-muted-foreground">
+                                    For a foreign worker's permit. Its expiry
+                                    shows as a warning on the staff file and
+                                    here. It cannot change later.
+                                </p>
+                            </template>
                             <V2Field
                                 v-if="newType.health !== 'yes'"
                                 v-slot="{ id, describedBy }"
@@ -1086,9 +1111,11 @@ const addTypeMissing = computed(() =>
                                     {{
                                         t.healthItem
                                             ? 'Health item · Done or Not done'
-                                            : t.expires
-                                              ? `Expires · warn from ${t.warnFromDays} days`
-                                              : 'Does not expire'
+                                            : t.workPermit
+                                              ? `Work permit · warn from ${t.warnFromDays} days`
+                                              : t.expires
+                                                ? `Expires · warn from ${t.warnFromDays} days`
+                                                : 'Does not expire'
                                     }}
                                 </p>
                                 <p class="text-sm text-muted-foreground">
