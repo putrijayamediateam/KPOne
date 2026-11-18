@@ -57,7 +57,10 @@ final class ProposalService
         }
     }
 
-    /** @param array<string, mixed> $input `lock_version`, optional `reason` */
+    /**
+     * @param  array<string, mixed>  $input  `lock_version`, optional `reason`; optional `mode` (`decision_only`, the default, or `prepare`)
+     *                                       and, with `prepare`, optional `edits` (docs/agents/CONTRACT.md section 15)
+     */
     public function approve(User $actor, AiProposal $proposal, array $input): AiProposal
     {
         return $this->decide($actor, $proposal, 'approved', $input);
@@ -179,6 +182,7 @@ final class ProposalService
     /** @param array<string, mixed> $input */
     private function decide(User $actor, AiProposal $proposal, string $status, array $input): AiProposal
     {
+        [$mode, $edits] = $this->modeAndEdits($status, $proposal, $input);
         $input['reason'] = isset($input['reason']) && is_string($input['reason']) ? trim((string) preg_replace('/\s+/u', ' ', $input['reason'])) : ($input['reason'] ?? null);
         if ($input['reason'] === '') {
             $input['reason'] = null;
@@ -192,7 +196,7 @@ final class ProposalService
             throw ValidationException::withMessages(['reason' => 'The reason must not contain identity numbers, email addresses or phone numbers.']);
         }
 
-        return DB::transaction(function () use ($actor, $proposal, $status, $values, $reason): AiProposal {
+        return DB::transaction(function () use ($actor, $proposal, $status, $values, $reason, $mode, $edits): AiProposal {
             $branch = Branch::query()->whereKey($proposal->branch_id)->where('organisation_id', $actor->organisation_id)->first();
             abort_unless($branch !== null, 404);
             $permission = ProposalTypes::get($proposal->type)['permission'];
@@ -211,17 +215,102 @@ final class ProposalService
             if ($requester !== null && (int) $requester === $actor->id) {
                 throw new AuthorizationException('You asked for the run that made this proposal, so someone else must decide it.');
             }
+            // Prepare first, inside this transaction and as the approver: a refusal rolls the whole decision back.
+            $record = $mode === 'prepare' ? $this->prepareWork($actor, $locked, $edits) : null;
             $locked->forceFill([
                 'status' => $status,
                 'decided_by_user_id' => $actor->id,
                 'decided_at' => now(),
                 'decision_reason' => $reason,
                 'lock_version' => $locked->lock_version + 1,
+                ...($record === null ? [] : [
+                    'prepared_record_type' => $record->type,
+                    'prepared_record_public_id' => $record->publicId,
+                    'prepared_record_label' => $record->label,
+                    'prepared_at' => now(),
+                ]),
             ])->save();
-            $this->recordAudit('ai_proposal.'.$status, $locked, $actor, ['has_reason' => $reason !== null]);
+            $this->recordAudit('ai_proposal.'.$status, $locked, $actor, [
+                'has_reason' => $reason !== null,
+                ...($record === null ? [] : ['mode' => 'prepare', 'prepared_record_type' => $record->type, 'prepared_record_label' => $record->label]),
+            ]);
 
             return $locked;
         }, 3);
+    }
+
+    /**
+     * The way of approving and the approver's edits, checked for shape only (the switch, the preparer and the approver's
+     * permission are checked under the lock, after a retry of an already decided proposal has been recognised).
+     *
+     * @param  array<string, mixed>  $input
+     * @return array{0: 'decision_only'|'prepare', 1: array<string, mixed>}
+     */
+    private function modeAndEdits(string $status, AiProposal $proposal, array $input): array
+    {
+        $mode = $input['mode'] ?? 'decision_only';
+        $edits = $input['edits'] ?? [];
+        if (! in_array($mode, ['decision_only', 'prepare'], true) || ! is_array($edits)) {
+            throw ValidationException::withMessages(['mode' => 'Choose a valid way to decide this suggestion.']);
+        }
+        if ($mode === 'decision_only') {
+            if ($edits !== []) {
+                throw ValidationException::withMessages(['edits' => 'Changes apply only when the approval prepares work.']);
+            }
+
+            return ['decision_only', []];
+        }
+        if ($status !== 'approved') {
+            throw ValidationException::withMessages(['mode' => 'Only an approval can prepare work.']);
+        }
+        $rules = ProposalTypes::editRules($proposal->type);
+        if ($rules === null) {
+            throw ValidationException::withMessages(['mode' => 'This suggestion does not prepare work.']);
+        }
+        if (array_diff(array_keys($edits), array_keys($rules)) !== []) {
+            throw ValidationException::withMessages(['edits' => 'These changes are not allowed for this suggestion.']);
+        }
+        $valid = $this->normalise(Validator::make($edits, $rules)->validate(), $rules);
+
+        return ['prepare', array_filter($valid, fn ($value): bool => $value !== null)];
+    }
+
+    /**
+     * Called under the proposal row lock, inside the approval transaction.
+     *
+     * @param  array<string, mixed>  $edits
+     */
+    private function prepareWork(User $actor, AiProposal $locked, array $edits): PreparedRecord
+    {
+        if (! (bool) config('agents.prepare_enabled')) {
+            throw ValidationException::withMessages(['mode' => 'Preparing work from a suggestion is not switched on. Approve it as a decision only.']);
+        }
+        $preparer = app(ProposalPreparers::class)->for($locked->type);
+        if ($preparer === null) {
+            throw ValidationException::withMessages(['mode' => 'This suggestion does not prepare work.']);
+        }
+        $reason = $preparer->cannotPrepareReason($actor, $locked);
+        if ($reason !== null) {
+            throw ValidationException::withMessages(['mode' => $reason]);
+        }
+        $payload = (array) $locked->payload;
+        if (isset($edits['quantity'])) {
+            $wanted = $this->milli((string) $edits['quantity']);
+            $suggested = $this->milli((string) ($payload['quantity'] ?? $payload['suggested_quantity'] ?? '0'));
+            if ($wanted <= 0 || $wanted > $suggested) {
+                throw ValidationException::withMessages(['edits' => 'The quantity can only be lowered, and must be above 0.']);
+            }
+        }
+
+        return $preparer->prepare($actor, $locked, [...$payload, ...$edits]);
+    }
+
+    /** Exact thousandths of a normalised quantity text such as "12.500". */
+    private function milli(string $quantity): int
+    {
+        [$whole, $fraction] = array_pad(explode('.', $quantity, 2), 2, '');
+
+        return ((int) $whole * 1000) + (int) str_pad(substr($fraction, 0, 3), 3, '0');
     }
 
     /**
