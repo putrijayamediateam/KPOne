@@ -306,6 +306,17 @@ Source of truth: `app/Domain/Access/PermissionCatalogue.php`. Key ones:
     purchase order waiting to be received, all through the domain services as demo accounts (recorder and
     verifier, raiser and approver kept apart). Local and testing only; `.test` accounts only; reruns add nothing.
     Commands and details in `docs/DEVELOPMENT.md`.
+46. STK-41 (owner, 18 Nov 2026, "Approve prepares real work"; plan agreed with Irfan and approved by B.E.R.N.I.S.S for the
+    owner): approving Hana's transfer suggestion may prepare a governed stock request, and a restock suggestion a purchase
+    request, through `InventoryProposalPreparer` (the agent platform's `PreparesWork`, behind `agents.prepare_enabled`,
+    OFF by default). The record is made by the normal service as the approver (`createFromProposal`, `sendFromProposal`),
+    so every permission, branch, lock, spare-stock and audit rule applies; the audit row gains `source: ai_proposal` and
+    the proposal id, and `ai_proposal_id` on the request is a trail only (unique, never changed). Owner decisions: a
+    Finance Officer or Director decides these types as a decision only (preparing needs the create permission, so in
+    practice a CA Supervisor); an agent-prepared stock request is never approved by its requester (service and
+    PostgreSQL); the approver may lower the quantity and change the locations. A transfer is prepared only at the branch
+    that sends the stock (STK-31); a restock is refused when the live Stock review row shows stock back above the level,
+    and the inbox may warn when an open purchase request or order already holds the item for that location.
 
 ## 7. Open items and known limits
 
