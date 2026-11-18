@@ -140,7 +140,11 @@ const isMonth = computed(
                 variant="ghost"
                 size="sm"
                 class="min-h-11 sm:min-h-8"
-                :class="isMonth ? '' : 'bg-muted'"
+                :class="
+                    isMonth
+                        ? ''
+                        : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                "
                 :aria-pressed="!isMonth"
                 @click="showWeek"
                 >Week</Button
@@ -149,7 +153,11 @@ const isMonth = computed(
                 variant="ghost"
                 size="sm"
                 class="min-h-11 sm:min-h-8"
-                :class="isMonth ? 'bg-muted' : ''"
+                :class="
+                    isMonth
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                        : ''
+                "
                 :aria-pressed="isMonth"
                 @click="showMonth()"
                 >Month</Button

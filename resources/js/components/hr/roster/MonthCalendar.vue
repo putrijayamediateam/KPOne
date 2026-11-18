@@ -44,35 +44,49 @@ const busyDays = computed(() =>
 );
 
 const count = (day: MonthDay) => day.shifts.length + day.asks.length;
-// The short count in a narrow cell: "2 shifts", "1 shift, 1 ask" (Daniel).
-const shortCount = (day: MonthDay) =>
+// Asks still waiting, and asks HR confirmed into a week not approved yet, are counted apart (Daniel).
+const waiting = (day: MonthDay) =>
+    day.asks.filter((a) => a.status === 'asked').length;
+const pending = (day: MonthDay) =>
+    day.asks.filter((a) => a.status === 'confirmed').length;
+const plural = (n: number, one: string, many: string) =>
+    `${n} ${n === 1 ? one : many}`;
+const countWords = (day: MonthDay) =>
     [
         day.shifts.length > 0
-            ? `${day.shifts.length} shift${day.shifts.length === 1 ? '' : 's'}`
+            ? plural(day.shifts.length, 'shift', 'shifts')
             : '',
-        day.asks.length > 0
-            ? `${day.asks.length} ask${day.asks.length === 1 ? '' : 's'}`
+        waiting(day) > 0
+            ? plural(waiting(day), 'open shift ask', 'open shift asks')
+            : '',
+        pending(day) > 0
+            ? plural(
+                  pending(day),
+                  'confirmed shift not approved yet',
+                  'confirmed shifts not approved yet',
+              )
             : '',
     ]
         .filter(Boolean)
         .join(', ');
-const countWords = (day: MonthDay) => {
-    const parts: string[] = [];
+// Shares the AM/PM when both ends have the same one: "8:00–10:00 AM" (Daniel), so the branch name fits.
+const compact = (start: string, end: string) => {
+    const s = start.split(' ');
+    const e = end.split(' ');
 
-    if (day.shifts.length > 0) {
-        parts.push(
-            `${day.shifts.length} shift${day.shifts.length === 1 ? '' : 's'}`,
-        );
-    }
-
-    if (day.asks.length > 0) {
-        parts.push(
-            `${day.asks.length} open shift ask${day.asks.length === 1 ? '' : 's'}`,
-        );
-    }
-
-    return parts.join(', ');
+    return s[1] && s[1] === e[1] ? `${s[0]}–${end}` : `${start}–${end}`;
 };
+// The short count in a narrow cell: "2 shifts", "1 shift, 1 ask", "1 not approved" (Daniel).
+const shortCount = (day: MonthDay) =>
+    [
+        day.shifts.length > 0
+            ? plural(day.shifts.length, 'shift', 'shifts')
+            : '',
+        waiting(day) > 0 ? plural(waiting(day), 'ask', 'asks') : '',
+        pending(day) > 0 ? `${pending(day)} not approved` : '',
+    ]
+        .filter(Boolean)
+        .join(', ');
 const time = (item: {
     startLabel: string;
     endLabel: string;
@@ -83,7 +97,7 @@ const lines = (day: MonthDay) => [
     ...day.shifts.map((s) => ({
         key: s.id,
         ask: false,
-        text: `${s.startLabel}–${s.endLabel} ${s.branch}`,
+        text: `${compact(s.startLabel, s.endLabel)} ${s.branch}`,
     })),
     ...day.asks.map((a) => ({
         key: a.id,

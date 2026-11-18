@@ -19,11 +19,11 @@ const pages = {
 test('Week stays the default and the month is in the address, nothing stored', () => {
     assert.match(
         composable,
-        /visit\(\{ view: 'month', month: month \?\? props\.roster\.month\?\.key \}\)/,
+        /visit\(\{ myView: 'month', month: month \?\? props\.roster\.month\?\.key \}\)/,
     );
     assert.match(
         composable,
-        /visit\(\{ view: undefined, month: undefined \}\)/,
+        /visit\(\{ myView: undefined, month: undefined \}\)/,
     );
     assert.doesNotMatch(calendar, /localStorage|sessionStorage/);
 });
@@ -90,4 +90,14 @@ test('the day sheet and the phone list carry the full lines; hours are approved 
     assert.match(calendar, /\{\{ month\.hoursLabel \}\} approved this month/);
     assert.match(calendar, /No shifts this month\./);
     assert.match(calendar, /\{\{\s+ask\.label\s+\}\}/);
+});
+
+test('Daniel round 2: short cell words, shared AM/PM, confirmed counted apart, a clear selected view', () => {
+    assert.match(calendar, /\$\{pending\(day\)\} not approved/);
+    assert.match(calendar, /'confirmed shift not approved yet'/);
+    assert.match(
+        calendar,
+        /text: `\$\{compact\(s\.startLabel, s\.endLabel\)\} \$\{s\.branch\}`/,
+    );
+    assert.match(pages.classic, /bg-primary text-primary-foreground/);
 });

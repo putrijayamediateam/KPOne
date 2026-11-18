@@ -194,8 +194,8 @@ export function useRosterPage(props: RosterProps) {
     const changeTab = (tab: string) => visit({ tab });
     // HR-15f: Week or Month on My roster; the choice is in the address, nothing is stored.
     const showMonth = (month?: string) =>
-        visit({ view: 'month', month: month ?? props.roster.month?.key });
-    const showWeek = () => visit({ view: undefined, month: undefined });
+        visit({ myView: 'month', month: month ?? props.roster.month?.key });
+    const showWeek = () => visit({ myView: undefined, month: undefined });
     const changeBranch = (value: string | number) => visit({ branch: value });
 
     const versionLine = computed(() => {

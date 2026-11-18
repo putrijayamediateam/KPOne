@@ -65,8 +65,9 @@ final class RosterPageService
             'sessions' => collect(RosterRules::SESSIONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'my' => $canOwn ? $this->my($actor, $weekStart) : null,
             // HR-15f: the month calendar on My roster, only when asked for (owner, via B.E.R.N.I.S.S, 18 Nov 2026).
-            'view' => $canOwn && ($query['view'] ?? null) === 'month' ? 'month' : 'week',
-            'month' => $canOwn && ($query['view'] ?? null) === 'month' ? $this->myMonth($actor, $branch, $query['month'] ?? null) : null,
+            // Its own key, so it never meets the planner's "view" (Suresh, m1).
+            'view' => $canOwn && ($query['myView'] ?? null) === 'month' ? 'month' : 'week',
+            'month' => $canOwn && ($query['myView'] ?? null) === 'month' ? $this->myMonth($actor, $branch, $query['month'] ?? null) : null,
             'planner' => $planner ? $this->planner($actor, $branches, $branch, $weekStart, $query['view'] ?? null, $canManage, $canApprove) : null,
             'minimums' => $canManage ? $this->minimumsPage($actor, $branches, $branch) : null,
         ];
@@ -140,11 +141,18 @@ final class RosterPageService
 
         // Own asks: waiting, or confirmed into a draft that is not approved yet (an approved one is already a shift).
         $asks = DB::table('hr_open_shift_requests as r')->join('hr_open_shifts as o', 'o.id', '=', 'r.open_shift_id')->join('branches as b', 'b.id', '=', 'o.branch_id')
-            ->where('r.organisation_id', $actor->organisation_id)->where('r.locum_user_id', $actor->id)->whereIn('r.status', ['asked', 'confirmed'])
+            ->where('r.organisation_id', $actor->organisation_id)->where('r.locum_user_id', $actor->id)
+            // A waiting ask shows only while its open shift is still open (Suresh, m3).
+            ->where(fn ($q) => $q->where(fn ($w) => $w->where('r.status', 'asked')->where('o.status', 'open'))->orWhere('r.status', 'confirmed'))
             ->where('o.starts_at', '>=', $gridStart->subDay()->utc())->where('o.starts_at', '<', $gridEnd->addDays(2)->utc())
             ->orderBy('o.starts_at')->get(['r.public_id', 'r.status', 'r.roster_shift_id', 'o.starts_at', 'o.ends_at', 'b.name', 'b.timezone']);
         // A confirmed ask whose draft shift HR has since removed is not shown; one lookup for all of them.
-        $draftIds = RosterShift::query()->whereIn('id', $asks->pluck('roster_shift_id')->filter())->pluck('id')->map(fn ($id): int => (int) $id)->all();
+        // Only a shift still the person's own, in a draft or a week waiting for approval: a discarded draft, a replaced
+        // approved week or a shift HR gave to someone else never shows as "confirmed, not approved" (Suresh, M1).
+        $draftIds = RosterShift::query()->whereIn('id', $asks->pluck('roster_shift_id')->filter())->where('organisation_id', $actor->organisation_id)
+            ->where('staff_user_id', $actor->id)
+            ->whereIn('roster_version_id', RosterVersion::query()->select('id')->where('organisation_id', $actor->organisation_id)->whereIn('status', ['draft', 'submitted']))
+            ->pluck('id')->map(fn ($id): int => (int) $id)->all();
         $asks = $asks->reject(fn (\stdClass $r): bool => $r->status === 'confirmed' && ($r->roster_shift_id === null
             || in_array((int) $r->roster_shift_id, $approvedShiftIds, true) || ! in_array((int) $r->roster_shift_id, $draftIds, true)));
 
@@ -165,7 +173,7 @@ final class RosterPageService
                 'startLabel' => $this->rules->timeLabel($start), 'endLabel' => $this->rules->timeLabel($end), 'nextDay' => $end->toDateString() !== $start->toDateString(),
                 'label' => $r->status === 'asked' ? 'Asked, waiting for HR' : 'Confirmed, roster not approved yet',
                 // A short word for the grid cell; the full line is in the day sheet (Daniel).
-                'shortLabel' => $r->status === 'asked' ? 'Asked' : 'Confirmed, not approved'];
+                'shortLabel' => $r->status === 'asked' ? 'Asked' : 'Not approved yet'];
         }
 
         $days = [];

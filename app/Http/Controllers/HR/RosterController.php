@@ -23,7 +23,7 @@ class RosterController extends Controller
 
     public function index(Request $request, RosterPageService $pages): Response
     {
-        return Inertia::render('HR/Roster', ['roster' => $pages->page($request->user(), $request->only(['tab', 'branch', 'week', 'view', 'month'])),
+        return Inertia::render('HR/Roster', ['roster' => $pages->page($request->user(), $request->only(['tab', 'branch', 'week', 'view', 'myView', 'month'])),
             // HR-5a: your own expiring or expired credentials, in words; inside KPOne only.
             'credentialReminders' => app(CredentialsPageService::class)->reminders($request->user())]);
     }

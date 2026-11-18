@@ -44,7 +44,7 @@ class RosterMonthTest extends VisitTestCase
 
         // Waiting: the ask shows on the 17th, with no shift and no hours.
         $this->selectBranch($locum);
-        $this->get(route('hr.roster.index', ['view' => 'month', 'month' => '2026-11']))->assertOk()->assertInertia(fn (Assert $p) => $p
+        $this->get(route('hr.roster.index', ['myView' => 'month', 'month' => '2026-11']))->assertOk()->assertInertia(fn (Assert $p) => $p
             ->where('roster.view', 'month')->where('roster.month.key', '2026-11')->where('roster.month.label', 'November 2026')
             ->where('roster.month.previous', '2026-10')->where('roster.month.next', '2026-12')->where('roster.month.hoursLabel', '0 h')
             // 1 Nov 2026 is a Sunday: the grid runs Monday 26 Oct to Sunday 6 Dec, six weeks.
@@ -58,8 +58,8 @@ class RosterMonthTest extends VisitTestCase
         $ask = DB::table('hr_open_shift_requests')->where('locum_user_id', $locum->id)->sole();
         $this->post(route('hr.open-shifts.confirm', $ask->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
         $this->selectBranch($locum);
-        $this->get(route('hr.roster.index', ['view' => 'month', 'month' => '2026-11']))->assertInertia(fn (Assert $p) => $p
-            ->where('roster.month.days.22.asks.0.status', 'confirmed')->where('roster.month.days.22.asks.0.label', 'Confirmed, roster not approved yet')
+        $this->get(route('hr.roster.index', ['myView' => 'month', 'month' => '2026-11']))->assertInertia(fn (Assert $p) => $p
+            ->where('roster.month.days.22.asks.0.status', 'confirmed')->where('roster.month.days.22.asks.0.label', 'Confirmed, roster not approved yet')->where('roster.month.days.22.asks.0.shortLabel', 'Not approved yet')
             ->has('roster.month.days.22.asks', 1));
 
         // Approved: it becomes a shift with its hours; the ask is no longer listed beside it.
@@ -67,16 +67,16 @@ class RosterMonthTest extends VisitTestCase
         app(RosterService::class)->submit($this->hr, $version->public_id, ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()]);
         app(RosterService::class)->approve($this->director, $version->public_id, ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()]);
         $this->selectBranch($locum);
-        $this->get(route('hr.roster.index', ['view' => 'month', 'month' => '2026-11']))->assertInertia(fn (Assert $p) => $p
+        $this->get(route('hr.roster.index', ['myView' => 'month', 'month' => '2026-11']))->assertInertia(fn (Assert $p) => $p
             ->has('roster.month.days.22.shifts', 1)->where('roster.month.days.22.shifts.0.startLabel', '8:00 AM')
             ->where('roster.month.days.22.shifts.0.hours', '5 h 30 min')->where('roster.month.days.22.asks', [])
             ->where('roster.month.hoursLabel', '5 h 30 min'));
 
         // Another month has none of it; the other locum sees nothing of mine.
-        $this->get(route('hr.roster.index', ['view' => 'month', 'month' => '2026-12']))->assertInertia(fn (Assert $p) => $p
+        $this->get(route('hr.roster.index', ['myView' => 'month', 'month' => '2026-12']))->assertInertia(fn (Assert $p) => $p
             ->where('roster.month.hoursLabel', '0 h')->where('roster.month.days.0.date', '2026-11-30'));
         $this->selectBranch($other);
-        $this->get(route('hr.roster.index', ['view' => 'month', 'month' => '2026-11']))->assertInertia(fn (Assert $p) => $p
+        $this->get(route('hr.roster.index', ['myView' => 'month', 'month' => '2026-11']))->assertInertia(fn (Assert $p) => $p
             ->where('roster.month.days.22.shifts', [])->where('roster.month.days.22.asks', [])->where('roster.month.hoursLabel', '0 h'));
     }
 
@@ -86,13 +86,47 @@ class RosterMonthTest extends VisitTestCase
         $this->selectBranch($ca);
         $this->get(route('hr.roster.index'))->assertInertia(fn (Assert $p) => $p->where('roster.view', 'week')->where('roster.month', null));
         foreach (['2026-13', 'abc', '1999-12', '2026-1', '2026-11-01'] as $bad) {
-            $this->get(route('hr.roster.index', ['view' => 'month', 'month' => $bad]))->assertOk()
+            $this->get(route('hr.roster.index', ['myView' => 'month', 'month' => $bad]))->assertOk()
                 ->assertInertia(fn (Assert $p) => $p->where('roster.view', 'month')->where('roster.month.key', '2026-11'));
         }
-        $this->get(route('hr.roster.index', ['view' => 'month']))->assertInertia(fn (Assert $p) => $p->where('roster.month.key', '2026-11')
+        $this->get(route('hr.roster.index', ['myView' => 'month']))->assertInertia(fn (Assert $p) => $p->where('roster.month.key', '2026-11')
             ->where('roster.month.current', '2026-11'));
         // A planner-only viewer has no My roster, so no month either.
         $this->assertNotContains('hr.roster.view.own', PermissionCatalogue::roles()['queue_display'] ?? []);
+    }
+
+    public function test_a_confirmed_ask_whose_draft_is_discarded_or_given_away_is_not_shown(): void
+    {
+        $locum = $this->linkedLocum('one');
+        $shift = $this->post_($this->hr);
+        $this->selectBranch($locum);
+        $this->post(route('hr.open-shifts.ask', $shift), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $ask = DB::table('hr_open_shift_requests')->sole();
+        $this->selectBranch($this->hr);
+        $this->post(route('hr.open-shifts.confirm', $ask->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->selectBranch($locum);
+        $this->get(route('hr.roster.index', ['myView' => 'month', 'month' => '2026-11']))->assertInertia(fn (Assert $p) => $p
+            ->has('roster.month.days.22.asks', 1));
+
+        // HR discards the draft: the ask no longer says it waits for approval (Suresh, M1).
+        $version = RosterVersion::query()->where('status', 'draft')->sole();
+        app(RosterService::class)->discard($this->hr, $version->public_id, ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()]);
+        $this->selectBranch($locum);
+        $this->get(route('hr.roster.index', ['myView' => 'month', 'month' => '2026-11']))->assertInertia(fn (Assert $p) => $p
+            ->where('roster.month.days.22.asks', [])->where('roster.month.days.22.shifts', []));
+    }
+
+    public function test_a_waiting_ask_on_a_withdrawn_open_shift_is_not_shown(): void
+    {
+        $locum = $this->linkedLocum('one');
+        $shift = $this->post_($this->hr);
+        $this->selectBranch($locum);
+        $this->post(route('hr.open-shifts.ask', $shift), ['idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->selectBranch($this->hr);
+        $this->post(route('hr.open-shifts.withdraw', $shift), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->selectBranch($locum);
+        $this->get(route('hr.roster.index', ['myView' => 'month', 'month' => '2026-11']))->assertInertia(fn (Assert $p) => $p
+            ->where('roster.month.days.22.asks', []));
     }
 
     // ---- fixture ----
