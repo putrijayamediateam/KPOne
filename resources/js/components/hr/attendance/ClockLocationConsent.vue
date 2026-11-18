@@ -22,7 +22,7 @@ onMounted(async () => {
     heading.value?.$el?.focus();
 });
 const choice =
-    'min-h-12 flex-1 rounded-full border px-6 text-base font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
+    'min-h-12 w-full rounded-full border px-6 text-base font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
 </script>
 
 <template>
@@ -75,7 +75,7 @@ const choice =
             <h3 class="font-medium">Bahasa Melayu</h3>
             <p class="whitespace-pre-line">{{ location.consentBm }}</p>
         </section>
-        <div class="mt-auto flex flex-col gap-3 sm:flex-row">
+        <div class="mt-auto flex flex-col gap-3">
             <button
                 type="button"
                 :class="choice"

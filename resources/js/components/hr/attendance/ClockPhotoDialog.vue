@@ -405,8 +405,15 @@ onBeforeUnmount(() => {
                     <DialogTitle class="text-xl font-semibold">{{
                         title
                     }}</DialogTitle>
-                    <DialogDescription class="text-base" role="status">
-                        Checking your location…
+                    <DialogDescription
+                        class="flex flex-col gap-1 text-base"
+                        role="status"
+                    >
+                        <span>Checking your location…</span>
+                        <!-- Daniel: no animation, but a line so it never looks frozen. -->
+                        <span class="text-sm text-muted-foreground"
+                            >This can take up to 10 seconds.</span
+                        >
                     </DialogDescription>
                 </div>
 

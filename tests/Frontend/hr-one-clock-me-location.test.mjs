@@ -129,3 +129,10 @@ test('Daniel: title takes focus, closing says what it does, a failed read says s
     assert.match(dialog, /so this is recorded without it\./);
     assert.match(dialog, /v-if="cameraNote && state\.step === 'camera'"/);
 });
+
+test('Daniel: the two choices stack at every width, and the read says it can take 10 seconds', () => {
+    assert.match(consent, /class="mt-auto flex flex-col gap-3"/);
+    assert.doesNotMatch(consent, /sm:flex-row/);
+    assert.match(dialog, /This can take up to 10 seconds\./);
+    assert.match(dialog, /Checking your location\u2026/);
+});
