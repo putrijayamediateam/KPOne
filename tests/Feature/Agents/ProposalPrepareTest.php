@@ -4,6 +4,7 @@ namespace Tests\Feature\Agents;
 
 use App\Domain\Agents\Models\AiAgentRun;
 use App\Domain\Agents\Proposals\AiProposal;
+use App\Domain\Agents\Proposals\PreparesWork;
 use App\Domain\Agents\Proposals\ProposalPreparers;
 use App\Domain\Agents\Proposals\ProposalService;
 use App\Domain\Agents\Services\AgentRunRecorder;
@@ -174,8 +175,14 @@ class ProposalPrepareTest extends VisitTestCase
         $expiry = $this->expiry();
         $this->refusedWith(fn () => $this->proposals->approve($this->actor('ca_supervisor'), $expiry, ['lock_version' => 0, 'mode' => 'prepare']), 'mode', 'This suggestion does not prepare work.');
 
-        $this->preparer = new FakeProposalPreparer(['inventory.transfer_suggestion']);
-        $this->app->instance(FakeProposalPreparer::class, $this->preparer);
+        // No preparer at all, whatever the application registers (the Inventory team registers its own for restock and transfer).
+        $this->app->instance(ProposalPreparers::class, new class extends ProposalPreparers
+        {
+            public function for(string $type): ?PreparesWork
+            {
+                return null;
+            }
+        });
         $restock = $this->restock();
         $this->refusedWith(fn () => $this->proposals->approve($this->actor('ca_supervisor'), $restock, ['lock_version' => 0, 'mode' => 'prepare']), 'mode', 'This suggestion does not prepare work.');
         $this->refusedWith(fn () => $this->proposals->reject($this->actor('ca_supervisor'), $restock, ['lock_version' => 0, 'reason' => 'Not needed', 'mode' => 'prepare']), 'mode', 'Only an approval can prepare work.');

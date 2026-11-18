@@ -5,7 +5,7 @@ namespace App\Domain\Agents\Proposals;
 use Ramsey\Uuid\Uuid;
 
 /** Finds the preparer for a proposal type. Domain teams tag their `PreparesWork` class with `ProposalPreparers::TAG`. */
-final class ProposalPreparers
+class ProposalPreparers
 {
     public const TAG = 'agents.proposal_preparers';
 
