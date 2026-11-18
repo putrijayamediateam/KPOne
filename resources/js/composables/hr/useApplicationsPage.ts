@@ -1,5 +1,6 @@
 import { router, usePage } from '@inertiajs/vue3';
 import { computed, onMounted, reactive, ref, watch } from 'vue';
+import { toast } from 'vue-sonner';
 import type FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 
 /**
@@ -66,6 +67,9 @@ export type Application = {
             past: boolean;
         }[];
         confirmed: string | null;
+        // HR-15e: an online interview and its link.
+        online?: boolean;
+        videoLink?: string | null;
         // HR-17d: which interview documents the candidate has downloaded.
         documents?: { title: string; downloadedAt: string | null }[];
     } | null;
@@ -79,6 +83,8 @@ export type Application = {
         at: string;
         lockVersion: number;
     } | null;
+    // HR-15d: the locum file made from a passed Locum candidate, with its sign-in state.
+    locumHire?: { workerId: string; name: string; signIn: string } | null;
 };
 export type PoolMember = {
     id: string;
@@ -143,6 +149,7 @@ export type ApplicationsPageProps = {
             graceDays: number;
             types: Option[];
             rejectReasons: Option[];
+            meetingModes: Option[];
             cancelReasons: Option[];
         };
         positions: Position[];
@@ -358,6 +365,8 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
     });
     const openApplication = (application: Application) => {
         viewing.value = application;
+        locumAnnounce.value = '';
+        locumError.value = '';
         Object.assign(moving, {
             to: '',
             key: '',
@@ -443,6 +452,25 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
     );
     // Confirming tells the candidate, so it asks first (Daniel, HR-17c).
     const confirming = ref<{ start: string; label: string } | null>(null);
+    // HR-15e: how the confirmed interview happens. Starts as In person each time the dialog opens.
+    const meeting = reactive({ mode: 'in_person', videoLink: '' });
+    const askConfirm = (pick: { start: string; label: string }) => {
+        Object.assign(meeting, { mode: 'in_person', videoLink: '' });
+        confirming.value = { start: pick.start, label: pick.label };
+    };
+    const confirmInterview = () => {
+        if (!confirming.value) {
+            return;
+        }
+
+        interviewPost('confirm', {
+            start: confirming.value.start,
+            mode: meeting.mode,
+            ...(meeting.mode === 'online'
+                ? { video_link: meeting.videoLink.trim() }
+                : {}),
+        });
+    };
 
     const askMove = (to: string) => {
         if (!viewing.value) {
@@ -731,6 +759,73 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
         );
     };
 
+    // HR-15d (Daniel): ask before making the locum file; on success the sheet stays open on the same application,
+    // so the status line and "Open the locum file" are in view. No toast: the status region announces it.
+    const locumConfirm = ref(false);
+    const locumAnnounce = ref('');
+    // Suresh m3: the dialog shows only a refusal of this request, never an older page-wide error.
+    const locumError = ref('');
+    const askLocumFile = () => {
+        locumError.value = '';
+        locumConfirm.value = true;
+    };
+    const makeLocumFile = () => {
+        const application = viewing.value;
+
+        if (!application) {
+            return;
+        }
+
+        locumError.value = '';
+        accountAction.processing = true;
+        router.post(
+            `/hr/applications/${application.id}/locum-file`,
+            {
+                expected_lock_version: application.lockVersion,
+                idempotency_key: accountAction.key,
+                ...(list.value?.filters ?? {}),
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    accountAction.key = crypto.randomUUID();
+                    locumConfirm.value = false;
+                    const fresh = list.value?.rows.find(
+                        (row) => row.id === application.id,
+                    );
+                    viewing.value = fresh ?? null;
+
+                    if (fresh?.locumHire) {
+                        locumAnnounce.value = `Locum file made. ${fresh.locumHire.signIn}.`;
+                    } else {
+                        // Suresh m1: the row left this page, so the sheet closes; say so once.
+                        locumAnnounce.value = '';
+                        toast.success(
+                            'Locum file made and a sign-in asked for. Find the candidate under Passed to see it.',
+                        );
+                    }
+                },
+                onError: (failed) => {
+                    locumError.value =
+                        failed.application ??
+                        failed.records ??
+                        failed.applications ??
+                        Object.values(failed)[0] ??
+                        '';
+                    // Suresh m2: the redirect refreshed the rows; take the new lock version or the file someone else made.
+                    const fresh = list.value?.rows.find(
+                        (row) => row.id === application.id,
+                    );
+
+                    if (fresh) {
+                        viewing.value = fresh;
+                    }
+                },
+                onFinish: () => (accountAction.processing = false),
+            },
+        );
+    };
+
     // HR-17d: interview documents per position type (HR-PLAN 19.7).
     const DOCS_MAX = 10;
     const documentForm = reactive({
@@ -843,6 +938,9 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
         arrangedOutside,
         moveSteps,
         confirming,
+        meeting,
+        askConfirm,
+        confirmInterview,
         askMove,
         move,
         label,
@@ -870,6 +968,11 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
         copyInvitationLink,
         accountAction,
         accountPost,
+        locumConfirm,
+        locumAnnounce,
+        locumError,
+        askLocumFile,
+        makeLocumFile,
         DOCS_MAX,
         documentForm,
         documentPicker,

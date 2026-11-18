@@ -31,6 +31,9 @@ type Application = {
         // Owner, 2026-11-11: the last day to choose before the application closes.
         chooseBy?: string | null;
         confirmed?: string;
+        // HR-15e: an online interview and its link.
+        online?: boolean;
+        videoLink?: string | null;
     } | null;
     // HR-17d: the clinic's documents for a confirmed interview.
     documents?: { id: string; title: string; size: string }[];
@@ -282,7 +285,24 @@ const closedWell = computed(() => props.application?.stage === 'passed');
                         <p class="mt-2 text-lg font-semibold">
                             {{ application.interview.confirmed }}
                         </p>
-                        <p class="text-sm">
+                        <div
+                            v-if="
+                                application.interview.online &&
+                                application.interview.videoLink
+                            "
+                            class="mt-1 space-y-1 text-sm"
+                            data-test="status-interview-online"
+                        >
+                            <p>Online. Join with this link:</p>
+                            <a
+                                :href="application.interview.videoLink"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="break-all underline underline-offset-2"
+                                >{{ application.interview.videoLink }}</a
+                            >
+                        </div>
+                        <p v-else class="text-sm">
                             {{ clinicName }} {{ application.interview.branch }}
                         </p>
                         <div
