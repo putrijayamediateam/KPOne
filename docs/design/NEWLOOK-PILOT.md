@@ -118,6 +118,20 @@ below 1024 px, and a name for every icon-only control.
 - **Allergy and warning strip.** Dot + bold word ("Allergy: Penicillin"), tinted fill, 4.5:1 text; the mock-up's
   `#a1281c` on `#fff1f0` is 6.7:1.
 
+### Named exceptions to "one black main button per view"
+
+- **Me: the Clock in ring button stays cobalt** (`#0a56d1` light, `#6ba6ff` dark), with its existing soft shadow. It is Me's
+  signature action and the only filled control on that page, so there is no second primary to compete with. Any other
+  filled button on Me is black. Recorded 2026-11-18 at Kavitha's request (New look step B).
+- Add further exceptions here only with the owner's OK, one line each, with the reason.
+
+### Measured contrast (step B, rendered tokens, 2026-11-18)
+
+Measured by the Staff Experience team from computed styles with the look on (Chromium, demo CA). Replaces the
+"to measure" note for the shipped tokens: every text pair is 4.8:1 or better; the field edge on a card is **3.43:1
+(light) and 3.02:1 (dark)**, which passes but has almost no margin. Do not put a field on a lighter or darker surface
+than its card, and do not lighten a dark card, without measuring again.
+
 ## 4. Today (pilot b)
 
 - Four-column grid from 1280 px: hero (span 2) + two stat cards, then "Needs your approval" (span 2, tall) + "Clinic
