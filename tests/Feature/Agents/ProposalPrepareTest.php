@@ -221,6 +221,19 @@ class ProposalPrepareTest extends VisitTestCase
         }
     }
 
+    public function test_the_last_registered_preparer_for_a_type_wins(): void
+    {
+        $first = new FakeProposalPreparer(['inventory.restock_suggestion']);
+        $this->app->instance('first-preparer', $first);
+        $this->app->tag(['first-preparer'], ProposalPreparers::TAG);
+        $second = new FakeProposalPreparer(['inventory.restock_suggestion']);
+        $this->app->instance('second-preparer', $second);
+        $this->app->tag(['second-preparer'], ProposalPreparers::TAG);
+
+        $this->assertSame($second, app(ProposalPreparers::class)->for('inventory.restock_suggestion'));
+        $this->assertNull(app(ProposalPreparers::class)->for('inventory.expiry_warning'));
+    }
+
     public function test_the_retry_key_is_one_stable_uuid_per_proposal(): void
     {
         $key = ProposalPreparers::retryKey(41);

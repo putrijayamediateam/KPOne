@@ -13,13 +13,16 @@ final class ProposalPreparers
 
     public function for(string $type): ?PreparesWork
     {
+        // The last registered preparer for a type wins, so a test's own tag overrides the application's. Production has one
+        // preparer per type.
+        $match = null;
         foreach (app()->tagged(self::TAG) as $preparer) {
             if ($preparer instanceof PreparesWork && in_array($type, $preparer->types(), true)) {
-                return $preparer;
+                $match = $preparer;
             }
         }
 
-        return null;
+        return $match;
     }
 
     /** The retry key a domain service uses for the record a proposal prepares: one proposal, one record. */
