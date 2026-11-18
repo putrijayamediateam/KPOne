@@ -66,6 +66,9 @@ export type Application = {
             past: boolean;
         }[];
         confirmed: string | null;
+        // HR-15e: an online interview and its link.
+        online?: boolean;
+        videoLink?: string | null;
         // HR-17d: which interview documents the candidate has downloaded.
         documents?: { title: string; downloadedAt: string | null }[];
     } | null;
@@ -143,6 +146,7 @@ export type ApplicationsPageProps = {
             graceDays: number;
             types: Option[];
             rejectReasons: Option[];
+            meetingModes: Option[];
             cancelReasons: Option[];
         };
         positions: Position[];
@@ -443,6 +447,25 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
     );
     // Confirming tells the candidate, so it asks first (Daniel, HR-17c).
     const confirming = ref<{ start: string; label: string } | null>(null);
+    // HR-15e: how the confirmed interview happens. Starts as In person each time the dialog opens.
+    const meeting = reactive({ mode: 'in_person', videoLink: '' });
+    const askConfirm = (pick: { start: string; label: string }) => {
+        Object.assign(meeting, { mode: 'in_person', videoLink: '' });
+        confirming.value = { start: pick.start, label: pick.label };
+    };
+    const confirmInterview = () => {
+        if (!confirming.value) {
+            return;
+        }
+
+        interviewPost('confirm', {
+            start: confirming.value.start,
+            mode: meeting.mode,
+            ...(meeting.mode === 'online'
+                ? { video_link: meeting.videoLink.trim() }
+                : {}),
+        });
+    };
 
     const askMove = (to: string) => {
         if (!viewing.value) {
@@ -843,6 +866,9 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
         arrangedOutside,
         moveSteps,
         confirming,
+        meeting,
+        askConfirm,
+        confirmInterview,
         askMove,
         move,
         label,

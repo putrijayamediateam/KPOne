@@ -59,6 +59,9 @@ const {
     arrangedOutside,
     moveSteps,
     confirming,
+    meeting,
+    askConfirm,
+    confirmInterview,
     askMove,
     move,
     label,
@@ -1091,6 +1094,22 @@ const {
                                 }}</strong
                                 >.
                             </p>
+                            <p
+                                v-if="viewing.interview.online"
+                                class="text-sm break-all"
+                                data-test="interview-online"
+                            >
+                                Online:
+                                <a
+                                    :href="
+                                        viewing.interview.videoLink ?? undefined
+                                    "
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="underline underline-offset-2"
+                                    >{{ viewing.interview.videoLink }}</a
+                                >
+                            </p>
                             <Button
                                 variant="outline"
                                 class="w-fit max-lg:min-h-11"
@@ -1175,12 +1194,7 @@ const {
                                         "
                                         :aria-label="`Confirm ${pick.label}`"
                                         data-test="interview-confirm"
-                                        @click="
-                                            confirming = {
-                                                start: pick.start,
-                                                label: pick.label,
-                                            }
-                                        "
+                                        @click="askConfirm(pick)"
                                         >Confirm</Button
                                     >
                                 </li>
@@ -1671,17 +1685,64 @@ const {
         <OperationalConfirmDialog
             :open="confirming !== null"
             :title="`Confirm ${confirming?.label ?? ''}?`"
-            description="The candidate is told the date, time and branch."
+            :description="
+                meeting.mode === 'online'
+                    ? 'The candidate is told the date, time and video link.'
+                    : 'The candidate is told the date, time and branch.'
+            "
             confirm-label="Confirm interview"
             :processing="interviewAction.processing"
-            :error="errors.start"
+            :error="errors.start ?? errors.mode"
             data-test="interview-confirm-dialog"
             @update:open="(open) => !open && (confirming = null)"
-            @confirm="
-                confirming &&
-                interviewPost('confirm', { start: confirming.start })
-            "
-        />
+            @confirm="confirmInterview"
+        >
+            <fieldset
+                class="flex flex-col gap-1"
+                data-test="interview-meeting-modes"
+            >
+                <legend class="mb-1 text-sm font-medium">
+                    How does it happen?
+                </legend>
+                <label
+                    v-for="m in applications.options.meetingModes"
+                    :key="m.value"
+                    class="flex min-h-11 items-center gap-3 text-sm"
+                >
+                    <input
+                        v-model="meeting.mode"
+                        type="radio"
+                        name="interview-meeting-mode"
+                        :value="m.value"
+                        class="size-5"
+                    />
+                    {{ m.label }}
+                </label>
+            </fieldset>
+            <div v-if="meeting.mode === 'online'" class="flex flex-col gap-1.5">
+                <Label for="interview-video-link">Video link</Label>
+                <Input
+                    id="interview-video-link"
+                    v-model="meeting.videoLink"
+                    type="url"
+                    inputmode="url"
+                    autocomplete="off"
+                    maxlength="500"
+                    placeholder="https://"
+                    aria-describedby="interview-video-link-help"
+                    :aria-invalid="errors.video_link ? true : undefined"
+                    data-test="interview-video-link"
+                />
+                <p
+                    id="interview-video-link-help"
+                    class="text-sm text-muted-foreground"
+                >
+                    The candidate sees it on their private page and in the
+                    email. KPOne does not make the meeting.
+                </p>
+                <InputError :message="errors.video_link" />
+            </div>
+        </OperationalConfirmDialog>
 
         <OperationalConfirmDialog
             :open="interviewAction.cancelOpen"
