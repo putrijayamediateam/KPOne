@@ -143,6 +143,13 @@ const checkLocation = async (agreed: boolean) => {
     }
 
     state.extra = { ...state.extra, ...extra };
+    // Daniel: a read that fails or is refused says so in words on the camera screen; the press still goes ahead.
+    cameraNote.value =
+        extra.location_unavailable === 'denied'
+            ? 'Location is not allowed for KPOne on this device, so this is recorded without it.'
+            : extra.location_unavailable === 'failed'
+              ? 'Your location could not be read in time, so this is recorded without it.'
+              : '';
     state.step = 'starting';
     await begin();
 };
@@ -359,6 +366,9 @@ onBeforeUnmount(() => {
                     (e: Event) => state.step === 'sending' && e.preventDefault()
                 "
                 @pointer-down-outside="(e: Event) => e.preventDefault()"
+                @open-auto-focus="
+                    (e: Event) => state.step === 'consent' && e.preventDefault()
+                "
             >
                 <!-- The one-time "About clock-in photos" notice -->
                 <ClockPhotoNotice

@@ -71,7 +71,7 @@ test('the dialog runs consent, then the read, then the camera, and ignores a rea
     );
     assert.match(
         dialog,
-        /state\.extra = \{ \.\.\.state\.extra, \.\.\.extra \};\s*state\.step = 'starting';\s*await begin\(\);/,
+        /state\.extra = \{ \.\.\.state\.extra, \.\.\.extra \};[\s\S]*?state\.step = 'starting';\s*await begin\(\);/,
     );
     assert.match(dialog, /void checkLocation\(false\)/);
 });
@@ -110,4 +110,22 @@ test('Suresh m1-m3: no stale consent, a way out while locating, no camera when n
         dialog,
         /data-test="clock-location-checking-close"[\s\S]*?@click="close"/,
     );
+});
+
+test('Daniel: title takes focus, closing says what it does, a failed read says so in words', () => {
+    assert.match(consent, /ref="heading"\s+tabindex="-1"/);
+    assert.match(consent, /heading\.value\?\.\$el\?\.focus\(\)/);
+    assert.doesNotMatch(consent, /autofocus/);
+    assert.match(consent, /Closing does not clock you \{\{ word \}\}\./);
+    // Agree comes first, as on the Attendance page.
+    assert.ok(
+        consent.indexOf('clock-location-agree') <
+            consent.indexOf('clock-location-without'),
+    );
+    assert.match(
+        dialog,
+        /@open-auto-focus="\s*\(e: Event\) => state\.step === 'consent' && e\.preventDefault\(\)/,
+    );
+    assert.match(dialog, /so this is recorded without it\./);
+    assert.match(dialog, /v-if="cameraNote && state\.step === 'camera'"/);
 });

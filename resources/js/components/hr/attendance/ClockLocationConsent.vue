@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { MapPin, X } from '@lucide/vue';
 import { DialogDescription, DialogTitle } from 'reka-ui';
-import { computed } from 'vue';
+import { computed, nextTick, onMounted, ref } from 'vue';
 import type { ClockKind, ClockLocation } from '@/composables/useClockPhoto';
 
 /**
@@ -14,6 +14,13 @@ const props = defineProps<{ kind: ClockKind; location: ClockLocation }>();
 defineEmits<{ agree: []; without: []; cancel: [] }>();
 
 const word = computed(() => (props.kind === 'out' ? 'out' : 'in'));
+// Daniel: neither choice takes focus when the sheet opens; the title does, so a screen reader reads it first and no
+// choice looks like the default.
+const heading = ref<{ $el?: HTMLElement } | null>(null);
+onMounted(async () => {
+    await nextTick();
+    heading.value?.$el?.focus();
+});
 const choice =
     'min-h-12 flex-1 rounded-full border px-6 text-base font-semibold focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none';
 </script>
@@ -40,11 +47,19 @@ const choice =
                 <X class="size-5" aria-hidden="true" />
             </button>
         </div>
-        <DialogTitle class="text-2xl font-bold"
+        <DialogTitle
+            ref="heading"
+            tabindex="-1"
+            class="text-2xl font-bold outline-none"
             >Location check at this branch</DialogTitle
         >
-        <DialogDescription class="text-base">
-            Read this once. You can clock {{ word }} without it.
+        <DialogDescription class="flex flex-col gap-1 text-base">
+            <span>Read this once. You can clock {{ word }} without it.</span>
+            <span
+                class="text-sm text-muted-foreground"
+                data-test="clock-location-close-note"
+                >Closing does not clock you {{ word }}.</span
+            >
         </DialogDescription>
         <p
             class="text-[13px] text-muted-foreground"
