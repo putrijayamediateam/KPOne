@@ -219,7 +219,7 @@ const inputClass =
     <PageFrame>
         <V2WorkLayout
             title="Create patient"
-            description="Organisation-level canonical identity. This is not a registration or encounter."
+            description="Add a patient to the clinic's patient list. This does not register a visit."
             rail-from="xl"
             rail-width="narrow"
         >
