@@ -124,7 +124,7 @@ test('the page is registered, Classic is untouched and WhatsApp keeps its label 
             '--quiet',
             'origin/main',
             '--',
-            'resources/js/pages/Patient/Show.vue',
+            // DD-18 deliberately edits the Classic Patient page (Retire uses the themed dialog), so only it is not guarded.
             'resources/js/components/patient/PatientMergePanel.vue',
             'resources/js/components/patient/PatientChangeHistory.vue',
         ],
