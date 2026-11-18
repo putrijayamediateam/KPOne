@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // HR-13 /hr/applications (Director, HR Manager): applications from the public form, the open positions and the
 // retention. HR-PLAN 15.2, with HR-17a's position types, form answers, phone screening and call checklist (HR-PLAN 19). Every CV open is recorded by the server before any byte is sent.
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { ChevronRight, TriangleAlert } from '@lucide/vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import MaskedValue from '@/components/hr/records/MaskedValue.vue';
@@ -86,6 +86,11 @@ const {
     copyInvitationLink,
     accountAction,
     accountPost,
+    locumConfirm,
+    locumAnnounce,
+    locumError,
+    askLocumFile,
+    makeLocumFile,
     DOCS_MAX,
     documentForm,
     documentPicker,
@@ -981,7 +986,7 @@ const {
                 </SheetHeader>
                 <div v-if="viewing" class="flex flex-col gap-4 px-4 pb-6">
                     <ErrorState
-                        v-if="errors.to || failure"
+                        v-if="(errors.to || failure) && !locumConfirm"
                         :message="errors.to ?? failure ?? ''"
                     />
                     <div class="flex flex-wrap items-center gap-2">
@@ -1390,15 +1395,64 @@ const {
                                       : 'Not in the talent pool.'
                             }}
                         </p>
+                        <p
+                            class="sr-only"
+                            role="status"
+                            data-test="application-locum-announce"
+                        >
+                            {{ locumAnnounce }}
+                        </p>
                         <template v-if="viewing.status === 'passed'">
+                            <div
+                                v-if="viewing.locumHire"
+                                class="flex flex-col gap-2"
+                                data-test="application-locum-hire"
+                            >
+                                <p class="text-sm">
+                                    Locum file: {{ viewing.locumHire.name }}
+                                </p>
+                                <p
+                                    class="flex items-center gap-2 text-sm text-muted-foreground"
+                                >
+                                    <span
+                                        class="size-2 shrink-0 rounded-full bg-warning"
+                                        :class="{
+                                            'bg-success':
+                                                viewing.locumHire.signIn ===
+                                                'Sign-in made',
+                                        }"
+                                        aria-hidden="true"
+                                    />
+                                    {{ viewing.locumHire.signIn }}
+                                </p>
+                                <Button
+                                    as-child
+                                    variant="outline"
+                                    class="min-h-11 w-full sm:min-h-9 sm:w-auto sm:self-start"
+                                >
+                                    <Link
+                                        :href="`/hr/records/${viewing.locumHire.workerId}`"
+                                        data-test="application-locum-open"
+                                        >Open the locum file</Link
+                                    >
+                                </Button>
+                            </div>
                             <p
-                                v-if="viewing.accountRequest"
+                                v-else-if="viewing.accountRequest"
                                 class="text-sm"
                                 data-test="application-account-request"
                             >
                                 Staff account:
                                 {{ viewing.accountRequest.statusLabel }} ·
                                 {{ viewing.accountRequest.at }}
+                            </p>
+                            <p
+                                v-else-if="viewing.type === 'locum'"
+                                class="text-sm text-muted-foreground"
+                            >
+                                No offer is made in KPOne. When they accept,
+                                make the locum file. KPOne then asks the account
+                                administrator for their sign-in.
                             </p>
                             <p v-else class="text-sm text-muted-foreground">
                                 No offer is made in KPOne. When they accept, ask
@@ -1407,6 +1461,25 @@ const {
                             <div class="flex flex-wrap gap-2">
                                 <Button
                                     v-if="
+                                        viewing.type === 'locum' &&
+                                        !viewing.locumHire &&
+                                        viewing.accountRequest?.status !==
+                                            'open' &&
+                                        viewing.accountRequest?.status !==
+                                            'done' &&
+                                        !viewing.purged
+                                    "
+                                    variant="outline"
+                                    class="max-lg:min-h-11"
+                                    :disabled="accountAction.processing"
+                                    data-test="application-locum-make"
+                                    @click="askLocumFile"
+                                    >Make the locum file and ask for a
+                                    sign-in</Button
+                                >
+                                <Button
+                                    v-if="
+                                        viewing.type !== 'locum' &&
                                         viewing.accountRequest?.status !==
                                             'open' &&
                                         viewing.accountRequest?.status !==
@@ -1644,6 +1717,18 @@ const {
                 </div>
             </SheetContent>
         </Sheet>
+
+        <OperationalConfirmDialog
+            :open="locumConfirm"
+            :title="`Make the locum file for ${viewing?.name ?? ''} and ask for a sign-in?`"
+            description="KPOne makes the locum file from the application's name and phone, and asks the account administrator for a sign-in with the email they applied with."
+            confirm-label="Make file and ask"
+            :processing="accountAction.processing"
+            :error="locumError"
+            data-test="application-locum-confirm"
+            @update:open="(open) => !open && (locumConfirm = false)"
+            @confirm="makeLocumFile"
+        />
 
         <OperationalConfirmDialog
             :open="inviting !== null"

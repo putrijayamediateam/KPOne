@@ -51,6 +51,10 @@ final class StaffAccountRequests
             if ($application->status !== 'passed' || $application->purged_at !== null) {
                 throw ValidationException::withMessages(['application' => 'A staff account can be asked for only for a candidate who passed.']);
             }
+            // HR-15d: one person gets either a locum file with its sign-in or a staff account, never both (Suresh, M1).
+            if (DB::table('hr_locum_hires')->where('application_id', $application->id)->exists()) {
+                throw ValidationException::withMessages(['application' => 'A locum file was made for this candidate. Their sign-in is asked for from the locum file.']);
+            }
             if (DB::table('hr_staff_account_requests')->where('application_id', $application->id)->where('status', 'open')->exists()) {
                 throw ValidationException::withMessages(['application' => 'A staff account was already asked for. It is waiting on the Staff page.']);
             }
