@@ -6,6 +6,9 @@ const read = (p) =>
     readFileSync(new URL(`../../${p}`, import.meta.url), 'utf8');
 const bar = read('resources/js/components/workspace/V2NewLookSidebar.vue');
 const shell = read('resources/js/components/workspace/V2AppShell.vue');
+const button = read(
+    'resources/js/components/workspace/V2NewLookRailButton.vue',
+);
 
 test('New look step C: the shell shows the two-part sidebar only for the look, and keeps the old one otherwise', () => {
     assert.match(shell, /page\.props\.workspace\?\.newLook === true/);
@@ -36,7 +39,8 @@ test('New look step C: the rail is the ten areas, built from the server shell, w
     ]);
     assert.match(bar, /aria-label="Areas"/);
     assert.match(bar, /aria-label="Area pages"/);
-    assert.match(bar, /:aria-label="area\.title"/);
+    assert.match(button, /:aria-label="title"/);
+    assert.match(button, /size-11/);
     assert.match(bar, /aria-label="Close panel"/);
     assert.match(bar, /isHere\(row\.href\)\s*\? 'page'/);
     assert.match(bar, /w-\[72px\]/);
@@ -49,7 +53,19 @@ test('New look step C: the rail is the ten areas, built from the server shell, w
 });
 
 test('New look step C: keyboard (one Tab stop, arrows, Home/End, Esc, skip link) and a tooltip that is never clipped', () => {
-    assert.match(bar, /:tabindex="tabbable\(index\) \? 0 : -1"/);
+    assert.match(button, /:tabindex="tabbable \? 0 : -1"/);
+    // Settings is pinned at the foot, beside the avatar; focus brings an icon into view.
+    assert.match(bar, /v-for="area in pinned"/);
+    assert.match(bar, /scrollIntoView\(\{ block: 'nearest' \}\)/);
+    // The focus ring is an offset outline, so it shows around the dark selected pill too.
+    assert.match(
+        button,
+        /focus-visible:outline-offset-2 focus-visible:outline-ring/,
+    );
+    // The tooltip waits a moment on hover, shows at once on focus, and has an arrow.
+    assert.match(bar, /delay = 350/);
+    assert.match(bar, /showTip\(event, title, 0\)/);
+    assert.match(bar, /rotate-45 bg-foreground/);
     assert.match(bar, /ArrowDown: index \+ 1/);
     assert.match(bar, /Home: 0/);
     assert.match(bar, /End: areas\.value\.length - 1/);
@@ -58,8 +74,8 @@ test('New look step C: keyboard (one Tab stop, arrows, Home/End, Esc, skip link)
     assert.match(shell, /id="v2-main"\s+tabindex="-1"/);
     // The name shows on hover and on focus, rendered in the body so the rail's scroll box cannot cut it.
     assert.match(bar, /<Teleport to="body">/);
-    assert.match(bar, /@focus="[^"]*showTip/);
-    assert.match(bar, /@mouseenter="showTip/);
+    assert.match(bar, /@focus="onFocus\(/);
+    assert.match(bar, /@enter="showTip\(/);
     // The rail scrolls on short windows with a hidden bar and a fade.
     assert.match(bar, /\[scrollbar-width:none\]/);
     assert.match(bar, /data-test="v2-newlook-rail-scroll"/);

@@ -14,8 +14,16 @@ import {
     Users,
 } from '@lucide/vue';
 import type { Component } from 'vue';
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
+import {
+    computed,
+    nextTick,
+    onBeforeUnmount,
+    onMounted,
+    ref,
+    watch,
+} from 'vue';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import V2NewLookRailButton from '@/components/workspace/V2NewLookRailButton.vue';
 import { getInitials } from '@/composables/useInitials';
 import type { V2Shell } from '@/types';
 
@@ -180,6 +188,16 @@ onMounted(() => {
     }
 
     measure();
+
+    if (scroller.value && typeof ResizeObserver !== 'undefined') {
+        resizer = new ResizeObserver(measure);
+        resizer.observe(scroller.value);
+    }
+});
+let resizer: ResizeObserver | undefined;
+onBeforeUnmount(() => {
+    resizer?.disconnect();
+    clearTimeout(tipTimer);
 });
 
 // Click an icon: show that area and open the panel; click the icon of the area already shown to close it.
@@ -202,27 +220,39 @@ const areaClass = (key: string): string =>
           ? 'text-foreground hover:bg-card'
           : 'text-muted-foreground hover:bg-card hover:text-foreground';
 
-// Keyboard: the rail is one Tab stop (roving tabindex); arrows, Home and End move between areas.
-const buttons = ref<HTMLButtonElement[]>([]);
-const focusIndex = ref(0);
-const tabbable = (index: number) =>
-    index === (focusIndex.value < areas.value.length ? focusIndex.value : 0);
-watch(
-    currentAreaKey,
-    (key) =>
-        (focusIndex.value = Math.max(
-            0,
-            areas.value.findIndex((a) => a.key === key),
-        )),
-    { immediate: true },
+// Keyboard: the rail is one Tab stop (roving tabindex); arrows, Home and End move between areas. Settings is pinned at the
+// foot of the rail, beside the avatar, so it is always in reach on a short window; it is still the last area in the order.
+const scrolled = computed(() =>
+    areas.value.filter((a) => a.key !== 'settings'),
 );
+const pinned = computed(() => areas.value.filter((a) => a.key === 'settings'));
+const buttons = new Map<string, { el: HTMLButtonElement | null }>();
+const setButton = (key: string, instance: unknown) => {
+    if (instance) {
+        buttons.set(key, instance as { el: HTMLButtonElement | null });
+    } else {
+        buttons.delete(key);
+    }
+};
+const focusKey = ref<string | null>(null);
+const tabbable = (key: string) =>
+    key ===
+    (areas.value.some((a) => a.key === focusKey.value)
+        ? focusKey.value
+        : currentAreaKey.value);
 const moveFocus = (to: number) => {
     const total = areas.value.length;
-    const index = (to + total) % total;
-    focusIndex.value = index;
-    void nextTick(() => buttons.value[index]?.focus());
+    const area = areas.value[(to + total) % total];
+    focusKey.value = area.key;
+    void nextTick(() => {
+        const el = buttons.get(area.key)?.el;
+        el?.focus();
+        // A focused icon that is scrolled out of sight comes into view.
+        el?.scrollIntoView({ block: 'nearest' });
+    });
 };
-const onRailKey = (event: KeyboardEvent, index: number) => {
+const onRailKey = (event: KeyboardEvent, key: string) => {
+    const index = areas.value.findIndex((a) => a.key === key);
     const keys: Record<string, number> = {
         ArrowDown: index + 1,
         ArrowUp: index - 1,
@@ -235,22 +265,38 @@ const onRailKey = (event: KeyboardEvent, index: number) => {
         moveFocus(keys[event.key]);
     }
 };
+const onFocus = (event: FocusEvent, key: string, title: string) => {
+    focusKey.value = key;
+    (event.currentTarget as HTMLElement).scrollIntoView({ block: 'nearest' });
+    showTip(event, title, 0);
+};
 // Esc inside the panel closes it and puts focus back on the rail button of the area shown.
 const onPanelKey = (event: KeyboardEvent) => {
     if (event.key === 'Escape' && open.value) {
         remember(false);
-        const index = areas.value.findIndex((a) => a.key === shownKey.value);
-        void nextTick(() => buttons.value[Math.max(0, index)]?.focus());
+        void nextTick(() => buttons.get(shownKey.value)?.el?.focus());
     }
 };
 
-// The name of the area, shown on hover and on keyboard focus, outside the rail's scroll box so it is never clipped.
+// The name of the area, shown on hover (after a short pause, so crossing the rail shows nothing) and on keyboard focus,
+// outside the rail's scroll box so it is never clipped. A small arrow points at the icon.
 const tip = ref<{ text: string; top: number; left: number } | null>(null);
-const showTip = (event: Event, text: string) => {
+let tipTimer: ReturnType<typeof setTimeout> | undefined;
+const showTip = (event: Event, text: string, delay = 350) => {
     const box = (event.currentTarget as HTMLElement).getBoundingClientRect();
-    tip.value = { text, top: box.top + box.height / 2, left: box.right + 10 };
+    clearTimeout(tipTimer);
+    tipTimer = setTimeout(() => {
+        tip.value = {
+            text,
+            top: box.top + box.height / 2,
+            left: box.right + 8,
+        };
+    }, delay);
 };
-const hideTip = () => (tip.value = null);
+const hideTip = () => {
+    clearTimeout(tipTimer);
+    tip.value = null;
+};
 
 // The rail scrolls on short windows (hidden bar); a fade shows there is more above or below.
 const scroller = ref<HTMLElement | null>(null);
@@ -314,50 +360,56 @@ const fade = computed(() => {
                     data-test="v2-newlook-rail-scroll"
                     @scroll.passive="measure"
                 >
-                    <button
-                        v-for="(area, index) in areas"
+                    <V2NewLookRailButton
+                        v-for="area in scrolled"
                         :key="area.key"
-                        :ref="
-                            (el) => (buttons[index] = el as HTMLButtonElement)
-                        "
-                        type="button"
-                        class="relative flex size-11 shrink-0 items-center justify-center rounded-[14px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        :class="areaClass(area.key)"
-                        :aria-label="area.title"
-                        :aria-current="
-                            area.key === currentAreaKey ? 'true' : undefined
-                        "
-                        :aria-expanded="area.key === shownKey && open"
-                        :tabindex="tabbable(index) ? 0 : -1"
-                        data-test="v2-newlook-area"
-                        @click="pick(area.key)"
-                        @keydown="onRailKey($event, index)"
-                        @focus="
-                            focusIndex = index;
-                            showTip($event, area.title);
-                        "
+                        :ref="(el) => setButton(area.key, el)"
+                        :title="area.title"
+                        :icon="area.icon"
+                        :state-class="areaClass(area.key)"
+                        :current="area.key === currentAreaKey"
+                        :expanded="area.key === shownKey && open"
+                        :tabbable="tabbable(area.key)"
+                        @pick="pick(area.key)"
+                        @keydown="onRailKey($event, area.key)"
+                        @focus="onFocus($event, area.key, area.title)"
                         @blur="hideTip"
-                        @mouseenter="showTip($event, area.title)"
-                        @mouseleave="hideTip"
-                    >
-                        <component
-                            :is="area.icon"
-                            class="size-5"
-                            aria-hidden="true"
-                        />
-                    </button>
+                        @enter="showTip($event, area.title)"
+                        @leave="hideTip"
+                    />
                 </div>
-                <Link
-                    href="/spaces/me"
-                    class="mt-2 shrink-0 rounded-full focus-visible:ring-2 focus-visible:ring-ring"
-                    :aria-label="`Me, ${userName}`"
-                >
-                    <Avatar class="size-10">
-                        <AvatarFallback class="bg-card text-xs font-semibold">
-                            {{ getInitials(userName) }}
-                        </AvatarFallback>
-                    </Avatar>
-                </Link>
+                <div class="mt-2 flex shrink-0 flex-col items-center gap-1.5">
+                    <V2NewLookRailButton
+                        v-for="area in pinned"
+                        :key="area.key"
+                        :ref="(el) => setButton(area.key, el)"
+                        :title="area.title"
+                        :icon="area.icon"
+                        :state-class="areaClass(area.key)"
+                        :current="area.key === currentAreaKey"
+                        :expanded="area.key === shownKey && open"
+                        :tabbable="tabbable(area.key)"
+                        @pick="pick(area.key)"
+                        @keydown="onRailKey($event, area.key)"
+                        @focus="onFocus($event, area.key, area.title)"
+                        @blur="hideTip"
+                        @enter="showTip($event, area.title)"
+                        @leave="hideTip"
+                    />
+                    <Link
+                        href="/spaces/me"
+                        class="shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring"
+                        :aria-label="`Me, ${userName}`"
+                    >
+                        <Avatar class="size-10">
+                            <AvatarFallback
+                                class="bg-card text-xs font-semibold"
+                            >
+                                {{ getInitials(userName) }}
+                            </AvatarFallback>
+                        </Avatar>
+                    </Link>
+                </div>
             </nav>
 
             <div
@@ -443,10 +495,13 @@ const fade = computed(() => {
             <div
                 v-if="tip"
                 aria-hidden="true"
-                class="pointer-events-none fixed z-[60] -translate-y-1/2 rounded-lg bg-foreground px-2.5 py-1 text-xs font-medium whitespace-nowrap text-background"
+                class="pointer-events-none fixed z-[60] -translate-y-1/2 rounded-md bg-foreground px-2 py-1 text-xs font-medium whitespace-nowrap text-background"
                 :style="{ top: `${tip.top}px`, left: `${tip.left}px` }"
                 data-test="v2-newlook-tip"
             >
+                <span
+                    class="absolute top-1/2 -left-1 size-2 -translate-y-1/2 rotate-45 bg-foreground"
+                ></span>
                 {{ tip.text }}
             </div>
         </Teleport>
