@@ -1,7 +1,10 @@
 # New look (preview): design rules for the pilot
 
-Status: **proposal for the owner's trial, 2026-11-18.** Step 1 of the pilot. Written by the Lead UI/UX Designer for
-B.E.R.N.I.S.S and the Staff Experience team. It authorises nothing by itself.
+Status: **approved by the owner 2026-11-18; dark values still to measure; font package to be named by Staff
+Experience.** Step 1 of the pilot. Written by the Lead UI/UX Designer for B.E.R.N.I.S.S and the Staff Experience team.
+The owner's three OKs: one black main button per view with quieter row buttons and cobalt kept for links and the focus
+ring; Geist self-hosted, never from Google; dark mode ships together with light. The note itself authorises no build
+beyond the pilot scope in section 1.
 
 Source: the owner's mock-up "KPOne Clean Look" (fictional data), boards Today (modern), Front desk (Pipeline), Billing,
 Consultation, Settings, Sidebar and the Billing function map. The owner's words: "Apple-like, mostly white, modern".
