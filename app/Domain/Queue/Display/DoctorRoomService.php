@@ -9,10 +9,10 @@ use App\Domain\Organisation\Models\Branch;
 use App\Domain\Queue\Models\BranchRoom;
 use App\Domain\Queue\Models\DoctorRoomAssignment;
 use App\Models\User;
-use Carbon\CarbonImmutable;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\ValidationException;
 
 /**
@@ -100,7 +100,7 @@ class DoctorRoomService
         $chosen = $chosen && $chosen->is_active && $chosen->kind === BranchRoom::KIND_CONSULTATION ? $chosen : null;
 
         // The roster is only asked about the branch-local day it is today: a past or future date has no "current shift".
-        $shift = $operationalDate === $this->operationalDate($branch)
+        $shift = $operationalDate === $this->operationalDate($branch) && $this->rosterExists()
             ? $this->roster->roomFor($doctorUserId, $branch, now()->toImmutable()->utc())
             : null;
         $rostered = $shift === null ? null : BranchRoom::query()->whereKey($shift['roomId'])
@@ -114,6 +114,17 @@ class DoctorRoomService
         }
 
         return ['room' => $rostered, 'source' => 'roster'];
+    }
+
+    /**
+     * HR's roster tables come with HR's own migrations. Every deployment migrates before it serves, so this is only ever false
+     * in a test that rolls the schema back to a point before them (the dispensary regression does): there a Call In must keep
+     * working on the hand-chosen room, as it did before the roster, instead of failing on a table that does not exist yet.
+     * The check is a catalogue read, so it is safe inside the Call In transaction.
+     */
+    private function rosterExists(): bool
+    {
+        return Schema::hasTable('hr_roster_shifts');
     }
 
     public function branchHasConsultationRooms(Branch $branch): bool
