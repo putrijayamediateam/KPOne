@@ -373,6 +373,37 @@
     --sidebar-ring: #6ba6ff;
 }
 
+/* Step D: the top bar floats over the page as a translucent bar (docs/design/NEWLOOK-PILOT.md section 3). Same 4 rem
+   height as before, so `--v2-topbar-h` and every sticky page header keep their offset. It falls back to the solid page
+   colour where `backdrop-filter` is missing or the person asked for less transparency. Text keeps its foreground colour
+   (never muted) in the bar so it still reads over dark content scrolling under it. */
+html[data-look='new'] [data-test='v2-shell-top'] {
+    background-color: var(--background);
+}
+
+@supports (backdrop-filter: blur(1px)) {
+    html[data-look='new'] [data-test='v2-shell-top'] {
+        background-color: color-mix(
+            in srgb,
+            var(--background) 82%,
+            transparent
+        );
+        backdrop-filter: saturate(160%) blur(14px);
+    }
+}
+
+@media (prefers-reduced-transparency: reduce) {
+    html[data-look='new'] [data-test='v2-shell-top'] {
+        background-color: var(--background);
+        backdrop-filter: none;
+    }
+}
+
+html[data-look='new'] {
+    /* A focused field is never left behind the bar. */
+    scroll-padding-top: 5rem;
+}
+
 /* Geist first, then the existing stack as fallback. `@theme inline` bakes the stack into `font-sans`, so the family is set
    directly on the page, on `body` and on `.font-sans`, with unlayered rules that win over the layered utilities. */
 html[data-look='new'],

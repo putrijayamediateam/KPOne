@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { Link, router, usePage } from '@inertiajs/vue3';
 import { Menu, Search, Undo2 } from '@lucide/vue';
-import { computed, ref, watchEffect } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref, watchEffect } from 'vue';
 import { toast } from 'vue-sonner';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -42,6 +42,30 @@ const user = computed(() => page.props.auth.user!);
 const sheetOpen = ref(false);
 // "New look (preview)" (docs/design/NEWLOOK-PILOT.md): the two-part sidebar replaces the desktop sidebar for people who switched it on.
 const newLook = computed(() => page.props.workspace?.newLook === true);
+// New look: the command shortcut and its hint (the Mac key on Apple devices, Ctrl K elsewhere), and the label of the area
+// the page belongs to, drawn at the left of the top bar (the page keeps its own crumb and title).
+const isApple = ref(false);
+const shortcutHint = computed(() => (isApple.value ? '⌘K' : 'Ctrl K'));
+const areaLabel = computed(() => props.shell.current?.title ?? '');
+const onShortcut = (event: KeyboardEvent) => {
+    if (
+        newLook.value &&
+        (event.metaKey || event.ctrlKey) &&
+        !event.altKey &&
+        !event.shiftKey &&
+        event.key.toLowerCase() === 'k'
+    ) {
+        event.preventDefault();
+        jumpOpen.value = true;
+    }
+};
+onMounted(() => {
+    isApple.value = /Mac|iPhone|iPad|iPod/i.test(
+        navigator.platform || navigator.userAgent,
+    );
+    window.addEventListener('keydown', onShortcut);
+});
+onBeforeUnmount(() => window.removeEventListener('keydown', onShortcut));
 
 // One Clock in (owner, 18 Nov 2026): the top bar has no clock button. The one Clock in button is on Me home.
 const jumpOpen = ref(false);
@@ -156,17 +180,34 @@ const crumbsInFrame = computed(() => placed.value.length);
                 >
                     <Menu class="size-5" aria-hidden="true" />
                 </Button>
+                <p
+                    v-if="newLook && areaLabel"
+                    class="hidden min-w-0 shrink-0 truncate pr-2 text-sm font-medium lg:block"
+                    data-test="v2-newlook-area-label"
+                >
+                    {{ areaLabel }}
+                </p>
                 <button
                     type="button"
                     class="flex h-10 min-w-0 items-center gap-2 rounded-lg border bg-background px-3 text-left text-sm text-muted-foreground hover:bg-muted max-sm:size-11 max-sm:justify-center max-sm:px-0 sm:max-w-sm sm:flex-1"
                     aria-haspopup="dialog"
                     aria-label="Search or jump to"
+                    :aria-keyshortcuts="
+                        newLook ? 'Control+K Meta+K' : undefined
+                    "
                     data-test="v2-jump-open"
                     @click="jumpOpen = true"
                 >
                     <Search class="size-4 shrink-0" aria-hidden="true" />
                     <span class="truncate max-sm:hidden"
                         >Search or jump to…</span
+                    >
+                    <kbd
+                        v-if="newLook"
+                        class="ml-auto hidden shrink-0 rounded-md bg-muted px-1.5 py-0.5 font-sans text-[11px] font-medium text-muted-foreground sm:inline-block"
+                        aria-hidden="true"
+                        data-test="v2-newlook-shortcut"
+                        >{{ shortcutHint }}</kbd
                     >
                 </button>
                 <div class="ml-auto flex shrink-0 items-center gap-2">
