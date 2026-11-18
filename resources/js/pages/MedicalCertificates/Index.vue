@@ -72,6 +72,8 @@ const edit = (action: string, document: Document | null = null) => {
     saved.value = false;
     form.action = action;
     form.document_id = document?.id ?? null;
+    // A void is permanent, so it starts with no category picked and Confirm void stays off until one is (DD-87).
+    form.change_reason = action === 'void' ? '' : 'dates_corrected';
     form.expected_branch_id = props.certificates.branchId;
     form.lock_version = props.certificates.lockVersion;
     form.idempotency_key = crypto.randomUUID();
@@ -343,6 +345,13 @@ const days = computed(() => {
                             v-model="form.change_reason"
                             class="mt-1 w-full rounded-md border bg-background p-2"
                         >
+                            <option
+                                v-if="form.action === 'void'"
+                                value=""
+                                disabled
+                            >
+                                Choose a reason
+                            </option>
                             <option value="dates_corrected">
                                 Dates corrected
                             </option>
@@ -391,7 +400,11 @@ const days = computed(() => {
                             >Cancel</Button
                         ><Button
                             type="submit"
-                            :disabled="form.processing || branchChanged"
+                            :disabled="
+                                form.processing ||
+                                branchChanged ||
+                                (form.action === 'void' && !form.change_reason)
+                            "
                             >{{
                                 form.processing
                                     ? 'Saving…'
