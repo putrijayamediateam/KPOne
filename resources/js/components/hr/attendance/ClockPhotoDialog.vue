@@ -378,9 +378,20 @@ onBeforeUnmount(() => {
                 />
                 <div
                     v-else-if="locating"
-                    class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+                    class="relative flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
                     data-test="clock-location-checking"
                 >
+                    <!-- The first screen when consent is already given: a phone has no Escape, so it needs its own way out
+                         (Suresh, m2). Closing records nothing. -->
+                    <button
+                        type="button"
+                        class="absolute top-[max(1.5rem,env(safe-area-inset-top))] right-6 flex size-11 items-center justify-center rounded-full border focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        aria-label="Close"
+                        data-test="clock-location-checking-close"
+                        @click="close"
+                    >
+                        <X class="size-5" aria-hidden="true" />
+                    </button>
                     <DialogTitle class="text-xl font-semibold">{{
                         title
                     }}</DialogTitle>

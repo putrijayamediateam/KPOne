@@ -71,17 +71,30 @@ export function useClockShortcut() {
     const pressFresh = async (returnFocusTo?: HTMLElement | null) => {
         // Read the state fresh at the press: it must know in or out and whether the branch checks location, and a
         // press or consent made elsewhere since the last read (the Attendance page, another tab) must count.
-        // If that read fails, the last state read still serves; with none at all there is nothing safe to open.
-        const known = { state: clock.state, location: clock.location };
+        // If that read fails, the last state read still serves, but only where the branch checks no location: an old
+        // "already agreed" could skip a consent the Director has since asked for again (Suresh, m1).
+        const known = {
+            state: clock.state,
+            canPress: clock.canPress,
+            location: clock.location,
+        };
         const hadState = clock.loaded;
         await load();
 
         if (!clock.loaded) {
-            if (!hadState) {
+            if (!hadState || known.location !== null) {
                 return;
             }
 
             Object.assign(clock, known, { loaded: true });
+        }
+
+        // The fresh state says no press is possible now (done for today, or a refusal): the page shows why instead of
+        // opening a camera the server would refuse (Suresh, m3).
+        if (!clock.canPress || clock.state === 'done') {
+            router.reload();
+
+            return;
         }
 
         const opened = open(clock.state === 'in' ? 'out' : 'in', {

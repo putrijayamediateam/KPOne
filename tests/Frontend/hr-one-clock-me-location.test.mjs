@@ -96,3 +96,18 @@ test('consent: the branch wording word for word, in English and Malay, with two 
     assert.match(consent, /min-h-12/);
     assert.match(consent, /aria-label="Close"/);
 });
+
+test('Suresh m1-m3: no stale consent, a way out while locating, no camera when no press is possible', () => {
+    assert.match(
+        shortcut,
+        /if \(!hadState \|\| known\.location !== null\) \{\s*return;/,
+    );
+    assert.match(
+        shortcut,
+        /if \(!clock\.canPress \|\| clock\.state === 'done'\) \{\s*router\.reload\(\);\s*return;/,
+    );
+    assert.match(
+        dialog,
+        /data-test="clock-location-checking-close"[\s\S]*?@click="close"/,
+    );
+});
