@@ -995,3 +995,15 @@
         padding: 24px 32px;
     }
 }
+
+/* UX-24 part 2 (Daniel): the roster week shows its status as a chip beside the date, and the short-days note on the
+   right stays on one line. */
+.space-shell .space-roster-head {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px 10px;
+}
+.space-shell .space-roster-short {
+    white-space: nowrap;
+}

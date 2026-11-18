@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
 import UserMenuContent from '@/components/UserMenuContent.vue';
+import V2Chip from '@/components/v2/V2Chip.vue';
 import { useClockShortcut } from '@/composables/useClockShortcut';
 import { useScrollStrip } from '@/composables/useScrollStrip';
 import SpacePassThroughLayout from '@/layouts/SpacePassThroughLayout.vue';
@@ -324,6 +325,22 @@ const branches = computed(() => page.props.branchContext);
 const hub = computed(
     () => page.props.workspace?.navigation.clinicManagement === true,
 );
+
+// Daniel (UX-24 part 2): a status is the dot-and-word V2 chip. The cash closing and the roster use the page's own words.
+const cashTone = (status: string) =>
+    status === 'approved'
+        ? 'success'
+        : status === 'waiting' || status === 'not_counted'
+          ? 'warning'
+          : status === 'returned'
+            ? 'danger'
+            : 'neutral';
+const rosterTone = (status: string) =>
+    status === 'Approved'
+        ? 'success'
+        : status === 'Waiting for approval'
+          ? 'warning'
+          : 'neutral';
 
 const waitLabel = (minutes: number): string | null =>
     ({ normal: null, amber: 'Long wait', red: 'Very long wait' })[
@@ -1026,11 +1043,10 @@ const v2Shell = computed(() =>
                 >
                     <h2 id="bl-cash">Cash closing today</h2>
                     <p class="space-ask-sentence">
-                        <span
-                            class="space-pill"
-                            :class="`is-${billing.cashClosing.status}`"
-                            >{{ billing.cashClosing.statusText }}</span
-                        >
+                        <V2Chip
+                            :tone="cashTone(billing.cashClosing.status)"
+                            :label="billing.cashClosing.statusText"
+                        />
                     </p>
                     <p class="space-muted">
                         Expected cash
@@ -1780,14 +1796,14 @@ const v2Shell = computed(() =>
                     <Link :href="hr.roster.href" class="space-row">
                         <span class="space-row-body">
                             <span class="space-row-text">
-                                <span class="space-row-main">{{
-                                    hr.roster.label
-                                }}</span>
-                                <span class="space-row-sub">{{
-                                    hr.roster.status
-                                }}</span>
+                                <span class="space-row-main space-roster-head"
+                                    >{{ hr.roster.label }}
+                                    <V2Chip
+                                        :tone="rosterTone(hr.roster.status)"
+                                        :label="hr.roster.status"
+                                /></span>
                                 <span
-                                    class="space-row-meta"
+                                    class="space-row-meta space-roster-short"
                                     :class="
                                         hr.roster.shortDays > 0
                                             ? 'space-wait is-amber'
