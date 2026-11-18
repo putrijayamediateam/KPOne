@@ -170,9 +170,11 @@ const anyOpen = () =>
                         </p>
                     </div>
                     <div class="flex flex-wrap items-center gap-2">
-                        <StatusBadge :tone="statusTone(row.status)">{{
-                            row.statusLabel
-                        }}</StatusBadge>
+                        <StatusBadge
+                            :status="row.status"
+                            :label="row.statusLabel"
+                            :tone="statusTone(row.status)"
+                        />
                         <Button
                             variant="outline"
                             class="max-lg:min-h-11"
@@ -228,9 +230,11 @@ const anyOpen = () =>
                         data-test="locum-rate-waiting"
                     >
                         <p class="text-sm">
-                            <StatusBadge tone="warning">{{
-                                row.waiting.statusLabel
-                            }}</StatusBadge>
+                            <StatusBadge
+                                :status="row.waiting.status"
+                                :label="row.waiting.statusLabel"
+                                tone="warning"
+                            />
                             <span class="ml-2 font-medium">{{
                                 row.waiting.amountLabel
                             }}</span>
@@ -286,9 +290,11 @@ const anyOpen = () =>
                                 :key="h.id"
                                 class="flex flex-wrap items-center gap-2"
                             >
-                                <StatusBadge :tone="rateTone(h.status)">{{
-                                    h.statusLabel
-                                }}</StatusBadge>
+                                <StatusBadge
+                                    :status="h.status"
+                                    :label="h.statusLabel"
+                                    :tone="rateTone(h.status)"
+                                />
                                 <span
                                     >{{ h.amountLabel }} from
                                     {{ h.fromLabel }}</span
