@@ -184,6 +184,16 @@ const confirmAction = async () => {
 // The QR of a link that was just created is already shown large above; show it once, not twice (DD-89).
 const shownAbove = (link: LinkRow) =>
     issuedLink.value !== null && issuedLink.value.publicId === link.publicId;
+// The big QR names its branch for screen readers, like the row's QR does.
+const issuedAlt = computed(() => {
+    const branch = props.links.find(
+        (link) => link.publicId === issuedLink.value?.publicId,
+    )?.branch.name;
+
+    return branch
+        ? `Public intake QR for ${branch}`
+        : 'Branch public patient intake QR code';
+});
 const copyLink = async (activeQr: IssuedLink) => {
     await navigator.clipboard.writeText(activeQr.url);
     copiedPublicId.value = activeQr.publicId;
@@ -246,7 +256,7 @@ const printQr = (link: LinkRow) => {
                     <div class="grid gap-5 md:grid-cols-[12rem_minmax(0,1fr)]">
                         <img
                             :src="issuedLink.qrDataUri"
-                            alt="Branch public patient intake QR code"
+                            :alt="issuedAlt"
                             class="aspect-square w-48 max-w-full rounded-[14px] border bg-white p-2"
                         />
                         <div class="min-w-0 space-y-3">

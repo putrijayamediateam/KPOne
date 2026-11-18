@@ -149,3 +149,15 @@ test('DD-89: a just-created link shows its QR once, above, and the row keeps its
         );
     }
 });
+
+test('DD-89: the big QR names its branch for screen readers, with the old wording as the fallback', () => {
+    for (const source of [classic, page]) {
+        const flatSource = flat(source);
+
+        assert.ok(flatSource.includes(':alt="issuedAlt"'));
+        assert.ok(flatSource.includes('`Public intake QR for ${branch}`'));
+        assert.ok(
+            flatSource.includes("'Branch public patient intake QR code'"),
+        );
+    }
+});
