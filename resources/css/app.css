@@ -392,6 +392,14 @@ html[data-look='new'] [data-test='v2-shell-top'] {
     }
 }
 
+/* Controls drawn straight on the bar use the full-strength text colour: muted text would fall under 4.5:1 when dark content
+   scrolls under the lightly tinted bar. The search button keeps its own solid fill, so it keeps its muted text. */
+html[data-look='new']
+    [data-test='v2-shell-top']
+    :is(button, a):not([data-test='v2-jump-open']) {
+    color: var(--foreground);
+}
+
 @media (prefers-reduced-transparency: reduce) {
     html[data-look='new'] [data-test='v2-shell-top'] {
         background-color: var(--background);

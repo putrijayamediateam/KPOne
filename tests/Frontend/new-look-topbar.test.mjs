@@ -38,6 +38,11 @@ test('New look step D: the bar is translucent with a solid fallback, keeps its 4
     assert.match(css, /backdrop-filter: saturate\(160%\) blur\(14px\)/);
     assert.match(css, /@media \(prefers-reduced-transparency: reduce\)/);
     assert.match(css, /scroll-padding-top: 5rem/);
+    // Controls on the bar use the full-strength text colour (muted would fall under 4.5:1 over dark content).
+    assert.match(
+        css,
+        /\[data-test='v2-shell-top'\]\s*:is\(button, a\):not\(\[data-test='v2-jump-open'\]\) \{\s*color: var\(--foreground\);/,
+    );
     // The height is unchanged, so `--v2-topbar-h` and every sticky page header keep their offset.
     assert.match(shell, /'--v2-topbar-h': focusMode \? '0px' : '4rem'/);
     assert.match(shell, /sticky top-0 z-40 flex h-16/);
