@@ -1,0 +1,4 @@
+56 shots, 53 identical
+  DIFF ca-_registration-1440-light.png differs in (55, 72, 1325, 140)
+  DIFF ca-_workspace-1440-dark.png differs in (55, 72, 1328, 142)
+  DIFF ca-_workspace-1440-light.png differs in (55, 72, 1325, 140)

@@ -1,0 +1,2 @@
+56 shots, 55 identical
+  DIFF director-_workspace-390-light.png differs in (16, 230, 18, 796)
