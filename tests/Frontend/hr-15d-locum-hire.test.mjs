@@ -72,13 +72,16 @@ for (const [name, page] of Object.entries(pages)) {
     });
 }
 
-test('the confirm posts once, keeps the sheet open on the file and announces it without a toast', () => {
+test('the confirm posts once, keeps the sheet open on the file and announces it (a toast only when the row left the page)', () => {
     assert.match(
         composable,
         /`\/hr\/applications\/\$\{application\.id\}\/locum-file`/,
     );
     assert.match(composable, /viewing\.value = fresh \?\? null;/);
-    assert.match(composable, /locumAnnounce\.value = fresh\?\.locumHire/);
+    assert.match(
+        composable,
+        /locumAnnounce\.value = `Locum file made\. \$\{fresh\.locumHire\.signIn\}\.`/,
+    );
 });
 
 test('Suresh m1 to m3: a lost row still says so, a refusal refreshes the row, and the dialog shows only its own error', () => {
