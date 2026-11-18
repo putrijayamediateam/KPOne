@@ -1594,6 +1594,18 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
         }
     }
 }
+/* "Correct a receipt" (shared Classic block) reads at the same sizes as the Refunds card above it: 15 px heading,
+   14 px text (Daniel, BV2-4). Classic is unchanged. */
+body[data-billing-v2] .billing-v2-page [data-testid='receipt-corrections'] {
+    font-size: 15px;
+}
+body[data-billing-v2]
+    .billing-v2-page
+    [data-testid='receipt-corrections']
+    :is(.text-xs, .text-\[13px\]) {
+    font-size: 14px;
+    line-height: 20px;
+}
 /* While any dialog is open, the bottom bar must not show through the scrim (Daniel, BV2-1 round 2). */
 body[data-billing-v2]:has([role='dialog']) [data-slot='v2-sticky-bar'] {
     visibility: hidden;

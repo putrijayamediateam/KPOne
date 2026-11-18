@@ -74,3 +74,18 @@ test('BV2-4: receipts and prints instead of the items; the Classic-hidden blocks
     assert.match(flat, /<ReceiptRefundsV2/);
     assert.match(flat, /<ReceiptCorrections/);
 });
+
+test('BV2-4 review (Daniel): Approve refund is outline; Correct a receipt matches the Refunds sizes', () => {
+    const refunds = read(
+        'resources/js/components/billing/v2/ReceiptRefundsV2.vue',
+    ).replace(/\s+/g, ' ');
+    assert.match(
+        refunds,
+        /<Button variant="outline" class="max-lg:min-h-11" :aria-label="`Approve refund of/,
+    );
+    assert.match(
+        show,
+        /\[data-testid='receipt-corrections'\] \{\s*font-size: 15px;/,
+    );
+    assert.match(show, /font-size: 14px;\s*line-height: 20px;/);
+});

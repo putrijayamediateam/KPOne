@@ -279,7 +279,9 @@ const confirmReject = () => {
                     }}
                 </p>
                 <div v-if="refund.canDecide" class="flex flex-wrap gap-2">
+                    <!-- Outline (Daniel, BV2-4): the page's one filled button is its main action. -->
                     <Button
+                        variant="outline"
                         class="max-lg:min-h-11"
                         :aria-label="`Approve refund of ${myr(refund.amountSen)}`"
                         :disabled="busy[refund.publicId]"
