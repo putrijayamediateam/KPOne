@@ -15,9 +15,10 @@ use Carbon\CarbonInterface;
  * Queue never reads hr_ tables; it calls this and gets a consultation room id and when that shift started, or null.
  *
  * Rules:
- * - Only the currently approved version of a week counts; drafts, weeks waiting for approval and replaced versions never do.
+ * - Only the currently approved version of a week counts; drafts, weeks waiting for approval and superseded versions never do.
  * - The doctor's shifts at this branch on the branch-local day of `$at`, skipping any shift that overlaps approved leave.
- * - The shift covering `$at` wins (the later start if two overlap); with none covering it, today's nearest shift by time.
+ * - The shift covering `$at` wins (the later start if two overlap); with none covering it, today's nearest shift by time,
+ *   and on a tie the one still to come (Suresh, c), so a doctor between two shifts gets the room they are about to use.
  * - Only that shift's room is returned, and only an active consultation room of the same organisation and branch. A
  *   shift with no room, or another kind of room, returns null, so Queue keeps today's manual pick.
  *
@@ -51,7 +52,11 @@ final class RosterRoomLookup
             return null;
         }
 
-        $leave = $this->leave->overlapping([$doctorUserId], $dayStart, $dayEnd);
+        // Leave over the whole span of the shifts found, so an overnight shift that began yesterday is checked against
+        // yesterday's leave too (Suresh, m1).
+        $from = $shifts->min('starts_at');
+        $to = $shifts->max('ends_at');
+        $leave = $this->leave->overlapping([$doctorUserId], CarbonImmutable::instance($from)->utc(), CarbonImmutable::instance($to)->utc());
         if ($leave->isNotEmpty()) {
             $slots = $leave->map(fn ($request) => $this->leave->utcSlots($request, $this->leaveZone($request->branch_id, $branch)));
             $shifts = $shifts->reject(fn (RosterShift $s): bool => $slots->contains(
@@ -60,10 +65,10 @@ final class RosterRoomLookup
         }
 
         $covering = $shifts->filter(fn (RosterShift $s): bool => $s->starts_at->lessThanOrEqualTo($at) && $s->ends_at->greaterThan($at))->last();
-        $shift = $covering ?? $shifts->sortBy(fn (RosterShift $s): int => min(
-            abs($s->starts_at->getTimestamp() - $at->getTimestamp()),
-            abs($s->ends_at->getTimestamp() - $at->getTimestamp()),
-        ))->first();
+        $shift = $covering ?? $shifts->sortBy([
+            fn (RosterShift $a, RosterShift $b): int => $this->distance($a, $at) <=> $this->distance($b, $at),
+            fn (RosterShift $a, RosterShift $b): int => $b->starts_at->getTimestamp() <=> $a->starts_at->getTimestamp(),
+        ])->first();
 
         if ($shift === null || $shift->branch_room_id === null) {
             return null;
@@ -74,6 +79,11 @@ final class RosterRoomLookup
             ->where('kind', BranchRoom::KIND_CONSULTATION)->where('is_active', true)->value('id');
 
         return $room === null ? null : ['roomId' => (int) $room, 'shiftStartedAt' => $shift->starts_at->utc()];
+    }
+
+    private function distance(RosterShift $s, CarbonImmutable $at): int
+    {
+        return min(abs($s->starts_at->getTimestamp() - $at->getTimestamp()), abs($s->ends_at->getTimestamp() - $at->getTimestamp()));
     }
 
     private function leaveZone(int $leaveBranchId, Branch $branch): string

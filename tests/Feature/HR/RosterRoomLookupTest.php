@@ -119,15 +119,52 @@ class RosterRoomLookupTest extends VisitTestCase
 
         // Leave approved after the week (the planner only warns about it): the shift no longer gives a room.
         $day = $this->week->toDateString();
-        $type = DB::table('hr_leave_types')->insertGetId(['organisation_id' => $this->organisation->id, 'code' => 'AL', 'name' => 'Synthetic annual', 'is_paid' => true,
-            'uses_balance' => false, 'allow_half_days' => false, 'evidence_needed' => false, 'updated_by_user_id' => $this->hr->id, 'created_at' => now(), 'updated_at' => now()]);
-        $id = DB::table('hr_leave_requests')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'user_id' => $this->doctor->id,
-            'leave_type_id' => $type, 'branch_id' => $this->branch->id, 'start_date' => $day, 'end_date' => $day, 'start_part' => 'full', 'end_part' => 'full',
-            'slot_start' => "{$day} 00:00:00", 'slot_end' => $this->week->addDay()->toDateString().' 00:00:00', 'year' => $this->week->year, 'halves' => 2,
-            'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+        $id = $this->leave($day, 'full', '00:00', $this->week->addDay()->toDateString().' 00:00:00', approved: false);
         $this->assertSame([$room, '08:00'], $this->lookup('0 09:00')); // Pending leave does not count.
         DB::table('hr_leave_requests')->where('id', $id)->update(['status' => 'approved', 'decided_by_user_id' => $this->director->id, 'decided_at' => now()]);
         $this->assertNull($this->lookup('0 09:00'));
+    }
+
+    public function test_a_tie_goes_to_the_shift_still_to_come(): void
+    {
+        $earlier = $this->room('consultation');
+        $later = $this->room('consultation');
+        $this->approvedWeek(function (RosterVersion $v) use ($earlier, $later): void {
+            $this->addShift($v, $this->doctor, 0, '08:00', '11:00', $earlier);
+            $this->addShift($v, $this->doctor, 0, '13:00', '17:00', $later);
+        });
+
+        $this->assertSame([$later, '13:00'], $this->lookup('0 12:00'));
+        $this->assertSame([$earlier, '08:00'], $this->lookup('0 11:59'));
+    }
+
+    public function test_an_overnight_shift_that_began_yesterday_counts_and_yesterdays_leave_skips_it(): void
+    {
+        $room = $this->room('consultation');
+        $this->approvedWeek(fn (RosterVersion $v) => $this->addShift($v, $this->doctor, 1, '20:00', '02:00', $room));
+
+        $this->assertSame([$room, '20:00'], $this->lookup('2 01:00'));
+        $this->assertSame([$room, '20:00'], $this->lookup('1 23:00'));
+
+        // Leave on the day the shift began (approved later, so the planner only warns) skips it on the next day too.
+        $this->leave($this->week->addDay()->toDateString(), 'full', '00:00', $this->week->addDays(2)->toDateString().' 00:00:00');
+        $this->assertNull($this->lookup('2 01:00'));
+    }
+
+    public function test_a_half_day_of_leave_skips_only_the_shift_it_overlaps(): void
+    {
+        $morning = $this->room('consultation');
+        $afternoon = $this->room('consultation');
+        $this->approvedWeek(function (RosterVersion $v) use ($morning, $afternoon): void {
+            $this->addShift($v, $this->doctor, 0, '08:00', '12:00', $morning);
+            $this->addShift($v, $this->doctor, 0, '14:00', '18:00', $afternoon);
+        });
+        $day = $this->week->toDateString();
+        $this->leave($day, 'am', '00:00', "{$day} 12:00:00");
+
+        // The morning shift is on leave, so even at 09:00 the afternoon shift is the nearest one left.
+        $this->assertSame([$afternoon, '14:00'], $this->lookup('0 09:00'));
+        $this->assertSame([$afternoon, '14:00'], $this->lookup('0 15:00'));
     }
 
     // ---- fixture ----
@@ -191,6 +228,25 @@ class RosterRoomLookupTest extends VisitTestCase
         return (int) DB::table('branch_rooms')->insertGetId(['organisation_id' => $this->organisation->id, 'branch_id' => $this->branch->id, 'kind' => $kind,
             'name' => 'Synthetic Room '.Str::random(4), 'sort_order' => 1, 'is_active' => true, 'lock_version' => 1, 'updated_by_user_id' => $this->hr->id,
             'created_at' => now(), 'updated_at' => now()]);
+    }
+
+    /** Synthetic leave at this branch: `$part` full or am, slots in branch-local wall time. */
+    private function leave(string $day, string $part, string $from, string $slotEnd, bool $approved = true): int
+    {
+        $type = DB::table('hr_leave_types')->where('organisation_id', $this->organisation->id)->where('code', 'AL')->value('id')
+            ?? DB::table('hr_leave_types')->insertGetId(['organisation_id' => $this->organisation->id, 'code' => 'AL', 'name' => 'Synthetic annual', 'is_paid' => true,
+                'uses_balance' => false, 'allow_half_days' => true, 'evidence_needed' => false, 'updated_by_user_id' => $this->hr->id, 'created_at' => now(), 'updated_at' => now()]);
+        $end = substr($slotEnd, 0, 10);
+        $id = DB::table('hr_leave_requests')->insertGetId(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'user_id' => $this->doctor->id,
+            'leave_type_id' => $type, 'branch_id' => $this->branch->id, 'start_date' => $day, 'end_date' => $part === 'am' ? $day : max($day, CarbonImmutable::parse($end)->subDay()->toDateString()),
+            'start_part' => $part === 'am' ? 'full' : 'full', 'end_part' => $part === 'am' ? 'am' : 'full',
+            'slot_start' => "{$day} {$from}:00", 'slot_end' => $slotEnd, 'year' => (int) substr($day, 0, 4), 'halves' => $part === 'am' ? 1 : 2,
+            'status' => 'pending', 'created_at' => now(), 'updated_at' => now()]);
+        if ($approved) {
+            DB::table('hr_leave_requests')->where('id', $id)->update(['status' => 'approved', 'decided_by_user_id' => $this->director->id, 'decided_at' => now()]);
+        }
+
+        return (int) $id;
     }
 
     /** @return array<string, int> The lookup writes nothing: no audit, no room assignment, no roster change. */
