@@ -1722,7 +1722,7 @@ const {
             description="KPOne makes the locum file from the application's name and phone, and asks the account administrator for a sign-in with the email they applied with."
             confirm-label="Make file and ask"
             :processing="accountAction.processing"
-            :error="errors.application"
+            :error="errors.application ?? errors.records ?? errors.applications"
             data-test="application-locum-confirm"
             @update:open="(open) => !open && (locumConfirm = false)"
             @confirm="makeLocumFile"
