@@ -5,8 +5,8 @@ import {
     Clock,
     LayoutGrid,
     LayoutTemplate,
-    Sparkles,
     LogOut,
+    Palette,
     Settings,
     ShieldCheck,
 } from '@lucide/vue';
@@ -152,8 +152,8 @@ const switchSpaces = (enabled: boolean) =>
             data-test="new-look-row"
             @select="switchLook(!newLook)"
         >
-            <Sparkles class="mr-2 h-4 w-4" />{{
-                newLook ? 'Back to the current look' : 'New look (preview)'
+            <Palette class="mr-2 h-4 w-4" />{{
+                newLook ? 'Turn off New look (preview)' : 'New look (preview)'
             }}
         </DropdownMenuItem>
     </DropdownMenuGroup>

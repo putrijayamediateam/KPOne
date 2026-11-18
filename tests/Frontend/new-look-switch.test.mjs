@@ -12,7 +12,7 @@ test('New look (preview): a menu row beside the layout switch, only while the ne
         menu,
         /v-if="page\.props\.workspace\?\.spaces\?\.enabled"[\s\S]*?data-test="new-look-row"[\s\S]*?switchLook\(!newLook\)/,
     );
-    assert.match(menu, /'Back to the current look' : 'New look \(preview\)'/);
+    assert.match(menu, /'Turn off New look \(preview\)' : 'New look \(preview\)'/);
     assert.match(
         menu,
         /router\.put\('\/spaces\/preference', \{\s*enabled: true,\s*new_look: enabled,/,
