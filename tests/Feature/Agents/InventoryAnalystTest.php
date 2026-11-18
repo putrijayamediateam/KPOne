@@ -329,6 +329,19 @@ class InventoryAnalystTest extends QueueTestCase
         $this->assertSame(['total' => 0, 'pending' => 0], $puchong['transfer']);
     }
 
+    public function test_the_receiving_branch_sees_which_branch_a_transfer_was_suggested_from(): void
+    {
+        $this->sendingLocation($this->puchong(), '15.000', '8.000');
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer,restock'])->assertSuccessful();
+
+        $cheras = DailyRun::hanaCounts($this->organisation->id, $this->branch, '2026-11-06');
+        $puchong = DailyRun::hanaCounts($this->organisation->id, $this->puchong(), '2026-11-06');
+
+        $this->assertSame([['branch' => $this->puchong()->name, 'total' => 1, 'pending' => 1]], $cheras['transferFrom']);
+        $this->assertSame([], $puchong['transferFrom'], 'the sending branch\'s own summary has nothing to add: it decides in its inbox');
+        $this->assertSame(['date', 'counts', 'transferFrom'], array_keys($cheras), 'only a branch name and two counts are added');
+    }
+
     public function test_only_people_at_the_sending_branch_can_decide_a_transfer_suggestion(): void
     {
         $this->sendingLocation($this->puchong(), '15.000', '8.000');

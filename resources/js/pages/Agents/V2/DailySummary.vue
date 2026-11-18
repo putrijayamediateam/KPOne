@@ -23,6 +23,8 @@ type HanaCount = { total: number; pending: number };
 type Hana = Stamp & {
     date: string;
     counts: Record<'restock' | 'expiry' | 'transfer' | 'slowMoving', HanaCount>;
+    // Transfers the receiving branch asked for: the sending branch decides them, so this is read only.
+    transferFrom?: { branch: string; total: number; pending: number }[];
 };
 type DueItem = {
     sku: string;
@@ -289,6 +291,17 @@ const filled =
                                 {{ builtLine(branch.hana) }}.
                             </p>
                             <V2KeyValueList :items="hanaItems(branch.hana)" />
+                            <p
+                                v-for="sender in branch.hana.transferFrom ?? []"
+                                :key="sender.branch"
+                                class="text-[13px] leading-[18px] text-muted-foreground"
+                                data-test="summary-transfer-from"
+                            >
+                                Transfer suggested from {{ sender.branch }},
+                                decided there. {{ sender.total }} made,
+                                {{ sender.pending }} waiting for a decision
+                                there.
+                            </p>
                             <div
                                 v-if="summary.canInbox"
                                 class="flex flex-wrap items-center gap-x-3 gap-y-1"

@@ -58,6 +58,8 @@ type HanaCount = { total: number; pending: number };
 type Hana = Stamp & {
     date: string;
     counts: Record<'restock' | 'expiry' | 'transfer' | 'slowMoving', HanaCount>;
+    // Transfers the receiving branch asked for: the sending branch decides them, so this is read only.
+    transferFrom?: { branch: string; total: number; pending: number }[];
 };
 type Rizal = Stamp & {
     countsDue: number;
@@ -571,6 +573,16 @@ const RIZAL_SHOWN = 5;
                             decision
                         </li>
                     </ul>
+                    <p
+                        v-for="sender in branch.hana.transferFrom ?? []"
+                        :key="sender.branch"
+                        class="mt-1 text-xs text-muted-foreground"
+                        data-test="summary-transfer-from"
+                    >
+                        Transfer suggested from {{ sender.branch }}, decided
+                        there. {{ sender.total }} made,
+                        {{ sender.pending }} waiting for a decision there.
+                    </p>
                     <div
                         v-if="summary.canInbox"
                         class="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1"

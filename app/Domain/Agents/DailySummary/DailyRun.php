@@ -206,6 +206,17 @@ final class DailyRun
             $counts[$key] = ['total' => (int) ($rows[$type]->total ?? 0), 'pending' => (int) ($rows[$type]->pending ?? 0)];
         }
 
-        return ['date' => $date, 'counts' => $counts];
+        // The receiving branch cannot decide a transfer (the sending branch holds it), so it sees, read only, who is asked.
+        $senders = AiProposal::query()->where('ai_proposals.organisation_id', $organisationId)->where('type', InventoryAnalyst::TRANSFER)
+            ->where('idempotency_key', 'like', 'hana:%:'.$branch->id.':'.$date.':%')
+            ->join('branches', 'branches.id', '=', 'ai_proposals.branch_id')
+            ->selectRaw("branches.name as name, count(*) as total, count(*) filter (where ai_proposals.status = 'pending') as pending")
+            ->groupBy('branches.id', 'branches.name')->orderBy('branches.name')->get();
+
+        return [
+            'date' => $date,
+            'counts' => $counts,
+            'transferFrom' => $senders->map(fn ($row): array => ['branch' => (string) $row->name, 'total' => (int) $row->total, 'pending' => (int) $row->pending])->all(),
+        ];
     }
 }
