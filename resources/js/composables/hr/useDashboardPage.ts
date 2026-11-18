@@ -64,6 +64,8 @@ export type DashboardPageProps = {
         months: { value: string; label: string }[];
         attendanceSettingsSaved: boolean;
         staffCost: StaffCost | null;
+        /** HR-21: work permits that expire soon or have expired (credential managers only; null otherwise). */
+        workPermits: number | null;
         branches: BranchCard[];
     };
 };
