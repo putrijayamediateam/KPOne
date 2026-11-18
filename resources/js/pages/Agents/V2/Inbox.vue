@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Head, router } from '@inertiajs/vue3';
-import { Check } from 'lucide-vue-next';
+import { Check } from '@lucide/vue';
 import { computed, nextTick, ref } from 'vue';
 import { PageFrame } from '@/components/ui/page-frame';
 import V2Chip from '@/components/v2/V2Chip.vue';
