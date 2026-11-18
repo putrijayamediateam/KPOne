@@ -47,10 +47,10 @@ test('New look (preview) step B: tokens and Geist apply only under data-look="ne
     assert.match(css, /\.dark\[data-ui='v2'\]\[data-look='new'\] \{/);
     assert.match(css, /--background: #f4f4f6;[\s\S]*?--primary: #111114;/);
     assert.match(css, /--link: #0a56d1;/);
-    assert.match(
-        css,
-        /html\[data-look='new'\] \.text-primary \{\s*color: var\(--link\);/,
-    );
+    // Text, hover/active text and focus rings read the cobalt link colour; fills keep the black primary.
+    assert.match(css, /\[class\*=':text-primary'\]/);
+    assert.match(css, /\[class\*='ring-primary'\]/);
+    assert.match(css, /\) \{\s*--primary: var\(--link\);\s*\}/);
     assert.match(
         css,
         /html\[data-look='new'\] \.font-sans \{\s*font-family:\s*'Geist Variable'/,

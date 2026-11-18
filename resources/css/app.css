@@ -394,9 +394,19 @@ html[data-look='new'] .font-sans {
         'Noto Color Emoji';
 }
 
-/* Cobalt stays the link colour although `--primary` is now black: text-coloured with the primary token reads as a link. */
-html[data-look='new'] .text-primary {
-    color: var(--link);
+/* Cobalt stays the link, active-text and focus colour although `--primary` is now black (fills only). A utility such as
+   `text-primary`, `hover:text-primary`, `data-[state=active]:text-primary` or `focus-visible:ring-primary` reads
+   `var(--primary)` on its own element, so on those elements `--primary` is pointed at `--link`. Fills (`bg-primary`) and
+   borders keep black. Elements that also carry a `*-primary-foreground` class are left alone. */
+html[data-look='new']
+    :is(
+        [class~='text-primary'],
+        [class*=':text-primary'],
+        [class*='text-primary/'],
+        [class*='ring-primary'],
+        [class*='outline-primary']
+    ):not([class*='primary-foreground']) {
+    --primary: var(--link);
 }
 
 @layer base {
