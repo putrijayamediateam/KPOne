@@ -3376,3 +3376,19 @@ The owner asked that someone who presses Clock out by mistake can clock in again
 - **The usual protections:** a fresh permission check under lock, `DB::transaction`, a row lock on the session, `lock_version`, an idempotency key, and an audit row `hr.attendance.clock_out_undone` (ids and seconds only).
 - **Known limit (Suresh):** an undo needs no photo, and the next clock-out's photo proves who pressed, not where. With the location check off, someone could clock out, leave, undo from their phone within 15 minutes and clock out later; this is the same limit HR-PHOTO records. The "Clock-out undone at …" line on Review is the safeguard. The button is offered only when the server would accept it (payroll included), and a press in the last seconds that PostgreSQL judges late gets "The time to undo has passed".
 - **Not in this slice:** the global clock shortcut does not offer the undo (it opens the Attendance page, which does); HR cannot undo for someone (HR uses the correction).
+
+## 26. HR-15d to HR-15g, as built (owner, 2026-11-18)
+
+The locum programme's last four slices, each with Suresh's review, Daniel's look and a green PostgreSQL 18 gate on
+its exact head. The decisions are TEAM.md 99 to 102.
+
+| Slice | What | PR |
+|---|---|---|
+| HR-15d | A passed Locum-position candidate becomes a locum file in one step, with the sign-in request opened with the email they applied with. No account is created; `StaffProvisioningService` stays the only way. | #977 |
+| HR-15e | An interview is In person or Online; Online carries an https video link HR types from their own video app. No meeting is created and no video service is called. | #978 |
+| HR-15f | My roster's Week/Month switch; the month shows the person's own approved shifts and their own open-shift asks only. | #979 |
+| HR-15g | Locum pay statement: approved shifts × the confirmed rate on each shift's date, "Not worked" marks and corrections. A rate is confirmed by Finance, never by whoever entered it. Finance records a payment made outside KPOne, which locks the month. KPOne pays nothing. | #980 |
+
+Next (owner, 2026-11-18): HR-21 (credential warning days per type, none shipped), HR-20 (on-call outside the hour
+limits, inside fair rotation), HR-19, then HR-18 (labour cost view for the Director, HR Manager and Finance Officer,
+at least 3 people per branch-month). Each still needs its design note, Daniel's look and a ship-it.
