@@ -19,6 +19,9 @@ final class SpacePreferenceService
 {
     public const NOT_OFFERED_TO_ROLES = [PermissionCatalogue::QUEUE_DISPLAY_ROLE];
 
+    /** @var array<int, object|null> */
+    private array $rows = [];
+
     public function __construct(private AuditRecorder $audit) {}
 
     public function offered(User $user): bool
@@ -32,7 +35,7 @@ final class SpacePreferenceService
         if (! $this->offered($user)) {
             return ['offered' => false, 'enabled' => false, 'lockVersion' => 0];
         }
-        $row = DB::table('user_space_preferences')->where('user_id', $user->id)->first();
+        $row = $this->row($user);
 
         return ['offered' => true, 'enabled' => (bool) ($row->enabled ?? false), 'lockVersion' => (int) ($row->lock_version ?? 0)];
     }
@@ -44,7 +47,17 @@ final class SpacePreferenceService
             return false;
         }
 
-        return (bool) (DB::table('user_space_preferences')->where('user_id', $user->id)->value('new_look') ?? false);
+        return (bool) ($this->row($user)->new_look ?? false);
+    }
+
+    /** The saved row, read once per person for the life of this service (one request), so the two switches share one query. */
+    private function row(User $user): ?object
+    {
+        if (! array_key_exists($user->id, $this->rows)) {
+            $this->rows[$user->id] = DB::table('user_space_preferences')->where('user_id', $user->id)->first();
+        }
+
+        return $this->rows[$user->id];
     }
 
     /**
@@ -53,6 +66,7 @@ final class SpacePreferenceService
      */
     public function set(User $actor, bool $enabled, int $expectedVersion, ?bool $newLook = null): void
     {
+        unset($this->rows[$actor->id]);
         DB::transaction(function () use ($actor, $enabled, $expectedVersion, $newLook): void {
             $user = User::query()->whereKey($actor->id)->lockForUpdate()->firstOrFail();
             $row = DB::table('user_space_preferences')->where('user_id', $user->id)->lockForUpdate()->first();
