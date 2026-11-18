@@ -4,13 +4,17 @@ namespace Tests\Feature\Agents;
 
 use App\Domain\Agents\Models\AiAgentRun;
 use App\Domain\Agents\Proposals\AiProposal;
+use App\Domain\Agents\Proposals\PreparesWork;
 use App\Domain\Agents\Proposals\ProposalPreparers;
 use App\Domain\Agents\Proposals\ProposalService;
 use App\Domain\Agents\Services\AgentRunRecorder;
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
+use App\Domain\Organisation\Models\Branch;
 use Database\Seeders\KPOneAgentSeeder;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Tests\Feature\Visit\VisitTestCase;
 use Tests\Support\FakeProposalPreparer;
@@ -50,7 +54,17 @@ class ProposalPrepareTest extends VisitTestCase
     private function transfer(string $key = 'transfer-cheras-0001'): AiProposal
     {
         return $this->proposals->propose($this->agentRun(), 'inventory.transfer_suggestion', $this->branch, ['sku_public_id' => $this->f['sku']->public_id, 'from_branch_code' => 'PUCHONG', 'to_branch_code' => 'CHERAS',
-            'quantity' => '2.000', 'from_current_quantity' => '9.000', 'from_reorder_level' => '5.000', 'to_current_quantity' => '3.000', 'to_reorder_level' => '5.000'], $key);
+            'quantity' => '2.000', 'from_current_quantity' => '9.000', 'from_reorder_level' => '5.000', 'to_current_quantity' => '3.000', 'to_reorder_level' => '5.000',
+            'source_location_public_id' => $this->sender()->public_id, 'destination_location_public_id' => $this->f['location']->public_id], $key);
+    }
+
+    /** A usable location at the sending branch (a transfer suggestion names one at each end). */
+    private function sender(): InventoryLocation
+    {
+        return InventoryLocation::query()->where('code', 'SYN-SEND')->first() ?? tap(new InventoryLocation, fn (InventoryLocation $location) => $location->forceFill([
+            'public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'code' => 'SYN-SEND', 'name' => 'Synthetic sending dispensary', 'type' => 'dispensary', 'is_active' => true,
+            'branch_id' => Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->value('id'),
+        ])->save());
     }
 
     private function expiry(): AiProposal
@@ -161,8 +175,14 @@ class ProposalPrepareTest extends VisitTestCase
         $expiry = $this->expiry();
         $this->refusedWith(fn () => $this->proposals->approve($this->actor('ca_supervisor'), $expiry, ['lock_version' => 0, 'mode' => 'prepare']), 'mode', 'This suggestion does not prepare work.');
 
-        $this->preparer = new FakeProposalPreparer(['inventory.transfer_suggestion']);
-        $this->app->instance(FakeProposalPreparer::class, $this->preparer);
+        // No preparer at all, whatever the application registers (the Inventory team registers its own for restock and transfer).
+        $this->app->instance(ProposalPreparers::class, new class extends ProposalPreparers
+        {
+            public function for(string $type): ?PreparesWork
+            {
+                return null;
+            }
+        });
         $restock = $this->restock();
         $this->refusedWith(fn () => $this->proposals->approve($this->actor('ca_supervisor'), $restock, ['lock_version' => 0, 'mode' => 'prepare']), 'mode', 'This suggestion does not prepare work.');
         $this->refusedWith(fn () => $this->proposals->reject($this->actor('ca_supervisor'), $restock, ['lock_version' => 0, 'reason' => 'Not needed', 'mode' => 'prepare']), 'mode', 'Only an approval can prepare work.');
@@ -175,7 +195,7 @@ class ProposalPrepareTest extends VisitTestCase
     {
         config(['agents.prepare_enabled' => true]);
         $proposal = $this->transfer();
-        $supervisor = $this->actor('ca_supervisor');
+        $supervisor = $this->actor('ca_supervisor', Branch::query()->findOrFail($proposal->branch_id)); // held and decided by the sending branch
         $sourceLocation = '22222222-2222-4222-8222-222222222222';
 
         foreach ([['quantity' => '2.001'], ['quantity' => '0'], ['quantity' => '0.000'], ['quantity' => 'lots']] as $edits) {
@@ -206,6 +226,19 @@ class ProposalPrepareTest extends VisitTestCase
         foreach ([['prepared_record_type' => 'inventory.stock_request'], [...$link, 'prepared_record_type' => 'billing.invoice'], [...$link, 'prepared_record_label' => ' ']] as $broken) {
             $this->assertDbRefuses(fn () => DB::table('ai_proposals')->insert([...$this->insertRow($pending), 'idempotency_key' => 'broken-'.md5(json_encode($broken)), 'status' => 'approved', 'decided_at' => now(), 'decided_by_user_id' => $this->actor('ca_supervisor')->id, ...$broken]), 'ai_proposals_prepared_link_check');
         }
+    }
+
+    public function test_the_last_registered_preparer_for_a_type_wins(): void
+    {
+        $first = new FakeProposalPreparer(['inventory.restock_suggestion']);
+        $this->app->instance('first-preparer', $first);
+        $this->app->tag(['first-preparer'], ProposalPreparers::TAG);
+        $second = new FakeProposalPreparer(['inventory.restock_suggestion']);
+        $this->app->instance('second-preparer', $second);
+        $this->app->tag(['second-preparer'], ProposalPreparers::TAG);
+
+        $this->assertSame($second, app(ProposalPreparers::class)->for('inventory.restock_suggestion'));
+        $this->assertNull(app(ProposalPreparers::class)->for('inventory.expiry_warning'));
     }
 
     public function test_the_retry_key_is_one_stable_uuid_per_proposal(): void
