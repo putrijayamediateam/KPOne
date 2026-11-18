@@ -300,7 +300,9 @@ const {
                         /></Link>
                     </Button>
                     <Button
-                        v-else-if="attendance.my.state === 'in'"
+                        v-else-if="
+                            attendance.my.state === 'in' && attendance.my.branch
+                        "
                         as-child
                         variant="outline"
                         class="min-h-11 w-full sm:w-auto sm:self-start"
@@ -310,6 +312,17 @@ const {
                             <ArrowRight class="size-4" aria-hidden="true"
                         /></Link>
                     </Button>
+                    <!-- Me shows no clock without an active branch, so a person still clocked in with none is pointed to a
+                         correction instead of a link that leads nowhere (Suresh, m1). -->
+                    <p
+                        v-else-if="attendance.my.state === 'in'"
+                        class="text-sm text-muted-foreground"
+                        data-test="clock-out-no-branch"
+                    >
+                        You are clocked in, but you have no branch to work at
+                        now, so Me cannot clock you out. Ask HR to add your
+                        clock-out time as a correction.
+                    </p>
                     <InputError :message="errors.clock" />
                     <p
                         v-if="attendance.my.location"

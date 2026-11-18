@@ -389,13 +389,26 @@ const numberClass =
                                 <ArrowRight class="size-4" aria-hidden="true"
                             /></Link>
                             <Link
-                                v-else-if="attendance.my.state === 'in'"
+                                v-else-if="
+                                    attendance.my.state === 'in' &&
+                                    attendance.my.branch
+                                "
                                 :href="clockOnMe"
                                 :class="clockLink"
                                 data-test="clock-out-on-me"
                                 >Clock out on Me
                                 <ArrowRight class="size-4" aria-hidden="true"
                             /></Link>
+                            <!-- No active branch: Me shows no clock, so point to a correction (Suresh, m1). -->
+                            <p
+                                v-else-if="attendance.my.state === 'in'"
+                                class="text-sm text-muted-foreground"
+                                data-test="clock-out-no-branch"
+                            >
+                                You are clocked in, but you have no branch to
+                                work at now, so Me cannot clock you out. Ask HR
+                                to add your clock-out time as a correction.
+                            </p>
                             <p
                                 v-if="errors.clock"
                                 role="alert"
