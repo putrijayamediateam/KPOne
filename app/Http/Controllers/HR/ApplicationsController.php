@@ -63,7 +63,7 @@ class ApplicationsController extends Controller
     public function confirmInterview(Request $request, InterviewSlots $slots, string $application): RedirectResponse
     {
         return $this->run($request, $this->back($request), 'Interview confirmed. The candidate is told.',
-            fn () => $slots->confirm($request->user(), $application, $request->only(['start', 'expected_lock_version', 'idempotency_key'])));
+            fn () => $slots->confirm($request->user(), $application, $request->only(['start', 'mode', 'video_link', 'expected_lock_version', 'idempotency_key'])));
     }
 
     public function askAgain(Request $request, InterviewSlots $slots, string $application): RedirectResponse

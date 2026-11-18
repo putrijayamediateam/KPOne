@@ -57,6 +57,9 @@ const {
     arrangedOutside,
     moveSteps,
     confirming,
+    meeting,
+    askConfirm,
+    confirmInterview,
     askMove,
     move,
     label,
@@ -1313,6 +1316,20 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                             <strong>{{ viewing.interview.confirmed }}</strong
                             >.
                         </p>
+                        <p
+                            v-if="viewing.interview.online"
+                            class="text-sm break-all"
+                            data-test="interview-online"
+                        >
+                            Online:
+                            <a
+                                :href="viewing.interview.videoLink ?? undefined"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="underline underline-offset-2"
+                                >{{ viewing.interview.videoLink }}</a
+                            >
+                        </p>
                         <button
                             type="button"
                             :class="`${button} w-fit`"
@@ -1398,12 +1415,7 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                                     "
                                     :aria-label="`Confirm ${pick.label}`"
                                     data-test="interview-confirm"
-                                    @click="
-                                        confirming = {
-                                            start: pick.start,
-                                            label: pick.label,
-                                        }
-                                    "
+                                    @click="askConfirm(pick)"
                                 >
                                     Confirm
                                 </button>
@@ -1964,18 +1976,50 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
         <V2Dialog
             :open="confirming !== null"
             :title="`Confirm ${confirming?.label ?? ''}?`"
-            description="The candidate is told the date, time and branch."
+            :description="
+                meeting.mode === 'online'
+                    ? 'The candidate is told the date, time and video link.'
+                    : 'The candidate is told the date, time and branch.'
+            "
             :confirm-label="
                 interviewAction.processing ? 'Confirming…' : 'Confirm interview'
             "
             :busy="interviewAction.processing"
             data-test="interview-confirm-dialog"
             @update:open="(open: boolean) => !open && (confirming = null)"
-            @confirm="
-                confirming &&
-                interviewPost('confirm', { start: confirming.start })
-            "
+            @confirm="confirmInterview"
         >
+            <V2OptionGroup
+                :model-value="meeting.mode"
+                :options="applications.options.meetingModes"
+                label="How does it happen?"
+                required
+                :error="errors.mode"
+                data-test="interview-meeting-modes"
+                @update:model-value="meeting.mode = $event ?? 'in_person'"
+            />
+            <V2Field
+                v-if="meeting.mode === 'online'"
+                v-slot="{ id, describedBy, invalid }"
+                label="Video link"
+                hint="The candidate sees it on their private page and in the email. KPOne does not make the meeting."
+                required
+                :error="errors.video_link"
+            >
+                <input
+                    :id="id"
+                    :aria-describedby="describedBy"
+                    :aria-invalid="invalid || undefined"
+                    v-model="meeting.videoLink"
+                    type="url"
+                    inputmode="url"
+                    autocomplete="off"
+                    maxlength="500"
+                    placeholder="https://"
+                    :class="`${inputClass} aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive`"
+                    data-test="interview-video-link"
+                />
+            </V2Field>
             <p
                 v-if="errors.start"
                 role="alert"
