@@ -10,6 +10,7 @@ use Carbon\CarbonImmutable;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Illuminate\Testing\TestResponse;
 use Inertia\Testing\AssertableInertia as Assert;
 use Tests\Feature\Visit\VisitTestCase;
 
@@ -59,8 +60,10 @@ class WorkPermitsTest extends VisitTestCase
     {
         $nurse = $this->actor('ca');
         $other = $this->actor('ca');
+        $leaver = $this->actor('ca');
         $nurseFile = $this->workerFor($nurse);
         $otherFile = $this->workerFor($other);
+        $leaverFile = $this->workerFor($leaver);
         $this->selectBranch($this->hr);
         $this->saveType(['code' => 'PLKS', 'name' => 'PLKS (work permit)', 'work_permit' => true, 'warn_from_days' => 60])->assertSessionHasNoErrors();
         $this->saveType(['code' => 'BLS', 'name' => 'Basic life support', 'warn_from_days' => 60])->assertSessionHasNoErrors();
@@ -71,6 +74,11 @@ class WorkPermitsTest extends VisitTestCase
         $this->enter($nurseFile, $plks, '2026-04-07', '2027-04-07');
         $this->enter($otherFile, $plks, '2027-01-01', '2029-01-01');
         $this->enter($nurseFile, $bls, '2025-04-01', '2027-04-01');
+        // Someone who has left is not counted anywhere, as on the register, even with a permit expiring soon.
+        $this->enter($leaverFile, $plks, '2026-04-01', '2027-04-01');
+        $this->selectBranch($this->hr);
+        $this->post(route('hr.records.periods.store', $leaverFile->public_id), ['type' => 'contract', 'starts_on' => '2020-01-01', 'ends_on' => '2027-02-28',
+            'end_reason' => 'resigned', 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
 
         $line = 'Work permit expires on 7 Apr 2027 (in 30 days)';
         $this->selectBranch($this->hr);
@@ -82,6 +90,7 @@ class WorkPermitsTest extends VisitTestCase
         $this->get(route('hr.records.show', $nurseFile->public_id))->assertInertia(fn (Assert $p) => $p->where('file.workPermits', [$line]));
         $this->get(route('hr.records.show', $otherFile->public_id))->assertInertia(fn (Assert $p) => $p->where('file.workPermits', []));
         $this->get(route('hr.dashboard.index'))->assertInertia(fn (Assert $p) => $p->where('dashboard.workPermits', 1));
+        $this->get(route('hr.records.show', $leaverFile->public_id))->assertInertia(fn (Assert $p) => $p->where('file.workPermits', []));
 
         // Once expired it says so, in the same warning words.
         $this->travelTo(CarbonImmutable::parse('2027-04-10 09:00', $this->branch->timezone));
@@ -97,7 +106,7 @@ class WorkPermitsTest extends VisitTestCase
     // ---- fixture ----
 
     /** @param array<string, mixed> $input */
-    private function saveType(array $input): \Illuminate\Testing\TestResponse
+    private function saveType(array $input): TestResponse
     {
         $this->selectBranch($this->hr);
 

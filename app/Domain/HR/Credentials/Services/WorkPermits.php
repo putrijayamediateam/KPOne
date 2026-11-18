@@ -24,9 +24,17 @@ final class WorkPermits
             ->where('t.work_permit', true)->where('t.is_active', true)
             ->when($workerId !== null, fn ($q) => $q->where('r.worker_id', $workerId))
             ->orderBy('r.expires_on')->orderBy('r.id')
-            ->get(['w.public_id as worker', 'v.name', 'v.warn_from_days', 'r.issued_on', 'r.expires_on']);
+            ->get(['r.worker_id', 'w.public_id as worker', 'v.name', 'v.warn_from_days', 'r.issued_on', 'r.expires_on']);
+        // People who have left are not counted, as on the register: the latest employment period has ended before today.
+        $left = DB::table('hr_employment_periods as p')->whereIn('p.worker_id', $rows->pluck('worker_id')->unique()->all())
+            ->orderBy('p.worker_id')->orderByDesc('p.starts_on')->get(['p.worker_id', 'p.ends_on'])
+            ->unique('worker_id')->filter(fn (object $p): bool => $p->ends_on !== null && (string) $p->ends_on < $today)
+            ->pluck('worker_id')->map(fn ($id): int => (int) $id)->all();
         $due = [];
         foreach ($rows as $row) {
+            if (in_array((int) $row->worker_id, $left, true)) {
+                continue;
+            }
             $status = CredentialStatus::of(false, true, (int) $row->warn_from_days, $row, $today);
             if (! in_array($status['code'], ['expiring', 'expired'], true)) {
                 continue;
