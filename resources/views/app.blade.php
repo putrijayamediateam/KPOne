@@ -3,7 +3,7 @@
     // Version 2 look: only for a person who switched on "Try the new layout", and for pages inside the spaces shell.
     $uiVersion = (($page['props']['workspace']['spaces']['enabled'] ?? false) === true || request()->is('spaces', 'spaces/*')) ? 'v2' : 'classic';
 @endphp
-<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-ui="{{ $uiVersion }}" @class(['dark' => ($appearance ?? 'system') == 'dark'])>
+<html lang="{{ str_replace('_', '-', app()->getLocale()) }}" data-ui="{{ $uiVersion }}" @if ($uiVersion === 'v2' && ($page['props']['workspace']['newLook'] ?? false) === true) data-look="new" @endif @class(['dark' => ($appearance ?? 'system') == 'dark'])>
     <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1">
