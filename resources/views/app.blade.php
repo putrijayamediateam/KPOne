@@ -73,6 +73,14 @@
             html[data-ui='v2'].dark {
                 background-color: #12141a;
             }
+
+            html[data-ui='v2'][data-look='new'] {
+                background-color: #f4f4f6;
+            }
+
+            html[data-ui='v2'][data-look='new'].dark {
+                background-color: #0f0f12;
+            }
         </style>
 
         <link rel="icon" href="/favicon.ico" sizes="any">
