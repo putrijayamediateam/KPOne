@@ -4,6 +4,7 @@ namespace App\Providers;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Agents\Health\SystemHealthTool;
+use App\Domain\Agents\Proposals\ProposalPreparers;
 use App\Domain\Agents\Tools\AgentToolRegistry;
 use App\Domain\Audit\AccessChangeActorContext;
 use App\Domain\Audit\Listeners\RecordAccessChanges;
@@ -15,6 +16,7 @@ use App\Domain\Clinical\Models\ClinicalEncounter;
 use App\Domain\Clinical\Policies\ClinicalEncounterPolicy;
 use App\Domain\DepartmentSpace\UiVersionResolver;
 use App\Domain\Identity\Policies\StaffPolicy;
+use App\Domain\Organisation\Inventory\Services\InventoryProposalPreparer;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Organisation\Models\PublicCheckInLink;
 use App\Domain\Organisation\Policies\BranchPolicy;
@@ -61,6 +63,8 @@ class AppServiceProvider extends ServiceProvider
         $this->app->scoped(BranchAccessService::class);
         // AG-10: the tenth agent data source joins the registry by tag (AgentToolRegistry stays unchanged).
         $this->app->tag([SystemHealthTool::class], AgentToolRegistry::TAG);
+        // STK-41: approving a transfer or restock suggestion may prepare an Inventory record (behind agents.prepare_enabled).
+        $this->app->tag([InventoryProposalPreparer::class], ProposalPreparers::TAG);
     }
 
     /**
