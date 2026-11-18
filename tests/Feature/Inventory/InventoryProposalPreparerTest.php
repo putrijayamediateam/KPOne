@@ -218,18 +218,24 @@ final class InventoryProposalPreparerTest extends VisitTestCase
         $this->assertSame(1, DB::table('inventory_purchase_requests')->count());
     }
 
-    public function test_a_transfer_suggestion_made_at_the_receiving_branch_is_refused_clearly_until_it_is_decided_at_the_sender(): void
+    public function test_a_transfer_whose_stock_is_not_at_the_deciding_branch_is_refused_and_nothing_is_made(): void
     {
-        // Today's shape (before the agent platform's step 2b): the suggestion sits at the receiving branch (Cheras).
+        // Defensive: the agent platform holds a transfer at the sending branch, but if the stock it names is elsewhere (here the
+        // suggestion sits at Cheras while the stock comes from Puchong), the preparer refuses rather than letting STK-31 404.
         $source = new InventoryLocation;
         $source->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->branch->organisation_id, 'branch_id' => $this->puchong->id,
             'code' => 'SYN-PCG-'.Str::upper(Str::random(6)), 'name' => 'Synthetic Puchong store', 'type' => 'branch_store', 'is_active' => true])->save();
-        $proposal = $this->proposals->propose($this->agentRun(), 'inventory.transfer_suggestion', $this->branch, ['sku_public_id' => $this->f['sku']->public_id,
-            'from_branch_code' => 'PUCHONG', 'to_branch_code' => $this->branch->code, 'quantity' => '2.000', 'from_current_quantity' => '9.000',
-            'from_reorder_level' => '5.000', 'to_current_quantity' => '3.000', 'to_reorder_level' => '5.000'], 'transfer-receiver-0001');
+        $run = $this->agentRun();
+        $payload = ['destination_location_public_id' => $this->f['location']->public_id, 'from_branch_code' => 'PUCHONG', 'from_current_quantity' => '9.000',
+            'from_reorder_level' => '5.000', 'quantity' => '2.000', 'sku_public_id' => $this->f['sku']->public_id, 'source_location_public_id' => $source->public_id,
+            'to_branch_code' => $this->branch->code, 'to_current_quantity' => '3.000', 'to_reorder_level' => '5.000'];
+        $proposal = AiProposal::query()->create(['organisation_id' => $run->organisation_id, 'branch_id' => $this->branch->id, 'ai_agent_run_id' => $run->id,
+            'ai_agent_id' => $run->ai_agent_id, 'type' => 'inventory.transfer_suggestion', 'payload' => $payload,
+            'payload_hash' => hash('sha256', json_encode($payload, JSON_THROW_ON_ERROR | JSON_UNESCAPED_SLASHES)), 'status' => 'pending', 'lock_version' => 0,
+            'idempotency_key' => 'transfer-elsewhere-0001']);
 
-        $this->refused(fn () => $this->proposals->approve($this->approver(), $proposal, $this->prepare(['source_location_public_id' => $source->public_id,
-            'destination_location_public_id' => $this->f['location']->public_id])), 'mode', 'This transfer is prepared at the branch that sends the stock. Approve it as a decision only here.');
+        $this->refused(fn () => $this->proposals->approve($this->approver(), $proposal, $this->prepare()), 'mode',
+            'This transfer is prepared at the branch that sends the stock. Approve it as a decision only here.');
         $this->assertPendingAndNothingMade($proposal);
     }
 
