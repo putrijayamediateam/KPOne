@@ -300,7 +300,7 @@ class VisitAdministrationService
         }
         if (OtcQueueEntry::query()->where('visit_id', $visit->id)->lockForUpdate()->exists()) {
             throw ValidationException::withMessages([
-                'visit_type' => 'A Visit already in the OTC waiting list cannot be changed to a consultation. Cancel it and register it again.',
+                'visit_type' => 'This visit is already in the OTC waiting list, so it cannot be changed to a consultation. Cancel it and register it again.',
             ]);
         }
     }

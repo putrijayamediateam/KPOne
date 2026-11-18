@@ -57,7 +57,7 @@ class RegistrationController extends Controller
         $result = $registration->register($request->user(), $request->validated());
         $visit = $result['visit'];
         Inertia::flash('toast', ['type' => 'success', 'message' => $result['queueLabel']
-            ? __(':visit registered · :number waiting', ['visit' => $visit->visit_number, 'number' => $result['queueLabel']])
+            ? __('Visit :visit registered · :number is waiting', ['visit' => $visit->visit_number, 'number' => $result['queueLabel']])
             : __('Visit registered.')]);
 
         return $result['queueLabel'] ? to_route('registration.index') : to_route('visits.show', $visit);

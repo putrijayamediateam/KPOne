@@ -44,7 +44,7 @@ class RegisterAndSendToWaitingTest extends QueueTestCase
         $this->post(route('registration.store'), $payload)
             ->assertRedirect(route('registration.index'))
             ->assertSessionHasNoErrors()
-            ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'KPV-00000001 registered · A-001 waiting']);
+            ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Visit KPV-00000001 registered · A-001 is waiting']);
 
         $visit = Visit::query()->sole();
         $entry = QueueEntry::query()->sole();
@@ -72,7 +72,7 @@ class RegisterAndSendToWaitingTest extends QueueTestCase
 
         $this->post(route('registration.store'), $payload)
             ->assertRedirect(route('registration.index'))
-            ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'KPV-00000001 registered · B-001 waiting']);
+            ->assertInertiaFlash('toast', ['type' => 'success', 'message' => 'Visit KPV-00000001 registered · B-001 is waiting']);
 
         $this->assertSame(0, QueueEntry::query()->count(), 'the consultation queue is untouched');
         $entry = OtcQueueEntry::query()->sole();
@@ -212,7 +212,7 @@ class RegisterAndSendToWaitingTest extends QueueTestCase
             'expected_branch_id' => $otc->branch_id, 'lock_version' => $otc->lock_version, 'queue_lock_version' => null,
             'visit_type' => 'consultation', 'assigned_doctor_user_id' => $doctor->id, 'visit_reason_public_ids' => [$reason->public_id],
             'priority' => 'normal', 'coverage_type' => 'self_pay',
-        ])->assertSessionHasErrors(['visit_type' => 'A Visit already in the OTC waiting list cannot be changed to a consultation. Cancel it and register it again.']);
+        ])->assertSessionHasErrors(['visit_type' => 'This visit is already in the OTC waiting list, so it cannot be changed to a consultation. Cancel it and register it again.']);
         $this->assertSame('otc', $otc->refresh()->visit_type);
         $this->assertSame(1, OtcQueueEntry::query()->count());
         $this->assertSame(0, QueueEntry::query()->count());
