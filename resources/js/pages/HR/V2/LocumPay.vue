@@ -390,7 +390,7 @@ const directions = [
         >
             <SheetContent
                 side="right"
-                class="w-full overflow-y-auto sm:max-w-2xl"
+                class="w-full overflow-y-auto sm:max-w-3xl"
                 data-test="locum-statement-sheet"
             >
                 <template v-if="locumPay.statement">

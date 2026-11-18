@@ -231,9 +231,10 @@ const pending = (own: boolean | undefined) =>
                       ? 'Total so far (not final until paid)'
                       : 'Total so far'
             }}</span>
-            <span class="text-lg font-semibold tabular-nums">{{
-                statement.totalLabel
-            }}</span>
+            <span
+                class="text-lg font-semibold whitespace-nowrap tabular-nums"
+                >{{ statement.totalLabel }}</span
+            >
         </div>
         <p
             v-if="statement.payment"
