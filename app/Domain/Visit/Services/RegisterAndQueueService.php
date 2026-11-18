@@ -71,7 +71,9 @@ class RegisterAndQueueService
                 ? QueueNumberFormat::format($otc->queue_number, QueueNumberFormat::OTC) : null;
         }
 
-        if (! $branch || $visit->status !== Visit::STATUS_REGISTERED || ! $actor->can('queue.enter.branch')) {
+        // "Registers only" must be true at THIS branch: queueing needs its permission and a selectable active branch.
+        if (! $branch || $visit->status !== Visit::STATUS_REGISTERED
+            || ! $actor->can('queue.enter.branch') || ! $this->branches->canSelect($actor, $branch)) {
             return null;
         }
 

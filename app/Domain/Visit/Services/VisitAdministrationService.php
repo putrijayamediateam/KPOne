@@ -290,7 +290,9 @@ class VisitAdministrationService
 
     /**
      * A Visit that is on, or has left, the OTC waiting list cannot become a consultation: its B number is never reused and
-     * the other list would not know it. Staff cancel it and register it again. (A consultation cannot become OTC while
+     * the other list would not know it. Staff cancel it and register it again. This deliberately covers a removed OTC
+     * entry too: once it has left for dispensing an OTC Dispensary case exists and the Visit has no consultation entry, so
+     * the Visit policy would otherwise still allow the edit. (A cancelled Visit is not editable at all.) (A consultation cannot become OTC while
      * it is in the Consultation Queue either: assertQueueAllowsUpdate.)
      */
     private function assertOtcListAllowsUpdate(Visit $visit, string $visitType): void
