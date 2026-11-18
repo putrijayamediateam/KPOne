@@ -49,8 +49,9 @@ final class RosterRules
     }
 
     /**
-     * Whether a shift counts as a night for fair rotation: a Night session, or an on-call shift that crosses midnight or
-     * starts at 20:00 or later, branch-local (owner, 18 Nov 2026).
+     * Whether a shift counts as a night for fair rotation: a Night session, or an on-call shift that crosses midnight,
+     * starts at 20:00 or later, or starts before 06:00, branch-local (owner, 18 Nov 2026; the before-06:00 part approved by
+     * B.E.R.N.I.S.S for the owner the same day).
      */
     public static function countsAsNight(string $sessionType, CarbonImmutable $localStart, CarbonImmutable $localEnd): bool
     {
@@ -59,7 +60,7 @@ final class RosterRules
         }
 
         return $sessionType === self::ON_CALL
-            && ($localStart->hour >= 20 || $localEnd->toDateString() !== $localStart->toDateString() && ! $localEnd->isStartOfDay());
+            && ($localStart->hour >= 20 || $localStart->hour < 6 || $localEnd->toDateString() !== $localStart->toDateString() && ! $localEnd->isStartOfDay());
     }
 
     /** Roles counted for minimum staffing (B.E.R.N.I.S.S for the owner, 2026-11-05). */

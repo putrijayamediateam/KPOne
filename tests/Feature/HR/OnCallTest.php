@@ -80,6 +80,10 @@ class OnCallTest extends VisitTestCase
         $this->assertTrue(RosterRules::countsAsNight('on_call', $at('2027-03-08 18:00'), $at('2027-03-09 02:00')));
         $this->assertFalse(RosterRules::countsAsNight('on_call', $at('2027-03-08 14:00'), $at('2027-03-08 19:59')));
         $this->assertFalse(RosterRules::countsAsNight('on_call', $at('2027-03-08 16:00'), $at('2027-03-09 00:00')));
+        // An on-call shift after midnight is a night too (B.E.R.N.I.S.S for the owner, 18 Nov 2026); 06:00 is morning.
+        $this->assertTrue(RosterRules::countsAsNight('on_call', $at('2027-03-09 00:00'), $at('2027-03-09 07:00')));
+        $this->assertTrue(RosterRules::countsAsNight('on_call', $at('2027-03-09 05:59'), $at('2027-03-09 08:00')));
+        $this->assertFalse(RosterRules::countsAsNight('on_call', $at('2027-03-09 06:00'), $at('2027-03-09 12:00')));
         $this->assertFalse(RosterRules::countsAsNight('evening', $at('2027-03-08 20:00'), $at('2027-03-08 23:00')));
 
         // Minimums cannot be set for on call, and a rollback is refused while on-call shifts exist.
