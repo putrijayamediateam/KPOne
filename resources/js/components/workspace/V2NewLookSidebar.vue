@@ -194,6 +194,13 @@ const pick = (key: string) => {
     remember(true);
 };
 const isHere = (href: string) => href === hereHref.value;
+// One text colour at a time (two competing text utilities would leave the last one in the stylesheet to win).
+const areaClass = (key: string): string =>
+    key === shownKey.value && open.value
+        ? 'bg-foreground text-background shadow-sm'
+        : key === currentAreaKey.value
+          ? 'text-foreground hover:bg-card'
+          : 'text-muted-foreground hover:bg-card hover:text-foreground';
 
 // Keyboard: the rail is one Tab stop (roving tabindex); arrows, Home and End move between areas.
 const buttons = ref<HTMLButtonElement[]>([]);
@@ -314,12 +321,8 @@ const fade = computed(() => {
                             (el) => (buttons[index] = el as HTMLButtonElement)
                         "
                         type="button"
-                        class="relative flex size-11 shrink-0 items-center justify-center rounded-[14px] text-muted-foreground hover:bg-card hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
-                        :class="{
-                            'bg-card text-foreground shadow-sm ring-1 ring-border dark:bg-foreground dark:text-background dark:ring-0':
-                                area.key === shownKey && open,
-                            'text-foreground': area.key === currentAreaKey,
-                        }"
+                        class="relative flex size-11 shrink-0 items-center justify-center rounded-[14px] focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+                        :class="areaClass(area.key)"
                         :aria-label="area.title"
                         :aria-current="
                             area.key === currentAreaKey ? 'true' : undefined

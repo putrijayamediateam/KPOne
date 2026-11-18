@@ -73,5 +73,5 @@ test('New look step C: open/closed is remembered in this browser only, busy area
     assert.match(bar, /motion-reduce:transition-none/);
     assert.match(bar, /:inert="!open"/);
     // The selected area has a strong fill in both themes.
-    assert.match(bar, /dark:bg-foreground dark:text-background/);
+    assert.match(bar, /'bg-foreground text-background shadow-sm'/);
 });
