@@ -1,0 +1,9 @@
+✓ built in 7.69s
+light short window 560px, Director: Today:87-131 Front desk:137-181 Consultation:187-231 Pharmacy:237-281 Billing:287-331 Panel:337-381 Stock:387-431 HR:437-481 Reports:487-531 Settings:439-483
+light after End key: Settings top=439 bottom=483 viewport=560
+light focus: selected {"el":"Front desk","outline":"rgb(10, 86, 209)","width":"2px","offset":"2px","sel":"true"} unselected {"el":"Pharmacy","outline":"rgb(10, 86, 209)"} row {"el":"Overview","shadow":"rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0"} tokens {"ring":"#0a56d1","rail":"oklab(0.95899 0.00116497 -0.00380927 / 0.6)","card":"rgb(255, 255, 255)"}
+dark short window 560px, Director: Today:87-131 Front desk:137-181 Consultation:187-231 Pharmacy:237-281 Billing:287-331 Panel:337-381 Stock:387-431 HR:437-481 Reports:487-531 Settings:439-483
+dark after End key: Settings top=439 bottom=483 viewport=560
+dark focus: selected {"el":"Front desk","outline":"rgb(107, 166, 255)","width":"2px","offset":"2px","sel":"true"} unselected {"el":"Pharmacy","outline":"rgb(107, 166, 255)"} row {"el":"Overview","shadow":"rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0, 0) 0px 0px 0px 0px, rgba(0, 0, 0"} tokens {"ring":"#6ba6ff","rail":"oklab(0.254502 0.00302031 -0.0107879 / 0.6)","card":"rgb(26, 26, 31)"}
+
+[exited with code 0]
