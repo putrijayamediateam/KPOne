@@ -225,7 +225,11 @@ const pending = (own: boolean | undefined) =>
             data-test="locum-statement-total"
         >
             <span class="font-semibold">{{
-                statement.paid ? 'Paid' : 'Total so far'
+                statement.paid
+                    ? 'Paid'
+                    : own
+                      ? 'Total so far (not final until paid)'
+                      : 'Total so far'
             }}</span>
             <span class="text-lg font-semibold tabular-nums">{{
                 statement.totalLabel

@@ -178,7 +178,9 @@ BEGIN
  END IF;
  IF TG_TABLE_NAME = 'hr_locum_pay_exclusions' AND TG_OP = 'INSERT' AND NOT EXISTS (
    SELECT 1 FROM hr_roster_shifts s JOIN hr_roster_versions v ON v.id = s.roster_version_id
-   JOIN hr_locum_sign_ins l ON l.linked_user_id = s.staff_user_id AND l.worker_id = NEW.worker_id AND l.status = 'done'
+   -- The locum's account is the one linked by the newest done sign-in, as the statement reads it (Suresh, m1).
+   JOIN hr_locum_sign_ins l ON l.id = (SELECT max(x.id) FROM hr_locum_sign_ins x WHERE x.worker_id = NEW.worker_id AND x.status = 'done'
+     AND x.linked_user_id IS NOT NULL) AND l.linked_user_id = s.staff_user_id
    WHERE s.id = (to_jsonb(NEW) ->> 'roster_shift_id')::bigint AND s.organisation_id = NEW.organisation_id AND v.status = 'approved'
      AND date_trunc('month', s.starts_at AT TIME ZONE s.timezone)::date = NEW.month) THEN
   RAISE EXCEPTION 'A shift marked not worked is an approved shift of this locum in this month' USING ERRCODE = '23514';

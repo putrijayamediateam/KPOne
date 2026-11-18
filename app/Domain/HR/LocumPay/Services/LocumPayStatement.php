@@ -113,7 +113,7 @@ final class LocumPayStatement
     /**
      * @return array{
      *   paid: bool, month: string, total: int, lines: list<array<string, mixed>>, corrections: list<array<string, mixed>>,
-     *   problems: list<string>, payment: array<string, mixed>|null, fingerprint: string
+     *   problems: list<string>, staleMarks: list<array<string, mixed>>, payment: array<string, mixed>|null, fingerprint: string
      * }
      */
     public static function build(int $organisationId, int $workerId, string $month): array
@@ -129,7 +129,7 @@ final class LocumPayStatement
             $statement = is_array($stored) ? $stored : ['lines' => [], 'corrections' => [], 'total' => self::decryptSen((string) $paid->total_encrypted, true) ?? 0];
 
             return ['paid' => true, 'month' => $month, 'total' => (int) ($statement['total'] ?? 0), 'lines' => $statement['lines'] ?? [],
-                'corrections' => $statement['corrections'] ?? [], 'problems' => [],
+                'corrections' => $statement['corrections'] ?? [], 'problems' => [], 'staleMarks' => [],
                 'payment' => ['paidOn' => substr((string) $paid->paid_on, 0, 10), 'reference' => $paid->reference_last4 !== null ? '•••• '.$paid->reference_last4 : null,
                     'paidBy' => (int) $paid->paid_by_user_id, 'recordedAt' => (string) $paid->recorded_at],
                 'fingerprint' => 'paid'];
@@ -137,13 +137,14 @@ final class LocumPayStatement
 
         $lines = [];
         $problems = [];
+        $staleMarks = [];
         $total = 0;
         $userId = self::linkedUserId($workerId);
         $rates = self::confirmedRates($workerId);
+        $exclusions = DB::table('hr_locum_pay_exclusions')->where('worker_id', $workerId)->where('month', $month)->whereNull('removed_at')
+            ->orderBy('id')->get()->keyBy('roster_shift_id');
         if ($userId !== null) {
             $start = CarbonImmutable::parse($month.' 00:00:00', 'UTC');
-            $exclusions = DB::table('hr_locum_pay_exclusions')->where('worker_id', $workerId)->where('month', $month)->whereNull('removed_at')
-                ->get()->keyBy('roster_shift_id');
             // A wide UTC window, then the shift's own local month decides (a shift belongs to the month it starts in).
             $shifts = DB::table('hr_roster_shifts as s')->join('hr_roster_versions as v', 'v.id', '=', 's.roster_version_id')
                 ->join('branches as b', 'b.id', '=', 's.branch_id')
@@ -160,7 +161,7 @@ final class LocumPayStatement
                 $minutes = max(0, intdiv($ends->getTimestamp() - $starts->getTimestamp(), 60) - (int) $shift->break_minutes);
                 $date = $starts->format('Y-m-d');
                 $rate = self::rateOn($rates, $date);
-                $exclusion = $exclusions->get($shift->id);
+                $exclusion = $exclusions->pull($shift->id);
                 $line = ['shiftId' => (string) $shift->public_id, 'date' => $date, 'dateLabel' => $starts->format('D j M'),
                     'time' => $starts->format('g:i A').'–'.$ends->format('g:i A').($ends->format('Y-m-d') !== $date ? ' (next day)' : ''),
                     'branch' => (string) $shift->branch, 'minutes' => $minutes, 'hours' => self::hoursLabel($minutes),
@@ -179,6 +180,17 @@ final class LocumPayStatement
                 $line['amountLabel'] = self::rm($line['amount']);
                 $lines[] = $line;
             }
+        }
+
+        // A mark whose shift is no longer in an approved week (the week was changed and approved again, which copies
+        // every shift to a new row) must not quietly fall away: the copied shift would be paid (Suresh, M1).
+        foreach ($exclusions as $stale) {
+            $when = DB::table('hr_roster_shifts')->where('id', $stale->roster_shift_id)->first(['starts_at', 'timezone']);
+            $label = $when === null ? 'an earlier date'
+                : CarbonImmutable::parse((string) $when->starts_at)->setTimezone((string) $when->timezone)->format('j M');
+            $problems[] = "A shift marked not worked on {$label} was changed in the roster. Remove the old mark, then mark the shift again if it was still not worked.";
+            $staleMarks[] = ['id' => (string) $stale->public_id, 'dateLabel' => $label, 'reason' => self::REASONS[(string) $stale->reason] ?? 'Other',
+                'lockVersion' => (int) $stale->lock_version];
         }
 
         $corrections = [];
@@ -201,10 +213,10 @@ final class LocumPayStatement
             $problems[] = 'Nothing to pay this month.';
         }
 
-        $fingerprint = hash('sha256', json_encode([$total, $lines, $corrections], JSON_THROW_ON_ERROR));
+        $fingerprint = hash('sha256', json_encode([$total, $lines, $corrections, $staleMarks], JSON_THROW_ON_ERROR));
 
         return ['paid' => false, 'month' => $month, 'total' => $total, 'lines' => $lines, 'corrections' => $corrections,
-            'problems' => array_values(array_unique($problems)), 'payment' => null, 'fingerprint' => $fingerprint];
+            'problems' => array_values(array_unique($problems)), 'staleMarks' => $staleMarks, 'payment' => null, 'fingerprint' => $fingerprint];
     }
 
     public static function hoursLabel(int $minutes): string

@@ -181,6 +181,56 @@ class LocumPayTest extends VisitTestCase
             ->where('locumPay.rates.0.history.1.statusLabel', 'Not confirmed')->where('locumPay.rates.0.history.1.rejectReason', 'Wrong amount'));
     }
 
+    public function test_a_mark_on_a_shift_the_roster_replaced_blocks_payment_until_removed(): void
+    {
+        $this->selectBranch($this->hr);
+        $this->post(route('hr.locum-pay.rates.store', $this->worker->public_id), $this->rate('session', '300'))->assertSessionHasNoErrors();
+        $this->selectBranch($this->finance);
+        $this->post(route('hr.locum-pay.rates.confirm', DB::table('hr_locum_pay_rates')->value('public_id')), $this->lock(1))->assertSessionHasNoErrors();
+        $this->selectBranch($this->hr);
+        $wednesday = RosterShift::query()->orderByDesc('starts_at')->first();
+        $this->post(route('hr.locum-pay.not-worked.store', $this->worker->public_id), ['shift_id' => $wednesday->public_id, 'reason' => 'did_not_come',
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+
+        // HR changes the week and approves it again: every shift is copied to a new row, so the mark no longer matches.
+        $this->travelTo(CarbonImmutable::parse('2026-10-02 09:00', $this->branch->timezone));
+        $roster = app(RosterService::class);
+        $version = $roster->startDraft($this->hr, ['branch_id' => $this->branch->id, 'week' => '2026-10-05', 'mode' => 'change', 'idempotency_key' => (string) Str::uuid()])['version'];
+        $roster->submit($this->hr, $version->public_id, ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()]);
+        $roster->approve($this->director, $version->public_id, ['expected_version_lock' => $version->refresh()->lock_version, 'idempotency_key' => (string) Str::uuid()]);
+        $this->travelTo(CarbonImmutable::parse('2026-11-10 09:00', $this->branch->timezone));
+
+        $this->get($this->statementUrl())->assertInertia(fn (Assert $p) => $p->where('locumPay.statement.totalLabel', 'RM 600.00')
+            ->where('locumPay.statement.canMarkPaid', false)->has('locumPay.statement.staleMarks', 1)
+            ->where('locumPay.statement.staleMarks.0.dateLabel', '7 Oct')->where('locumPay.locums.0.status', 'needs_check')
+            ->where('locumPay.statement.problems.0', 'A shift marked not worked on 7 Oct was changed in the roster. Remove the old mark, then mark the shift again if it was still not worked.'));
+        $this->selectBranch($this->finance);
+        $fingerprint = LocumPayStatement::build((int) $this->worker->organisation_id, (int) $this->worker->id, '2026-10-01')['fingerprint'];
+        $this->post(route('hr.locum-pay.paid', $this->worker->public_id), $this->paid($fingerprint))->assertSessionHasErrors('locum_pay');
+        $this->assertSame(0, DB::table('hr_locum_pay_months')->count());
+
+        // HR removes the old mark and marks the copied shift; the month can then be paid at RM 300.00.
+        $this->selectBranch($this->hr);
+        $this->post(route('hr.locum-pay.not-worked.remove', DB::table('hr_locum_pay_exclusions')->value('public_id')), $this->lock(1))->assertSessionHasNoErrors();
+        $copied = RosterShift::query()->where('roster_version_id', $version->id)->orderByDesc('starts_at')->first();
+        $this->post(route('hr.locum-pay.not-worked.store', $this->worker->public_id), ['shift_id' => $copied->public_id, 'reason' => 'did_not_come',
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $this->selectBranch($this->finance);
+        $fingerprint = LocumPayStatement::build((int) $this->worker->organisation_id, (int) $this->worker->id, '2026-10-01')['fingerprint'];
+        $this->post(route('hr.locum-pay.paid', $this->worker->public_id), $this->paid($fingerprint))->assertSessionHasNoErrors();
+        $this->get($this->statementUrl())->assertInertia(fn (Assert $p) => $p->where('locumPay.statement.totalLabel', 'RM 300.00'));
+    }
+
+    public function test_a_refused_rate_or_payment_never_flashes_the_amount_or_reference(): void
+    {
+        $this->selectBranch($this->hr);
+        $this->post(route('hr.locum-pay.rates.store', $this->worker->public_id), [...$this->rate('hour', '55'), 'kind' => 'week'])->assertSessionHasErrors('kind');
+        $this->assertArrayNotHasKey('amount', (array) session()->get('_old_input', []));
+        $this->selectBranch($this->finance);
+        $this->post(route('hr.locum-pay.paid', $this->worker->public_id), $this->paid('stale'))->assertSessionHasErrors('locum_pay');
+        $this->assertArrayNotHasKey('reference', (array) session()->get('_old_input', []));
+    }
+
     public function test_postgresql_keeps_the_rules(): void
     {
         $this->selectBranch($this->hr);

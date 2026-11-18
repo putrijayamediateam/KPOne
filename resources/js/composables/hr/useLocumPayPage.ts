@@ -34,6 +34,12 @@ export type Statement = {
     lines: Line[];
     corrections: Correction[];
     problems: string[];
+    staleMarks: {
+        id: string;
+        dateLabel: string;
+        reason: string;
+        lockVersion: number;
+    }[];
     payment: {
         paidOnLabel: string;
         reference: string | null;
@@ -45,7 +51,14 @@ export type LocumRow = {
     id: string;
     name: string;
     linked: boolean;
-    status: 'paid' | 'ready' | 'needs_rate' | 'nothing' | 'below_zero' | 'open';
+    status:
+        | 'paid'
+        | 'ready'
+        | 'needs_rate'
+        | 'needs_check'
+        | 'nothing'
+        | 'below_zero'
+        | 'open';
     statusLabel: string;
     totalLabel: string;
     shifts: number;
@@ -159,7 +172,9 @@ export function useLocumPayPage(props: LocumPayPageProps) {
             ? 'success'
             : status === 'ready'
               ? 'accent'
-              : status === 'needs_rate' || status === 'below_zero'
+              : status === 'needs_rate' ||
+                  status === 'below_zero' ||
+                  status === 'needs_check'
                 ? 'warning'
                 : 'neutral';
     const rateTone = (status: RateRow['status']) =>
@@ -303,6 +318,15 @@ export function useLocumPayPage(props: LocumPayPageProps) {
         });
     };
 
+    // A mark left on a shift the roster replaced (Suresh, M1).
+    const removeMark = (mark: Statement['staleMarks'][number]) => {
+        busy.id = mark.id;
+        post(`/hr/locum-pay/not-worked/${mark.id}/remove`, {
+            expected_lock_version: mark.lockVersion,
+            idempotency_key: crypto.randomUUID(),
+        });
+    };
+
     // ---- Corrections ----
     const correction = reactive({
         open: false,
@@ -412,6 +436,7 @@ export function useLocumPayPage(props: LocumPayPageProps) {
         startNotWorked,
         saveNotWorked,
         countAgain,
+        removeMark,
         correction,
         startCorrection,
         saveCorrection,

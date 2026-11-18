@@ -82,6 +82,7 @@ final class LocumPayPageService
                     $statement['lines'] === [] && $statement['corrections'] === [] => ['nothing', 'Nothing this month'],
                     collect($statement['lines'])->contains('noRate', true) => ['needs_rate', 'Needs a confirmed rate'],
                     $statement['total'] < 0 => ['below_zero', 'Below RM 0.00'],
+                    $statement['problems'] !== [] => ['needs_check', 'Needs checking'],
                     $month < $current => ['ready', 'Ready to mark paid'],
                     default => ['open', 'Month not ended'],
                 };
@@ -106,10 +107,10 @@ final class LocumPayPageService
         // Rates.
         foreach ($locums as $locum) {
             $rows = DB::table('hr_locum_pay_rates')->where('worker_id', $locum->id)->orderByDesc('entered_at')->orderByDesc('id')->get();
-            $current = LocumPayStatement::rateOn(LocumPayStatement::confirmedRates((int) $locum->id), $today->format('Y-m-d'));
+            $inForce = LocumPayStatement::rateOn(LocumPayStatement::confirmedRates((int) $locum->id), $today->format('Y-m-d'));
             $waiting = $rows->firstWhere('status', 'waiting');
             $props['rates'][] = ['workerId' => (string) $locum->public_id, 'name' => (string) $locum->display_name,
-                'current' => $current === null || $current['sen'] === null ? null : [...$this->rateLabel($current['kind'], $current['sen']), 'fromLabel' => $this->day($current['from'])],
+                'current' => $inForce === null || $inForce['sen'] === null ? null : [...$this->rateLabel($inForce['kind'], $inForce['sen']), 'fromLabel' => $this->day($inForce['from'])],
                 'waiting' => ! $waiting instanceof \stdClass ? null : $this->rateRow($waiting, $actor, $canManage, $canFinance, $names),
                 'history' => array_values($rows->where('status', '!=', 'waiting')->take(10)->map(fn (\stdClass $r): array => $this->rateRow($r, $actor, false, false, $names))->all())];
         }
@@ -141,7 +142,7 @@ final class LocumPayPageService
             'totalLabel' => LocumPayStatement::rm((int) $statement['total']), 'lines' => $lines,
             'corrections' => $staff ? $statement['corrections'] : array_map(fn (array $c): array => array_diff_key($c, ['id' => 1, 'lockVersion' => 1]), $statement['corrections']),
             // A locum sees the lines; the reasons a month cannot be paid yet are for HR and Finance.
-            'problems' => $staff ? $statement['problems'] : [], 'payment' => $payment, 'fingerprint' => $staff ? $statement['fingerprint'] : null];
+            'problems' => $staff ? $statement['problems'] : [], 'staleMarks' => $staff ? $statement['staleMarks'] : [], 'payment' => $payment, 'fingerprint' => $staff ? $statement['fingerprint'] : null];
     }
 
     /**

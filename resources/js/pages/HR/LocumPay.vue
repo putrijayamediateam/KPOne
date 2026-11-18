@@ -50,6 +50,7 @@ const {
     startNotWorked,
     saveNotWorked,
     countAgain,
+    removeMark,
     correction,
     startCorrection,
     saveCorrection,
@@ -340,6 +341,30 @@ const anyOpen = () =>
                                 :key="problem"
                             >
                                 {{ problem }}
+                            </li>
+                        </ul>
+                        <ul
+                            v-if="locumPay.statement.staleMarks.length > 0"
+                            class="flex flex-col gap-2"
+                            data-test="locum-stale-marks"
+                        >
+                            <li
+                                v-for="mark in locumPay.statement.staleMarks"
+                                :key="mark.id"
+                                class="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-dashed p-3 text-sm"
+                            >
+                                <span
+                                    >Old mark: {{ mark.dateLabel }} ·
+                                    {{ mark.reason }}</span
+                                >
+                                <Button
+                                    variant="outline"
+                                    class="max-lg:min-h-11"
+                                    :disabled="busy.id === mark.id"
+                                    :aria-label="`Remove the old not-worked mark of ${mark.dateLabel}`"
+                                    @click="removeMark(mark)"
+                                    >Remove old mark</Button
+                                >
                             </li>
                         </ul>
                         <StatementView

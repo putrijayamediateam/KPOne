@@ -34,8 +34,8 @@ test('every write carries an idempotency key, and decisions carry the lock versi
 
     assert.equal(
         (composable.match(/idempotency_key:/g) ?? []).length,
-        8,
-        'rate, decide, reject, not worked, count again, correction, remove correction, paid',
+        9,
+        'rate, decide, reject, not worked, count again, old mark, correction, remove correction, paid',
     );
     assert.match(
         composable,
