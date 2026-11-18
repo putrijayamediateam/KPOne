@@ -104,7 +104,40 @@ export type RosterProps = {
         } | null;
         planner: Planner | null;
         minimums: Minimums | null;
+        // HR-15f: the month calendar on My roster.
+        view?: 'week' | 'month';
+        month?: RosterMonth | null;
     };
+};
+
+export type MonthShift = Shift & { hours: string };
+export type MonthAsk = {
+    id: string;
+    status: 'asked' | 'confirmed';
+    branch: string;
+    startLabel: string;
+    endLabel: string;
+    nextDay: boolean;
+    label: string;
+    shortLabel: string;
+};
+export type MonthDay = {
+    date: string;
+    day: number;
+    label: string;
+    inMonth: boolean;
+    today: boolean;
+    shifts: MonthShift[];
+    asks: MonthAsk[];
+};
+export type RosterMonth = {
+    key: string;
+    label: string;
+    previous: string;
+    next: string;
+    current: string;
+    days: MonthDay[];
+    hoursLabel: string;
 };
 
 export function useRosterPage(props: RosterProps) {
@@ -159,6 +192,10 @@ export function useRosterPage(props: RosterProps) {
         );
 
     const changeTab = (tab: string) => visit({ tab });
+    // HR-15f: Week or Month on My roster; the choice is in the address, nothing is stored.
+    const showMonth = (month?: string) =>
+        visit({ myView: 'month', month: month ?? props.roster.month?.key });
+    const showWeek = () => visit({ myView: undefined, month: undefined });
     const changeBranch = (value: string | number) => visit({ branch: value });
 
     const versionLine = computed(() => {
@@ -505,6 +542,8 @@ export function useRosterPage(props: RosterProps) {
         errors.value[`minimums.${session}.${role}`];
 
     return {
+        showMonth,
+        showWeek,
         page,
         errors,
         skipped,
