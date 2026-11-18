@@ -237,13 +237,36 @@ export function useLocumPayPage(props: LocumPayPageProps) {
             () => (rateForm.open = false),
         );
     };
-    const decideRate = (rate: RateRow, action: 'confirm' | 'withdraw') => {
+    const decideRate = (
+        rate: RateRow,
+        action: 'confirm' | 'withdraw',
+        done?: () => void,
+    ) => {
         busy.id = rate.id;
-        post(`/hr/locum-pay/rates/${rate.id}/${action}`, {
-            expected_lock_version: rate.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        });
+        post(
+            `/hr/locum-pay/rates/${rate.id}/${action}`,
+            {
+                expected_lock_version: rate.lockVersion,
+                idempotency_key: crypto.randomUUID(),
+            },
+            done,
+        );
     };
+    // Confirming a rate asks first, and says the person who entered it never confirms it (Daniel).
+    const confirmForm = reactive({
+        open: false,
+        rate: null as RateRow | null,
+        name: '',
+    });
+    const startConfirm = (rate: RateRow, name: string) =>
+        Object.assign(confirmForm, { open: true, rate, name });
+    const confirmRate = () =>
+        confirmForm.rate &&
+        decideRate(
+            confirmForm.rate,
+            'confirm',
+            () => (confirmForm.open = false),
+        );
     const rejectForm = reactive({
         open: false,
         rate: null as RateRow | null,
@@ -368,16 +391,29 @@ export function useLocumPayPage(props: LocumPayPageProps) {
             () => (correction.open = false),
         );
     };
-    const removeCorrection = (item: Correction) => {
-        if (!item.id) {
+    // Removing a correction asks first (Daniel).
+    const removing = reactive({
+        open: false,
+        item: null as Correction | null,
+    });
+    const startRemoveCorrection = (item: Correction) =>
+        Object.assign(removing, { open: true, item });
+    const removeCorrection = () => {
+        const item = removing.item;
+
+        if (!item?.id) {
             return;
         }
 
         busy.id = item.id;
-        post(`/hr/locum-pay/corrections/${item.id}/remove`, {
-            expected_lock_version: item.lockVersion,
-            idempotency_key: crypto.randomUUID(),
-        });
+        post(
+            `/hr/locum-pay/corrections/${item.id}/remove`,
+            {
+                expected_lock_version: item.lockVersion,
+                idempotency_key: crypto.randomUUID(),
+            },
+            () => (removing.open = false),
+        );
     };
 
     // ---- Mark paid ----
@@ -429,6 +465,9 @@ export function useLocumPayPage(props: LocumPayPageProps) {
         startRate,
         saveRate,
         decideRate,
+        confirmForm,
+        startConfirm,
+        confirmRate,
         rejectForm,
         startReject,
         reject,
@@ -440,6 +479,8 @@ export function useLocumPayPage(props: LocumPayPageProps) {
         correction,
         startCorrection,
         saveCorrection,
+        removing,
+        startRemoveCorrection,
         removeCorrection,
         paid,
         startPaid,

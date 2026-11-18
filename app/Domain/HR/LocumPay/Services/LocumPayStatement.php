@@ -177,7 +177,8 @@ final class LocumPayStatement
                     $line['basis'] = $rate['kind'] === 'hour' ? self::hoursLabel($minutes).' × '.self::rm($rate['sen']).' an hour' : 'One session at '.self::rm($rate['sen']);
                     $total += $line['amount'];
                 }
-                $line['amountLabel'] = self::rm($line['amount']);
+                // A missing rate is unknown, never RM 0.00 (Daniel, 1).
+                $line['amountLabel'] = $line['noRate'] ? 'RM —' : self::rm($line['amount']);
                 $lines[] = $line;
             }
         }

@@ -39,7 +39,7 @@ test('every write carries an idempotency key, and decisions carry the lock versi
     );
     assert.match(
         composable,
-        /rates\/\$\{rate\.id\}\/\$\{action\}`, \{\s+expected_lock_version: rate\.lockVersion,/,
+        /rates\/\$\{rate\.id\}\/\$\{action\}`,\s+\{\s+expected_lock_version: rate\.lockVersion,/,
     );
     // Recording payment sends the statement's fingerprint, so a changed statement is refused.
     assert.match(composable, /fingerprint: statement\.fingerprint,/);
@@ -61,8 +61,27 @@ test('a reason starts empty, and the statement offers HR controls only when it m
     }
 });
 
-test('the locum reads "Being checked by HR"; HR reads "No confirmed rate"', () => {
-    assert.match(view, /own \? 'Being checked by HR' : 'No confirmed rate'/);
+test('a missing rate reads "Rate missing", never a zero; a paid month says when', () => {
+    assert.match(view, /const pending = 'Rate missing';/);
+    assert.match(view, /`Paid on \$\{statement\.payment\.paidOnLabel\}`/);
+
+    for (const page of Object.values(pages)) {
+        assert.match(page, /'Not paid yet'/);
+    }
+});
+
+test('confirming a rate and removing a correction ask first; a reason is needed before the action', () => {
+    for (const page of Object.values(pages)) {
+        assert.match(page, /startConfirm\(\s*row\.waiting,\s*row\.name,?\s*\)/);
+        assert.match(page, /the person who enters a rate can never confirm it/);
+        assert.match(page, /@remove-correction="startRemoveCorrection"/);
+        assert.match(page, /:confirm-disabled="!notWorked\.reason"/);
+        assert.equal(
+            (page.match(/Pick a reason to continue\./g) ?? []).length,
+            2,
+        );
+        assert.match(page, /Enter an amount and pick a reason to continue\./);
+    }
 });
 
 test('Record payment is said plainly: KPOne records, never pays, and the month locks', () => {

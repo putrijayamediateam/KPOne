@@ -82,7 +82,8 @@ class LocumPayTest extends VisitTestCase
         // Not counted until confirmed: the shifts need a rate.
         $this->get(route('hr.locum-pay.index', ['tab' => 'statements', 'month' => '2026-10', 'locum' => $this->worker->public_id]))
             ->assertInertia(fn (Assert $p) => $p->where('locumPay.locums.0.status', 'needs_rate')->where('locumPay.statement.lines.0.noRate', true)
-                ->where('locumPay.statement.canMarkPaid', false)->where('locumPay.statement.totalLabel', 'RM 0.00'));
+                ->where('locumPay.statement.canMarkPaid', false)->where('locumPay.statement.totalLabel', 'RM —')
+                ->where('locumPay.statement.lines.0.amountLabel', 'RM —')->where('locumPay.locums.0.statusLabel', 'Rate missing')->where('locumPay.locums.0.totalLabel', 'RM —'));
 
         // The HR Manager entered it, so the Director confirms it.
         $rate = DB::table('hr_locum_pay_rates')->sole();

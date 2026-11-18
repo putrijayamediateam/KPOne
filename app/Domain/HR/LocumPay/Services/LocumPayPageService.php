@@ -80,14 +80,14 @@ final class LocumPayPageService
                 [$status, $label] = match (true) {
                     $statement['paid'] => ['paid', 'Paid'],
                     $statement['lines'] === [] && $statement['corrections'] === [] => ['nothing', 'Nothing this month'],
-                    collect($statement['lines'])->contains('noRate', true) => ['needs_rate', 'Needs a confirmed rate'],
+                    self::rateMissing($statement) => ['needs_rate', 'Rate missing'],
                     $statement['total'] < 0 => ['below_zero', 'Below RM 0.00'],
                     $statement['problems'] !== [] => ['needs_check', 'Needs checking'],
                     $month < $current => ['ready', 'Ready to mark paid'],
                     default => ['open', 'Month not ended'],
                 };
                 $props['locums'][] = ['id' => (string) $locum->public_id, 'name' => (string) $locum->display_name, 'linked' => $linked,
-                    'status' => $status, 'statusLabel' => $label, 'totalLabel' => LocumPayStatement::rm($statement['total']),
+                    'status' => $status, 'statusLabel' => $label, 'totalLabel' => self::totalLabel($statement),
                     'shifts' => count($statement['lines'])];
                 if (($query['locum'] ?? null) === (string) $locum->public_id) {
                     $selected = ['locum' => $locum, 'statement' => $statement];
@@ -139,7 +139,8 @@ final class LocumPayPageService
         }, $statement['lines']);
 
         return ['paid' => $statement['paid'], 'month' => substr((string) $statement['month'], 0, 7), 'total' => $statement['total'],
-            'totalLabel' => LocumPayStatement::rm((int) $statement['total']), 'lines' => $lines,
+            'totalLabel' => self::totalLabel($statement), 'rateMissing' => self::rateMissing($statement),
+            'lines' => $lines,
             'corrections' => $staff ? $statement['corrections'] : array_map(fn (array $c): array => array_diff_key($c, ['id' => 1, 'lockVersion' => 1]), $statement['corrections']),
             // A locum sees the lines; the reasons a month cannot be paid yet are for HR and Finance.
             'problems' => $staff ? $statement['problems'] : [], 'staleMarks' => $staff ? $statement['staleMarks'] : [], 'payment' => $payment, 'fingerprint' => $staff ? $statement['fingerprint'] : null];
@@ -164,6 +165,31 @@ final class LocumPayPageService
             'decidedBy' => $r->decided_by_user_id !== null ? $this->name((int) $r->decided_by_user_id, $names) : null,
             'lockVersion' => (int) $r->lock_version,
             'canDecide' => $canFinance && ! $own, 'ownEntry' => $own, 'canWithdraw' => $canManage];
+    }
+
+    /**
+     * The total, or "RM —" while a shift has no confirmed rate: a missing rate is unknown, never RM 0.00 (Daniel, 1).
+     *
+     * @param  array<string, mixed>  $statement
+     */
+    private static function totalLabel(array $statement): string
+    {
+        return self::rateMissing($statement) ? 'RM —' : LocumPayStatement::rm((int) $statement['total']);
+    }
+
+    /** @param array<string, mixed> $statement */
+    private static function rateMissing(array $statement): bool
+    {
+        if ($statement['paid']) {
+            return false;
+        }
+        foreach ((array) $statement['lines'] as $line) {
+            if (is_array($line) && ($line['noRate'] ?? false) === true) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /** @return array{kind: string, kindLabel: string, amountLabel: string} */

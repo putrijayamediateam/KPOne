@@ -43,6 +43,9 @@ const {
     startRate,
     saveRate,
     decideRate,
+    confirmForm,
+    startConfirm,
+    confirmRate,
     rejectForm,
     startReject,
     reject,
@@ -54,6 +57,8 @@ const {
     correction,
     startCorrection,
     saveCorrection,
+    removing,
+    startRemoveCorrection,
     removeCorrection,
     paid,
     startPaid,
@@ -76,7 +81,7 @@ const anyOpen = () =>
             title="Locum pay"
             :description="
                 locumPay.tab === 'mine'
-                    ? 'What you are owed for your approved shifts. The clinic pays you outside KPOne.'
+                    ? 'What your approved shifts add up to so far. The clinic pays you outside KPOne.'
                     : 'Monthly statements from approved shifts and confirmed rates. Payment is made outside KPOne and recorded here.'
             "
         />
@@ -251,7 +256,7 @@ const anyOpen = () =>
                                 "
                                 :aria-label="`Confirm the rate for ${row.name}`"
                                 data-test="locum-rate-confirm"
-                                @click="decideRate(row.waiting, 'confirm')"
+                                @click="startConfirm(row.waiting, row.name)"
                                 >Confirm rate</Button
                             >
                             <Button
@@ -325,7 +330,12 @@ const anyOpen = () =>
                     <SheetHeader>
                         <SheetTitle
                             >{{ locumPay.statement.name }} ·
-                            {{ locumPay.monthLabel }}</SheetTitle
+                            {{ locumPay.monthLabel }} ·
+                            {{
+                                locumPay.statement.paid
+                                    ? 'Paid'
+                                    : 'Not paid yet'
+                            }}</SheetTitle
                         >
                         <SheetDescription
                             >Approved shifts × the confirmed rate on each
@@ -379,7 +389,7 @@ const anyOpen = () =>
                             :busy-id="busy.id"
                             @not-worked="startNotWorked"
                             @count-again="countAgain"
-                            @remove-correction="removeCorrection"
+                            @remove-correction="startRemoveCorrection"
                         />
                         <div
                             v-if="!locumPay.statement.paid"
@@ -471,6 +481,33 @@ const anyOpen = () =>
             </div>
         </OperationalConfirmDialog>
 
+        <!-- Confirm a rate -->
+        <OperationalConfirmDialog
+            :open="confirmForm.open"
+            :title="`Confirm ${confirmForm.rate?.amountLabel ?? ''} for ${confirmForm.name}?`"
+            :description="`From ${confirmForm.rate?.fromLabel ?? ''}, entered by ${confirmForm.rate?.enteredBy ?? ''}. You did not enter this rate: the person who enters a rate can never confirm it. Once confirmed, it prices shifts from that date in months not yet paid.`"
+            confirm-label="Confirm rate"
+            processing-label="Confirming…"
+            :processing="busy.id === confirmForm.rate?.id"
+            :error="failure"
+            @update:open="(v: boolean) => (confirmForm.open = v)"
+            @confirm="confirmRate"
+        />
+
+        <!-- Remove a correction -->
+        <OperationalConfirmDialog
+            :open="removing.open"
+            :title="`Remove the correction ${removing.item?.reason ?? ''}, ${removing.item?.amountLabel ?? ''}?`"
+            description="It no longer counts in this month. The record of it is kept."
+            confirm-label="Remove correction"
+            processing-label="Removing…"
+            destructive
+            :processing="busy.id === removing.item?.id"
+            :error="failure"
+            @update:open="(v: boolean) => (removing.open = v)"
+            @confirm="removeCorrection"
+        />
+
         <!-- Do not confirm a rate -->
         <OperationalConfirmDialog
             :open="rejectForm.open"
@@ -481,6 +518,8 @@ const anyOpen = () =>
             :processing="busy.id === rejectForm.rate?.id"
             :error="errors.reason ?? failure"
             @update:open="(v: boolean) => (rejectForm.open = v)"
+            :confirm-disabled="!rejectForm.reason"
+            confirm-disabled-reason="Pick a reason to continue."
             @confirm="reject"
         >
             <div class="flex flex-col gap-2">
@@ -507,6 +546,8 @@ const anyOpen = () =>
             :processing="busy.id === notWorked.line?.shiftId"
             :error="errors.reason ?? failure"
             @update:open="(v: boolean) => (notWorked.open = v)"
+            :confirm-disabled="!notWorked.reason"
+            confirm-disabled-reason="Pick a reason to continue."
             @confirm="saveNotWorked"
         >
             <div class="flex flex-col gap-2">
@@ -533,6 +574,8 @@ const anyOpen = () =>
             :processing="busy.id === 'correction'"
             :error="failure"
             @update:open="(v: boolean) => (correction.open = v)"
+            :confirm-disabled="!correction.reason || !correction.amount"
+            confirm-disabled-reason="Enter an amount and pick a reason to continue."
             @confirm="saveCorrection"
         >
             <div class="flex flex-col gap-4">

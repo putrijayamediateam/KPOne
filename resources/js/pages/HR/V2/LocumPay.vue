@@ -45,6 +45,9 @@ const {
     startRate,
     saveRate,
     decideRate,
+    confirmForm,
+    startConfirm,
+    confirmRate,
     rejectForm,
     startReject,
     reject,
@@ -56,6 +59,8 @@ const {
     correction,
     startCorrection,
     saveCorrection,
+    removing,
+    startRemoveCorrection,
     removeCorrection,
     paid,
     startPaid,
@@ -71,7 +76,7 @@ const inputClass =
 
 const description = computed(() =>
     props.locumPay.tab === 'mine'
-        ? 'What you are owed for your approved shifts. The clinic pays you outside KPOne.'
+        ? 'What your approved shifts add up to so far. The clinic pays you outside KPOne.'
         : 'Monthly statements from approved shifts and confirmed rates. Payment is made outside KPOne and recorded here.',
 );
 const chip = (tone: string) =>
@@ -298,9 +303,9 @@ const directions = [
                                             :aria-label="`Confirm the rate for ${row.name}`"
                                             data-test="locum-rate-confirm"
                                             @click="
-                                                decideRate(
+                                                startConfirm(
                                                     row.waiting,
-                                                    'confirm',
+                                                    row.name,
                                                 )
                                             "
                                         >
@@ -397,7 +402,12 @@ const directions = [
                     <SheetHeader>
                         <SheetTitle
                             >{{ locumPay.statement.name }} ·
-                            {{ locumPay.monthLabel }}</SheetTitle
+                            {{ locumPay.monthLabel }} ·
+                            {{
+                                locumPay.statement.paid
+                                    ? 'Paid'
+                                    : 'Not paid yet'
+                            }}</SheetTitle
                         >
                         <SheetDescription
                             >Approved shifts × the confirmed rate on each
@@ -455,7 +465,7 @@ const directions = [
                             :busy-id="busy.id"
                             @not-worked="startNotWorked"
                             @count-again="countAgain"
-                            @remove-correction="removeCorrection"
+                            @remove-correction="startRemoveCorrection"
                         />
                         <div
                             v-if="!locumPay.statement.paid"
@@ -544,6 +554,45 @@ const directions = [
             </p>
         </V2Dialog>
 
+        <!-- Confirm a rate -->
+        <V2Dialog
+            :open="confirmForm.open"
+            :title="`Confirm ${confirmForm.rate?.amountLabel ?? ''} for ${confirmForm.name}?`"
+            :description="`From ${confirmForm.rate?.fromLabel ?? ''}, entered by ${confirmForm.rate?.enteredBy ?? ''}. You did not enter this rate: the person who enters a rate can never confirm it. Once confirmed, it prices shifts from that date in months not yet paid.`"
+            :confirm-label="
+                busy.id === confirmForm.rate?.id
+                    ? 'Confirming…'
+                    : 'Confirm rate'
+            "
+            :busy="busy.id === confirmForm.rate?.id"
+            @update:open="(v: boolean) => (confirmForm.open = v)"
+            @confirm="confirmRate"
+        >
+            <p v-if="failure" role="alert" class="text-sm text-destructive">
+                {{ failure }}
+            </p>
+        </V2Dialog>
+
+        <!-- Remove a correction -->
+        <V2Dialog
+            :open="removing.open"
+            :title="`Remove the correction ${removing.item?.reason ?? ''}, ${removing.item?.amountLabel ?? ''}?`"
+            description="It no longer counts in this month. The record of it is kept."
+            tone="danger"
+            :confirm-label="
+                busy.id === removing.item?.id
+                    ? 'Removing…'
+                    : 'Remove correction'
+            "
+            :busy="busy.id === removing.item?.id"
+            @update:open="(v: boolean) => (removing.open = v)"
+            @confirm="removeCorrection"
+        >
+            <p v-if="failure" role="alert" class="text-sm text-destructive">
+                {{ failure }}
+            </p>
+        </V2Dialog>
+
         <!-- Do not confirm a rate -->
         <V2Dialog
             :open="rejectForm.open"
@@ -555,6 +604,8 @@ const directions = [
             "
             :busy="busy.id === rejectForm.rate?.id"
             @update:open="(v: boolean) => (rejectForm.open = v)"
+            :confirm-disabled="!rejectForm.reason"
+            confirm-disabled-reason="Pick a reason to continue."
             @confirm="reject"
         >
             <V2OptionGroup
@@ -582,6 +633,8 @@ const directions = [
             "
             :busy="busy.id === notWorked.line?.shiftId"
             @update:open="(v: boolean) => (notWorked.open = v)"
+            :confirm-disabled="!notWorked.reason"
+            confirm-disabled-reason="Pick a reason to continue."
             @confirm="saveNotWorked"
         >
             <V2OptionGroup
@@ -607,6 +660,8 @@ const directions = [
             "
             :busy="busy.id === 'correction'"
             @update:open="(v: boolean) => (correction.open = v)"
+            :confirm-disabled="!correction.reason || !correction.amount"
+            confirm-disabled-reason="Enter an amount and pick a reason to continue."
             @confirm="saveCorrection"
         >
             <V2OptionGroup

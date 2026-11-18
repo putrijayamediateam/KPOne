@@ -24,9 +24,9 @@ const emit = defineEmits<{
 }>();
 
 const outline =
-    'inline-flex min-h-11 items-center justify-center rounded-md border border-border bg-background px-3 text-sm font-medium whitespace-nowrap hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 md:min-h-9';
-const pending = (own: boolean | undefined) =>
-    own ? 'Being checked by HR' : 'No confirmed rate';
+    'inline-flex min-h-11 items-center justify-center rounded-md border border-input bg-card px-3 text-sm font-medium whitespace-nowrap text-foreground shadow-xs hover:border-foreground/25 hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none disabled:opacity-50 md:min-h-9 dark:bg-field-fill/30 dark:hover:bg-field-fill/50';
+// A missing rate is unknown, never RM 0.00 (Daniel, 1).
+const pending = 'Rate missing';
 </script>
 
 <template>
@@ -64,7 +64,7 @@ const pending = (own: boolean | undefined) =>
                     >Not worked: {{ line.notWorked.reason }}</span
                 >
                 <span v-else-if="line.noRate" class="text-warning-strong">{{
-                    pending(own)
+                    pending
                 }}</span>
                 <span v-else class="text-muted-foreground">{{
                     line.basis
@@ -146,7 +146,7 @@ const pending = (own: boolean | undefined) =>
                             <span
                                 v-else-if="line.noRate"
                                 class="text-warning-strong"
-                                >{{ pending(own) }} ({{ line.hours }})</span
+                                >{{ pending }} ({{ line.hours }})</span
                             >
                             <span v-else>{{ line.basis }}</span>
                         </td>
@@ -225,8 +225,8 @@ const pending = (own: boolean | undefined) =>
             data-test="locum-statement-total"
         >
             <span class="font-semibold">{{
-                statement.paid
-                    ? 'Paid'
+                statement.paid && statement.payment
+                    ? `Paid on ${statement.payment.paidOnLabel}`
                     : own
                       ? 'Total so far (not final until paid)'
                       : 'Total so far'
