@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { ArrowRight } from '@lucide/vue';
 import CompliancePanel from '@/components/hr/compliance/CompliancePanel.vue';
 import ComplianceRules from '@/components/hr/compliance/ComplianceRules.vue';
 import InputError from '@/components/InputError.vue';
@@ -180,9 +181,11 @@ const {
                     variant="outline"
                     class="min-h-11 sm:min-h-9"
                 >
-                    <Link href="/hr/attendance" data-test="roster-clock-link"
-                        >Clock in</Link
-                    >
+                    <!-- One Clock in (owner, 18 Nov 2026): the press is on Me. -->
+                    <Link href="/spaces/me" data-test="roster-clock-link"
+                        >Clock in on Me
+                        <ArrowRight class="size-4" aria-hidden="true"
+                    /></Link>
                 </Button>
                 <Button
                     v-if="roster.my.canAskOpenShifts"

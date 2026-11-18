@@ -54,8 +54,20 @@ final class StockRequestService
         private InventoryBatchEligibility $eligibility,
     ) {}
 
+    /**
+     * STK-41: the stock request an approved agent transfer suggestion prepares. The same checks, locks and audit as `create`, as
+     * the approving person; the suggestion's id is kept as a trail only (never trusted for anything else), and the request then
+     * needs someone other than its requester to approve it (owner decision 2, 18 Nov 2026).
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    public function createFromProposal(User $approver, int $aiProposalId, array $attributes): StockRequest
+    {
+        return $this->create($approver, $attributes, $aiProposalId);
+    }
+
     /** @param array<string, mixed> $attributes */
-    public function create(User $actor, array $attributes): StockRequest
+    public function create(User $actor, array $attributes, ?int $aiProposalId = null): StockRequest
     {
         $branch = $this->authority->activeBranch($actor, $attributes);
         $lines = $this->validateRequestLines($attributes['lines'] ?? null);
@@ -68,7 +80,7 @@ final class StockRequestService
         $retryKey = $retryKey === null ? null : Str::lower($retryKey);
         $hash = $retryKey === null ? null : $this->fingerprint(['create', $branch->id, (string) ($attributes['source_location_public_id'] ?? ''), (string) ($attributes['destination_location_public_id'] ?? ''), $lines]);
 
-        return DB::transaction(function () use ($actor, $attributes, $branch, $lines, $retryKey, $hash): StockRequest {
+        return DB::transaction(function () use ($actor, $attributes, $branch, $lines, $retryKey, $hash, $aiProposalId): StockRequest {
             $lockedActor = $this->authority->lockForBranch($actor, $branch, self::CREATE_PERMISSION);
             // Checked under the actor lock, so a concurrent replay of the same key waits and then replays; the unique index
             // on (organisation_id, retry_key) is the backstop.
@@ -108,7 +120,7 @@ final class StockRequestService
                 'source_location_id' => $source->id, 'destination_location_id' => $destination->id,
                 'request_number' => 'SR-'.now()->utc()->format('Ym').'-'.Str::upper(Str::random(8)), 'status' => StockRequest::STATUS_REQUESTED,
                 'lock_version' => 1, 'requested_by_user_id' => $lockedActor->id, 'requested_at' => now()->utc(),
-                'retry_key' => $retryKey, 'payload_hash' => $hash,
+                'retry_key' => $retryKey, 'payload_hash' => $hash, 'ai_proposal_id' => $aiProposalId,
             ])->save();
             foreach ($lines as $input) {
                 $line = new StockRequestLine;
@@ -116,7 +128,9 @@ final class StockRequestService
             }
             $this->audit->record('inventory.stock_request.requested', $request, ['request_number' => $request->request_number, 'line_count' => count($lines),
                 // STK-31: a request may now send stock to another branch; the audit names where it goes.
-                'destination_branch_id' => $destination->branch_id, 'cross_branch' => $destination->branch_id !== null && $destination->branch_id !== $branch->id], $lockedActor, $branch);
+                'destination_branch_id' => $destination->branch_id, 'cross_branch' => $destination->branch_id !== null && $destination->branch_id !== $branch->id,
+                // STK-41: a request prepared from an agent suggestion says so (ids and codes only).
+                ...($aiProposalId === null ? [] : ['source' => 'ai_proposal', 'ai_proposal_id' => $aiProposalId])], $lockedActor, $branch);
 
             return $request->load('lines');
         }, 3);
@@ -396,6 +410,10 @@ final class StockRequestService
             $locked = $this->lockRequest($lockedActor, $request, $attributes);
             abort_unless($locked->requesting_branch_id === $branch->id, 404);
             $this->requireStatus($locked, StockRequest::STATUS_REQUESTED);
+            // STK-41 (owner decision 2): a request prepared from an agent suggestion never approves itself (PostgreSQL repeats this).
+            if ($status === StockRequest::STATUS_APPROVED && $locked->ai_proposal_id !== null && (int) $locked->requested_by_user_id === $lockedActor->id) {
+                throw new AuthorizationException('This request was prepared from a suggestion you approved, so someone else must approve it.');
+            }
             if ($status === StockRequest::STATUS_APPROVED) {
                 [$source, $destination] = $this->lockStoredLocations($lockedActor, $locked);
                 $this->assertSourceAuthority($lockedActor, $branch, $source);
