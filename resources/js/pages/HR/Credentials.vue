@@ -750,7 +750,7 @@ const {
                         v-model="newType.permit"
                         trigger-class="w-40 max-lg:h-11"
                         label="Work permit"
-                        placeholder="Choose Yes or No"
+                        placeholder="Choose"
                         :options="yesNo"
                     />
                     <p class="text-xs text-muted-foreground">
