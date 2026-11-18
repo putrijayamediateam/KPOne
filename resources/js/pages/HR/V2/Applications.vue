@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { computed } from 'vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import MaskedValue from '@/components/hr/records/MaskedValue.vue';
@@ -57,11 +57,19 @@ const {
     arrangedOutside,
     moveSteps,
     confirming,
+    meeting,
+    askConfirm,
+    confirmInterview,
     askMove,
     move,
     label,
     accountAction,
     accountPost,
+    locumConfirm,
+    locumAnnounce,
+    locumError,
+    askLocumFile,
+    makeLocumFile,
     positionForm,
     branchOptions,
     startAdd,
@@ -1203,7 +1211,7 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
         >
             <template v-if="viewing">
                 <p
-                    v-if="errors.to || failure"
+                    v-if="(errors.to || failure) && !locumConfirm"
                     role="alert"
                     class="text-sm text-destructive"
                 >
@@ -1308,6 +1316,20 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                             <strong>{{ viewing.interview.confirmed }}</strong
                             >.
                         </p>
+                        <p
+                            v-if="viewing.interview.online"
+                            class="text-sm break-all"
+                            data-test="interview-online"
+                        >
+                            Online:
+                            <a
+                                :href="viewing.interview.videoLink ?? undefined"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                class="underline underline-offset-2"
+                                >{{ viewing.interview.videoLink }}</a
+                            >
+                        </p>
                         <button
                             type="button"
                             :class="`${button} w-fit`"
@@ -1393,12 +1415,7 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                                     "
                                     :aria-label="`Confirm ${pick.label}`"
                                     data-test="interview-confirm"
-                                    @click="
-                                        confirming = {
-                                            start: pick.start,
-                                            label: pick.label,
-                                        }
-                                    "
+                                    @click="askConfirm(pick)"
                                 >
                                     Confirm
                                 </button>
@@ -1620,15 +1637,59 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                                   : 'Not in the talent pool.'
                         }}
                     </p>
+                    <p
+                        class="sr-only"
+                        role="status"
+                        data-test="application-locum-announce"
+                    >
+                        {{ locumAnnounce }}
+                    </p>
                     <template v-if="viewing.status === 'passed'">
+                        <div
+                            v-if="viewing.locumHire"
+                            class="flex flex-col gap-2"
+                            data-test="application-locum-hire"
+                        >
+                            <p class="text-sm">
+                                Locum file: {{ viewing.locumHire.name }}
+                            </p>
+                            <p
+                                class="flex items-center gap-2 text-sm text-muted-foreground"
+                            >
+                                <span
+                                    class="size-2 shrink-0 rounded-full bg-warning"
+                                    :class="{
+                                        'bg-success':
+                                            viewing.locumHire.signIn ===
+                                            'Sign-in made',
+                                    }"
+                                    aria-hidden="true"
+                                />
+                                {{ viewing.locumHire.signIn }}
+                            </p>
+                            <Link
+                                :href="`/hr/records/${viewing.locumHire.workerId}`"
+                                :class="`${button} w-full sm:w-auto sm:self-start`"
+                                data-test="application-locum-open"
+                                >Open the locum file</Link
+                            >
+                        </div>
                         <p
-                            v-if="viewing.accountRequest"
+                            v-else-if="viewing.accountRequest"
                             class="text-sm"
                             data-test="application-account-request"
                         >
                             Staff account:
                             {{ viewing.accountRequest.statusLabel }} ·
                             {{ viewing.accountRequest.at }}
+                        </p>
+                        <p
+                            v-else-if="viewing.type === 'locum'"
+                            class="text-sm text-muted-foreground"
+                        >
+                            No offer is made in KPOne. When they accept, make
+                            the locum file. KPOne then asks the account
+                            administrator for their sign-in.
                         </p>
                         <p v-else class="text-sm text-muted-foreground">
                             No offer is made in KPOne. When they accept, ask the
@@ -1637,6 +1698,23 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                         <div class="flex flex-wrap gap-2">
                             <button
                                 v-if="
+                                    viewing.type === 'locum' &&
+                                    !viewing.locumHire &&
+                                    viewing.accountRequest?.status !== 'open' &&
+                                    viewing.accountRequest?.status !== 'done' &&
+                                    !viewing.purged
+                                "
+                                type="button"
+                                :class="button"
+                                :disabled="accountAction.processing"
+                                data-test="application-locum-make"
+                                @click="askLocumFile"
+                            >
+                                Make the locum file and ask for a sign-in
+                            </button>
+                            <button
+                                v-if="
+                                    viewing.type !== 'locum' &&
                                     viewing.accountRequest?.status !== 'open' &&
                                     viewing.accountRequest?.status !== 'done' &&
                                     !viewing.purged
@@ -1876,22 +1954,72 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
             </template>
         </V2Dialog>
 
+        <!-- HR-15d: make the locum file -->
+        <V2Dialog
+            :open="locumConfirm"
+            :title="`Make the locum file for ${viewing?.name ?? ''} and ask for a sign-in?`"
+            description="KPOne makes the locum file from the application's name and phone, and asks the account administrator for a sign-in with the email they applied with."
+            :confirm-label="
+                accountAction.processing ? 'Making…' : 'Make file and ask'
+            "
+            :busy="accountAction.processing"
+            data-test="application-locum-confirm"
+            @update:open="(open: boolean) => !open && (locumConfirm = false)"
+            @confirm="makeLocumFile"
+        >
+            <p v-if="locumError" role="alert" class="text-sm text-destructive">
+                {{ locumError }}
+            </p>
+        </V2Dialog>
+
         <!-- Confirm one interview time -->
         <V2Dialog
             :open="confirming !== null"
             :title="`Confirm ${confirming?.label ?? ''}?`"
-            description="The candidate is told the date, time and branch."
+            :description="
+                meeting.mode === 'online'
+                    ? 'The candidate is told the date, time and video link.'
+                    : 'The candidate is told the date, time and branch.'
+            "
             :confirm-label="
                 interviewAction.processing ? 'Confirming…' : 'Confirm interview'
             "
             :busy="interviewAction.processing"
             data-test="interview-confirm-dialog"
             @update:open="(open: boolean) => !open && (confirming = null)"
-            @confirm="
-                confirming &&
-                interviewPost('confirm', { start: confirming.start })
-            "
+            @confirm="confirmInterview"
         >
+            <V2OptionGroup
+                :model-value="meeting.mode"
+                :options="applications.options.meetingModes"
+                label="How does it happen?"
+                required
+                :error="errors.mode"
+                data-test="interview-meeting-modes"
+                @update:model-value="meeting.mode = $event ?? 'in_person'"
+            />
+            <V2Field
+                v-if="meeting.mode === 'online'"
+                v-slot="{ id, describedBy, invalid }"
+                label="Video link"
+                hint="The candidate sees it on their private page and in the email. KPOne does not make the meeting."
+                required
+                :error="errors.video_link"
+            >
+                <input
+                    :id="id"
+                    :aria-describedby="describedBy"
+                    :aria-invalid="invalid || undefined"
+                    v-model="meeting.videoLink"
+                    type="url"
+                    inputmode="url"
+                    autocomplete="off"
+                    maxlength="500"
+                    placeholder="https://"
+                    :class="`${inputClass} aria-invalid:border-destructive aria-invalid:ring-1 aria-invalid:ring-destructive`"
+                    data-test="interview-video-link"
+                />
+            </V2Field>
             <p
                 v-if="errors.start"
                 role="alert"

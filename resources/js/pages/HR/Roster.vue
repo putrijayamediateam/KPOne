@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { Head, Link } from '@inertiajs/vue3';
+import { ArrowRight } from '@lucide/vue';
+import { computed } from 'vue';
 import CompliancePanel from '@/components/hr/compliance/CompliancePanel.vue';
 import ComplianceRules from '@/components/hr/compliance/ComplianceRules.vue';
+import MonthCalendar from '@/components/hr/roster/MonthCalendar.vue';
 import InputError from '@/components/InputError.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,6 +30,7 @@ import type {
     Minimums,
     Option,
     Planner,
+    RosterMonth,
     Shift,
 } from '@/composables/hr/useRosterPage';
 
@@ -52,6 +56,9 @@ const props = defineProps<{
         } | null;
         planner: Planner | null;
         minimums: Minimums | null;
+        // HR-15f: the month calendar on My roster.
+        view?: 'week' | 'month';
+        month?: RosterMonth | null;
     };
 }>();
 
@@ -66,6 +73,8 @@ const {
     statusLabel,
     visit,
     changeTab,
+    showMonth,
+    showWeek,
     changeBranch,
     versionLine,
     dialog,
@@ -95,6 +104,10 @@ const {
     onLeave,
     minimumError,
 } = useRosterPage(props);
+// HR-15f: the month calendar is My roster only.
+const isMonth = computed(
+    () => props.roster.tab === 'my' && props.roster.view === 'month',
+);
 </script>
 
 <template>
@@ -116,8 +129,72 @@ const {
             @update:model-value="changeTab"
         />
 
+        <!-- HR-15f: Week or Month on My roster; the choice is in the address (Daniel: segmented, aria-pressed). -->
         <div
-            v-if="roster.tab !== 'minimums'"
+            v-if="roster.tab === 'my' && roster.my"
+            class="inline-flex w-fit rounded-md border p-0.5"
+            role="group"
+            aria-label="Show my roster by"
+            data-test="roster-view-switch"
+        >
+            <Button
+                variant="ghost"
+                size="sm"
+                class="min-h-11 sm:min-h-8"
+                :class="
+                    isMonth
+                        ? ''
+                        : 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                "
+                :aria-pressed="!isMonth"
+                @click="showWeek"
+                >Week</Button
+            >
+            <Button
+                variant="ghost"
+                size="sm"
+                class="min-h-11 sm:min-h-8"
+                :class="
+                    isMonth
+                        ? 'bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground'
+                        : ''
+                "
+                :aria-pressed="isMonth"
+                @click="showMonth()"
+                >Month</Button
+            >
+        </div>
+
+        <div
+            v-if="isMonth && roster.month"
+            class="flex flex-wrap items-center gap-2"
+            data-test="month-switcher"
+        >
+            <Button
+                variant="outline"
+                size="sm"
+                @click="showMonth(roster.month.previous)"
+                >Previous month</Button
+            >
+            <Button
+                variant="outline"
+                size="sm"
+                @click="showMonth(roster.month.current)"
+                >This month</Button
+            >
+            <Button
+                variant="outline"
+                size="sm"
+                @click="showMonth(roster.month.next)"
+                >Next month</Button
+            >
+            <span class="text-sm font-medium" data-test="month-label">{{
+                roster.month.label
+            }}</span>
+        </div>
+
+        <div
+            v-else-if="roster.tab !== 'minimums'"
             class="flex flex-wrap items-center gap-2"
             data-test="week-switcher"
         >
@@ -170,8 +247,12 @@ const {
                         My shifts
                     </h2>
                     <p class="text-xs text-muted-foreground">
-                        Your approved shifts for this week. Times are in each
-                        branch's time.
+                        {{
+                            isMonth
+                                ? 'Your approved shifts and open shift asks for this month.'
+                                : 'Your approved shifts for this week.'
+                        }}
+                        Times are in each branch's time.
                     </p>
                 </div>
                 <Button
@@ -180,9 +261,11 @@ const {
                     variant="outline"
                     class="min-h-11 sm:min-h-9"
                 >
-                    <Link href="/hr/attendance" data-test="roster-clock-link"
-                        >Clock in</Link
-                    >
+                    <!-- One Clock in (owner, 18 Nov 2026): the press is on Me. -->
+                    <Link href="/spaces/me" data-test="roster-clock-link"
+                        >Clock in on Me
+                        <ArrowRight class="size-4" aria-hidden="true"
+                    /></Link>
                 </Button>
                 <Button
                     v-if="roster.my.canAskOpenShifts"
@@ -197,8 +280,12 @@ const {
                     >
                 </Button>
             </div>
+            <MonthCalendar
+                v-if="isMonth && roster.month"
+                :month="roster.month"
+            />
             <EmptyState
-                v-if="roster.my.days.length === 0"
+                v-else-if="roster.my.days.length === 0"
                 title="No approved shifts this week."
                 description="Your roster appears here after the Director approves it."
             />

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // HR-13 /hr/applications (Director, HR Manager): applications from the public form, the open positions and the
 // retention. HR-PLAN 15.2, with HR-17a's position types, form answers, phone screening and call checklist (HR-PLAN 19). Every CV open is recorded by the server before any byte is sent.
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import { ChevronRight, TriangleAlert } from '@lucide/vue';
 import FileChooseButton from '@/components/catalogue/FileChooseButton.vue';
 import MaskedValue from '@/components/hr/records/MaskedValue.vue';
@@ -59,6 +59,9 @@ const {
     arrangedOutside,
     moveSteps,
     confirming,
+    meeting,
+    askConfirm,
+    confirmInterview,
     askMove,
     move,
     label,
@@ -86,6 +89,11 @@ const {
     copyInvitationLink,
     accountAction,
     accountPost,
+    locumConfirm,
+    locumAnnounce,
+    locumError,
+    askLocumFile,
+    makeLocumFile,
     DOCS_MAX,
     documentForm,
     documentPicker,
@@ -981,7 +989,7 @@ const {
                 </SheetHeader>
                 <div v-if="viewing" class="flex flex-col gap-4 px-4 pb-6">
                     <ErrorState
-                        v-if="errors.to || failure"
+                        v-if="(errors.to || failure) && !locumConfirm"
                         :message="errors.to ?? failure ?? ''"
                     />
                     <div class="flex flex-wrap items-center gap-2">
@@ -1091,6 +1099,22 @@ const {
                                 }}</strong
                                 >.
                             </p>
+                            <p
+                                v-if="viewing.interview.online"
+                                class="text-sm break-all"
+                                data-test="interview-online"
+                            >
+                                Online:
+                                <a
+                                    :href="
+                                        viewing.interview.videoLink ?? undefined
+                                    "
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    class="underline underline-offset-2"
+                                    >{{ viewing.interview.videoLink }}</a
+                                >
+                            </p>
                             <Button
                                 variant="outline"
                                 class="w-fit max-lg:min-h-11"
@@ -1175,12 +1199,7 @@ const {
                                         "
                                         :aria-label="`Confirm ${pick.label}`"
                                         data-test="interview-confirm"
-                                        @click="
-                                            confirming = {
-                                                start: pick.start,
-                                                label: pick.label,
-                                            }
-                                        "
+                                        @click="askConfirm(pick)"
                                         >Confirm</Button
                                     >
                                 </li>
@@ -1390,15 +1409,64 @@ const {
                                       : 'Not in the talent pool.'
                             }}
                         </p>
+                        <p
+                            class="sr-only"
+                            role="status"
+                            data-test="application-locum-announce"
+                        >
+                            {{ locumAnnounce }}
+                        </p>
                         <template v-if="viewing.status === 'passed'">
+                            <div
+                                v-if="viewing.locumHire"
+                                class="flex flex-col gap-2"
+                                data-test="application-locum-hire"
+                            >
+                                <p class="text-sm">
+                                    Locum file: {{ viewing.locumHire.name }}
+                                </p>
+                                <p
+                                    class="flex items-center gap-2 text-sm text-muted-foreground"
+                                >
+                                    <span
+                                        class="size-2 shrink-0 rounded-full bg-warning"
+                                        :class="{
+                                            'bg-success':
+                                                viewing.locumHire.signIn ===
+                                                'Sign-in made',
+                                        }"
+                                        aria-hidden="true"
+                                    />
+                                    {{ viewing.locumHire.signIn }}
+                                </p>
+                                <Button
+                                    as-child
+                                    variant="outline"
+                                    class="min-h-11 w-full sm:min-h-9 sm:w-auto sm:self-start"
+                                >
+                                    <Link
+                                        :href="`/hr/records/${viewing.locumHire.workerId}`"
+                                        data-test="application-locum-open"
+                                        >Open the locum file</Link
+                                    >
+                                </Button>
+                            </div>
                             <p
-                                v-if="viewing.accountRequest"
+                                v-else-if="viewing.accountRequest"
                                 class="text-sm"
                                 data-test="application-account-request"
                             >
                                 Staff account:
                                 {{ viewing.accountRequest.statusLabel }} ·
                                 {{ viewing.accountRequest.at }}
+                            </p>
+                            <p
+                                v-else-if="viewing.type === 'locum'"
+                                class="text-sm text-muted-foreground"
+                            >
+                                No offer is made in KPOne. When they accept,
+                                make the locum file. KPOne then asks the account
+                                administrator for their sign-in.
                             </p>
                             <p v-else class="text-sm text-muted-foreground">
                                 No offer is made in KPOne. When they accept, ask
@@ -1407,6 +1475,25 @@ const {
                             <div class="flex flex-wrap gap-2">
                                 <Button
                                     v-if="
+                                        viewing.type === 'locum' &&
+                                        !viewing.locumHire &&
+                                        viewing.accountRequest?.status !==
+                                            'open' &&
+                                        viewing.accountRequest?.status !==
+                                            'done' &&
+                                        !viewing.purged
+                                    "
+                                    variant="outline"
+                                    class="max-lg:min-h-11"
+                                    :disabled="accountAction.processing"
+                                    data-test="application-locum-make"
+                                    @click="askLocumFile"
+                                    >Make the locum file and ask for a
+                                    sign-in</Button
+                                >
+                                <Button
+                                    v-if="
+                                        viewing.type !== 'locum' &&
                                         viewing.accountRequest?.status !==
                                             'open' &&
                                         viewing.accountRequest?.status !==
@@ -1646,6 +1733,18 @@ const {
         </Sheet>
 
         <OperationalConfirmDialog
+            :open="locumConfirm"
+            :title="`Make the locum file for ${viewing?.name ?? ''} and ask for a sign-in?`"
+            description="KPOne makes the locum file from the application's name and phone, and asks the account administrator for a sign-in with the email they applied with."
+            confirm-label="Make file and ask"
+            :processing="accountAction.processing"
+            :error="locumError"
+            data-test="application-locum-confirm"
+            @update:open="(open) => !open && (locumConfirm = false)"
+            @confirm="makeLocumFile"
+        />
+
+        <OperationalConfirmDialog
             :open="inviting !== null"
             :title="`Invite ${inviting?.member.name ?? ''} to ${inviting?.position.label ?? ''}?`"
             description="A new application starts at phone screening with the same answers and CV, and the candidate gets a new private link. Call them soon: like any application at phone screening, the daily check closes it as Auto-rejected after 3 working days without a decision."
@@ -1671,17 +1770,71 @@ const {
         <OperationalConfirmDialog
             :open="confirming !== null"
             :title="`Confirm ${confirming?.label ?? ''}?`"
-            description="The candidate is told the date, time and branch."
+            :description="
+                meeting.mode === 'online'
+                    ? 'The candidate is told the date, time and video link.'
+                    : 'The candidate is told the date, time and branch.'
+            "
             confirm-label="Confirm interview"
             :processing="interviewAction.processing"
-            :error="errors.start"
+            :error="errors.start ?? errors.mode"
             data-test="interview-confirm-dialog"
             @update:open="(open) => !open && (confirming = null)"
-            @confirm="
-                confirming &&
-                interviewPost('confirm', { start: confirming.start })
-            "
-        />
+            @confirm="confirmInterview"
+        >
+            <fieldset
+                class="flex flex-col gap-1"
+                data-test="interview-meeting-modes"
+            >
+                <legend class="mb-1 text-sm font-medium">
+                    How does it happen?
+                </legend>
+                <label
+                    v-for="m in applications.options.meetingModes"
+                    :key="m.value"
+                    class="flex min-h-11 items-center gap-3 text-sm"
+                >
+                    <input
+                        v-model="meeting.mode"
+                        type="radio"
+                        name="interview-meeting-mode"
+                        :value="m.value"
+                        class="size-5"
+                    />
+                    {{ m.label }}
+                </label>
+            </fieldset>
+            <div v-if="meeting.mode === 'online'" class="flex flex-col gap-1.5">
+                <Label for="interview-video-link">Video link</Label>
+                <Input
+                    id="interview-video-link"
+                    v-model="meeting.videoLink"
+                    type="url"
+                    inputmode="url"
+                    autocomplete="off"
+                    maxlength="500"
+                    placeholder="https://"
+                    :aria-describedby="
+                        errors.video_link
+                            ? 'interview-video-link-help interview-video-link-error'
+                            : 'interview-video-link-help'
+                    "
+                    :aria-invalid="errors.video_link ? true : undefined"
+                    data-test="interview-video-link"
+                />
+                <p
+                    id="interview-video-link-help"
+                    class="text-sm text-muted-foreground"
+                >
+                    The candidate sees it on their private page and in the
+                    email. KPOne does not make the meeting.
+                </p>
+                <InputError
+                    id="interview-video-link-error"
+                    :message="errors.video_link"
+                />
+            </div>
+        </OperationalConfirmDialog>
 
         <OperationalConfirmDialog
             :open="interviewAction.cancelOpen"
