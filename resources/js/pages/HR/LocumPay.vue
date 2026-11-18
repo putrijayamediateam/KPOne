@@ -652,6 +652,8 @@ const anyOpen = () =>
             :processing="busy.id === 'paid'"
             :error="failure"
             @update:open="(v: boolean) => (paid.open = v)"
+            :confirm-disabled="!paid.paid_on"
+            confirm-disabled-reason="Pick the date paid to continue."
             @confirm="savePaid"
         >
             <div class="flex flex-col gap-4">

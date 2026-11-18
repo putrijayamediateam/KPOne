@@ -727,6 +727,8 @@ const directions = [
             "
             :busy="busy.id === 'paid'"
             @update:open="(v: boolean) => (paid.open = v)"
+            :confirm-disabled="!paid.paid_on"
+            confirm-disabled-reason="Pick the date paid to continue."
             @confirm="savePaid"
         >
             <V2DateField

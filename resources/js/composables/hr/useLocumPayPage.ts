@@ -426,7 +426,8 @@ export function useLocumPayPage(props: LocumPayPageProps) {
     const startPaid = () =>
         Object.assign(paid, {
             open: true,
-            paid_on: props.locumPay.today,
+            // Starts empty, so nobody records today's date by habit (Daniel).
+            paid_on: '',
             reference: '',
             key: crypto.randomUUID(),
         });

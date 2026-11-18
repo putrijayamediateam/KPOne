@@ -43,6 +43,8 @@ test('every write carries an idempotency key, and decisions carry the lock versi
     );
     // Recording payment sends the statement's fingerprint, so a changed statement is refused.
     assert.match(composable, /fingerprint: statement\.fingerprint,/);
+    // The paid date starts empty (Daniel).
+    assert.match(composable, /paid_on: '',/);
 });
 
 test('a reason starts empty, and the statement offers HR controls only when it may be edited', () => {
@@ -91,6 +93,7 @@ test('Record payment is said plainly: KPOne records, never pays, and the month l
             /Record this only after the clinic has paid the locum outside KPOne\. The month is then locked and cannot be undone\./,
         );
         assert.match(page, /:disabled="!locumPay\.statement\.canMarkPaid"/);
+        assert.match(page, /Pick the date paid to continue\./);
         assert.match(
             page,
             /A month can be recorded as paid once it has ended\./,
