@@ -41,8 +41,12 @@ test('the form state and the row type know about usual quantity, sent as a plain
         assert.match(source, /usual_quantity: '',/);
     }
 
-    assert.match(
-        v2Form,
-        /type="number"[\s\S]{0,80}min="0"[\s\S]{0,40}step="0.001"/,
-    );
+    // The server owns the rules (positive, up to 3 decimals), so the field has no min or step that would make the
+    // browser show its own popup instead of the field message and red border.
+    for (const source of [classic, v2Form]) {
+        assert.match(
+            source,
+            /v-model="form\.usual_quantity"\s+type="number"\s+step="any"/,
+        );
+    }
 });

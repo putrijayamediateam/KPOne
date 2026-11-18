@@ -30,7 +30,7 @@ defineEmits<{ cancel: [] }>();
 const form = props.c.form;
 const usualQuantityHelp = computed(
     () =>
-        `Prefilled when a doctor orders this medicine, and counted in the order unit${form.order_unit ? ` (${form.order_unit})` : ''}. Leave empty for no prefill.`,
+        `Prefilled when a doctor orders this medicine, and counted in the order unit${form.order_unit ? ` (${form.order_unit})` : ''}. Up to 3 decimals. Leave empty for no prefill.`,
 );
 const inputClass =
     'h-11 w-full rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9';
@@ -280,11 +280,14 @@ const branchOptions = computed(() =>
                         :id="id"
                         v-model="form.usual_quantity"
                         type="number"
-                        min="0"
-                        step="0.001"
+                        step="any"
+                        inputmode="decimal"
                         :aria-describedby="describedBy"
                         :aria-invalid="invalid"
-                        :class="field(invalid)"
+                        :class="[
+                            field(invalid),
+                            '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                        ]"
                     />
                 </V2Field>
             </div>

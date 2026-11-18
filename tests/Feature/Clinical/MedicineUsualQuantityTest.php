@@ -45,7 +45,7 @@ class MedicineUsualQuantityTest extends ClinicalTestCase
         $director = $this->actor('director');
         $service = app(MedicineAdministrationService::class);
 
-        foreach (['0', '0.000', '-1', '1000000.001', 'abc'] as $value) {
+        foreach (['0', '0.000', '-1', '1000000.001', 'abc', '1e-5', '0.0004'] as $value) {
             try {
                 $service->create($director, $this->attributes(['usual_quantity' => $value]));
                 $this->fail('usual_quantity '.$value.' must be refused.');
@@ -54,6 +54,22 @@ class MedicineUsualQuantityTest extends ClinicalTestCase
             }
         }
         $this->assertSame(0, MedicineCatalogueItem::query()->count());
+    }
+
+    public function test_more_than_three_decimals_is_refused_with_a_clear_message_and_trailing_zeros_are_fine(): void
+    {
+        $director = $this->actor('director');
+        $service = app(MedicineAdministrationService::class);
+
+        try {
+            $service->create($director, $this->attributes(['usual_quantity' => '2.0005']));
+            $this->fail('four decimals must be refused.');
+        } catch (ValidationException $e) {
+            $this->assertSame('Use up to 3 decimal places.', $e->errors()['usual_quantity'][0]);
+        }
+
+        $ok = $service->create($director, $this->attributes(['usual_quantity' => '2.5000']));
+        $this->assertSame('2.500', $ok->usual_quantity);
     }
 
     public function test_postgresql_refuses_a_zero_usual_quantity_written_directly(): void
@@ -93,6 +109,11 @@ class MedicineUsualQuantityTest extends ClinicalTestCase
         $this->patch(route('medicines.update', $medicine), ['usual_quantity' => '0'])
             ->assertSessionHasErrors('usual_quantity');
         $this->assertSame('12.000', $medicine->refresh()->usual_quantity);
+
+        foreach (['-1' => 'Enter a positive amount.', '2.0005' => 'Use up to 3 decimal places.'] as $bad => $message) {
+            $this->patch(route('medicines.update', $medicine), ['usual_quantity' => $bad])
+                ->assertSessionHasErrors(['usual_quantity' => $message]);
+        }
 
         $this->patch(route('medicines.update', $medicine), ['usual_quantity' => '3'])
             ->assertRedirect(route('medicines.index'));

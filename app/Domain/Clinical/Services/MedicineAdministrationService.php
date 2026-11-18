@@ -386,7 +386,7 @@ class MedicineAdministrationService
             'default_frequency' => $this->nullableText($attributes['default_frequency'] ?? null, 'default_frequency', 200),
             'default_duration' => $this->nullableText($attributes['default_duration'] ?? null, 'default_duration', 100),
             'default_indication' => $this->nullableText($attributes['default_indication'] ?? null, 'default_indication', 300),
-            'usual_quantity' => $this->nullableDecimal($attributes['usual_quantity'] ?? null, 'usual_quantity'),
+            'usual_quantity' => $this->nullableDecimal($attributes['usual_quantity'] ?? null, 'usual_quantity', 3),
         ];
     }
 
@@ -427,7 +427,7 @@ class MedicineAdministrationService
                 'default_frequency' => $this->nullableText($attributes[$field], $field, 200),
                 'default_duration' => $this->nullableText($attributes[$field], $field, 100),
                 'default_indication' => $this->nullableText($attributes[$field], $field, 300),
-                'usual_quantity' => $this->nullableDecimal($attributes[$field], $field),
+                'usual_quantity' => $this->nullableDecimal($attributes[$field], $field, 3),
             };
         }
 
@@ -477,7 +477,7 @@ class MedicineAdministrationService
         return $this->requiredText($value, $field, $maximum);
     }
 
-    private function nullableDecimal(mixed $value, string $field): ?string
+    private function nullableDecimal(mixed $value, string $field, ?int $maxDecimals = null): ?string
     {
         if ($value === null || (is_string($value) && trim($value) === '')) {
             return null;
@@ -485,7 +485,16 @@ class MedicineAdministrationService
         if (! is_numeric($value) || (float) $value <= 0 || (float) $value > 1000000) {
             throw ValidationException::withMessages([$field => 'Enter a positive amount.']);
         }
+        $text = (string) $value;
+        if ($maxDecimals !== null && str_contains($text, '.') && strlen(rtrim(substr($text, (int) strpos($text, '.') + 1), '0')) > $maxDecimals) {
+            throw ValidationException::withMessages([$field => 'Use up to '.$maxDecimals.' decimal places.']);
+        }
 
-        return number_format((float) $value, 3, '.', '');
+        $formatted = number_format((float) $value, 3, '.', '');
+        if ($maxDecimals !== null && (float) $formatted <= 0) {
+            throw ValidationException::withMessages([$field => 'Enter a positive amount.']);
+        }
+
+        return $formatted;
     }
 }

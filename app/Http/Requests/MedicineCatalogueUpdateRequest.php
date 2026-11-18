@@ -11,6 +11,17 @@ class MedicineCatalogueUpdateRequest extends FormRequest
         return true;
     }
 
+    /** @return array<string, string> */
+    public function messages(): array
+    {
+        return [
+            'usual_quantity.numeric' => 'Enter a positive amount.',
+            'usual_quantity.gt' => 'Enter a positive amount.',
+            'usual_quantity.max' => 'Enter a positive amount.',
+            'usual_quantity.decimal' => 'Use up to 3 decimal places.',
+        ];
+    }
+
     /** @return array<string, list<string>> */
     public function rules(): array
     {
@@ -30,7 +41,7 @@ class MedicineCatalogueUpdateRequest extends FormRequest
             'default_frequency' => ['sometimes', 'nullable', 'string', 'max:200'],
             'default_duration' => ['sometimes', 'nullable', 'string', 'max:100'],
             'default_indication' => ['sometimes', 'nullable', 'string', 'max:300'],
-            'usual_quantity' => ['sometimes', 'nullable', 'numeric', 'gt:0', 'max:1000000'],
+            'usual_quantity' => ['sometimes', 'nullable', 'numeric', 'gt:0', 'max:1000000', 'decimal:0,3'],
             'route' => ['sometimes', 'nullable', 'string', 'max:100'],
             'manufacturer' => ['sometimes', 'nullable', 'string', 'max:200'],
             'mal_number' => ['sometimes', 'nullable', 'string', 'max:100'],

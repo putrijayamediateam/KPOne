@@ -184,7 +184,7 @@ const openCreate = () => {
 
 const usualQuantityHelp = computed(
     () =>
-        `Prefilled when a doctor orders this medicine, and counted in the order unit${form.order_unit ? ` (${form.order_unit})` : ''}. Leave empty for no prefill.`,
+        `Prefilled when a doctor orders this medicine, and counted in the order unit${form.order_unit ? ` (${form.order_unit})` : ''}. Up to 3 decimals. Leave empty for no prefill.`,
 );
 const openEdit = async (row: MedicineRow) => {
     editLoading.value = true;
@@ -1070,8 +1070,9 @@ const toggleDescription = computed(() => {
                                 >Usual quantity<Input
                                     v-model="form.usual_quantity"
                                     type="number"
-                                    min="0"
-                                    step="0.001"
+                                    step="any"
+                                    inputmode="decimal"
+                                    class="[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                                     aria-describedby="usual-quantity-help" /><span
                                     id="usual-quantity-help"
                                     class="text-[12px] text-muted-foreground"
