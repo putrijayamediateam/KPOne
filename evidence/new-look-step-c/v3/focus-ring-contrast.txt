@@ -3,3 +3,6 @@ light | ring rgb(10,86,209) vs rail (247,247,248) | 6.01 | vs white card | 6.43 
 dark  | ring rgb(107,166,255) vs rail (30,30,36) | 6.73 | vs card (26,26,31) | 7.04 | needs 3
 The outline has a 2 px gap, so on the dark selected pill the ring is measured against the rail, not the pill.
 Not measured by pixel: the ring on a panel row (colour read from --ring). Computed outline for selected and unselected rail icons: 2px, offset 2px.
+
+PANEL ROW RING (pixel, head after fix): light ring (10,86,209) vs white card 6.43; dark ring (107,166,255) vs card (26,26,31) 7.04; needs 3. Before the fix the ring was clipped at the left and right edges by the list scroll box (row-focus shots show the fixed state).
+PHONE SHEET: focus moves inside the sheet on open; Esc closes it and focus returns to the "Open menu" button (light and dark).
