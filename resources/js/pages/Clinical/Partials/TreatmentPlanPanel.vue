@@ -834,7 +834,7 @@ defineExpose({
                         </div>
                     </div>
                     <p
-                        class="truncate text-xs text-muted-foreground"
+                        class="text-xs break-words text-muted-foreground sm:truncate"
                         :title="
                             [
                                 item.dosage,
@@ -862,6 +862,8 @@ defineExpose({
                     </p>
                     <p
                         v-if="prefilledOrders[orderKey(item)]"
+                        :id="`prefill-note-${orderKey(item)}`"
+                        role="status"
                         class="text-xs text-muted-foreground"
                         data-testid="prefill-note"
                     >
@@ -1069,6 +1071,12 @@ defineExpose({
                                 <label
                                     >Indication<textarea
                                         v-model="item.indication"
+                                        :aria-describedby="
+                                            prefilledOrders[orderKey(item)]
+                                                ?.indicationTooLong
+                                                ? `prefill-note-${orderKey(item)}`
+                                                : undefined
+                                        "
                                         maxlength="2000"
                                         rows="2"
                                         class="mt-1 w-full rounded-md border border-input bg-card p-2 text-sm text-foreground outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"

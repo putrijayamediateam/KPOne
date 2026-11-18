@@ -118,3 +118,23 @@ test('the panel prefills only a NEW row, through the same parsers a saved order 
     // presentation state only: the note flags never join the saved form
     assert.doesNotMatch(add, /prefilled:/);
 });
+
+test('the prefill note is announced, tied to the indication field, and the summary wraps on a phone (Daniel)', () => {
+    assert.match(
+        panel,
+        /:id="`prefill-note-\$\{orderKey\(item\)\}`"\s+role="status"/,
+    );
+    assert.match(
+        panel,
+        /:aria-describedby="[\s\S]{0,400}prefill-note-\$\{orderKey\(item\)\}/,
+    );
+    assert.match(
+        panel,
+        /class="text-xs break-words text-muted-foreground sm:truncate"/,
+    );
+    // a saved row has its own id and no catalogue id, so its key no longer matches and the note goes
+    assert.match(
+        panel,
+        /catalogue_public_id: null,\s+quantity_ordered: item\.quantityOrdered/,
+    );
+});
