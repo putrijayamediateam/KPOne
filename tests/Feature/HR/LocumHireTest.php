@@ -86,6 +86,38 @@ class LocumHireTest extends VisitTestCase
         // The link is append-only.
         $this->assertDatabaseRefuses(fn () => DB::table('hr_locum_hires')->update(['made_by_user_id' => $this->hr->id]));
         $this->assertDatabaseRefuses(fn () => DB::table('hr_locum_hires')->delete());
+
+        // A staff account is refused once the locum file exists, even by a direct request (Suresh, M1).
+        $this->post(route('hr.applications.account-request', $passed), ['expected_lock_version' => $this->row($passed)->lock_version,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasErrors(['application' => 'A locum file was made for this candidate. Their sign-in is asked for from the locum file.']);
+        $this->assertSame(0, DB::table('hr_staff_account_requests')->count());
+    }
+
+    public function test_a_locum_file_is_refused_once_a_staff_account_was_made(): void
+    {
+        [$passed] = $this->closed('Synthetic Locum', 'passed', false);
+        $this->selectBranch($this->hr);
+        $this->post(route('hr.applications.account-request', $passed), ['expected_lock_version' => $this->row($passed)->lock_version,
+            'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
+        $request = DB::table('hr_staff_account_requests')->sole();
+        $director = $this->actor('director');
+        $this->selectBranch($director);
+        $this->post(route('staff.account-requests.done', $request->public_id), ['expected_lock_version' => 1, 'idempotency_key' => (string) Str::uuid()])
+            ->assertSessionHasNoErrors();
+
+        $this->makeFile($passed)->assertSessionHasErrors(['application' => 'A staff account was already made for this candidate.']);
+        $this->assertSame(0, DB::table('hr_locum_hires')->count() + DB::table('hr_workers')->where('kind', 'locum')->count());
+    }
+
+    public function test_a_detail_a_staff_file_cannot_take_is_shown_on_the_sheet_and_nothing_is_made(): void
+    {
+        [$passed] = $this->closed('Synthetic Locum', 'passed', false, 'locum', '0123 4567 8901 2345');
+
+        $this->makeFile($passed)->assertSessionHasErrors('application');
+        $message = (string) session('errors')->first('application');
+        $this->assertStringStartsWith("The application's details can't be used for a locum file:", $message);
+        $this->assertStringEndsWith('Add the locum from Staff files instead.', $message);
+        $this->assertSame(0, DB::table('hr_locum_hires')->count() + DB::table('hr_workers')->where('kind', 'locum')->count() + DB::table('hr_locum_sign_ins')->count());
     }
 
     public function test_only_a_passed_candidate_for_a_locum_position_and_only_hiring_managers(): void
@@ -132,9 +164,9 @@ class LocumHireTest extends VisitTestCase
      *
      * @return array{0:string, 1:string}
      */
-    private function closed(string $title, string $result, bool $pool, string $type = 'locum'): array
+    private function closed(string $title, string $result, bool $pool, string $type = 'locum', string $phone = '012-345 6789'): array
     {
-        [$id, $token] = $this->scheduled($title, $pool, $type);
+        [$id, $token] = $this->scheduled($title, $pool, $type, $phone);
         $this->tokens[$id] = $token;
         $slots = $this->starts($id);
         $this->pick($token, array_slice($slots, 0, 3))->assertSessionHasNoErrors();
@@ -160,9 +192,9 @@ class LocumHireTest extends VisitTestCase
     }
 
     /** @return array{0:string, 1:string} an application at Scheduling and its private link token */
-    private function scheduled(string $title, bool $pool = false, string $type = 'locum'): array
+    private function scheduled(string $title, bool $pool = false, string $type = 'locum', string $phone = '012-345 6789'): array
     {
-        [$id, $token] = $this->filedWithToken($title, $pool, $type);
+        [$id, $token] = $this->filedWithToken($title, $pool, $type, $phone);
         $this->selectBranch($this->hr);
         $this->post(route('hr.applications.move', $id), ['to' => 'phone_screening', 'expected_lock_version' => $this->row($id)->lock_version,
             'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
@@ -175,7 +207,7 @@ class LocumHireTest extends VisitTestCase
     }
 
     /** @return array{0:string, 1:string} */
-    private function filedWithToken(string $title, bool $pool = false, string $type = 'ca'): array
+    private function filedWithToken(string $title, bool $pool = false, string $type = 'ca', string $phone = '012-345 6789'): array
     {
         $this->selectBranch($this->hr);
         $this->post(route('hr.applications.positions.store'), ['title' => $title, 'branch_id' => 'any', 'position_type' => $type, 'idempotency_key' => (string) Str::uuid()])->assertSessionHasNoErrors();
@@ -190,7 +222,7 @@ class LocumHireTest extends VisitTestCase
         $formToken = JobApplicationIntake::issueToken();
         $this->travel(30)->seconds();
         $this->post(route('hr-applications.submit'), ['form_token' => $formToken, 'position' => $position, 'name' => 'Synthetic Applicant',
-            'phone' => '012-345 6789', 'email' => 'applicant@example.test', 'privacy_accepted' => '1', 'website' => '', 'preferred_branch' => 'any',
+            'phone' => $phone, 'email' => 'applicant@example.test', 'privacy_accepted' => '1', 'website' => '', 'preferred_branch' => 'any',
             'start_date' => now()->addDays(14)->toDateString(), 'education' => 'degree', 'years_experience' => '2', 'languages' => ['malay', 'english'], ...($pool ? ['talent_pool' => '1'] : []), ...($type === 'locum' ? ['availability' => 'Weekday evenings and Saturday mornings'] : []),
             'cv' => UploadedFile::fake()->createWithContent('cv.pdf', self::PDF)])->assertRedirect(route('hr-applications.thanks'));
         $link = null;

@@ -64,8 +64,12 @@ final class LocumHires
             if (DB::table('hr_locum_hires')->where('application_id', $application->id)->exists()) {
                 throw ValidationException::withMessages(['application' => 'A locum file was already made for this candidate.']);
             }
-            if (DB::table('hr_staff_account_requests')->where('application_id', $application->id)->where('status', 'open')->exists()) {
+            $account = DB::table('hr_staff_account_requests')->where('application_id', $application->id)->whereIn('status', ['open', 'done'])->orderByDesc('id')->value('status');
+            if ($account === 'open') {
                 throw ValidationException::withMessages(['application' => 'A staff account was already asked for. Cancel it first to make a locum file instead.']);
+            }
+            if ($account === 'done') {
+                throw ValidationException::withMessages(['application' => 'A staff account was already made for this candidate.']);
             }
 
             try {
@@ -78,9 +82,15 @@ final class LocumHires
 
             // The two steps keep their own checks, events and audit; their retry keys come from this one, so a retry of
             // this step never makes a second file or request.
-            $worker = $this->files->addLocum($actor, ['display_name' => mb_substr(trim($name), 0, 120), 'phone' => $phone,
-                'idempotency_key' => $this->derived($key, 'file')]);
-            $this->signIns->request($actor, $worker->public_id, ['email' => $email, 'idempotency_key' => $this->derived($key, 'sign_in')]);
+            // A detail the application form accepted but a staff file does not (Suresh, m1) is shown on the sheet in one line.
+            try {
+                $worker = $this->files->addLocum($actor, ['display_name' => mb_substr(trim($name), 0, 120), 'phone' => $phone,
+                    'idempotency_key' => $this->derived($key, 'file')]);
+                $this->signIns->request($actor, $worker->public_id, ['email' => $email, 'idempotency_key' => $this->derived($key, 'sign_in')]);
+            } catch (ValidationException $e) {
+                $first = collect($e->errors())->flatten()->first();
+                throw ValidationException::withMessages(['application' => "The application's details can't be used for a locum file: {$first} Add the locum from Staff files instead."]);
+            }
             $signInId = (int) DB::table('hr_locum_sign_ins')->where('worker_id', $worker->id)->where('status', 'open')->value('id');
 
             $now = now()->utc();
@@ -101,11 +111,16 @@ final class LocumHires
      */
     public static function forApplication(int $applicationId): ?array
     {
-        $row = DB::table('hr_locum_hires as h')->join('hr_workers as w', 'w.id', '=', 'h.worker_id')->join('hr_locum_sign_ins as s', 's.id', '=', 'h.sign_in_request_id')
-            ->where('h.application_id', $applicationId)->first(['w.public_id', 'w.display_name', 's.status']);
+        $row = DB::table('hr_locum_hires as h')->join('hr_workers as w', 'w.id', '=', 'h.worker_id')
+            ->where('h.application_id', $applicationId)->first(['h.worker_id', 'w.public_id', 'w.display_name']);
+        if ($row === null) {
+            return null;
+        }
+        // The latest request for the file, so a sign-in asked for again from the staff file shows here too (Suresh, m2).
+        $status = DB::table('hr_locum_sign_ins')->where('worker_id', $row->worker_id)->orderByDesc('id')->value('status');
 
-        return $row === null ? null : ['workerId' => (string) $row->public_id, 'name' => (string) $row->display_name,
-            'signIn' => match ((string) $row->status) {
+        return ['workerId' => (string) $row->public_id, 'name' => (string) $row->display_name,
+            'signIn' => match ((string) $status) {
                 'open' => 'Sign-in asked for, waiting on the Staff page',
                 'done' => 'Sign-in made',
                 default => 'Sign-in request closed',
