@@ -56,7 +56,7 @@ class InventoryAnalystTest extends QueueTestCase
     }
 
     /** Stock of the same SKU and batch at another branch, with its own reorder level. */
-    private function stockAt(Branch $branch, string $quantity, string $level): void
+    private function stockAt(Branch $branch, string $quantity, string $level): InventoryLocation
     {
         $actor = (new GovernedStockFixture($branch))->actor('ca_supervisor');
         $this->selectBranch($actor, $branch);
@@ -64,6 +64,8 @@ class InventoryAnalystTest extends QueueTestCase
         $location->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'branch_id' => $branch->id, 'code' => 'SYN-'.Str::upper(Str::random(8)), 'name' => 'Synthetic other dispensary', 'type' => 'dispensary', 'is_active' => true])->save();
         app(InventoryMovementService::class)->openingBalance($actor, ['expected_branch_id' => $branch->id, 'sku_public_id' => $this->f['sku']->public_id, 'location_public_id' => $location->public_id, 'batch_public_id' => $this->f['batch']->public_id, 'quantity' => $quantity]);
         $this->level($location, $level);
+
+        return $location;
     }
 
     private function systemRun(?Branch $branch = null): AiAgentRun
@@ -120,7 +122,7 @@ class InventoryAnalystTest extends QueueTestCase
 
     public function test_transfer_comes_first_and_restock_covers_the_rest(): void
     {
-        $this->stockAt($this->puchong(), '15.000', '8.000');
+        $sender = $this->stockAt($this->puchong(), '15.000', '8.000');
 
         $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer,restock'])->assertSuccessful();
 
@@ -128,6 +130,7 @@ class InventoryAnalystTest extends QueueTestCase
         $this->assertPayload([
             'sku_public_id' => $this->f['sku']->public_id, 'from_branch_code' => 'PUCHONG', 'to_branch_code' => 'CHERAS', 'quantity' => '7.000',
             'from_current_quantity' => '15.000', 'from_reorder_level' => '8.000', 'to_current_quantity' => '10.000', 'to_reorder_level' => '20.000',
+            'source_location_public_id' => $sender->public_id, 'destination_location_public_id' => $this->f['location']->public_id,
         ], $proposals[InventoryAnalyst::TRANSFER][0]);
         $this->assertSame('3.000', $proposals[InventoryAnalyst::RESTOCK][0]['suggested_quantity']);
         $this->assertArrayNotHasKey(InventoryAnalyst::EXPIRY, $proposals);
@@ -157,8 +160,9 @@ class InventoryAnalystTest extends QueueTestCase
 
         // Once the transfer is rejected, its quantity is free again and a later run suggests a restock.
         $transfer = AiProposal::query()->where('type', InventoryAnalyst::TRANSFER)->sole();
-        $this->selectBranch($this->f['proposer'], $this->branch);
-        app(ProposalService::class)->reject($this->f['proposer'], $transfer, ['lock_version' => $transfer->lock_version, 'reason' => 'Synthetic test rejection.']);
+        $sender = (new GovernedStockFixture($this->puchong()))->actor('ca_supervisor');
+        $this->selectBranch($sender, $this->puchong());
+        app(ProposalService::class)->reject($sender, $transfer, ['lock_version' => $transfer->lock_version, 'reason' => 'Synthetic test rejection.']);
         $run = $this->systemRun();
         app(InventoryAnalyst::class)->review($run, $this->branch, ['restock']);
         $this->assertSame('10.000', $this->proposals()[InventoryAnalyst::RESTOCK][0]['suggested_quantity']);
@@ -295,10 +299,7 @@ class InventoryAnalystTest extends QueueTestCase
     /** AG-31: stock of the same SKU at another branch, returning the location so a test can name it. */
     private function sendingLocation(Branch $branch, string $quantity, string $level): InventoryLocation
     {
-        $before = InventoryLocation::query()->where('branch_id', $branch->id)->pluck('id')->all();
-        $this->stockAt($branch, $quantity, $level);
-
-        return InventoryLocation::query()->where('branch_id', $branch->id)->whereNotIn('id', $before)->sole();
+        return $this->stockAt($branch, $quantity, $level);
     }
 
     public function test_a_transfer_suggestion_is_held_by_the_sending_branch_and_names_both_locations(): void
