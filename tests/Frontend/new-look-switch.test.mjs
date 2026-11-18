@@ -25,3 +25,11 @@ test('New look (preview): the page gets data-look="new" only in Version 2 and on
         /\$uiVersion === 'v2' && \(\$page\['props'\]\['workspace'\]\['newLook'\] \?\? false\) === true\) data-look="new"/,
     );
 });
+
+test('New look (preview): the attribute is kept right after an Inertia visit', () => {
+    const app = read('resources/js/app.ts');
+    const lib = read('resources/js/lib/ui-version.ts');
+    assert.match(app, /applyNewLook\(event\.detail\.page\)/);
+    assert.match(lib, /dataset\.look = 'new'/);
+    assert.match(lib, /delete document\.documentElement\.dataset\.look/);
+});
