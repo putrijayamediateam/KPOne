@@ -2,7 +2,6 @@
 
 namespace Tests\Feature\Queue;
 
-use App\Domain\Queue\Readiness\CallHoldService;
 use Illuminate\Foundation\Testing\RefreshDatabaseState;
 use Illuminate\Support\Facades\Config;
 use Illuminate\Support\Facades\DB;
