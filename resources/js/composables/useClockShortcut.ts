@@ -1,5 +1,5 @@
 import { router } from '@inertiajs/vue3';
-import { reactive, watch } from 'vue';
+import { computed, reactive, watch } from 'vue';
 import type { ClockLocation } from '@/composables/useClockPhoto';
 import { clockPhotoState, useClockPhoto } from '@/composables/useClockPhoto';
 import { requestJson } from '@/lib/json-client';
@@ -14,7 +14,7 @@ type ClockState = {
 
 const ATTENDANCE = '/hr/attendance';
 
-// One shared state for the Clock in on Me home.
+// One shared state for the Clock in on Me home and the Classic account menu row.
 const clock = reactive({
     loaded: false,
     state: 'out' as ClockState['state'],
@@ -23,8 +23,9 @@ const clock = reactive({
 });
 
 /**
- * One Clock in (owner, 18 Nov 2026): the one Clock in button is on Me home (MeHome.vue); the top bar, the account menu and
- * the space pages have none. This reads the same state as My attendance. HR-PHOTO: a press opens the shared camera dialog (the
+ * One Clock in (owner, 18 Nov 2026): in the new layout the one Clock in button is on Me home (MeHome.vue); the top bar, the
+ * account menu and the space pages have none there. Classic keeps its own account menu row. This reads the same state as
+ * My attendance. HR-PHOTO: a press opens the shared camera dialog (the
  * dialog posts the press with its photo). One Clock in (owner, 18 Nov 2026): a branch that checks location is handled
  * in that dialog too (consent once, then one location read), so a press never sends anyone to the Attendance page.
  */
@@ -47,7 +48,8 @@ export function useClockShortcut() {
     const { open } = useClockPhoto();
     /**
      * `returnFocusTo` (UX-24, Daniel): where focus goes once the photo dialog has closed (Not now, Done or the close
-     * button), for the control that opened it.
+     * button), for the control that opened it. The Classic account menu row passes its menu button, because the row itself is
+     * gone by then.
      */
     const press = (returnFocusTo?: HTMLElement | null) => {
         void pressFresh(returnFocusTo);
@@ -130,5 +132,10 @@ export function useClockShortcut() {
         }
     };
 
-    return { clock, load, press };
+    const label = computed(() =>
+        clock.state === 'in' ? 'Clock out' : 'Clock in',
+    );
+    const visible = computed(() => clock.loaded && clock.state !== 'done');
+
+    return { clock, load, press, label, visible };
 }

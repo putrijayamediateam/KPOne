@@ -2,13 +2,14 @@
 import { Link, router, usePage } from '@inertiajs/vue3';
 import {
     Building2,
+    Clock,
     LayoutGrid,
     LayoutTemplate,
     LogOut,
     Settings,
     ShieldCheck,
 } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, onMounted } from 'vue';
 import {
     DropdownMenuGroup,
     DropdownMenuItem,
@@ -16,6 +17,7 @@ import {
     DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import UserInfo from '@/components/UserInfo.vue';
+import { useClockShortcut } from '@/composables/useClockShortcut';
 import { retireAuthenticationHistoryForLogout } from '@/lib/inertia-auth-history-boundary';
 import { logout } from '@/routes';
 import { edit } from '@/routes/profile';
@@ -34,13 +36,33 @@ defineProps<Props>();
 const page = usePage();
 // DS-12: the person's own pages, built on the server from the permissions they hold, and the phone clock row.
 const accountMenu = computed(() => page.props.workspace?.accountMenu);
-// One Clock in (owner, 18 Nov 2026): the menu has no clock row. The one Clock in button is on Me home.
+// One Clock in (owner, 18 Nov 2026): in the new layout the one Clock in button is on Me home, so the menu has no button there:
+// its "Clock in or out" row is a link to Me home. Classic keeps its own Clock in row (this menu is shared with Classic).
+const {
+    load: loadClock,
+    press: pressClock,
+    label: clockLabel,
+    visible: clockVisible,
+} = useClockShortcut();
+// The row is gone once the menu closes, so pass the menu's own button (still open while the row is selected); focus goes
+// back to it after the photo dialog closes, instead of to the page.
+const pressClockAfterMenu = () =>
+    pressClock(
+        document.querySelector<HTMLElement>(
+            '[aria-haspopup="menu"][aria-expanded="true"]',
+        ),
+    );
 // In the new layout (switch on, or any space page) the same row always turns it off, so nobody is stuck.
 const inNewLayout = computed(
     () =>
         page.props.workspace?.spaces?.enabled === true ||
         page.url.startsWith('/spaces'),
 );
+onMounted(() => {
+    if (accountMenu.value?.clock && !inNewLayout.value) {
+        void loadClock();
+    }
+});
 const switchSpaces = (enabled: boolean) =>
     router.put('/spaces/preference', {
         enabled,
@@ -55,7 +77,25 @@ const switchSpaces = (enabled: boolean) =>
         </div>
     </DropdownMenuLabel>
     <DropdownMenuSeparator />
-    <DropdownMenuGroup v-if="accountMenu?.links.length">
+    <DropdownMenuGroup v-if="accountMenu?.links.length || accountMenu?.clock">
+        <DropdownMenuItem
+            v-if="accountMenu?.clock && inNewLayout"
+            :as-child="true"
+            class="max-lg:min-h-11"
+            data-test="clock-link-row"
+        >
+            <Link class="block w-full cursor-pointer" href="/spaces/me">
+                <Clock class="mr-2 h-4 w-4" />Clock in or out
+            </Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem
+            v-else-if="accountMenu?.clock && clockVisible"
+            class="cursor-pointer max-lg:min-h-11"
+            data-test="clock-shortcut-row"
+            @select="pressClockAfterMenu"
+        >
+            <Clock class="mr-2 h-4 w-4" />{{ clockLabel }}
+        </DropdownMenuItem>
         <DropdownMenuItem
             v-for="link in accountMenu?.links ?? []"
             :key="link.title"

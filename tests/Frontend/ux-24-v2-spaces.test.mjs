@@ -44,7 +44,15 @@ test('UX-24 (owner, 18 Nov 2026): there is one Clock in, on Me home; the shell, 
     assert.doesNotMatch(page, /data-test="v2-space-clock"/);
     assert.doesNotMatch(page, /data-test="clock-shortcut"/);
     assert.doesNotMatch(page, /useClockShortcut/);
-    assert.doesNotMatch(menu, /clock-shortcut-row|useClockShortcut/);
+    // The account menu: in the new layout the row is a link to Me home (never a second button); Classic keeps its own row.
+    assert.match(
+        menu,
+        /v-if="accountMenu\?\.clock && inNewLayout"[\s\S]*?href="\/spaces\/me"/,
+    );
+    assert.match(
+        menu,
+        /v-else-if="accountMenu\?\.clock && clockVisible"[\s\S]*?clock-shortcut-row/,
+    );
     assert.match(
         read('resources/js/components/spaces/MeHome.vue'),
         /useClockShortcut/,
