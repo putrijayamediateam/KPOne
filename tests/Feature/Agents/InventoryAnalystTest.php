@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Agents;
 
+use App\Domain\Agents\DailySummary\DailyRun;
 use App\Domain\Agents\Inventory\InventoryAnalyst;
 use App\Domain\Agents\Models\AiAgent;
 use App\Domain\Agents\Models\AiAgentRun;
@@ -289,5 +290,66 @@ class InventoryAnalystTest extends QueueTestCase
         } catch (AuthorizationException) {
             $this->addToAssertionCount(1);
         }
+    }
+
+    /** AG-31: stock of the same SKU at another branch, returning the location so a test can name it. */
+    private function sendingLocation(Branch $branch, string $quantity, string $level): InventoryLocation
+    {
+        $before = InventoryLocation::query()->where('branch_id', $branch->id)->pluck('id')->all();
+        $this->stockAt($branch, $quantity, $level);
+
+        return InventoryLocation::query()->where('branch_id', $branch->id)->whereNotIn('id', $before)->sole();
+    }
+
+    public function test_a_transfer_suggestion_is_held_by_the_sending_branch_and_names_both_locations(): void
+    {
+        $sender = $this->sendingLocation($this->puchong(), '15.000', '8.000');
+
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer,restock'])->assertSuccessful();
+
+        $transfer = AiProposal::query()->where('type', InventoryAnalyst::TRANSFER)->sole();
+        $this->assertSame([$this->puchong()->id, $this->branch->id], [$transfer->branch_id, $transfer->run->branch_id], 'held by the sender; its run stays at the receiver');
+        $this->assertSame([$sender->public_id, $this->f['location']->public_id], [$transfer->payload['source_location_public_id'], $transfer->payload['destination_location_public_id']]);
+        $this->assertSame($this->branch->id, AiProposal::query()->where('type', InventoryAnalyst::RESTOCK)->sole()->branch_id, 'a restock stays at its own branch');
+
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer,restock'])->expectsOutputToContain('already ran')->assertSuccessful();
+        $this->assertSame(1, AiProposal::query()->where('type', InventoryAnalyst::TRANSFER)->count());
+    }
+
+    public function test_the_daily_counts_follow_the_run_branch_not_the_sending_branch(): void
+    {
+        $this->sendingLocation($this->puchong(), '15.000', '8.000');
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer,restock'])->assertSuccessful();
+
+        $cheras = DailyRun::hanaCounts($this->organisation->id, $this->branch, '2026-11-06')['counts'];
+        $puchong = DailyRun::hanaCounts($this->organisation->id, $this->puchong(), '2026-11-06')['counts'];
+
+        $this->assertSame(['total' => 1, 'pending' => 1], $cheras['transfer'], 'the receiving branch\'s run made it, so its daily counts include it');
+        $this->assertSame(['total' => 0, 'pending' => 0], $puchong['transfer']);
+    }
+
+    public function test_only_people_at_the_sending_branch_can_decide_a_transfer_suggestion(): void
+    {
+        $this->sendingLocation($this->puchong(), '15.000', '8.000');
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer'])->assertSuccessful();
+        $transfer = AiProposal::query()->where('type', InventoryAnalyst::TRANSFER)->sole();
+
+        $receiver = (new GovernedStockFixture($this->branch))->actor('ca_supervisor');
+        $this->selectBranch($receiver, $this->branch);
+        $this->refused(fn () => app(ProposalService::class)->approve($receiver, $transfer, ['lock_version' => 0]), 'a supervisor at the receiving branch only');
+
+        $sender = (new GovernedStockFixture($this->puchong()))->actor('ca_supervisor');
+        $this->selectBranch($sender, $this->puchong());
+        $this->assertSame('approved', app(ProposalService::class)->approve($sender, $transfer, ['lock_version' => 0])->status);
+    }
+
+    public function test_no_transfer_is_suggested_when_a_branch_has_no_usable_location(): void
+    {
+        $this->sendingLocation($this->puchong(), '15.000', '8.000');
+        DB::table('inventory_locations')->where('id', $this->f['location']->id)->update(['is_active' => false]);
+
+        $this->artisan('agents:inventory-review', ['branch' => 'CHERAS', '--checks' => 'transfer'])->assertSuccessful();
+
+        $this->assertArrayNotHasKey(InventoryAnalyst::TRANSFER, $this->proposals());
     }
 }

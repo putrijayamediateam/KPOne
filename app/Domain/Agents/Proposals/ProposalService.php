@@ -140,9 +140,11 @@ final class ProposalService
     private function proposeLocked(AiAgentRun $run, string $type, array $definition, Branch $branch, array $values, string $hash, string $idempotencyKey): AiProposal
     {
         $run = AiAgentRun::query()->whereKey($run->id)->lockForUpdate()->firstOrFail();
+        // A transfer suggestion is held by the SENDING branch (CONTRACT section 15) while its run stays at the receiving branch.
+        $holderId = $this->holderBranchId($run->organisation_id, $type, $branch, $values);
         $existing = AiProposal::query()->where('organisation_id', $run->organisation_id)->where('idempotency_key', $idempotencyKey)->lockForUpdate()->first();
         if ($existing) {
-            if ($existing->type !== $type || $existing->branch_id !== $branch->id || $existing->ai_agent_id !== $run->ai_agent_id || $existing->payload_hash !== $hash) {
+            if ($existing->type !== $type || $existing->branch_id !== $holderId || $existing->ai_agent_id !== $run->ai_agent_id || $existing->payload_hash !== $hash) {
                 throw ValidationException::withMessages(['idempotency_key' => 'This key was already used for a different proposal.']);
             }
 
@@ -163,7 +165,7 @@ final class ProposalService
 
         $proposal = AiProposal::query()->create([
             'organisation_id' => $run->organisation_id,
-            'branch_id' => $branch->id,
+            'branch_id' => $holderId,
             'ai_agent_run_id' => $run->id,
             'ai_agent_id' => $agent->id,
             'type' => $type,
@@ -339,6 +341,32 @@ final class ProposalService
         return $values;
     }
 
+    /**
+     * The branch that holds (and decides) a proposal: the run's own branch, except for a transfer suggestion, which the
+     * sending branch holds, because only the sending branch can create the stock request (CONTRACT section 15).
+     *
+     * @param  array<string, mixed>  $values
+     */
+    private function holderBranchId(int $organisationId, string $type, Branch $runBranch, array $values): int
+    {
+        if ($type !== 'inventory.transfer_suggestion') {
+            return $runBranch->id;
+        }
+        $sender = DB::table('branches')->where('organisation_id', $organisationId)->where('code', (string) ($values['from_branch_code'] ?? ''))->where('is_active', true)->value('id');
+        if ($sender === null || ($values['to_branch_code'] ?? null) !== $runBranch->code) {
+            throw ValidationException::withMessages(['payload' => 'The proposal refers to stock, a location or a branch that does not match.']);
+        }
+
+        return (int) $sender;
+    }
+
+    /** An active location of this branch that can hold stock for a transfer (never a patient returns location). */
+    private function usableLocation(int $organisationId, int $branchId, string $locationPublicId): bool
+    {
+        return DB::table('inventory_locations')->where('organisation_id', $organisationId)->where('branch_id', $branchId)->where('public_id', $locationPublicId)
+            ->where('is_active', true)->where('type', '<>', 'dispensary_returns')->exists();
+    }
+
     /** @param array<string, mixed> $values */
     private function assertReferences(int $organisationId, Branch $branch, string $type, array $values): void
     {
@@ -351,8 +379,10 @@ final class ProposalService
             $ok = DB::table('inventory_batches')->where('organisation_id', $organisationId)->where('inventory_sku_id', $sku)->where('public_id', $values['batch_public_id'])->exists();
         }
         if ($ok && $type === 'inventory.transfer_suggestion') {
-            $ok = $values['to_branch_code'] === $branch->code
-                && DB::table('branches')->where('organisation_id', $organisationId)->where('code', $values['from_branch_code'])->where('is_active', true)->exists();
+            $sender = DB::table('branches')->where('organisation_id', $organisationId)->where('code', $values['from_branch_code'])->where('is_active', true)->value('id');
+            $ok = $values['to_branch_code'] === $branch->code && $sender !== null
+                && $this->usableLocation($organisationId, (int) $sender, (string) $values['source_location_public_id'])
+                && $this->usableLocation($organisationId, $branch->id, (string) $values['destination_location_public_id']);
         }
         if (! $ok) {
             throw ValidationException::withMessages(['payload' => 'The proposal refers to stock, a location or a branch that does not match.']);

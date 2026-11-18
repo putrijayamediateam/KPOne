@@ -197,7 +197,8 @@ final class DailyRun
     public static function hanaCounts(int $organisationId, Branch $branch, string $date): array
     {
         $types = [InventoryAnalyst::RESTOCK => 'restock', InventoryAnalyst::EXPIRY => 'expiry', InventoryAnalyst::TRANSFER => 'transfer', InventoryAnalyst::SLOW => 'slowMoving'];
-        $rows = AiProposal::query()->where('organisation_id', $organisationId)->where('branch_id', $branch->id)
+        $rows = AiProposal::query()->where('organisation_id', $organisationId)
+            // By the run's branch (named in the key), not the holder's: a transfer suggestion is held by the sending branch.
             ->where('idempotency_key', 'like', 'hana:%:'.$branch->id.':'.$date.':%')
             ->selectRaw("type, count(*) as total, count(*) filter (where status = 'pending') as pending")->groupBy('type')->get()->keyBy('type');
         $counts = [];
