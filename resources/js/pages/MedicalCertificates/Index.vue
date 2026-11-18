@@ -391,6 +391,12 @@ const days = computed(() => {
                         "
                         >Reload history</Button
                     >
+                    <p
+                        v-if="form.action === 'void' && !form.change_reason"
+                        class="text-sm text-muted-foreground"
+                    >
+                        Pick a reason to continue.
+                    </p>
                     <DialogFooter
                         ><Button
                             type="button"

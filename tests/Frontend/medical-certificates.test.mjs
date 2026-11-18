@@ -175,4 +175,5 @@ test('DD-87: Classic Void starts with no reason picked and Confirm void is off u
         source.includes("(form.action === 'void' && !form.change_reason)"),
     );
     assert.ok(source.includes("change_reason: 'dates_corrected',"));
+    assert.ok(source.includes('Pick a reason to continue.'));
 });
