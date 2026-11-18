@@ -341,7 +341,11 @@ const days = computed(() => {
                         ><InputError :message="form.errors.reason_consent" />
                     </template>
                     <label v-if="form.action !== 'issue'" class="block text-sm"
-                        >Change category<select
+                        >{{
+                            form.action === 'void'
+                                ? 'Reason'
+                                : 'Change category'
+                        }}<select
                             v-model="form.change_reason"
                             class="mt-1 w-full rounded-md border bg-background p-2"
                         >
@@ -406,6 +410,11 @@ const days = computed(() => {
                             >Cancel</Button
                         ><Button
                             type="submit"
+                            :variant="
+                                form.action === 'void'
+                                    ? 'destructive'
+                                    : 'default'
+                            "
                             :disabled="
                                 form.processing ||
                                 branchChanged ||

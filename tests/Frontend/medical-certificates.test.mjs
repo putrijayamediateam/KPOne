@@ -176,4 +176,13 @@ test('DD-87: Classic Void starts with no reason picked and Confirm void is off u
     );
     assert.ok(source.includes("change_reason: 'dates_corrected',"));
     assert.ok(source.includes('Pick a reason to continue.'));
+    // Daniel's look: the label says "Reason" for a void, and Confirm void is the destructive red like other confirm sheets.
+    assert.ok(
+        source.includes(
+            "form.action === 'void' ? 'Reason' : 'Change category'",
+        ),
+    );
+    assert.ok(
+        source.includes("form.action === 'void' ? 'destructive' : 'default'"),
+    );
 });
