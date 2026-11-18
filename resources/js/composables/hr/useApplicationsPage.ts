@@ -360,6 +360,7 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
     });
     const openApplication = (application: Application) => {
         viewing.value = application;
+        locumAnnounce.value = '';
         Object.assign(moving, {
             to: '',
             key: '',
@@ -733,6 +734,43 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
         );
     };
 
+    // HR-15d (Daniel): ask before making the locum file; on success the sheet stays open on the same application,
+    // so the status line and "Open the locum file" are in view. No toast: the status region announces it.
+    const locumConfirm = ref(false);
+    const locumAnnounce = ref('');
+    const makeLocumFile = () => {
+        const application = viewing.value;
+
+        if (!application) {
+            return;
+        }
+
+        accountAction.processing = true;
+        router.post(
+            `/hr/applications/${application.id}/locum-file`,
+            {
+                expected_lock_version: application.lockVersion,
+                idempotency_key: accountAction.key,
+                ...(list.value?.filters ?? {}),
+            },
+            {
+                preserveScroll: true,
+                onSuccess: () => {
+                    accountAction.key = crypto.randomUUID();
+                    locumConfirm.value = false;
+                    const fresh = list.value?.rows.find(
+                        (row) => row.id === application.id,
+                    );
+                    viewing.value = fresh ?? null;
+                    locumAnnounce.value = fresh?.locumHire
+                        ? `Locum file made. ${fresh.locumHire.signIn}.`
+                        : '';
+                },
+                onFinish: () => (accountAction.processing = false),
+            },
+        );
+    };
+
     // HR-17d: interview documents per position type (HR-PLAN 19.7).
     const DOCS_MAX = 10;
     const documentForm = reactive({
@@ -872,6 +910,9 @@ export function useApplicationsPage(props: ApplicationsPageProps) {
         copyInvitationLink,
         accountAction,
         accountPost,
+        locumConfirm,
+        locumAnnounce,
+        makeLocumFile,
         DOCS_MAX,
         documentForm,
         documentPicker,

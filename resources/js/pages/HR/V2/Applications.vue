@@ -62,6 +62,9 @@ const {
     label,
     accountAction,
     accountPost,
+    locumConfirm,
+    locumAnnounce,
+    makeLocumFile,
     positionForm,
     branchOptions,
     startAdd,
@@ -1620,20 +1623,43 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                                   : 'Not in the talent pool.'
                         }}
                     </p>
+                    <p
+                        class="sr-only"
+                        role="status"
+                        data-test="application-locum-announce"
+                    >
+                        {{ locumAnnounce }}
+                    </p>
                     <template v-if="viewing.status === 'passed'">
-                        <p
+                        <div
                             v-if="viewing.locumHire"
-                            class="text-sm"
+                            class="flex flex-col gap-2"
                             data-test="application-locum-hire"
                         >
-                            Locum file: {{ viewing.locumHire.name }} ·
-                            {{ viewing.locumHire.signIn }} ·
+                            <p class="text-sm">
+                                Locum file: {{ viewing.locumHire.name }}
+                            </p>
+                            <p
+                                class="flex items-center gap-2 text-sm text-muted-foreground"
+                            >
+                                <span
+                                    class="size-2 shrink-0 rounded-full bg-warning"
+                                    :class="{
+                                        'bg-success':
+                                            viewing.locumHire.signIn ===
+                                            'Sign-in made',
+                                    }"
+                                    aria-hidden="true"
+                                />
+                                {{ viewing.locumHire.signIn }}
+                            </p>
                             <Link
                                 :href="`/hr/records/${viewing.locumHire.workerId}`"
-                                class="underline underline-offset-2"
+                                :class="`${button} w-full sm:w-auto sm:self-start`"
+                                data-test="application-locum-open"
                                 >Open the locum file</Link
                             >
-                        </p>
+                        </div>
                         <p
                             v-else-if="viewing.accountRequest"
                             class="text-sm"
@@ -1668,12 +1694,7 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                                 :class="button"
                                 :disabled="accountAction.processing"
                                 data-test="application-locum-make"
-                                @click="
-                                    accountPost(
-                                        `/hr/applications/${viewing.id}/locum-file`,
-                                        viewing.lockVersion,
-                                    )
-                                "
+                                @click="locumConfirm = true"
                             >
                                 Make the locum file and ask for a sign-in
                             </button>
@@ -1917,6 +1938,28 @@ const ratingOptions = [1, 2, 3, 4, 5].map((n) => ({
                     </ul>
                 </section>
             </template>
+        </V2Dialog>
+
+        <!-- HR-15d: make the locum file -->
+        <V2Dialog
+            :open="locumConfirm"
+            :title="`Make the locum file for ${viewing?.name ?? ''} and ask for a sign-in?`"
+            description="KPOne makes the locum file from the application's name and phone, and asks the account administrator for a sign-in with the email they applied with."
+            :confirm-label="
+                accountAction.processing ? 'Making…' : 'Make file and ask'
+            "
+            :busy="accountAction.processing"
+            data-test="application-locum-confirm"
+            @update:open="(open: boolean) => !open && (locumConfirm = false)"
+            @confirm="makeLocumFile"
+        >
+            <p
+                v-if="errors.application"
+                role="alert"
+                class="text-sm text-destructive"
+            >
+                {{ errors.application }}
+            </p>
         </V2Dialog>
 
         <!-- Confirm one interview time -->

@@ -133,7 +133,8 @@ class ApplicationsController extends Controller
 
     public function makeLocumFile(Request $request, LocumHires $hires, string $application): RedirectResponse
     {
-        return $this->run($request, $this->back($request), 'Locum file made and a sign-in asked for. The account administrator sees it on the Staff page.',
+        // No toast (Daniel): the sheet stays open and its status line announces the result.
+        return $this->run($request, $this->back($request), '',
             fn () => $hires->make($request->user(), $application, $request->only(['expected_lock_version', 'idempotency_key'])));
     }
 
@@ -226,7 +227,10 @@ class ApplicationsController extends Controller
             app(AuditRecorder::class)->record('authorization.denied', $request->user(), ['route' => $request->route()?->getName(), 'method' => $request->method()], $request->user());
             throw ValidationException::withMessages(['applications' => $e->getMessage() !== '' ? $e->getMessage() : 'You may not do this.'])->redirectTo($back);
         }
-        Inertia::flash('toast', ['type' => 'success', 'message' => $message instanceof \Closure ? $message($result) : $message]);
+        $text = $message instanceof \Closure ? $message($result) : $message;
+        if ($text !== '') {
+            Inertia::flash('toast', ['type' => 'success', 'message' => $text]);
+        }
 
         return redirect($back);
     }

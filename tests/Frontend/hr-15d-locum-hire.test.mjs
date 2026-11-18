@@ -23,7 +23,19 @@ test('the row carries the locum file and its sign-in state', () => {
 for (const [name, page] of Object.entries(pages)) {
     test(`${name}: a passed Locum candidate offers one outline action, never a staff account`, () => {
         assert.match(page, /data-test="application-locum-make"/);
-        assert.match(page, /\/hr\/applications\/\$\{viewing\.id\}\/locum-file/);
+        // Daniel: the button asks first; the confirm sends the request.
+        assert.match(
+            page,
+            /data-test="application-locum-make"\s+@click="locumConfirm = true"/,
+        );
+        assert.match(page, /data-test="application-locum-confirm"/);
+        assert.match(
+            page,
+            /Make the locum file for \$\{viewing\?\.name \?\? ''\} and ask for a sign-in\?/,
+        );
+        assert.match(page, /Make file and ask/);
+        assert.match(page, /@confirm="makeLocumFile"/);
+        assert.doesNotMatch(page, /destructive\s+:processing="accountAction/);
         assert.match(page, /Make the locum file and ask for a\s+sign-in/);
         // Shown only for a Locum position, before a file exists and with no open or finished staff-account request.
         assert.match(
@@ -45,6 +57,13 @@ for (const [name, page] of Object.entries(pages)) {
             page,
             /:href="`\/hr\/records\/\$\{viewing\.locumHire\.workerId\}`"/,
         );
+        // Daniel: a status line with a dot, and the link as its own outline button.
+        assert.match(page, /data-test="application-locum-open"/);
+        assert.match(page, /rounded-full bg-warning/);
+        assert.match(
+            page,
+            /role="status"\s+data-test="application-locum-announce"/,
+        );
         assert.match(page, /Open the locum file/);
         assert.match(
             page,
@@ -52,3 +71,12 @@ for (const [name, page] of Object.entries(pages)) {
         );
     });
 }
+
+test('the confirm posts once, keeps the sheet open on the file and announces it without a toast', () => {
+    assert.match(
+        composable,
+        /`\/hr\/applications\/\$\{application\.id\}\/locum-file`/,
+    );
+    assert.match(composable, /viewing\.value = fresh \?\? null;/);
+    assert.match(composable, /locumAnnounce\.value = fresh\?\.locumHire/);
+});
