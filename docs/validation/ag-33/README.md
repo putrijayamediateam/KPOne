@@ -1,12 +1,12 @@
 # AG-33 (4c): receiving branch's read-only transfer line on the Daily summary (screenshots)
 
-Evidence for the Lead UI/UX Designer's look at branch `feature/ag-33-transfer-line-receiving-branch` (head d34117034). **Synthetic data only.**
+Evidence for the Lead UI/UX Designer's look at branch `feature/ag-33-transfer-line-receiving-branch` (second round, after the Lead UI/UX Designer's small changes). **Synthetic data only.**
 
 - Task-owned PostgreSQL database `kpone_ag32demo_testing`, local app on 127.0.0.1:8132 with explicit environment variables (never the real `.env`).
 - The Daily summary was built by the real command (`agents:daily-run 0700 --branch=PUCHONG`). The demo transfer suggestion is held by Cheras (the sender) and was suggested by Hana's run at Puchong (the receiver), as the contract describes.
 - Viewer: `demo.director` (sees every branch). Puchong's card was opened.
 
-What it shows: under Hana's counts, one muted read-only line per sending branch: "Transfer suggested from Cheras, decided there. 1 made, 1 waiting for a decision there." No button or link on the line itself; the existing "Open the approval inbox" button is unchanged and still lists the viewer's active branch.
+What it shows: under Hana's counts, one muted read-only line per sending branch, saying only what is new: "From Cheras: 1 suggestion, 1 waiting for a decision there." When this branch has nothing to decide itself, the helper under "Open the approval inbox" reads "The inbox lists your active branch. Nothing is waiting here." No button or link on the line itself; the existing "Open the approval inbox" button is unchanged and still lists the viewer's active branch.
 
 | File | What it shows |
 |---|---|
