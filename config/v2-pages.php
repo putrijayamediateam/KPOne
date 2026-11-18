@@ -76,6 +76,7 @@ return [
         'Staff/Edit',
         'Billing/Show',
         'Billing/Invoice',
+        'Billing/Payments',
         'Agents/Assistant',
         'Agents/DailySummary',
         'Inventory/TreatmentUsage',

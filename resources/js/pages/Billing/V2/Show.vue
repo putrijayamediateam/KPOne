@@ -53,6 +53,9 @@ import { myr, outstandingSen } from '@/types/billing';
  * one cobalt action per state (the bottom bar carries it below 1280 px), StatusBadge words through the V2 chip look.
  * Every dialog is a V2Dialog: the three entry dialogs here, and the adjustment and completion dialogs (BV2-2,
  * components/billing/v2). Refunds use ReceiptRefundsV2 (DD-83); the corrections, Bill to and notes blocks stay Classic under the page wrapper.
+ * BV2-4: with `manage` this page is Manage payments (`pages/Billing/V2/Payments.vue`), as Classic's BillingWorkspace is:
+ * title "Payments", the receipts and prints instead of the invoice items, the payment action only, refunds and receipt
+ * corrections, and no patient card, items, Bill to, notes, activity log, Panel adjustment, outstanding bills or void.
  */
 const props = withDefaults(
     defineProps<{ billing: BillingPage; manage?: boolean }>(),
@@ -114,11 +117,25 @@ usePageCrumbs(() => [
               },
           ]
         : []),
-    { title: props.billing.visit.visitNumber },
+    ...(props.manage
+        ? [
+              { title: props.billing.visit.visitNumber, href: base.value },
+              { title: 'Payments' },
+          ]
+        : [{ title: props.billing.visit.visitNumber }]),
 ]);
 
+// BV2-4: Manage payments opens on the receipts and prints (Classic shows no invoice items there).
+if (props.manage) {
+    tab.value = 'documents';
+}
+
 const title = computed(() =>
-    isCompleted.value ? 'Completed Visit' : 'Patient Billing',
+    props.manage
+        ? 'Payments'
+        : isCompleted.value
+          ? 'Completed Visit'
+          : 'Patient Billing',
 );
 // Whose bill it is, above any figure (Daniel): the patient's name and the visit number head the page.
 const description = computed(
@@ -196,7 +213,11 @@ const primaryKind = computed(() =>
 const primary = computed<Primary | null>(() => {
     const kind = primaryKind.value;
 
-    if (kind === null) {
+    // BV2-4: Manage payments carries only the payment action (Classic shows no build, finalize or complete there).
+    if (
+        kind === null ||
+        (props.manage && kind !== 'pay' && kind !== 'settle')
+    ) {
         return null;
     }
 
@@ -244,7 +265,10 @@ const moreGroups = computed<RowMenuGroup[]>(() =>
                 },
             ].filter((item) => item.allowed),
         },
-    ].filter((group) => group.items.length > 0),
+    ]
+        // BV2-4: Manage payments offers no void (Classic hides it there too).
+        .filter((group) => !(props.manage && group.label === 'Danger'))
+        .filter((group) => group.items.length > 0),
 );
 const onMore = (id: string) => {
     if (id === 'panel' || id === 'deferment') {
@@ -307,6 +331,14 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                 data-testid="active-billing"
             >
                 <template #actions>
+                    <ActionLink
+                        v-if="manage"
+                        :href="base"
+                        variant="outline"
+                        class="max-lg:min-h-11"
+                        data-testid="payments-back-to-billing"
+                        >← Back to billing</ActionLink
+                    >
                     <button
                         v-if="primary"
                         type="button"
@@ -318,6 +350,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         {{ primary.label }}
                     </button>
                     <InvoiceActivityDrawer
+                        v-if="!manage"
                         :context="billing.activity"
                         :notes-context="billing.notes"
                     />
@@ -347,8 +380,8 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         {{ error }}
                     </p>
 
-                    <!-- Patient -->
-                    <section :class="[card, 'p-4 sm:p-5']">
+                    <!-- Patient (Manage payments names the patient in its description instead, as Classic does) -->
+                    <section v-if="!manage" :class="[card, 'p-4 sm:p-5']">
                         <div
                             class="flex flex-wrap items-start justify-between gap-3"
                         >
@@ -408,13 +441,20 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
 
                     <!-- Invoice -->
                     <section :class="card">
-                        <div class="p-3">
+                        <div v-if="!manage" class="p-3">
                             <V2Tabs
                                 v-model="tab"
                                 :tabs="invoiceTabs"
                                 ariaLabel="Invoice content"
                             />
                         </div>
+                        <h2
+                            v-else
+                            class="px-4 pt-4 pb-3 font-semibold"
+                            data-testid="payments-receipts-heading"
+                        >
+                            Receipts and prints
+                        </h2>
                         <div
                             role="tabpanel"
                             aria-label="Invoice content"
@@ -439,7 +479,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                                     "
                                     :url="`${invoiceBase}/issue`"
                                     label="Print invoice"
-                                    return-to="billing"
+                                    :return-to="manage ? 'payments' : 'billing'"
                                 />
                                 <p
                                     v-if="
@@ -507,7 +547,9 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                                             v-if="billing.can.print"
                                             :url="`${invoiceBase}/receipts/${receipt.publicId}/issue`"
                                             label="Print receipt"
-                                            return-to="billing"
+                                            :return-to="
+                                                manage ? 'payments' : 'billing'
+                                            "
                                         />
                                         <Button
                                             v-if="
@@ -527,12 +569,13 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                                     v-if="billing.issuedCopies"
                                     :copies="billing.issuedCopies"
                                     :base="base"
-                                    return-to="billing"
+                                    :return-to="manage ? 'payments' : 'billing'"
                                 />
                             </div>
                         </div>
                         <div
                             v-if="
+                                !manage &&
                                 billing.invoice &&
                                 billing.can.build &&
                                 primaryKind !== 'build'
@@ -698,7 +741,10 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                                 owes is unchanged.
                             </p>
                         </div>
-                        <div v-if="billing.panelAdjustment" class="m-3">
+                        <div
+                            v-if="!manage && billing.panelAdjustment"
+                            class="m-3"
+                        >
                             <PanelAdjustmentPanel
                                 v2
                                 :adjustment="billing.panelAdjustment"
@@ -706,7 +752,10 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         </div>
                     </section>
 
-                    <OutstandingBills :groups="billing.outstanding" />
+                    <OutstandingBills
+                        v-if="!manage"
+                        :groups="billing.outstanding"
+                    />
 
                     <section
                         v-if="billing.voidedInvoices?.length"
@@ -1055,8 +1104,16 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         </p>
                     </section>
 
+                    <!-- BV2-4: on Manage payments the receipts are listed in full under "Receipts and prints", so this card keeps
+                         only its header and Add menu (the receipt correction text points to "Add under Payments"). -->
                     <section
-                        v-if="billing.invoice"
+                        v-if="
+                            billing.invoice &&
+                            (!manage ||
+                                billing.can.pay ||
+                                billing.can.panelPropose ||
+                                billing.can.deferPropose)
+                        "
                         :class="card"
                         data-testid="billing-payments"
                     >
@@ -1066,6 +1123,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                             <h2 class="font-semibold">Payments</h2>
                             <div class="flex gap-2">
                                 <ActionLink
+                                    v-if="!manage"
                                     :href="`${base}/payments`"
                                     variant="outline"
                                     >Manage</ActionLink
@@ -1107,12 +1165,12 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                             </div>
                         </header>
                         <p
-                            v-if="!billing.payments.length"
+                            v-if="!manage && !billing.payments.length"
                             class="p-4 text-[13px] text-muted-foreground"
                         >
                             No payments recorded.
                         </p>
-                        <ul v-else class="divide-y">
+                        <ul v-else-if="!manage" class="divide-y">
                             <li
                                 v-for="receipt in billing.payments"
                                 :key="receipt.publicId"
@@ -1171,7 +1229,7 @@ const card = 'min-w-0 rounded-[14px] border bg-card';
                         </ul>
                     </section>
                     <section
-                        v-if="billing.billTo || billing.notes"
+                        v-if="!manage && (billing.billTo || billing.notes)"
                         :class="[card, 'divide-y']"
                     >
                         <div v-if="billing.billTo" class="p-4">
