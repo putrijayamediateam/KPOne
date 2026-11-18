@@ -76,7 +76,11 @@ class TreatmentPlanDirectoryService
                     ->whereRaw("LOWER(display_name) LIKE ? ESCAPE '\\'", [$term])
                     ->orWhereRaw("LOWER(code) LIKE ? ESCAPE '\\'", [$term]))
                 ->orderBy('display_name')->orderBy('id')->limit(20)
-                ->get(['public_id', 'code', 'display_name', 'strength_text', 'dosage_form', 'order_unit'])
+                ->get([
+                    'public_id', 'code', 'display_name', 'strength_text', 'dosage_form', 'order_unit',
+                    'default_dosage_amount', 'default_dosage_unit', 'default_frequency', 'default_duration',
+                    'default_instruction', 'default_precaution', 'default_indication', 'usual_quantity',
+                ])
                 ->map(fn (MedicineCatalogueItem $item): array => [
                     'publicId' => $item->public_id,
                     'code' => $item->code,
@@ -84,6 +88,15 @@ class TreatmentPlanDirectoryService
                     'strength' => $item->strength_text,
                     'dosageForm' => $item->dosage_form,
                     'unit' => $item->order_unit,
+                    // Catalogue defaults a new order row is prefilled from; the doctor can change every one of them.
+                    'defaultDosageAmount' => $item->default_dosage_amount,
+                    'defaultDosageUnit' => $item->default_dosage_unit,
+                    'defaultFrequency' => $item->default_frequency,
+                    'defaultDuration' => $item->default_duration,
+                    'defaultInstruction' => $item->default_instruction,
+                    'defaultPrecaution' => $item->default_precaution,
+                    'defaultIndication' => $item->default_indication,
+                    'usualQuantity' => $item->usual_quantity,
                 ])->all());
         });
     }

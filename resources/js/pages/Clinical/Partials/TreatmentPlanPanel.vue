@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/dialog';
 import { OperationalSelect } from '@/components/ui/select';
 import { treatmentSaveButtonVariant } from '@/lib/r1c2-presentation';
+import { INDICATION_LABEL_LIMIT, prefillTexts } from '@/lib/treatment-prefill';
 import type {
     ClinicalAllergySafety,
     TreatmentPlanPage,
@@ -96,6 +97,15 @@ type MedicineSearch = {
     strength: string | null;
     dosageForm: string | null;
     unit: string;
+    // Catalogue defaults a new order row starts from (the doctor can change all of them).
+    usualQuantity?: string | null;
+    defaultDosageAmount?: string | null;
+    defaultDosageUnit?: string | null;
+    defaultFrequency?: string | null;
+    defaultDuration?: string | null;
+    defaultInstruction?: string | null;
+    defaultPrecaution?: string | null;
+    defaultIndication?: string | null;
 };
 type ServiceSearch = {
     publicId: string;
@@ -107,6 +117,8 @@ type ServiceSearch = {
 const customChoice = '__custom';
 // Presentation state is separate from the persisted treatment draft.
 const expandedOrders = ref<Record<string, boolean>>({});
+// Rows added in this session that started from catalogue defaults; the note goes once the row is saved.
+const prefilledOrders = ref<Record<string, { indicationTooLong: boolean }>>({});
 const orderKey = (item: {
     public_id: string | null;
     catalogue_public_id: string | null;
@@ -443,38 +455,51 @@ const addMedicine = (item: MedicineSearch) => {
     }
 
     const suggestedUnit = canonicalUnit(item.unit, dosageUnits) ?? '';
-    form.medicines.push({
+    const prefill = prefillTexts(item);
+    const frequency = selectValue(prefill.frequency, frequencyPresets);
+    const row: MedicineFormRow = {
         public_id: null,
         catalogue_public_id: item.publicId,
-        quantity_ordered: '1',
+        quantity_ordered: prefill.quantity,
         dosage: '',
         frequency: '',
         duration: '',
         route: '',
-        administration_instruction: '',
-        indication: '',
-        precaution: '',
+        administration_instruction: prefill.instruction,
+        indication: prefill.indication,
+        precaution: prefill.precaution,
         display_name: item.displayName,
         code: item.code,
         unit: item.unit,
         strength: item.strength,
-        dosage_composer: {
-            mode: suggestedUnit ? 'structured' : 'custom',
-            amount: '',
-            unit: suggestedUnit,
-            custom: '',
-        },
-        frequency_choice: '',
-        frequency_custom: '',
-        duration_composer: {
-            mode: 'structured',
-            amount: '',
-            unit: '',
-            custom: '',
-        },
+        // The same parsers a saved order goes through: a default that is not on a picker lands in its custom box.
+        dosage_composer: prefill.dosage
+            ? parseAmountUnit(prefill.dosage, dosageUnits)
+            : {
+                  mode: suggestedUnit ? 'structured' : 'custom',
+                  amount: '',
+                  unit: suggestedUnit,
+                  custom: '',
+              },
+        frequency_choice: frequency.choice,
+        frequency_custom: frequency.custom,
+        duration_composer: parseAmountUnit(
+            prefill.duration,
+            durationUnits,
+            true,
+        ),
         route_choice: '',
         route_custom: '',
-    });
+    };
+    syncMedicine(row);
+    form.medicines.push(row);
+
+    if (prefill.usedDefaults) {
+        prefilledOrders.value[item.publicId] = {
+            indicationTooLong: prefill.indicationTooLong,
+        };
+    }
+
     medicineResults.value = [];
     medicineQuery.value = '';
 };
@@ -809,7 +834,7 @@ defineExpose({
                         </div>
                     </div>
                     <p
-                        class="truncate text-xs text-muted-foreground"
+                        class="text-xs break-words text-muted-foreground sm:truncate"
                         :title="
                             [
                                 item.dosage,
@@ -834,6 +859,27 @@ defineExpose({
                                 .filter(Boolean)
                                 .join(' · ') || 'Instructions not entered'
                         }}
+                    </p>
+                    <p
+                        v-if="prefilledOrders[orderKey(item)]"
+                        :id="`prefill-note-${orderKey(item)}`"
+                        role="status"
+                        class="text-xs text-muted-foreground"
+                        data-testid="prefill-note"
+                    >
+                        Prefilled from the catalogue. Check the quantity, dosage
+                        and directions before saving.
+                        <span
+                            v-if="
+                                prefilledOrders[orderKey(item)]
+                                    .indicationTooLong
+                            "
+                            class="font-medium text-warning-strong"
+                            data-testid="prefill-indication-warning"
+                            >The indication is longer than
+                            {{ INDICATION_LABEL_LIMIT }} characters, so the drug
+                            label will be blocked until it is shortened.</span
+                        >
                     </p>
                     <div
                         v-show="
@@ -1025,6 +1071,12 @@ defineExpose({
                                 <label
                                     >Indication<textarea
                                         v-model="item.indication"
+                                        :aria-describedby="
+                                            prefilledOrders[orderKey(item)]
+                                                ?.indicationTooLong
+                                                ? `prefill-note-${orderKey(item)}`
+                                                : undefined
+                                        "
                                         maxlength="2000"
                                         rows="2"
                                         class="mt-1 w-full rounded-md border border-input bg-card p-2 text-sm text-foreground outline-none hover:border-foreground/25 focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/40"
