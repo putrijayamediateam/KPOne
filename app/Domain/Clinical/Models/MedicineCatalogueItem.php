@@ -44,6 +44,7 @@ class MedicineCatalogueItem extends Model
             'allergy_groups' => 'array',
             'allergy_aliases' => 'array',
             'default_dosage_amount' => 'decimal:3',
+            'usual_quantity' => 'decimal:3',
         ];
     }
 

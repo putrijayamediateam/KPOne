@@ -386,6 +386,7 @@ class MedicineAdministrationService
             'default_frequency' => $this->nullableText($attributes['default_frequency'] ?? null, 'default_frequency', 200),
             'default_duration' => $this->nullableText($attributes['default_duration'] ?? null, 'default_duration', 100),
             'default_indication' => $this->nullableText($attributes['default_indication'] ?? null, 'default_indication', 300),
+            'usual_quantity' => $this->nullableDecimal($attributes['usual_quantity'] ?? null, 'usual_quantity'),
         ];
     }
 
@@ -406,7 +407,7 @@ class MedicineAdministrationService
             'code', 'display_name', 'strength_text', 'dosage_form', 'order_unit',
             'generic_name', 'category', 'group_name', 'default_dosage_amount',
             'default_dosage_unit', 'default_instruction', 'default_precaution',
-            'default_frequency', 'default_duration', 'default_indication',
+            'default_frequency', 'default_duration', 'default_indication', 'usual_quantity',
         ] as $field) {
             if (! array_key_exists($field, $attributes)) {
                 continue;
@@ -426,6 +427,7 @@ class MedicineAdministrationService
                 'default_frequency' => $this->nullableText($attributes[$field], $field, 200),
                 'default_duration' => $this->nullableText($attributes[$field], $field, 100),
                 'default_indication' => $this->nullableText($attributes[$field], $field, 300),
+                'usual_quantity' => $this->nullableDecimal($attributes[$field], $field),
             };
         }
 

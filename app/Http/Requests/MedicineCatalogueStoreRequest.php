@@ -30,6 +30,7 @@ class MedicineCatalogueStoreRequest extends FormRequest
             'default_frequency' => ['nullable', 'string', 'max:200'],
             'default_duration' => ['nullable', 'string', 'max:100'],
             'default_indication' => ['nullable', 'string', 'max:300'],
+            'usual_quantity' => ['nullable', 'numeric', 'gt:0', 'max:1000000'],
             'route' => ['nullable', 'string', 'max:100'],
             'manufacturer' => ['nullable', 'string', 'max:200'],
             'mal_number' => ['nullable', 'string', 'max:100'],

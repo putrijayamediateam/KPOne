@@ -66,7 +66,7 @@ class MedicineAdministrationServiceTest extends ClinicalTestCase
                 'code', 'display_name', 'strength_text', 'dosage_form', 'order_unit',
                 'generic_name', 'category', 'group_name', 'default_dosage_amount',
                 'default_dosage_unit', 'default_instruction', 'default_precaution',
-                'default_frequency', 'default_duration', 'default_indication',
+                'default_frequency', 'default_duration', 'default_indication', 'usual_quantity',
                 'authorisation_class', 'is_active',
             ],
             $audit->metadata['changed_fields'],
