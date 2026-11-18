@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { Link } from '@inertiajs/vue3';
-import { AlertTriangle } from 'lucide-vue-next';
+import { TriangleAlert } from '@lucide/vue';
 
 /**
  * HR-21: work permits that expire soon or have expired, as one warning line each ("Work permit expires on 3 Feb 2027
@@ -33,7 +33,7 @@ defineProps<{
             :id="headingId"
             class="flex items-center gap-2 text-sm font-semibold"
         >
-            <AlertTriangle
+            <TriangleAlert
                 class="size-4 shrink-0 text-warning"
                 aria-hidden="true"
             />
