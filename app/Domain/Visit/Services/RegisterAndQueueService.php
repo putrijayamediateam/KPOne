@@ -12,6 +12,7 @@ use App\Domain\Queue\Services\QueueEntryService;
 use App\Domain\Visit\Models\Visit;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 
 /**
  * Register a Visit and put it on the waiting list in ONE transaction (owner decision, 2026-11-18: "always send, later
@@ -42,6 +43,9 @@ class RegisterAndQueueService
      */
     public function register(User $actor, array $attributes): array
     {
+        // An unauthorised request is refused before any row is locked (the registration step checks again under lock).
+        Gate::forUser($actor)->authorize('create', Visit::class);
+
         // Laravel retries a deadlock only for the OUTERMOST transaction, so the attempts (3, as in the registration and
         // queue steps) are declared here, not on the nested ones. Lock order is the same as Call In, Call next and a
         // Visit edit (ConsultationLocks): the actor and the chosen doctor first, in ascending id, then the patient,
