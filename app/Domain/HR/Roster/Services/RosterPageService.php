@@ -63,6 +63,8 @@ final class RosterPageService
             'tab' => $tab, 'tabs' => $tabs,
             'week' => $this->week($weekStart) + ['today' => now($branch->timezone)->toDateString()],
             'sessions' => collect(RosterRules::SESSIONS)->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
+            // HR-20: on call is no clinic hours, so the minimum staffing grid lists clinic sessions only.
+            'staffingSessions' => collect(RosterRules::clinicSessions())->map(fn (string $label, string $value): array => ['value' => $value, 'label' => $label])->values()->all(),
             'my' => $canOwn ? $this->my($actor, $weekStart) : null,
             // HR-15f: the month calendar on My roster, only when asked for (owner, via B.E.R.N.I.S.S, 18 Nov 2026).
             // Its own key, so it never meets the planner's "view" (Suresh, m1).

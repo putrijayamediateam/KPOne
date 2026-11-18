@@ -867,7 +867,7 @@ const numberClass =
                             shows as covered.
                         </p>
                         <V2FormCard
-                            v-for="session in roster.sessions"
+                            v-for="session in roster.staffingSessions"
                             :key="session.value"
                             :title="session.label"
                         >

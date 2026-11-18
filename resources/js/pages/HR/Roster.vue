@@ -49,6 +49,7 @@ const props = defineProps<{
             label: string;
         };
         sessions: Option[];
+        staffingSessions: Option[];
         my: {
             days: { date: string; label: string; shifts: Shift[] }[];
             canClock: boolean;
@@ -780,7 +781,7 @@ const isMonth = computed(
                     </template>
                     <template #body>
                         <tr
-                            v-for="session in roster.sessions"
+                            v-for="session in roster.staffingSessions"
                             :key="session.value"
                         >
                             <th scope="row" class="font-medium">
@@ -820,7 +821,7 @@ const isMonth = computed(
             </div>
             <ul class="flex flex-col gap-3 md:hidden">
                 <li
-                    v-for="session in roster.sessions"
+                    v-for="session in roster.staffingSessions"
                     :key="session.value"
                     class="rounded-xl border bg-card p-4"
                 >

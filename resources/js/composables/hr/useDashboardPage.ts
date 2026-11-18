@@ -20,6 +20,8 @@ export type Today = {
         doctors: number;
         people: Person[];
         noDoctor: boolean;
+        /** HR-20: on-call people now, on their own line; never counted as the doctor on duty. */
+        onCall: Person[];
     } | null;
     clockedIn: { count: number; people: Person[] } | null;
     onLeave: { count: number; people: Person[] } | null;

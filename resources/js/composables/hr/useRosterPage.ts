@@ -97,6 +97,7 @@ export type RosterProps = {
             label: string;
         };
         sessions: Option[];
+        staffingSessions: Option[];
         my: {
             days: { date: string; label: string; shifts: Shift[] }[];
             canClock: boolean;
