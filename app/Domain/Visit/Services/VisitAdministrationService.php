@@ -4,10 +4,12 @@ namespace App\Domain\Visit\Services;
 
 use App\Domain\Access\BranchAccessService;
 use App\Domain\Audit\AuditRecorder;
+use App\Domain\Clinical\Services\ConsultationLocks;
 use App\Domain\Identity\Models\StaffBranchAssignment;
 use App\Domain\Identity\Models\StaffProfile;
 use App\Domain\Organisation\Models\Branch;
 use App\Domain\Patient\Models\Patient;
+use App\Domain\Queue\Models\OtcQueueEntry;
 use App\Domain\Queue\Models\QueueEntry;
 use App\Domain\Queue\Services\OtcQueueService;
 use App\Domain\Visit\Models\Panel;
@@ -38,6 +40,16 @@ class VisitAdministrationService
         $validated = $this->validateUpdate($attributes);
 
         return DB::transaction(function () use ($visit, $validated, $actor, $branch): Visit {
+            // Lock order (ConsultationLocks, as Call In and Call next): every user involved first, in ascending id: the
+            // actor, the doctor now assigned and the doctor it may be changed to; then the Visit rows below. A doctor
+            // change then waits for, or is waited for by, a Call In or Call next on the same doctors instead of
+            // crossing it. If the assigned doctor changed meanwhile, the Visit version no longer matches and the edit
+            // is refused as stale before anything is written.
+            ConsultationLocks::users($actor->organisation_id, [
+                $actor->id,
+                $visit->assigned_doctor_user_id,
+                $validated['assigned_doctor_user_id'] ?? null,
+            ]);
             $this->lockActor($actor, $branch, 'visits.update.branch');
             if (array_key_exists('coverage_panel_note', $validated) || filled($validated['panel_note_idempotency_key'] ?? null)) {
                 $this->panelNotes->lockCommands($actor);
@@ -59,6 +71,7 @@ class VisitAdministrationService
                 ->lockForUpdate()
                 ->first();
             $this->assertQueueAllowsUpdate($queueEntry, $validated['queue_lock_version'] ?? null, $validated['visit_type']);
+            $this->assertOtcListAllowsUpdate($locked, $validated['visit_type']);
 
             [, , $effectiveDate] = $this->branchDay($branch);
             $doctor = null;
@@ -271,6 +284,23 @@ class VisitAdministrationService
         if ($visitType !== 'consultation') {
             throw ValidationException::withMessages([
                 'visit_type' => 'A Visit already in the Consultation Queue cannot be changed to OTC.',
+            ]);
+        }
+    }
+
+    /**
+     * A Visit that is on, or has left, the OTC waiting list cannot become a consultation: its B number is never reused and
+     * the other list would not know it. Staff cancel it and register it again. (A consultation cannot become OTC while
+     * it is in the Consultation Queue either: assertQueueAllowsUpdate.)
+     */
+    private function assertOtcListAllowsUpdate(Visit $visit, string $visitType): void
+    {
+        if ($visitType === 'otc') {
+            return;
+        }
+        if (OtcQueueEntry::query()->where('visit_id', $visit->id)->lockForUpdate()->exists()) {
+            throw ValidationException::withMessages([
+                'visit_type' => 'A Visit already in the OTC waiting list cannot be changed to a consultation. Cancel it and register it again.',
             ]);
         }
     }
