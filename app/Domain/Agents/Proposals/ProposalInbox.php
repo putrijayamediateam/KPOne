@@ -99,9 +99,15 @@ final class ProposalInbox
     /** @return list<array{id: string, name: string}> */
     private function usableLocations(int $organisationId, int $branchId): array
     {
-        return DB::table('inventory_locations')->where('organisation_id', $organisationId)->where('branch_id', $branchId)->where('is_active', true)
-            ->where('type', '<>', 'dispensary_returns')->orderBy('name')->orderBy('id')->get(['public_id', 'name'])
-            ->map(fn (\stdClass $row): array => ['id' => (string) $row->public_id, 'name' => (string) $row->name])->values()->all();
+        $rows = DB::table('inventory_locations')->where('organisation_id', $organisationId)->where('branch_id', $branchId)->where('is_active', true)
+            ->where('type', '<>', 'dispensary_returns')->orderBy('name')->orderBy('id')->get(['public_id', 'name']);
+
+        $locations = [];
+        foreach ($rows as $row) {
+            $locations[] = ['id' => (string) $row->public_id, 'name' => (string) $row->name];
+        }
+
+        return $locations;
     }
 
     /**
