@@ -1,7 +1,7 @@
 <script setup lang="ts">
 // HR-9 /hr/dashboard: read-only aggregates for the Director and HR Manager (docs/teams/hr/HR-9-DESIGN.md).
 // Today per branch, then the month. No salary, no leave type or reason, no score of a person.
-import { Head } from '@inertiajs/vue3';
+import { Head, Link } from '@inertiajs/vue3';
 import SyntheticNote from '@/components/hr/records/SyntheticNote.vue';
 import { ActionLink } from '@/components/ui/action-link';
 import { Label } from '@/components/ui/label';
@@ -49,6 +49,25 @@ const { monthLabel, chooseMonth, hours, days } = useDashboardPage(props);
             </div>
         </div>
 
+        <p
+            v-if="dashboard.workPermits"
+            class="flex flex-wrap items-center gap-x-2 gap-y-1 rounded-xl border border-warning/40 bg-warning/10 px-4 py-3 text-sm"
+            data-test="dashboard-work-permits"
+        >
+            <span class="font-medium"
+                >{{ dashboard.workPermits }}
+                {{
+                    dashboard.workPermits === 1
+                        ? 'work permit expires soon or has expired.'
+                        : 'work permits expire soon or have expired.'
+                }}</span
+            >
+            <Link
+                href="/hr/credentials?tab=register"
+                class="min-h-11 content-center underline underline-offset-4 lg:min-h-0"
+                >Open the credentials register</Link
+            >
+        </p>
         <section
             v-if="dashboard.staffCost"
             class="rounded-lg border bg-card p-4"

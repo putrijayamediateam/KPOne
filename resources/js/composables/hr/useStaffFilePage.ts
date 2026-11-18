@@ -58,6 +58,8 @@ export type StaffFilePageProps = {
         options: RecordOptions;
         canManage: boolean;
         manageRefusal: string | null;
+        /** HR-21: the staff member's work permits that expire soon or have expired, in words (managers only). */
+        workPermits: string[];
         isSelf: boolean;
         workers: { id: string; name: string }[];
         worker: WorkerHeader & { lockVersion: number };
