@@ -7,12 +7,14 @@ use App\Domain\Agents\Proposals\AiProposal;
 use App\Domain\Agents\Proposals\ProposalService;
 use App\Domain\Agents\Services\AgentRunRecorder;
 use App\Domain\Audit\Models\AuditLog;
+use App\Domain\Organisation\Inventory\Models\InventoryLocation;
 use App\Domain\Organisation\Models\Branch;
 use App\Models\User;
 use Database\Seeders\KPOneAgentSeeder;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use InvalidArgumentException;
 use Tests\Feature\Visit\VisitTestCase;
@@ -111,7 +113,12 @@ class ProposalServiceTest extends VisitTestCase
     {
         $run = $this->agentRun();
         $this->proposals->propose($run, 'inventory.expiry_warning', $this->branch, ['sku_public_id' => $this->f['sku']->public_id, 'batch_public_id' => $this->f['batch']->public_id, 'location_public_id' => $this->f['location']->public_id, 'quantity' => '3.000', 'expiry_date' => '2027-01-01', 'days_left' => 57, 'suggested_action' => 'write_off_review'], 'expiry-0001');
-        $this->proposals->propose($run, 'inventory.transfer_suggestion', $this->branch, ['sku_public_id' => $this->f['sku']->public_id, 'from_branch_code' => 'PUCHONG', 'to_branch_code' => 'CHERAS', 'quantity' => '2.000', 'from_current_quantity' => '9.000', 'from_reorder_level' => '5.000', 'to_current_quantity' => '3.000', 'to_reorder_level' => '5.000'], 'transfer-0001');
+        $sender = new InventoryLocation;
+        $sender->forceFill(['public_id' => (string) Str::uuid(), 'organisation_id' => $this->organisation->id, 'branch_id' => Branch::query()->where('organisation_id', $this->organisation->id)->where('code', 'PUCHONG')->value('id'),
+            'code' => 'SYN-SEND', 'name' => 'Synthetic sending dispensary', 'type' => 'dispensary', 'is_active' => true])->save();
+        $transfer = $this->proposals->propose($run, 'inventory.transfer_suggestion', $this->branch, ['sku_public_id' => $this->f['sku']->public_id, 'from_branch_code' => 'PUCHONG', 'to_branch_code' => 'CHERAS', 'quantity' => '2.000', 'from_current_quantity' => '9.000', 'from_reorder_level' => '5.000', 'to_current_quantity' => '3.000', 'to_reorder_level' => '5.000',
+            'source_location_public_id' => $sender->public_id, 'destination_location_public_id' => $this->f['location']->public_id], 'transfer-0001');
+        $this->assertSame($sender->branch_id, $transfer->branch_id, 'a transfer suggestion is held by the sending branch');
         $this->proposals->propose($run, 'inventory.slow_moving', $this->branch, ['sku_public_id' => $this->f['sku']->public_id, 'location_public_id' => $this->f['location']->public_id, 'quantity' => '3.000', 'last_dispensed_date' => null, 'days_without_dispensing' => 60, 'suggested_action' => 'review'], 'slow-0001');
         $this->assertSame(['inventory.expiry_warning', 'inventory.transfer_suggestion', 'inventory.slow_moving'], AiProposal::query()->orderBy('id')->pluck('type')->all());
         $this->refused(fn () => $this->proposals->propose($run, 'inventory.expiry_warning', $this->branch, ['sku_public_id' => $this->f['sku']->public_id, 'batch_public_id' => $this->f['batch']->public_id, 'location_public_id' => $this->f['location']->public_id, 'quantity' => '3.000', 'expiry_date' => '2027-01-01', 'days_left' => 57, 'suggested_action' => 'destroy'], 'expiry-0002'), ValidationException::class, 'unknown action');

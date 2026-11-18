@@ -32,6 +32,7 @@ final class ProposalTypes
                 'sku_public_id' => self::UUID, 'from_branch_code' => ['required', 'string', 'max:40'], 'to_branch_code' => ['required', 'string', 'max:40', 'different:from_branch_code'],
                 'quantity' => self::QUANTITY, 'from_current_quantity' => self::QUANTITY, 'from_reorder_level' => self::QUANTITY,
                 'to_current_quantity' => self::QUANTITY, 'to_reorder_level' => self::QUANTITY,
+                'source_location_public_id' => self::UUID, 'destination_location_public_id' => self::UUID,
             ]],
             'inventory.slow_moving' => ['label' => 'Slow-moving item', 'agent' => 'inventory_analyst', 'permission' => $decide, 'rules' => [
                 'sku_public_id' => self::UUID, 'location_public_id' => self::UUID, 'quantity' => self::QUANTITY,
