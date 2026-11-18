@@ -1,6 +1,7 @@
 import { router } from '@inertiajs/vue3';
 import type { ComputedRef, InjectionKey } from 'vue';
 import { computed, reactive, watch } from 'vue';
+import type { ClockLocation } from '@/composables/useClockPhoto';
 import { clockPhotoState, useClockPhoto } from '@/composables/useClockPhoto';
 import { requestJson } from '@/lib/json-client';
 
@@ -9,7 +10,7 @@ type ClockState = {
     label: string | null;
     canPress: boolean;
     refusal: string | null;
-    needsAttendancePage: boolean;
+    location: ClockLocation | null;
 };
 
 const ATTENDANCE = '/hr/attendance';
@@ -35,12 +36,13 @@ const clock = reactive({
     loaded: false,
     state: 'out' as ClockState['state'],
     canPress: false,
-    needsAttendancePage: false,
+    location: null as ClockLocation | null,
 });
 
 /**
  * The clock shortcut reads the same state as My attendance. HR-PHOTO: a press opens the shared camera dialog (the
- * dialog posts the press with its photo); a branch that checks location still goes to the Attendance page first.
+ * dialog posts the press with its photo). One Clock in (owner, 18 Nov 2026): a branch that checks location is handled
+ * in that dialog too (consent once, then one location read), so a press never sends anyone to the Attendance page.
  */
 export function useClockShortcut() {
     const load = async () => {
@@ -51,7 +53,7 @@ export function useClockShortcut() {
 
             clock.state = data.state;
             clock.canPress = data.canPress;
-            clock.needsAttendancePage = data.needsAttendancePage;
+            clock.location = data.location ?? null;
             clock.loaded = true;
         } catch {
             clock.loaded = false;
@@ -64,13 +66,39 @@ export function useClockShortcut() {
      * button). The account menu row passes its menu button, because the row itself is gone by then.
      */
     const press = (returnFocusTo?: HTMLElement | null) => {
-        if (clock.needsAttendancePage) {
-            router.visit(ATTENDANCE);
+        void pressFresh(returnFocusTo);
+    };
+    const pressFresh = async (returnFocusTo?: HTMLElement | null) => {
+        // Read the state fresh at the press: it must know in or out and whether the branch checks location, and a
+        // press or consent made elsewhere since the last read (the Attendance page, another tab) must count.
+        // If that read fails, the last state read still serves, but only where the branch checks no location: an old
+        // "already agreed" could skip a consent the Director has since asked for again (Suresh, m1).
+        const known = {
+            state: clock.state,
+            canPress: clock.canPress,
+            location: clock.location,
+        };
+        const hadState = clock.loaded;
+        await load();
+
+        if (!clock.loaded) {
+            if (!hadState || known.location !== null) {
+                return;
+            }
+
+            Object.assign(clock, known, { loaded: true });
+        }
+
+        // The fresh state says no press is possible now (done for today, or a refusal): the page shows why instead of
+        // opening a camera the server would refuse (Suresh, m3).
+        if (!clock.canPress || clock.state === 'done') {
+            router.reload();
 
             return;
         }
 
         const opened = open(clock.state === 'in' ? 'out' : 'in', {
+            location: clock.location,
             onDone: () => {
                 void load();
                 router.reload();
