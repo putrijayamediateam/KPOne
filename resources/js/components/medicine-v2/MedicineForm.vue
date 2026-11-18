@@ -28,6 +28,10 @@ const props = defineProps<{
 defineEmits<{ cancel: [] }>();
 
 const form = props.c.form;
+const usualQuantityHelp = computed(
+    () =>
+        `Prefilled when a doctor orders this medicine, and counted in the order unit${form.order_unit ? ` (${form.order_unit})` : ''}. Up to 3 decimals. Leave empty for no prefill.`,
+);
 const inputClass =
     'h-11 w-full rounded-[10px] border border-input bg-card px-3 text-base outline-none hover:border-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring md:text-[15px] lg:h-9';
 const field = (invalid?: boolean) =>
@@ -266,6 +270,26 @@ const branchOptions = computed(() =>
                     hint="Prints on drug labels: up to 72 characters."
                     :error="form.errors.default_indication"
                 />
+                <V2Field
+                    v-slot="{ id, describedBy, invalid }"
+                    label="Usual quantity"
+                    :hint="usualQuantityHelp"
+                    :error="form.errors.usual_quantity"
+                >
+                    <input
+                        :id="id"
+                        v-model="form.usual_quantity"
+                        type="number"
+                        step="any"
+                        inputmode="decimal"
+                        :aria-describedby="describedBy"
+                        :aria-invalid="invalid"
+                        :class="[
+                            field(invalid),
+                            '[appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none',
+                        ]"
+                    />
+                </V2Field>
             </div>
         </V2DisclosureBar>
 

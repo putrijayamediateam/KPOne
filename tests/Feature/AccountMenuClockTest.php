@@ -51,7 +51,7 @@ class AccountMenuClockTest extends VisitTestCase
         $ca = $this->actor('ca');
         $this->selectBranch($ca);
         $this->getJson(route('hr.attendance.clock-state'))->assertOk()
-            ->assertJson(['state' => 'out', 'canPress' => true, 'needsAttendancePage' => false]);
+            ->assertJson(['state' => 'out', 'canPress' => true, 'location' => null]);
 
         $this->actingAs($this->actor('queue_display'))->getJson(route('hr.attendance.clock-state'))->assertForbidden();
     }
