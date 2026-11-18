@@ -224,6 +224,14 @@ const crumbsInFrame = computed(() => placed.value.length);
                 class="mx-4 mt-4 md:mx-6"
             />
 
+            <!-- New look: the target of "Skip to content" (focus lands here, so the next Tab is the page). -->
+            <span
+                v-if="newLook"
+                id="v2-main"
+                tabindex="-1"
+                class="sr-only"
+            ></span>
+
             <slot />
         </div>
 
