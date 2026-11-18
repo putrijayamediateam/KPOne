@@ -83,10 +83,19 @@ final class InventoryRules
     public static function transferLocations(array $balances, array $payload): ?array
     {
         $sku = collect((array) $balances['skus'])->firstWhere('sku', $payload['sku_public_id']);
-        $source = self::bestLocation((array) ($sku['locations'][$payload['from_branch_code']] ?? []), 1);
-        $destination = self::bestLocation((array) ($sku['locations'][$payload['to_branch_code']] ?? []), -1);
+        $source = self::bestLocation(self::locationRows($sku['locations'][$payload['from_branch_code']] ?? []), 1);
+        $destination = self::bestLocation(self::locationRows($sku['locations'][$payload['to_branch_code']] ?? []), -1);
 
         return $source === null || $destination === null ? null : ['source_location_public_id' => $source, 'destination_location_public_id' => $destination];
+    }
+
+    /** @return list<array<string, mixed>> */
+    private static function locationRows(mixed $rows): array
+    {
+        /** @var list<array<string, mixed>> $list */
+        $list = array_values(array_filter((array) $rows, 'is_array'));
+
+        return $list;
     }
 
     /**

@@ -38,6 +38,8 @@ return new class extends Migration
         if (substr_count($normalised, $pattern) !== 1) {
             throw new RuntimeException('The proposal guard function does not look as expected; refusing to change it.');
         }
+        // The function body is the live definition with one exact-match replacement, so it is not a literal string.
+        // @phpstan-ignore argument.type
         DB::unprepared(str_replace($pattern, 'r.ai_agent_id = NEW.ai_agent_id AND '.$to, $normalised));
     }
 };
