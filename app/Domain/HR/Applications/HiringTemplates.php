@@ -17,7 +17,7 @@ final class HiringTemplates
     /** The pick-times deadline sentences, the same words as the candidate's page (Daniel, #484). */
     public const DEADLINE_EN = 'Choose by the end of {deadline}. After that, the application closes.';
 
-    /** @var array<string, array{label:string, subject:string, body:string, candidate_label?:string}> */
+    /** @var array<string, array{label:string, subject:string, body:string, body_online?:string, candidate_label?:string}> */
     public const TEMPLATES = [
         'received' => [
             'label' => 'Application received',
@@ -61,6 +61,8 @@ final class HiringTemplates
             'label' => 'Interview time confirmed',
             'subject' => 'Your interview on {date}',
             'body' => 'Your interview for {position} is on {date} at {time}, at {clinic} {branch}. If you cannot come, you can withdraw on your private page.',
+            // HR-15e: an online interview gives the link HR typed instead of a branch.
+            'body_online' => 'Your interview for {position} is on {date} at {time}. It is online. Join with this link: {meeting} If you cannot come, you can withdraw on your private page.',
         ],
         'pick_again' => [
             'label' => 'Asked for new times',
@@ -109,6 +111,8 @@ final class HiringTemplates
         'date' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/', // Tue 17 Nov 2026
         'time' => '/\A\d{1,2}:00 (AM|PM)\z/',
         'branch' => '/\A[^\r\n<>{}]{2,60}\z/u',
+        // HR-15e: the video link HR typed for an online interview.
+        'meeting' => '/\Ahttps:\/\/[^\s<>{}"]{1,492}\z/u',
         // The last day to choose interview times, as on the candidate's page (Daniel): one date.
         'deadline' => '/\A[A-Z][a-z]{2} \d{1,2} [A-Z][a-z]{2} \d{4}\z/',
     ];
@@ -133,6 +137,9 @@ final class HiringTemplates
     public static function render(string $template, array $params): array
     {
         $fixed = self::TEMPLATES[$template] ?? throw new InvalidArgumentException('Unknown hiring template.');
+        if (isset($params['meeting'], $fixed['body_online'])) {
+            $fixed['body'] = $fixed['body_online'];
+        }
         $params = [...(str_contains($fixed['body'], '{clinic}') ? ['clinic' => self::CLINIC] : []), ...$params];
         // With no deadline (the branch has no working days set, so nothing will close the application), the deadline
         // sentences are left out rather than promising a date.

@@ -464,6 +464,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
                 Route::post('{application}/invite', 'invite')->whereUuid('application')->name('hr.applications.invite');
                 Route::post('{application}/account-request', 'requestAccount')->whereUuid('application')->name('hr.applications.account-request');
                 Route::post('account-requests/{accountRequest}/cancel', 'cancelAccountRequest')->whereUuid('accountRequest')->name('hr.applications.account-request.cancel');
+                // HR-15d: a passed Locum candidate becomes a locum file with a sign-in request.
+                Route::post('{application}/locum-file', 'makeLocumFile')->whereUuid('application')->name('hr.applications.locum-file');
                 Route::post('checklist', 'checklist')->name('hr.applications.checklist');
                 Route::post('retention', 'retention')->name('hr.applications.retention');
             });
