@@ -133,3 +133,19 @@ test('V2 review changes: URL box is named and selects the whole link, rotate she
     // Classic keeps its own wording (these lines are V2 only).
     assert.ok(!classic.includes('Printed copies of the old QR'));
 });
+
+test('DD-89: a just-created link shows its QR once, above, and the row keeps its buttons (Classic and V2)', () => {
+    for (const source of [classic, page]) {
+        assert.match(
+            tight(source),
+            /constshownAbove=\(link:LinkRow\)=>issuedLink\.value!==null&&issuedLink\.value\.publicId===link\.publicId/,
+        );
+        const row = source.slice(source.indexOf('v-if="link.activeQr"'));
+        assert.ok(row.indexOf('v-if="!shownAbove(link)"') > 0);
+        assert.ok(
+            row.indexOf('v-if="!shownAbove(link)"') <
+                row.indexOf('copyLink(link.activeQr)'),
+            'the row QR image is hidden, the Copy, Download and Print buttons stay',
+        );
+    }
+});

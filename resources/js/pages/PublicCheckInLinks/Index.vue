@@ -154,6 +154,9 @@ const confirmAction = async () => {
         actionProcessing.value = false;
     }
 };
+// The QR of a link that was just created is already shown large above; show it once, not twice (DD-89).
+const shownAbove = (link: LinkRow) =>
+    issuedLink.value !== null && issuedLink.value.publicId === link.publicId;
 const copyLink = async (activeQr: IssuedLink) => {
     await navigator.clipboard.writeText(activeQr.url);
     copiedPublicId.value = activeQr.publicId;
@@ -374,9 +377,13 @@ const printQr = (link: LinkRow) => {
                     </dl>
                     <div
                         v-if="link.activeQr"
-                        class="grid gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-[9rem_1fr]"
+                        :class="[
+                            'grid gap-4 rounded-xl border bg-muted/20 p-4',
+                            shownAbove(link) ? '' : 'sm:grid-cols-[9rem_1fr]',
+                        ]"
                     >
                         <img
+                            v-if="!shownAbove(link)"
                             :src="link.activeQr.qrDataUri"
                             :alt="`Public intake QR for ${link.branch.name}`"
                             class="aspect-square w-36 rounded-lg border bg-white p-2"
