@@ -22,12 +22,15 @@ class AgentInboxController extends Controller
 
     public function approve(Request $request, AiProposal $proposal, ProposalService $proposals): RedirectResponse
     {
-        $approved = null;
+        /** @var \ArrayObject<string, AiProposal> $result */
+        $result = new \ArrayObject;
 
-        return $this->decide($request, $proposal, function () use ($request, $proposal, $proposals, &$approved): void {
-            $approved = $proposals->approve($request->user(), $proposal, $request->only(['lock_version', 'reason', 'mode', 'edits']));
-        }, function () use (&$approved): string {
-            return $approved?->prepared_record_label !== null
+        return $this->decide($request, $proposal, function () use ($request, $proposal, $proposals, $result): void {
+            $result['approved'] = $proposals->approve($request->user(), $proposal, $request->only(['lock_version', 'reason', 'mode', 'edits']));
+        }, function () use ($result): string {
+            $approved = $result['approved'] ?? null;
+
+            return $approved !== null && $approved->prepared_record_label !== null
                 ? 'Proposal approved. '.($approved->prepared_record_type === 'inventory.stock_request' ? 'Stock request ' : 'Purchase request ').$approved->prepared_record_label.' created.'
                 : 'Proposal approved. Nothing in stock has changed; act on it from the Inventory screens.';
         });
