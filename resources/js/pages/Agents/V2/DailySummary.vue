@@ -78,6 +78,12 @@ const builtLine = (stamp: Stamp) =>
         ? `${slotLabel(stamp.slot)}, built ${formatDateTime(stamp.builtAt)}`
         : slotLabel(stamp.slot);
 
+// What this branch still has to decide itself: transfers it asked for are decided at the sending branch.
+const ownWaiting = (hana: Hana) =>
+    Object.values(hana.counts).reduce((sum, count) => sum + count.pending, 0) -
+    (hana.transferFrom ?? []).reduce((sum, row) => sum + row.pending, 0);
+const fromLine = (row: { branch: string; total: number; pending: number }) =>
+    `From ${row.branch}: ${row.total} ${row.total === 1 ? 'suggestion' : 'suggestions'}, ${row.pending} waiting for a decision there.`;
 const hanaLabels: Record<keyof Hana['counts'], string> = {
     restock: 'Restock',
     expiry: 'Expiry warning',
@@ -297,10 +303,7 @@ const filled =
                                 class="text-[13px] leading-[18px] text-muted-foreground"
                                 data-test="summary-transfer-from"
                             >
-                                Transfer suggested from {{ sender.branch }},
-                                decided there. {{ sender.total }} made,
-                                {{ sender.pending }} waiting for a decision
-                                there.
+                                {{ fromLine(sender) }}
                             </p>
                             <div
                                 v-if="summary.canInbox"
@@ -315,7 +318,12 @@ const filled =
                                 </Link>
                                 <span
                                     class="text-[13px] leading-[18px] text-muted-foreground"
-                                    >The inbox lists your active branch.</span
+                                    >The inbox lists your active branch.
+                                    {{
+                                        ownWaiting(branch.hana) === 0
+                                            ? ' Nothing is waiting here.'
+                                            : ''
+                                    }}</span
                                 >
                             </div>
                         </section>

@@ -13,8 +13,9 @@ for (const [name, path] of [
         const page = read(path);
 
         assert.match(page, /transferFrom/);
-        assert.match(page, /Transfer suggested from \{\{ sender\.branch \}\}/);
-        assert.match(page, /decided\s+there/);
+        assert.match(page, /fromLine\(sender\)/);
+        assert.match(page, /`From \$\{row\.branch\}: /);
+        assert.match(page, /waiting for a decision there\./);
         assert.match(page, /data-test="summary-transfer-from"/);
         // Read only: the line carries no link, button or form.
         const line =
@@ -26,3 +27,18 @@ for (const [name, path] of [
         assert.doesNotMatch(line, /<Link|<Button|<form|@click/);
     });
 }
+
+test('Daily summary: the inbox helper says nothing is waiting when this branch has nothing to decide itself', () => {
+    for (const path of [
+        'resources/js/pages/Agents/V2/DailySummary.vue',
+        'resources/js/pages/Agents/DailySummary.vue',
+    ]) {
+        const page = read(path);
+
+        assert.match(page, /ownWaiting\(branch\.hana\) === 0/);
+        assert.match(page, /Nothing is waiting here\./);
+        assert.match(page, /The inbox lists your active branch\./);
+        // A transfer decided at the sending branch is not this branch's to decide.
+        assert.match(page, /hana\.transferFrom \?\? \[\]/);
+    }
+});
