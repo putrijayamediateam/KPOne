@@ -1,0 +1,9 @@
+Rail contrast, pixel and computed-style measurements at 1440 px, demo CA, look ON (head 3d0148abf).
+theme | pair | ratio | needs
+light | selected pill (17,17,20) vs rail (247,247,248) | 17.61 | 3
+light | selected icon (244,244,246) on pill | 17.16 | 3 (graphic)
+light | unselected icon muted (107,107,115) on rail | 4.93 | 3 (graphic)
+dark  | selected pill (244,244,246) vs rail (30,30,36) | 15.10 | 3
+dark  | selected icon (15,15,18) on pill | 17.42 | 3
+dark  | unselected icon muted (168,168,179) on rail | 7.04 | 3
+Rail pixel = empty rail area; pill pixel read from the screenshot. Not measured: tooltip, focus ring on the rail, panel row hover.

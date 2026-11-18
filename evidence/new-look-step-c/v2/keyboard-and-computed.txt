@@ -1,0 +1,8 @@
+light tab order: skip-link|Skip to main content  ->  v2-newlook-skip|Skip to content  ->  |KPOne home  ->  v2-newlook-area|Front desk
+  arrows: Down=v2-newlook-area|Pharmacy End=v2-newlook-area|Settings Home=v2-newlook-area|Today Up-from-first(wraps)=v2-newlook-area|Settings
+  Tab from rail goes to: |Me, Demo Ca
+  computed {"selFg":"rgb(244, 244, 246)","selBg":"rgb(17, 17, 20)","unFg":"rgb(17, 17, 20)","y":109,"x":33}
+dark tab order: skip-link|Skip to main content  ->  v2-newlook-skip|Skip to content  ->  |KPOne home  ->  v2-newlook-area|Front desk
+  arrows: Down=v2-newlook-area|Pharmacy End=v2-newlook-area|Settings Home=v2-newlook-area|Today Up-from-first(wraps)=v2-newlook-area|Settings
+  Tab from rail goes to: |Me, Demo Ca
+  computed {"selFg":"rgb(15, 15, 18)","selBg":"rgb(244, 244, 246)","unFg":"rgb(244, 244, 246)","y":109,"x":33}
